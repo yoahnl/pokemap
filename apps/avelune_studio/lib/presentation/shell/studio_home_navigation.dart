@@ -1,24 +1,28 @@
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
 
-typedef StudioHomeMap = ({String id, String name});
+import '../../features/home/application/home_navigation_host.dart';
+
+export '../../features/home/application/home_navigation_host.dart'
+    show StudioHomeMap;
 
 class StudioHomeNavigation extends ChangeNotifier {
   final search = TextEditingController();
   final searchFocus = FocusNode();
+  final _host = HomeNavigationHost();
   bool visible = true;
-  bool canTest = false;
-  List<StudioHomeMap> maps = const [];
-  ProjectManifest? mapLibrary;
-  ProjectNewGameConfig? newGame;
   Widget Function(String)? mapPreviewBuilder;
-  Future<bool> Function()? allowSwitch;
-  VoidCallback? onOptimizeLibrary;
-  bool optimizingLibrary = false;
-  String? libraryOptimizationError;
-  void Function(String, String?)? onNavigate;
-  (String, String?)? _pending;
   bool _disposed = false;
+
+  bool get canTest => _host.canTest;
+  List<StudioHomeMap> get maps => _host.maps;
+  ProjectManifest? get mapLibrary => _host.mapLibrary;
+  ProjectNewGameConfig? get newGame => _host.newGame;
+  Future<bool> Function()? get allowSwitch => _host.allowSwitch;
+  set allowSwitch(Future<bool> Function()? guard) => _host.allowSwitch = guard;
+  VoidCallback? get onOptimizeLibrary => _host.onOptimizeLibrary;
+  bool get optimizingLibrary => _host.optimizingLibrary;
+  String? get libraryOptimizationError => _host.libraryOptimizationError;
 
   void updateLibraryOptimization({
     VoidCallback? onOptimize,
@@ -26,9 +30,11 @@ class StudioHomeNavigation extends ChangeNotifier {
     String? error,
   }) {
     if (_disposed) return;
-    onOptimizeLibrary = onOptimize;
-    optimizingLibrary = busy;
-    libraryOptimizationError = error;
+    _host.updateLibraryOptimization(
+      onOptimize: onOptimize,
+      busy: busy,
+      error: error,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_disposed) notifyListeners();
     });
@@ -53,11 +59,7 @@ class StudioHomeNavigation extends ChangeNotifier {
 
   void navigate(String destination, [String? mapId]) {
     visible = false;
-    if (onNavigate == null) {
-      _pending = (destination, mapId);
-    } else {
-      onNavigate!(destination, mapId);
-    }
+    _host.navigate(destination, mapId);
     notifyListeners();
   }
 
@@ -71,31 +73,21 @@ class StudioHomeNavigation extends ChangeNotifier {
     required Future<bool> Function() guard,
   }) {
     if (_disposed) return;
-    maps = availableMaps;
-    mapLibrary = library;
-    newGame = startConfig ?? library?.newGame;
-    canTest = testAvailable;
     mapPreviewBuilder = previewBuilder;
-    onNavigate = navigate;
-    allowSwitch = guard;
-    final pending = _pending;
-    _pending = null;
-    if (pending != null) navigate(pending.$1, pending.$2);
+    _host.publish(
+      availableMaps: availableMaps,
+      library: library,
+      startConfig: startConfig,
+      testAvailable: testAvailable,
+      navigate: navigate,
+      guard: guard,
+    );
     notifyListeners();
   }
 
   void reset() {
-    onOptimizeLibrary = null;
-    optimizingLibrary = false;
-    libraryOptimizationError = null;
-    maps = const [];
-    mapLibrary = null;
-    newGame = null;
-    canTest = false;
     mapPreviewBuilder = null;
-    onNavigate = null;
-    allowSwitch = null;
-    _pending = null;
+    _host.reset();
   }
 
   @override

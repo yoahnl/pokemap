@@ -40,31 +40,13 @@ extension CinematicInspectorStep on CinematicInspector {
         alwaysCommit: true,
         value: '${step.durationMs}',
         tryCommit: (text) {
-          if (controller.active?.asset.id != asset.id) return false;
-          final duration = int.tryParse(text);
-          const jumpDurationError =
-              'La durée du saut doit être comprise entre 200 et 30000 ms.';
-          if (isCinematicTimelineActorJumpStep(step) &&
-              (duration == null ||
-                  duration < cinematicTimelineActorMoveMinimumDurationMs ||
-                  duration > cinematicTimelineMaximumDurationMs)) {
-            view.error = jumpDurationError;
-            changed();
-            return false;
-          }
-          if (duration == null || duration <= 0) {
-            view.error = 'Saisissez une durée entière strictement positive.';
-            changed();
-            return false;
-          }
-          final accepted = controller.updateDuration(step.id, duration);
-          if (accepted &&
-              (view.error ==
-                      'Saisissez une durée entière strictement positive.' ||
-                  view.error == jumpDurationError)) {
-            view.error = null;
-            changed();
-          }
+          final accepted = controller.commitStepDuration(
+            asset.id,
+            view.inputs,
+            step,
+            text,
+          );
+          if (controller.active?.asset.id == asset.id) changed();
           return accepted;
         },
       ),
@@ -319,30 +301,13 @@ extension CinematicInspectorStep on CinematicInspector {
           alwaysCommit: true,
           value: '${cinematicTimelineActorJumpHeightCellsOf(step)}',
           tryCommit: (text) {
-            const error =
-                'La hauteur doit être supérieure à 0 et au plus égale à 4 cases.';
-            final height = double.tryParse(text);
-            if (height == null ||
-                !height.isFinite ||
-                height <= 0 ||
-                height > cinematicTimelineActorJumpMaximumHeightCells) {
-              view.error = error;
-              changed();
-              return false;
-            }
-            final accepted = _edit(
-              asset,
-              (a) => updateCinematicTimelineActorJumpStep(
-                _project(a),
-                cinematicId: a.id,
-                stepId: step.id,
-                heightCells: height,
-              ).cinematic,
+            final accepted = controller.commitJumpHeight(
+              asset.id,
+              view.inputs,
+              step,
+              text,
             );
-            if (accepted && view.error == error) {
-              view.error = null;
-              changed();
-            }
+            changed();
             return accepted;
           },
         ),

@@ -289,17 +289,15 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                                                     ? null
                                                     : (
                                                         event,
-                                                      ) => owner.editPoint(
-                                                        u:
-                                                            event
-                                                                .localPosition
-                                                                .dx /
-                                                            fit.width,
-                                                        v:
-                                                            event
-                                                                .localPosition
-                                                                .dy /
-                                                            fit.height,
+                                                      ) => owner.placePoint(
+                                                        dx: event
+                                                            .localPosition
+                                                            .dx,
+                                                        dy: event
+                                                            .localPosition
+                                                            .dy,
+                                                        width: fit.width,
+                                                        height: fit.height,
                                                       ),
                                                 child: Stack(
                                                   clipBehavior: Clip.none,
@@ -363,17 +361,17 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                                                                             .id) {
                                                                       return;
                                                                     }
-                                                                    owner.editPoint(
-                                                                      u:
-                                                                          selected!
-                                                                              .u +
-                                                                          event.delta.dx /
-                                                                              fit.width,
-                                                                      v:
-                                                                          selected
-                                                                              .v +
-                                                                          event.delta.dy /
-                                                                              fit.height,
+                                                                    owner.dragPoint(
+                                                                      dx: event
+                                                                          .delta
+                                                                          .dx,
+                                                                      dy: event
+                                                                          .delta
+                                                                          .dy,
+                                                                      width: fit
+                                                                          .width,
+                                                                      height: fit
+                                                                          .height,
                                                                     );
                                                                   },
                                                             child: StudioTool(

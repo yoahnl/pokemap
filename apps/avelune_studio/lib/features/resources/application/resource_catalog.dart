@@ -111,6 +111,34 @@ class ResourceCatalogFilterState {
     usableOnly = value.usableOnly;
   }
 
+  int activeFilterCount({
+    bool forMapPicker = false,
+    bool showType = false,
+    bool categorySelected = false,
+  }) =>
+      (scope == ResourceCatalogScope.all ? 0 : 1) +
+      (!forMapPicker && usage != ResourceCatalogUsage.all ? 1 : 0) +
+      (showComponents ? 1 : 0) +
+      (context == ResourceCatalogContext.all ? 0 : 1) +
+      (showType && typeKind.isNotEmpty ? 1 : 0) +
+      (categorySelected ? 1 : 0);
+
+  void resetDraftFields() {
+    context = ResourceCatalogContext.all;
+    scope = ResourceCatalogScope.all;
+    usage = ResourceCatalogUsage.all;
+    showComponents = false;
+    typeKind = '';
+  }
+
+  void applyDraft(ResourceCatalogFilterState draft, {bool showType = false}) {
+    context = draft.context;
+    scope = draft.scope;
+    usage = draft.usage;
+    showComponents = draft.showComponents;
+    if (showType) typeKind = draft.typeKind;
+  }
+
   void reset() {
     familyId = '';
     scope = ResourceCatalogScope.all;
@@ -595,4 +623,36 @@ Map<String, String> resourceCategories(
     for (final id in ids) id: labels[id] ?? id,
     if (present.contains('')) uncategorizedResourceCategory: 'Sans catégorie',
   };
+}
+
+Set<String> borderPieceIdentities(BorderBlueprintRecord border) => {
+  for (final primitive in border.draft.definition.primitives)
+    ?(primitive.sourceModelId == null
+        ? primitive.sourceElementId == null
+              ? null
+              : 'element:${primitive.sourceElementId}'
+        : 'model3d:${primitive.sourceModelId}'),
+  for (final primitive
+      in border.latestPublished?.definition.primitives ??
+          const <BorderPublishedPrimitive>[])
+    ?(primitive.sourceModelId == null
+        ? primitive.sourceElementId == null
+              ? null
+              : 'element:${primitive.sourceElementId}'
+        : 'model3d:${primitive.sourceModelId}'),
+};
+
+List<String> owningBorderNames(ProjectManifest project, ResourceItem item) {
+  final identity = item.model3d != null
+      ? 'model3d:${item.id}'
+      : item.element != null
+      ? 'element:${item.id}'
+      : null;
+  if (identity == null) return const [];
+  return [
+    for (final border in project.borderCatalog.records)
+      if (!border.isDeprecated &&
+          borderPieceIdentities(border).contains(identity))
+        border.draft.definition.name,
+  ];
 }

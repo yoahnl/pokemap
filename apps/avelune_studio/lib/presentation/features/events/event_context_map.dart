@@ -48,8 +48,13 @@ class _EventContextMapState extends State<EventContextMap> {
   double get cellHeight =>
       widget.project.settings.tileHeight *
       widget.project.settings.displayScale.toDouble();
-  bool _selectable(NarrativeEventSourceRef source) =>
-      widget.selectableSources?.contains(source) ?? true;
+  EventSourcePicking get _picking => EventSourcePicking(
+    map: widget.map,
+    project: widget.project,
+    source: widget.source,
+    chooseKind: widget.chooseKind,
+    selectableSources: widget.selectableSources,
+  );
   void _zoom(double factor) {
     final current = widget.transform.value.getColumn(0).length;
     final target = (current * factor).clamp(.15, 8.0);
@@ -60,11 +65,8 @@ class _EventContextMapState extends State<EventContextMap> {
   @override
   Widget build(BuildContext context) {
     final map = widget.map;
-    final sourceKind = widget.chooseKind ?? widget.source?.kind;
-    if (sourceKind == NarrativeEventSourceKind.triggerBump &&
-        (widget.project.settings.dimension != ProjectDimension.twoD ||
-            map.spatialScene != null ||
-            map.version == ProjectVersion.v9)) {
+    final picking = _picking;
+    if (picking.triggerContactNeedsFlatMap) {
       return const Text('Le contact de zone nécessite une carte 2D.');
     }
     if (map.spatialScene != null) {
@@ -132,13 +134,7 @@ class _EventContextMapState extends State<EventContextMap> {
           }
         }
         final targets = <(String, Rect, NarrativeEventSourceRef)>[
-          for (final target in EventSourcePicking(
-            map: map,
-            project: widget.project,
-            source: widget.source,
-            chooseKind: widget.chooseKind,
-            selectableSources: widget.selectableSources,
-          ).flatTargets)
+          for (final target in picking.flatTargets)
             (
               target.label,
               Rect.fromLTWH(
@@ -173,12 +169,13 @@ class _EventContextMapState extends State<EventContextMap> {
                         panEnabled: widget.chooseKind == null || _pan,
                         child: GestureDetector(
                           onTapUp:
-                              widget.chooseKind ==
-                                      NarrativeEventSourceKind.mapEnter &&
-                                  !_pan &&
-                                  _selectable(
-                                    NarrativeEventSourceRef.mapEnter(map.id),
-                                  )
+                              !_pan &&
+                                  picking.accept(
+                                        NarrativeEventSourceRef.mapEnter(
+                                          map.id,
+                                        ),
+                                      ) !=
+                                      null
                               ? (_) => widget.onChoose?.call(
                                   NarrativeEventSourceRef.mapEnter(map.id),
                                 )

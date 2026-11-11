@@ -116,11 +116,11 @@ Widget _buildCombatVariantCondition(
           label: 'Valeur attendue',
           value: '$value',
           options: const {'true': 'Activé', 'false': 'Désactivé'},
-          onChanged: (raw) => change(
-            ScriptConditionFactory.factEquals(
-              id!,
-              NarrativeValue.boolean(raw == 'true'),
-            ),
+          onChanged: (raw) => combat.editVariantConditionValue(
+            variant.id,
+            position,
+            fact!,
+            raw,
           ),
         )
       else if (fact != null)
@@ -131,27 +131,12 @@ Widget _buildCombatVariantCondition(
               ? combat.numericInputs[numericKey] ?? '$value'
               : '$value',
           errorText: combat.fieldErrors[numericKey],
-          onChanged: (raw) {
-            if (fact.valueKind == NarrativeValueKind.integer) {
-              combat.editNumber(
-                numericKey,
-                raw,
-                (value) => change(
-                  ScriptConditionFactory.factEquals(
-                    id!,
-                    NarrativeValue.integer(value),
-                  ),
-                ),
-              );
-            } else {
-              change(
-                ScriptConditionFactory.factEquals(
-                  id!,
-                  NarrativeValue.string(raw),
-                ),
-              );
-            }
-          },
+          onChanged: (raw) => combat.editVariantConditionValue(
+            variant.id,
+            position,
+            fact,
+            raw,
+          ),
         )
       else
         const Text(

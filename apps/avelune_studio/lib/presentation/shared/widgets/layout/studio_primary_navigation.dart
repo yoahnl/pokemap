@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:avelune_design_system/presentation/shared/widgets/layout/studio_navigation_entry.dart';
 
+import '../../../../features/shell/application/studio_primary_destinations.dart';
 import '../../../theme/studio_tokens.dart';
 
 class StudioPrimaryNavigation extends StatelessWidget {
@@ -23,24 +24,20 @@ class StudioPrimaryNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final selectedDestination = active == 'gameExport'
-        ? 'home'
-        : active == 'scene' ||
-              active == 'progression' ||
-              active == 'events' ||
-              active == 'dialogue' ||
-              active == 'cinematic'
-        ? 'story'
-        : active;
+    final selectedDestination = studioSelectedDestination(active);
+    const icons = {
+      'home': Icons.home_outlined,
+      'map': Icons.map_outlined,
+      'regionalMap': Icons.public,
+      'resources': Icons.grid_view_outlined,
+      'story': Icons.menu_book_outlined,
+      'pokemon': Icons.catching_pokemon_outlined,
+      'projectSettings': Icons.tune,
+      'test': Icons.play_circle_outline,
+    };
     final items = [
-      ('Accueil', Icons.home_outlined, 'home'),
-      ('Carte', Icons.map_outlined, 'map'),
-      ('Carte régionale', Icons.public, 'regionalMap'),
-      ('Ressources', Icons.grid_view_outlined, 'resources'),
-      ('Histoire', Icons.menu_book_outlined, 'story'),
-      ('Pokémon', Icons.catching_pokemon_outlined, 'pokemon'),
-      ('Réglages du projet', Icons.tune, 'projectSettings'),
-      ('Test du jeu', Icons.play_circle_outline, 'test'),
+      for (final destination in studioPrimaryDestinations)
+        (destination.label, icons[destination.id]!, destination.id),
     ];
     return SizedBox(
       width: compact ? 72 : 184,
@@ -64,12 +61,18 @@ class StudioPrimaryNavigation extends StatelessWidget {
                           icon: item.$2,
                           compact: compact,
                           selected: item.$3 == selectedDestination,
-                          unavailableReason: busy
-                              ? 'indisponible pendant l’opération en cours'
-                              : item.$3 == 'test' && !canTest
-                              ? 'ouvrez une carte du projet pour lancer un test'
-                              : null,
-                          onTap: busy || (item.$3 == 'test' && !canTest)
+                          unavailableReason: studioDestinationUnavailableReason(
+                            item.$3,
+                            busy: busy,
+                            canTest: canTest,
+                          ),
+                          onTap:
+                              studioDestinationUnavailableReason(
+                                    item.$3,
+                                    busy: busy,
+                                    canTest: canTest,
+                                  ) !=
+                                  null
                               ? null
                               : item.$3 == active
                               ? () {}

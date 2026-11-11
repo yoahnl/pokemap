@@ -2,6 +2,18 @@ import 'package:map_core/map_core_domain.dart';
 
 enum EventConditionInputKind { fact, event, instance, periodicReward }
 
+bool isEventConditionEditable(NarrativeEventCondition condition) =>
+    condition.rewardReference == null;
+
+List<EventConditionInputKind> eventConditionCreationKinds({
+  String? mapId,
+  String? entityId,
+}) => [
+  EventConditionInputKind.fact,
+  EventConditionInputKind.event,
+  if (mapId != null && entityId != null) EventConditionInputKind.instance,
+];
+
 class EventConditionDraft {
   EventConditionDraft({
     required this.facts,

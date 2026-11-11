@@ -4,6 +4,9 @@ import 'package:map_core/map_core.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
+import 'package:avelune_studio/features/regional_map/application/regional_map_choices.dart';
+
+export 'package:avelune_studio/features/regional_map/application/regional_map_choices.dart' show regionalMapChoiceLabel;
 
 typedef RegionalMapLink = ({String name, String mapId});
 
@@ -18,9 +21,7 @@ Future<RegionalMapLink?> askRegionalMapLink(
 }) {
   final folders = mapLibraryFolderLabels(project.groups);
   var name = '';
-  String? mapId = project.maps.any((map) => map.id == suggestedMapId)
-      ? suggestedMapId
-      : null;
+  String? mapId = regionalSuggestedMapId(project, suggestedMapId);
   return showDialog<RegionalMapLink>(
     context: context,
     builder: (context) => StatefulBuilder(
@@ -71,14 +72,4 @@ Future<RegionalMapLink?> askRegionalMapLink(
       ),
     ),
   );
-}
-
-String regionalMapChoiceLabel(
-  ProjectMapEntry map,
-  Map<String, String> folders,
-) {
-  final folder = folders[map.groupId];
-  return map.groupId == null || folder == null
-      ? map.name
-      : '${map.name} · $folder';
 }

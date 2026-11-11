@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/cinematics/application/cinematic_preview_transport.dart';
+import '../../../features/cinematics/application/cinematic_timeline_rules.dart';
 import '../../shared/widgets/layout/studio_graph_card.dart';
 import '../../shared/widgets/layout/studio_timeline_clip.dart';
 import 'cinematic_labels.dart';
@@ -225,12 +226,17 @@ class _CinematicTimelineEditorState extends State<CinematicTimelineEditor> {
                                       ),
                                       behavior: HitTestBehavior.opaque,
                                       onTapDown: (e) => widget.transport.seek(
-                                        (e.localPosition.dx / scale).round(),
+                                        cinematicTimelineTimeAt(
+                                          e.localPosition.dx,
+                                          scale,
+                                        ),
                                       ),
                                       onHorizontalDragUpdate: (e) =>
                                           widget.transport.seek(
-                                            (e.localPosition.dx / scale)
-                                                .round(),
+                                            cinematicTimelineTimeAt(
+                                              e.localPosition.dx,
+                                              scale,
+                                            ),
                                           ),
                                     ),
                                   ),

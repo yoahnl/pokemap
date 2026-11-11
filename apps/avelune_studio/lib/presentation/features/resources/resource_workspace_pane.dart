@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:avelune_studio/features/resources/application/resource_terrain_example.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
@@ -112,7 +113,11 @@ class ResourceWorkspacePane extends StatelessWidget {
         frameBuilder: (frame, size) => n.visuals.tileThumbnail(
           TileLayerPaletteEntry(
             tilesetId: tileset!.id,
-            localTileId: frame.row * source!.columns + frame.column,
+            localTileId: regularAtlasLocalTileId(
+              row: frame.row,
+              column: frame.column,
+              source: source!,
+            ),
           ),
           size: size,
         ),

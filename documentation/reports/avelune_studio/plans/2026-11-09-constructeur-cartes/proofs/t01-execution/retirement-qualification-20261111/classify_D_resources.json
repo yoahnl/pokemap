@@ -1,0 +1,3691 @@
+{
+ "area": "D_resources",
+ "testCases": [
+  {
+   "file": "apps/avelune_studio/test/project_visuals/model_light_workshop_test.dart",
+   "test": "color wheel and pastel presets update draft values without persistence",
+   "harness": [],
+   "legacySymbols": [
+    "StudioColorPicker (presentation/shared/widgets/inputs/studio_color_picker.dart)"
+   ],
+   "asserts": "Drag on the colour wheel fires onChangeStart/onChanged/onChangeEnd once and a preset swatch sets the exact firefly colour; no persistence involved.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/project_visuals/model_light_workshop_test.dart",
+   "test": "lamp preview edits stay local until save and preserve cycle proximity and flame crackle",
+   "harness": [],
+   "legacySymbols": [],
+   "asserts": "ModelLightDraft edits are mirrored to ModelPreviewController without any publish call; move() syncs back the preview position; save publishes once with position, colour cycle, proximity and flame crackle volume preserved and the source model untouched.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/model_light_draft.dart",
+     "symbol": "ModelLightDraft"
+    },
+    {
+     "path": "packages/map_render_3d/lib/map_render_3d.dart",
+     "symbol": "ModelPreviewController.setLight"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "No non-legacy test checks the draft/preview sync, move() reconciliation or preservation of colourCycle/proximity/flame crackle on save. day_night_controls_test only saves enabled/disabled with radius. Test body has no UI at all: it sits in a blast file only because the same file imports StudioColorPicker; rewritable as-is in a new file (pure Dart, no fixture)."
+  },
+  {
+   "file": "apps/avelune_studio/test/project_visuals/model_light_workshop_test.dart",
+   "test": "invalid light numbers and bounds are refused without publishing",
+   "harness": [],
+   "legacySymbols": [],
+   "asserts": "NaN, out-of-range radius and canSave()==false make ModelLightDraft.save return false, set a \"nombres valides\" error and never call publish.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/model_light_draft.dart",
+     "symbol": "ModelLightDraft"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "model_definition_lifecycle_test covers only the closed-draft case; invalid-number and bounds validation of the light draft is not asserted anywhere else. Rewritable trivially (pure Dart, no UI, no disk)."
+  },
+  {
+   "file": "apps/avelune_studio/test/project_visuals/model_light_workshop_test.dart",
+   "test": "light persistence failures preserve the editable settings and disabling clears the definition",
+   "harness": [],
+   "legacySymbols": [],
+   "asserts": "A throwing publish keeps flame settings and error, resets saving; disabling publishes null; a disposed draft refuses to publish.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/model_light_draft.dart",
+     "symbol": "ModelLightDraft"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentation/day_night_controls_test.dart",
+     "test": "a light draft saves and removes a local emitter"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/model_definition_lifecycle_test.dart",
+     "test": "a closed light draft refuses publication before invoking its callback"
+    }
+   ],
+   "gap": "Covered: enable then disable publishes null; closed draft refuses to publish. Missing: failure path keeps editable settings (flameCrackleVolume) and exposes the error. Rewritable pure Dart."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart",
+   "test": "source off on off invalidates plans and confirms only off",
+   "harness": [
+    "uwu5_source_removal_dialog_support.dart (RemovalDialogHarness, scripted RemovalAnalysis)"
+   ],
+   "legacySymbols": [
+    "ResourceRemovalDialog",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Toggling the source checkbox off/on/off re-analyses each time, disarms the confirmation and locks submit until the latest plan is ready; the applied preparation is the last one (removeSource=false, changedPaths [project.json]).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController.selectRemoveSource/prepare/confirm/apply"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_definition_sessions_test.dart",
+     "test": "removal reanalysis clears confirmation and checks source choice"
+    }
+   ],
+   "gap": "Covered: re-analysis on toggle clears preparation/confirmation, calls prepareOperation with the new choice. Missing: confirm after the final off analysis then apply publishes that exact preparation (parameters removeSource=false, only project.json) and earlier plans cannot be applied. Rewritable on ResourceRemovalController with a fake prepareOperation (pattern of application/resource_definition_sessions_test.dart; no UI, no disk)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart",
+   "test": "confirmed source removal applies the exact analyzed plan",
+   "harness": [
+    "uwu5_source_removal_dialog_support.dart (RemovalDialogHarness, scripted RemovalAnalysis)"
+   ],
+   "legacySymbols": [
+    "ResourceRemovalDialog",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "After enabling the source removal and receiving the plan, submit stays locked until confirmation; publish receives the very same ResourceMutationPreparation instance (removeSource=true, includes assets/planche.png).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController.selectRemoveSource/prepare/confirm/apply"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_definition_sessions_test.dart",
+     "test": "removal requires prepared confirmation and clean owners"
+    }
+   ],
+   "gap": "Covered: publish only after prepare+confirm, once. Missing: assertion that publish receives the same analysed instance with removeSource=true. Rewritable on the controller with a fake publish (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart",
+   "test": "$mode disarms removal and allows explicit source retention  [mode in {erreur, capacité perdue}]",
+   "harness": [
+    "uwu5_source_removal_dialog_support.dart (RemovalDialogHarness, scripted RemovalAnalysis)"
+   ],
+   "legacySymbols": [
+    "ResourceRemovalDialog",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "When the re-analysis after ticking the source option fails or reports sourceRemovalSupported=false, the removal is disarmed (confirm unchecked and disabled, submit locked) while the user can still untick the source option, re-analyse and apply definition-only removal (removeSource=false).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController.selectRemoveSource/prepare/confirm/apply"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "No test covers a failing/capability-lost analysis after selecting the source option (sourceRemovalSupported reset to false, selectRemoveSource(false) still allowed because removeSource is true, then apply with removeSource=false). Rewritable on ResourceRemovalController with a fake prepareOperation that throws / returns sourceRemovalSupported=false (no UI, no disk)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart",
+   "test": "cancel accepts no mutation and ignores a late analysis",
+   "harness": [
+    "uwu5_source_removal_dialog_support.dart (RemovalDialogHarness, scripted RemovalAnalysis)"
+   ],
+   "legacySymbols": [
+    "ResourceRemovalDialog",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Cancelling while an analysis is pending never publishes and a late analysis completion after close throws nothing.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController.selectRemoveSource/prepare/confirm/apply"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_definition_sessions_test.dart",
+     "test": "closing removal ignores late preparation and waits for settling"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart",
+   "test": "capacity $capacity never permits choosing a source removal  [capacity in {false, null}]",
+   "harness": [
+    "uwu5_source_removal_dialog_support.dart (RemovalDialogHarness, scripted RemovalAnalysis)"
+   ],
+   "legacySymbols": [
+    "ResourceRemovalDialog",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "With sourceRemovalSupported false or absent the source checkbox stays unchecked and disabled, a note says the source file stays intact; Tab/Escape leave without publishing.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController.selectRemoveSource/prepare/confirm/apply"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "selectRemoveSource() no-op when !sourceRemovalSupported (impact flag false or missing -> false) is not asserted; the only controller test uses sourceRemovalSupported=true. Rewritable on the controller with a fake prepareOperation (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart",
+   "test": "content-addressed source removal explicitly retains blob file",
+   "harness": [
+    "uwu5_source_removal_dialog_support.dart (RemovalDialogHarness, scripted RemovalAnalysis)"
+   ],
+   "legacySymbols": [
+    "ResourceRemovalDialog",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "With a synthetic plan whose logicalFileRemoved=false the dialog shows the content-addressed notice and the plan (sourceRemoved=true, no assets/planche.png) is applied.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": "Plan content is scripted by the harness; the real behaviour (blob never physically removed) is proven in packages/map_authoring/test/domains/assets/resource_source_actions_test.dart \"content-addressed source withdrawal never removes its physical blob\"."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_test.dart",
+   "test": "source removal controls remain reachable at $size  [size in 1536x1024, 1280x800, 1024x640 at scale 1/1/1.5]",
+   "harness": [
+    "uwu5_source_removal_dialog_support.dart (RemovalDialogHarness, scripted RemovalAnalysis)"
+   ],
+   "legacySymbols": [
+    "ResourceRemovalDialog",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Layout/reachability of the source-removal controls at three window sizes and enlarged text, then a normal apply.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart",
+   "test": "cancelling the prepared source withdrawal writes nothing",
+   "harness": [
+    "uwu4_resource_host.dart (openUwU4ResourceHost)",
+    "UwUResourceHost.action/tap/family/reopen"
+   ],
+   "legacySymbols": [
+    "(transitive) ResourceWorkspacePane via UwUResourceHost",
+    "ResourceRemovalDialog"
+   ],
+   "asserts": "After preparing tileset.remove with the source option, cancelling leaves project.json, assets catalog and the PNG byte-identical and the tileset in the project.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_authoring/lib/src/domains/assets/resource_source_actions.dart",
+     "symbol": "ResourceSourceActions (tileset.remove / removeSource)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "ResourceNavigation.prepareOperation/applyPrepared"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart",
+     "test": "cancelled removal releases the prepared mutation"
+    },
+    {
+     "file": "packages/map_authoring/test/domains/assets/resource_source_actions_test.dart",
+     "test": "source option removes logical record and file while retaining historical blob"
+    }
+   ],
+   "gap": "Covered for element.delete (prepared plan released, bytes unchanged) and for the planned changeSet of tileset.remove. Missing: tileset.remove with removeSource=true prepared through LocalResourceAdapter, then cancelled, with project.json/asset catalog/PNG bytes compared. Rewritable on ResourceReplacementFixture/ResourceFixture + ResourceNavigation (pattern of resource_definition_workflow_test; no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart",
+   "test": "source removal can return to definition-only after analysis",
+   "harness": [
+    "uwu4_resource_host.dart (openUwU4ResourceHost)",
+    "UwUResourceHost.action/tap/family/reopen"
+   ],
+   "legacySymbols": [
+    "(transitive) ResourceWorkspacePane via UwUResourceHost",
+    "ResourceRemovalDialog"
+   ],
+   "asserts": "Ticking then unticking the source option returns to definition-only removal; confirming deletes only the tileset definition and leaves source file and asset catalog byte-identical.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_authoring/lib/src/domains/assets/resource_source_actions.dart",
+     "symbol": "ResourceSourceActions (tileset.remove / removeSource)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "ResourceNavigation.prepareOperation/applyPrepared"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_definition_sessions_test.dart",
+     "test": "removal reanalysis clears confirmation and checks source choice"
+    },
+    {
+     "file": "packages/map_authoring/test/domains/assets/resource_source_actions_test.dart",
+     "test": "definition-only removal permits independent shared source and preserves its bytes"
+    }
+   ],
+   "gap": "Domain plan and controller re-analysis are covered. Missing: real application on disk of a definition-only tileset removal (tilesets empty, source PNG and assets/.pokemap-assets.json unchanged) through LocalResourceAdapter. Rewritable on ResourceFixture + ResourceNavigation.applyPrepared (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu5_source_removal_host_test.dart",
+   "test": "confirmed source removal applies the announced logical effects",
+   "harness": [
+    "uwu4_resource_host.dart (openUwU4ResourceHost)",
+    "UwUResourceHost.action/tap/family/reopen"
+   ],
+   "legacySymbols": [
+    "(transitive) ResourceWorkspacePane via UwUResourceHost",
+    "ResourceRemovalDialog"
+   ],
+   "asserts": "Applying removeSource=true empties the asset catalog records and removes the physical file unless it is content-addressed (blob store), matching the announced message.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_authoring/lib/src/domains/assets/resource_source_actions.dart",
+     "symbol": "ResourceSourceActions (tileset.remove / removeSource)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "ResourceNavigation.prepareOperation/applyPrepared"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_authoring/test/domains/assets/resource_source_actions_test.dart",
+     "test": "content-addressed source withdrawal never removes its physical blob"
+    },
+    {
+     "file": "packages/map_authoring/test/domains/assets/resource_source_transaction_test.dart",
+     "test": "logical source removal is durable and retains blob recoverability"
+    }
+   ],
+   "gap": "Covered at the authoring-transaction level (logical removal durable, blob retained, changeSet content). Missing: through the Studio adapter on disk: catalog records empty and source.exists == addressed. Rewritable on ResourceFixture (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/uwu6_source_confirmation_host_test.dart",
+   "test": "source OFF ON OFF ON remains explicit, apply=$apply  [apply in {false, true}]",
+   "harness": [
+    "uwu4_resource_host.dart"
+   ],
+   "legacySymbols": [
+    "StudioButton",
+    "(transitive) ResourceRemovalDialog"
+   ],
+   "asserts": "Four successive source-option toggles each reset the confirmation and lock submit without touching catalog or PNG; final ON then either applies (records empty, blob retained if addressed) or cancels with everything byte-identical.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_authoring/lib/src/domains/assets/resource_source_actions.dart",
+     "symbol": "ResourceSourceActions (tileset.remove / removeSource)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "ResourceNavigation.prepareOperation/applyPrepared"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_definition_sessions_test.dart",
+     "test": "removal reanalysis clears confirmation and checks source choice"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/resource_definition_sessions_test.dart",
+     "test": "removal requires prepared confirmation and clean owners"
+    }
+   ],
+   "gap": "Same gap as uwu5_source_removal_host_test: no disk-level application/cancellation of tileset.remove with removeSource via the Studio adapter; controller part (confirmation reset on each toggle) only tested for one toggle. Rewritable on ResourceFixture + ResourceRemovalController (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart",
+   "test": "decor duplicate action opens independent definition dialog",
+   "harness": [
+    "uwu4_resource_host.dart",
+    "resource_replacement_fixture.dart",
+    "run_resource_replacement.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "StudioButton",
+    "(transitive) ResourceDuplicateDialog, ResourceWorkspacePane"
+   ],
+   "asserts": "Duplicating a decor publishes an independent copy (new id, same tilesetId and frames, tilesets unchanged), opens the copy as decor draft and returning to the catalogue keeps that same draft.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_definition_lifecycle.dart",
+     "symbol": "runResourceDefinitionDuplicate"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceDuplicateSession (resource_definition_sessions)"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart",
+     "test": "duplicate publishes an independent definition and preserves the map"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart",
+   "test": "used decor removal refuses and leaves definitions untouched",
+   "harness": [
+    "uwu4_resource_host.dart",
+    "resource_replacement_fixture.dart",
+    "run_resource_replacement.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "StudioButton"
+   ],
+   "asserts": "Removing a placed decor definition is refused (save button disabled, refusal shown) and elements/tilesets stay identical after cancelling.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_definition_lifecycle.dart",
+     "symbol": "runResourceDefinitionRemoval"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart",
+     "test": "used removal refuses without changing persisted data and opens usages"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart",
+   "test": "source replacement can be prepared without an active map or placement",
+   "harness": [
+    "resource_replacement_fixture.dart (withMap:false)",
+    "run_resource_replacement.dart (runReplacementForTest)"
+   ],
+   "legacySymbols": [],
+   "asserts": "With no active map, preparing a replacement with identical pixels yields a noChange preview, no error, no dialog left active, and project, map bytes and source bytes unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_replacement_workflow.dart",
+     "symbol": "ResourceReplacementSession / runResourceReplacement"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart",
+     "test": "identical replacement needs no confirmation and preserves exact files"
+    }
+   ],
+   "gap": "Identical replacement with an active map is covered; withMap:false (no active workspace map) appears only in this blast file. The test body has no UI: it is in a blast file only because the file imports StudioButton for other tests. Rewritable as-is (ResourceReplacementFixture on disk)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart",
+   "test": "free definition then planche removal preserve source and map",
+   "harness": [
+    "uwu4_resource_host.dart",
+    "resource_replacement_fixture.dart",
+    "run_resource_replacement.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "StudioButton",
+    "(transitive) ResourceRemovalDialog"
+   ],
+   "asserts": "Removing an unplaced decor definition then its planche (source option off) empties elements then tilesets while the source PNG and the open map document stay unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_authoring/lib/src/domains/assets/resource_source_actions.dart",
+     "symbol": "ResourceSourceActions (tileset.remove / removeSource)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "ResourceNavigation.prepareOperation/applyPrepared"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart",
+     "test": "removal reconciles without replaying publication"
+    },
+    {
+     "file": "packages/map_authoring/test/domains/assets/resource_source_actions_test.dart",
+     "test": "definition-only removal permits independent shared source and preserves its bytes"
+    }
+   ],
+   "gap": "Definition removal (elements 0, map bytes unchanged) is covered at Studio level; planche removal only at authoring plan level. Missing: tileset.remove definition-only applied through ResourceNavigation with open MapWorkspaceController document unchanged. Rewritable on ResourceReplacementFixture (disk, no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart",
+   "test": "duplicate saves only its focused decor owner after explicit choice",
+   "harness": [
+    "uwu4_resource_host.dart",
+    "resource_replacement_fixture.dart",
+    "run_resource_replacement.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "StudioButton",
+    "(transitive) resource_lifecycle_owner_guard AlertDialog"
+   ],
+   "asserts": "Duplicating a decor that has an unsaved draft asks to save it first; cancelling keeps the draft, agreeing saves only that owner and publishes the copy named \"<draft name> — copie\".",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_definition_lifecycle.dart",
+     "symbol": "runResourceDefinitionDuplicate(confirmOwnerSave)"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart",
+     "test": "duplicate saves the owner only after explicit agreement"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart",
+     "test": "duplicate cancellation keeps the focused owner and its saved source"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usage_cancellation_host_test.dart",
+   "test": "cancelled actual analysis publishes no late report and prevents concurrent retry",
+   "harness": [
+    "uwu_resource_host.dart (UwUResourceHost.open, wrapUsages)",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "StudioButton",
+    "(transitive) ResourceUsageDialog, ResourceWorkspacePane"
+   ],
+   "asserts": "Cancelling a retained analysis shows \"annulée · nettoyage\", disables analyse until the port settles, publishes no late report, and analysis is re-enabled after.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_usage_controller.dart",
+     "symbol": "ResourceUsageController"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_usage_controller_test.dart",
+     "test": "cancellation rejects late reports and waits before retrying"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usage_cancellation_host_test.dart",
+   "test": "usage revalidation error refuses real owner navigation",
+   "harness": [
+    "uwu_resource_host.dart (UwUResourceHost.open, wrapUsages)",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "StudioButton",
+    "(transitive) ResourceUsageDialog, ResourceWorkspacePane"
+   ],
+   "asserts": "When revalidating the report fails, opening a usage owner is refused (active map unchanged), the report becomes incomplete with the error message.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_usage_controller.dart",
+     "symbol": "ResourceUsageController"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_usage_controller_test.dart",
+     "test": "failed revision revalidation prevents owner navigation"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usage_cancellation_host_test.dart",
+   "test": "draft notifications invalidate usage report without disk scan",
+   "harness": [
+    "uwu_resource_host.dart (UwUResourceHost.open, wrapUsages)",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "StudioButton",
+    "(transitive) ResourceUsageDialog, ResourceWorkspacePane"
+   ],
+   "asserts": "Map draft notifications mark the report stale and list unsaved owners without re-reading the port (one verification, one analysis).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_usage_controller.dart",
+     "symbol": "ResourceUsageController"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/../../presentation/features/resources/resource_usage_dialog.dart",
+     "symbol": "widget.changes.addListener(controller.invalidate) wiring (legacy)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_usage_controller_test.dart",
+     "test": "invalidation marks the report stale without reading the port"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/resource_usage_controller_test.dart",
+     "test": "analysis reports its revision and reflects unresolved drafts"
+    }
+   ],
+   "gap": "Controller behaviour is covered. The wiring navigation(Listenable) -> controller.invalidate and dirtyOwners() -> navigation.usageDraftOwners lives only in the legacy ResourceUsageDialog and must be rebuilt by the new UI; usageDraftOwners itself (dirty map documents / decor / terrain / environment drafts) is not tested outside blast tests."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usages_host_test.dart",
+   "test": "real usage request reads closed maps without writes and locates exact owner",
+   "harness": [
+    "uwu_resource_host.dart",
+    "uwu4_resource_host.dart",
+    "m2_ui_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "StudioButton",
+    "(transitive) ResourceUsageDialog, ResourceWorkspacePane"
+   ],
+   "asserts": "Analysing usages of a tileset reads the closed map without opening it, leaves project.json untouched, reports the closed-map entry; opening the owner activates that map and the library keeps the selected resource.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/data/local_resource_usage_adapter.dart",
+     "symbol": "LocalResourceUsageAdapter.analyze"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_resources.dart",
+     "symbol": "openResourceUsage (see test)"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/local_resource_usage_adapter_test.dart",
+     "test": "usage reads closed persisted maps without mutation or PNG decoding"
+    },
+    {
+     "file": "apps/avelune_studio/test/map_workspace/workspace_resource_usage_navigation_test.dart",
+     "test": "a map usage opens the closed map and selects its exact instance without writing"
+    },
+    {
+     "file": "apps/avelune_studio/test/map_workspace/workspace_resource_usage_navigation_test.dart",
+     "test": "resource usage opens the exact project resource and keeps the active map"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usages_host_test.dart",
+   "test": "unsaved map usage remains explicit and analysis never saves it",
+   "harness": [
+    "uwu_resource_host.dart",
+    "uwu4_resource_host.dart",
+    "m2_ui_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "StudioButton",
+    "(transitive) ResourceUsageDialog, ResourceWorkspacePane"
+   ],
+   "asserts": "With an unsaved placement, analysis reports \"Analyse incomplète\" and unsaved owners, never saves; document.saved, dirty and undoCount are unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_usage_controller.dart",
+     "symbol": "ResourceUsageController"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "ResourceNavigation.usageDraftOwners"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_usage_controller_test.dart",
+     "test": "analysis reports its revision and reflects unresolved drafts"
+    }
+   ],
+   "gap": "Controller phase incomplete with dirty owners is covered with a fake port. Not covered: ResourceNavigation.usageDraftOwners computed from a real dirty open document, and \"analysis does not save/does not change undo history\" on a real open document. Rewritable on MapWorkspaceController + LocalResourceAdapter fixture (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usages_host_test.dart",
+   "test": "changed owner revision becomes stale before navigation",
+   "harness": [
+    "uwu_resource_host.dart",
+    "uwu4_resource_host.dart",
+    "m2_ui_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "StudioButton",
+    "(transitive) ResourceUsageDialog, ResourceWorkspacePane"
+   ],
+   "asserts": "After a map file is rewritten, opening the usage owner shows \"Résultat périmé\" and keeps the previous active map.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_usage_controller.dart",
+     "symbol": "ResourceUsageController"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/data/local_resource_usage_adapter.dart",
+     "symbol": "LocalResourceUsageAdapter.isCurrent"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_usage_controller_test.dart",
+     "test": "failed revision revalidation prevents owner navigation"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/local_resource_usage_adapter_test.dart",
+     "test": "usage reads closed persisted maps without mutation or PNG decoding"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usages_host_test.dart",
+   "test": "a used decor removal is blocked with its usage count and leads to its usages",
+   "harness": [
+    "uwu_resource_host.dart",
+    "uwu4_resource_host.dart",
+    "m2_ui_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "StudioButton",
+    "(transitive) ResourceUsageDialog, ResourceWorkspacePane",
+    "ResourceRemovalDialog"
+   ],
+   "asserts": "Preparing removal of a placed decor yields a refusal containing \"Ce décor est encore utilisé dans le projet\", \"(1 usage)\" and the \"Voir les usages\" guidance, never a raw VisualLibraryException name; save is disabled; the guidance leads to a not-yet-analysed usage dialog on the right target; project unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/data/local_border_resource_adapter.dart",
+     "symbol": "_removalRefusal (VisualLibraryException -> ResourceFailure message)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController.prepare error"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart",
+     "test": "used removal refuses without changing persisted data and opens usages"
+    },
+    {
+     "file": "packages/map_authoring/test/domains/assets/element_definition_transaction_test.dart",
+     "test": "closed map references refuse deletion through actual JSONL handler"
+    }
+   ],
+   "gap": "Refusal flow and domain code element.references_blocking are covered. The user-facing wording and the usage count built by _removalRefusal (subject Ce décor / Cette planche, \"(1 usage)\" vs \"n usages\", inventory_incomplete variant, no raw exception text) is asserted only here and in the next test. Rewritable: ResourceNavigation.prepareOperation(\"element.delete\") on a ResourceFixture with a placed element and assert the ResourceFailure.message (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usages_host_test.dart",
+   "test": "a planche used by a decor is blocked with the same guidance",
+   "harness": [
+    "uwu_resource_host.dart",
+    "uwu4_resource_host.dart",
+    "m2_ui_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "StudioButton",
+    "(transitive) ResourceUsageDialog, ResourceWorkspacePane",
+    "ResourceRemovalDialog"
+   ],
+   "asserts": "Removing a tileset that still backs a decor is refused with \"Cette planche est encore utilisée dans le projet\" and the usage guidance; tilesets unchanged after cancel.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/data/local_border_resource_adapter.dart",
+     "symbol": "_removalRefusal"
+    },
+    {
+     "path": "packages/map_authoring/lib/src/domains/assets/resource_source_actions.dart",
+     "symbol": "ResourceSourceActions tileset.references_blocking"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_authoring/test/domains/assets/resource_source_actions_test.dart",
+     "test": "unplaced decor blocks tileset removal, without cascade"
+    }
+   ],
+   "gap": "Domain refusal is covered; the Studio message mapping for tileset.references_blocking is not. Rewritable like the previous case (tileset.remove on ResourceFixture)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usages_host_test.dart",
+   "test": "an unused decor removal stays available without refusal",
+   "harness": [
+    "uwu_resource_host.dart",
+    "uwu4_resource_host.dart",
+    "m2_ui_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "StudioButton",
+    "(transitive) ResourceUsageDialog, ResourceWorkspacePane"
+   ],
+   "asserts": "Preparing removal of an unplaced decor shows no refusal and the confirm checkbox is enabled; cancelling leaves the element.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart",
+     "symbol": "ResourceRemovalController"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart",
+     "test": "cancelled removal releases the prepared mutation"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/resource_definition_sessions_test.dart",
+     "test": "removal requires prepared confirmation and clean owners"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usages_host_test.dart",
+   "test": "a removal analysed before the decor was placed is refused at confirmation",
+   "harness": [
+    "uwu_resource_host.dart",
+    "uwu4_resource_host.dart",
+    "m2_ui_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "StudioButton",
+    "(transitive) ResourceUsageDialog, ResourceWorkspacePane"
+   ],
+   "asserts": "A removal prepared when the decor was unused is refused at apply after a map placement was saved meanwhile; error shown, element and map bytes preserved.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "ResourceNavigation.applyPrepared"
+    },
+    {
+     "path": "packages/map_authoring/lib/src/domains/assets/element_definition_management.dart",
+     "symbol": "element.delete apply-time revalidation"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_authoring/test/domains/assets/element_definition_transaction_test.dart",
+     "test": "new closed map dependency after plan blocks confirmed deletion"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_transaction_guard_test.dart",
+     "test": "transaction refuses $scenario after planning at real writer precondition"
+    }
+   ],
+   "gap": "Apply-time revalidation is covered at authoring level with a retained-border dependency, not with a map placement added after analysis; Studio-level surface of the failure (ResourceFailure from applyPrepared, project and map bytes unchanged) is covered only for dirty-owner/disposed scenarios. Rewritable on ResourceFixture + ResourceNavigation (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usage_replacement_host_test.dart",
+   "test": "replacing every usage reviews its scope, repoints each placement and keeps definitions",
+   "harness": [
+    "uwu_resource_host.dart",
+    "uwu4_resource_host.dart",
+    "m2_ui_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "StudioButton",
+    "(transitive) ResourceUsageReplacementDialog"
+   ],
+   "asserts": "Choosing the replacement shows \"2 occurrences sur 1 carte\", submit stays locked until confirmation and map bytes stay untouched; after confirm+save the map file repoints both placements to the replacement keeping positions, definitions unchanged, the open document absorbs the receipt (clean) and can be edited and saved afterwards.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_usage_replacement_controller.dart",
+     "symbol": "ResourceUsageReplacementController"
+    },
+    {
+     "path": "packages/map_authoring/lib/src/domains/assets/resource_usage_replacement_actions.dart",
+     "symbol": "resource.usages.replace"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "_acceptResourceReceipt -> MapWorkspaceController.acceptResourceMaps(replaceContent:true)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_authoring/test/domains/assets/resource_usage_replacement_test.dart",
+     "test": "JSONL reviews the scope, replaces every map occurrence and undoes it"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/resource_usage_replacement_controller_test.dart",
+     "test": "choosing another replacement clears the reviewed confirmation"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_usage_replacement_workflow_test.dart",
+     "test": "a partially published replacement reconciles without replaying it"
+    }
+   ],
+   "gap": "Disk result, scope review and controller confirmation are covered. Not covered: an already open MapWorkspaceController document accepting the replace receipt (placements repointed, dirty=false, entity ids/positions kept, later commit+save succeeds). Rewritable on ResourceReplacementFixture + MapWorkspaceController (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usage_replacement_host_test.dart",
+   "test": "cancelling the reviewed replacement writes nothing",
+   "harness": [
+    "uwu_resource_host.dart",
+    "uwu4_resource_host.dart",
+    "m2_ui_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "StudioButton"
+   ],
+   "asserts": "Cancelling after choosing and confirming the replacement leaves the map file byte-identical and shows no notice.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_usage_replacement_controller.dart",
+     "symbol": "ResourceUsageReplacementController"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_usage_replacement_workflow_test.dart",
+     "test": "cancelling releases the actual prepared replacement without writes"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_usage_replacement_host_test.dart",
+   "test": "an unsaved map draft keeps the replacement unavailable",
+   "harness": [
+    "uwu_resource_host.dart",
+    "uwu4_resource_host.dart",
+    "m2_ui_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "StudioButton"
+   ],
+   "asserts": "With a dirty open map, analysis is incomplete and the \"Remplacer ses usages\" button is disabled; map file unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_usage_controller.dart",
+     "symbol": "ResourceUsageController"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "ResourceNavigation._managementProblem(resource.usages.replace) / usageDraftOwners"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_usage_controller_test.dart",
+     "test": "coverage gaps and changed revisions never become complete"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/resource_usage_controller_test.dart",
+     "test": "analysis reports its revision and reflects unresolved drafts"
+    }
+   ],
+   "gap": "canReplace false on incomplete reports is covered; the navigation guard that refuses prepareOperation(\"resource.usages.replace\") with \"Enregistrez ou annulez les brouillons\" and the real-document usageDraftOwners are not. Rewritable on MapWorkspaceController + ResourceNavigation (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart",
+   "test": "successful replacement clears the previous incompatible candidate error",
+   "harness": [
+    "resource_replacement_fixture.dart",
+    "run_resource_replacement.dart"
+   ],
+   "legacySymbols": [],
+   "asserts": "An incompatible 1x1 candidate is refused with tileset.candidate_geometry (no dialog, no pending receipt, source unchanged); a later compatible candidate publishes, replaces the PNG bytes, keeps tileset id/source, clears navigation.error and leaves the map bytes unchanged and the reopened project equal.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_replacement_workflow.dart",
+     "symbol": "runResourceReplacement / ResourceReplacementSession"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/data/local_resource_preparation.dart",
+     "symbol": "prepareReplacement"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_lifecycle_preparation_test.dart",
+     "test": "wrong dimensions and malformed PNG are refused before staging publication"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart",
+     "test": "replacement confirmation preserves identity and maps and cannot publish twice"
+    }
+   ],
+   "gap": "Refusal of wrong geometry and confirmed replacement are covered separately. Missing: the sequence (refusal then success on the same navigation) asserting navigation.error is cleared, pendingReceipt null and managementDialogActive false. Test body has no UI; it is in a blast file only through the ResourceUsageResults import. Rewritable as-is (ResourceReplacementFixture)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart",
+   "test": "actual import decor owner publication placement closed map usages metadata organization and reopen",
+   "harness": [
+    "resource_administration_host.dart",
+    "m2_ui_fixture.dart",
+    "example_project_assets.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageResults",
+    "(transitive) ResourceWorkspacePane, map canvas"
+   ],
+   "asserts": "Long journey: import an image, open it as decor draft, save decor, place it by tapping the map canvas, save map, reopen the project, analyse closed-map usages, update tileset metadata, create/rename/move/delete resource folders (non-empty refused, empty deleted), verify the PNG, the decor and the independent map file are intact after reopen.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/data/local_resource_adapter.dart",
+     "symbol": "LocalResourceAdapter import/saveElement/mutate"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_containers.dart",
+     "symbol": "containerAction/containerParameters/deleteResourceContainer"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "publishResourceManagementChange"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/local_resource_adapter_test.dart",
+     "test": "PNG imports atomically into durable catalogue with non-square grid"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_organization_host_test.dart",
+     "test": "folder create rename move occupied refusal and empty deletion persist without changing maps"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_management_host_test.dart",
+     "test": "metadata saves and reopens with stable references and image bytes"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/decor_resource_io_test.dart",
+     "test": "fine collision owner saves through the real adapter and reopens independently"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/local_resource_usage_adapter_test.dart",
+     "test": "usage reads closed persisted maps without mutation or PNG decoding"
+    }
+   ],
+   "gap": "Every step has an owner test in isolation. Not proven as a chain: decor placed through the Studio map canvas then saved and reopened identical, and usages found for a placement saved in the same session. The canvas placement part is the map zone (UI/viewport). Rewritable on ResourceFixture/AuthoringResourceFixture (disk) with MapEditingCommands.place instead of tapping the canvas."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/environment_authoring_host_test.dart",
+   "test": "canonical environment owner publication and catalogue use keep canvas gestures and disk reopen",
+   "harness": [
+    "uwu_resource_host.dart",
+    "resource_family_gestures.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "(transitive) ResourceWorkspacePane, MapEditingViewport2D canvas"
+   ],
+   "asserts": "Saving an environment draft publishes the preset to project.json (palette, name), leaves the open map and elements unchanged; using the preset arms the environment tool; rectangle paint and erase gestures mutate the mask (one undo step), preview/apply place elements, map save round-trips the area on disk.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_environment.dart",
+     "symbol": "ResourceNavigation.openEnvironment/saveEnvironment"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/application/environment_editing_commands.dart",
+     "symbol": "EnvironmentEditingCommands.paint/preview/apply"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/environment_scope_test.dart",
+     "test": "shared environment publication preserves three generated zones on two maps"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/environment_editing_commands_test.dart",
+     "test": "(file-level; individual test not verified, unsure)"
+    }
+   ],
+   "gap": "Preset publication, reopen and map immutability are covered (environment_scope_test); mask painting/erasing/preview/apply is covered at command level (environment_editing_commands_test, test names not individually checked here: unsure). Canvas gesture mapping (pointer -> cells) is viewport/UI. Rewritable on EnvironmentScopeFixture + EnvironmentEditingCommands (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/environment_authoring_host_test.dart",
+   "test": "canonical resource editor entry rejects an invalid recipe and retains its draft on library return without writes",
+   "harness": [
+    "uwu_resource_host.dart",
+    "resource_family_gestures.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "(transitive) ResourceWorkspacePane"
+   ],
+   "asserts": "saveEnvironment on an empty recipe throws FormatException (\"Ajoutez au moins un décor\"), project.json is unchanged, the draft and error survive returning to the library and navigation.dirty stays true.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_environment.dart",
+     "symbol": "ResourceNavigation.openEnvironment/saveEnvironment"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/environment_draft.dart",
+     "symbol": "EnvironmentDraft.build"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/environment_draft_test.dart",
+     "test": "invalid numeric input survives and prevents saving old values"
+    }
+   ],
+   "gap": "Draft-level refusal is covered. Not covered: ResourceNavigation.saveEnvironment rethrow + error retention + zero disk write + draft kept in navigation.environments after showLibrary. Rewritable on EnvironmentScopeFixture (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/environment_retirement_continuity_test.dart",
+   "test": "retired environment routes preserve invalid drafts selection and native dirty refusal at $size  [size in 1536x1024, 760x620]",
+   "harness": [
+    "environment_scope_test.dart (EnvironmentScopeFixture)"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "studioTheme"
+   ],
+   "asserts": "Using an environment arms the map tool once (undo +1); an invalid draft (bad weight/spacing/offset) keeps its raw inputs, error and identity across returning to the library, library selection/marks/query are preserved; using the environment again is refused with \"Enregistrez ou annulez\", map and history unchanged; saveDrafts returns false; project and files untouched.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_environment.dart",
+     "symbol": "ResourceNavigation.openEnvironment/saveEnvironment"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/coordination/map_resource_placement.dart",
+     "symbol": "useMapEnvironment"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_saving.dart",
+     "symbol": "ResourceNavigation.saveDrafts"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_resource_placement_test.dart",
+     "test": "an unsaved environment is refused before creating its map zone"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/environment_draft_test.dart",
+     "test": "invalid numeric input survives and prevents saving old values"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_library_context_preservation_test.dart",
+     "test": "a multiple selection stays on the same identities after sort and view changes"
+    }
+   ],
+   "gap": "Dirty-draft refusal of useMapEnvironment and raw invalid input retention are covered. Not covered: navigation.saveEnvironment throwing FormatException while keeping navigation.environments/error, saveDrafts()==false with an invalid environment draft, files unchanged. Rewritable on EnvironmentScopeFixture (no UI; the widget layer only adds layout)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/environment_retirement_continuity_test.dart",
+   "test": "invalid environment close refuses save retains cancel and only explicit discard permits a clean disk reopen",
+   "harness": [
+    "environment_scope_test.dart (EnvironmentScopeFixture)"
+   ],
+   "legacySymbols": [],
+   "asserts": "With an invalid environment draft, closing the project: save choice refuses (draft retained, session open, files unchanged), cancel keeps everything, discard closes without writing; reopening shows no draft, preset unchanged and project/map identical.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow.dart",
+     "symbol": "WorkspaceWorkflow.allowClose/_saveOwnedChanges (resources()?.dirty)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/project_session/application/project_session_open_controller.dart",
+     "symbol": "ProjectSessionOpenController.close"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "No non-blast test closes a project with a non-null ResourceNavigation holding an invalid environment draft (workspace_workflow_test and workspace_publication_workflow_test pass resources: () => null). Test body has no widget: it is in a blast file only through same-file imports; rewritable as-is (move out of the file, keeps EnvironmentScopeFixture)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/environment_retirement_continuity_test.dart",
+   "test": "returning from copied and new environment routes retains both independent owners without publishing",
+   "harness": [
+    "environment_scope_test.dart (EnvironmentScopeFixture)"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "studioTheme"
+   ],
+   "asserts": "duplicateEnvironment builds an unpublished copy with a fresh id and the same palette, openEnvironment() creates an empty draft; both stay in navigation.environments after returning to the library, the empty one fails to build, and no file is written.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_environment.dart",
+     "symbol": "ResourceNavigation.openEnvironment/saveEnvironment"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "duplicateEnvironment/openEnvironment retention in navigation.environments with no write is not asserted outside blast tests. Rewritable on EnvironmentScopeFixture (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/terrain_management_layout_host_test.dart",
+   "test": "terrain management fits ${size.width} at enlarged text  [width in 1536.0, 1280.0, 1024.0]",
+   "harness": [
+    "uwu5_terrain_host.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "(transitive) ResourceWorkspacePane, ResourceTerrainManagementDialog"
+   ],
+   "asserts": "Terrain library/rename dialog layout at three sizes and enlarged text: card height > 40, rename field and cancel button present, no exception.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/border_management_host_test.dart",
+   "test": "unpublished border withdrawal preserves publication and pixels",
+   "harness": [
+    "uwu5_border_host.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "(transitive) ResourceWorkspacePane, border library"
+   ],
+   "asserts": "Withdrawing the unpublished preparation (border.blueprint.delete) leaves exactly the published record untouched, tilesets and elements unchanged. KNOWN RED: Bordures workshop retired.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+     "symbol": "runBorderResourceManagement"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_border_lifecycle_controller.dart",
+     "symbol": "ResourceBorderLifecycleController"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+     "test": "a dirty border owner refuses withdrawal without deleting its draft"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+     "test": "cancelling a border mutation releases its canonical preparation"
+    }
+   ],
+   "gap": "Refusal and cancel paths of deleteDraft are covered; the successful deleteDraft apply (records == [published one], tilesets/elements unchanged) is not. Rewritable on ResourceReplacementFixture + runBorderResourceManagement (pattern of resource_border_lifecycle_workflow_test; no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/border_management_host_test.dart",
+   "test": "deprecation and reactivation preserve immutable publication",
+   "harness": [
+    "uwu5_border_host.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "(transitive) ResourceWorkspacePane"
+   ],
+   "asserts": "Deprecate then reactivate a published border keeps draft and latestPublished identical, \"Retirer la préparation\" not offered for a published border, final record equals the original. KNOWN RED.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+     "symbol": "runBorderResourceManagement"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_border_lifecycle_controller.dart",
+     "symbol": "ResourceBorderLifecycleController"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+     "test": "deprecation and reactivation preserve published revisions and sources"
+    }
+   ],
+   "gap": "Menu-item absence for published borders (no withdraw action) is UI/action availability, not covered but not data."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart",
+   "test": "dirty border editor blocks withdrawal without losing focused input",
+   "harness": [
+    "uwu5_border_host.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "(transitive) border editor dialog (retired), ResourceUsageDialog import"
+   ],
+   "asserts": "With a dirty border editor owner, prepareOperation(border.blueprint.delete) throws a ResourceFailure naming the owner; closing the editor offers Conserver (input kept) or Abandonner (owner removed). KNOWN RED.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+     "symbol": "ResourceNavigation.borderManagementOwners/_managementProblem"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+     "symbol": "runBorderResourceManagement"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_border_lifecycle_controller.dart",
+     "symbol": "ResourceBorderLifecycleController"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+     "test": "a dirty border owner refuses withdrawal without deleting its draft"
+    }
+   ],
+   "gap": "Refusal with the owner name is covered; the editor close/keep/abandon flow (borderEditorOwners lifecycle) belonged to the retired border editor UI and is not owned outside it."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart",
+   "test": "stale border confirmation refuses and preserves publication",
+   "harness": [
+    "uwu5_border_host.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "(transitive) ResourceWorkspacePane"
+   ],
+   "asserts": "A concurrent createBorder after analysis makes the deprecate confirmation fail with an error; the published record is unchanged and 3 records remain. KNOWN RED.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+     "symbol": "runBorderResourceManagement"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_border_lifecycle_controller.dart",
+     "symbol": "ResourceBorderLifecycleController"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+     "test": "stale border confirmation preserves the publication and concurrent draft"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart",
+   "test": "border usage inspection targets the actual blueprint and does not write",
+   "harness": [
+    "uwu5_border_host.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceUsageDialog (resolvedTarget)"
+   ],
+   "asserts": "Usage inspection of a border resolves target family \"borders\", id garden-fence, status complete for the identified revision, catalog unchanged. KNOWN RED.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+     "symbol": "runBorderResourceManagement"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_border_lifecycle_controller.dart",
+     "symbol": "ResourceBorderLifecycleController"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/data/local_resource_usage_adapter.dart",
+     "symbol": "LocalResourceUsageAdapter (borders family)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+     "test": "usage management targets the exact blueprint without preparing a mutation"
+    }
+   ],
+   "gap": "Target resolution is covered. Not covered: the real analysis of a border target reporting complete (LocalResourceUsageAdapter with family borders) after the dialog is retired: unsure whether local_resource_usage_adapter_test covers family borders (not read in full)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/border_management_layout_host_test.dart",
+   "test": "border management stays usable at ${size.width}  [width in 1536.0, 1280.0, 1024.0]",
+   "harness": [
+    "uwu5_border_host.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "(transitive) ResourceWorkspacePane"
+   ],
+   "asserts": "Border library tabs (Brouillons/Publiées/Dépréciées), deprecate dialog buttons and no exception at three sizes; \"tree\" decor card absent. KNOWN RED.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/border_retirement_continuity_test.dart",
+   "test": "published Borders remain usable when a retired workshop is requested at $size  [size in 1536x1024, 760x620]",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "ledge_border_metadata_test.dart (NativeLedgeResourceFixture)"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "ResourceCatalogView",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Detail of a published border shows the workshop-unavailable note, no \"Ouvrir l'atelier\", the use button is enabled and calls onUse with the item (twice across a round trip); navigation.edit(border) sets atelierVisible and family borders; return to catalogue works; project and files never change.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart",
+     "symbol": "ResourceItem.usableIn / compatibleWith"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation.dart",
+     "symbol": "ResourceNavigation.onUse / edit / showLibrary"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_library_context_preservation_test.dart",
+     "test": "opening a decor workshop and coming back keeps stored library context and the map"
+    }
+   ],
+   "gap": "Mostly UI states. The data rule (published and not deprecated border is usable) lives in ResourceItem.usableIn and is not tested for borders anywhere outside blast files (resource_library_context_preservation_test only covers components/map scope). Rewritable on resourceCatalog + NativeLedgeResourceFixture (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/border_retirement_continuity_test.dart",
+   "test": "$state Borders keep their placement refusal after workshop retirement  [state in {unpublished, deprecated}]",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "ledge_border_metadata_test.dart (NativeLedgeResourceFixture)"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "ResourceCatalogView",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "For an unpublished or a deprecated border the use button is disabled and onUse is never called; project and files unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart",
+     "symbol": "ResourceItem.usableIn / compatibleWith"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "ResourceItem.usableIn (border == null || latestPublished != null && !isDeprecated) has no direct test; ResourceDetailPanel duplicates the same rule (prepared). Rewritable as a pure unit test on resourceCatalog(project) with a border record published/unpublished/deprecated (no UI, no disk)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart",
+   "test": "retired decor workshop keeps its owner and published use at $size  [size in 1536x1024, 760x620]",
+   "harness": [
+    "resource_fixture.dart",
+    "map_workspace_fixture.dart (WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "ResourceCatalogView",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "The decor detail shows the workshop-unavailable note and an enabled use button (onUse called with the item); navigation.edit creates a decor draft whose edits (name, fine collision pointer + undo) survive returning to the library as the same object in decors; nothing is written.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation.dart",
+     "symbol": "ResourceNavigation.edit/decor/decorDraftFor/showLibrary/import/importedSource"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/decors/application/decor_draft.dart",
+     "symbol": "DecorDraft"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_library_context_preservation_test.dart",
+     "test": "opening a decor workshop and coming back keeps stored library context and the map"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart",
+     "test": "duplicate cancellation keeps the focused owner and its saved source"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/decor_draft_test.dart",
+     "test": "fine erasing projects cells and groups a stroke for undo"
+    }
+   ],
+   "gap": "Library context kept after edit/showLibrary and collision undo are covered; same-object retention of the decor draft in navigation.decors after showLibrary and build() equality is only partly covered (decorDraftFor retention in duplicate cancellation). Rewritable on ResourceFixture + ResourceNavigation (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart",
+   "test": "retired environment route keeps its recipe without opening a decor owner",
+   "harness": [
+    "resource_fixture.dart",
+    "map_workspace_fixture.dart (WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "ResourceCatalogView",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "openEnvironment + add(decor) builds a recipe, returning to the library keeps the same draft with equal build(), navigation.decor stays null, no write.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_environment.dart",
+     "symbol": "ResourceNavigation.openEnvironment/saveEnvironment"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "Same as environment continuity: navigation.environment retention across showLibrary not tested outside blast. Rewritable on ResourceFixture + ResourceNavigation (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart",
+   "test": "imported source remains available when its retired decor route is requested",
+   "harness": [
+    "resource_fixture.dart",
+    "map_workspace_fixture.dart (WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "ResourceCatalogView",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "navigation.import(source intent) sets importedSource without creating a decor draft; edit(source) opens a decor draft for the tileset with original == null, retained in navigation.decors after showLibrary; project, map, files and source bytes unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation.dart",
+     "symbol": "ResourceNavigation.edit/decor/decorDraftFor/showLibrary/import/importedSource"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_workspace_import_workflow.dart",
+     "symbol": "ResourceWorkspaceImportWorkflow"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "No non-blast test asserts importedSource handling after navigation.import(intent: source) nor edit(source) on an unprepared tileset. canCreateDecor (dimension == twoD) lives in the widget. Rewritable on ResourceFixture + ResourceNavigation (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_pack_retirement_continuity_test.dart",
+   "test": "normal catalogue announces pack unavailability without marking at $size  [size in 1536x1024, 760x620]",
+   "harness": [
+    "resource_pack_transfer_controller_test.dart (ExportPackTestPort, PendingExportTestSink)",
+    "map_workspace_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "ResourceLibraryScreen",
+    "ResourceCatalogView",
+    "studioTheme"
+   ],
+   "asserts": "Pack import/export callbacks are null, the unavailability notice shows, marking is off and no transfer/picker/port call occurs; files unchanged.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": "Absence of wiring is a UI fact; ResourcePackTransferController is exercised elsewhere."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_pack_retirement_continuity_test.dart",
+   "test": "retired pack actions retain library selection without starting a transfer at $size  [size in 1536x1024, 760x620]",
+   "harness": [
+    "resource_pack_transfer_controller_test.dart (ExportPackTestPort, PendingExportTestSink)",
+    "map_workspace_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "ResourceLibraryScreen",
+    "ResourceCatalogView",
+    "studioTheme"
+   ],
+   "asserts": "Marked resources survive query and sort changes (dont 1 hors des résultats), clear marks works, and no transfer starts, no picker is called, no file or project change.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart",
+     "symbol": "ResourceLibraryState.marked/toggleMark/clearMarks/markedItems"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_library_context_preservation_test.dart",
+     "test": "a multiple selection stays on the same identities after sort and view changes"
+    }
+   ],
+   "gap": "Marks kept across sort/view change are covered; marks kept across a query that hides one and clearMarks are not (trivial state). The hidden-count text is UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_pack_retirement_continuity_test.dart",
+   "test": "catalogue retirement preserves an unknown publication and its real workspace close guard",
+   "harness": [
+    "resource_pack_transfer_controller_test.dart (ExportPackTestPort, PendingExportTestSink)",
+    "map_workspace_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "ResourceLibraryScreen",
+    "ResourceCatalogView",
+    "studioTheme",
+    "(transitive) ResourceWorkspacePane retry button"
+   ],
+   "asserts": "After an export whose publication status is unknown, close and prepareExport are refused, the reconcile action re-reads the status once without re-exporting, then close is allowed; marks and files preserved.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_pack_transfer_controller.dart",
+     "symbol": "ResourcePackTransferController.retryPublication/blocksClose"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_publication_workflow.dart",
+     "symbol": "WorkspacePublicationWorkflow._preparationBlocked/allowClose"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_pack_transfer_controller_test.dart",
+     "test": "unknown publication blocks close until status-only reconciliation confirms publication"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_pack_cancellation_host_test.dart",
+     "test": "workspace publication guard blocks close and switch until unknown publication is reconciled"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/resource_pack_retirement_continuity_test.dart",
+   "test": "retained $phase resolves through the UI while the catalogue stays guarded  [phase in {ResourcePackTransferPhase.reconciliationRequired, ResourcePackTransferPhase.recoveryRequired}]",
+   "harness": [
+    "resource_pack_transfer_controller_test.dart (ExportPackTestPort, PendingExportTestSink)",
+    "map_workspace_fixture.dart",
+    "resource_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "ResourceLibraryScreen",
+    "ResourceCatalogView",
+    "studioTheme",
+    "(transitive) ResourceWorkspacePane recovery buttons"
+   ],
+   "asserts": "After a committed import whose refresh/finalization failed, the retry action is enabled, close and export preparation stay blocked; the first retry fails with \"Relecture indisponible\" and keeps the phase, the second completes; apply is never replayed, authorised paths and project unchanged; recovery replays recovery_status/start_recovery/recovery_status.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_pack_transfer_controller.dart",
+     "symbol": "retryReconciliation / recover"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_publication_workflow.dart",
+     "symbol": "WorkspacePublicationWorkflow"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/resource_pack_transfer_controller_test.dart",
+     "test": "successful commit with failed refresh retries reconciliation without apply"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/resource_pack_transfer_controller_test.dart",
+     "test": "late failed job remains blocked until canonical recovery"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_pack_cancellation_host_test.dart",
+     "test": "workspace publication guard blocks close and switch during finalization and receipt reconciliation"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_pack_cancellation_host_test.dart",
+     "test": "late native crash keeps the project blocked until original operation recovery"
+    }
+   ],
+   "gap": "Single-shot reconciliation and recovery are covered with close blocking. Missing: a first retry that fails keeps the phase, error text and the block (second retry then succeeds), and the exact recovery verb sequence. The phase -> action mapping (publication/reconciliation/recovery -> retryPublication/retryReconciliation/recover) lives only in ResourceWorkspacePane."
+  },
+  {
+   "file": "apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_e2e_test.dart",
+   "test": "replaced Studio source exports and renders from installed Player alone",
+   "harness": [
+    "map_host_fixture.dart (MapHostFixture)",
+    "m2_ui_fixture.dart",
+    "uwu4_resource_replacement_player_support.dart (playReplacedPackage, prepareUwu4ExportFixture)"
+   ],
+   "legacySymbols": [
+    "(transitive) Studio app shell via MapHostFixture/M2UiFixture: Enregistrer button, export screen (Auteur field, Test local, start-game-export)"
+   ],
+   "asserts": "Through LocalResourceAdapter: import, save decor, duplicate, edit copy, delete copy, remove an unused planche, refuse deletion of a used decor, replace the source pixels; save the map, export an .avelunegame through the Studio export UI, hide the source project and play the installed package: replaced pixels are rendered, authored map and placement are intact.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/data/local_resource_adapter.dart",
+     "symbol": "LocalResourceAdapter"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/game_export",
+     "symbol": "StudioGameExportService"
+    },
+    {
+     "path": "apps/pokemap_hub",
+     "symbol": "install + Player runtime"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_authoring/test/domains/assets/resource_source_transaction_test.dart",
+     "test": "frozen candidate applies after staging release with independent manifest/catalog reread"
+    },
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart",
+     "test": "replacement confirmation preserves identity and maps and cannot publish twice"
+    }
+   ],
+   "gap": "Authoring operations are covered individually. The export -> install -> Player rendering of replaced pixels is only proven here (no sibling hub e2e for replaced sources: unsure whether avelune_studio_export_player_e2e_test checks pixel replacement). Rewritable: the resource steps already use the port; replace the UI taps (Enregistrer, export screen) by MapWorkspaceController.save and StudioGameExportService calls."
+  },
+  {
+   "file": "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_e2e_test.dart",
+   "test": "specialized resources survive actual export and installed Player isolation",
+   "harness": [
+    "map_host_fixture.dart",
+    "uwu5_specialized_resources_fixture.dart",
+    "uwu5_specialized_resources_player_support.dart",
+    "m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "(transitive) Studio app shell: Bordures palette tab, border-model-picker, map canvas cells, Enregistrer, export screen"
+   ],
+   "asserts": "Paint a border with a conserved model on the map through the UI, save, deprecate the blueprint through the adapter (materialisation kept), verify terrain preset and default player character, export and play the installed package with the original project hidden.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+     "symbol": "border.blueprint.set_deprecated"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/game_export",
+     "symbol": "StudioGameExportService"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+     "test": "deprecation and reactivation preserve published revisions and sources"
+    }
+   ],
+   "gap": "Deprecation preserving publication is covered; painting the border through the palette/canvas is map-zone UI; \"deprecated blueprint keeps already materialised border layers and they still render in the installed Player\" is only proven here. Rewritable partly: replace UI painting with a BorderLayer fixture and the export tap with StudioGameExportService; Player half stays a hub test."
+  },
+  {
+   "file": "apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart",
+   "test": "resource CRUD through actual Studio UI survives independent installation",
+   "harness": [
+    "uwu6_resource_host.dart",
+    "uwu6_resource_image_steps.dart",
+    "uwu6_resource_specialized_steps.dart",
+    "uwu6_resource_border_steps.dart",
+    "uwu6_resource_export_steps.dart",
+    "uwu4/uwu5 player supports"
+   ],
+   "legacySymbols": [
+    "(transitive) map_workspace_screen, StudioHomeNavigation, resource_image_import, ResourceUsageResults, TerrainEditorScreen, studioTheme"
+   ],
+   "asserts": "Edits an image/decor, a terrain, resolves a character deletion, draws and deprecates a border, inspects closed-map usages, exports, then plays the installed package with the author project hidden: names, presets, deprecated border, default player character and map content persist across reopen and in the installed game.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/data/local_resource_adapter.dart",
+     "symbol": "LocalResourceAdapter"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_replacement_workflow.dart",
+     "symbol": "replacement"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+     "symbol": "border lifecycle"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/game_export",
+     "symbol": "StudioGameExportService"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+     "test": "deprecation and reactivation preserve published revisions and sources"
+    },
+    {
+     "file": "apps/avelune_studio/test/characters/character_removal_owner_guard_test.dart",
+     "test": "a dirty draft of the removed character refuses inspection and keeps the draft"
+    }
+   ],
+   "gap": "Each authoring step has an owner test; the 5-minute UI-driven chain and the installed-Player visual checks (replaced pixels, terrain connections, border visuals) are only proven here. Rewritable as a hub test driven by ports/fixtures (no Studio UI) for the authoring half; installed Player checks remain hub-level."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/character_studio_portrait_workspace_test.dart",
+   "test": "portrait import binds a real image and survives independent reopen",
+   "harness": [
+    "m2_ui_fixture.dart",
+    "resource_family_gestures.dart",
+    "map_tool_menu.dart (chooseMapExtraTool)"
+   ],
+   "legacySymbols": [
+    "ResourceWorkspacePane",
+    "StudioTabs<CharacterStudioSection>"
+   ],
+   "asserts": "Through the resources workspace: import an image, open the character studio, create character \"Élia\", create expression \"Souriante\", import a portrait; the project holds the portrait state, the character portrait binds that state with a non-empty assetId, an independent reopen returns the same portraits and readPortrait returns bytes.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/characters/coordination/character_studio_controller.dart",
+     "symbol": "CharacterStudioController (create/portrait import)"
+    },
+    {
+     "path": "packages/map_authoring/lib/src/domains/assets",
+     "symbol": "CharacterStudioAssetActions (portrait import and bind)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/data",
+     "symbol": "LocalDialogueAdapter.readPortrait"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_authoring/test/domains/assets/character_studio_asset_actions_test.dart",
+     "test": "imports and binds a portrait in one atomic draft"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_portrait_ui09_test.dart",
+     "test": "portrait resolves canonical character variant to verified asset bytes"
+    },
+    {
+     "file": "apps/avelune_studio/test/characters/character_import_workflow_test.dart",
+     "test": "portrait saving gate blocks picker and confirmation until the existing write releases"
+    }
+   ],
+   "gap": "Atomic import+bind and readPortrait are covered at authoring level; not covered: the Studio controller flow (create character, create expression state, import portrait through ResourceNavigation.characters) persisting then independent reopen equal. Rewritable on AuthoringResourceFixture (model: apps/avelune_studio/test/characters/character_removal_owner_guard_test.dart; no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_arrival_scope_test.dart",
+   "test": "linked maps are summarized and added through a search",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapLinkedMaps",
+    "studioTheme"
+   ],
+   "asserts": "The linked map is listed, searching \"route 12\" proposes unlinked maps matching label/folder/id (limit 20) and tapping one emits mapIds [violet, route_12].",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart",
+     "symbol": "RegionalMapController.editPoint(mapIds) guard"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/application/map_library_tree.dart",
+     "symbol": "mapLibraryFolderLabels"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "The candidate search (not already linked, label+folder+id contains, 20 max) lives only in the widget and RegionalMapController.editPoint(mapIds) is not tested. Rewritable on RegionalMapController + MemoryRegionalMapPort after extracting the filter into a pure function (no UI, no disk)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_arrival_scope_test.dart",
+   "test": "removing the last visited map is refused with its reason",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapLinkedMaps",
+    "studioTheme"
+   ],
+   "asserts": "With discovery onMapVisit and a single linked map the remove tool is disabled with a reason notice; with discovery always it removes the last map.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart",
+     "symbol": "RegionalMapController.editPoint(mapIds) guard"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [],
+   "gap": "Owner rule exists in RegionalMapController.editPoint (error \"Choisissez au moins une carte de découverte…\" when onMapVisit and mapIds empty) but is not tested; the widget-side lock (lastLocked) duplicates it. Rewritable on RegionalMapController + MemoryRegionalMapPort (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_arrival_scope_test.dart",
+   "test": "a missing linked map stays visible and removable",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapLinkedMaps",
+    "studioTheme"
+   ],
+   "asserts": "A linked id absent from the project is shown as \"Carte introuvable conservée\" and removing it emits the remaining ids.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart",
+     "symbol": "RegionalMapController.editPoint(mapIds) guard"
+    },
+    {
+     "path": "packages/map_core",
+     "symbol": "validateProjectRegionalMap"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "Retention of unknown ids in point.mapIds and removal through editPoint(mapIds) are not tested; controller.validate reports unavailable maps only through the generic message. Rewritable on RegionalMapController (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_arrival_scope_test.dart",
+   "test": "a region image still loading says so, then reads as absent",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage"
+   ],
+   "asserts": "Region image states (loading / missing / unreadable with error text) in the page.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": "Decoding itself is covered by test/rendering/regional_map_image_decoder_test.dart."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_arrival_scope_test.dart",
+   "test": "an unreadable region image is told apart from a missing one",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage"
+   ],
+   "asserts": "Region image states (loading / missing / unreadable with error text) in the page.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": "Decoding itself is covered by test/rendering/regional_map_image_decoder_test.dart."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_arrival_scope_test.dart",
+   "test": "a failed read is unreadable, not absent",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage"
+   ],
+   "asserts": "Region image states (loading / missing / unreadable with error text) in the page.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": "Decoding itself is covered by test/rendering/regional_map_image_decoder_test.dart."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_explicit_map_link_test.dart",
+   "test": "creating a place asks for its linked map instead of taking the first one",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage",
+    "StudioSelect",
+    "StudioButton",
+    "StudioToggleRow"
+   ],
+   "asserts": "Create place dialog needs name and explicit map (options labelled \"Town · Johto / Bourg Geon\"), Create disabled until chosen, then the point has label and mapIds [town].",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart",
+     "symbol": "RegionalMapController.createPoint"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/application/map_library_tree.dart",
+     "symbol": "mapLibraryFolderLabels"
+    },
+    {
+     "path": "apps/avelune_studio/lib/presentation/features/regional_map/regional_map_link_dialog.dart",
+     "symbol": "regionalMapChoiceLabel (legacy)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/regional_map_controller_test.dart",
+     "test": "regional draft preserves navigation, undo and abandon without publication"
+    }
+   ],
+   "gap": "createPoint(label, mapId) with a valid map is covered; its guards (blank label or unknown map ignored) and the choice-label formatting (regionalMapChoiceLabel) are not. Rewritable on RegionalMapController (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_explicit_map_link_test.dart",
+   "test": "cancelling place creation creates no place and links no map",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage",
+    "StudioSelect",
+    "StudioButton",
+    "StudioToggleRow"
+   ],
+   "asserts": "Cancelling the creation dialog leaves pointsOfInterest empty.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_explicit_map_link_test.dart",
+   "test": "enabling Flight asks to confirm the arrival map and suggests the place map",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage",
+    "StudioSelect",
+    "StudioButton",
+    "StudioToggleRow"
+   ],
+   "asserts": "Toggling Flight on opens a map choice preselected with the place map; destination stays null until confirmed, then destination.mapId = town.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart",
+     "symbol": "RegionalMapController.editPoint(destination)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/regional_map_controller_test.dart",
+     "test": "regional publication uses region and POI semantics and rejects an unpublished spawn map"
+    }
+   ],
+   "gap": "editPoint(destination) is covered; the default suggestion (point.mapIds.first, only if it still exists in the project) is widget logic with no test. Rewritable after extraction (pure function)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_explicit_map_link_test.dart",
+   "test": "cancelling the Flight map choice leaves Flight disabled",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage",
+    "StudioSelect",
+    "StudioButton",
+    "StudioToggleRow"
+   ],
+   "asserts": "Cancelling the Flight dialog leaves destination null.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_page_test.dart",
+   "test": "regional image dragging edits normalized draft coordinates and preserves undo",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage"
+   ],
+   "asserts": "Dragging a place marker updates u>0.5, v<0.5 normalised by the displayed image size, marks the draft dirty, and discard empties the catalog.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart",
+     "symbol": "RegionalMapController.editPoint(u,v) clamp/undo/discard"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/application/regional_map_controller_test.dart",
+     "test": "regional draft preserves navigation, undo and abandon without publication"
+    }
+   ],
+   "gap": "editPoint(u,v), undo and discard are covered. Pointer-to-normalised conversion (delta / fitted size, tap-down position) is widget logic untested elsewhere. Rewritable after extracting the normalisation (pure function)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_page_test.dart",
+   "test": "native regional page offers image, discovery map and real spawn pickers",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage"
+   ],
+   "asserts": "Page shows labels (Carte régionale, Image de la région, Destination de Vol, Carte d'arrivée, Point d'arrivée) and the arrival summary text with spawn coordinates.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_place_flight_test.dart",
+   "test": "a place is found by its name or its Flight arrival map",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage",
+    "RegionalPlaceFinder",
+    "studioTheme"
+   ],
+   "asserts": "Searching \"grot\" finds the hidden place with its \"Masqué… · Vol autorisé vers Town\" subtitle, \"vol autorisé\" matches only places with Flight, tapping selects it.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/presentation/features/regional_map/regional_map_place_summary.dart",
+     "symbol": "RegionalPlaceFinder filter (legacy widget logic)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/regional_map/application/regional_map_summary.dart",
+     "symbol": "regionalPlaceVisibility/regionalPlaceFlight/regionalPlacePosition/regionalFlightArrival"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "The finder filter (lowercase contains on label+id+flight text, limit 12) exists only in the legacy widget. Rewritable after extracting a pure function over ProjectRegionPointOfInterest + ProjectManifest (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_place_flight_test.dart",
+   "test": "visibility and Flight are summarised separately",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [],
+   "asserts": "regionalPlaceVisibility/regionalPlaceFlight/regionalPlacePosition return the expected French summaries for discovered/always/hidden, no destination and ghost destination.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/regional_map/application/regional_map_summary.dart",
+     "symbol": "regionalPlaceVisibility/regionalPlaceFlight/regionalPlacePosition/regionalFlightArrival"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "No copy outside this blast file. The test body has no UI (blast only through the file-level RegionalMapPage import): rewritable as-is by moving it to a new file that imports regional_map_summary.dart."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_place_flight_test.dart",
+   "test": "the Flight arrival preview names every incomplete destination",
+   "harness": [
+    "regional_map_controller_test.dart"
+   ],
+   "legacySymbols": [],
+   "asserts": "regionalFlightArrival reports missing map, missing spawn choice, vanished spawn and the ready sentence with coordinates and facing.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/regional_map/application/regional_map_summary.dart",
+     "symbol": "regionalPlaceVisibility/regionalPlaceFlight/regionalPlacePosition/regionalFlightArrival"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "Same: no copy outside this blast file; no UI in the test; rewritable as-is by moving."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_place_flight_test.dart",
+   "test": "a missing arrival is shown as a problem on the page",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [
+    "RegionalMapPage"
+   ],
+   "asserts": "The page displays the arrival problem notice for a vanished spawn.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": "The text itself is owned by regionalFlightArrival (previous test)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/regional_map_place_flight_test.dart",
+   "test": "an existing destination survives a save and a fresh reopen",
+   "harness": [
+    "regional_map_controller_test.dart (MemoryRegionalMapPort)"
+   ],
+   "legacySymbols": [],
+   "asserts": "After saveAll on a seeded draft (hidden place with destination town/arrival) a new RegionalMapController reads the same visibility and destination; another place has none.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart",
+     "symbol": "RegionalMapController.saveAll/load"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/infrastructure/local_regional_map_adapter_test.dart",
+     "test": "Studio regional CRUD publishes canonical actions and confirms destructive changes without changing map bytes"
+    },
+    {
+     "file": "apps/avelune_studio/test/application/regional_map_controller_test.dart",
+     "test": "regional publication uses region and POI semantics and rejects an unpublished spawn map"
+    }
+   ],
+   "gap": "Publication through the canonical adapter and save semantics are covered; the destination/visibility round trip through the memory port is not asserted (unsure whether the adapter test checks destination persistence). Test has no UI: rewritable as-is by moving."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_family_widgets_test.dart",
+   "test": "context filter exposes an explicit usage context",
+   "harness": [
+    "map_workspace_fixture.dart (workspaceProject, WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "ResourceFilterButton",
+    "ResourceFilterTags",
+    "ResourceLibraryScreen",
+    "resourcePreview",
+    "StudioSelect",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "The filter panel contains the context select.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_family_widgets_test.dart",
+   "test": "context draft counts apply cancel reset tag and keyboard in a small window",
+   "harness": [
+    "map_workspace_fixture.dart (workspaceProject, WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "ResourceFilterButton",
+    "ResourceFilterTags",
+    "ResourceLibraryScreen",
+    "resourcePreview",
+    "StudioSelect",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Filter changes are drafted: result count updates live, committed filters change only on Appliquer, Escape/Annuler discard, Réinitialiser resets the draft, a removable tag clears the committed context.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart",
+     "symbol": "ResourceCatalogFilterState / filterResourceCatalog"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentation/map_workspace_resource_families_test.dart",
+     "test": "descendant families and staged map-scope filters preserve committed choices until applied"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentation/map_workspace_resource_families_test.dart",
+     "test": "draft counts retain a resource search and can report zero results"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentation/resource_family_catalog_test.dart",
+     "test": "context intersects family query scope component and dimension eligibility"
+    }
+   ],
+   "gap": "Filtering semantics and the drafted-count behaviour are covered for the map palette dock; the library ResourceFilterButton draft/apply/reset rules (apply copies only context/scope/usage/showComponents[/typeKind if showType]; reset keeps query/family/usableOnly; badge count formula) exist only in the legacy widget. Rewritable as a pure draft helper on ResourceCatalogFilterState (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_family_widgets_test.dart",
+   "test": "context can be chosen and applied with keyboard traversal",
+   "harness": [
+    "map_workspace_fixture.dart (workspaceProject, WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "ResourceFilterButton",
+    "ResourceFilterTags",
+    "ResourceLibraryScreen",
+    "resourcePreview",
+    "StudioSelect",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Keyboard Tab/Enter/Arrow traversal selects the context and applies it.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_family_widgets_test.dart",
+   "test": "components draft counts apply cancel reset and removable tag",
+   "harness": [
+    "map_workspace_fixture.dart (workspaceProject, WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "ResourceFilterButton",
+    "ResourceFilterTags",
+    "ResourceLibraryScreen",
+    "resourcePreview",
+    "StudioSelect",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Same draft/apply/cancel/reset semantics for the showComponents toggle and its tag, with live result counts.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart",
+     "symbol": "ResourceCatalogFilterState / filterResourceCatalog"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentation/map_workspace_resource_families_test.dart",
+     "test": "draft counts retain a resource search and can report zero results"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentation/resource_family_catalog_test.dart",
+     "test": "component role hides choices without changing availability or dimensions"
+    }
+   ],
+   "gap": "Same gap as the context draft test (legacy widget owns the draft/apply/reset rules)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_family_widgets_test.dart",
+   "test": "character resources retain their authored animation preview",
+   "harness": [
+    "map_workspace_fixture.dart (workspaceProject, WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "resourcePreview",
+    "MaterialApp"
+   ],
+   "asserts": "resourcePreview for a character asks the visuals for the character thumbnail (not a tile) and shows \"Guide face sud\".",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_family_widgets_test.dart",
+   "test": "filter draft cancels applies resets and tags remove one filter",
+   "harness": [
+    "map_workspace_fixture.dart (workspaceProject, WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "ResourceFilterButton",
+    "ResourceFilterTags",
+    "ResourceLibraryScreen",
+    "resourcePreview",
+    "StudioSelect",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Drafted scope and usage choices apply only on Appliquer; tag removal clears one filter keeping the others and the query; reset keeps scope until applied and never clears the query.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart",
+     "symbol": "ResourceCatalogFilterState / filterResourceCatalog"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentation/map_workspace_resource_families_test.dart",
+     "test": "descendant families and staged map-scope filters preserve committed choices until applied"
+    }
+   ],
+   "gap": "Same gap as above (reset leaves query untouched; apply order)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_family_widgets_test.dart",
+   "test": "map filter uses availability without a competing usage selector",
+   "harness": [
+    "map_workspace_fixture.dart (workspaceProject, WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "ResourceFilterButton",
+    "ResourceFilterTags",
+    "ResourceLibraryScreen",
+    "resourcePreview",
+    "StudioSelect",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "In map-picker mode the usage selector is absent and applying scope keeps usage at all.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_family_widgets_test.dart",
+   "test": "library families availability and details at $size  [size in 1536x1024, 720x620, 760x480]",
+   "harness": [
+    "map_workspace_fixture.dart (workspaceProject, WorkspaceTestVisuals)"
+   ],
+   "legacySymbols": [
+    "ResourceFilterButton",
+    "ResourceFilterTags",
+    "ResourceLibraryScreen",
+    "resourcePreview",
+    "StudioSelect",
+    "StudioButton",
+    "studioTheme",
+    "ResourceDetailPanel (inside library)"
+   ],
+   "asserts": "Library with family tree: selecting a family filters items, sort name desc/asc reorders, scope=map filter with draft count, detail of a map-scoped resource disables use and classification callback fires.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart",
+     "symbol": "ResourceLibraryState.visibleItems / ResourceFamilyTree / filterResourceCatalog"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentation/resource_family_catalog_test.dart",
+     "test": "nature family descendants intersect usage search and availability"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentation/resource_catalog_ui03_test.dart",
+     "test": "name sorting has stable canonical ties even after catalog refresh"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentation/resource_family_catalog_test.dart",
+     "test": "global private scope includes other maps while map pickers hide them"
+    }
+   ],
+   "gap": "Family filtering, sort and scope are covered; the disabled use for a resource reserved to another map is ResourceItem/metadata scope rule duplicated in ResourceDetailPanel (usable). Mostly UI otherwise."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_detail_ui03_test.dart",
+   "test": "a border sheet names its own pieces apart from free decors",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_border_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceDetailPanel",
+    "resourcePreview",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "The detail of a border reports \"1 pièce(s) possédée(s)…\", an owned model reports \"Pièce de « Clôture unitaire »…\", a free model shows neither.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart",
+     "symbol": "_borderPieceIdentities/_owningBorderNames (legacy)"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "Border-piece ownership projection (which models/elements a border owns, hidden from decor palette) exists only in the legacy panel: unsure whether border_resource_sources.dart owns an equivalent. Rewritable as a pure function over BorderCatalog (spatialBorderProject fixture, no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_detail_ui03_test.dart",
+   "test": "individual description is visible in the resource sheet",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_border_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceDetailPanel",
+    "resourcePreview",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Catalog description appears in the detail.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_detail_ui03_test.dart",
+   "test": "terrain category is canonical and missing maps are explained",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_border_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceDetailPanel",
+    "resourcePreview",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Terrain category label, \"aucune carte\" notice, use disabled without maps.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": "The rule (no map => not usable) is project.maps.isNotEmpty in the legacy panel; trivial."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_detail_ui03_test.dart",
+   "test": "use action stays visible while detail scrolls at 150 percent",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_border_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceDetailPanel",
+    "resourcePreview",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "Use button position stable while scrolling at 150% text; tapping calls onUse; \"Usages dans les cartes ouvertes\" shown.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_detail_ui03_test.dart",
+   "test": "unprepared image retains an honest tile-use destination",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_border_fixture.dart"
+   ],
+   "legacySymbols": [
+    "ResourceDetailPanel",
+    "resourcePreview",
+    "StudioButton",
+    "studioTheme"
+   ],
+   "asserts": "An unprepared atlas shows \"Choisir une carte\", metadata not prepared notice, use calls onUse; edit/terrain not offered.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/resource_detail_ui03_test.dart",
+   "test": "terrain example resolves distinct edges using real tile IDs",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_border_fixture.dart"
+   ],
+   "legacySymbols": [
+    "resourcePreview",
+    "ResourceTerrainPreview"
+   ],
+   "asserts": "The 3x3 connection example resolves nine tiles with ids [6,14,12,7,15,13,3,11,9] on tileset \"terrain\", with tooltip \"Exemple de raccord\".",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_preview.dart",
+     "symbol": "ResourceTerrainPreview._pattern (legacy)"
+    },
+    {
+     "path": "packages/map_core",
+     "symbol": "PreparedSmartTileResolver"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "The 3x3 pattern computation (PreparedSmartTileResolver on a 3x3 cell grid, eligibility checks on parts/atlas, localTileId = row*columns+column, transform composition) has no owner outside the legacy widget and no other test. Rewritable after extraction on a pure ProjectManifest fixture (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/model_workshop_scope_test.dart",
+   "test": "library shadows paint while saving and restore the confirmed value on failure",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_environment_fixture.dart (_Models fake ResourcePort/ModelResourcePort)"
+   ],
+   "legacySymbols": [
+    "ModelResourceLibrary",
+    "ModelAnimationControls",
+    "StudioToggleRow",
+    "studioTheme"
+   ],
+   "asserts": "Tapping the default-shadows toggle shows the requested value immediately, disables it while saving, sends model3d.configure {modelId, castsShadowsByDefault:true}, and restores the confirmed value and re-enables on failure.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/application/model_definition_drafts.dart",
+     "symbol": "ModelShadowDraft.save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/model_resource_workflow.dart",
+     "symbol": "ModelDefinitionWorkflow.configure/openModelOccurrences"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentation/model_shadow_controls_test.dart",
+     "test": "requested shadows update before persistence and roll back on failure"
+    }
+   ],
+   "gap": "Optimistic value / rollback on failure of ModelShadowDraft is covered. The payload key wiring (shared(model, {castsShadowsByDefault: value}) in the legacy model_resource_library and onModelShadowsChanged in resource_workspace_pane) is asserted only here; resource_io/local_model_shadow_mutation_test.dart covers the mutation itself (test names not read: unsure). Rewritable on ModelDefinitionWorkflow with the fake port of this file (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/model_workshop_scope_test.dart",
+   "test": "the model workshop marks retired controls unavailable and keeps conditional Animation",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_environment_fixture.dart (_Models fake ResourcePort/ModelResourcePort)"
+   ],
+   "legacySymbols": [
+    "ModelResourceLibrary",
+    "ModelAnimationControls",
+    "StudioToggleRow",
+    "studioTheme"
+   ],
+   "asserts": "Section titles, unavailable markers and the Animation section shown only for an animated model.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/model_workshop_scope_test.dart",
+   "test": "editing a model placed on two maps asks for a scope review once and keeps its identity",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_environment_fixture.dart (_Models fake ResourcePort/ModelResourcePort)"
+   ],
+   "legacySymbols": [
+    "ModelResourceLibrary",
+    "ModelAnimationControls",
+    "StudioToggleRow",
+    "studioTheme"
+   ],
+   "asserts": "Editing the scale of a model placed 3 times on 2 open maps asks for a scope review listing \"Route 29 (2)\" and \"Bourg Geon (1)\"; cancel sends no mutation; confirm sends one model3d.configure with modelId and scale 2.0; the next edit does not ask again.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/model_resource_workflow.dart",
+     "symbol": "ModelDefinitionWorkflow.configure/openModelOccurrences"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/model_resource_workflow_test.dart",
+     "test": "shared model configuration requires scope consent once and preserves occurrences"
+    }
+   ],
+   "gap": "Consent asked once and applied is covered with 1 open map / 1 occurrence. Missing: cancel path (confirmShared false -> ResourceFailure \"Modification annulée\", no mutation) and occurrences grouped per map name across several open maps. Rewritable on ModelDefinitionWorkflow with this file fake port (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/model_workshop_scope_test.dart",
+   "test": "an unused model is edited without a scope review",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_environment_fixture.dart (_Models fake ResourcePort/ModelResourcePort)"
+   ],
+   "legacySymbols": [
+    "ModelResourceLibrary",
+    "ModelAnimationControls",
+    "StudioToggleRow",
+    "studioTheme"
+   ],
+   "asserts": "A model with no open occurrence is configured directly (one mutation, no review dialog).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/resources/coordination/model_resource_workflow.dart",
+     "symbol": "ModelDefinitionWorkflow.configure/openModelOccurrences"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "No test configures a model with zero open occurrences and asserts that confirmShared is not invoked and the mutation runs. Rewritable on ModelDefinitionWorkflow (no UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/model_workshop_scope_test.dart",
+   "test": "a late preview of the previous model never replaces the new one",
+   "harness": [
+    "map_workspace_fixture.dart",
+    "spatial_environment_fixture.dart (_Models fake ResourcePort/ModelResourcePort)"
+   ],
+   "legacySymbols": [
+    "ModelResourceLibrary",
+    "ModelAnimationControls",
+    "StudioToggleRow",
+    "studioTheme"
+   ],
+   "asserts": "A late readModel result of the previously selected model is never shown after selecting another model (loading placeholder then the new preview).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  }
+ ],
+ "supportFiles": [
+  {
+   "path": "apps/avelune_studio/test/support/uwu_resource_host.dart",
+   "usedBy": [
+    "resource_usages_host_test",
+    "resource_usage_cancellation_host_test",
+    "resource_usage_replacement_host_test (via uwu4)",
+    "environment_authoring_host_test",
+    "uwu4_resource_host.dart",
+    "uwu5_border_host.dart",
+    "uwu5_terrain_host.dart",
+    "hub uwu6_resource_host.dart"
+   ],
+   "legacyDependencies": [
+    "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/resource_usage_results.dart"
+   ],
+   "reusableWithoutLegacy": "UwUResourceHost.reopen() (independent LocalProjectSessionAdapter + LocalMapWorkspaceAdapter.loadProject re-read) and the noMaps manifest rewrite; M2UiFixture creation. Everything else (family/tap/action/openUsage/navigation getter) is UI driving."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/uwu4_resource_host.dart",
+   "usedBy": [
+    "resource_lifecycle_host_test",
+    "resource_usages_host_test",
+    "resource_usage_replacement_host_test",
+    "uwu5_source_removal_host_test",
+    "uwu6_source_confirmation_host_test",
+    "uwu5_border_host.dart",
+    "uwu5_terrain_host.dart"
+   ],
+   "legacyDependencies": [
+    "(transitive via uwu_resource_host.dart and M2UiFixture.app) ResourceWorkspacePane"
+   ],
+   "reusableWithoutLegacy": "The ResourceFixture seed (import, nature category, saveElement tree, optional placed-tree map element, copyUwU4NativeFixture) and the configure/adapter hooks: directly reusable as disk fixtures for owner tests (placed:true gives the used-decor case)."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/uwu5_border_host.dart",
+   "usedBy": [
+    "border_management_host_test",
+    "border_management_guards_host_test",
+    "border_management_layout_host_test"
+   ],
+   "legacyDependencies": [
+    "(transitive) via uwu4_resource_host and resource_family_gestures"
+   ],
+   "reusableWithoutLegacy": "Seed of cap/straight/corner elements, published garden-fence border and unpublished unfinished-fence via ResourceFixture.resources.createBorder; reusable by a runBorderResourceManagement test (pattern of resource_border_lifecycle_workflow_test)."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/uwu5_terrain_host.dart",
+   "usedBy": [
+    "terrain_management_layout_host_test"
+   ],
+   "legacyDependencies": [
+    "(transitive) via uwu4_resource_host"
+   ],
+   "reusableWithoutLegacy": "seedUwU5Terrain re-export from terrain_lifecycle_fixture.dart (already used by free terrain tests terrain_management_host_test / terrain_management_guards_host_test / resource_terrain_lifecycle_workflow_test)."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/resource_family_gestures.dart",
+   "usedBy": [
+    "uwu_resource_host.dart",
+    "uwu5_border_host.dart",
+    "environment_authoring_host_test",
+    "character_studio_portrait_workspace_test",
+    "hub uwu6_resource_border_steps.dart"
+   ],
+   "legacyDependencies": [
+    "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart (only to read ResourceWorkspacePane.navigation)"
+   ],
+   "reusableWithoutLegacy": "selectResourceFamily = navigation.library.selectFamily + navigation.loadFamily + showLibrary; openResourceCharacters = navigation.openCharacters. Both are plain ResourceNavigation calls, trivially reusable if the navigation object is passed directly."
+  },
+  {
+   "path": "apps/avelune_studio/test/resource_io/uwu5_source_removal_dialog_support.dart",
+   "usedBy": [
+    "uwu5_source_removal_dialog_test"
+   ],
+   "legacyDependencies": [
+    "apps/avelune_studio/lib/presentation/features/resources/resource_removal_dialog.dart",
+    "apps/avelune_studio/lib/presentation/shared/widgets/buttons/studio_button.dart",
+    "apps/avelune_studio/lib/presentation/theme/studio_theme.dart"
+   ],
+   "reusableWithoutLegacy": "RemovalAnalysis scripted completers and RemovalDialogHarness.preparation(...) (synthetic ResourceMutationPreparation with impact sourceRemovalSupported/sourceRemoved/logicalFileRemoved/sourceRemovalReason): can drive ResourceRemovalController directly with prepareOperation: (choice) => analysis.result.future."
+  },
+  {
+   "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart",
+   "usedBy": [
+    "uwu6_resource_crud_player_e2e_test",
+    "uwu6_resource_*_steps.dart"
+   ],
+   "legacyDependencies": [
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/resource_image_import.dart",
+    "apps/avelune_studio/lib/presentation/features/home/studio_home_navigation.dart",
+    "apps/avelune_studio/lib/presentation/theme/studio_theme.dart"
+   ],
+   "reusableWithoutLegacy": "Temporary installation directory handling, close/openExisting of the author project, package path, reopen() independent re-read, newPixels; the Studio widget tree itself is legacy."
+  },
+  {
+   "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart",
+   "usedBy": [
+    "uwu6_resource_crud_player_e2e_test"
+   ],
+   "legacyDependencies": [
+    "apps/avelune_studio/lib/presentation/features/resources/resource_usage_results.dart"
+   ],
+   "reusableWithoutLegacy": "editUwu6Images / inspectUwu6ClosedUsages intent (replace pixels, place decor, closed-map usages) is expressible on LocalResourceAdapter ports; UI taps are not reusable."
+  },
+  {
+   "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_specialized_steps.dart",
+   "usedBy": [
+    "uwu6_resource_crud_player_e2e_test"
+   ],
+   "legacyDependencies": [
+    "apps/avelune_studio/lib/presentation/features/terrain_editor/terrain_editor_screen.dart"
+   ],
+   "reusableWithoutLegacy": "Terrain and character-resolution steps: the character resolution and terrain publication can be redone through adapters; the terrain editor screen driving is legacy."
+  },
+  {
+   "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_border_steps.dart",
+   "usedBy": [
+    "uwu6_resource_crud_player_e2e_test"
+   ],
+   "legacyDependencies": [
+    "(transitive) via m2_ui_fixture / resource_family_gestures / uwu6_resource_host"
+   ],
+   "reusableWithoutLegacy": "drawUwu6Border / deprecateUwu6Border: deprecation is adapter-level (set_deprecated), drawing is map canvas (map zone)."
+  },
+  {
+   "path": "apps/pokemap_hub/test/features/installation/uwu6_resource_export_steps.dart",
+   "usedBy": [
+    "uwu6_resource_crud_player_e2e_test"
+   ],
+   "legacyDependencies": [
+    "(transitive) via uwu6_resource_host and project_creation_workspace_fixture"
+   ],
+   "reusableWithoutLegacy": "exportUwu6Resources: export through the Studio export UI; the export service call is reusable."
+  },
+  {
+   "path": "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_fixture.dart",
+   "usedBy": [
+    "uwu5_specialized_resources_player_e2e_test",
+    "uwu6_resource_host.dart"
+   ],
+   "legacyDependencies": [],
+   "reusableWithoutLegacy": "prepareUwu5ExportFixture / resolveUwu5Character: disk seeds (terrain preset, border blueprint, characters) without legacy imports (depends on m3_story_fixture and the uwu4 support)."
+  },
+  {
+   "path": "apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_support.dart",
+   "usedBy": [
+    "uwu4/uwu5/uwu6 hub e2e tests"
+   ],
+   "legacyDependencies": [],
+   "reusableWithoutLegacy": "prepareUwu4ExportFixture, playReplacedPackage (installed-Player rendering of replaced pixels): hub-side, no Studio legacy UI (imports m2_ui_fixture only for shared helpers)."
+  },
+  {
+   "path": "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_support.dart",
+   "usedBy": [
+    "uwu5 and uwu6 hub e2e tests"
+   ],
+   "legacyDependencies": [],
+   "reusableWithoutLegacy": "playUwu5InstalledPackage and installed-package movement checks: Player-side, independent of the Studio UI."
+  }
+ ],
+ "legacyFiles": [
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/regional_map/regional_map_flight_destination.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "regionalFlightArrival call",
+     "what": "arrival sentence / problem state of a Flight destination",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/regional_map/application/regional_map_summary.dart#regionalFlightArrival",
+     "testedBy": null
+    },
+    {
+     "symbol": "toggle onChanged(false) -> editPoint(clearDestination:true)",
+     "what": "disabling Flight clears the destination",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart#RegionalMapController.editPoint",
+     "testedBy": "apps/avelune_studio/test/application/regional_map_controller_test.dart (editPoint covered, clearDestination not)"
+    },
+    {
+     "symbol": "spawn option list (entities kind==spawn with spawn data) and _facing labels",
+     "what": "projection of arrival spawns for the picker with \"name · (x, y) · facing\"",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/regional_map/regional_map_link_dialog.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "regionalMapChoiceLabel",
+     "what": "\"name · folder path\" label of a linkable map",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "askRegionalMapLink (suggestedMapId validation, name trim, confirm gating)",
+     "what": "suggested map kept only if it exists; confirm requires map and (if asked) non-blank trimmed name",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "mapLibraryFolderLabels use",
+     "what": "folder path labels",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/map_workspace/application/map_library_tree.dart#mapLibraryFolderLabels",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/regional_map/regional_map_linked_maps.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "lastLocked",
+     "what": "last linked map cannot be removed while discovery == onMapVisit",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart#RegionalMapController.editPoint (error branch, untested)",
+     "testedBy": null
+    },
+    {
+     "symbol": "candidate search",
+     "what": "unlinked maps whose label+folder+id contains the query, max 20, clears query on add",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "missing map entries",
+     "what": "unknown map ids kept and shown as \"introuvable conservée\", removable",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/regional_map/regional_map_page.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "onTapDown / marker drag -> editPoint(u,v)",
+     "what": "pointer position or drag delta normalised by the fitted image size",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart#RegionalMapController.editPoint (clamp only)",
+     "testedBy": null
+    },
+    {
+     "symbol": "_enableFlight",
+     "what": "suggest the place first linked map as arrival map, set destination only after confirmation",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart#RegionalMapController.editPoint(destination)",
+     "testedBy": null
+    },
+    {
+     "symbol": "_createPoint",
+     "what": "no-op when project has no map; delegates map choice",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/regional_map/application/regional_map_controller.dart#RegionalMapController.createPoint",
+     "testedBy": null
+    },
+    {
+     "symbol": "image key (imagePath, revision) reload",
+     "what": "reload and decode region image when path or revision changes",
+     "ownerEquivalent": "apps/avelune_studio/lib/platform/rendering/regional_map_image_decoder.dart#decodeRegionalMapImage",
+     "testedBy": "apps/avelune_studio/test/rendering/regional_map_image_decoder_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/regional_map/regional_map_place_summary.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "RegionalPlaceFinder match",
+     "what": "lowercase contains over label + id + flight summary, max 12 results",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "re-export regional_map_summary.dart",
+     "what": "visibility/flight/position/arrival summaries",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/regional_map/application/regional_map_summary.dart",
+     "testedBy": "apps/avelune_studio/test/presentation/regional_map_place_flight_test.dart (blast file, UI-free tests to relocate)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/atlas_selection_view.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "select()",
+     "what": "pointer -> atlas cell selection rect",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/atlas_selection_controller.dart#AtlasSelectionController",
+     "testedBy": "apps/avelune_studio/test/presentation/atlas_selection_view_test.dart (unsure: test body not read)"
+    },
+    {
+     "symbol": "fit()/zoom()",
+     "what": "viewport fit scale clamp .05-4 and zoom clamp .05-12",
+     "ownerEquivalent": "null (render/viewport math, UI)",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/model_animation_controls.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/model_light_controls.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "draft setters / save / reset / change()",
+     "what": "light settings editing, validation, save and local preview sync",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/model_light_draft.dart#ModelLightDraft",
+     "testedBy": "apps/avelune_studio/test/presentation/day_night_controls_test.dart (partial)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/model_light_gizmo.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "light/radius handle projection and drag",
+     "what": "delegated to ModelPreviewController.projectPoint/moveLight/moveLightOnGround",
+     "ownerEquivalent": "packages/map_render_3d#ModelPreviewController",
+     "testedBy": "null (not checked)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/model_light_preview_scope.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/model_resource_library.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "modelDiagnosticLabel",
+     "what": "French message per model inspection diagnostic code",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "shared(model, {castsShadowsByDefault: value})",
+     "what": "payload key wiring for the shadow default; scope review is owned",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/coordination/model_resource_workflow.dart#ModelDefinitionWorkflow.configure",
+     "testedBy": "apps/avelune_studio/test/resource_io/model_resource_workflow_test.dart"
+    },
+    {
+     "symbol": "remove()/importStudioModel/replaceStudioModelSource/openModelOccurrences",
+     "what": "delegations to the workflow",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/coordination/model_resource_workflow.dart",
+     "testedBy": "apps/avelune_studio/test/resource_io/model_resource_workflow_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/model_shadow_controls.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "ModelShadowControls.save / ModelInstanceShadowControls value",
+     "what": "optimistic value, rollback on failure, effective instance value (instance override ?? model default)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/model_definition_drafts.dart#ModelShadowDraft",
+     "testedBy": "apps/avelune_studio/test/presentation/model_shadow_controls_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_brush_selection.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "useResourceOnMap post-processing",
+     "what": "after a successful use: terrain reveals the palette, border selects tab \"Bordures\", plain decor selects tab \"Décors\"",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "useMapResource call",
+     "what": "choose map / choose tile then arm the brush",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/map_workspace/coordination/map_resource_placement.dart#useMapResource",
+     "testedBy": "apps/avelune_studio/test/map_workspace/map_resource_placement_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_catalog_view.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_category_filter.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "tree rendering",
+     "what": "category nodes with counts",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_category_tree.dart#ResourceCategoryTree",
+     "testedBy": "apps/avelune_studio/test/presentation/resource_catalog_ui03_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "usable",
+     "what": "canUse && project.maps.isNotEmpty && map available (metadata.mapId null or == activeMapId) && dimension-compatible && border published and not deprecated",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart#ResourceItem.usableIn / compatibleWith (partial duplicate)",
+     "testedBy": "apps/avelune_studio/test/resource_io/resource_library_context_preservation_test.dart (components/map scope only)"
+    },
+    {
+     "symbol": "_borderPieceIdentities/_owningBorderNames",
+     "what": "pieces owned by a border and borders owning a model/element",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "category name by kind, terrain source sets",
+     "what": "label resolution from catalog",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "decorConversionProblem / terrainSourceCompatibilityProblem messages",
+     "what": "source compatibility messages",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/decors/application/decor_draft.dart (decorConversionProblem)",
+     "testedBy": "apps/avelune_studio/test/application/decor_draft_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_duplicate_dialog.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "ResourceDuplicateSession fields",
+     "what": "name default \"<name> — copie\", category validity",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart / resource_definition sessions (ResourceDuplicateSession)",
+     "testedBy": "apps/avelune_studio/test/application/resource_definition_sessions_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_family_tree_view.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "tree",
+     "what": "family nodes and counts",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_family_tree.dart#ResourceFamilyTree",
+     "testedBy": "apps/avelune_studio/test/presentation/resource_family_catalog_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_filter_button.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "badge count",
+     "what": "number of active filters (scope, usage unless map picker, components, context, type if shown, category)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "draft copy / apply / reset",
+     "what": "draft = filters.copy(); apply copies only context, scope, usage, showComponents (typeKind only if showType) then category callback; reset sets context/scope/usage/showComponents/typeKind/category but keeps query, family, usableOnly",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart#ResourceCatalogFilterState.copy/copyFrom/reset (reset differs)",
+     "testedBy": null
+    },
+    {
+     "symbol": "ResourceFilterTags",
+     "what": "one removable tag per active filter, each resetting its field",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "resourceScopeFilterLabel / ResourceCatalogUsageLabels",
+     "what": "labels",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_image_import.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "ResourceImageImportDraft (name taken, grid, content verification)",
+     "what": "import preflight",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_image_import_draft.dart#ResourceImageImportDraft",
+     "testedBy": "apps/avelune_studio/test/application/resource_image_import_draft_test.dart"
+    },
+    {
+     "symbol": "takenNames normalisation (trim+lowercase)",
+     "what": "duplicate-name warning",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_image_import_draft.dart",
+     "testedBy": "apps/avelune_studio/test/application/resource_image_import_draft_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_item_actions.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "actions matrix",
+     "what": "which actions (rename terrain, edit info, move, usages, replace source, duplicate, remove, edit connections) are offered for tileset / element / terrain items, and the delete wording",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "matchingResources + comparator",
+     "what": "filterResourceCatalog + includesFamily + category (incl. uncategorized) then name sort with identity tie-break (duplicates ResourceLibraryState.visibleItems)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart#ResourceLibraryState.visibleItems (partial)",
+     "testedBy": "apps/avelune_studio/test/presentation/resource_catalog_ui03_test.dart"
+    },
+    {
+     "symbol": "regular / workshop family routing",
+     "what": "which families render the catalogue vs workshop/unavailable states",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "familyName / categoryName",
+     "what": "\"Sans famille\"/\"Sans catégorie\" labels",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "markedBar counts",
+     "what": "marked total vs hidden by current results",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart#ResourceLibraryState.markedItems",
+     "testedBy": "apps/avelune_studio/test/resource_io/resource_library_context_preservation_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_library_screen.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "didUpdateWidget",
+     "what": "on project change re-derive items, reconcileRemoval, reset filters.familyId if that family disappeared",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart#ResourceLibraryState.reconcileRemoval (family reset has no owner)",
+     "testedBy": "apps/avelune_studio/test/presentation/resource_catalog_ui03_test.dart (partial)"
+    },
+    {
+     "symbol": "detail(canUse)",
+     "what": "canUse && project.maps.isNotEmpty; open-map usage count via resourceOpenMapUsage",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_open_map_usage.dart#resourceOpenMapUsage",
+     "testedBy": null
+    },
+    {
+     "symbol": "scroll offset memory",
+     "what": "state.offset restore",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart#ResourceLibraryState.offset",
+     "testedBy": "apps/avelune_studio/test/resource_io/resource_library_context_preservation_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_lifecycle_bindings.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "duplicateResourceDefinition/removeResourceDefinition",
+     "what": "delegation to workflow with owner-save confirmation",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/coordination/resource_definition_lifecycle.dart#runResourceDefinitionDuplicate/Removal",
+     "testedBy": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_lifecycle_owner_guard.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "confirmResourceDecorOwnerSave dialog",
+     "what": "asks to save the focused decor draft; decision consumed by the workflow",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/coordination/resource_definition_lifecycle.dart (confirmOwnerSave)",
+     "testedBy": "apps/avelune_studio/test/resource_io/resource_definition_workflow_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_management_bindings.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "openResourceUsages wiring",
+     "what": "port, changes listenable, dirtyOwners=navigation.usageDraftOwners, onOpen/canOpen=navigation.openUsageOwner/canOpenUsageOwner, replaceUsages",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart#usageDraftOwners/openUsageOwner/canOpenUsageOwner",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_management_dialog.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "modal submit machine (busy, closing, error \"Enregistrement impossible : …\", discard-changes confirmation)",
+     "what": "generic dialog state",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_preview.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "resourcePreview source selection",
+     "what": "which asset previews an item: model3d, border primitive source model/element, environment first palette entry, character thumbnail, tileset atlas, terrain tile or 3D model",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "terrain thumbnail tile id",
+     "what": "localTileId = frame.row * source.columns + frame.column (duplicated in resource_workspace_pane and resource_terrain_preview)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "_ModelResourcePreview.didUpdateWidget",
+     "what": "reload model bytes when id/path/asset/inspection/visuals change",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_removal_dialog.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "enable rules and messages",
+     "what": "source checkbox disabled when busy/working or unsupported; confirm disabled without preparation or with dirty owners; _sourceRemovalMessage text",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart#ResourceRemovalController",
+     "testedBy": "apps/avelune_studio/test/application/resource_definition_sessions_test.dart (partial)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_source_list.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "visible()/tree",
+     "what": "filterResourceCatalog + ResourceFamilyTree with showComponents default true",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart#filterResourceCatalog",
+     "testedBy": "apps/avelune_studio/test/presentation/resource_family_catalog_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_deletion_dialog.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "controller usage",
+     "what": "confirmation and preparation of terrain deletion",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_terrain_lifecycle_controller.dart#ResourceTerrainLifecycleController",
+     "testedBy": "apps/avelune_studio/test/application/resource_terrain_lifecycle_controller_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_draft_list.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "assigned count / status line",
+     "what": "rules with candidates over total, compatibility suffix",
+     "ownerEquivalent": "null (trivial projection)",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_lifecycle.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "duplicateResourceOrTerrain / removeResourceOrTerrain",
+     "what": "dispatch: terrain items -> TerrainResourceAction.duplicate / deleteDraft, others -> decor/image definition workflow",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/coordination/resource_terrain_lifecycle.dart#runTerrainResourceManagement (dispatch itself has no owner)",
+     "testedBy": "apps/avelune_studio/test/resource_io/resource_terrain_lifecycle_workflow_test.dart"
+    },
+    {
+     "symbol": "manageTerrainPreparation usages branch",
+     "what": "usages of a preparation resolve to its publication via terrainPreparationPublication then open usages",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_terrain.dart / resource_terrain_lifecycle.dart#terrainPreparationPublication",
+     "testedBy": null
+    },
+    {
+     "symbol": "descriptions",
+     "what": "explanations of duplicate/rename scope for drafts vs published",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_management_dialog.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_owner_guard.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "resolveTerrainManagementOwner dialog",
+     "what": "asks to save dirty terrain preparations as drafts; saving is owned",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/coordination/resource_terrain_lifecycle.dart#TerrainManagementOwners.save",
+     "testedBy": "apps/avelune_studio/test/resource_io/resource_terrain_lifecycle_workflow_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_preview.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_pattern",
+     "what": "3x3 resolution with PreparedSmartTileResolver, preview only when every part is a plain full frame on a compatible regular atlas, tile id row*columns+column, composed transform",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "3D preview branch",
+     "what": "terrainSpatialPreviewMap(size 3) with FormatException -> \"dépasse le terrain d'aperçu\" notice",
+     "ownerEquivalent": "packages/map_core / terrainSpatialPreviewMap",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_usage_dialog.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "ResourceUsageController wiring",
+     "what": "controller creation, changes.addListener(controller.invalidate), dirtyOwners, openOwner, replace",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_usage_controller.dart#ResourceUsageController",
+     "testedBy": "apps/avelune_studio/test/application/resource_usage_controller_test.dart (listener wiring untested)"
+    },
+    {
+     "symbol": "phase -> status label",
+     "what": "Non analysé / Analyse en cours / Complet pour la révision identifiée / périmé / annulée / incomplète",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_usage_controller.dart#ResourceUsagePhase",
+     "testedBy": "apps/avelune_studio/test/application/resource_usage_controller_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_usage_replacement_dialog.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "controller usage and name search",
+     "what": "replacement choice, scope summary, confirmation; client-side name filter; map name fallback to id",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_usage_replacement_controller.dart#ResourceUsageReplacementController",
+     "testedBy": "apps/avelune_studio/test/application/resource_usage_replacement_controller_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_usage_results.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "empty-result rule",
+     "what": "\"Aucun usage trouvé\" only if report.complete && no dirty owners && not stale, otherwise \"ne signifie pas inutilisé\"",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_usage_controller.dart#ResourceUsageController.phase (partial)",
+     "testedBy": null
+    },
+    {
+     "symbol": "grouping and counts",
+     "what": "group entries by ownerKind, count per relation, owner/relation label tables",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/domain/resource_usage_port.dart#ResourceUsageReport",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_actions.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "import(context, intent)",
+     "what": "delegation to ResourceWorkspaceImportWorkflow with confirmImageImport",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/coordination/resource_workspace_import_workflow.dart#ResourceWorkspaceImportWorkflow",
+     "testedBy": "apps/avelune_studio/test/resource_io/resource_import_context_flow_test.dart (unsure: not read)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "packResolution",
+     "what": "phase -> recovery action mapping (requiresPublicationReconciliation -> retryPublication, requiresReconciliation -> retryReconciliation, requiresRecovery -> recover) and notice texts",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_pack_transfer_controller.dart#retryPublication/retryReconciliation/recover (mapping has no owner)",
+     "testedBy": "apps/avelune_studio/test/application/resource_pack_transfer_controller_test.dart"
+    },
+    {
+     "symbol": "onModelLightChanged / onModelShadowsChanged payloads",
+     "what": "model3d.configure {modelId, light: light?.toJson()} / {modelId, castsShadowsByDefault}",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/data/local_resource_mutation.dart (model3d.configure)",
+     "testedBy": "apps/avelune_studio/test/resource_io/local_model_shadow_mutation_test.dart (shadow only)"
+    },
+    {
+     "symbol": "terrain page routing and frameBuilder",
+     "what": "show terrain editor only if spatial or visuals support atlas preview; tile id row*columns+column; canPaint = maps non-empty",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "canCreateDecor",
+     "what": "import result offers decor creation only in 2D projects",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "canUse / canResume",
+     "what": "canUse = !busy; canResume = terrainDraftCompatibilityProblem == null",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart / terrainDraftCompatibilityProblem",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/resources/tile_selection_dialog.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  }
+ ],
+ "notes": [
+  "KNOWN RED (hint): the 8 border_management_{host,guards_host,layout_host} tests (2+3+3 expanded) are red because the Bordures workshop is retired; their behaviours are mostly owned by resource_border_lifecycle_workflow_test (covered/partial as classified above). Only 'unpublished border withdrawal ... pixels' (successful deleteDraft apply) and the real-analysis part of border usage inspection lack a UI-free copy.",
+  "Pattern: several tests classed 'uncovered' contain no widget at all and are in blast.json only through file-level imports shared with sibling widget tests (model_light_workshop_test x3 draft tests, regional_map_place_flight_test x3, environment_retirement_continuity 'invalid environment close', resource_lifecycle_host 'source replacement ... without an active map', resource_administration_journey 'successful replacement clears...'). They can be relocated unchanged into new UI-free files instead of rewritten.",
+  "Rewritable on the character_removal_owner_guard_test model (AuthoringResourceFixture on disk, no UI): uwu5/uwu6 source removal disk cases, usage-removal refusal wording (_removalRefusal), usage replacement open-document absorption, border deleteDraft apply, environment/decor draft retention in ResourceNavigation, portrait import. Pure-controller rewrites (no disk): ResourceRemovalController error/capability cases, ResourceCatalogFilterState draft semantics, ResourceItem.usableIn for borders, RegionalMapController.editPoint(mapIds) and extracted regional helpers. Not rewritable without a harness: hub e2e Player parts (keep as hub tests driven by ports).",
+  "Duplicated logic in legacy UI (single behaviour, several copies): terrain tile id 'frame.row * source.columns + frame.column' in resource_preview.dart, resource_workspace_pane.dart and resource_terrain_preview.dart; border/model 'usable' rule in resource_detail_panel.dart vs ResourceItem.usableIn; name sort/category filter in resource_library_layout.dart vs ResourceLibraryState.visibleItems; model3d.configure shadow payload in resource_workspace_pane.dart and model_resource_library.dart.",
+  "ResourceNavigation._managementProblem guards (resource.classify with mapId, environment.preset.delete dirty owners, resource.usages.replace with usageDraftOwners, element.category.assign / smart_tile.preset.category.assign while a draft exists) have no direct Studio-level test outside blast files; authoring-level guards exist in packages/map_authoring/test/domains/assets/resource_organization_guards_test.dart. ResourceNavigation.usageDraftOwners and openUsageOwner/canOpenUsageOwner are not called by any non-blast test (the map-side navigation is covered by workspace_resource_usage_navigation_test.dart).",
+  "WorkspacePublicationWorkflow tests that pass a real ResourceNavigation with packTransfer.blocksClose exist only in resource_pack_cancellation_host_test.dart (free); workspace_publication_workflow_test.dart and workspace_workflow_test.dart always pass resources: () => null, so WorkspaceWorkflow.hasCatalogDependencyDraft (resources()?.dirty) is uncovered for environment/decor drafts.",
+  "Hard-coded QA path in a covering test: resource_definition_workflow_test.dart creates /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resource-definition (AveluneQA, removed on dispose only if empty); decor_retirement_continuity_test.dart uses Directory.systemTemp.createTemp('decor-retirement-') (outside AveluneQA).",
+  "Name motifs: loops expand tests as '$size' -> 'Size(w.0, h.0)', '${size.width}' -> 'w.0', '$phase' -> 'ResourcePackTransferPhase.<name>', '$mode' in {erreur, capacité perdue}, '$capacity' in {false, null}, '$apply' in {false, true}, '$state' in {unpublished, deprecated}. Entries are per declaration, not per expansion (98 declarations; border_management_* and others expand to more cases).",
+  "Coverage verification depth: covering tests' names and key expects were read for resource_definition_workflow_test, resource_border_lifecycle_workflow_test, resource_usage_replacement_workflow_test, resource_definition_sessions_test, resource_usage_controller_test (first 135 lines), resource_pack_cancellation_host_test, resource_pack_transfer_controller_test (2 tests), map_resource_placement_test (env refusal), regional_map_controller_test, model_resource_workflow_test, model_shadow_controls_test and the map_authoring source/replacement/element tests. Only names were checked for local_resource_usage_adapter_test (first test expects partially), environment_editing_commands_test, atlas_selection_view_test, resource_import_context_flow_test, local_regional_map_adapter_test: marked 'unsure' where relied upon.",
+  "Anomalies: (1) resource_usage_replacement_host_test and resource_usages_host_test have no unsaved-document assertion at the owner level; (2) uwu5_source_removal_host_test third test and uwu6_source_confirmation_host_test duplicate each other's apply branch; (3) terrain_management_layout_host_test, border_management_layout_host_test, uwu5_source_removal_dialog_test size loops duplicate the same layout assertions across three sizes (ui_only); (4) several tests print timing (debugPrint UWU5_SOURCE_CANCEL_HOST_US) and capture screenshots via fixture.capture (QA artifacts, AVELUNE_CAPTURE_DIR)."
+ ]
+}

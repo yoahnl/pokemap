@@ -13,6 +13,8 @@ import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visual
 import '../map_workspace/studio_spatial_map_preview.dart';
 
 import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_spatial_picking.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_viewport_camera.dart';
 
 import 'cinematic_transport_listenable.dart';
 import 'cinematic_view_state.dart';
@@ -123,9 +125,7 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
         widget.view.mode != CinematicMapMode.select) {
       return false;
     }
-    final point = widget.model.asset.stageContext?.stagePoints
-        .where((point) => point.x.floor() == x && point.y.floor() == z)
-        .firstOrNull;
+    final point = cinematicStagePointAtCell(widget.model.asset, x, z);
     if (point == null || !widget.beforeSelect()) return false;
     _focus.requestFocus();
     _dragPoint = point;
@@ -139,35 +139,20 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
     _dragPoint = null;
     _dragOrigin = null;
     _dragDestination = null;
-    if (point != null &&
-        destination != null &&
-        destination != Offset(point.x, point.y)) {
-      widget.onPointMove(point, destination);
+    final committed = cinematicCommittedDragDestination(point, destination);
+    if (point != null && committed != null) {
+      widget.onPointMove(point, committed);
     }
     setState(() {});
   }
 
   CinematicViewportFrame? _viewportFrame() {
     final transport = widget.transport, model = widget.model;
-    final player = model.actors.actors
-        .where((actor) => actor.bindingKind == CinematicActorBindingKind.player)
-        .firstOrNull;
-    final origin = player?.position;
     if (_plan != transport.plan) {
       _plan = transport.plan;
       _projection = _plan == null
           ? null
-          : CinematicViewportProjection(
-              plan: _plan!,
-              cellWidth: 1,
-              cellHeight: 1,
-              initialCamera: CinematicViewportCamera(
-                centerX: origin?.x?.toDouble() ?? model.map.size.width / 2,
-                centerY: origin?.y?.toDouble() ?? model.map.size.height / 2,
-                visibleWidth: 15,
-                visibleHeight: 11,
-              ),
-            );
+          : cinematicPlaybackProjection(_plan!, model, clampToMap: false);
     }
     return transport.previewActive
         ? _projection?.frameAt(transport.timeMs)
@@ -183,7 +168,10 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
       x: x - _camera.pan.dx,
       y: widget.model.map.spatialScene!.worldHeightAt(x, z),
       z: z - _camera.pan.dy,
-      zoom: _camera.zoom * 15 / frame.camera.visibleWidth,
+      zoom: cinematicSpatialPreviewZoom(
+        _camera.zoom,
+        frame.camera.visibleWidth,
+      ),
     );
   }
 
@@ -229,11 +217,7 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
                           ? null
                           : SpatialSceneContentHit(
                               kind: SpatialSceneContentKind.actor,
-                              id:
-                                  actor.bindingKind ==
-                                      CinematicActorBindingKind.player
-                                  ? 'hero'
-                                  : 'cinematic:${actor.actorId}',
+                              id: cinematicActorContentId(actor),
                               cell: (x.floor(), z.floor()),
                             ),
                       selectContent: view.mode == CinematicMapMode.select,
@@ -251,18 +235,10 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
                             !widget.beforeSelect()) {
                           return;
                         }
-                        final selected = hit.id == 'hero'
-                            ? model.actors.actors
-                                  .where(
-                                    (actor) =>
-                                        actor.bindingKind ==
-                                        CinematicActorBindingKind.player,
-                                  )
-                                  .firstOrNull
-                                  ?.actorId
-                            : hit.id.startsWith('cinematic:')
-                            ? hit.id.substring(10)
-                            : null;
+                        final selected = cinematicActorIdForContent(
+                          model,
+                          hit.id,
+                        );
                         if (selected == null) return;
                         _focus.requestFocus();
                         view.actorId = selected;
@@ -274,7 +250,7 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
                         if (view.mode != CinematicMapMode.select &&
                             view.mode != CinematicMapMode.pan) {
                           _focus.requestFocus();
-                          widget.onPoint(Offset(x + .5, z + .5));
+                          widget.onPoint(cinematicCellCentre(x, z));
                         }
                       },
                       onHover: (hit) {
@@ -285,10 +261,12 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
                       onDragUpdate: (cell) {
                         if (_dragPoint == null || _dragOrigin == null) return;
                         setState(
-                          () => _dragDestination = Offset(
-                            _dragPoint!.x + cell.$1 - _dragOrigin!.dx,
-                            _dragPoint!.y + cell.$2 - _dragOrigin!.dy,
-                          ),
+                          () => _dragDestination =
+                              cinematicSpatialDragDestination(
+                                _dragPoint!,
+                                origin: _dragOrigin!,
+                                cell: cell,
+                              ),
                         );
                       },
                       onDragEnd: _finish,

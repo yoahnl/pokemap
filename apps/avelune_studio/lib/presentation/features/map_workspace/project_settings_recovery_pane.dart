@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../features/project_settings/application/project_settings_drafts.dart';
+import '../../../features/project_settings/application/project_settings_recovery.dart';
+
+export '../../../features/project_settings/application/project_settings_recovery.dart'
+    show ProjectSettingsRecoveryTarget, projectSettingsRecoveryTargets;
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-
-typedef ProjectSettingsRecoveryTarget = ({
-  String id,
-  String label,
-  ProjectSettingsDraft draft,
-  bool busy,
-  String consequence,
-  VoidCallback recover,
-});
 
 class ProjectSettingsRecoveryPane extends StatefulWidget {
   const ProjectSettingsRecoveryPane({
@@ -61,15 +56,10 @@ class _ProjectSettingsRecoveryPaneState
   }
 
   bool _pending(ProjectSettingsRecoveryTarget target) =>
-      target.draft.dirty || target.draft.blocked || target.draft.error != null;
+      projectSettingsRecoveryPending(target);
 
   bool _available(ProjectSettingsRecoveryTarget target) =>
-      target.draft.ready &&
-      !target.busy &&
-      !target.draft.saving &&
-      (target.draft is! VisualSettingsDraft ||
-          target.draft.dirty ||
-          target.draft.blocked);
+      projectSettingsRecoveryAvailable(target);
 
   Future<void> _recover(ProjectSettingsRecoveryTarget target) async {
     final revision = _revision;
@@ -98,22 +88,21 @@ class _ProjectSettingsRecoveryPaneState
       ),
     );
     if (!mounted || confirmed != true) return;
-    final current = widget
-        .targets()
-        .where((value) => value.id == target.id)
-        .firstOrNull;
-    if (_revision != revision || current == null || !_available(current)) {
+    final current = projectSettingsRecoveryConfirmed(
+      widget.targets(),
+      target.id,
+      changed: _revision != revision,
+    );
+    if (current == null) {
       setState(() {
-        _notice = 'Les brouillons ont changé pendant la confirmation. Vérifiez la rubrique puis recommencez.';
+        _notice = projectSettingsRecoveryChanged;
       });
       return;
     }
     current.recover();
     if (!mounted) return;
     setState(() {
-      _notice = _pending(current)
-          ? 'La rubrique « ${current.label} » reste bloquée. Son propriétaire doit encore résoudre le problème signalé.'
-          : 'Le brouillon de « ${current.label} » a été abandonné. Les autres rubriques sont conservées.';
+      _notice = projectSettingsRecoveryOutcome(current);
     });
   }
 

@@ -7,6 +7,7 @@ import '../../shared/widgets/inputs/studio_search_field.dart';
 
 export '../../../features/regional_map/application/regional_map_summary.dart';
 
+import '../../../features/regional_map/application/regional_map_choices.dart';
 import '../../../features/regional_map/application/regional_map_summary.dart';
 
 class RegionalPlaceFinder extends StatefulWidget {
@@ -31,7 +32,7 @@ class _RegionalPlaceFinderState extends State<RegionalPlaceFinder> {
   final _search = TextEditingController();
   var _query = '';
 
-  static const _limit = 12;
+  static const _limit = regionalPlaceFinderLimit;
 
   @override
   void dispose() {
@@ -42,14 +43,11 @@ class _RegionalPlaceFinderState extends State<RegionalPlaceFinder> {
   @override
   Widget build(BuildContext context) {
     final needle = _query.trim().toLowerCase();
-    final matches = [
-      if (needle.isNotEmpty)
-        for (final point in widget.points)
-          if ('${point.label} ${point.id} ${regionalPlaceFlight(point, widget.project)}'
-              .toLowerCase()
-              .contains(needle))
-            point,
-    ];
+    final matches = regionalPlaceMatches(
+      points: widget.points,
+      project: widget.project,
+      query: _query,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

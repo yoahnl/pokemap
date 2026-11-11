@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/presentations/application/presentation_field_input.dart';
+
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
@@ -48,28 +50,19 @@ class PresentationInspector extends StatelessWidget {
     value: '$value',
     maxLines: lines,
     tryCommit: (text) {
-      Object? parsed = numeric
-          ? double.tryParse(text.replaceAll(',', '.'))
-          : text;
-      if (parsed is double && (!parsed.isFinite || parsed.isNaN)) parsed = null;
-      if (numeric && parsed != null) {
-        parsed = (parsed as double) * factor;
-        if (key.endsWith('Us')) parsed = parsed.round();
-      }
-      final valid =
-          parsed != null &&
-          onPatch(
-            groupKey == null
-                ? {key: parsed}
-                : {
-                    groupKey: {...?group, key: parsed},
-                  },
-          );
-      if (valid) {
-        view.invalidFields.remove(label);
-      } else {
-        view.invalidFields.add(label);
-      }
+      final valid = commitPresentationField(
+        view.invalidFields,
+        label,
+        parsePresentationFieldText(
+          text,
+          key,
+          numeric: numeric,
+          factor: factor,
+        ),
+        (value) => onPatch(
+          presentationFieldPatch(key, value, group: group, groupKey: groupKey),
+        ),
+      );
       changed();
       return valid;
     },

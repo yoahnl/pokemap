@@ -54,11 +54,7 @@ extension CinematicInspectorActors on CinematicInspector {
             'cinematicOnly': 'Acteur propre à la cinématique',
           },
           onChanged: (kind) => controller.bindActor(
-            CinematicActorBinding(
-              actorId: actor.actorId,
-              kind: CinematicActorBindingKind.values.byName(kind),
-              mapEntityId: kind == 'mapEntity' ? binding?.mapEntityId : null,
-            ),
+            cinematicBindingForRole(actor.actorId, kind, binding),
           ),
         ),
         if (binding?.kind == CinematicActorBindingKind.mapEntity)
@@ -108,23 +104,14 @@ extension CinematicInspectorActors on CinematicInspector {
             'stagePoint': 'Repère de la cinématique',
           },
           onChanged: (kind) {
-            if (kind == 'fromMovementTarget' || kind == 'stagePoint') {
+            if (cinematicPlacementChoiceIsStaged(kind)) {
               view.initialPlacementChoice = kind;
               changed();
               return;
             }
             view.initialPlacementChoice = null;
             controller.setPlacement(
-              CinematicActorInitialPlacement(
-                actorId: actor.actorId,
-                kind: CinematicActorInitialPlacementKind.values.byName(kind),
-                targetId: kind == 'fromMovementTarget'
-                    ? placement?.targetId
-                    : null,
-                stagePointId: kind == 'stagePoint'
-                    ? placement?.stagePointId
-                    : null,
-              ),
+              cinematicPlacementForKind(actor.actorId, kind, placement),
             );
           },
         ),

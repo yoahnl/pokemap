@@ -2,14 +2,10 @@ part of 'cinematic_inspector.dart';
 
 extension CinematicInspectorCamera on CinematicInspector {
   List<Widget> _cameraFields(CinematicAsset asset, CinematicTimelineStep step) {
-    final focus = cinematicTimelineCameraFocusBindingOf(step);
-    final target = focus?.target;
-    final targetId = switch (target?.kind) {
-      CinematicCameraTargetKind.actor => 'actor:${target!.actorId}',
-      CinematicCameraTargetKind.stagePoint => 'point:${target!.stagePointId}',
-      _ => 'center',
-    };
-    final zoom = focus?.zoomPreset ?? CinematicCameraZoomPreset.medium;
+    final targetId = cinematicCameraTargetOption(
+      cinematicTimelineCameraFocusBindingOf(step)?.target,
+    );
+    final zoom = cinematicCameraZoomOf(step);
     return [
       StudioSelect(
         label: 'Action caméra',
@@ -26,13 +22,10 @@ extension CinematicInspectorCamera on CinematicInspector {
             cinematicId: a.id,
             stepId: step.id,
             cameraMode: CinematicTimelineCameraMode.values.byName(value),
-            cameraFocusBinding: value == 'focus'
-                ? CinematicTimelineCameraFocusBinding(
-                    target:
-                        target ?? CinematicCameraTargetBinding.sceneCenter(),
-                    zoomPreset: zoom,
-                  )
-                : null,
+            cameraFocusBinding: cinematicCameraFocusForMode(
+              step,
+              CinematicTimelineCameraMode.values.byName(value),
+            ),
           ).cinematic,
         ),
       ),
@@ -42,37 +35,23 @@ extension CinematicInspectorCamera on CinematicInspector {
           label: 'Cible caméra',
           value: targetId,
           options: {
-            'center': 'Centre de la scène',
+            cinematicCameraCenterOption: 'Centre de la scène',
             for (final actor in asset.requiredActors)
-              'actor:${actor.actorId}':
+              cinematicCameraActorOption(actor.actorId):
                   'Acteur · ${cinematicActorName(actor.label)}',
             for (final point
                 in asset.stageContext?.stagePoints ?? <CinematicStagePoint>[])
-              'point:${point.id}': 'Repère · ${point.label}',
+              cinematicCameraPointOption(point.id): 'Repère · ${point.label}',
           },
-          onChanged: (value) {
-            final selected = value.startsWith('actor:')
-                ? CinematicCameraTargetBinding.actor(
-                    actorId: value.substring(6),
-                  )
-                : value.startsWith('point:')
-                ? CinematicCameraTargetBinding.stagePoint(
-                    stagePointId: value.substring(6),
-                  )
-                : CinematicCameraTargetBinding.sceneCenter();
-            _edit(
-              asset,
-              (a) => updateCinematicTimelineBasicBlockStep(
-                _project(a),
-                cinematicId: a.id,
-                stepId: step.id,
-                cameraFocusBinding: CinematicTimelineCameraFocusBinding(
-                  target: selected,
-                  zoomPreset: zoom,
-                ),
-              ).cinematic,
-            );
-          },
+          onChanged: (value) => _edit(
+            asset,
+            (a) => updateCinematicTimelineBasicBlockStep(
+              _project(a),
+              cinematicId: a.id,
+              stepId: step.id,
+              cameraFocusBinding: cinematicCameraFocusWithTarget(step, value),
+            ).cinematic,
+          ),
         ),
         StudioSelect(
           label: 'Cadrage',
@@ -88,9 +67,9 @@ extension CinematicInspectorCamera on CinematicInspector {
               _project(a),
               cinematicId: a.id,
               stepId: step.id,
-              cameraFocusBinding: CinematicTimelineCameraFocusBinding(
-                target: target ?? CinematicCameraTargetBinding.sceneCenter(),
-                zoomPreset: CinematicCameraZoomPreset.values.byName(value),
+              cameraFocusBinding: cinematicCameraFocusWithZoom(
+                step,
+                CinematicCameraZoomPreset.values.byName(value),
               ),
             ).cinematic,
           ),

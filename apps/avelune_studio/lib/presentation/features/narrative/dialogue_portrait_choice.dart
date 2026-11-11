@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import '../../../features/narrative/application/dialogue_portrait_selection.dart';
 import '../../../features/narrative/domain/dialogue_draft.dart';
 
 class DialoguePortraitChoice extends StatelessWidget {
@@ -15,25 +16,14 @@ class DialoguePortraitChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final character = project.characters
-        .where((entry) => entry.id == line.speakerId)
-        .firstOrNull;
-    if (character == null || character.portraits.isEmpty) {
-      return const SizedBox();
-    }
-    final definitions = {
-      for (final state in project.characterStudioCatalog.portraitStates)
-        state.id: state.displayName,
-    };
-    final states = character.portraits
-        .map((entry) => entry.portraitStateId)
-        .toSet();
-    final missing =
-        line.portraitStateId != null && !states.contains(line.portraitStateId);
+    final selection = DialoguePortraitSelection.of(project, line);
+    if (selection == null) return const SizedBox();
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: DropdownButtonFormField<String>(
-        key: ValueKey('portrait-${character.id}-${line.portraitStateId}'),
+        key: ValueKey(
+          'portrait-${selection.characterId}-${line.portraitStateId}',
+        ),
         initialValue: line.portraitStateId ?? '',
         isExpanded: true,
         decoration: const InputDecoration(
@@ -41,16 +31,17 @@ class DialoguePortraitChoice extends StatelessWidget {
         ),
         items: [
           const DropdownMenuItem(value: '', child: Text('Sans portrait')),
-          for (final id in states)
+          for (final MapEntry(key: id, value: label)
+              in selection.states.entries)
             DropdownMenuItem(
               value: id,
               child: Text(
-                definitions[id] ?? 'Portrait sans libellé',
+                label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-          if (missing)
+          if (selection.missing)
             DropdownMenuItem(
               value: line.portraitStateId,
               enabled: false,
@@ -59,13 +50,8 @@ class DialoguePortraitChoice extends StatelessWidget {
               ),
             ),
         ],
-        onChanged: (state) => onChanged(
-          DialogueLineDraft(
-            text: line.text,
-            speakerId: line.speakerId,
-            portraitStateId: state == null || state.isEmpty ? null : state,
-          ),
-        ),
+        onChanged: (state) =>
+            onChanged(DialoguePortraitSelection.choose(line, state)),
       ),
     );
   }

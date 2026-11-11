@@ -29,6 +29,12 @@ class EventSourcePicking {
   NarrativeEventSourceRef? accept(NarrativeEventSourceRef value) =>
       chooseKind == value.kind && selectable(value) ? value : null;
 
+  bool get triggerContactNeedsFlatMap =>
+      (chooseKind ?? source?.kind) == NarrativeEventSourceKind.triggerBump &&
+      (project.settings.dimension != ProjectDimension.twoD ||
+          map.spatialScene != null ||
+          map.version == ProjectVersion.v9);
+
   List<EventSourceCellTarget> get flatTargets {
     final kind =
         chooseKind ?? (eventMapId(source) == map.id ? source?.kind : null);

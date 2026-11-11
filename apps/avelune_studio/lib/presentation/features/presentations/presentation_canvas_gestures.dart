@@ -9,17 +9,12 @@ extension _PresentationCanvasGestures on _PresentationCanvasState {
         .where((item) => item.clipId == widget.view.selectedId)
         .firstOrNull;
     final anchor = pointerDown ?? point;
-    gesture = 'move';
-    if (selected != null &&
-        (anchor - (selected.bounds.topCenter - const Offset(0, 22))).distance <
-            14) {
-      gesture = 'rotate';
-    } else if (selected != null &&
-        selected.corners.any((corner) => (corner - anchor).distance < 14)) {
-      gesture = 'scale';
-    } else {
-      select(anchor);
-    }
+    gesture = presentationCanvasGestureAt(
+      anchor,
+      bounds: selected?.bounds,
+      corners: selected?.corners ?? const [],
+    );
+    if (gesture == PresentationCanvasGesture.move) select(anchor);
     final clip = widget.view.selected;
     if (clip == null || !widget.view.editing.isClipEditable(clip.id)) return;
     initialBounds = geometry
@@ -38,56 +33,32 @@ extension _PresentationCanvasGestures on _PresentationCanvasState {
     final clip = dragging, size = geometry.canvasSize;
     if (start == null || clip == null || size == null) return;
     delta = point - start!;
-    final pose = presentationPose(
+    final update = presentationCanvasGestureUpdate(
+      widget.asset,
       clip,
-      presentationPoseKey(
-        pose: widget.view.pose,
-        orientationOverride: widget.view.orientationOverride,
-        portrait: widget.view.portrait,
-      ),
-    );
-    final changes = <String, double>{};
-    if (gesture == 'rotate' && initialBounds != null) {
-      final center = initialBounds!.center;
-      changes['rotationTurns'] =
-          pose.rotationTurns +
-          ((point - center).direction - (start! - center).direction) /
-              (2 * 3.141592653589793);
-    } else if (gesture == 'scale' && initialBounds != null) {
-      final center = initialBounds!.center;
-      final original = (start! - center).distance;
-      final factor = original == 0
-          ? 1.0
-          : ((point - center).distance / original).clamp(.01, 100.0);
-      changes['scaleX'] = pose.scaleX * factor;
-      changes['scaleY'] = pose.scaleY * factor;
-    } else {
-      changes['translateX'] = pose.translateX + delta.dx / size.width;
-      changes['translateY'] = pose.translateY + delta.dy / size.height;
-    }
-    final patch = presentationPosePatch(
-      clip,
-      changes,
+      gesture: gesture,
+      start: start!,
+      point: point,
+      initialBounds: initialBounds,
+      canvasSize: size,
       pose: widget.view.pose,
       orientationOverride: widget.view.orientationOverride,
       portrait: widget.view.portrait,
-      preserveTrajectoryDelta: true,
     );
-    try {
-      projection = projectPresentationGesture(widget.asset, clip, patch);
-      pendingPatch = patch;
+    if (update.error == null) {
+      projection = update.projection;
+      pendingPatch = update.patch;
       widget.view.actionError = null;
-    } catch (error) {
+    } else {
       pendingPatch = null;
-      widget.view.actionError = 'Transformation refusée : $error';
+      widget.view.actionError = update.error;
     }
     repaint();
   }
 
   void end() {
-    if (pendingPatch != null && delta != Offset.zero) {
-      widget.onPatch(pendingPatch!);
-    }
+    final committed = presentationCanvasCommittedPatch(pendingPatch, delta);
+    if (committed != null) widget.onPatch(committed);
     cancel();
   }
 }

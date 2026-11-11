@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 
+import 'package:avelune_studio/features/events/application/event_condition_draft.dart';
 import 'package:avelune_studio/features/events/application/event_condition_labels.dart';
 
 import 'event_labels.dart';
@@ -16,7 +17,9 @@ Future<NarrativeEventCondition?> chooseEventCondition(
   String? mapId,
   String? entityId,
 }) {
-  if (initial?.rewardReference != null) return Future.value(null);
+  if (initial != null && !isEventConditionEditable(initial)) {
+    return Future.value(null);
+  }
   return showDialog<NarrativeEventCondition>(
     context: context,
     builder: (_) => _ConditionDialog(
@@ -28,6 +31,12 @@ Future<NarrativeEventCondition?> chooseEventCondition(
     ),
   );
 }
+
+const _creationLabels = {
+  EventConditionInputKind.fact: 'Un état du monde',
+  EventConditionInputKind.event: 'Un événement déjà joué',
+  EventConditionInputKind.instance: 'Une mémoire locale de cet élément',
+};
 
 class _ConditionDialog extends StatefulWidget {
   const _ConditionDialog({
@@ -93,36 +102,18 @@ class _ConditionDialogState extends State<_ConditionDialog> {
 
   void _accept() {
     try {
-      final id = _id;
-      if (id == null) throw StateError('Choisissez une référence.');
-      final fact = _fact;
-      final value = switch (fact?.valueKind) {
-        NarrativeValueKind.integer => NarrativeValue.integer(
-          int.parse(_text.text),
-        ),
-        NarrativeValueKind.string => NarrativeValue.string(_text.text),
-        _ => NarrativeValue.boolean(_boolean),
-      };
-      if (_kind == 'fact' && fact == null) {
-        throw StateError('Cet état est introuvable.');
-      }
-      Navigator.pop(
-        context,
-        _kind == 'instance'
-            ? NarrativeEventCondition.mapEventInstanceBoolean(
-                mapId: _mapId!,
-                eventId: _entityId!,
-                key: id,
-                expectedValue: _boolean,
-              )
-            : _kind == 'event'
-            ? NarrativeEventCondition.narrativeEventConsumed(id, _boolean)
-            : NarrativeEventCondition.factValue(
-                id,
-                operator: _operator,
-                expectedValue: value,
-              ),
-      );
+      final draft =
+          EventConditionDraft(
+              facts: widget.facts,
+              mapId: _mapId,
+              entityId: _entityId,
+            )
+            ..kind = EventConditionInputKind.values.byName(_kind)
+            ..sourceId = _id
+            ..comparison = _operator
+            ..boolean = _boolean
+            ..text = _text.text;
+      Navigator.pop(context, draft.condition);
     } catch (_) {
       setState(
         () => _error = 'Choisissez une référence et une valeur compatible (nombre entier attendu si numérique).',
@@ -144,10 +135,11 @@ class _ConditionDialogState extends State<_ConditionDialog> {
               label: 'Condition sur',
               value: _kind,
               options: {
-                'fact': 'Un état du monde',
-                'event': 'Un événement déjà joué',
-                if (_mapId != null && _entityId != null)
-                  'instance': 'Une mémoire locale de cet élément',
+                for (final kind in eventConditionCreationKinds(
+                  mapId: _mapId,
+                  entityId: _entityId,
+                ))
+                  kind.name: _creationLabels[kind]!,
               },
               onChanged: (value) => setState(() {
                 _kind = value;

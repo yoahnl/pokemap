@@ -1,0 +1,683 @@
+{
+ "zone": "E_shell",
+ "cases": [
+  {
+   "file": "apps/avelune_studio/test/ui06_scene_runtime_test.dart",
+   "test": "real scene executor commits the false branch after reopen",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/ui06_scene_runtime_owner_test.dart",
+     "test": "real scene executor commits the false branch after reopen"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Copy without the studio_theme import; same disk fixture (Ui06SceneFixture, LocalMapWorkspaceAdapter). The false branch expects no override so the writer mutation does not break it; the true branch test detects it."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui06_scene_runtime_test.dart",
+   "test": "real scene executor commits the true branch after reopen",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/ui06_scene_runtime_owner_test.dart",
+     "test": "real scene executor commits the true branch after reopen"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Mutation: SceneConsequenceRuntimeWriter._applySetFact returns the state unchanged -> this test fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui06_scene_runtime_test.dart",
+   "test": "real runtime plays Yarn and refusal",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/ui06_scene_runtime_owner_test.dart",
+     "test": "real runtime plays Yarn and refusal"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "The legacy mounted StudioPlaytestView (symbol refused by check_clean even though the file is a technical exception). The owner copy builds the same PlayableMapGame with loadRuntimeMapBundle + prepareStudioPlaytestStart + StudioPlaytestSession and mounts a GameWidget in a plain MaterialApp. It is RED exactly like the legacy test at HEAD (suite_a3cd_red.txt): the final assertion consumedNarrativeEventIds contains the event is false on the refusal branch (Set:[]), after the lines and fact-override assertions pass. Not claimed green. See decisions."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui06_scene_runtime_test.dart",
+   "test": "real runtime plays Yarn and cinematic agreement",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/ui06_scene_runtime_owner_test.dart",
+     "test": "real runtime plays Yarn and cinematic agreement"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Same game construction as the view without PlayerServiceRuntimeController (not needed by this assertion set). Detected by the writer mutation (override missing)."
+  },
+  {
+   "file": "apps/avelune_studio/test/terrain_canvas_test.dart",
+   "test": "canvas previews interpolated terrain, commits one history, erases neighbors and cancels",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/terrain_canvas_owner_test.dart",
+     "test": "canvas previews interpolated terrain, commits one history, erases neighbors and cancels"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Copy without studioTheme(); MapEditingViewport2D is platform/rendering. Mutation: MapCanvasStroke.paint breaks interpolation after each terrain cell -> fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_test.dart",
+   "test": "generic field handles hardware deletion under workspace shortcuts (variant: TargetPlatform.macOS and TargetPlatform.windows)",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_owner_test.dart",
+     "test": "generic field handles hardware deletion under workspace shortcuts (variant: TargetPlatform.macOS and TargetPlatform.windows)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Clean copy of the generic variant (plain TextField, MaterialApp default theme). mapEditingShortcuts delegates to textAwareEditorShortcuts: mutating it fails this test on both platforms."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_test.dart",
+   "test": "search field handles hardware deletion under workspace shortcuts (variant: TargetPlatform.macOS and TargetPlatform.windows)",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Mounts the design-system StudioSearchField. The behaviour is the widget itself (the new UI will bring its own search primitive); the owner guard it relies on (shortcuts yield to EditableText) is proven by the generic variant."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_test.dart",
+   "test": "draft field handles hardware deletion under workspace shortcuts (variant: TargetPlatform.macOS and TargetPlatform.windows)",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Mounts the design-system StudioDraftField. Same reasoning as the search variant: widget behaviour of a legacy/design-system primitive; the shortcut guard is proven by the generic variant."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_test.dart",
+   "test": "real map sidebar and Elements search accept hardware editing (variant: macOS)",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_owner_test.dart",
+     "test": "generic field handles hardware deletion under workspace shortcuts (variant: TargetPlatform.macOS and TargetPlatform.windows)"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_owner_test.dart",
+     "test": "production keyboard guard of the editing surface delete removes the selected decor when editing is available"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_owner_test.dart",
+     "test": "production keyboard guard of the editing surface delete does nothing while the surface is busy"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_owner_test.dart",
+     "test": "production keyboard guard of the editing surface delete does nothing while the catalogue is busy"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "The real sidebar and Elements search fields are legacy UI and are not re-proven; what is proven is the owner behaviour behind them: hardware editing keys stay in a text field and do not touch map history, and the production MapEditingSurface guard (busy / catalogue busy / editingAvailable) gates shortcuts. Mutation: guard without busy -> fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_test.dart",
+   "test": "Presentation inspector yields hardware undo to its text field (variant: macOS)",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_owner_test.dart",
+     "test": "a text field yields hardware undo to itself while save still reaches the editor (variant: TargetPlatform.macOS and TargetPlatform.windows)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "The Presentation inspector Duree field is legacy UI. Owner proof: textAwareEditorShortcuts (used by presentation_page_body) yields undo to a focused TextField, lets save through, and fires undo when focus is outside text. The Presentation controller side (writes==0) is not re-proven here."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_test.dart",
+   "test": "text cut and undo stay local while save and unfocused editor keys work (variant: macOS and windows)",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_owner_test.dart",
+     "test": "text cut and undo stay local while save and unfocused editor keys work (variant: TargetPlatform.macOS and TargetPlatform.windows)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Clean copy, default theme. Fails under the textAwareEditorShortcuts mutation."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_mcp_connection_panel_test.dart",
+   "test": "ready configuration is copied without rendering its private key",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/platform/mcp/studio_mcp_connection_owner_test.dart",
+     "test": "ready configuration is copied without rendering its private key"
+    },
+    {
+     "file": "apps/avelune_studio/test/platform/mcp/studio_mcp_connection_owner_test.dart",
+     "test": "a configuration is never copyable once the service has failed"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Service level: new StudioMcpService.readyClientConfiguration returns the configuration only when ready and is null while starting, after stop and after failure; the token appears only in the copyable configuration, never in error, diagnosticCode, url or toString. The Clipboard write and the rendered text (Connexion prete, Configuration copiee) stay UI. Mutation: header without token -> fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_mcp_connection_panel_test.dart",
+   "test": "failed service remains actionable and a retry is explicit",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/platform/mcp/studio_mcp_connection_owner_test.dart",
+     "test": "failed service remains actionable and a retry is explicit"
+    },
+    {
+     "file": "apps/avelune_studio/test/platform/mcp/studio_mcp_connection_owner_test.dart",
+     "test": "retry does nothing while the service is ready or starting"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Service level: a launcher throwing a private message leaves error/diagnosticCode redacted, no automatic relaunch (attempts stays 1), retry() is the only relaunch and reaches ready. The rendered Reessayer button is UI. Mutation: error includes the launcher failure text -> fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_command_palette_test.dart",
+   "test": "searching falaise proposes the border command and its help",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/studio_command_palette_owner_test.dart",
+     "test": "searching falaise proposes the border command and its help"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Copy without studioTheme import (test does not use widgets)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_command_palette_test.dart",
+   "test": "the bar, the menus and the palette share one availability rule",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/studio_command_palette_owner_test.dart",
+     "test": "the bar, the menus and the palette share one availability rule"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Mutation: map.undo availability rule removed -> fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_command_palette_test.dart",
+   "test": "delete and Cmd+K do nothing while a text field is edited",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/studio_command_palette_owner_test.dart",
+     "test": "delete and Cmd+K do nothing while a text field is edited"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Copy with a plain MaterialApp; textAwareEditorShortcuts is platform/input. Fails under the textAwareEditorShortcuts mutation."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_command_palette_test.dart",
+   "test": "the 55 help families are searchable and run their map command",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/studio_command_palette_owner_test.dart",
+     "test": "the 55 help families are searchable and run their map command"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Copy; no widget. The StudioCommandPalette dialog itself (arrows, Enter on runnable only, Escape) remains untested anywhere: see decisions."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/map_workspace_layout_responsive_test.dart",
+   "test": "native collision strokes remain undoable without editing the ground",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/map_workspace_collision_strokes_owner_test.dart",
+     "test": "native collision strokes remain undoable without editing the ground"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Merged file with a clean fixture (MapSelectionEShellOwnerFixture, no studioTheme). Only paints, so the paint-to-true mutation does not distinguish it; the erase test in the same file detects it. The original test name is misleading (misnamed file); intent kept."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/map_workspace_compact_collision_test.dart",
+   "test": "native viewport paints and erases exactly one collision cell",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/map_workspace_collision_strokes_owner_test.dart",
+     "test": "native viewport paints and erases exactly one collision cell"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Mutation: collision stroke always writes true -> fails on erase."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+   "test": "refused 3D border preserves source and viewport",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/spatial_border_layout_owner_test.dart",
+     "test": "refused 3D border preserves source and viewport"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Clean copy (no studioTheme); SpatialMapEditingViewport is platform/rendering. Not individually mutated; file-level mutation detected by tests 20 and 22."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+   "test": "Escape preserves a later non-border document error",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/spatial_border_layout_owner_test.dart",
+     "test": "Escape preserves a later non-border document error"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Clean copy (no studioTheme); SpatialMapEditingViewport is platform/rendering. Mutation: clearBorderDraftFailure clears any error -> fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+   "test": "finish and hover retain one owned refusal until an angle is removed",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/spatial_border_layout_owner_test.dart",
+     "test": "finish and hover retain one owned refusal until an angle is removed"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Clean copy (no studioTheme); SpatialMapEditingViewport is platform/rendering. Not individually mutated; file-level mutation detected by tests 20 and 22."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+   "test": "cancel clears its refusal while retaining a different error",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/spatial_border_layout_owner_test.dart",
+     "test": "cancel clears its refusal while retaining a different error"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Clean copy (no studioTheme); SpatialMapEditingViewport is platform/rendering. Mutation: clearBorderDraftFailure clears any error -> fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+   "test": "a corrected border finishes after a refusal with no lingering error",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/spatial_border_layout_owner_test.dart",
+     "test": "a corrected border finishes after a refusal with no lingering error"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Clean copy (no studioTheme); SpatialMapEditingViewport is platform/rendering. Not individually mutated; file-level mutation detected by tests 20 and 22."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+   "test": "controller errors stay globally visible during a refused border",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/spatial_border_layout_owner_test.dart",
+     "test": "controller errors stay globally visible during a refused border"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Clean copy (no studioTheme); SpatialMapEditingViewport is platform/rendering. Not individually mutated; file-level mutation detected by tests 20 and 22."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+   "test": "a controller failure with the same text is not owned by the draft",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/spatial_border_layout_owner_test.dart",
+     "test": "a controller failure with the same text is not owned by the draft"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Clean copy (no studioTheme); SpatialMapEditingViewport is platform/rendering. Not individually mutated; file-level mutation detected by tests 20 and 22."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_workspace_accessibility_test.dart",
+   "test": "eight destinations are named buttons with selection Size(1280.0, 720.0)",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/shell/studio_primary_destinations_owner_test.dart",
+     "test": "eight destinations are named buttons with selection"
+    },
+    {
+     "file": "apps/avelune_studio/test/shell/studio_primary_destinations_owner_test.dart",
+     "test": "every destination is highlighted for its own page"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Owner proves the table (ids, labels, order) and the selection mapping. Semantics (button, selected, enabled state, InkWell) stay UI. Mutation: cinematic removed from story pages -> fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_workspace_accessibility_test.dart",
+   "test": "eight destinations are named buttons with selection Size(960.0, 640.0)",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/shell/studio_primary_destinations_owner_test.dart",
+     "test": "eight destinations are named buttons with selection"
+    },
+    {
+     "file": "apps/avelune_studio/test/shell/studio_primary_destinations_owner_test.dart",
+     "test": "every destination is highlighted for its own page"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Owner proves the table (ids, labels, order) and the selection mapping. Semantics (button, selected, enabled state, InkWell) stay UI. Mutation: cinematic removed from story pages -> fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_workspace_accessibility_test.dart",
+   "test": "selection is shown by a marker, not only colour Size(1280.0, 720.0)",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Selected marker is visual; the selection mapping is proven by studio_primary_destinations_owner_test (story pages and gameExport)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_workspace_accessibility_test.dart",
+   "test": "selection is shown by a marker, not only colour Size(960.0, 640.0)",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Selected marker is visual; the selection mapping is proven by studio_primary_destinations_owner_test (story pages and gameExport)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_workspace_accessibility_test.dart",
+   "test": "keyboard reaches and opens every destination Size(1280.0, 720.0)",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Tab order, Enter activation and focus ring of the navigation widget."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_workspace_accessibility_test.dart",
+   "test": "keyboard reaches and opens every destination Size(960.0, 640.0)",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Tab order, Enter activation and focus ring of the navigation widget."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_workspace_accessibility_test.dart",
+   "test": "keyboard focus draws a visible ring on the destination",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Tab order, Enter activation and focus ring of the navigation widget."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_workspace_accessibility_test.dart",
+   "test": "unavailable destination explains why it is unavailable",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/shell/studio_primary_destinations_owner_test.dart",
+     "test": "unavailable destination explains why it is unavailable"
+    },
+    {
+     "file": "apps/avelune_studio/test/shell/studio_primary_destinations_owner_test.dart",
+     "test": "every destination is unavailable while an operation is running"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Owner proves the reason strings and the busy/canTest rules. The tooltip rendering is UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/studio_workspace_accessibility_test.dart",
+   "test": "escape closes a modal, keeps the draft and returns focus",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Escape on the display-preferences modal and focus return; the dialog is StudioDisplayPreferences (zone A) and a Flutter focus behaviour."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_test.dart",
+   "test": "choosing an element in map content centers the view on it",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_owner_test.dart",
+     "test": "choosing an element in map content centers the view on it"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Clean copy with MapSelectionEShellOwnerFixture."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_test.dart",
+   "test": "Shift-click on the map adds and removes decors from the selection",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_owner_test.dart",
+     "test": "Shift-click on the map adds and removes decors from the selection"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Clean copy; pumps MapEditingViewport2D in a plain MaterialApp."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_test.dart",
+   "test": "a group duplicates in one undo step and keeps locked decors out",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_owner_test.dart",
+     "test": "a group duplicates in one undo step and keeps locked decors out"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_owner_test.dart",
+     "test": "a group duplicate leaves its locked decors out"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "The original never asserted the locked exclusion (confirmed). Added a separate test that locks a decor through MapEditorController and checks that duplicate skips it and refuses a locked-only selection. Mutation: duplicate iterates all ids -> the added test fails."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_test.dart",
+   "test": "a 3D group turns by a quarter in one undo step",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_owner_test.dart",
+     "test": "a 3D group turns by a quarter in one undo step"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Clean copy."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_test.dart",
+   "test": "border pieces stay in the library but leave the decor palette",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/presentation/map_tranche1_rests_owner_test.dart",
+     "test": "border pieces stay in the library but leave the decor palette"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Clean copy."
+  }
+ ],
+ "extractions": [
+  {
+   "from": "apps/avelune_studio/lib/presentation/shell/studio_home_navigation.dart:StudioHomeNavigation (_pending/onNavigate/publish/reset, maps/mapLibrary/newGame fallback/canTest, allowSwitch, library optimization state)",
+   "to": "apps/avelune_studio/lib/features/home/application/home_navigation_host.dart:HomeNavigationHost",
+   "legacyTestsRerun": "flutter test --no-pub (in disposable HEAD copy) pokemon_project_switch_host_test, project_settings_retirement_continuity_test, scoped_map_workspace_test (all use StudioHomeNavigation) + studio_workspace_accessibility_test, scene_canvas_addition_test, ui05_story_creation_test, studio_mcp_service_test, studio_mcp_connection_panel_test: +33 all passed. StudioHomeNavigation keeps only the TextEditingController/FocusNode/visible/mapPreviewBuilder/notifications and getters delegating to the host; StudioHomeMap typedef moved to the owner and re-exported."
+  },
+  {
+   "from": "apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_primary_navigation.dart:StudioPrimaryNavigation.build (destination table, active->selected mapping, busy/canTest unavailability)",
+   "to": "apps/avelune_studio/lib/features/shell/application/studio_primary_destinations.dart:studioPrimaryDestinations / studioSelectedDestination / studioDestinationUnavailableReason",
+   "legacyTestsRerun": "same run as above (studio_workspace_accessibility_test covers the widget with the extracted rules): +33 all passed. Icons stay in the widget keyed by destination id."
+  },
+  {
+   "from": "apps/avelune_studio/lib/presentation/features/settings/studio_mcp_connection_panel.dart:_StudioMcpConnectionPanelState._copy (copy only when ready and connected)",
+   "to": "apps/avelune_studio/lib/platform/mcp/studio_mcp_service.dart:StudioMcpService.readyClientConfiguration",
+   "legacyTestsRerun": "NOT delegated: the panel is a zone A_map file outside my allowed lib folders, so it still holds its own check. studio_mcp_connection_panel_test and studio_mcp_service_test pass unchanged (+33 run). Getter is additive (2 lines). The retirement pass or zone A should make _copy read the getter."
+  }
+ ],
+ "decisions": [
+  {
+   "topic": "ui06 refusal run is red before and after",
+   "legacyBehaviour": "ui06_scene_runtime_test.dart \"real runtime plays Yarn and refusal\" fails at HEAD in a fresh copy (and is in suite_a3cd_red.txt): consumedNarrativeEventIds is empty after the refusal branch, the log shows event_v2 outcome noMatch",
+   "ownerBehaviour": "The owner copy (GameWidget + PlayableMapGame, no StudioPlaytestView) fails on the same assertion. Rule belongs to map_runtime/narrative event progress (canonical package), untouched. Case 2 is therefore replaced_partial and not claimed green",
+   "where": "apps/avelune_studio/test/ui06_scene_runtime_owner_test.dart:165 vs ui06_scene_runtime_test.dart:147"
+  },
+  {
+   "topic": "StudioPlaytestView symbol refused by check_clean",
+   "legacyBehaviour": "The brief allows lib/platform/playtest/*_view.dart as a technical exception, but check_clean flags the class names StudioPlaytestView/StudioPlaytestPlayerView (inventory widgetClasses)",
+   "ownerBehaviour": "The owner test avoids the view: it rebuilds the load path of StudioPlaytestView._load (document revision check, loadRuntimeMapBundle, prepareStudioPlaytestStart, PlayableMapGame with StudioPlaytestSession, setDialogueFlutterOverlayPreferred(true)). PlayerServiceRuntimeController, pre-session scene and spatial branches of the view are not reproduced",
+   "where": "lib/platform/playtest/studio_playtest_view.dart:_load vs test/ui06_scene_runtime_owner_test.dart"
+  },
+  {
+   "topic": "ui06 owner test and the map_story refactor",
+   "legacyBehaviour": "The working tree is mid-refactor (another session): ui06_scene_runtime_test.dart already imports package:map_story/map_story.dart and the apps/avelune_studio .dart_tool/package_config.json is stale (no map_story), so no test of the real tree compiles with --no-pub",
+   "ownerBehaviour": "My owner test targets HEAD (SceneRuntimeExecutor, buildSceneRuntimePlan, SceneRuntimeExecutionStatus from map_core). flutter analyze --no-pub in the real tree reports 4 undefined symbols in that file for that reason; add the map_story import when the refactor lands",
+   "where": "apps/avelune_studio/test/ui06_scene_runtime_owner_test.dart:1-10"
+  },
+  {
+   "topic": "studio_commit_field commit/rollback is widget behaviour",
+   "legacyBehaviour": "StudioCommitField commits on blur/submit only if the text changed (or alwaysCommit, or was rejected), rolls the text back to the model value when tryCommit returns false, and resets on external value change",
+   "ownerBehaviour": "No owner created on purpose: the policy is the field widget itself (TextEditingController + FocusNode), not a product rule. No test of it exists; the new UI primitive must bring its own. Not extracted",
+   "where": "lib/presentation/shared/widgets/inputs/studio_commit_field.dart:_commit/_onFocus/didUpdateWidget"
+  },
+  {
+   "topic": "StudioCommandPalette dialog logic has no test",
+   "legacyBehaviour": "The dialog returns an entry only when runnable, arrows clamp the index, Enter runs the selection, Escape closes; filtering delegates to studioCommandSearch",
+   "ownerBehaviour": "studioCommandSearch, availability and help families are proven (cases 13-16). The dialog key handling and the runnable gate in _run/_onKey/_move are pure widget logic with no existing test, not extracted, not proven",
+   "where": "lib/presentation/shared/widgets/dialogs/studio_command_palette.dart:_run/_onKey/_move"
+  },
+  {
+   "topic": "Tapping the active destination is a no-op",
+   "legacyBehaviour": "StudioPrimaryNavigation gives an enabled but empty onTap when item id equals the raw active page (so active=scene still navigates to story, active=story does not)",
+   "ownerBehaviour": "Not extracted: it is widget wiring on top of the extracted rules (enabled iff reason is null). Nothing tests it",
+   "where": "lib/presentation/shared/widgets/layout/studio_primary_navigation.dart onTap"
+  },
+  {
+   "topic": "MCP panel keeps its own readiness check",
+   "legacyBehaviour": "_copy tests connection != null && state == ready before Clipboard.setData",
+   "ownerBehaviour": "StudioMcpService.readyClientConfiguration (new) states the same rule; the panel (zone A_map file) was left untouched to avoid a cross-zone edit, so the rule exists twice until the panel delegates",
+   "where": "lib/presentation/features/settings/studio_mcp_connection_panel.dart:_copy vs lib/platform/mcp/studio_mcp_service.dart:readyClientConfiguration"
+  },
+  {
+   "topic": "Shared fixture file name collision (incident, repaired)",
+   "legacyBehaviour": "Another zone created apps/avelune_studio/test/support/map_selection_owner_fixture.dart (class MapSelectionOwnerHarness, used by 5 map_workspace owner tests). I generated my own fixture under the same file name and overwrote it before noticing",
+   "ownerBehaviour": "I restored that path from the same legacy harness body with class name MapSelectionOwnerHarness (no studio_theme) and moved my fixture to test/support/map_selection_e_shell_owner_fixture.dart (MapSelectionEShellOwnerFixture). The 5 other-zone tests that import it plus the fixture analyze clean in the copy, but their author should diff it against their own version",
+   "where": "apps/avelune_studio/test/support/map_selection_owner_fixture.dart"
+  },
+  {
+   "topic": "Legacy test oddities kept as found",
+   "legacyBehaviour": "map_workspace_layout_responsive_test.dart is misnamed (its only test is collision strokes, overlapping map_workspace_compact_collision_test.dart); \"a group duplicates in one undo step and keeps locked decors out\" never asserts lock exclusion",
+   "ownerBehaviour": "The two collision tests are merged in one owner file under the original names; the lock exclusion is added as a separate test rather than silently strengthening the original",
+   "where": "test/presentation/map_workspace_layout_responsive_test.dart, map_tranche1_rests_test.dart:67"
+  },
+  {
+   "topic": "Support files of the zone",
+   "legacyBehaviour": "map_selection_harness and map_context_harness import studio_theme (re-export); 13 support files listed in scope",
+   "ownerBehaviour": "map_selection_harness replaced for this zone by MapSelectionEShellOwnerFixture; map_context_harness belongs to zone A (its own owner fixture exists). Other support files not touched; open_project_path and ui13_widget_verification_port have no importer",
+   "where": "test/support/*"
+  },
+  {
+   "topic": "Hub helper uwu6_resource_host.dart not modified",
+   "legacyBehaviour": "apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart imports presentation/shell/studio_home_navigation.dart (creates StudioHomeNavigation and passes it as home: to MapWorkspaceScreen, disposes it), presentation/theme/studio_theme.dart, presentation/features/map_workspace/map_workspace_screen.dart, presentation/features/resources/resource_image_import.dart, plus test/support helpers widget_resource_journey_map_port and widget_resource_management_port",
+   "ownerBehaviour": "Freeing it: replace StudioHomeNavigation by HomeNavigationHost-based plumbing from lib/features/home/application once the new shell exposes the host contract, drop studioTheme()/MapWorkspaceScreen/resource_image_import with the new UI entry points, and repoint the two widget_* ports to owner fixtures. Until then deleting studio_home_navigation.dart breaks pokemap_hub tests",
+   "where": "apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart:1-30,158,258"
+  }
+ ],
+ "commands": [
+  {
+   "command": "git -C repo archive HEAD apps/avelune_studio packages third_party | tar -x -C ~/Library/Caches/AveluneQA/t01-write-E_shell; flutter pub get",
+   "cwd": "copy/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "Got dependencies (the real tree cannot run --no-pub tests: stale package_config, no map_story)"
+  },
+  {
+   "command": "flutter test --no-pub <10 new *_owner_test.dart files> -r failures-only (final run)",
+   "cwd": "copy/apps/avelune_studio",
+   "exitCode": 1,
+   "result": "+49 -1: only ui06 \"real runtime plays Yarn and refusal\" fails, same assertion as the legacy test at HEAD (pre-existing red)"
+  },
+  {
+   "command": "flutter test --no-pub test/presentation/studio_workspace_accessibility_test.dart test/pokemon/pokemon_project_switch_host_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/presentation/scoped_map_workspace_test.dart test/platform/mcp/studio_mcp_service_test.dart test/presentation/studio_mcp_connection_panel_test.dart test/scene_canvas_addition_test.dart test/presentation/ui05_story_creation_test.dart",
+   "cwd": "copy/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+33 All tests passed (legacy tests touched by the extractions)"
+  },
+  {
+   "command": "flutter test --no-pub test/ui06_scene_runtime_test.dart (baseline, unmodified HEAD file)",
+   "cwd": "copy/apps/avelune_studio",
+   "exitCode": 1,
+   "result": "+3 -1: refusal fails at line 147 (pre-existing)"
+  },
+  {
+   "command": "flutter analyze --no-pub <created/modified lib and test files>",
+   "cwd": "copy/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "No issues found (16 items)"
+  },
+  {
+   "command": "flutter analyze --no-pub <same files>",
+   "cwd": "repo/apps/avelune_studio",
+   "exitCode": 1,
+   "result": "4 errors, all in ui06_scene_runtime_owner_test.dart: SceneRuntimeExecutor/buildSceneRuntimePlan/SceneRuntimeExecutionStatus undefined because the working tree moved them to map_story (stale package_config); lib files clean"
+  },
+  {
+   "command": "python3 check_clean.py <11 new test/support files>",
+   "cwd": "repo",
+   "exitCode": 0,
+   "result": "CLEAN x11"
+  },
+  {
+   "command": "mutE.py (one mutation per owner, applied only in the copy, restored after each)",
+   "cwd": "copy",
+   "exitCode": 0,
+   "result": "detected: home +5-2, destinations +5-1, mcp +3-1, mcp2 +2-2, ui06 +1-3 (baseline -1), terrain +0-1, collision +1-1, tranche1 +5-1, border +5-2, palette +3-1, guard +8-1, textaware +6-7. First terrain mutation (erase materialId) survived as equivalent and was replaced by breakInterpolation"
+  },
+  {
+   "command": "git status --short before/after",
+   "cwd": "repo",
+   "exitCode": 0,
+   "result": "before: 4 map_authoring files modified by others; during: hundreds of other-session changes (map_story refactor, other zones). Only the files below are mine"
+  }
+ ],
+ "createdFiles": [
+  "apps/avelune_studio/lib/features/home/application/home_navigation_host.dart",
+  "apps/avelune_studio/lib/features/shell/application/studio_primary_destinations.dart",
+  "apps/avelune_studio/test/ui06_scene_runtime_owner_test.dart",
+  "apps/avelune_studio/test/terrain_canvas_owner_test.dart",
+  "apps/avelune_studio/test/support/map_selection_e_shell_owner_fixture.dart",
+  "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_owner_test.dart",
+  "apps/avelune_studio/test/presentation/studio_command_palette_owner_test.dart",
+  "apps/avelune_studio/test/presentation/map_workspace_collision_strokes_owner_test.dart",
+  "apps/avelune_studio/test/presentation/spatial_border_layout_owner_test.dart",
+  "apps/avelune_studio/test/presentation/map_tranche1_rests_owner_test.dart",
+  "apps/avelune_studio/test/home/home_navigation_host_owner_test.dart",
+  "apps/avelune_studio/test/shell/studio_primary_destinations_owner_test.dart",
+  "apps/avelune_studio/test/platform/mcp/studio_mcp_connection_owner_test.dart"
+ ],
+ "modifiedFiles": [
+  "apps/avelune_studio/lib/presentation/shell/studio_home_navigation.dart",
+  "apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_primary_navigation.dart",
+  "apps/avelune_studio/lib/platform/mcp/studio_mcp_service.dart",
+  "apps/avelune_studio/test/support/map_selection_owner_fixture.dart (zone A file, accidentally overwritten then restored; see decisions)"
+ ]
+}

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/cinematics/application/cinematic_spatial_picking.dart';
+
 class CinematicPointHandle extends StatefulWidget {
   const CinematicPointHandle({
     super.key,
@@ -69,10 +71,10 @@ class _CinematicPointHandleState extends State<CinematicPointHandle> {
         onPanEnd: (_) {
           if (dragging) {
             widget.onMove(
-              Offset(
-                (widget.point.x + delta.dx / widget.cell.width).roundToDouble(),
-                (widget.point.y + delta.dy / widget.cell.height)
-                    .roundToDouble(),
+              cinematicGridDragDestination(
+                widget.point,
+                delta: delta,
+                cell: widget.cell,
               ),
             );
           }

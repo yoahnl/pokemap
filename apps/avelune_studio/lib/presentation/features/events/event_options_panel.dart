@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/events/application/event_option_choices.dart';
 import '../../../features/events/domain/event_record_view.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/layout/studio_section.dart';
@@ -64,20 +65,15 @@ class EventOptionsPanel extends StatelessWidget {
         const SizedBox(height: 16),
         StudioSelect(
           label: 'Réarmer l’occurrence',
-          value: switch (record.resetPolicy) {
-            NarrativeEventResetNever() => 'never',
-            NarrativeEventResetOnMapReentry() => 'map',
-            NarrativeEventResetOnOutcomeReceived() => 'outcome',
-          },
+          value: eventResetChoice(record.resetPolicy),
           options: const {
             'never': 'Jamais',
             'map': 'À la réentrée sur la carte',
             'outcome': 'À la réception d’un résultat',
           },
           onChanged: (v) async {
-            if (v == 'never') onReset(const NarrativeEventResetPolicy.never());
-            if (v == 'map') {
-              onReset(const NarrativeEventResetPolicy.onMapReentry());
+            if (eventResetWithoutOutcome(v) case final policy?) {
+              onReset(policy);
             }
             if (v == 'outcome') {
               final selected = await chooseEventOutcome(context, outcomes);
@@ -87,11 +83,8 @@ class EventOptionsPanel extends StatelessWidget {
             }
           },
         ),
-        if (record.reusePolicy == NarrativeEventReusePolicy.reusable)
-          Text(
-            'Sans effet : l’événement peut déjà se rejouer.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+        if (eventResetNote(record) case final note?)
+          Text(note, style: Theme.of(context).textTheme.bodySmall),
         if (record.resetPolicy case NarrativeEventResetOnOutcomeReceived(
           :final outcome,
         ))
@@ -105,17 +98,11 @@ class EventOptionsPanel extends StatelessWidget {
           value: record.parallelPolicy == null ? 'sequential' : 'parallel',
           options: {
             'sequential': 'Séquentielle',
-            if (record.source?.kind == NarrativeEventSourceKind.entityAutorun ||
-                record.source?.kind == NarrativeEventSourceKind.mapEnter)
-              'parallel': 'Parallèle',
+            if (eventAllowsParallel(record)) 'parallel': 'Parallèle',
           },
           onChanged: onParallel == null
               ? null
-              : (value) => onParallel!(
-                  value == 'parallel'
-                      ? NarrativeEventParallelPolicy(cadenceMs: 1000)
-                      : null,
-                ),
+              : (value) => onParallel!(eventParallelChoice(value)),
         ),
         if (record.parallelPolicy case final policy?) ...[
           const SizedBox(height: 12),
@@ -128,19 +115,9 @@ class EventOptionsPanel extends StatelessWidget {
             label: 'Cadence (ms)',
             value: '${policy.cadenceMs}',
             tryCommit: (value) {
-              final cadence = int.tryParse(value);
-              if (cadence == null ||
-                  cadence < 100 ||
-                  cadence > 60000 ||
-                  onParallel == null) {
-                return false;
-              }
-              onParallel!(
-                NarrativeEventParallelPolicy(
-                  cadenceMs: cadence,
-                  ownerVariantId: policy.ownerVariantId,
-                ),
-              );
+              final next = eventParallelCadence(policy, value);
+              if (next == null || onParallel == null) return false;
+              onParallel!(next);
               return true;
             },
           ),
@@ -149,16 +126,15 @@ class EventOptionsPanel extends StatelessWidget {
             const SizedBox(height: 12),
             StudioSelect(
               label: 'Page propriétaire',
-              value: policy.ownerVariantId ?? '',
-              options: {'': 'Toutes les pages actives', ...ownerVariants},
+              value: eventParallelOwnerChoice(policy),
+              options: {
+                eventAllOwnerPages: 'Toutes les pages actives',
+                ...ownerVariants,
+              },
               onChanged: onParallel == null
                   ? null
-                  : (value) => onParallel!(
-                      NarrativeEventParallelPolicy(
-                        cadenceMs: policy.cadenceMs,
-                        ownerVariantId: value.isEmpty ? null : value,
-                      ),
-                    ),
+                  : (value) =>
+                        onParallel!(eventParallelOwnerPage(policy, value)),
             ),
           ],
         ],

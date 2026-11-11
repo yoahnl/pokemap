@@ -1,12 +1,12 @@
 part of 'presentation_timeline.dart';
 
 extension _PresentationTimelineRuler on _PresentationTimelineState {
-  void scrub(double dx) {
-    widget.transport.pause();
-    widget.transport.seek(
-      (dx / scale * 1000000).round().clamp(0, widget.asset.durationUs),
-    );
-  }
+  void scrub(double dx) => scrubPresentationTimeline(
+    widget.transport,
+    dx,
+    pixelsPerSecond: scale,
+    durationUs: widget.asset.durationUs,
+  );
 
   Widget ruler() => Positioned(
     left: 0,

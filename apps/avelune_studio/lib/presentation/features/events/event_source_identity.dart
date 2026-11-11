@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'event_labels.dart';
 import 'package:avelune_studio/features/events/application/event_map_loader.dart';
+import 'package:avelune_studio/features/events/application/event_source_description.dart';
 
 class EventSourceIdentity extends StatefulWidget {
   const EventSourceIdentity({
@@ -42,84 +43,25 @@ class _EventSourceIdentityState extends State<EventSourceIdentity> {
         return const Text('Chargement de la source…');
       }
       if (snapshot.hasError) {
-        return const Text('Source indisponible · carte à réparer');
+        return const Text(eventSourceMapToRepair);
       }
       final map = snapshot.data;
       if (map == null) return const Text('Source à charger…');
-      if (map.id != eventMapId(widget.source)) {
-        return const Text('Source indisponible · carte à réparer');
-      }
-      final id = eventTargetId(widget.source);
-      if (widget.source.kind == NarrativeEventSourceKind.modelInteract) {
-        final instances = map.spatialScene?.instances
-            .where((instance) => instance.id == id).toList() ?? [];
-        if (instances.length != 1) {
-          return Text('${instances.isEmpty ? 'Source absente' : 'Source ambiguë'} · $id');
-        }
-        final instance = instances.single;
-        final model = widget.loader.workspace.project?.models3d
-            .where((model) => model.id == instance.modelId).firstOrNull;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(model?.name ?? 'Ressource 3D absente', style: Theme.of(context).textTheme.titleSmall),
-            Text('Position : (${instance.position.x}, ${instance.position.z})', style: Theme.of(context).textTheme.bodySmall),
-          ],
-        );
-      }
-      final entities = map.entities.where((e) => e.id == id).toList();
-      final triggers = map.triggers.where((t) => t.id == id).toList();
-      if (id == null) return const Text('Toute la carte · à son entrée');
-      final matches =
-          (widget.source.kind == NarrativeEventSourceKind.entityInteract ||
-              widget.source.kind == NarrativeEventSourceKind.entityBump ||
-              widget.source.kind == NarrativeEventSourceKind.entityAutorun)
-          ? entities.length
-          : triggers.length;
-      if (matches != 1) {
-        return Text(
-          '${matches == 0 ? 'Source absente' : 'Source ambiguë'} · $id',
-        );
-      }
-      if (widget.source.kind == NarrativeEventSourceKind.entityAutorun &&
-          (widget.loader.workspace.project == null ||
-              !isNarrativeEntityAutorunSourceAvailable(
-                project: widget.loader.workspace.project!,
-                map: map,
-                entityId: id,
-              ))) {
-        return const Text('Source indisponible · élément source à réparer');
-      }
-      if (widget.source.kind == NarrativeEventSourceKind.entityBump &&
-          (widget.loader.workspace.project == null ||
-            !isNarrativeEntityBumpSourceAvailable(
-              project: widget.loader.workspace.project!, map: map, entityId: id))) {
-        return const Text('Source indisponible · personnage à réparer');
-      }
-      if (widget.source.kind == NarrativeEventSourceKind.triggerBump &&
-          (widget.loader.workspace.project == null ||
-            !isNarrativeTriggerBumpSourceAvailable(project: widget.loader.workspace.project!, map: map, triggerId: id))) {
-        return const Text('Source indisponible · zone à réparer');
-      }
-      final entitySource =
-          (widget.source.kind == NarrativeEventSourceKind.entityInteract ||
-          widget.source.kind == NarrativeEventSourceKind.entityBump ||
-          widget.source.kind == NarrativeEventSourceKind.entityAutorun);
-      final position = entitySource
-          ? entities.single.pos
-          : triggers.single.area.pos;
-      final name = entitySource ? entities.single.name : triggers.single.name;
+      final description = describeEventSource(
+        source: widget.source,
+        map: map,
+        project: widget.loader.workspace.project,
+      );
+      final position = description.position;
+      if (position == null) return Text(description.title);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            name.isEmpty ? eventKindLabel(widget.source.kind) : name,
+            description.title,
             style: Theme.of(context).textTheme.titleSmall,
           ),
-          Text(
-            'Position : (${position.x}, ${position.y})',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          Text(position, style: Theme.of(context).textTheme.bodySmall),
         ],
       );
     },

@@ -12,6 +12,7 @@ import 'pokemon_combat_trainer_detail.dart';
 import '../../../features/pokemon/application/pokemon_combat_references.dart';
 import 'pokemon_combat_context_panel.dart';
 import 'pokemon_ui_parts.dart';
+import '../../../features/pokemon/application/pokemon_combat_authoring_rules.dart';
 
 class PokemonCombatPage extends StatefulWidget {
   const PokemonCombatPage({
@@ -214,11 +215,7 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
               },
               onChanged: combat.operationActive || combat.dirty
                   ? null
-                  : (value) => combat.setRuleset(
-                      value == PokemonRulesetProfile.standardProfileId
-                          ? PokemonRulesetProfile.standardV1
-                          : PokemonRulesetProfile.pokeMapBetaV1,
-                    ),
+                  : (value) => combat.setRuleset(pokemonRulesetProfile(value)),
             ),
             const SizedBox(height: 12),
             SingleChildScrollView(

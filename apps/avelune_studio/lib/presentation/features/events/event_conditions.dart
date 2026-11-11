@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/events/application/event_condition_draft.dart';
 import '../../../features/events/application/event_condition_editing.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -99,7 +100,7 @@ class EventConditions extends StatelessWidget {
             StudioTool(
               label: 'Modifier la condition',
               icon: Icons.edit_outlined,
-              onPressed: value.condition.rewardReference == null
+              onPressed: isEventConditionEditable(value.condition)
                   ? () => add(initial: value.condition)
                   : null,
             ),

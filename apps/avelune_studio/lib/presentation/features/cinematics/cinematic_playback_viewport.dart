@@ -1,8 +1,8 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/cinematics/application/cinematic_preview_transport.dart';
 import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_viewport_camera.dart';
 import 'cinematic_transport_listenable.dart';
 
 class CinematicPlaybackViewport extends StatefulWidget {
@@ -39,24 +39,11 @@ class _CinematicPlaybackViewportState extends State<CinematicPlaybackViewport> {
       if (_plan != plan || _model != model) {
         _plan = plan;
         _model = model;
-        final player = model.actors.actors
-            .where((a) => a.bindingKind == CinematicActorBindingKind.player)
-            .firstOrNull;
-        final origin = player?.position;
-        _projection = CinematicViewportProjection(
-          plan: plan,
+        _projection = cinematicPlaybackProjection(
+          plan,
+          model,
           cellWidth: widget.cell.width,
           cellHeight: widget.cell.height,
-          initialCamera: CinematicViewportCamera(
-            centerX:
-                (origin?.x ?? model.map.size.width / 2) * widget.cell.width,
-            centerY:
-                (origin?.y ?? model.map.size.height / 2) * widget.cell.height,
-            visibleWidth:
-                math.min(15, model.map.size.width) * widget.cell.width,
-            visibleHeight:
-                math.min(11, model.map.size.height) * widget.cell.height,
-          ),
         );
       }
       final frame = _projection!.frameAt(widget.transport.timeMs);

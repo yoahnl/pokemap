@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_navigation_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_destination_workflow.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_failure_routing.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_publication_workflow.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_map_catalog_bindings.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';

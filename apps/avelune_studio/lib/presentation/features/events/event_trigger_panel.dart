@@ -99,15 +99,9 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
             compact: true,
             title: 'Type de déclencheur',
             children: [
-              for (final type in eventSourceKinds)
-                if (type != NarrativeEventSourceKind.modelInteract ||
-                    widget.controller.project.settings.dimension ==
-                        ProjectDimension.threeD)
-                  if ((type != NarrativeEventSourceKind.entityBump &&
-                          type != NarrativeEventSourceKind.entityAutorun &&
-                          type != NarrativeEventSourceKind.triggerBump) ||
-                      widget.controller.project.settings.dimension ==
-                          ProjectDimension.twoD)
+              for (final type in eventSourceKindsFor(
+                widget.controller.project.settings.dimension,
+              ))
                     StudioChoice(
                       label: eventKindLabel(type),
                       selected: kind == type,

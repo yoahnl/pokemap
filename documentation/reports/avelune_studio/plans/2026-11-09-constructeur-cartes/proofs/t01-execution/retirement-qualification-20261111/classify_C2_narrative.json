@@ -1,0 +1,3824 @@
+{
+ "area": "C2_narrative",
+ "testCases": [
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_responsive_test.dart",
+   "test": "responsive 1440x900 edits application-selected text and response then saves",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueWorkspacePage",
+    "DialogueInspector (tooltip « Inspecteur du dialogue » en compact)",
+    "StudioCommitField « Texte » / « Réponse du joueur »",
+    "bouton « Enregistrer »"
+   ],
+   "asserts": "Modifie le texte d'une réplique puis le libellé d'une réponse via l'inspecteur, enregistre deux fois : 1 puis 2 écritures, dirty=false, le fichier .yarn contient le texte et la réponse, et conserve '<<jump Depart>>' et '<<outcome depart>>'.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "DialogueWorkspaceCommands.updateLine"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "DialogueWorkspaceCommands.updateResponse"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_publication.dart",
+     "symbol": "DialogueWorkspacePublication.save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/data/local_dialogue_adapter.dart",
+     "symbol": "LocalDialogueAdapter.publish"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "lazy library, reply choices shared targets outcomes save reopen and deterministic identities"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "EV04 guided values insert current Fact and player name in text and choices"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_line_text_edit_publication_test.dart",
+     "test": "text publication reconciles a clean scene before refresh and save reopen"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart",
+     "test": "publication snapshot stays dirty for later edits and new source can be resaved"
+    }
+   ],
+   "gap": "Pas de test hors blast qui enregistre un libellé de réponse via updateResponse en vérifiant que jump et outcome de la même réponse survivent dans le fichier relu (le test EV04 modifie une réponse sans jump ; unsure: dialogue_line_text_edit_publication_test couvre le texte de réplique seulement). Compteur d'écritures (1 puis 2) = comportement du port instrumenté, pas du owner. Les trois tailles d'écran/échelle sont de l'UI pure."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_responsive_test.dart",
+   "test": "responsive 1280x800 edits application-selected text and response then saves",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueWorkspacePage",
+    "DialogueInspector (tooltip « Inspecteur du dialogue » en compact)",
+    "StudioCommitField « Texte » / « Réponse du joueur »",
+    "bouton « Enregistrer »"
+   ],
+   "asserts": "Modifie le texte d'une réplique puis le libellé d'une réponse via l'inspecteur, enregistre deux fois : 1 puis 2 écritures, dirty=false, le fichier .yarn contient le texte et la réponse, et conserve '<<jump Depart>>' et '<<outcome depart>>'.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "DialogueWorkspaceCommands.updateLine"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "DialogueWorkspaceCommands.updateResponse"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_publication.dart",
+     "symbol": "DialogueWorkspacePublication.save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/data/local_dialogue_adapter.dart",
+     "symbol": "LocalDialogueAdapter.publish"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "lazy library, reply choices shared targets outcomes save reopen and deterministic identities"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "EV04 guided values insert current Fact and player name in text and choices"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_line_text_edit_publication_test.dart",
+     "test": "text publication reconciles a clean scene before refresh and save reopen"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart",
+     "test": "publication snapshot stays dirty for later edits and new source can be resaved"
+    }
+   ],
+   "gap": "Pas de test hors blast qui enregistre un libellé de réponse via updateResponse en vérifiant que jump et outcome de la même réponse survivent dans le fichier relu (le test EV04 modifie une réponse sans jump ; unsure: dialogue_line_text_edit_publication_test couvre le texte de réplique seulement). Compteur d'écritures (1 puis 2) = comportement du port instrumenté, pas du owner. Les trois tailles d'écran/échelle sont de l'UI pure."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_responsive_test.dart",
+   "test": "responsive 1024x640 edits application-selected text and response then saves",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueWorkspacePage",
+    "DialogueInspector (tooltip « Inspecteur du dialogue » en compact)",
+    "StudioCommitField « Texte » / « Réponse du joueur »",
+    "bouton « Enregistrer »"
+   ],
+   "asserts": "Modifie le texte d'une réplique puis le libellé d'une réponse via l'inspecteur, enregistre deux fois : 1 puis 2 écritures, dirty=false, le fichier .yarn contient le texte et la réponse, et conserve '<<jump Depart>>' et '<<outcome depart>>'.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "DialogueWorkspaceCommands.updateLine"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "DialogueWorkspaceCommands.updateResponse"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_publication.dart",
+     "symbol": "DialogueWorkspacePublication.save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/data/local_dialogue_adapter.dart",
+     "symbol": "LocalDialogueAdapter.publish"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "lazy library, reply choices shared targets outcomes save reopen and deterministic identities"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "EV04 guided values insert current Fact and player name in text and choices"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_line_text_edit_publication_test.dart",
+     "test": "text publication reconciles a clean scene before refresh and save reopen"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart",
+     "test": "publication snapshot stays dirty for later edits and new source can be resaved"
+    }
+   ],
+   "gap": "Pas de test hors blast qui enregistre un libellé de réponse via updateResponse en vérifiant que jump et outcome de la même réponse survivent dans le fichier relu (le test EV04 modifie une réponse sans jump ; unsure: dialogue_line_text_edit_publication_test couvre le texte de réplique seulement). Compteur d'écritures (1 puis 2) = comportement du port instrumenté, pas du owner. Les trois tailles d'écran/échelle sont de l'UI pure."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_interaction_test.dart",
+   "test": "EV04 guided value picker distinguishes player identity from a Fact of the same name",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueTextValuePicker (StudioSelect clé dialogue-text-value-<id>)",
+    "StudioSelect"
+   ],
+   "asserts": "Avec un Fact d'id 'player_name', le sélecteur propose 'player_name' = « Nom du joueur » et 'fact:player_name' = le Fact ; choisir l'un insère '{{ fact.player_name }}' et l'autre '{{ player_name }}' dans la source.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "DialogueWorkspaceCommands.insertTextValue(fact:)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_controller.dart",
+     "symbol": "dialogueFactPlaceholder (map_core)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "EV04 guided values insert current Fact and player name in text and choices"
+    }
+   ],
+   "gap": "Non prouvé hors UI : l'homonymie Fact 'player_name' vs identité joueur (paramètre fact:true) et la construction des options du sélecteur (filtre des Facts supportés/uniques, préfixe 'fact:'), qui vit dans dialogue_text_value_picker.dart. Le test controller n'insère que player_name et project.facts.first."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_interaction_test.dart",
+   "test": "switching inspector tab commits focused text before disposal",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueInspector",
+    "StudioTabs",
+    "StudioCommitField (commit à la perte de focus)"
+   ],
+   "asserts": "Un texte saisi dans le champ focalisé est commité dans la source du brouillon (dirty=true, pas de sauvegarde) quand on change d'onglet de l'inspecteur.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "DialogueWorkspaceCommands.updateLine"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "lazy library, reply choices shared targets outcomes save reopen and deterministic identities"
+    }
+   ],
+   "gap": "Le mécanisme « flush du champ focalisé avant changement d'onglet/action » n'a aucun owner hors UI (aucun flushEdits côté DialogueWorkspaceController, contrairement aux événements) : il est porté par StudioCommitField + unfocus dans DialogueInspector. La nouvelle UI doit le re-fournir ; aucun test non-legacy ne le prouve."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_interaction_test.dart",
+   "test": "focused text saves exact source and history remains usable",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueWorkspacePage",
+    "StudioCommitField « Texte »",
+    "tooltips « Annuler le dialogue » / « Rétablir le dialogue »",
+    "bouton « Retour à la scène »"
+   ],
+   "asserts": "Le texte tapé n'entre dans la source qu'au commit ; Enregistrer écrit exactement le texte (writes=1, busy=false, dirty=false) ; Annuler ramène la source d'avant (dirty=true) ; Rétablir remet dirty=false ; « Retour à la scène » appelle onBack une fois.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_controller.dart",
+     "symbol": "DialogueWorkspaceController.undo/redo/_restore"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_publication.dart",
+     "symbol": "DialogueWorkspacePublication.save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "updateLine"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "deep immutable snapshot and semantic history preserve branch content, rejects unsafe replacement"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_line_text_edit_publication_test.dart",
+     "test": "text publication reconciles a clean scene before refresh and save reopen"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart",
+     "test": "publication snapshot stays dirty for later edits and new source can be resaved"
+    }
+   ],
+   "gap": "Non prouvé : la séquence save → undo (dirty=true, source antérieure) → redo (dirty=false) sur une session sauvegardée ; la sémantique 'dirty = différent du dernier snapshot publié' n'est vérifiée que de façon indirecte (concurrency: édition pendant publication). unsure : aucun test controller ne nomme canRedo/dirty après redo."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_interaction_test.dart",
+   "test": "preview plays both explicit branches without publication",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueWorkspacePage",
+    "DialoguePreviewPanel (boutons Tester / Continuer / réponses)"
+   ],
+   "asserts": "Le test joue la prévisualisation sur les deux réponses : réplique attendue, outcomes ['depart'] / ['attente'], ended=true ; aucune écriture, dirty=false.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_controller.dart",
+     "symbol": "DialogueWorkspaceController.startPreview/advancePreview/choosePreview"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_preview_state.dart",
+     "symbol": "DialoguePreviewState"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "lazy library, reply choices shared targets outcomes save reopen and deterministic identities"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_preview_ui09_test.dart",
+     "test": "canonical preview never automatically selects the first response"
+    }
+   ],
+   "gap": "Le couvert vérifie le parcours des deux branches et les outcomes ; l'absence d'écriture n'est pas assertée explicitement mais startPreview ne publie pas (compilation seule)."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_interaction_test.dart",
+   "test": "projected response reconnection preserves history without publishing",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueWorkspacePage (tooltips Annuler/Rétablir)"
+   ],
+   "asserts": "Déconnecter une réponse puis la reconnecter via le port projeté (DialogueStructureProjection.portIdAt) donne '<<jump Depart>>' ; Annuler restaure la source d'avant, Rétablir la reconnexion ; aucune écriture.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_structure_projection.dart",
+     "symbol": "DialogueStructureProjection.portIdAt"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_links.dart",
+     "symbol": "DialogueWorkspaceLinks.disconnect/connectSelection"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_structure_projection_test.dart",
+     "test": "projected branch ports connect the exact controller response with undo and cold reopening"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_selection_commands_test.dart",
+     "test": "confirmed replacement preserves response and outcome, undo and reopen"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_volume_test.dart",
+   "test": "UI09 40 suites 200 lines 50 links application selection does not reread or compile",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueWorkspacePage",
+    "DialogueViewStore / DialogueViewState (sélection)"
+   ],
+   "asserts": "Sur un dialogue de 40 suites/200 répliques/50 liens : projection = 40 lignes de nœuds, 200 répliques, 50 fils ; 8 sélections applicatives ne relisent pas la source (reads=1), ne recompilent pas (compilationCount inchangé), gardent le même snapshot, et déclenchent 9 builds de page.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_structure_projection.dart",
+     "symbol": "DialogueStructureProjection.rows/wires"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_controller.dart",
+     "symbol": "DialogueWorkspaceController.open/compilationCount"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_structure_projection_test.dart",
+     "test": "nested choices keep row order depth and native jump source identities"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart",
+     "test": "late A read cannot replace B; cached selections perform no extra reads"
+    }
+   ],
+   "gap": "Non prouvé hors UI : budget incrémental à volume (40/200/50) — la projection n'est testée qu'à petite échelle ; 'sélection = zéro recompilation' n'est une garantie que parce que la sélection vit dans DialogueViewState (UI) ; le compte de 9 builds est de l'UI pure. Exigence AGENTS.md « Incremental authoring » à re-prouver sur la nouvelle UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_safety_test.dart",
+   "test": "CmdS and CtrlS publish text while inspector keeps keyboard focus",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueWorkspacePage (CallbackShortcuts Cmd/Ctrl+S)",
+    "StudioCommitField « Texte »"
+   ],
+   "asserts": "Cmd+S puis Ctrl+S avec un texte encore dans le champ : le texte est commité puis publié (dirty=false, fichier relu contient le texte), 2 écritures au total.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_publication.dart",
+     "symbol": "DialogueWorkspacePublication.save"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "lazy library, reply choices shared targets outcomes save reopen and deterministic identities"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_line_text_edit_publication_test.dart",
+     "test": "text publication reconciles a clean scene before refresh and save reopen"
+    }
+   ],
+   "gap": "Le raccourci clavier et le flush du champ focalisé avant save n'ont pas d'owner hors UI (DialogueWorkspacePage.save/flush) ; save() lui-même est couvert."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_safety_test.dart",
+   "test": "invalid suite name on save stays visible without publishing",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueInspector (StudioCommitField « Nom de la suite » → renameNode)",
+    "bouton « Enregistrer »",
+    "StudioNotice d'erreur"
+   ],
+   "asserts": "Renommer la suite 'Accueil' en 'Depart' (titre déjà pris) est refusé : error non nulle et affichée, titre inchangé, dirty=false, aucune publication.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "DialogueWorkspaceCommands.renameNode"
+    },
+    {
+     "path": "packages/map_authoring/lib/src/dialogue/dialogue_editor_model.dart",
+     "symbol": "DialogueEditorDocument.renameNode (unicité du titre)"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "Aucun test hors blast n'appelle renameNode (ni deleteNode/duplicateNode) : ni le refus de doublon (ArgumentError 'Title must be unique' dans map_authoring, attrapé par _replaceDocument → _fail), ni le refus 'Entrée … utilisée par' (_startUsages), ni la propagation du renommage dans les jumps. Les tests map_editor testent un modèle distinct (packages/map_editor, pas map_authoring)."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_safety_test.dart",
+   "test": "undo commits pending focused edit then restores exactly once",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueWorkspacePage (flush puis undo)",
+    "tooltips Annuler/Rétablir"
+   ],
+   "asserts": "Un texte en cours de saisie est commité puis Annuler restaure exactement la source d'avant (canRedo=true), Rétablir réapplique le texte ; aucune écriture.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_controller.dart",
+     "symbol": "DialogueWorkspaceController.undo/redo"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart",
+     "symbol": "updateLine"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "deep immutable snapshot and semantic history preserve branch content, rejects unsafe replacement"
+    }
+   ],
+   "gap": "Le 'commit du champ focalisé avant undo' est un contrat UI sans owner ; l'undo/redo sémantique est couvert par le test 'deep immutable snapshot…' (undo x2 / redo) mais pas le cas 'restaure exactement une fois' sur un updateLine isolé (unsure)."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_safety_test.dart",
+   "test": "inspector replacement confirms and a newer semantic edit invalidates pending consent",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialogueInspector (StudioSelect « Continuer vers »)",
+    "AlertDialog « Remplacer la destination ? »"
+   ],
+   "asserts": "Remplacer la destination d'une réponse demande confirmation ; confirmer change la cible en conservant libellé et outcome ; une édition sémantique plus récente (updateLine) pendant la confirmation invalide le consentement : source inchangée ; aucune écriture.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_links.dart",
+     "symbol": "DialogueWorkspaceLinks.connectSelection(confirmReplacement)"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_selection_commands_test.dart",
+     "test": "confirmed replacement preserves response and outcome, undo and reopen"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_selection_commands_test.dart",
+     "test": "stale confirmation refuses changed owner: false"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_selection_commands_test.dart",
+     "test": "stale confirmation refuses changed owner: true"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_selection_commands_test.dart",
+     "test": "cancelled replacement preserves content and history"
+    }
+   ],
+   "gap": "Le couvert invalide le consentement par updateResponse / changement de propriétaire (pas par updateLine) ; même mécanisme de révision. Le dialogue de confirmation est de l'UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/dialogues_ui09_visual_test.dart",
+   "test": "UI09 remaining inspector and preview capture with compact layout",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "DialoguePortraitImage",
+    "DialogueWorkspacePage (captures, compact 1024x640 @150 %)"
+   ],
+   "asserts": "Les portraits de la prévisualisation sont rendus en Image ; ouvrir avec startNode 'DepartAbsent' puis startPreview donne preview.error non nul ; aucune exception à 1536 puis 1024x640 texte 150 % (le reste = captures PNG sans assertion).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_controller.dart",
+     "symbol": "DialogueWorkspaceController.open(startNode:)/startPreview"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "canonical preview stops jump loops and refuses missing scene entry"
+    }
+   ],
+   "gap": "Seule assertion non-UI : erreur de prévisualisation quand open(startNode: inconnu) alimente startPreview() sans argument (session.startNode) ; le test controller couvre startPreview(nodeTitle: 'Absent') — autre chemin. Le rendu des portraits et le compact sont de l'UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui09_dialogue_fixture_test.dart",
+   "test": "UI09 fixture opens editable canonical conversation, portrait and dirty consumer",
+   "harness": [
+    "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+    "apps/avelune_studio/test/support/ui09_runtime_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart (import transitif)"
+   ],
+   "legacySymbols": [],
+   "asserts": "Auto-test du fixture Ui09DialogueFixture : le dialogue s'ouvre éditable (readOnlyReason null, 3 nœuds), le portrait 'guide/neutral' est lisible, le consommateur de scène est dirty (scenes.dirty) sans salir les dialogues.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_controller.dart",
+     "symbol": "DialogueWorkspaceController.open"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/dialogues/data/local_dialogue_adapter.dart",
+     "symbol": "LocalDialogueAdapter.readPortrait"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart",
+     "test": "lazy library, reply choices shared targets outcomes save reopen and deterministic identities"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_portrait_ui09_test.dart",
+     "test": "portrait resolves canonical character variant to verified asset bytes"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_coexistence_ui09_test.dart",
+     "test": "simplified dirty blocks full document; full dirty blocks simplified and preserves unrelated use"
+    }
+   ],
+   "gap": "Aucun widget : la dépendance à l'ancienne UI est transitive (m2_ui_fixture → MapWorkspaceScreen → pages narratives). C'est un test de santé du fixture ; à déplacer/conserver tel quel si le fixture est conservé, supprimable sans perte de comportement si le fixture disparaît."
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui08_map_context_test.dart",
+   "test": "resizing keeps the same map point centered at the same zoom",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (clé event-context-viewport)"
+   ],
+   "asserts": "Après redimensionnement du viewport, le point de carte au centre et le facteur de zoom du TransformationController sont inchangés (mathématique de vue).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui08_map_context_test.dart",
+   "test": "changing source kind cannot reselect the old entity overlay",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (overlays event-target:<id>)"
+   ],
+   "asserts": "Avec source entityInteract mais chooseKind=triggerEnter, l'overlay de l'ancienne entité n'existe pas et un tap sur la zone émet exactement triggerEnter('station','platform').",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets/accept"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "A to delayed B removes stale targets and accepts the exact B identity only after loading"
+    }
+   ],
+   "gap": "EventSourcePicking (visibilité des cibles selon chooseKind ?? source.kind, accept par kind identique) n'a aucun test direct hors blast ; seul EventSourceSelectionSession.accept (rejet de kind différent) est couvert."
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui08_map_context_test.dart",
+   "test": "context does not outline an entity homonym on another map",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap"
+   ],
+   "asserts": "Une source entityInteract('other','chief') n'entoure pas l'entité 'chief' de la carte 'station'.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (kind=null si map.id ≠ source.mapId)"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "Aucun test hors blast ne vérifie que flatTargets ignore une source d'une autre carte (homonymie d'id)."
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui08_map_context_test.dart",
+   "test": "source picking follows the transformed target and is read only",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap",
+    "InteractiveViewer"
+   ],
+   "asserts": "Le hit-test suit la cible sous un zoom/translation 1.5x, émet l'identité exacte, le zoom reste 1.5 et la MapData d'entrée n'est pas modifiée (constante) — géométrie de vue ; l'émission de l'identité exacte relève de accept() déjà couvert.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui08_map_context_test.dart",
+   "test": "map source cannot be chosen when catalog marks it unavailable",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (GestureDetector.onTapUp mapEnter)"
+   ],
+   "asserts": "Avec selectableSources vide, taper la carte en mode mapEnter n'appelle pas onChoose.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.selectable/accept"
+    },
+    {
+     "path": "packages/map_core/lib/src/operations/build_narrative_spatial_event_source_catalog.dart",
+     "symbol": "buildNarrativeSpatialEventSourceCatalog"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "a cancelled or superseded outcome request cannot replace a newer source choice"
+    }
+   ],
+   "gap": "La règle 'source non sélectionnable → refus' dans EventSourcePicking.selectable n'est testée nulle part en direct ; unsure : le catalogue map_core lui-même est probablement testé (non lu)."
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui08_map_context_test.dart",
+   "test": "zoom controls respect viewport bounds and Escape cancels pick",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (StudioTool Agrandir/Réduire, CallbackShortcuts Escape)"
+   ],
+   "asserts": "Les boutons de zoom bornent l'échelle à [0.15 ; 8] et Échap appelle onCancel (l'annulation de sélection côté owner est couverte par EventSourceSelectionSession.cancel).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui08_source_loading_test.dart",
+   "test": "switch A to delayed B removes all stale clickable targets until B loads",
+   "harness": [
+    "apps/avelune_studio/test/support/event_backend_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventTriggerPanel",
+    "EventContextMap",
+    "DropdownButtonFormField (sélecteur de carte)",
+    "EventViewState"
+   ],
+   "asserts": "Pendant le chargement retardé de la carte B, aucune cible cliquable de A, la source enregistrée reste entityInteract('a','chief') ; une fois B chargée, cliquer la cible donne entityInteract('b','chief') et la carte active du workspace reste 'a'.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_selection_session.dart",
+     "symbol": "EventSourceSelectionSession.selectMap/accept"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_commands.dart",
+     "symbol": "EventWorkspaceCommands.setSource"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "A to delayed B removes stale targets and accepts the exact B identity only after loading"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "a late A response cannot replace the ready B preview"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "consulting another map preserves source active map and saved map bytes"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui08_source_loading_test.dart",
+   "test": "source identity does not show homonymous A while B is loading",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventSourceIdentity"
+   ],
+   "asserts": "EventSourceIdentity affiche 'Chargement de la source…' (et non le nom de l'entité homonyme de A) pendant le chargement de B, puis 'Chef b' : état asynchrone d'un FutureBuilder.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/scene_canvas_addition_test.dart",
+   "test": "retired scene creation and text deletion cannot mutate an owner draft",
+   "harness": [
+    "apps/avelune_studio/test/support/ui05_narrative_fixture.dart",
+    "apps/avelune_studio/test/support/ui05_story_backend_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "StudioActionCard « Nouvelle scène » (onPressed null)",
+    "StudioPrimaryNavigation",
+    "TextField « Rechercher dans Histoire »"
+   ],
+   "asserts": "Dans l'aperçu Histoire, la carte « Nouvelle scène » est désactivée, sans dialogue ; taper/effacer dans la recherche ne modifie ni la session de scène (current, graph.edges, undoCount, dirty), ni la liste, ni le disque ; aucune publication. Nom trompeur : ne teste pas le canevas de scènes.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": "Tout l'effet affirmé est l'ABSENCE de mutation par l'ancienne vue ; aucune règle métier. (Les ouvertures owner.create/open ne sont que de la mise en place.)"
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui08_legacy_consultation_test.dart",
+   "test": "historical library opens read-only detail without modern selection",
+   "harness": [
+    "apps/avelune_studio/test/support/event_legacy_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventLibrary",
+    "showLegacyEventDetail",
+    "EventViewState"
+   ],
+   "asserts": "La bibliothèque affiche « Historique · 2 », ouvrir une entrée historique montre le détail en lecture seule (texte, avertissement 'Aucune conversion…', pas de bouton Enregistrer), sans appeler onOpen/onCreate, et sans muter projet/carte (JSON identique).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_legacy_catalog.dart",
+     "symbol": "EventLegacyCatalog.entries/detail"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_legacy_catalog_test.dart",
+     "test": "canonical historical projections preserve pages, scenario and registry"
+    }
+   ],
+   "gap": "Libellés, onOpen=0/onCreate=0 et bouton absent sont de l'UI ; le projet historique non muté et le contenu du détail (lignes, source, diagnostics) sont couverts par event_legacy_catalog_test."
+  },
+  {
+   "file": "apps/avelune_studio/test/events_ui08_legacy_consultation_test.dart",
+   "test": "partial historical inventory is explicit and search includes scenario",
+   "harness": [
+    "apps/avelune_studio/test/support/event_legacy_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventLibrary",
+    "EventViewState.search"
+   ],
+   "asserts": "Avec mapsComplete=false, la recherche 'Arrivée ancienne' retrouve l'entrée de scénario historique et pas l'entrée de carte ; le message « Historique des cartes chargées » est affiché ; le bouton « Charger l'historique des autres cartes » appelle onLoadHistory une fois.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_legacy_catalog.dart",
+     "symbol": "EventLegacyCatalog.entries (inventaire)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_legacy_catalog_test.dart",
+     "test": "canonical historical projections preserve pages, scenario and registry"
+    }
+   ],
+   "gap": "Le filtre de recherche sur les entrées historiques (nom + clé + libellé de carte, sensible au scénario) est écrit dans EventLibrary.build : aucun owner ni test hors blast. Le catalogue lui-même est couvert."
+  },
+  {
+   "file": "apps/avelune_studio/test/m3_conditions_widgets_test.dart",
+   "test": "real conditions and ordered sequence stay editable at enlarged text",
+   "harness": [
+    "apps/avelune_studio/test/support/m3_story_fixture.dart",
+    "apps/avelune_studio/test/support/capture_m3_widget.dart",
+    "apps/avelune_studio/test/support/load_desktop_capture_fonts.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeInteractionPane",
+    "NarrativeConditionsEditor (bouton « est activé »)",
+    "NarrativeSequenceEditor (« Descendre l'action »)",
+    "DropdownButton<String>"
+   ],
+   "asserts": "Basculer la condition inverse sa valeur attendue ; « Descendre l'action » échange l'ordre des actions (facing → wait) ; restore(redo:false) défait ; addChoice crée une branche de conséquences vide et ajoute l'outcome à SceneYarnDialoguePayload.expectedOutcomes ; openSource('Variante') prend l'ordre max+1 des événements de même source.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_editing.dart",
+     "symbol": "NarrativeInteractionDraft.revise(conditions/steps)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/interaction_edit_session.dart",
+     "symbol": "InteractionEditSession.change/restore"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/dialogue_editing_controller.dart",
+     "symbol": "DialogueEditingController.addChoice"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_interaction_opener.dart",
+     "symbol": "NarrativeInteractionOpener.openSource"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_editing_test.dart",
+     "test": "new choice receives a matching scene outcome branch"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_editing_test.dart",
+     "test": "removing a choice removes its effects in the same undoable edit"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_source_rank_contract_test.dart",
+     "test": "new source variant ranks above existing conditional and fallback drafts"
+    }
+   ],
+   "gap": "Non prouvé hors UI : inversion de la valeur attendue d'une condition (NarrativeConditionsEditor), échange d'ordre des actions (NarrativeSequenceEditor), et 'expectedOutcomes' de la scène projetée contenant le nouvel outcome (NarrativeInteractionDraft.project().scene) ; l'ordre = max+1 n'est vérifié que pour un seul événement existant (test rank : order 1). Défaire (restore) est couvert."
+  },
+  {
+   "file": "apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart",
+   "test": "advanced record never opens previous interaction",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "narrative/dialogue_draft_codec_test.dart (dialogueFixture)"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "StudioChoice interaction-<id>",
+    "texte « Interaction avancée · consultation seule »"
+   ],
+   "asserts": "Taper une interaction avancée (non éditable en mode simplifié) n'appelle pas onOpen, laisse controller.active sur la session précédente, error=null, aucun « Ouvrir l'éditeur », et le texte de consultation seule est affiché.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_interaction_opener.dart",
+     "symbol": "NarrativeInteractionOpener.openRecord (avancé → false)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_overview.dart",
+     "symbol": "NarrativeOverviewInteraction.advanced/canEdit"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_error_scope_test.dart",
+     "test": "advanced interaction warning remains local after map and resource navigation"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_journey_contract_test.dart",
+     "test": "overview homonyms and filters consult metadata without reading dialogues or opening maps"
+    }
+   ],
+   "gap": "Le texte et l'absence du bouton sont de l'UI ; refus d'openRecord et flags advanced/canEdit couverts."
+  },
+  {
+   "file": "apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart",
+   "test": "story selection is read only and explicit action opens linked draft",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "narrative/dialogue_draft_codec_test.dart (dialogueFixture)"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "bouton « Reprendre le brouillon »"
+   ],
+   "asserts": "Sélectionner une étape ou une interaction ne change pas la carte active ni n'ouvre de session ; « Reprendre le brouillon » ouvre la session locale (opened=1) et réactive sa carte (maps.active == edit.document).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_interaction_opener.dart",
+     "symbol": "NarrativeInteractionOpener.openSession"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_selection.dart",
+     "symbol": "NarrativeOverviewSelection.select"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_journey_contract_test.dart",
+     "test": "exact homonymous interaction routes retain local dialogue map history and search then locate the source"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_journey_contract_test.dart",
+     "test": "overview homonyms and filters consult metadata without reading dialogues or opening maps"
+    }
+   ],
+   "gap": "Hors UI : le bouton « Reprendre le brouillon » ; la réactivation de la carte à l'ouverture de session est prouvée par le test journey (navigation.space interaction, maps.active)."
+  },
+  {
+   "file": "apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart",
+   "test": "long stories only mount visible step rows",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "NarrativeStoryChapters (ListView.builder)",
+    "StudioChoice"
+   ],
+   "asserts": "Avec 1000 étapes, seules ~30 lignes sont montées et le défilement change la fenêtre visible : virtualisation de liste (UI).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/narrative/narrative_story_navigation_test.dart",
+   "test": "1000 interactions mount only visible rows without extra source reads",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "NarrativeOverviewViewState (scroll, search)",
+    "StudioChoice interaction-<id>"
+   ],
+   "asserts": "1000 interactions : lignes virtualisées (<30), la recherche 'source_999' filtre à 1 résultat, sélectionner une ligne ne lit ni ne publie rien (reads/writes des deux ports inchangés, documents=1, sessions vides).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_selection.dart",
+     "symbol": "NarrativeOverviewSelection.visibleInteractions/select"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_projection.dart",
+     "symbol": "buildNarrativeOverview"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_journey_contract_test.dart",
+     "test": "overview homonyms and filters consult metadata without reading dialogues or opening maps"
+    }
+   ],
+   "gap": "La virtualisation et les compteurs de widgets sont de l'UI ; filtre + sélection sans lecture couverts par le test journey (1er test)."
+  },
+  {
+   "file": "apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart",
+   "test": "deleted terrain cannot return through map undo after saved removal",
+   "harness": [
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart",
+    "apps/avelune_studio/test/support/uwu5_terrain_host.dart",
+    "apps/avelune_studio/test/support/uwu4_resource_host.dart",
+    "apps/avelune_studio/test/support/uwu_resource_host.dart"
+   ],
+   "legacySymbols": [
+    "MapWorkspaceScreen (via m2_ui_fixture)",
+    "ResourceWorkspacePane (via uwu_resource_host)"
+   ],
+   "asserts": "Après suppression d'un terrain (couche SmartTile) puis enregistrement, annuler depuis la carte ne ressuscite pas la couche : document.current inchangé, undoCount conservé, error contient 'terrain supprimé', dirty=false ; une édition ordinaire reste annulable/rétablissable.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_history_destinations.dart",
+     "symbol": "_historyResourceProblem (branche SmartTileLayer → \"terrain supprimé\")"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart",
+     "symbol": "MapWorkspaceController (restore/undo guard)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/uwu2_deleted_destination_history_test.dart",
+     "test": "undo refuses a deleted decor destination and retains other history"
+    }
+   ],
+   "gap": "Zone hors narratif (dépend de l'ancienne UI uniquement via MapWorkspaceScreen) : le refus d'annulation pour un TERRAIN supprimé n'est prouvé que par ce test ; le test uwu2 couvre la branche décor. À router vers l'équipe map_workspace/resources."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/trigger_bump_authoring_test.dart",
+   "test": "contact map refuses 3D and incompatible event zones",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=triggerBump)"
+   ],
+   "asserts": "Pour un projet 3D, une zone de type custom, ou deux zones d'id identique, aucune cible event-target:chief n'est proposée en choix 'Contact de zone' (et onChoose n'est jamais appelé).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_trigger_bump_source_reference.dart",
+     "symbol": "isNarrativeTriggerBumpSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre triggerBump)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_trigger_bump_source_test.dart",
+     "test": "contact references reject wrong types geometry ambiguity and 3D"
+    },
+    {
+     "file": "packages/map_core/test/narrative_trigger_bump_source_test.dart",
+     "test": "valid event trigger has a distinct selectable contact source"
+    }
+   ],
+   "gap": "Le prédicat map_core est couvert (types, géométrie, ambiguïté, 3D) ; la composition dans EventSourcePicking.flatTargets/EventContextMap (garde 2D 'Le contact de zone nécessite une carte 2D') n'a pas de test direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/trigger_bump_authoring_test.dart",
+   "test": "guided trigger contact source stays distinct from interaction contact and map entry",
+   "harness": [
+    "apps/avelune_studio/test/support/event_backend_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventTriggerPanel",
+    "StudioChoice (libellés des types de déclencheur)"
+   ],
+   "asserts": "Le panneau affiche les quatre libellés « Interaction du joueur », « Contact du joueur », « Entrée sur la carte », « Contact de zone » (libellés).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events/trigger_bump_authoring_test.dart",
+   "test": "trigger contact target emits its exact kind while interaction remains separate",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind)"
+   ],
+   "asserts": "Choisir triggerBump émet triggerBump('a','chief') et choisir triggerEnter émet triggerEnter('a','chief') pour la même zone.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets/accept (triggerSource)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_trigger_bump_source_test.dart",
+     "test": "trigger contact has its exact kind and does not become zone entry"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/trigger_bump_authoring_contract_test.dart",
+     "test": "modern creation and editing publish trigger contact identity through canonical API and cold reopen"
+    }
+   ],
+   "gap": "Les kinds distincts sont couverts côté map_core/controller ; la fabrication du kind par cible dans EventSourcePicking.triggerSource n'est pas testée directement."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/trigger_bump_authoring_test.dart",
+   "test": "trigger contact selection rejects an old map callback while the next map loads",
+   "harness": [
+    "apps/avelune_studio/test/support/event_backend_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventTriggerPanel",
+    "EventContextMap (GestureDetector.onTap périmé)",
+    "DropdownButtonFormField"
+   ],
+   "asserts": "Un onTap capturé sur la carte A est ignoré une fois B en chargement (source inchangée) ; après chargement de B, taper la cible donne triggerBump('b','chief') ; la carte active du workspace reste 'a'.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_selection_session.dart",
+     "symbol": "EventSourceSelectionSession.accept/selectMap"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "A to delayed B removes stale targets and accepts the exact B identity only after loading"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "a late A response cannot replace the ready B preview"
+    },
+    {
+     "file": "packages/map_core/test/narrative_trigger_bump_source_test.dart",
+     "test": "trigger contact has its exact kind and does not become zone entry"
+    }
+   ],
+   "gap": "Doublon des tests bump/autorun/source_loading (même scénario, kind différent)."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/trigger_bump_authoring_test.dart",
+   "test": "modern event page creates an trigger contact draft and saves through the canonical port",
+   "harness": [
+    "apps/avelune_studio/test/support/event_backend_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventWorkspacePage",
+    "EventTriggerPanel",
+    "StudioButton « Enregistrer »",
+    "AlertDialog de création"
+   ],
+   "asserts": "Créer un événement, choisir 'Contact de zone', la carte puis la cible : source=triggerBump(map,'chief') ; Enregistrer l'écrit via le port canonique (dirty=false) et la relecture fraîche porte la même source.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_commands.dart",
+     "symbol": "EventWorkspaceCommands.create/setSource"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_publication.dart",
+     "symbol": "EventWorkspacePublication.save"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/trigger_bump_authoring_contract_test.dart",
+     "test": "modern creation and editing publish trigger contact identity through canonical API and cold reopen"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_workspace_ui08_test.dart",
+     "test": "draft creation save reopens without inventing scene or changing registry mode"
+    }
+   ],
+   "gap": "Le test UI enregistre un brouillon sans scène ; le contract test configure et active l'événement ; le brouillon pur est couvert par event_workspace_ui08_test."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_parallel_authoring_test.dart",
+   "test": "parallel owner picker distinguishes an actual all page from every page",
+   "harness": [],
+   "legacySymbols": [
+    "EventOptionsPanel (DropdownButtonFormField « Page propriétaire »)"
+   ],
+   "asserts": "Choisir « Toutes les pages actives » produit ownerVariantId null, choisir la page d'id littéral 'all' (libellé « Page 1 ») produit ownerVariantId 'all' : le sentinel '' de l'UI ne se confond pas avec un id réel.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/models/narrative_event_definition.dart",
+     "symbol": "NarrativeEventParallelPolicy.ownerVariantId"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_event_parallel_policy_test.dart",
+     "test": "incomplete drafts validate each supplied parallel field independently"
+    }
+   ],
+   "gap": "Le modèle distingue null et id réel mais le mapping sentinel '' ↔ null est dans EventOptionsPanel (aucun owner) ; non testé hors UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_parallel_authoring_test.dart",
+   "test": "guided options expose execution mode and validated cadence",
+   "harness": [],
+   "legacySymbols": [
+    "EventOptionsPanel (StudioCommitField « Cadence (ms) »)"
+   ],
+   "asserts": "Le mode 'Parallèle' est affiché ; une cadence 99 ms n'émet rien, 500 ms émet NarrativeEventParallelPolicy(cadenceMs: 500).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/models/narrative_event_definition.dart",
+     "symbol": "NarrativeEventParallelPolicy (bornes 100–60000)"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_event_parallel_policy_test.dart",
+     "test": "parallel policy rejects invalid cadence and one-shot execution"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_parallel_contract_test.dart",
+     "test": "parallel draft cadence survives rename save and cold reopen"
+    }
+   ],
+   "gap": "La saisie texte → entier et le retour au champ sont de l'UI ; la borne est garantie par le constructeur du modèle."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_execution_order_test.dart",
+   "test": "the summary states the order and the repeat effect",
+   "harness": [],
+   "legacySymbols": [
+    "EventSummary (clés event-execution-order, event-repeat-effect)",
+    "EventViewState",
+    "EventTab"
+   ],
+   "asserts": "Le résumé affiche « Examiné en 2e sur 3 » et la phrase de relecture « Une fois par visite : se rejoue après avoir quitté puis retrouvé sa carte. » ; taper l'ordre ouvre l'onglet Options.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_execution_order.dart",
+     "symbol": "eventExecutionOrder"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_labels.dart",
+     "symbol": "eventRepeatEffect"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_execution_order_contract_test.dart",
+     "test": "the execution order follows the runtime dispatch rule"
+    }
+   ],
+   "gap": "eventExecutionOrder est couvert (event_execution_order_contract_test). eventRepeatEffect (phrases de rejeu) n'a aucun test direct hors blast : uniquement ce test et event_options_effect_test."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/retired_daily_condition_ui_test.dart",
+   "test": "unavailable daily condition intent preserves exact reference predicate and groups expected=false",
+   "harness": [],
+   "legacySymbols": [
+    "EventConditions",
+    "chooseEventCondition",
+    "StudioPanel/StudioTool « Modifier la condition »",
+    "AlertDialog"
+   ],
+   "asserts": "Une condition périodique 'daily-fruit' dans un groupe ANY/NOT : le panneau porte son libellé, « Modifier la condition » est désactivé, chooseEventCondition(initial: …) retourne null sans dialogue, aucun onChanged, l'expression JSON et la référence/valeur attendue sont strictement inchangées.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_condition_draft.dart",
+     "symbol": "EventConditionDraft (periodicReward)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_condition_labels.dart",
+     "symbol": "eventConditionLabel"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_condition_draft_test.dart",
+     "test": "daily conditions retain the exact reward identity and negative predicate"
+    }
+   ],
+   "gap": "La rétention exacte de la référence et du prédicat est couverte par EventConditionDraft ; la POLITIQUE « condition périodique non éditable depuis l'UI » n'a aucun owner hors UI (le brouillon applicatif sait pourtant l'éditer) ; le libellé eventConditionLabel d'une condition périodique n'est testé nulle part hors blast (unsure)."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/retired_daily_condition_ui_test.dart",
+   "test": "unavailable daily condition intent preserves exact reference predicate and groups expected=true",
+   "harness": [],
+   "legacySymbols": [
+    "EventConditions",
+    "chooseEventCondition",
+    "StudioPanel/StudioTool « Modifier la condition »",
+    "AlertDialog"
+   ],
+   "asserts": "Une condition périodique 'daily-fruit' dans un groupe ANY/NOT : le panneau porte son libellé, « Modifier la condition » est désactivé, chooseEventCondition(initial: …) retourne null sans dialogue, aucun onChanged, l'expression JSON et la référence/valeur attendue sont strictement inchangées.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_condition_draft.dart",
+     "symbol": "EventConditionDraft (periodicReward)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_condition_labels.dart",
+     "symbol": "eventConditionLabel"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_condition_draft_test.dart",
+     "test": "daily conditions retain the exact reward identity and negative predicate"
+    }
+   ],
+   "gap": "La rétention exacte de la référence et du prédicat est couverte par EventConditionDraft ; la POLITIQUE « condition périodique non éditable depuis l'UI » n'a aucun owner hors UI (le brouillon applicatif sait pourtant l'éditer) ; le libellé eventConditionLabel d'une condition périodique n'est testé nulle part hors blast (unsure)."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/retired_daily_condition_ui_test.dart",
+   "test": "remaining fact condition edits stay available and daily creation is absent",
+   "harness": [],
+   "legacySymbols": [
+    "EventConditions",
+    "chooseEventCondition (dialogue)",
+    "StudioSelect « Condition sur » / « Valeur attendue »",
+    "StudioButton « Appliquer la condition »"
+   ],
+   "asserts": "Éditer une condition d'état: la liste « Condition sur » ne propose pas 'periodicReward', changer « Valeur attendue » à true et appliquer donne leaf(fact('ready', true)) sans toucher l'expression d'origine.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_condition_draft.dart",
+     "symbol": "EventConditionDraft.condition"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_condition_draft_test.dart",
+     "test": "consumed events and local memories keep their exact source and predicate"
+    }
+   ],
+   "gap": "Non prouvé hors UI : exclusion de 'periodicReward' des types proposés à la création (liste du dialogue) ; la construction d'une condition fact booléenne via EventConditionDraft est couverte (types int/string/événement/instance), la variante booléenne simple est triviale."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "guided automatic source stays distinct from interaction contact and map entry",
+   "harness": [
+    "apps/avelune_studio/test/support/event_backend_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventTriggerPanel"
+   ],
+   "asserts": "Le panneau affiche « Interaction du joueur », « Contact du joueur », « Entrée sur la carte » et « Automatique » (libellés).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "automatic identity accepts logical owners with blocking=true",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventSourceIdentity"
+   ],
+   "asserts": "Source entityAutorun sur une entité 'custom' (non bloquante ou bloquante) : l'identité affiche le nom de l'entité ('Source invisible originale'), donc la source est considérée disponible.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_autorun_source_reference.dart",
+     "symbol": "isNarrativeEntityAutorunSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_context.dart",
+     "symbol": "NarrativeOverviewContext.source"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun accepts the same logical owner identity as instance booleans without graphics or collision"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_autorun_authoring_contract_test.dart",
+     "test": "automatic overview describes logical owners independently of map entry"
+    }
+   ],
+   "gap": "Le prédicat est couvert ; la projection d'identité (nom + position, messages 'à réparer') est écrite dans EventSourceIdentity (UI) ; NarrativeOverviewContext.source en est un équivalent applicatif partiel (label/missing) testé pour autorun seulement."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "automatic identity accepts logical owners with blocking=false",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventSourceIdentity"
+   ],
+   "asserts": "Source entityAutorun sur une entité 'custom' (non bloquante ou bloquante) : l'identité affiche le nom de l'entité ('Source invisible originale'), donc la source est considérée disponible.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_autorun_source_reference.dart",
+     "symbol": "isNarrativeEntityAutorunSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_context.dart",
+     "symbol": "NarrativeOverviewContext.source"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun accepts the same logical owner identity as instance booleans without graphics or collision"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_autorun_authoring_contract_test.dart",
+     "test": "automatic overview describes logical owners independently of map entry"
+    }
+   ],
+   "gap": "Le prédicat est couvert ; la projection d'identité (nom + position, messages 'à réparer') est écrite dans EventSourceIdentity (UI) ; NarrativeOverviewContext.source en est un équivalent applicatif partiel (label/missing) testé pour autorun seulement."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "automatic identity rejects a loaded map with another identity",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventSourceIdentity",
+    "EventMapLoader (chargeur retardé)"
+   ],
+   "asserts": "Si le chargeur renvoie la carte 'b' pour la source de la carte 'a', l'identité affiche « Source indisponible · carte à réparer » et jamais le nom de l'entité.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_selection_session.dart",
+     "symbol": "EventSourceSelectionSession (loaded.id == id)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_map_loader.dart",
+     "symbol": "EventMapLoader.load"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "A to delayed B removes stale targets and accepts the exact B identity only after loading"
+    }
+   ],
+   "gap": "La session refuse d'installer une carte d'identité différente (ligne loaded.id == id) mais aucun test n'assert ce cas précis ; le message de réparation est de l'UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "automatic target emits its exact kind while interaction remains separate",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap"
+   ],
+   "asserts": "Pour la même entité, chooseKind=entityAutorun émet entityAutorun et chooseKind=entityInteract émet entityInteract.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets/accept (entitySource)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/entity_autorun_authoring_contract_test.dart",
+     "test": "modern creation and editing publish automatic identity through canonical API and cold reopen"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun accepts the same logical owner identity as instance booleans without graphics or collision"
+    }
+   ],
+   "gap": "Fabrication du kind par cible (EventSourcePicking.entitySource) non testée directement."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "automatic picker refuses missing logical owner",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityAutorun)"
+   ],
+   "asserts": "Cas 'missing' : aucune cible event-target:chief n'est proposée au choix 'Automatique' et aucune exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_autorun_source_reference.dart",
+     "symbol": "isNarrativeEntityAutorunSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre autorun)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun refuses missing duplicate and noncanonical references"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun is explicitly unavailable for project or map 3D"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_autorun_authoring_contract_test.dart",
+     "test": "modern automatic replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Le prédicat map_core couvre missing/duplicate/identité non canonique/3D ; le filtrage dans EventSourcePicking.flatTargets n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "automatic picker refuses duplicate logical owner",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityAutorun)"
+   ],
+   "asserts": "Cas 'duplicate' : aucune cible event-target:chief n'est proposée au choix 'Automatique' et aucune exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_autorun_source_reference.dart",
+     "symbol": "isNarrativeEntityAutorunSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre autorun)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun refuses missing duplicate and noncanonical references"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun is explicitly unavailable for project or map 3D"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_autorun_authoring_contract_test.dart",
+     "test": "modern automatic replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Le prédicat map_core couvre missing/duplicate/identité non canonique/3D ; le filtrage dans EventSourcePicking.flatTargets n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "automatic picker refuses entity-identity logical owner",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityAutorun)"
+   ],
+   "asserts": "Cas 'entity-identity' : aucune cible event-target:chief n'est proposée au choix 'Automatique' et aucune exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_autorun_source_reference.dart",
+     "symbol": "isNarrativeEntityAutorunSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre autorun)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun refuses missing duplicate and noncanonical references"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun is explicitly unavailable for project or map 3D"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_autorun_authoring_contract_test.dart",
+     "test": "modern automatic replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Le prédicat map_core couvre missing/duplicate/identité non canonique/3D ; le filtrage dans EventSourcePicking.flatTargets n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "automatic picker refuses map-duplicate logical owner",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityAutorun)"
+   ],
+   "asserts": "Cas 'map-duplicate' : aucune cible event-target:chief n'est proposée au choix 'Automatique' et aucune exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_autorun_source_reference.dart",
+     "symbol": "isNarrativeEntityAutorunSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre autorun)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun refuses missing duplicate and noncanonical references"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun is explicitly unavailable for project or map 3D"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_autorun_authoring_contract_test.dart",
+     "test": "modern automatic replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Le prédicat map_core couvre missing/duplicate/identité non canonique/3D ; le filtrage dans EventSourcePicking.flatTargets n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "automatic picker refuses threeD logical owner",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityAutorun)"
+   ],
+   "asserts": "Cas 'threeD' : aucune cible event-target:chief n'est proposée au choix 'Automatique' et aucune exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_autorun_source_reference.dart",
+     "symbol": "isNarrativeEntityAutorunSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre autorun)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun refuses missing duplicate and noncanonical references"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_autorun_catalog_test.dart",
+     "test": "autorun is explicitly unavailable for project or map 3D"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_autorun_authoring_contract_test.dart",
+     "test": "modern automatic replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Le prédicat map_core couvre missing/duplicate/identité non canonique/3D ; le filtrage dans EventSourcePicking.flatTargets n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "automatic selection rejects an old map callback while the next map loads",
+   "harness": [
+    "apps/avelune_studio/test/support/event_backend_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventTriggerPanel",
+    "EventContextMap (onTap périmé)"
+   ],
+   "asserts": "Un onTap périmé de la carte A est ignoré pendant le chargement de B ; après chargement, taper la cible donne entityAutorun('b','chief').",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_selection_session.dart",
+     "symbol": "EventSourceSelectionSession.accept"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "A to delayed B removes stale targets and accepts the exact B identity only after loading"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "a late A response cannot replace the ready B preview"
+    }
+   ],
+   "gap": "Doublon du même scénario que trigger_bump/entity_bump/source_loading."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_autorun_authoring_test.dart",
+   "test": "modern event page creates an automatic draft and saves through the canonical port",
+   "harness": [
+    "apps/avelune_studio/test/support/event_backend_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventWorkspacePage",
+    "EventTriggerPanel",
+    "StudioButton « Enregistrer »"
+   ],
+   "asserts": "Créer un événement, choisir 'Automatique', la carte puis la cible ; Enregistrer publie entityAutorun(map,'chief'), relecture fraîche identique.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_commands.dart",
+     "symbol": "create/setSource"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_publication.dart",
+     "symbol": "save"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/entity_autorun_authoring_contract_test.dart",
+     "test": "modern creation and editing publish automatic identity through canonical API and cold reopen"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_workspace_ui08_test.dart",
+     "test": "draft creation save reopens without inventing scene or changing registry mode"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "guided Event source offers player contact separately from interaction",
+   "harness": [
+    "apps/avelune_studio/test/support/event_backend_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventTriggerPanel"
+   ],
+   "asserts": "Le panneau affiche « Interaction du joueur » et « Contact du joueur » (libellés).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact source identity preserves the NPC and availability=true",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventSourceIdentity"
+   ],
+   "asserts": "Source entityBump sur un PNJ bloquant : affiche 'Chef original' ; sur un PNJ non bloquant : « Source indisponible · personnage à réparer ».",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_bump_source_reference.dart",
+     "symbol": "isNarrativeEntityBumpSourceAvailable"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact availability refuses invalid exact references and nonblocking owners"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact resolves a unique trainer character without replacing an invalid direct reference"
+    }
+   ],
+   "gap": "Le prédicat est couvert (non bloquant refusé) ; l'association disponible→nom / indisponible→message de réparation vit dans EventSourceIdentity (UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact source identity preserves the NPC and availability=false",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventSourceIdentity"
+   ],
+   "asserts": "Source entityBump sur un PNJ bloquant : affiche 'Chef original' ; sur un PNJ non bloquant : « Source indisponible · personnage à réparer ».",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_bump_source_reference.dart",
+     "symbol": "isNarrativeEntityBumpSourceAvailable"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact availability refuses invalid exact references and nonblocking owners"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact resolves a unique trainer character without replacing an invalid direct reference"
+    }
+   ],
+   "gap": "Le prédicat est couvert (non bloquant refusé) ; l'association disponible→nom / indisponible→message de réparation vit dans EventSourceIdentity (UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact target emits its exact kind while interaction remains separate",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap"
+   ],
+   "asserts": "Même entité : chooseKind=entityBump émet entityBump, entityInteract émet entityInteract.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets/accept (entitySource)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/entity_bump_authoring_contract_test.dart",
+     "test": "modern creation and editing publish contact identity through canonical API and cold reopen"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact availability refuses invalid exact references and nonblocking owners"
+    }
+   ],
+   "gap": "Fabrication du kind par cible non testée directement."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact picker refuses nonblocking native target",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityBump)"
+   ],
+   "asserts": "Cas 'nonblocking' : aucune cible event-target:chief n'est proposée au choix 'Contact du joueur', sans exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_bump_source_reference.dart",
+     "symbol": "isNarrativeEntityBumpSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre entityBump)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact availability refuses invalid exact references and nonblocking owners"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "native contact refuses spatial maps and invalid canonical contact bounds"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact resolves a unique trainer character without replacing an invalid direct reference"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_bump_authoring_contract_test.dart",
+     "test": "modern contact replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Les 7 motifs de refus sont couverts par le prédicat map_core et 4 d'entre eux par setSource ; le filtrage dans EventSourcePicking.flatTargets (ce que le sélecteur affiche) n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact picker refuses sign native target",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityBump)"
+   ],
+   "asserts": "Cas 'sign' : aucune cible event-target:chief n'est proposée au choix 'Contact du joueur', sans exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_bump_source_reference.dart",
+     "symbol": "isNarrativeEntityBumpSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre entityBump)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact availability refuses invalid exact references and nonblocking owners"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "native contact refuses spatial maps and invalid canonical contact bounds"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact resolves a unique trainer character without replacing an invalid direct reference"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_bump_authoring_contract_test.dart",
+     "test": "modern contact replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Les 7 motifs de refus sont couverts par le prédicat map_core et 4 d'entre eux par setSource ; le filtrage dans EventSourcePicking.flatTargets (ce que le sélecteur affiche) n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact picker refuses ghost native target",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityBump)"
+   ],
+   "asserts": "Cas 'ghost' : aucune cible event-target:chief n'est proposée au choix 'Contact du joueur', sans exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_bump_source_reference.dart",
+     "symbol": "isNarrativeEntityBumpSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre entityBump)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact availability refuses invalid exact references and nonblocking owners"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "native contact refuses spatial maps and invalid canonical contact bounds"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact resolves a unique trainer character without replacing an invalid direct reference"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_bump_authoring_contract_test.dart",
+     "test": "modern contact replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Les 7 motifs de refus sont couverts par le prédicat map_core et 4 d'entre eux par setSource ; le filtrage dans EventSourcePicking.flatTargets (ce que le sélecteur affiche) n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact picker refuses duplicate native target",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityBump)"
+   ],
+   "asserts": "Cas 'duplicate' : aucune cible event-target:chief n'est proposée au choix 'Contact du joueur', sans exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_bump_source_reference.dart",
+     "symbol": "isNarrativeEntityBumpSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre entityBump)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact availability refuses invalid exact references and nonblocking owners"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "native contact refuses spatial maps and invalid canonical contact bounds"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact resolves a unique trainer character without replacing an invalid direct reference"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_bump_authoring_contract_test.dart",
+     "test": "modern contact replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Les 7 motifs de refus sont couverts par le prédicat map_core et 4 d'entre eux par setSource ; le filtrage dans EventSourcePicking.flatTargets (ce que le sélecteur affiche) n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact picker refuses character-duplicate native target",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityBump)"
+   ],
+   "asserts": "Cas 'character-duplicate' : aucune cible event-target:chief n'est proposée au choix 'Contact du joueur', sans exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_bump_source_reference.dart",
+     "symbol": "isNarrativeEntityBumpSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre entityBump)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact availability refuses invalid exact references and nonblocking owners"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "native contact refuses spatial maps and invalid canonical contact bounds"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact resolves a unique trainer character without replacing an invalid direct reference"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_bump_authoring_contract_test.dart",
+     "test": "modern contact replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Les 7 motifs de refus sont couverts par le prédicat map_core et 4 d'entre eux par setSource ; le filtrage dans EventSourcePicking.flatTargets (ce que le sélecteur affiche) n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact picker refuses map-duplicate native target",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityBump)"
+   ],
+   "asserts": "Cas 'map-duplicate' : aucune cible event-target:chief n'est proposée au choix 'Contact du joueur', sans exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_bump_source_reference.dart",
+     "symbol": "isNarrativeEntityBumpSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre entityBump)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact availability refuses invalid exact references and nonblocking owners"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "native contact refuses spatial maps and invalid canonical contact bounds"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact resolves a unique trainer character without replacing an invalid direct reference"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_bump_authoring_contract_test.dart",
+     "test": "modern contact replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Les 7 motifs de refus sont couverts par le prédicat map_core et 4 d'entre eux par setSource ; le filtrage dans EventSourcePicking.flatTargets (ce que le sélecteur affiche) n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact picker refuses threeD native target",
+   "harness": [
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventContextMap (chooseKind=entityBump)"
+   ],
+   "asserts": "Cas 'threeD' : aucune cible event-target:chief n'est proposée au choix 'Contact du joueur', sans exception.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/operations/narrative_entity_bump_source_reference.dart",
+     "symbol": "isNarrativeEntityBumpSourceAvailable"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets (filtre entityBump)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact availability refuses invalid exact references and nonblocking owners"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "native contact refuses spatial maps and invalid canonical contact bounds"
+    },
+    {
+     "file": "packages/map_core/test/narrative_entity_bump_catalog_test.dart",
+     "test": "contact resolves a unique trainer character without replacing an invalid direct reference"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/entity_bump_authoring_contract_test.dart",
+     "test": "modern contact replacement refuses unavailable owners without changing the stored source"
+    }
+   ],
+   "gap": "Les 7 motifs de refus sont couverts par le prédicat map_core et 4 d'entre eux par setSource ; le filtrage dans EventSourcePicking.flatTargets (ce que le sélecteur affiche) n'est pas testé en direct."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "contact selection rejects an old map callback while the next map loads",
+   "harness": [
+    "apps/avelune_studio/test/support/event_backend_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventTriggerPanel",
+    "EventContextMap (onTap périmé)"
+   ],
+   "asserts": "Un onTap périmé de A est ignoré pendant le chargement de B ; ensuite taper la cible donne entityBump('b','chief').",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_selection_session.dart",
+     "symbol": "EventSourceSelectionSession.accept"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "A to delayed B removes stale targets and accepts the exact B identity only after loading"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "a late A response cannot replace the ready B preview"
+    }
+   ],
+   "gap": "Doublon du même scénario."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/entity_bump_authoring_test.dart",
+   "test": "modern event page creates a contact draft and saves through the canonical port",
+   "harness": [
+    "apps/avelune_studio/test/support/event_backend_fixture.dart",
+    "apps/avelune_studio/test/support/map_workspace_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventWorkspacePage",
+    "EventTriggerPanel",
+    "StudioButton « Enregistrer »"
+   ],
+   "asserts": "Créer un événement, choisir 'Contact du joueur', la carte puis la cible ; Enregistrer publie entityBump(map,'chief') et la relecture fraîche porte la même source.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_commands.dart",
+     "symbol": "create/setSource"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_publication.dart",
+     "symbol": "save"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/entity_bump_authoring_contract_test.dart",
+     "test": "modern creation and editing publish contact identity through canonical API and cold reopen"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_workspace_ui08_test.dart",
+     "test": "draft creation save reopens without inventing scene or changing registry mode"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_options_effect_test.dart",
+   "test": "the in-game effect is stated before the controls",
+   "harness": [],
+   "legacySymbols": [
+    "EventOptionsPanel",
+    "StudioSelect (Après avoir joué, Exécution)"
+   ],
+   "asserts": "La section « Effet en jeu » avec « Une seule fois dans la partie. » est placée avant « Après avoir joué », elle-même avant « Exécution » (ordre vertical des widgets).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_labels.dart",
+     "symbol": "eventRepeatEffect (reuse oneShot / reset never)"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "Le positionnement est de l'UI ; la phrase pour oneShot + reset=never n'est prouvée que par ce test (eventRepeatEffect n'a aucun test direct)."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_options_effect_test.dart",
+   "test": "each verified replay rule has its own sentence",
+   "harness": [],
+   "legacySymbols": [
+    "EventOptionsPanel"
+   ],
+   "asserts": "Quatre phrases exactes : reset onMapReentry, onOutcomeReceived (« oeuf-recu »), reusable, et « Sans effet : l'événement peut déjà se rejouer. ».",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_labels.dart",
+     "symbol": "eventRepeatEffect / _outcomeLabel"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "Aucun test hors blast ne couvre eventRepeatEffect : à porter dans un test applicatif (aussi : libellé d'outcome unique vs ambigu). La phrase 'Sans effet' est dans le widget."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_options_effect_test.dart",
+   "test": "priority, order and project mode are advanced and inert",
+   "harness": [],
+   "legacySymbols": [
+    "EventOptionsPanel (StudioSection « Options avancées »)"
+   ],
+   "asserts": "Priorité, ordre de distribution et mode projet n'apparaissent qu'après dépliage de « Options avancées », avec les textes d'aide ; aucun callback n'est déclenché.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_options_effect_test.dart",
+   "test": "a historical mode warning stays visible without expanding",
+   "harness": [],
+   "legacySymbols": [
+    "EventOptionsPanel (StudioNotice)"
+   ],
+   "asserts": "Avec EventSystemMode.legacyOnly, l'avertissement « Le mode historique peut empêcher la distribution… » est visible sans déplier ; aucun callback.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_options_effect_test.dart",
+   "test": "an invalid priority keeps the advanced options open",
+   "harness": [],
+   "legacySymbols": [
+    "EventOptionsPanel (priorityInput)"
+   ],
+   "asserts": "Avec priorityInput='pas un nombre', la section avancée est ouverte et affiche la saisie invalide (état d'affichage).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_scene_search_test.dart",
+   "test": "linked scene comes first and identifiers stay out of the rows",
+   "harness": [],
+   "legacySymbols": [
+    "EventScenePanel",
+    "StudioChoice (labels/subtitles)"
+   ],
+   "asserts": "La scène liée est première, 5 lignes, aucun sous-titre ne contient d'identifiant ('bg-'/'hgss-'), « Identifiant de la scène liée : bg-initialisation » et « 5 scènes » sont affichés.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_scene_selection.dart",
+     "symbol": "eventSceneChoices"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_selection_test.dart",
+     "test": "linked scene comes first while other scenes retain source order and identity"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_selection_test.dart",
+     "test": "a linked scene remains first only when it matches the current query"
+    }
+   ],
+   "gap": "Compte « 5 scènes », sous-titre sans id et ligne d'identifiant = présentation (EventScenePanel) ; l'ordre 'liée d'abord' est couvert."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_scene_search_test.dart",
+   "test": "search matches name, description, tags and storyline context",
+   "harness": [],
+   "legacySymbols": [
+    "EventScenePanel (champ event-scene-search)"
+   ],
+   "asserts": "La recherche (insensible à la casse/espaces) trouve par nom, description, étiquette, histoire (titre), chapitre et id de scène ; tap sur le résultat appelle onSelect('route-29') ; texte « 1 scène sur 5 » / « Aucune scène ne correspond à… ».",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_scene_selection.dart",
+     "symbol": "eventSceneChoices (query, contexts)"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_selection_test.dart",
+     "test": "linked scene comes first while other scenes retain source order and identity"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_selection_test.dart",
+     "test": "search resolves native scene metadata for <clé de recherche>"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_selection_test.dart",
+     "test": "a linked scene remains first only when it matches the current query"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_selection_test.dart",
+     "test": "an unresolved linked reference stays exact without choosing another scene"
+    }
+   ],
+   "gap": "Les compteurs/messages sont de l'UI ; la sélection par tap est un simple câblage."
+  },
+  {
+   "file": "apps/avelune_studio/test/events/event_scene_search_test.dart",
+   "test": "an unresolved linked scene stays visible and preserved",
+   "harness": [],
+   "legacySymbols": [
+    "EventScenePanel",
+    "StudioChoice (selected=false)"
+   ],
+   "asserts": "Avec selectedId='scene-supprimee', « Scène absente : scene-supprimee. La référence est conservée. » est affiché, la première ligne n'est pas sélectionnée.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_scene_selection.dart",
+     "symbol": "eventSceneChoices (selectedId conservé, linked=null)"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_selection_test.dart",
+     "test": "an unresolved linked reference stays exact without choosing another scene"
+    }
+   ],
+   "gap": "Le message est de l'UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/characters/dialogue_portrait_choice_test.dart",
+   "test": "portrait names select canonical state without rewriting the line or speaker",
+   "harness": [
+    "apps/avelune_studio/test/support/narrative dialogue_draft_codec_test (dialogueFixture)"
+   ],
+   "legacySymbols": [
+    "DialoguePortraitChoice (DropdownButtonFormField)"
+   ],
+   "asserts": "Choisir « Sourire » met portraitStateId='happy' sans toucher speakerId/texte ; l'encodage donne '<<portrait chief happy>>' et le décodage restitue 'happy' ; « Sans portrait » efface le portrait en gardant le locuteur.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/dialogue_draft_codec.dart",
+     "symbol": "DialogueDraftCodec.encode/decode (portrait)"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/dialogue_draft_codec_test.dart",
+     "test": "speaker without portrait survives canonical compiler and visual reopening"
+    }
+   ],
+   "gap": "Le tour complet portrait→'<<portrait chief happy>>'→décodage n'est prouvé que par ce test (le test du codec ne couvre que locuteur sans portrait ; dialogue_preview_ui09_test compile la balise mais pas le DialogueDraftCodec). La logique d'options/reconstruction de la ligne est dans DialoguePortraitChoice."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui08_event_focus_test.dart",
+   "test": "UI08 focused name commits original owner on selection save and undo",
+   "harness": [
+    "apps/avelune_studio/test/support/ui08_workspace_harness.dart",
+    "apps/avelune_studio/test/support/ui08_journey_driver.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart",
+    "apps/avelune_studio/test/support/ui08_event_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventWorkspacePage (champ event-name:<id>, bibliothèque, onglet Options)",
+    "StudioCommitField",
+    "tooltip « Annuler la modification »",
+    "raccourci Cmd+Shift+Z"
+   ],
+   "asserts": "Un nom focalisé est commité sur le bon événement lors du changement de sélection, avant Enregistrer (relecture disque), puis annulé/rétabli ; une priorité invalide « pas un nombre » bloque la sauvegarde (writes inchangé, dirty=true, erreur affichée) et '0' permet la sauvegarde.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_commands.dart",
+     "symbol": "EventWorkspaceCommands.rename/setPriority"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_editing_session.dart",
+     "symbol": "EventEditingSession.commitNumber/flush/mutate/restore"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_publication.dart",
+     "symbol": "EventWorkspacePublication.saveAll"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_rename_ui09_test.dart",
+     "test": "UI09 metadata rename preserves activation=<true|false> through history and publication"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_flush_ui08_test.dart",
+     "test": "saveAll awaits focused edit before capturing publication snapshot"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_editing_session_test.dart",
+     "test": "invalid numbers block publication without replacing the stored value"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_editing_session_test.dart",
+     "test": "queued changes preserve canonical undo order"
+    }
+   ],
+   "gap": "Le commit à la perte de focus et le raccourci clavier sont de l'UI ; l'ordre flush→save→undo est prouvé au niveau EventEditingSession/controller."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui05_story_creation_test.dart",
+   "test": "UI05 cancelled creation is inert and explicit save survives fresh reopen",
+   "harness": [
+    "apps/avelune_studio/test/support/ui05_narrative_fixture.dart",
+    "apps/avelune_studio/test/support/ui05_story_backend_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "AlertDialog (askNarrativeName / askStoryCreation)",
+    "StudioButton « Créer »",
+    "bouton « Enregistrer les modifications »",
+    "StudioPrimaryNavigation"
+   ],
+   "asserts": "Créer/annuler une histoire, une étape, un état n'ajoute rien (pendingStories/pendingFacts/sessions vides, disque identique) ; un nom blanc désactive « Créer » ; après création explicite d'une histoire (2 étapes par ligne) et d'un état puis modification de la carte, « Enregistrer » publie en UNE publication histoire + état + carte, sans lire de dialogue ; la relecture à froid contient les nouveautés et laisse intacts histoires, états, événements et carte.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_workspace_controller.dart",
+     "symbol": "NarrativeWorkspaceController.addStory/addFact"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_workspace_publication.dart",
+     "symbol": "NarrativeWorkspacePublication._save/saveAll"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/data/local_narrative_adapter.dart",
+     "symbol": "LocalNarrativeAdapter.publish (facts/storylines)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart",
+     "test": "whitespace-only steps cannot create empty stories"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_editing_test.dart",
+     "test": "failed save prevents closure and keeps the complete draft and pending facts"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_error_scope_test.dart",
+     "test": "failed publication stays visible through consultation until successful retry"
+    }
+   ],
+   "gap": "Non prouvé hors UI : publication réelle des pendingStories/pendingFacts via LocalNarrativeAdapter + relecture à froid (les tests existants utilisent un port factice qui n'inspecte pas storylines/facts) ; annulation du dialogue = pas d'appel à addStory/addFact (UI). unsure : d'autres suites (project_creation/creation_session_safety_host_test, world) touchent pendingStories sans publier."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui05_narrative_overview_links_test.dart",
+   "test": "overview keeps the scene owner draft while its editor remains unavailable",
+   "harness": [
+    "apps/avelune_studio/test/support/ui05_narrative_fixture.dart",
+    "apps/avelune_studio/test/support/ui05_story_backend_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart",
+    "apps/avelune_studio/test/support/capture_m3_widget.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "StudioActionCard (carte de scène onPressed null)",
+    "StudioPrimaryNavigation"
+   ],
+   "asserts": "Avec un brouillon de scène ouvert, la carte de scène dans l'aperçu Histoire est désactivée et ne fait rien : la session, son snapshot, dirty=true, la publication=0 et le disque restent inchangés (absence de mutation par l'ancienne vue).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui05_narrative_overview_links_test.dart",
+   "test": "search opens exact dialogue and event documents",
+   "harness": [
+    "apps/avelune_studio/test/support/ui05_narrative_fixture.dart",
+    "apps/avelune_studio/test/support/ui05_story_backend_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart",
+    "apps/avelune_studio/test/support/capture_m3_widget.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane (recherche, overview-result-<kind>-<id>)",
+    "DialogueWorkspacePage",
+    "EventWorkspacePage",
+    "bouton « Retour à Histoire » / « Retour »"
+   ],
+   "asserts": "Chercher par nom puis ouvrir le résultat 'Dialogue' ouvre exactement ce dialogue (activeId) ; « Retour à Histoire » conserve le texte de recherche ; idem pour un événement ; aucune publication, disque identique.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_selection.dart",
+     "symbol": "searchNarrativeOverview"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_session.dart",
+     "symbol": "WorkspaceNavigationSession.openDialogue/openEvents"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_journey_contract_test.dart",
+     "test": "global overview search preserves kind grouping stable step order exact routes and the three Clairière results"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart",
+     "test": "nested event scene dialogue routes preserve the exact dirty owner without publication"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_journey_contract_test.dart",
+     "test": "exact homonymous interaction routes retain local dialogue map history and search then locate the source"
+    }
+   ],
+   "gap": "La conservation du texte de recherche dépend du TextEditingController de NarrativeOverviewViewState (UI) ; le routage exact et la non-publication sont couverts."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui08_event_journey_test.dart",
+   "test": "UI08 scene association without editor preserves publication and application simulation",
+   "harness": [
+    "apps/avelune_studio/test/support/ui08_workspace_harness.dart",
+    "apps/avelune_studio/test/support/ui08_journey_driver.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart",
+    "apps/avelune_studio/test/support/ui08_event_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart",
+    "apps/avelune_studio/test/support/capture_m3_widget.dart"
+   ],
+   "legacySymbols": [
+    "EventWorkspacePage",
+    "EventScenePanel (bouton « Ouvrir la scène » désactivé)",
+    "EventTriggerPanel/EventContextMap",
+    "StudioSelect",
+    "AlertDialog registre",
+    "StudioButton (Enregistrer, Retour à l'événement, Voir sur la carte)"
+   ],
+   "asserts": "Parcours complet : créer un brouillon, choisir 'Entrée de zone' sur la zone 'platform', ajouter une condition d'état, lier la scène, politique de rejeu 'Peut être rejoué', configurer, préparer l'activation, enregistrer (1 écriture, relecture identique, octets des cartes inchangés), passer en mode mixte via le dialogue, simuler (EventSimulationSession handled, sans écriture) ; brouillons de carte et de scène préservés tout du long.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_commands.dart",
+     "symbol": "create/setSource/setExpression/setScene/setReuse/configure/setEnabled"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_publication.dart",
+     "symbol": "EventWorkspacePublication.saveAll/changeMode"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_simulation_session.dart",
+     "symbol": "EventSimulationSession.run"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_sources_ui08_test.dart",
+     "test": "four canonical sources publish exact identity and leave existing maps and scenes alone"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_workspace_ui08_test.dart",
+     "test": "draft creation save reopens without inventing scene or changing registry mode"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_publication_ui08_test.dart",
+     "test": "registry mode change is explicit and refuses active author drafts"
+    },
+    {
+     "file": "apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart",
+     "test": "(tests de simulation du fichier)"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart",
+     "test": "nested event scene dialogue routes preserve the exact dirty owner without publication"
+    }
+   ],
+   "gap": "Les compositions UI (boutons, dialogue du mode, boutons Voir sur la carte/Retour, responsive 1536→1024 @150 %) sont de l'UI ; chaque étape d'owner est prouvée séparément. Le test cumule la préservation des brouillons carte/scène (couverte par event_sources_ui08 et le test de navigation imbriquée)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui05_narrative_overview_collection_test.dart",
+   "test": "scene owner still creates saves and cold reopens a native draft",
+   "harness": [
+    "apps/avelune_studio/test/support/ui05_story_backend_fixture.dart"
+   ],
+   "legacySymbols": [],
+   "asserts": "(test pur, sans widget) SceneWorkspaceController.create('Arrivée du train') ajoute une scène sale ; save() la publie ; la relecture à froid contient la scène créée et laisse l'ancienne intacte.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_workspace_controller.dart",
+     "symbol": "SceneWorkspaceController.create/save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/scenes/data/local_scene_adapter.dart",
+     "symbol": "LocalSceneAdapter.publishScene"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/scenes/scene_session_ui06_test.dart",
+     "test": "same scene shares session, homonyms get distinct identity, map stays dirty"
+    },
+    {
+     "file": "apps/avelune_studio/test/scenes/scene_publication_ui06_test.dart",
+     "test": "scene publication needs no map and reopens canonical data"
+    }
+   ],
+   "gap": "Aucune dépendance UI réelle (seulement les imports du fichier) : à DÉPLACER, pas à supprimer. Le couvert prouve create (port factice) et publishScene+relecture (adaptateur) séparément, pas la chaîne controller.create→save→relecture sur le vrai adaptateur ; unsure : groupe 'real project' de scene_publication_ui06_test non lu en entier."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui05_narrative_overview_collection_test.dart",
+   "test": "large story collections keep the overview bounded and searchable",
+   "harness": [
+    "apps/avelune_studio/test/support/ui05_narrative_fixture.dart",
+    "apps/avelune_studio/test/support/ui05_story_backend_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "StudioResourceCard",
+    "StudioActionCard",
+    "NarrativeOverviewViewState.resultsScroll"
+   ],
+   "asserts": "Avec 1002 histoires : 6 cartes, lectures d'illustrations ≤12, 0 lecture de dialogue, la recherche 'Collection' donne « Résultats · 1000 » avec liste virtualisée (<20 cartes) ; la position de défilement est restaurée au retour (comportement de liste/scroll ; la recherche elle-même est couverte par le test journey).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui05_narrative_overview_collection_test.dart",
+   "test": "filter leaves a neutral detail until a visible story is selected",
+   "harness": [
+    "apps/avelune_studio/test/support/ui05_narrative_fixture.dart",
+    "apps/avelune_studio/test/support/ui05_story_backend_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "bouton « Voir tous les documents »",
+    "StudioChoice story-garden-traces"
+   ],
+   "asserts": "Après filtrage 'Les traces du jardin', le détail affiche « Sélectionnez une histoire correspondante » tant qu'aucune histoire visible n'est sélectionnée ; sélectionner l'histoire montre son étape 'Une piste discrète'.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_selection.dart",
+     "symbol": "NarrativeOverviewSelection.reconcileSelection/visibleStories (onglet histoires)"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_selection_test.dart",
+     "test": "filtering clears hidden consultation selection while retaining the exact interaction draft and disk data"
+    }
+   ],
+   "gap": "Le couvert teste reconcileSelection sur l'onglet INTERACTIONS ; la branche histoires (story/step masqués par la requête → selection nettoyée) n'est pas testée directement (unsure). Le texte neutre est de l'UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui05_narrative_overview_collection_test.dart",
+   "test": "overview keeps scene creation unavailable and creates an event through its owner",
+   "harness": [
+    "apps/avelune_studio/test/support/ui05_narrative_fixture.dart",
+    "apps/avelune_studio/test/support/ui05_story_backend_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "StudioActionCard « Nouvelle scène » (désactivé) / « Nouvel événement »",
+    "AlertDialog",
+    "EventWorkspacePage",
+    "StudioButton Annuler/Créer"
+   ],
+   "asserts": "« Nouvelle scène » est désactivée (aucun dialogue, scènes inchangées, disque identique) ; « Nouvel événement » annulé ne crée rien ; confirmé il ouvre l'événement brouillon 'Départ du train' (dirty), saveAll l'écrit, la relecture contient le brouillon, scènes inchangées, narrative publications=0.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_commands.dart",
+     "symbol": "EventWorkspaceCommands.create"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_publication.dart",
+     "symbol": "saveAll"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_controller.dart",
+     "symbol": "EventWorkspaceController.prepare"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_workspace_ui08_test.dart",
+     "test": "draft creation save reopens without inventing scene or changing registry mode"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_sources_ui08_test.dart",
+     "test": "four canonical sources publish exact identity and leave existing maps and scenes alone"
+    }
+   ],
+   "gap": "La désactivation de « Nouvelle scène » est une décision d'UI sans effet sur les données ; annulation de dialogue = UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui05_narrative_artwork_test.dart",
+   "test": "switching project hides the previous artwork while loading",
+   "harness": [],
+   "legacySymbols": [
+    "NarrativeArtworkImage",
+    "NarrativeArtworkPort (_PendingArtwork)"
+   ],
+   "asserts": "Changer de port cache l'image du projet précédent et montre le fallback pendant le chargement (état asynchrone du widget).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui05_narrative_artwork_test.dart",
+   "test": "overview uses project artwork for hero, story, and scene",
+   "harness": [
+    "apps/avelune_studio/test/support/ui05_narrative_fixture.dart",
+    "apps/avelune_studio/test/support/ui05_story_backend_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeStoryPane",
+    "NarrativeArtworkImage (clés narrative-hero/story/scene-artwork)"
+   ],
+   "asserts": "Les illustrations du projet (assets/studio/narrative/hero.png, stories/<id>.png, scenes/<id>.png) sont rendues en MemoryImage dans le héros, la carte d'histoire et la carte de scène ; la lecture fichier elle-même relève de LocalNarrativeAdapter.readArtwork (couverte par narrative_artwork_adapter_test).",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui05_narrative_artwork_test.dart",
+   "test": "a project without storylines features its real scenes",
+   "harness": [
+    "apps/avelune_studio/test/support/ui05_narrative_fixture.dart",
+    "apps/avelune_studio/test/support/ui05_story_backend_fixture.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart"
+   ],
+   "legacySymbols": [
+    "NarrativeOverviewLanding (carte overview-featured-scene-<id>)"
+   ],
+   "asserts": "Sans histoire, la landing présente « Scènes du projet · N » avec la première scène illustrée et un tap appelle onOpenScene(id) : choix d'affichage (3 premières scènes) et câblage.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/ui08_event_sources_test.dart",
+   "test": "UI08 four real sources preserve exact targets and Escape cancels without writes",
+   "harness": [
+    "apps/avelune_studio/test/support/ui08_workspace_harness.dart",
+    "apps/avelune_studio/test/support/ui08_journey_driver.dart",
+    "apps/avelune_studio/test/support/m2_ui_fixture.dart",
+    "apps/avelune_studio/test/support/ui08_event_fixture.dart",
+    "apps/avelune_studio/test/support/ui06_scene_fixture.dart"
+   ],
+   "legacySymbols": [
+    "EventWorkspacePage",
+    "EventContextMap (cibles event-target:*)",
+    "EventScenePanel/EventOutcomePicker (clé outcome:*)",
+    "touche Échap"
+   ],
+   "asserts": "Sur quatre sources réelles : 'Entrée de zone' n'offre que la zone 'platform' (pas 'chief') ; Échap annule sans changer la source ni salir (dirty=false) ; choisir la zone donne triggerEnter ; 'Interaction du joueur' n'offre que l'entité (cible 'traveller') ; 'Entrée sur la carte' sélectionne la carte en cliquant le viewport ; 'Réception d'un résultat' choisit l'outcome du catalogue ; aucune écriture, octets des cartes inchangés.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_selection_session.dart",
+     "symbol": "EventSourceSelectionSession.choose/accept/cancel"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+     "symbol": "EventSourcePicking.flatTargets/spatialCell"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/events/application/event_workspace_commands.dart",
+     "symbol": "setSource"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_source_selection_session_test.dart",
+     "test": "cancelling selection restores the recorded map and invalidates its pending preview"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_sources_ui08_test.dart",
+     "test": "four canonical sources publish exact identity and leave existing maps and scenes alone"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_sources_ui08_test.dart",
+     "test": "unavailable outcome does not replace source and full key is retained"
+    }
+   ],
+   "gap": "Les cibles exposées par type de déclencheur (EventSourcePicking.flatTargets : zone vs entité vs carte) ne sont couvertes que par ce test ; choose/accept/cancel et setSource sont couverts."
+  }
+ ],
+ "supportFiles": [
+  {
+   "path": "apps/avelune_studio/test/support/ui05_narrative_fixture.dart",
+   "usedBy": [
+    "apps/avelune_studio/test/scene_canvas_addition_test.dart",
+    "apps/avelune_studio/test/presentation/ui05_story_creation_test.dart",
+    "apps/avelune_studio/test/presentation/ui05_narrative_overview_links_test.dart",
+    "apps/avelune_studio/test/presentation/ui05_narrative_overview_collection_test.dart",
+    "apps/avelune_studio/test/presentation/ui05_narrative_artwork_test.dart",
+    "apps/avelune_studio/test/support/ui08_workspace_harness.dart (Ui05NarrativePort)"
+   ],
+   "legacyDependencies": [
+    "lib/presentation/features/map_workspace/map_workspace_screen.dart (monte NarrativeStoryPane, EventWorkspacePage, DialogueWorkspacePage…)",
+    "indirect : m2_ui_fixture.dart → MapWorkspaceScreen"
+   ],
+   "reusableWithoutLegacy": "Ui05NarrativeFixture.create (projet disque via createUi05StoryBackend, WidgetMapController, StudioMapResources), diskSnapshot() (octets de tous les fichiers hors .pokemap), et la part ui05_narrative_port.dart : Ui05NarrativePort (compteurs dialogueReads/artworkReads/publications, exécution sérialisée WidgetResourcePort.serial). Seul app() (MapWorkspaceScreen) et seedLocalDraft sont liés à l'UI."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/ui08_journey_driver.dart",
+   "usedBy": [
+    "apps/avelune_studio/test/presentation/ui08_event_focus_test.dart",
+    "apps/avelune_studio/test/presentation/ui08_event_journey_test.dart",
+    "apps/avelune_studio/test/presentation/ui08_event_sources_test.dart"
+   ],
+   "legacyDependencies": [
+    "lib/presentation/features/events/event_workspace_page.dart (ui08Page)",
+    "StudioSelect, StudioPrimaryNavigation (UI partagée, hors périmètre)"
+   ],
+   "reusableWithoutLegacy": "Rien de métier : helpers de gestes (ui08Open/ui08Tap/ui08Select). À supprimer avec les tests qui l'utilisent."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/ui09_dialogue_fixture.dart",
+   "usedBy": [
+    "apps/avelune_studio/test/events_ui09_dialogue_fixture_test.dart",
+    "apps/avelune_studio/test/support/ui09_dialogue_harness.dart"
+   ],
+   "legacyDependencies": [
+    "aucun import direct d'ancienne UI",
+    "indirect : m2_ui_fixture.dart → MapWorkspaceScreen (WidgetResourcePort.pending)"
+   ],
+   "reusableWithoutLegacy": "Ui09DialogueFixture.create (projet disque avec portrait 'guide/neutral' dans le magasin d'assets, personnage 'Chef de gare', dialogue Accueil/Depart/Attente publié), dirtyConsumer(scene), scenes/port ; WidgetDialoguePort (port instrumenté lectures/écritures/portraits, dépend seulement de WidgetResourcePort). Entièrement réutilisable pour des tests de DialogueWorkspaceController ; à extraire de m2_ui_fixture pour couper le lien transitif."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/ui08_workspace_harness.dart",
+   "usedBy": [
+    "apps/avelune_studio/test/presentation/ui08_event_focus_test.dart",
+    "apps/avelune_studio/test/presentation/ui08_event_journey_test.dart",
+    "apps/avelune_studio/test/presentation/ui08_event_sources_test.dart"
+   ],
+   "legacyDependencies": [
+    "lib/presentation/features/map_workspace/map_workspace_screen.dart (MapWorkspaceScreen)",
+    "m2_ui_fixture.dart"
+   ],
+   "reusableWithoutLegacy": "Ui08MapPort et Ui08EventPort (wrappers de ports avec compteur writes et exécution via tester.runAsync), mapBytes() (octets des cartes), création du fixture (createUi08Fixture + StudioMapResources). Seul app() est lié à l'UI."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/ui09_dialogue_harness.dart",
+   "usedBy": [
+    "apps/avelune_studio/test/dialogues_ui09_interaction_test.dart",
+    "apps/avelune_studio/test/dialogues_ui09_volume_test.dart",
+    "apps/avelune_studio/test/dialogues_ui09_visual_test.dart",
+    "apps/avelune_studio/test/dialogues_ui09_responsive_test.dart (via interaction_test)",
+    "apps/avelune_studio/test/dialogues_ui09_safety_test.dart (via interaction_test)"
+   ],
+   "legacyDependencies": [
+    "lib/presentation/features/dialogues/dialogue_view_state.dart",
+    "lib/presentation/features/dialogues/dialogue_workspace_page.dart",
+    "StudioApplicationFrame / studioTheme (UI partagée)",
+    "m2_ui_fixture.dart"
+   ],
+   "reusableWithoutLegacy": "Assemblage des contrôleurs (MapWorkspaceController, NarrativeWorkspaceController, SceneWorkspaceController, DialogueWorkspaceController avec sceneDrafts) + open() + dispose() : à scinder en un harnais de contrôleurs sans UI. views/app()/capture() sont purement UI."
+  }
+ ],
+ "legacyFiles": [
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_add_toolbar.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_document_toolbar.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_inspector.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "DialogueInspector.build / onChanged de StudioTabs",
+     "what": "unfocus + applyFocusChanges avant changement d'onglet (flush du champ focalisé)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "StudioSelect « Suite suivante »/« Continuer vers »",
+     "what": "titre vide → disconnectJump/disconnect sinon connexion avec recherche du nœud par titre",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_links.dart#DialogueWorkspaceLinks.connect/connectNode/disconnect",
+     "testedBy": "apps/avelune_studio/test/dialogues/dialogue_selection_commands_test.dart"
+    },
+    {
+     "symbol": "StudioButton « Ajouter une réponse »",
+     "what": "libellé par défaut « Nouvelle réponse »",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "StudioSelect « Résultat public »",
+     "what": "\"\" → assignOutcome(null)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_links.dart#assignOutcome",
+     "testedBy": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_library.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "DialogueLibrary.build",
+     "what": "filtrage des entrées par nom (insensible à la casse) et dossier",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_page_commands.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "addChoice",
+     "what": "compose addChoice + deux réponses « Oui »/« Non » + sélection du choix",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart#addChoice/addResponse (unitaires)",
+     "testedBy": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart (unitaires seulement)"
+    },
+    {
+     "symbol": "addLine",
+     "what": "texte par défaut « Bonjour ! » / « Une nouvelle narration. »",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart#addLine",
+     "testedBy": null
+    },
+    {
+     "symbol": "addOutcome",
+     "what": "crée un résultat puis l'assigne à la réponse sélectionnée",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_links.dart#addOutcome/assignOutcome",
+     "testedBy": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart"
+    },
+    {
+     "symbol": "deleteSelection",
+     "what": "priorité fil > réponse > étape > suite et nettoyage de la sélection de vue",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_links.dart#deleteSelection",
+     "testedBy": "apps/avelune_studio/test/dialogues/dialogue_selection_commands_test.dart"
+    },
+    {
+     "symbol": "reload",
+     "what": "confirmation seulement si le brouillon est sale",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_publication.dart#reload",
+     "testedBy": "apps/avelune_studio/test/dialogues/dialogue_concurrency_ui09_test.dart"
+    },
+    {
+     "symbol": "flush",
+     "what": "unfocus puis refus de poursuivre si controller.error a changé",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_portrait_fields.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "StudioSelect « Personnage et portrait »",
+     "what": "choisir un personnage fixe locuteur = nom, portrait = premier état du personnage, clearPortrait si vide",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart#updateLine(characterId/portraitStateId/clearPortrait)",
+     "testedBy": null
+    },
+    {
+     "symbol": "StudioSelect « Expression »",
+     "what": "options = états de portrait du personnage nommés via characterStudioCatalog",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_portrait_image.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "DialoguePortraitImage.load",
+     "what": "lecture du portrait via DialoguePortraitPort si personnage et état connus",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/data/local_dialogue_adapter.dart#readPortrait",
+     "testedBy": "apps/avelune_studio/test/dialogues/dialogue_portrait_ui09_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_preview_panel.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_results_panel.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "DialogueResultsPanel.build (emitted)",
+     "what": "résultats déclarés non émis = déclarés − documentOutcomes()",
+     "ownerEquivalent": "packages/map_authoring/lib/src/dialogue/dialogue_editor_model.dart#documentOutcomes",
+     "testedBy": null
+    },
+    {
+     "symbol": "renameOutcome/removeOutcome (via boutons)",
+     "what": "renommage / retrait d'un résultat déclaré",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_links.dart#renameOutcome/removeOutcome",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_suite_actions.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "DialogueSuiteActions.run",
+     "what": "unfocus puis abandon si une nouvelle erreur est apparue",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "boutons Commencer ici / Essayer depuis cette suite / Dupliquer",
+     "what": "selectEntry / startPreview(nodeTitle) / duplicateNode",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart#selectEntry/duplicateNode",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_text_value_picker.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "supported() + options",
+     "what": "n'offre que les Facts dont dialogueFactPlaceholder ne lève pas et unique par id ; clé 'fact:<id>' distincte de 'player_name'",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_commands.dart#insertTextValue (revalide)",
+     "testedBy": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart (partiel)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_view_state.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "DialogueViewState.reconcile",
+     "what": "retombe sur le premier nœud et efface étape/réponse/fil si le nœud sélectionné disparaît",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "DialogueViewState.select",
+     "what": "sélection nœud/étape/réponse, efface le fil",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_workspace_page.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "flush / CallbackShortcuts Cmd|Ctrl+S",
+     "what": "flush du champ focalisé puis save ; undo/redo désactivés si lecture seule ; Enregistrer désactivé si busy",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_publication.dart#save",
+     "testedBy": "apps/avelune_studio/test/dialogues/dialogue_controller_ui09_test.dart (save seul)"
+    },
+    {
+     "symbol": "compact/small",
+     "what": "seuils de mise en page (non métier)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_condition_dialog.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_accept (construction de la condition)",
+     "what": "types état/événement/instance, int.parse pour entier, texte pour chaîne, booléen sinon",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_condition_draft.dart#EventConditionDraft.condition",
+     "testedBy": "apps/avelune_studio/test/events/event_condition_draft_test.dart"
+    },
+    {
+     "symbol": "chooseEventCondition",
+     "what": "refuse d'éditer une condition périodique (initial.rewardReference != null) et n'en propose pas à la création",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_conditions.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_node (ET/OU)",
+     "what": "changer le type de groupe en conservant les enfants",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_condition_editing.dart#changeEventConditionGroupKind",
+     "testedBy": "apps/avelune_studio/test/events/event_conditions_logic_test.dart"
+    },
+    {
+     "symbol": "_node (remplacement/retrait)",
+     "what": "rebuildEventConditionGroup / retrait d'un enfant",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_condition_editing.dart#rebuildEventConditionGroup/removeEventConditionChild",
+     "testedBy": "apps/avelune_studio/test/events/event_conditions_logic_test.dart (retrait: unsure)"
+    },
+    {
+     "symbol": "_node (NOT/groupes)",
+     "what": "inverser une condition, retirer l'inversion, grouper avec une autre condition, ajouter un groupe, feuille→groupe",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "StudioTool « Modifier la condition »",
+     "what": "désactivé pour une condition périodique",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "eventTriggerSentence/eventExpressionSentence",
+     "what": "phrases de lecture des conditions",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_condition_labels.dart#eventTriggerSentence",
+     "testedBy": "apps/avelune_studio/test/events/event_conditions_logic_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_context_map.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "EventSourcePicking (flatTargets/selectable/accept)",
+     "what": "cibles proposées selon source/chooseKind/catalogue ; accept ne retient que le kind choisi et sélectionnable",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart#EventSourcePicking",
+     "testedBy": null
+    },
+    {
+     "symbol": "garde triggerBump",
+     "what": "« Le contact de zone nécessite une carte 2D » si projet non 2D, carte spatiale ou v9",
+     "ownerEquivalent": "packages/map_core/lib/src/operations/narrative_trigger_bump_source_reference.dart#isNarrativeTriggerBumpSourceAvailable",
+     "testedBy": "packages/map_core/test/narrative_trigger_bump_source_test.dart"
+    },
+    {
+     "symbol": "zoom/fit/recentrage",
+     "what": "bornes 0.15–8, cadrage, recentrage au redimensionnement (géométrie de vue, non métier)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_labels.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "eventKindTone/eventStateTone/eventKindIcon",
+     "what": "tons et icônes par type/état (présentation) ; ré-exporte application/event_labels.dart",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_legacy_detail.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_library.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "EventLibrary.build (filtered/historical)",
+     "what": "filtre événements : carte courante seulement + recherche sur nom, id, type, cible, carte ; filtre des entrées historiques ; avertissement hors filtre",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "EventLegacyCatalog (mémo)",
+     "what": "catalogue historique reconstruit si project/maps changent",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_legacy_catalog.dart#EventLegacyCatalog.matches",
+     "testedBy": "apps/avelune_studio/test/events/event_legacy_catalog_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_options_panel.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "StudioSelect « Exécution »",
+     "what": "parallèle proposé seulement pour entityAutorun/mapEnter ; cadence par défaut 1000 ms",
+     "ownerEquivalent": "packages/map_core/lib/src/models/narrative_event_definition.dart#NarrativeEventParallelPolicy / NarrativeEventDraft (validation)",
+     "testedBy": "packages/map_core/test/narrative_event_parallel_policy_test.dart (règle de source ; cadence par défaut: None)"
+    },
+    {
+     "symbol": "StudioCommitField « Cadence (ms) »",
+     "what": "entier 100–60000 sinon refus et retour du champ",
+     "ownerEquivalent": "packages/map_core/lib/src/models/narrative_event_definition.dart#NarrativeEventParallelPolicy",
+     "testedBy": "packages/map_core/test/narrative_event_parallel_policy_test.dart"
+    },
+    {
+     "symbol": "StudioSelect « Page propriétaire »",
+     "what": "sentinel '' ↔ ownerVariantId null",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "StudioSelect « Réarmer l'occurrence »",
+     "what": "mapping never/map/outcome ↔ NarrativeEventResetPolicy + sélecteur de résultat",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "eventRepeatEffect",
+     "what": "phrase de l'effet de rejeu",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_labels.dart#eventRepeatEffect",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_outcome_picker.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "chooseEventOutcome/EventOutcomeSummary",
+     "what": "n'autorise que les options sélectionnables ; ambiguïté de producteur ; lien « Ouvrir le producteur » seulement si une scène unique",
+     "ownerEquivalent": "packages/map_core (NarrativeOutcomeEventSourceCatalog.optionsForOutcome)",
+     "testedBy": "apps/avelune_studio/test/events/event_sources_ui08_test.dart (outcome)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_page_content.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_ownerVariants",
+     "what": "pour une source entityAutorun : variantes de présentation du propriétaire libellées « Page N »",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "_number",
+     "what": "entier invalide → invalidNumbers + erreur ; sinon applique",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_editing_session.dart#EventEditingSession.commitNumber",
+     "testedBy": "apps/avelune_studio/test/events/event_editing_session_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_registry_dialog.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "showEventRegistryDialog",
+     "what": "choix du mode puis changeMode immédiat",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_workspace_publication.dart#changeMode",
+     "testedBy": "apps/avelune_studio/test/events/event_publication_ui08_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_scene_panel.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "EventScenePanel.build",
+     "what": "choix/ordre/recherche des scènes",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_scene_selection.dart#eventSceneChoices",
+     "testedBy": "apps/avelune_studio/test/events/event_scene_selection_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_source_identity.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "EventSourceIdentity.build",
+     "what": "statuts : chargement, carte à réparer (identité différente), source absente/ambiguë, indisponible (autorun « élément source », bump « personnage », triggerBump « zone »), modèle 3D absent, nom+position",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_context.dart#NarrativeOverviewContext.source (équivalent partiel)",
+     "testedBy": "apps/avelune_studio/test/events/entity_autorun_authoring_contract_test.dart (autorun seulement)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_spatial_context_map.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "EventSpatialContextMap",
+     "what": "sélection par cellule/modèle/acteur 3D",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart#EventSourcePicking.spatialCell/modelHit/actorHit/modelChoices",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_status_badge.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_summary.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "EventSummary.build",
+     "what": "ordre d'exécution, effet de rejeu, effets de scène, dialogues joués",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_execution_order.dart#eventExecutionOrder ; apps/avelune_studio/lib/features/events/application/event_labels.dart#eventRepeatEffect ; apps/avelune_studio/lib/features/events/application/event_scene_effects.dart#eventSceneEffects ; apps/avelune_studio/lib/features/narrative/application/scene_node_references.dart#sceneDialogues",
+     "testedBy": "apps/avelune_studio/test/events/event_execution_order_contract_test.dart ; apps/avelune_studio/test/presentation/audit_isolated_label_test.dart (eventRepeatEffect non testé)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_trigger_panel.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "liste des types de déclencheur",
+     "what": "modelInteract seulement en 3D ; entityBump/entityAutorun/triggerBump seulement en 2D",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "selectableSources",
+     "what": "ensemble des sources sélectionnables issu de controller.catalog.spatialSources",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_workspace_catalog.dart",
+     "testedBy": null
+    },
+    {
+     "symbol": "missing/missingModel",
+     "what": "cible absente conservée pour réparation",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "choose/accept/cancel",
+     "what": "sélection d'une source avec requêtes périmées ignorées",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_source_selection_session.dart#EventSourceSelectionSession",
+     "testedBy": "apps/avelune_studio/test/events/event_source_selection_session_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_view_state.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "EventViewState.invalidNumbers",
+     "what": "saisies numériques invalides par événement",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_editing_session.dart#EventDraftInputs.invalidNumbers",
+     "testedBy": "apps/avelune_studio/test/events/event_editing_session_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_workspace_layout.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/events/event_workspace_page.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "_flushEdits/_mutate/_restore/_reload/_pending",
+     "what": "file de mutations sérialisée, flush avant save/undo/open, blocage par nombres invalides, reload ciblé",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_editing_session.dart#EventEditingSession",
+     "testedBy": "apps/avelune_studio/test/events/event_editing_session_test.dart ; apps/avelune_studio/test/events/event_flush_ui08_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/dialogue_lines_editor.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "changement de locuteur",
+     "what": "locuteur = personnage choisi avec portrait par défaut = premier état du personnage",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/dialogue_editing_controller.dart#line",
+     "testedBy": null
+    },
+    {
+     "symbol": "édition de lignes/choix/branches",
+     "what": "ajout, déplacement, retrait, cible de choix",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/dialogue_editing_controller.dart#DialogueEditingController",
+     "testedBy": "apps/avelune_studio/test/narrative/narrative_editing_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/dialogue_portrait_choice.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "DialoguePortraitChoice.build",
+     "what": "options = états de portrait du personnage locuteur nommés par le catalogue, état manquant signalé, reconstruction de la ligne sans toucher texte/locuteur",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/dialogue_draft_codec.dart#DialogueDraftCodec (encodage portrait)",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_artwork_image.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_conditions_editor.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "NarrativeConditionsEditor.build",
+     "what": "seuls les Facts booléens sont proposés ; ajout = premier Fact à true ; bascule de la valeur attendue ; retrait",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/narrative_editing.dart#NarrativeInteractionDraft.revise(conditions)",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_interaction_pane.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "outcomes",
+     "what": "sections de conséquences par choix possédant un outcomeId",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "enregistrer/abandonner",
+     "what": "save désactivé si busy ou non éditable ; abandon avec confirmation",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/narrative_workspace_controller.dart#save/discardInteraction",
+     "testedBy": "apps/avelune_studio/test/narrative/narrative_editing_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_name_dialog.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "askNarrativeName",
+     "what": "nom rogné, vide interdit (importé aussi par cinematics, regional_map, presentations, map_workspace)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_content.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_detail.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "_relationship",
+     "what": "libellés des types de relation (présentation)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_header.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "_createStory/_createFact",
+     "what": "une étape par ligne ; rognage/ignorance des lignes vides par le contrôleur",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/narrative_workspace_controller.dart#addStory/addFact",
+     "testedBy": "apps/avelune_studio/test/narrative/narrative_navigation_ui05_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_landing.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_landing_content.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "featuredScenes",
+     "what": "sans histoire : 3 premières scènes ; plafonds d'affichage 6 histoires/4 étapes/4 cartes (affichage)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_landing_desktop.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_landing_intents.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_landing_search.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "_searchResults",
+     "what": "résultats = searchNarrativeOverview ; opener par type de résultat",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_selection.dart#searchNarrativeOverview",
+     "testedBy": "apps/avelune_studio/test/narrative/narrative_overview_journey_contract_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_landing_side.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "liste « Reprendre votre travail »",
+     "what": "documents (scènes, dialogues, événements, histoires) ouverts ou sales, 5 maximum, avec « N autre(s) »",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_navigation.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_view_state.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "visibleStories/Interactions/Facts",
+     "what": "synchronise la requête avec le champ de recherche puis délègue",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_selection.dart#NarrativeOverviewSelection",
+     "testedBy": "apps/avelune_studio/test/narrative/narrative_overview_selection_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_sequence_editor.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "édition de la liste d'actions",
+     "what": "monter/descendre = échange, retirer, ajouter avec première cible par défaut",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "attente",
+     "what": "entier ≥ 0 sinon ignoré",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "targets",
+     "what": "cibles par type d'action",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/narrative_editing.dart#narrativeSequenceTargets",
+     "testedBy": "apps/avelune_studio/test/narrative/narrative_editing_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_chapters.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "NarrativeStoryChapters.build",
+     "what": "filtre des étapes par titre d'histoire/chapitre/étape (requête) ; chapitres repliés",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "_ordered",
+     "what": "tri stable par ordre puis index",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_selection.dart#orderedNarrativeOverview",
+     "testedBy": "apps/avelune_studio/test/narrative/narrative_overview_journey_contract_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_navigate",
+     "what": "l'erreur de navigation n'est affichée que si la requête est la dernière et que l'interaction est toujours sélectionnée",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "initialisation de vue",
+     "what": "première histoire sélectionnée ; onglet Interactions s'il n'y a aucune histoire",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane_creation.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "_createStory/_createEvent",
+     "what": "création via owners (prepare → create → ouvrir) avec notice d'erreur",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_workspace_controller.dart#prepare ; apps/avelune_studio/lib/features/stories/application/story_workspace_controller.dart#create",
+     "testedBy": "apps/avelune_studio/test/events/event_workspace_ui08_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane_overview.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "agrégation des identifiants sales/actifs",
+     "what": "ensembles de ids passés à la landing (câblage)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/narrative/scene_reference_chooser.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "chooseSceneNodeReference",
+     "what": "une référence unique est retournée sans dialogue ; libellé « scène · nœud »",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/narrative/application/scene_node_references.dart#SceneNodeReference",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/stories/story_create_dialog.dart",
+   "verdict": "pure_ui",
+   "logic": [
+    {
+     "symbol": "askStoryCreation",
+     "what": "titre rogné non vide, types listés via storyTypeLabel",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/stories/application/story_labels.dart#storyTypeLabel",
+     "testedBy": null
+    }
+   ]
+  }
+ ],
+ "notes": [
+  "INDICE « Start ne reçoit pas de liaison » — VÉRIFIÉ : addSceneEdgeDraft (packages/map_core/lib/src/authoring/scene_authoring_operations.dart:1684) ne rejette que (a) auto-boucle, (b) port source non éditable, (c) port source déjà sortant ; AUCUN contrôle sur toNode.kind==start. SceneEditSession.connect (apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart:211, aussi :281) délègue tel quel. Les seuls contrôles Start de map_authoring (scene_actions.dart:2422 et :3010) concernent l'INSERTION d'un nœud avant le Start (code 'scene.preSession.target.invalid'), pas une liaison entrante. Aucun diagnostic de scene_diagnostics.dart ne signale une arête entrante vers Start. Les trois assertions throwsArgumentError avec toNodeId:'node_start' (packages/map_core/test/scene_authoring_operations_test.dart:1494-1522, test 'rejects duplicate dialogue and battle source ports') échouent à cause du port source déjà occupé, PAS à cause de Start : elles ne prouvent rien. La règle existait dans l'ancien canevas (git 505f1b71a^ : presentation/features/scenes/scene_canvas_types.dart:88 `node.kind == SceneNodeKind.start) continue` et scene_graph_canvas.dart:143 `node.kind != SceneNodeKind.start`) : confirmée perdue si l'UI est retirée (hors de ma zone, à traiter côté scènes ; elle n'est pas affirmée par un test de mon périmètre).",
+  "Dépendances croisées vers des anciens fichiers de MA zone depuis d'autres zones (retrait impossible sans eux) : narrative/narrative_name_dialog.dart importé par cinematics/cinematic_workspace_page.dart, regional_map/regional_map_page.dart, presentations/presentation_workspace_page.dart, map_workspace/map_workspace_screen.dart ; narrative/scene_reference_chooser.dart par cinematics/cinematic_workspace_page.dart ; events/event_conditions.dart par map_workspace/spatial_model_entity_controls.dart ; events/event_view_state.dart, events/event_labels.dart, dialogues/dialogue_view_state.dart, narrative/narrative_overview_view_state.dart par map_workspace_screen.dart ; les pages dialogues/events/narrative par map_workspace/workspace_secondary_content.dart. C'est pourquoi des tests hors narratif (terrain_deleted_history_host_test) apparaissent dans ce périmètre : leur dépendance est transitive via MapWorkspaceScreen/m2_ui_fixture.",
+  "Tests important d'autres tests : dialogues_ui09_responsive_test et dialogues_ui09_safety_test importent setup/tap/field/selectDialogue depuis dialogues_ui09_interaction_test.dart ; narrative/narrative_story_navigation_test et characters/dialogue_portrait_choice_test importent dialogueFixture depuis narrative/dialogue_draft_codec_test.dart (fichier propre, à conserver).",
+  "events_ui09_dialogue_fixture_test.dart et la première case de ui05_narrative_overview_collection_test.dart ('scene owner still creates saves and cold reopens a native draft') ne montent AUCUN widget : leur appartenance au périmètre vient des imports ; ils testent du métier/fixture et doivent être déplacés/conservés, pas supprimés avec l'UI. terrain_deleted_history_host_test.dart est hors narratif (zone map_workspace/resources).",
+  "scene_canvas_addition_test.dart est mal nommé : il ne teste pas le canevas de scènes mais l'absence de mutation par l'aperçu Histoire (« Nouvelle scène » désactivée) ; il n'affirme que de l'UI.",
+  "Doublons : le scénario 'selection rejects an old map callback while the next map loads' est copié 4 fois (trigger_bump, entity_bump, entity_autorun, events_ui08_source_loading) avec chacun un _DelayedLoader local ; tous sont couverts par event_source_selection_session_test. Les tests 'guided … source' (libellés des types) sont répétés 3 fois.",
+  "Constat de couverture majeur côté application : EventSourcePicking (lib/features/events/application/event_source_targets.dart : flatTargets, selectable, accept, spatialCell, modelHit, actorHit, modelChoices) n'est testé par AUCUN test hors blast ; les prédicats map_core et EventSourceSelectionSession le sont. Idem eventRepeatEffect (event_labels.dart), DialogueDraftCodec avec portrait, DialogueWorkspaceCommands.renameNode/deleteNode/duplicateNode/addNode, updateLine(characterId/portraitStateId/clearPortrait), DialogueWorkspaceController.renameOutcome/removeOutcome.",
+  "Le contrat « flush du champ focalisé avant save/undo/changement d'onglet/raccourci » : pour les événements il a un owner (EventEditingSession + EventWorkspaceController.flushEdits, testé) ; pour les dialogues il n'existe que dans l'UI (flush() de DialogueWorkspacePage, DialogueSuiteActions.run, DialogueInspector). À re-spécifier dans la nouvelle UI.",
+  "EventEditingSession (application) duplique intégralement la logique de EventWorkspacePage (_flushEdits/_mutate/_restore/_reload/_number) et est déjà câblée dans map_workspace/coordination/workspace_session_controllers.dart : la page legacy est donc logic_already_owned.",
+  "Fichiers lus en entier pour la logique : dialogue_*, event_source_identity, event_trigger_panel, event_context_map, event_options_panel, event_library, event_summary, event_workspace_page, event_page_content, event_conditions, event_condition_dialog, event_outcome_picker, event_registry_dialog, event_scene_panel, event_legacy_detail, narrative_conditions_editor, narrative_sequence_editor, narrative_interaction_pane, dialogue_portrait_choice, scene_reference_chooser, narrative_story_pane(+creation/overview), narrative_story_chapters, narrative_overview_view_state/navigation/landing_search/landing_side. Seulement survolés (verdict pure_ui par lecture partielle) : narrative_overview_content/detail/header/landing/landing_content/landing_desktop/landing_intents, event_workspace_layout, event_spatial_context_map (délègue à EventSourcePicking), dialogue_lines_editor (en grep).",
+  "ui08_event_journey_test et ui08_event_focus_test cumulent beaucoup d'assertions ; chaque étape d'owner est couverte mais par des tests séparés — aucune étape n'est perdue, mais la garantie « les brouillons de carte et de scène survivent à tout le parcours événement » n'est prouvée que composée (event_sources_ui08 'expect(map.current, map.saved)', dialogues_ui09_nested_navigation_test). Aucun test cassé détecté à la lecture ; non exécutés (interdit).",
+  "Publication réelle de pendingStories/pendingFacts de NarrativeWorkspaceController via LocalNarrativeAdapter (facts/storylines dans _publicationParameters) : aucun test non-legacy ne relit les storylines/facts créés (unsure : à confirmer côté stories/world, non lus)."
+ ]
+}

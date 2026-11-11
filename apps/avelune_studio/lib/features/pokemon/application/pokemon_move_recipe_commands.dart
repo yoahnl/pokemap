@@ -8,6 +8,9 @@ extension PokemonMoveRecipeCommands on PokemonWorkspaceController {
   bool get supportsMoveRecipeBatch =>
       supportsMoveRecipes && port is PokemonMoveRecipeBatchPort;
 
+  bool recipePanelAvailableFor(PokemonMoveSummary move) =>
+      supportsMoveRecipes && !move.userCreated && moveInsertGroup == null;
+
   void stopMoveRecipeBatch() {
     if (!recipeBatchActive) return;
     recipeBatchStopRequested = true;

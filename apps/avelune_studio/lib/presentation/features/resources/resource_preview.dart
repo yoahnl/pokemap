@@ -10,6 +10,7 @@ import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/contracts/character_workspace_visuals.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_terrain_example.dart';
 import 'resource_terrain_preview.dart';
 import 'model_light_preview_scope.dart';
 import 'model_light_gizmo.dart';
@@ -118,7 +119,11 @@ Widget resourcePreview(
               return visuals.tileThumbnail(
                 TileLayerPaletteEntry(
                   tilesetId: atlas.tilesetId,
-                  localTileId: frame.row * source.columns + frame.column,
+                  localTileId: regularAtlasLocalTileId(
+                    row: frame.row,
+                    column: frame.column,
+                    source: source,
+                  ),
                 ),
                 size: size,
               );

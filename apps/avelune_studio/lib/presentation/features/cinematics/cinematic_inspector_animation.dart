@@ -30,24 +30,13 @@ extension CinematicInspectorAnimation on CinematicInspector {
       CharacterCustomAnimationClip? clip,
       CharacterCustomAnimationPlayback? playback,
     }) {
-      if (controller.activeId != asset.id) return false;
-      final accepted = controller.updateAnimation(
+      final accepted = controller.updateAnimationFromInspector(
+        asset.id,
+        view.inputs,
         step.id,
-        CharacterCustomAnimationRuntimeCommand(
-          actorId: command.actorId,
-          definitionId: clip?.definitionId ?? command.definitionId,
-          direction: clip == null ? command.direction : clip.direction,
-          playback: playback ?? command.playback,
-          interruptionPolicy: command.interruptionPolicy,
-          fallbackPolicy: command.fallbackPolicy,
-        ),
+        cinematicAnimationCommandWith(command, clip: clip, playback: playback),
       );
-      if (!accepted) {
-        view.error = view.inspectorError = controller.error;
-      } else if (view.error == view.inspectorError) {
-        view.error = view.inspectorError = null;
-      }
-      changed();
+      if (controller.activeId == asset.id) changed();
       return accepted;
     }
 
@@ -73,13 +62,8 @@ extension CinematicInspectorAnimation on CinematicInspector {
           'repeatCount': 'Nombre de répétitions',
           'forDuration': 'Pendant une durée',
         },
-        onChanged: (value) => update(
-          playback: switch (value) {
-            'repeatCount' => CharacterCustomAnimationPlayback.repeatCount(2),
-            'forDuration' => CharacterCustomAnimationPlayback.forDuration(1000),
-            _ => CharacterCustomAnimationPlayback.once(),
-          },
-        ),
+        onChanged: (value) =>
+            update(playback: cinematicAnimationPlaybackFor(value)),
       ),
       if (command.playback.kind != CharacterCustomAnimationPlaybackKind.once)
         CinematicCommitField(
@@ -97,20 +81,15 @@ extension CinematicInspectorAnimation on CinematicInspector {
               '${command.playback.repeatCount ?? command.playback.durationMs}',
           alwaysCommit: true,
           tryCommit: (text) {
-            final number = int.tryParse(text);
-            if (number == null || number <= 0) {
-              view.error = view.inspectorError =
-                  'Saisissez une valeur entière strictement positive.';
-              changed();
-              return false;
-            }
-            return update(
-              playback:
-                  command.playback.kind ==
-                      CharacterCustomAnimationPlaybackKind.repeatCount
-                  ? CharacterCustomAnimationPlayback.repeatCount(number)
-                  : CharacterCustomAnimationPlayback.forDuration(number),
+            final accepted = controller.commitAnimationCount(
+              asset.id,
+              view.inputs,
+              step.id,
+              command,
+              text,
             );
+            changed();
+            return accepted;
           },
         ),
       const Text(

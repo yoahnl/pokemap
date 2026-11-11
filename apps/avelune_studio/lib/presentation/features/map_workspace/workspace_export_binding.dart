@@ -32,7 +32,7 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
   }
 
   void _openSettingsSection(ProjectSettingsSection _) {
-    if (_space != WorkspaceSpace.projectSettings) _settingsOrigin = _space;
+    _settingsOrigin = workspaceSettingsOrigin(_space, _settingsOrigin);
     _show(WorkspaceSpace.projectSettings);
   }
 
@@ -41,29 +41,23 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
     unawaited(_pokemon?.load());
   }
 
-  void _openFailureOwner(StudioFailureOwner owner) => switch (owner) {
-    StudioFailureOwner.general => _openSettingsSection(
-      ProjectSettingsSection.general,
-    ),
-    StudioFailureOwner.image => _openSettingsSection(
-      ProjectSettingsSection.image,
-    ),
-    StudioFailureOwner.timeWeather => _openSettingsSection(
-      ProjectSettingsSection.timeWeather,
-    ),
-    StudioFailureOwner.resources => _show(WorkspaceSpace.resources),
-    StudioFailureOwner.pokemon => _showPokemonOwner(),
-    StudioFailureOwner.regionalMap => _show(WorkspaceSpace.regionalMap),
-    StudioFailureOwner.story => _show(WorkspaceSpace.story),
-    StudioFailureOwner.presentations =>
-      _presentations == null
-          ? _show(WorkspaceSpace.story)
-          : _openPresentations(),
-    StudioFailureOwner.map => _show(WorkspaceSpace.map),
-    StudioFailureOwner.verification => _show(WorkspaceSpace.verification),
-    StudioFailureOwner.exportDestination ||
-    StudioFailureOwner.exportMode => null,
-  };
+  void _openFailureOwner(StudioFailureOwner owner) {
+    switch (workspaceSpaceForFailure(
+      owner,
+      presentationsAvailable: _presentations != null,
+    )) {
+      case null:
+        return;
+      case WorkspaceSpace.projectSettings:
+        _openSettingsSection(ProjectSettingsSection.general);
+      case WorkspaceSpace.pokemon:
+        _showPokemonOwner();
+      case WorkspaceSpace.presentation:
+        _openPresentations();
+      case final space:
+        _show(space);
+    }
+  }
 
   Future<bool> _allowCloseWithExport() => _publication.allowClose(
     leavePokemon: _allowLeavePokemon,

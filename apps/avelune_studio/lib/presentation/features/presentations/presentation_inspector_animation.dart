@@ -34,14 +34,8 @@ extension _PresentationAnimationFields on PresentationInspector {
             'slideUp': 'Vers le haut',
             'slideDown': 'Vers le bas',
           },
-          onChanged: (value) => onPatch({
-            entry.key: {
-              'kind': value,
-              'durationUs': value == 'none'
-                  ? 0
-                  : (clip.durationUs < 500000 ? clip.durationUs : 500000),
-            },
-          }),
+          onChanged: (value) =>
+              onPatch(presentationTransitionPatch(clip, entry.key, value)),
         ),
         if ((data[entry.key] as Map?)?['kind'] != null &&
             (data[entry.key] as Map?)?['kind'] != 'none')

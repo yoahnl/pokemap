@@ -106,10 +106,8 @@ class PokemonEvolutionEntry extends StatelessWidget {
             key: ValueKey('evolution-$index-minLevel'),
             label: 'Niveau minimum',
             value: '${value['minLevel'] ?? ''}',
-            onChanged: (text) => _edit(
-              'minLevel',
-              text.isEmpty ? null : int.tryParse(text) ?? text,
-            ),
+            onChanged: (text) =>
+                _edit('minLevel', pokemonDocumentNumberInput(text)),
           ),
           const SizedBox(height: 11),
         ],
@@ -118,10 +116,8 @@ class PokemonEvolutionEntry extends StatelessWidget {
             key: ValueKey('evolution-$index-minFriendship'),
             label: 'Amitié minimum',
             value: '${value['minFriendship'] ?? ''}',
-            onChanged: (text) => _edit(
-              'minFriendship',
-              text.isEmpty ? null : int.tryParse(text) ?? text,
-            ),
+            onChanged: (text) =>
+                _edit('minFriendship', pokemonDocumentNumberInput(text)),
           ),
           const SizedBox(height: 11),
         ],
@@ -131,7 +127,7 @@ class PokemonEvolutionEntry extends StatelessWidget {
             value: value['itemId'] as String? ?? '',
             options: {'': 'Aucun', ...items},
             onChanged: (selected) =>
-                _edit('itemId', selected.isEmpty ? null : selected),
+                _edit('itemId', pokemonOptionalChoice(selected)),
           ),
           const SizedBox(height: 11),
         ],
@@ -145,7 +141,7 @@ class PokemonEvolutionEntry extends StatelessWidget {
                 move.key: '${move.value} · ${move.key}',
             },
             onChanged: (selected) =>
-                _edit('requiredMoveId', selected.isEmpty ? null : selected),
+                _edit('requiredMoveId', pokemonOptionalChoice(selected)),
           ),
           const SizedBox(height: 11),
         ],

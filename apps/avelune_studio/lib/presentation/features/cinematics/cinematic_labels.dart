@@ -3,6 +3,9 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/feedback/studio_badge.dart';
 
+export '../../../features/cinematics/application/cinematic_timeline_rules.dart'
+    show cinematicDurationEditable, cinematicLaneAction;
+
 String cinematicActionLabel(CinematicTimelineStepKind kind) => switch (kind) {
   CinematicTimelineStepKind.atmosphere => 'Ambiance 3D',
   CinematicTimelineStepKind.wait => 'Attendre',
@@ -56,23 +59,3 @@ Color cinematicActionColor(
 
 String cinematicTime(int milliseconds) =>
     '${(milliseconds / 1000).toStringAsFixed(2)} s';
-
-bool cinematicDurationEditable(CinematicTimelineStep step) =>
-    switch (step.kind) {
-      CinematicTimelineStepKind.actorFace ||
-      CinematicTimelineStepKind.marker => false,
-      _ => step.durationMs != null,
-    };
-
-CinematicTimelineStepKind cinematicLaneAction(CinematicTimelineLaneKind lane) =>
-    switch (lane) {
-      CinematicTimelineLaneKind.camera => CinematicTimelineStepKind.camera,
-      CinematicTimelineLaneKind.actor => CinematicTimelineStepKind.actorMove,
-      CinematicTimelineLaneKind.dialogue =>
-        CinematicTimelineStepKind.dialogueLine,
-      CinematicTimelineLaneKind.fx => CinematicTimelineStepKind.fx,
-      CinematicTimelineLaneKind.audio => CinematicTimelineStepKind.music,
-      CinematicTimelineLaneKind.transitions => CinematicTimelineStepKind.fade,
-      CinematicTimelineLaneKind.timeGlobal => CinematicTimelineStepKind.wait,
-      CinematicTimelineLaneKind.other => CinematicTimelineStepKind.marker,
-    };

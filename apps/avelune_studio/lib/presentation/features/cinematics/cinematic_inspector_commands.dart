@@ -150,21 +150,16 @@ extension CinematicInspectorCommands on CinematicInspector {
     alwaysCommit: true,
     value: value,
     tryCommit: (text) {
-      final number = double.tryParse(text);
-      if (number == null ||
-          !number.isFinite ||
-          number < 0 ||
-          (max != null && number > max) ||
-          (integer && number != number.roundToDouble())) {
-        view.error = 'Valeur invalide pour « $label ».';
-        changed();
-        return false;
-      }
-      final accepted = _edit(asset, (a) => transform(a, number));
-      if (accepted && view.error == 'Valeur invalide pour « $label ».') {
-        view.error = null;
-        changed();
-      }
+      final accepted = controller.commitCommandNumber(
+        asset.id,
+        view.inputs,
+        label,
+        text,
+        transform,
+        max: max,
+        integer: integer,
+      );
+      changed();
       return accepted;
     },
   );

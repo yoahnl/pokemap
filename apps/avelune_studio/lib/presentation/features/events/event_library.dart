@@ -9,6 +9,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import 'event_labels.dart';
 import 'event_view_state.dart';
 import 'package:avelune_studio/features/events/application/event_legacy_catalog.dart';
+import 'package:avelune_studio/features/events/application/event_library_filter.dart';
 import 'event_legacy_detail.dart';
 import '../../shared/widgets/feedback/studio_icon_tile.dart';
 
@@ -58,25 +59,20 @@ class _EventLibraryState extends State<EventLibrary> {
     if (_legacy?.matches(project, widget.maps) != true) {
       _legacy = EventLegacyCatalog(project, widget.maps);
     }
-    final query = view.search.text.toLowerCase().trim();
-    final filtered = records.where((r) {
-      final source = eventSource(r);
-      final mapId = eventMapId(source);
-      return (!view.onMapOnly || mapId != null && mapId == view.filterMapId) &&
-          '${eventName(r)} ${r.id} ${eventKindLabel(source?.kind)} ${eventTargetId(source)} ${eventMapLabel(project, mapId)}'
-              .toLowerCase()
-              .contains(query);
-    }).toList();
-    final historical = _legacy!.entries
-        .where(
-          (entry) =>
-              (!view.onMapOnly ||
-                  entry.mapId != null && entry.mapId == view.filterMapId) &&
-              '${entry.name} ${entry.key} ${eventMapLabel(project, entry.mapId)}'
-                  .toLowerCase()
-                  .contains(query),
-        )
-        .toList();
+    final filtered = filterEventRecords(
+      project,
+      records,
+      search: view.search.text,
+      onMapOnly: view.onMapOnly,
+      filterMapId: view.filterMapId,
+    );
+    final historical = filterEventLegacyEntries(
+      project,
+      _legacy!.entries,
+      search: view.search.text,
+      onMapOnly: view.onMapOnly,
+      filterMapId: view.filterMapId,
+    );
     return StudioPanel(
       compact: true,
       children: [

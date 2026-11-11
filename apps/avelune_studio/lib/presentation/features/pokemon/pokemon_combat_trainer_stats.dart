@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:map_gameplay/map_gameplay.dart' as gameplay;
 
 import '../../../features/pokemon/application/pokemon_combat_controller.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+import '../../../features/pokemon/coordination/pokemon_trainer_stats_preview.dart';
 
 const _statLabels = {
   'hp': 'PV',
@@ -69,23 +69,15 @@ class _PokemonCombatTrainerStatsState extends State<PokemonCombatTrainerStats> {
     final combat = widget.combat;
     final index = widget.indexInTeam;
     final prefix = '${widget.trainerId}:$index';
-    final advanced =
-        member.natureId != null || member.ivs != null || member.evs != null;
+    final advanced = pokemonTrainerStatsAdvanced(member);
     final ivs = member.ivs ?? standardTrainerPokemonIvs;
     final evs = member.evs ?? standardTrainerPokemonEvs;
-    final total = evs.toJson().values.cast<int>().fold(0, (a, b) => a + b);
-    final hasDraftError = combat.fieldErrors.keys.any(
-      (key) => key.startsWith('team$index:'),
+    final total = pokemonTrainerEvTotal(member, combat.fieldErrors.keys, index);
+    final valid = pokemonTrainerStatsPreviewValid(
+      member,
+      combat.fieldErrors.keys,
+      index,
     );
-    final invalidEvDraft = combat.fieldErrors.keys.any(
-      (key) =>
-          key.startsWith('team$index:evs:') && key != 'team$index:evs:total',
-    );
-    final valid =
-        !hasDraftError &&
-        validateTrainerPokemonStats(member).isEmpty &&
-        member.level >= 1 &&
-        member.level <= 100;
     return StudioPanel(
       title: 'Statistiques individuelles',
       compact: true,
@@ -146,7 +138,7 @@ class _PokemonCombatTrainerStatsState extends State<PokemonCombatTrainerStats> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Total EV : ${invalidEvDraft ? '—' : total}/510',
+            'Total EV : ${total ?? '—'}/510',
             key: ValueKey('$prefix:ev-total'),
           ),
           if (combat.fieldErrors['team$index:evs:total'] case final error?)
@@ -161,26 +153,11 @@ class _PokemonCombatTrainerStatsState extends State<PokemonCombatTrainerStats> {
                     snapshot.data?.id == member.speciesId
                 ? snapshot.data
                 : null;
-            gameplay.PokemonCalculatedStats? stats;
-            if (valid && species != null) {
-              final base = species.baseStats;
-              try {
-                stats = gameplay.calculateTrainerPokemonStats(
-                  member: member,
-                  baseStats: gameplay.PokemonBaseStats(
-                    hp: base.hp,
-                    attack: base.atk,
-                    defense: base.def,
-                    specialAttack: base.spa,
-                    specialDefense: base.spd,
-                    speed: base.spe,
-                  ),
-                );
-              } on ArgumentError {
-                stats = null;
-              }
-            }
-            final calculated = stats;
+            final calculated = pokemonTrainerStatsPreview(
+              member: member,
+              species: species,
+              valid: valid,
+            );
             if (calculated == null) {
               return Text(
                 valid

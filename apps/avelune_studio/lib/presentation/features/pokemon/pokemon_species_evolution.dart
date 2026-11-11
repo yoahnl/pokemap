@@ -141,7 +141,7 @@ class _PokemonSpeciesEvolutionEditorState
               options: options,
               onChanged: (value) => controller.edit(
                 PokemonDocumentFamily.evolution,
-                (data) => data['preEvolution'] = value.isEmpty ? null : value,
+                (data) => data['preEvolution'] = pokemonOptionalChoice(value),
               ),
             ),
           ],

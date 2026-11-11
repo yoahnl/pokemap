@@ -50,9 +50,10 @@ Widget _buildCombatTableEntry(
                 '${numericPrefix}entry$indexInTable:min',
                 raw,
                 (value) => change(
-                  entry.copyWith(
-                    minLevel: value,
-                    maxLevel: unique ? value : entry.maxLevel,
+                  pokemonEncounterEntryWithMinLevel(
+                    entry,
+                    value,
+                    unique: unique,
                   ),
                 ),
               ),

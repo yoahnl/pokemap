@@ -58,10 +58,10 @@ extension _CinematicTimelineGestures on _CinematicTimelineEditorState {
         if (dragging != block.stepId) return;
         mutate(() {
           delta += value;
-          final time = block.startMs + delta / scale;
-          insertion = original.blocks
-              .where((b) => time >= (b.startMs + b.endMs) / 2)
-              .length;
+          insertion = cinematicTimelineInsertionIndex(
+            original,
+            block.startMs + delta / scale,
+          );
         });
       },
       onDragEnd: () {
@@ -88,9 +88,10 @@ extension _CinematicTimelineGestures on _CinematicTimelineEditorState {
           final source = widget.asset.timeline.steps.firstWhere(
             (s) => s.id == step.id,
           );
-          draftDuration = (source.durationMs! + delta / scale).round().clamp(
-            1,
-            3600000,
+          draftDuration = cinematicResizedDuration(
+            source.durationMs!,
+            delta,
+            scale,
           );
         });
       },

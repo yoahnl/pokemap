@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import '../../../features/cinematics/application/cinematic_library_filter.dart';
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
@@ -31,28 +32,12 @@ class CinematicLibrary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final catalog = controller.project.cinematicLibraryCatalog;
-    final entries = controller.entries.where((a) {
-      final entry = catalog.entries
-          .where(
-            (e) =>
-                e.family == CinematicLibraryFamily.world &&
-                e.cinematicId == a.id,
-          )
-          .firstOrNull;
-      final context =
-          controller.project.maps
-              .where((m) => m.id == a.mapId)
-              .firstOrNull
-              ?.name ??
-          'Sans carte';
-      return '${a.title} $context ${a.id}'.toLowerCase().contains(
-            views.search.text.trim().toLowerCase(),
-          ) &&
-          (views.folderId.isEmpty ||
-              (controller.session(a.id)?.folderId ?? entry?.folderId) ==
-                  views.folderId) &&
-          (views.archived || entry?.isArchived != true);
-    }).toList();
+    final entries = cinematicLibraryEntries(
+      controller,
+      search: views.search.text,
+      folderId: views.folderId,
+      archived: views.archived,
+    );
     return StudioPanel(
       compact: true,
       title: 'Cinématiques',

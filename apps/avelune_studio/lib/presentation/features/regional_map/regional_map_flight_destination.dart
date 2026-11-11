@@ -6,6 +6,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_section.dart';
+import '../../../features/regional_map/application/regional_map_choices.dart';
 import 'regional_map_place_summary.dart';
 
 class RegionalMapFlightDestination extends StatelessWidget {
@@ -26,14 +27,7 @@ class RegionalMapFlightDestination extends StatelessWidget {
     final source = owner.source!;
     final nativeMaps = source.project.maps;
     final map = source.maps[destination?.mapId];
-    final spawns =
-        map?.entities
-            .where(
-              (entity) =>
-                  entity.kind == MapEntityKind.spawn && entity.spawn != null,
-            )
-            .toList() ??
-        [];
+    final spawns = regionalSpawnOptions(map);
     final arrival = destination == null
         ? null
         : regionalFlightArrival(
@@ -80,11 +74,7 @@ class RegionalMapFlightDestination extends StatelessWidget {
           StudioSelect(
             label: 'Point d’arrivée',
             value: destination.spawnId,
-            options: {
-              for (final spawn in spawns)
-                spawn.id:
-                    '${spawn.name.isEmpty ? 'Arrivée' : spawn.name} · (${spawn.pos.x}, ${spawn.pos.y}) · ${_facing(spawn.spawn!.facing)}',
-            },
+            options: spawns,
             onChanged: owner.busy || owner.loadingMap
                 ? null
                 : (id) => owner.editPoint(
@@ -108,11 +98,4 @@ class RegionalMapFlightDestination extends StatelessWidget {
       ],
     );
   }
-
-  String _facing(EntityFacing facing) => switch (facing) {
-    EntityFacing.north => 'Nord',
-    EntityFacing.east => 'Est',
-    EntityFacing.south => 'Sud',
-    EntityFacing.west => 'Ouest',
-  };
 }

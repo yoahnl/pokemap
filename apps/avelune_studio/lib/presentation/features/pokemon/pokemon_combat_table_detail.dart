@@ -11,6 +11,7 @@ import 'pokemon_ui_parts.dart';
 import 'pokemon_combat_detail_header.dart';
 import 'pokemon_combat_reference_list.dart';
 import 'pokemon_combat_species_picker.dart';
+import '../../../features/pokemon/application/pokemon_combat_authoring_rules.dart';
 part 'pokemon_combat_table_entry.dart';
 part 'pokemon_combat_table_variants.dart';
 part 'pokemon_combat_variant_conditions.dart';
@@ -124,13 +125,9 @@ class PokemonCombatTableDetail extends StatelessWidget {
                       : 'Probabilité par pas (0 à 100 %)',
                   value: combat.numericValue(
                     'chance',
-                    (table.chancePerStep * 100).round(),
+                    pokemonEncounterChancePercent(table),
                   ),
-                  onChanged: (raw) => combat.editNumber('chance', raw, (value) {
-                    combat.editTable(
-                      (current) => current.copyWith(chancePerStep: value / 100),
-                    );
-                  }),
+                  onChanged: combat.editEncounterChancePercent,
                 ),
                 if (table.encounterKind == EncounterKind.headbutt ||
                     table.encounterKind == EncounterKind.special) ...[

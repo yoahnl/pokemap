@@ -190,4 +190,98 @@ class PokemonItemEffectEditing {
       tier: value,
     }),
   );
+
+  static Map<String, String> kindOptions(ProjectItemUseContext context) => {
+    'heal': 'Soigner les PV',
+    'full_restore': 'Soin Total',
+    'cure': 'Guérir les statuts',
+    'revive': 'Réanimer',
+    if (context == ProjectItemUseContext.overworld)
+      'vitamin': 'Vitamine (EV et bonheur)',
+    if (context == ProjectItemUseContext.battle) ...{
+      'battle_boost': 'Augmenter une statistique',
+      'focus_energy': 'Muscle + (critiques)',
+      'mist': 'Défense Spéciale (Brume)',
+    },
+    if (context == ProjectItemUseContext.overworld) ...{
+      'pp': 'Restaurer les PP',
+      'repel': 'Repousse',
+      'escape_rope': 'Corde Sortie',
+      'bicycle': 'Vélo',
+      'fishing': 'Pêche',
+    },
+  };
+
+  static bool editable(ProjectItemUseContext context, String kind) =>
+      kind != 'imported' &&
+      (context != ProjectItemUseContext.battle ||
+          !{'pp', 'repel', 'escape_rope', 'bicycle', 'fishing'}.contains(kind));
+
+  static ({int minimum, int maximum}) integerBounds(String field) => (
+    minimum: field.startsWith('friendship') ? 0 : 1,
+    maximum: switch (field) {
+      'stages' => 6,
+      'maximumTotal' => 1530,
+      'maximumPerStat' => 252,
+      _ => 255,
+    },
+  );
+
+  static bool consumptionLocked(ProjectItemUseDefinition use) =>
+      use.friendshipLoss != null ||
+      {'escape_rope', 'bicycle', 'fishing'}.contains(kind(use.effect));
+
+  static ProjectItemUseDefinition setConsumed(
+    ProjectItemUseDefinition use,
+    bool consumed,
+  ) => consumptionLocked(use)
+      ? use
+      : use.copyWith(
+          consumption: consumed
+              ? ProjectItemConsumptionPolicy.onApplied
+              : ProjectItemConsumptionPolicy.never,
+        );
+
+  static ProjectItemUseDefinition setCuresConfusion(
+    ProjectItemUseDefinition use,
+    bool enabled,
+  ) => switch (use.effect) {
+    final ProjectItemCureStatusEffectDefinition cure => use.copyWith(
+      effect: cure.copyWith(curesConfusion: enabled),
+    ),
+    _ => use,
+  };
+
+  static ProjectItemUseDefinition setTrainedStat(
+    ProjectItemUseDefinition use,
+    String stat,
+  ) => switch (use.effect) {
+    final ProjectItemVitaminEffectDefinition vitamin => use.copyWith(
+      effect: vitamin.copyWith(
+        stat: ProjectItemVitaminStat.values.byName(stat),
+      ),
+    ),
+    final ProjectItemBattleBoostEffectDefinition boost => use.copyWith(
+      effect: boost.copyWith(stat: ProjectItemBattleStat.values.byName(stat)),
+    ),
+    _ => use,
+  };
+
+  static ProjectItemUseDefinition setRodKind(
+    ProjectItemUseDefinition use,
+    String rodKind,
+  ) => use.effect is ProjectItemFishingEffectDefinition
+      ? use.copyWith(
+          effect: ProjectItemEffectDefinition.fishing(
+            rodKind: ProjectFishingRodKind.values.byName(rodKind),
+          ),
+        )
+      : use;
+
+  static ProjectItemUseDefinition setRepelSteps(
+    ProjectItemUseDefinition use,
+    int steps,
+  ) => use.effect is ProjectItemRepelEffectDefinition
+      ? use.copyWith(effect: ProjectItemEffectDefinition.repel(steps: steps))
+      : use;
 }

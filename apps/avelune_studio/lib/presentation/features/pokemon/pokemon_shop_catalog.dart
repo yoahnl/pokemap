@@ -156,8 +156,8 @@ class PokemonShopCatalog extends StatelessWidget {
                 fieldId: 'shop-${commerce.shop!.id}-$index-price',
                 label: 'Prix d’achat',
                 value: entry.price,
-                minimum: 1,
-                optional: false,
+                minimum: PokemonShopEditing.priceBounds.minimum,
+                optional: PokemonShopEditing.priceBounds.optional,
                 onChanged: (value) =>
                     _replace(index, entry.copyWith(price: value!)),
               ),
@@ -172,7 +172,8 @@ class PokemonShopCatalog extends StatelessWidget {
                 fieldId: 'shop-${commerce.shop!.id}-$index-sell',
                 label: 'Prix de revente',
                 value: entry.sellPrice,
-                minimum: 1,
+                minimum: PokemonShopEditing.sellPriceBounds.minimum,
+                optional: PokemonShopEditing.sellPriceBounds.optional,
                 onChanged: (value) =>
                     _replace(index, entry.copyWith(sellPrice: value)),
               ),
@@ -187,6 +188,8 @@ class PokemonShopCatalog extends StatelessWidget {
                 fieldId: 'shop-${commerce.shop!.id}-$index-stock',
                 label: 'Stock',
                 value: entry.stock,
+                minimum: PokemonShopEditing.stockBounds.minimum,
+                optional: PokemonShopEditing.stockBounds.optional,
                 onChanged: (value) =>
                     _replace(index, entry.copyWith(stock: value)),
               ),

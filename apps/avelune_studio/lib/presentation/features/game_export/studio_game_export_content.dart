@@ -298,15 +298,19 @@ extension _StudioGameExportContent on _StudioGameExportPageState {
     );
   }
 
-  bool _canOpen(StudioFailureOwner? owner) =>
-      owner == StudioFailureOwner.exportDestination ||
-      owner == StudioFailureOwner.exportMode ||
-      (owner != null && widget.onOpenOwner != null);
+  GameExportFailureRoute? _route(StudioFailureOwner? owner) =>
+      gameExportFailureRoute(
+        owner,
+        workspaceAvailable: widget.onOpenOwner != null,
+      );
 
-  void _openOwner(StudioFailureOwner owner) => switch (owner) {
-    StudioFailureOwner.exportDestination => unawaited(_chooseDestination()),
-    StudioFailureOwner.exportMode => _edit(() => _publication = false),
-    _ => widget.onOpenOwner?.call(owner),
+  bool _canOpen(StudioFailureOwner? owner) => _route(owner) != null;
+
+  void _openOwner(StudioFailureOwner owner) => switch (_route(owner)) {
+    GameExportFailureRoute.chooseDestination => unawaited(_chooseDestination()),
+    GameExportFailureRoute.localTestMode => _edit(() => _publication = false),
+    GameExportFailureRoute.ownerWorkspace => widget.onOpenOwner?.call(owner),
+    null => null,
   };
 
   Widget _form(double width) => Column(

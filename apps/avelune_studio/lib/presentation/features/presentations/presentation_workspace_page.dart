@@ -8,6 +8,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/presentations/application/presentation_workspace_controller.dart';
 import '../../../features/presentations/application/presentation_preview_transport.dart';
+import '../../../features/presentations/application/presentation_field_input.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -88,7 +89,7 @@ class _PresentationWorkspacePageState extends State<PresentationWorkspacePage> {
   bool flush() {
     FocusManager.instance.primaryFocus?.unfocus();
     FocusManager.instance.applyFocusChangesIfNeeded();
-    return view?.invalidFields.isEmpty ?? true;
+    return presentationFieldsCommitted(view?.invalidFields);
   }
 
   void refresh() {

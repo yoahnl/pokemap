@@ -10,7 +10,7 @@ import 'event_view_state.dart';
 import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 
 import 'event_labels.dart';
-import '../../../features/events/domain/event_record_view.dart';
+import '../../../features/events/application/event_option_choices.dart';
 import 'event_trigger_panel.dart';
 import 'event_conditions.dart';
 import 'event_scene_panel.dart';
@@ -96,25 +96,8 @@ class EventPageContent extends StatelessWidget {
     ),
   };
 
-  Map<String, String> _ownerVariants() {
-    final source = record.source;
-    if (source?.kind != NarrativeEventSourceKind.entityAutorun) return const {};
-    final maps = controller.maps
-        .where((map) => map.id == eventMapId(source))
-        .toList();
-    if (maps.length != 1) return const {};
-    final owners = maps.single.entities
-        .where((entity) => entity.id == eventOwnerId(source))
-        .toList();
-    if (owners.length != 1) return const {};
-    final variants =
-        owners.single.presentation?.variants ??
-        const <MapEntityPresentationVariant>[];
-    return {
-      for (var index = 0; index < variants.length; index++)
-        variants[index].id: 'Page ${index + 1}',
-    };
-  }
+  Map<String, String> _ownerVariants() =>
+      eventOwnerPages(record, controller.maps);
 
   void _number(String field, String value, bool Function(int) apply) {
     final key = '${record.id}:$field';

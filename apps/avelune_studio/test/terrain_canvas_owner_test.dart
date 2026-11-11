@@ -1,0 +1,143 @@
+import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_viewport_bounds.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+
+import 'support/map_workspace_fixture.dart';
+import 'terrain_creation_test.dart'
+    show terrainDraft, assignAll, publishFixture;
+
+class _PreviewVisuals extends WorkspaceTestVisuals {
+  MapData? painted;
+  @override
+  Widget canvas(
+    MapData map, {
+    MapPlacedElement? placedElementPreview,
+    Color? collisionColor,
+  }) {
+    painted = map;
+    return const SizedBox.expand();
+  }
+}
+
+void main() {
+  testWidgets(
+    'canvas previews interpolated terrain, commits one history, erases neighbors and cancels',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final draft = terrainDraft();
+      assignAll(draft);
+      final manifest = publishFixture(draft);
+      final preset = manifest.smartTileCatalog.presets.single;
+      final source = workspaceMap('a').copyWith(layers: []);
+      final document = EditableMapDocument(
+        MapWorkspaceDocument(map: source, revision: 'saved', mapId: 'a'),
+      );
+      final view = MapEditingViewportSession()
+        ..terrain = preset
+        ..tool = StudioMapTool.terrain;
+      addTearDown(view.dispose);
+      final visuals = _PreviewVisuals();
+      late StateSetter redraw;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                redraw = setState;
+                return MapEditingViewport2D(
+                  document: document,
+                  project: manifest,
+                  visuals: visuals,
+                  view: view,
+                  onChanged: () => setState(() {}),
+                  gestureGeneration: 0,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      Offset cell(int x, int y) =>
+          tester.getTopLeft(find.byKey(const ValueKey('map-canvas'))) +
+          Offset(x * 32 + 12, y * 32 + 12);
+      final gesture = await tester.startGesture(cell(2, 2));
+      await gesture.moveTo(cell(6, 2));
+      await tester.pump();
+      expect(document.current, source);
+      expect(
+        find.text(
+          'Carte vide · choisissez un terrain ou un décor dans la palette.',
+        ),
+        findsNothing,
+      );
+      expect(
+        tester
+            .widget<MapViewportBounds>(find.byType(MapViewportBounds))
+            .map
+            .layers,
+        isNotEmpty,
+      );
+      final preview = visuals.painted!.layers
+          .whereType<SmartTileLayer>()
+          .single;
+      expect(
+        smartTileSemanticCells(preview).where((value) => value != 0),
+        hasLength(5),
+      );
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(document.error, isNull);
+      expect(document.undoCount, 1);
+      final painted = document.current;
+      document.restore(redo: false);
+      expect(document.current, source);
+      document.restore(redo: true);
+      expect(document.current, painted);
+      redraw(() => view.tool = StudioMapTool.erase);
+      await tester.pump();
+      final erase = await tester.startGesture(cell(3, 2));
+      await erase.moveTo(cell(4, 2));
+      await erase.up();
+      await tester.pumpAndSettle();
+      expect(document.undoCount, 2);
+      final erased = document.current.layers.whereType<SmartTileLayer>().single;
+      expect(
+        smartTileSemanticCells(erased).where((value) => value != 0),
+        hasLength(3),
+      );
+      final edge = resolveSmartTile(
+        preset: preset,
+        materials: manifest.smartTileCatalog.materials,
+        context: smartTileCellContextForLayerCell(
+          layer: erased,
+          map: document.current,
+          preset: preset,
+          x: 2,
+          y: 2,
+        ),
+        x: 2,
+        y: 2,
+      );
+      expect(edge.ruleId, 'connection-0');
+      final beforeCancel = document.current;
+      redraw(() => view.tool = StudioMapTool.terrain);
+      await tester.pump();
+      final cancel = await tester.startGesture(cell(7, 7));
+      await cancel.moveTo(cell(10, 7));
+      await cancel.cancel();
+      await tester.pumpAndSettle();
+      expect(document.current, beforeCancel);
+      expect(document.undoCount, 2);
+      expect(tester.takeException(), isNull);
+    },
+  );
+}

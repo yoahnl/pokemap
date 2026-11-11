@@ -7,6 +7,17 @@ typedef OrganizeMapLibrary = Future<String?> Function({
   required List<Map<String, Object?>> assignments,
 });
 
+void Function(String) mapLibraryOpenAction(
+  ProjectManifest project,
+  void Function(ProjectMapEntry) activate,
+  void Function()? close,
+) => (id) {
+  final entry = project.maps.where((entry) => entry.id == id).firstOrNull;
+  if (entry == null) return;
+  close?.call();
+  activate(entry);
+};
+
 Future<String?> organizeWorkspaceMaps(
   MapWorkspaceController controller, {
   List<ProjectMapGroup>? groups,

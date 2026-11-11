@@ -1,0 +1,1575 @@
+{
+ "zone": "B_pokemon",
+ "cases": [
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_responsive_test.dart",
+   "test": "combat actions stay reachable at 1280x800 with large text",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart",
+   "test": "ambiguous legacy companion leaves the species readable",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_species_storage_owner_test.dart",
+     "test": "ambiguous legacy companion leaves the species readable"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart",
+   "test": "legacy companion is replaced at its existing identity and path",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_corrections_owner_test.dart",
+     "test": "legacy companion is replaced at its existing identity and path"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart",
+   "test": "keeping a species with empty ref excludes unattached companion",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_corrections_owner_test.dart",
+     "test": "keeping a species with empty ref excludes unattached companion"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_corrections_host_test.dart",
+   "test": "a changed retained reference invalidates an external preview",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_corrections_owner_test.dart",
+     "test": "a changed retained reference invalidates an external preview"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Qualifie covered ; relocalise tel quel (RELOCATABLE) pour ne rien perdre au retrait."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_lot_a_visual_host_test.dart",
+   "test": "Retained species and move surfaces use the real workspace",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_lot_a_visual_host_test.dart",
+   "test": "compact Attack and Pokedex views keep essential actions",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_lot_a_visual_host_test.dart",
+   "test": "200% text keeps focused save reachable",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_bitter_medicine_test.dart",
+   "test": "guided medicine settings persist friendship and confusion without JSON editing",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_item_effects_owner_test.dart",
+     "test": "guided medicine settings persist friendship and confusion without JSON editing"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "curesConfusion extrait (PokemonItemEffectEditing.setCuresConfusion), borne de tranche via integerBounds."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_host_test.dart",
+   "test": "return from Carte refreshes saved item pickup references",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_owner_test.dart",
+     "test": "return from Carte refreshes saved item pickup references"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Declencheur prouve via le vrai WorkspaceDestinationWorkflow.show + LocalPokemonCommerceAdapter ; carte modifiee via MapWorkspaceController.save. Cas negatif ajoute : rester dans Pokemon ne rafraichit pas."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_host_test.dart",
+   "test": "return from Histoire refreshes narrative item references",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_owner_test.dart",
+     "test": "return from Histoire refreshes narrative item references"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "L espace quitte est Carte au lieu d Histoire (ouvrir l atelier Histoire n est pas necessaire) : la regle testee est previous != pokemon, identique ; scene publiee par LocalSceneAdapter reel."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_host_test.dart",
+   "test": "refresh keeps a shop by identity and clears a removed shop",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_owner_test.dart",
+     "test": "refresh keeps a shop by identity and clears a removed shop"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_host_test.dart",
+   "test": "refresh clears a removed item instead of retaining its draft",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_owner_test.dart",
+     "test": "refresh clears a removed item instead of retaining its draft"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_language_corrections_host_test.dart",
+   "test": "language selection does not write fallbacks and focused edit keeps its key",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_species_editing_owner_test.dart",
+     "test": "language selection does not write fallbacks and focused edit keeps its key"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Le message UI Aucune traduction est remplace par l assertion names.ja absent + brouillon non sale + octets inchanges."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_large_collection_host_test.dart",
+   "test": "large Pokédex scrolls locally at 150% text scale",
+   "classification": "covered_elsewhere",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_json_collision_host_test.dart",
+     "test": "confirmed overwrite reloads selected species before further editing"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_mutation_guard_test.dart",
+     "test": "undo cannot race a save and resurrect stale values"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Qualification covered reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/full_restore_item_host_test.dart",
+   "test": "Studio authors and reloads Full Restore in both contexts",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_item_catalog_owner_test.dart",
+     "test": "Studio authors and reloads Full Restore in both contexts"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_host_test.dart",
+   "test": "Studio creates a wild table and trainer with independent reopen",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_journey_owner_test.dart",
+     "test": "Studio creates a wild table and trainer with independent reopen"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Prouve au proprietaire (controleur + LocalPokemonCombatAdapter reel, relecture independante) : table 100%, stats avancees (2.5 refuse et conserve), validation au moins une attaque, Ball poke-ball, choix de Ball, soins (revive/ether/poke-ball refuses, 2.5 et 0 refuses, saisie brute conservee, retrait persiste battleItems:{} sans toucher le reste, reajout), rencontre unique min=max. NON repris ici : peinture de zone case par case, liaison PNJ->dresseur dans Carte et demarrage des combats dans le Player ; ils restent prouves hors legacy par apps/pokemap_hub/test/features/installation/avelune_studio_combat_player_e2e_test.dart selon la qualification (non relu par moi)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_forms_evolution_host_test.dart",
+   "test": "forms and evolution save together without losing old fields",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_species_editing_owner_test.dart",
+     "test": "forms and evolution save together without losing old fields"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Parsing minLevel extrait (pokemonDocumentNumberInput) ; test dedie des entrees vides/texte brut ajoute."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_retired_scene_reference_test.dart",
+   "test": "a real scene reference refuses before the dirty Pokemon exit guard while map references retain that guard",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_reference_guard_owner_test.dart",
+     "test": "a real scene reference is analysed while map references retain the dirty Pokemon exit guard"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Prouve : analyse reelle listant la reference de scene et le ramassage de carte, garde de sortie stay/discard sur le brouillon objet sans ecriture disque. PERDU au retrait si rien d autre : l ordonnancement reference de scene refusee AVANT la garde et l ouverture de la carte cible apres abandon ; ce routage vit dans lib/presentation/features/map_workspace/workspace_navigation_binding.dart (hors de mes dossiers, voir decisions)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_homonym_host_test.dart",
+   "test": "homonyms keep distinct identities through filtering and save",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_species_editing_owner_test.dart",
+     "test": "homonyms keep distinct identities through filtering and save"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/training_items_host_test.dart",
+   "test": "Studio authors vitamins and battle boosts and cold reloads typed settings",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_item_catalog_owner_test.dart",
+     "test": "Studio authors vitamins and battle boosts and cold reloads typed settings"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_border_notice_host_test.dart",
+   "test": "border preview notice belongs to Map while diagnostics remain",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_test.dart",
+   "test": "Combat offers an explicit singles or doubles format",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_owner_test.dart",
+     "test": "Combat offers an explicit singles or doubles format"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Libelles d options (UI) non repris ; refus cote controleur prouve."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_test.dart",
+   "test": "Combat changes the named project rules before enabling doubles",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_owner_test.dart",
+     "test": "Combat changes the named project rules before enabling doubles"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Correspondance profil -> PokemonRulesetProfile extraite (pokemonRulesetProfile) + test dedie."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_test.dart",
+   "test": "Combat keeps project rules unchanged while a trainer draft is dirty",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_owner_test.dart",
+     "test": "Combat keeps project rules unchanged while a trainer draft is dirty"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_test.dart",
+   "test": "Combat refuses one remaining member in doubles with a readable error",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_owner_test.dart",
+     "test": "Combat refuses one remaining member in doubles with a readable error"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_test.dart",
+   "test": "Combat retains all six singles members when editing the trainer",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_owner_test.dart",
+     "test": "Combat retains all six singles members when editing the trainer"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_test.dart",
+   "test": "real Studio adapter persists format, refuses stale and reopens cold",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_owner_test.dart",
+     "test": "real Studio adapter persists format, refuses stale and reopens cold"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_panel_test.dart",
+   "test": "finds and imports a visible animation choice",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_panel_owner_test.dart",
+     "test": "finds and imports a visible animation choice"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_panel_test.dart",
+   "test": "reports an unavailable catalog and lets the user retry",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_panel_owner_test.dart",
+     "test": "reports an unavailable catalog and lets the user retry"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_panel_test.dart",
+   "test": "discarded search results cannot be applied to a different move",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_panel_owner_test.dart",
+     "test": "discarded search results cannot be applied to a different move"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_test.dart",
+   "test": "reselecting advanced preserves invalid raw stats and refuses save",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_owner_test.dart",
+     "test": "reselecting advanced preserves invalid raw stats and refuses save"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_test.dart",
+   "test": "standard clears stat drafts while preserving invalid level and other members",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_owner_test.dart",
+     "test": "standard clears stat drafts while preserving invalid level and other members"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_test.dart",
+   "test": "removal reindexes retained raw drafts and errors independently",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_owner_test.dart",
+     "test": "removal reindexes retained raw drafts and errors independently"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_test.dart",
+   "test": "strict stat integers and 510 cap refuse save then persist each member",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_owner_test.dart",
+     "test": "strict stat integers and 510 cap refuse save then persist each member"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_test.dart",
+   "test": "preview follows unsaved values and hides invalid, waiting and unavailable species",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_owner_test.dart",
+     "test": "preview follows unsaved values and hides invalid, waiting and unavailable species"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Apercu extrait dans lib/features/pokemon/coordination/pokemon_trainer_stats_preview.dart (map_gameplay interdit en application/) ; memes valeurs 61/75/40/58, masquage invalide/en attente/introuvable. Le libelle statistiques de base reste UI (valid && preview == null prouve)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_project_switch_host_test.dart",
+   "test": "read-only search can leave A and cannot update project B",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_species_storage_owner_test.dart",
+     "test": "read-only search can leave A and cannot update project B"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "allowSwitch du shell remplace par PokemonWorkspaceWorkflow.requestLeave (meme garde) puis fermeture des proprietaires."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_custom_refs_host_test.dart",
+   "test": "save follows manifest and companion refs, not species id",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_species_storage_owner_test.dart",
+     "test": "save follows manifest and companion refs, not species id"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/workshop_reference_scope_test.dart",
+   "test": "combat deletion requires an explicit complete reference analysis",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/workshop_reference_scope_owner_test.dart",
+     "test": "combat deletion requires an explicit complete reference analysis"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/workshop_reference_scope_test.dart",
+   "test": "combat exposes analysis and disables delete while its references are incomplete",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/workshop_reference_scope_test.dart",
+   "test": "a running combat usage analysis says so until it ends",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/workshop_reference_scope_test.dart",
+   "test": "commerce reference panel waits for explicit global analysis",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/workshop_reference_scope_test.dart",
+   "test": "regional controller loads only the selected destination and reuses it",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/workshop_reference_scope_owner_test.dart",
+     "test": "regional controller loads only the selected destination and reuses it"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Cas regional_map relocalise dans le fichier pokemon miroir de l original (zone regional_map hors Pokemon)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_fishing_effect_test.dart",
+   "test": "general table picker preserves every non-fishing kind and contextual rates",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback). La regle pourcentage/fraction du champ chance est extraite et testee dans pokemon_combat_authoring_owner_test."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_fishing_effect_test.dart",
+   "test": "guided fishing picker authors three reusable rods and preserves the item",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_item_effects_owner_test.dart",
+     "test": "guided fishing picker authors three reusable rods and preserves the item"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Changement de canne extrait (PokemonItemEffectEditing.setRodKind)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_save_conflict_host_test.dart",
+   "test": "disk revision conflict keeps the focused species draft",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_species_storage_owner_test.dart",
+     "test": "disk revision conflict keeps the focused species draft"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_creation_host_test.dart",
+   "test": "commerce actions remain reachable in a compact window",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_creation_host_test.dart",
+   "test": "creates an item with a battle effect and a shop through Studio",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_item_catalog_owner_test.dart",
+     "test": "creates an item with a battle effect and a shop through Studio"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart",
+   "test": "Pokémon is a real workspace destination",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart",
+   "test": "focused species and learnset edits survive independent reopen",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_species_editing_owner_test.dart",
+     "test": "focused species and learnset edits survive independent reopen"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart",
+   "test": "JSON preview does not write and apply reopens imported identity",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_workspace_owner_test.dart",
+     "test": "JSON preview does not write and apply reopens imported identity"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart",
+   "test": "menu PNG uses canonical import and preserves an existing role",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_workspace_owner_test.dart",
+     "test": "menu PNG uses canonical import and preserves an existing role"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart",
+   "test": "clearing a missing role and saving allows a canonical PNG import",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_workspace_owner_test.dart",
+     "test": "clearing a missing role and saving allows a canonical PNG import"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart",
+   "test": "moves preview is read only and apply writes merged catalog",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_species_storage_owner_test.dart",
+     "test": "moves preview is read only and apply writes merged catalog"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_corrections_visual_host_test.dart",
+   "test": "1145 species and 754 moves fill and scroll their own viewports",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart",
+   "test": "Corde Sortie authors a typed consumable world effect",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_item_catalog_owner_test.dart",
+     "test": "Corde Sortie authors a typed consumable world effect"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart",
+   "test": "Repousse authors world target and editable positive step count",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_item_catalog_owner_test.dart",
+     "test": "Repousse authors world target and editable positive step count"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Raccordement champ -> repel(steps) extrait (setRepelSteps)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart",
+   "test": "objects and shops persist through the real workspace",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_item_catalog_owner_test.dart",
+     "test": "objects and shops persist through the real workspace"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart",
+   "test": "catalog revision conflict preserves focused draft",
+   "classification": "covered_elsewhere",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_guard_host_test.dart",
+     "test": "revision conflict blocks owner change and preserves both drafts"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_scoped_save_test.dart",
+     "test": "stale before values preserve the local controller draft and external item"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Qualification covered reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart",
+   "test": "JSON import previews without writing and requires replacement consent",
+   "classification": "covered_elsewhere",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_import_workflow_test.dart",
+     "test": "confirmed item conflict publishes the reviewed item through the real adapter"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_import_workflow_test.dart",
+     "test": "refusing an item conflict cancels its preview and preserves the catalogue"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Qualification covered reprise. Verifie en lisant le test couvrant (assertions lues)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_host_test.dart",
+   "test": "invalid focused price blocks save and leaving keeps the draft",
+   "classification": "covered_elsewhere",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_integer_input_test.dart",
+     "test": "invalid focused price remains raw and blocks save until corrected"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_integer_input_test.dart",
+     "test": "discard removes every raw input and error before another owner is selected"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_guard_host_test.dart",
+     "test": "shop draft cannot be hidden by the move owner"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Qualification covered reprise. Verifie en lisant le test couvrant (assertions lues)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_encounter_variants_test.dart",
+   "test": "Studio saves UI-edited variants with application-owned time windows and independently reopens them",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_authoring_owner_test.dart",
+     "test": "Studio saves UI-edited variants with application-owned time windows and independently reopens them"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Valeur de condition selon le type du fait extraite (editVariantConditionValue) + test dedie booleen/entier/chaine ; relecture par un LocalPokemonCombatAdapter neuf."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_test.dart",
+   "test": "shows batch import and immediate analysis feedback",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_test.dart",
+   "test": "continues bounded slices with the same revision and keeps all results",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_owner_test.dart",
+     "test": "continues bounded slices with the same revision and keeps all results"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_test.dart",
+   "test": "cancels an active slice and keeps completed results",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_owner_test.dart",
+     "test": "cancels an active slice and keeps completed results"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_test.dart",
+   "test": "stops on a network error and a retry starts from the beginning",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_owner_test.dart",
+     "test": "stops on a network error and a retry starts from the beginning"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_test.dart",
+   "test": "prepares an older project only when explicitly requested",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_owner_test.dart",
+     "test": "prepares an older project only when explicitly requested"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_test.dart",
+   "test": "a concurrent catalogue change keeps the earlier import and stops",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_owner_test.dart",
+     "test": "a concurrent catalogue change keeps the earlier import and stops"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_test.dart",
+   "test": "refuses a batch while a Pokémon draft has unsaved edits",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_owner_test.dart",
+     "test": "refuses a batch while a Pokémon draft has unsaved edits"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_test.dart",
+   "test": "refuses to start during another operation and stops on disposal",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_owner_test.dart",
+     "test": "refuses to start during another operation and stops on disposal"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_test.dart",
+   "test": "compact layout shows a partial summary and affected move names",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_test.dart",
+   "test": "the user can stop an import and retry it",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_presentation_test.dart",
+   "test": "project locale selects official and authored names without changing IDs",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_presentation_owner_test.dart",
+     "test": "project locale selects official and authored names without changing IDs"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_presentation_test.dart",
+   "test": "type, category, power and personal origin have distinct emblems",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_presentation_test.dart",
+   "test": "the real Pokémon workspace uses the game export locale",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_presentation_owner_test.dart",
+     "test": "the real Pokémon workspace uses the game export locale"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Index du workspace reel via PokemonAuthoringFixture (profil d export fr) au lieu de la liste rendue."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/encounter_trainer_authoring_journey_test.dart",
+   "test": "a valid table used nowhere warns apart from an invalid table",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback). Les avis non assigne/invalide sont en plus couverts par encounter_trainer_authoring_owner_test."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/encounter_trainer_authoring_journey_test.dart",
+   "test": "a table used by a zone or a map object is not unassigned",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/encounter_trainer_authoring_owner_test.dart",
+     "test": "a table used by a zone or a map object is not unassigned"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/encounter_trainer_authoring_journey_test.dart",
+   "test": "a trainer placed nowhere says how to place it",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback). Les avis non assigne/invalide sont en plus couverts par encounter_trainer_authoring_owner_test."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/encounter_trainer_authoring_journey_test.dart",
+   "test": "trainer usages name the character and the battle block to open",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/encounter_trainer_authoring_owner_test.dart",
+     "test": "trainer usages name the character and the battle block to open"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/encounter_trainer_authoring_journey_test.dart",
+   "test": "opening a trainer usage carries the block or the character",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only (mise en page, libelles, captures ou cablage de callback)."
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/encounter_trainer_authoring_journey_test.dart",
+   "test": "table references include map objects that roll the table",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/encounter_trainer_authoring_owner_test.dart",
+     "test": "table references include map objects that roll the table"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "imports an API recipe through the scoped authoring boundary",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_owner_test.dart",
+     "test": "imports an API recipe through the scoped authoring boundary"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "Studio delegates a bounded batch to the shared authoring importer",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_owner_test.dart",
+     "test": "Studio delegates a bounded batch to the shared authoring importer"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "prepares an older project through the canonical authoring service",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_owner_test.dart",
+     "test": "prepares an older project through the canonical authoring service"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "imports a recipe using the HGSS smokescreen alias",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_owner_test.dart",
+     "test": "imports a recipe using the HGSS smokescreen alias"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "rejects altered API resource bytes without creating a binding",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_guard_owner_test.dart",
+     "test": "rejects altered API resource bytes without creating a binding"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "refuses a stale selection before changing the project",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_guard_owner_test.dart",
+     "test": "refuses a stale selection before changing the project"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "cancels an import if the selected attack changes during download",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_guard_owner_test.dart",
+     "test": "cancels an import if the selected attack changes during download"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "refuses a recipe that changed after the user selected it",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_guard_owner_test.dart",
+     "test": "refuses a recipe that changed after the user selected it"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "reopens the project and recognizes the persisted recipe",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_guard_owner_test.dart",
+     "test": "reopens the project and recognizes the persisted recipe"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "reimports a valid WAV larger than the particle-definition limit",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_storage_owner_test.dart",
+     "test": "reimports a valid WAV larger than the particle-definition limit"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "rejects oversized stored audio without changing its binding",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_storage_owner_test.dart",
+     "test": "rejects oversized stored audio without changing its binding"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "preserves an existing binding when a different recipe is selected",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_storage_owner_test.dart",
+     "test": "preserves an existing binding when a different recipe is selected"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Qualifie covered ; relocalise tel quel."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "exports the imported recipe and keeps the offline Player fallback",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_storage_owner_test.dart",
+     "test": "exports the imported recipe and keeps the offline Player fallback"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "imports and exports a real BW2 source recipe for offline use",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_studio_owner_test.dart",
+     "test": "imports and exports a real BW2 source recipe for offline use"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Toujours SAUTE par defaut (skip si AVELUNE_BW2_STUDIO_BUNDLE absent), comme l original : aucune preuve d execution par defaut, non mute."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "Studio imports from the attack panel into the canonical project",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_studio_owner_test.dart",
+     "test": "Studio imports from the attack panel into the canonical project"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Panneau remplace par le controleur reel + LocalPokemonWorkspaceAdapter : notices ajoutee/deja presente, aucune lecture maps/foreign-* ni history.jsonl."
+  },
+  {
+   "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_test.dart",
+   "test": "Studio batch button imports into the real project and retries",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_studio_owner_test.dart",
+     "test": "Studio batch button imports into the real project and retries"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Resume affiche (UI) remplace par le comptage des statuts imported/alreadyPresent du controleur."
+  }
+ ],
+ "extractions": [
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_combat_table_detail.dart:build (probabilite)",
+   "to": "lib/features/pokemon/application/pokemon_combat_authoring_rules.dart:pokemonEncounterChancePercent / PokemonCombatAuthoringCommands.editEncounterChancePercent",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_combat_table_entry.dart:_buildCombatTableEntry (niveau min)",
+   "to": "lib/features/pokemon/application/pokemon_combat_authoring_rules.dart:pokemonEncounterEntryWithMinLevel",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_combat_variant_conditions.dart:_buildCombatVariantCondition (valeur attendue)",
+   "to": "lib/features/pokemon/application/pokemon_combat_authoring_rules.dart:PokemonCombatAuthoringCommands.editVariantConditionValue",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_combat_trainer_detail.dart:_teamEntry (moves < 4, objet tenu/Ball vide -> null)",
+   "to": "lib/features/pokemon/application/pokemon_combat_authoring_rules.dart:pokemonTrainerMoveLimit / pokemonTrainerCanAddMove ; lib/features/pokemon/application/pokemon_document_editing.dart:pokemonOptionalChoice",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_combat_page.dart:build (selecteur de regles)",
+   "to": "lib/features/pokemon/application/pokemon_combat_authoring_rules.dart:pokemonRulesetProfile",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_combat_trainer_stats.dart:_PokemonCombatTrainerStatsState (apercu, mode avance, total EV)",
+   "to": "lib/features/pokemon/coordination/pokemon_trainer_stats_preview.dart:pokemonTrainerStatsAdvanced / pokemonTrainerEvTotal / pokemonTrainerStatsPreviewValid / pokemonTrainerStatsPreview",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_item_effects.dart:_card (options par contexte, editable, verrou de consommation, curesConfusion, stat vitamine/boost, canne, Repousse) et _integerEffectField (bornes)",
+   "to": "lib/features/pokemon/application/pokemon_item_effect_editing.dart:PokemonItemEffectEditing.kindOptions / editable / integerBounds / consumptionLocked / setConsumed / setCuresConfusion / setTrainedStat / setRodKind / setRepelSteps",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_evolution_entry.dart:minLevel/minFriendship/itemId/requiredMoveId onChanged ; pokemon_species_evolution.dart:preEvolution",
+   "to": "lib/features/pokemon/application/pokemon_document_editing.dart:pokemonDocumentNumberInput / pokemonOptionalChoice",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_shop_catalog.dart:_entry (bornes prix/revente/stock)",
+   "to": "lib/features/pokemon/application/pokemon_shop_editing.dart:PokemonShopEditing.priceBounds / sellPriceBounds / stockBounds",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_commerce_references.dart:build (lignes non resolues)",
+   "to": "lib/features/pokemon/application/pokemon_shop_editing.dart:PokemonShopEditing.unresolvedEntries",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/pokemon/pokemon_move_recipe_panel.dart:build (eligibilite)",
+   "to": "lib/features/pokemon/application/pokemon_move_recipe_commands.dart:PokemonMoveRecipeCommands.recipePanelAvailableFor",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  },
+  {
+   "from": "lib/presentation/features/game_export/studio_game_export_content.dart:_openOwner/_canOpen",
+   "to": "lib/features/game_export/application/game_export_failure_route.dart:gameExportFailureRoute / GameExportFailureRoute",
+   "legacyTestsRerun": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart (copie QA) -> +84 -1, echec unique pre-existant pokemon_combat_host_test ligne 298 (reproduit sur HEAD)"
+  }
+ ],
+ "decisions": [
+  {
+   "topic": "Plafond de 4 attaques par Pokemon dresseur",
+   "legacyBehaviour": "L UI masque Ajouter une attaque a 4 attaques (pokemon_combat_trainer_detail.dart, if pokemonTrainerCanAddMove).",
+   "ownerBehaviour": "PokemonCombatController.replaceTrainerMember / editTrainer et _validate (pokemon_combat_validation.dart:140) n imposent aucun plafond ; seul le minimum 1 est valide. Aucun plafond releve dans ProjectTrainerPokemonEntry/map_core. Regle extraite telle quelle (pokemonTrainerCanAddMove) sans l imposer au controleur.",
+   "where": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_authoring_rules.dart ; pokemon_combat_validation.dart:140"
+  },
+  {
+   "topic": "Panneau de recettes pour attaques creees dans le projet",
+   "legacyBehaviour": "Panneau masque si move.userCreated (pokemon_move_recipe_panel.dart).",
+   "ownerBehaviour": "findMoveRecipes/importMoveRecipe (pokemon_move_recipe_commands.dart) ne refusent pas une attaque userCreated ; recipePanelAvailableFor extrait sans changer findMoveRecipes.",
+   "where": "apps/avelune_studio/lib/features/pokemon/application/pokemon_move_recipe_commands.dart"
+  },
+  {
+   "topic": "Refus des references de scene avant la garde de sortie Pokemon et routage vers la carte cible",
+   "legacyBehaviour": "workspace_navigation_binding.dart refuse une reference de scene (L editeur de scenes est indisponible) avant la garde, puis ouvre la carte de la reference apres abandon.",
+   "ownerBehaviour": "Aucun proprietaire non visuel ; logique dans lib/presentation/features/map_workspace/workspace_navigation_binding.dart, hors de mes dossiers autorises (zone Carte). Non extraite.",
+   "where": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_navigation_binding.dart"
+  },
+  {
+   "topic": "Extraction de l apercu de stats hors application/",
+   "legacyBehaviour": "Le widget appelle map_gameplay.calculateTrainerPokemonStats.",
+   "ownerBehaviour": "application/ ne peut pas importer map_gameplay (barrel -> map_core.dart -> dart:io, garde architecture_boundaries) : propriétaire place dans lib/features/pokemon/coordination/ (nouveau dossier). A valider par Yoahn.",
+   "where": "apps/avelune_studio/lib/features/pokemon/coordination/pokemon_trainer_stats_preview.dart"
+  },
+  {
+   "topic": "Logique legacy encore non extraite (hors priorites donnees)",
+   "legacyBehaviour": "pokemon_combat_page.dart : activation de l analyse (operation active / brouillon sale / port sans PokemonCombatReferencePort) et creation selon la vue ; pokemon_commerce_references.dart : activation de l analyse ; pokemon_combat_table_detail.dart : especes activees proposees et Ajouter une espece masque pour une rencontre unique deja renseignee ; pokemon_combat_trainer_stats.dart : _natureLabel.",
+   "ownerBehaviour": "Non extrait faute de temps ; les gardes equivalentes existent partiellement dans analyzeReferences/createTable/createTrainer (owners). Perdu au retrait : le masquage d Ajouter une espece pour une rencontre unique remplie et le filtrage des especes desactivees.",
+   "where": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_page.dart, pokemon_commerce_references.dart, pokemon_combat_table_detail.dart, pokemon_combat_trainer_stats.dart"
+  },
+  {
+   "topic": "Doublon de slug gameExportSlug / studioGameIdSlug (note de qualification)",
+   "legacyBehaviour": "Repli sans identite de StudioGameExportPage (chemin mort selon la qualification).",
+   "ownerBehaviour": "Non traite (deux fonctions dans deux features) ; a trancher.",
+   "where": "apps/avelune_studio/lib/features/game_export/application/game_export_slug.dart ; lib/features/project_settings/application/project_identity_controller.dart"
+  },
+  {
+   "topic": "Lignes > 300 (architecture_boundaries_test)",
+   "legacyBehaviour": "-",
+   "ownerBehaviour": "Le support pokemon_move_recipe_transport_owner_fixture.dart fait 312 lignes (transports copies de l original de 1148 lignes) ; tous mes autres fichiers <= 300. Ce test est deja rouge sur l arbre (suite_a3cd_red).",
+   "where": "apps/avelune_studio/test/support/pokemon_move_recipe_transport_owner_fixture.dart"
+  }
+ ],
+ "commands": [
+  {
+   "command": "git -C /Users/karim/Project/pokemonProject status --short (debut)",
+   "cwd": "/Users/karim/Project/pokemonProject",
+   "exitCode": 0,
+   "result": "4 fichiers packages/map_authoring modifies (autre session) ; ensuite autres sessions actives (map_story, cinematics, ...)"
+  },
+  {
+   "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub test/pokemon/pokemon_move_recipe_import_owner_test.dart (version initiale non scindee)",
+   "cwd": "apps/avelune_studio (arbre reel)",
+   "exitCode": 0,
+   "result": "+15 ~1"
+  },
+  {
+   "command": "flutter test (arbre reel, 15:3x) : compilation impossible map_gameplay -> NarrativeEventStateCheckpointOwner (map_story d une autre session, package_config perime) ; verification deplacee dans la copie QA",
+   "cwd": "apps/avelune_studio (arbre reel)",
+   "exitCode": 1,
+   "result": "loading failed (hors de mon perimetre)"
+  },
+  {
+   "command": "git archive HEAD apps/avelune_studio packages third_party examples/playable_runtime_host/golden_item_system | tar -x ; flutter pub get",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 0,
+   "result": "copie QA ; examples/golden_item_system ajoute (fixtures items/moves/png utilisees par les tests). La copie a ete supprimee par un tiers vers 15:51 puis recreee."
+  },
+  {
+   "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/*_owner_test.dart test/game_export/game_export_failure_route_owner_test.dart",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 0,
+   "result": "+92 ~1 (le ~1 = BW2 saute sans AVELUNE_BW2_STUDIO_BUNDLE)"
+  },
+  {
+   "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/{pokemon_bitter_medicine,pokemon_combat_battle_format,pokemon_combat_host,pokemon_combat_responsive,pokemon_combat_trainer_stats,pokemon_encounter_variants,pokemon_fishing_effect,pokemon_move_recipe_panel,workshop_reference_scope,pokemon_forms_evolution_host,training_items_host,full_restore_item_host,pokemon_commerce_host,pokemon_commerce_creation_host,pokemon_commerce_refresh_host}_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/game_export/{studio_game_export_close,studio_game_export_control,studio_game_export_cancel,studio_game_export_workflow,studio_test_export_scope_journey,studio_spatial_game_export,studio_game_export_project_switch}_test.dart",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "+84 -1 : seul echec pokemon_combat_host_test Studio creates a wild table and trainer with independent reopen (ligne 298, ensureVisible trainer-combat-guide-null dans Carte)"
+  },
+  {
+   "command": "meme test pokemon_combat_host_test.dart seul avec les versions HEAD de mes 18 fichiers lib modifies",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "+0 -1, meme ligne 298 : pre-existant (deja dans suite_a3cd_red.txt), non lie a mes extractions (la partie Pokemon du parcours passe avant l echec)"
+  },
+  {
+   "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter analyze --no-pub <50 fichiers crees/modifies>",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 0,
+   "result": "No issues found"
+  },
+  {
+   "command": "python3 mutB.py (23 mutations, une par nouveau fichier de test, appliquee puis restauree dans la copie QA)",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 0,
+   "result": "23/23 detectees (journey : 1re mutation quantity<1 masquee par le validateur map_core, 2e mutation removeTrainerBattleItem detectee)"
+  },
+  {
+   "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub -r failures-only test/pokemon/*_owner_test.dart test/game_export/game_export_failure_route_owner_test.dart",
+   "cwd": "apps/avelune_studio (arbre reel, compilait de nouveau a la fin)",
+   "exitCode": 0,
+   "result": "+92 ~1"
+  },
+  {
+   "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter analyze --no-pub <50 fichiers crees/modifies>",
+   "cwd": "apps/avelune_studio (arbre reel)",
+   "exitCode": 0,
+   "result": "No issues found"
+  },
+  {
+   "command": "python3 check_clean.py <22 tests + 6 supports + 1 test game_export>",
+   "cwd": "/Users/karim/Project/pokemonProject",
+   "exitCode": 0,
+   "result": "29 CLEAN, 0 DIRTY"
+  },
+  {
+   "command": "rm -rf /Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon",
+   "cwd": "/",
+   "exitCode": 0,
+   "result": "copie supprimee"
+  },
+  {
+   "command": "git status --short (fin)",
+   "cwd": "/Users/karim/Project/pokemonProject",
+   "exitCode": 0,
+   "result": "mes fichiers : 18 M lib + 32 ?? (3 lib, 23 tests, 6 supports) ; le reste appartient a d autres sessions"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_combat_references.dart : if (false) 'Carte ${map.name}',",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/encounter_trainer_authoring_owner_test.dart : 2 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_combat_authoring_rules.dart : maxLevel: entry.maxLevel",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_combat_authoring_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_combat_authoring_rules.dart : ? PokemonRulesetProfile.pokeMapBetaV1",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_combat_battle_format_owner_test.dart : 2 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_combat_controller.dart : item.key: item.value,",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_combat_journey_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/coordination/pokemon_trainer_stats_preview.dart : ",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_combat_trainer_stats_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/map_workspace/coordination/workspace_destination_workflow.dart : final refreshCommerce = false &&",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_commerce_refresh_owner_test.dart : 4 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_workspace_workflow.dart : preview.hasConflicts &&\n          false) {",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_corrections_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_item_effect_editing.dart : value == 'escape_rope' ||",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_item_catalog_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_item_effect_editing.dart : {'escape_rope', 'bicycle', 'fishing'}.contains(kind(use.effect));",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_item_effects_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/data/pokemon_moves_projection.dart : final entry = _projectMove(raw, 'en');",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_move_presentation_owner_test.dart : 2 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_move_recipe_commands.dart : recipePreparing ||",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_move_recipe_batch_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/data/pokemon_move_recipe_import.dart : if (_closed) {",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_move_recipe_guard_owner_test.dart : 2 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/data/pokemon_move_recipe_import.dart : limit: 3,\n        expectedInventoryRevision",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_move_recipe_import_owner_test.dart : 2 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/data/pokemon_move_recipe_import.dart : if (plan.plan.changeSet.changes.isEmpty) return true;",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_move_recipe_storage_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_move_recipe_commands.dart : ? 'Animation ajoutée.'",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_move_recipe_studio_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_move_recipe_commands.dart : supportsMoveRecipes && moveInsertGroup == null",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_move_recipe_panel_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_workspace_workflow.dart : } else {\n          return true;\n        }\n      }\n      return _owns(controller) &&",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_reference_guard_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_shop_editing.dart : if (catalog?.entries.any((item) => item.id == entry.itemId) != false)",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_shop_rules_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_workspace_queries.dart : if ((true ||",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_species_editing_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_workspace_owner_commands.dart : 'Erreur : $failure'",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_species_storage_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_import_commands.dart : return true;\n    } on Object catch (failure) {\n      if (!_disposed) error = 'Application de l’import refusée",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/pokemon_workspace_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/pokemon/application/pokemon_combat_validation.dart : if (false) {",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/pokemon/workshop_reference_scope_owner_test.dart : 1 test(s) en echec"
+  },
+  {
+   "command": "mutation lib/features/game_export/application/game_export_failure_route.dart : StudioFailureOwner.exportMode => GameExportFailureRoute.ownerWorkspace,",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-B_pokemon/apps/avelune_studio (copie git archive HEAD + mes fichiers, supprimee a la fin)",
+   "exitCode": 1,
+   "result": "test/game_export/game_export_failure_route_owner_test.dart : 1 test(s) en echec"
+  }
+ ],
+ "createdFiles": [
+  "apps/avelune_studio/lib/features/game_export/application/game_export_failure_route.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_authoring_rules.dart",
+  "apps/avelune_studio/lib/features/pokemon/coordination/pokemon_trainer_stats_preview.dart",
+  "apps/avelune_studio/test/game_export/game_export_failure_route_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/encounter_trainer_authoring_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_combat_authoring_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_combat_battle_format_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_combat_journey_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_corrections_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_item_catalog_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_item_effects_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_move_presentation_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_move_recipe_guard_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_move_recipe_import_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_move_recipe_panel_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_move_recipe_storage_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_move_recipe_studio_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_reference_guard_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_shop_rules_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_species_editing_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_species_storage_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_workspace_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/workshop_reference_scope_owner_test.dart",
+  "apps/avelune_studio/test/support/pokemon_combat_owner_fixture.dart",
+  "apps/avelune_studio/test/support/pokemon_commerce_owner_fixture.dart",
+  "apps/avelune_studio/test/support/pokemon_move_recipe_batch_owner_fixture.dart",
+  "apps/avelune_studio/test/support/pokemon_move_recipe_owner_fixture.dart",
+  "apps/avelune_studio/test/support/pokemon_move_recipe_transport_owner_fixture.dart",
+  "apps/avelune_studio/test/support/pokemon_species_owner_fixture.dart"
+ ],
+ "modifiedFiles": [
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_document_editing.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_item_effect_editing.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_move_recipe_commands.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_shop_editing.dart",
+  "apps/avelune_studio/lib/presentation/features/game_export/studio_game_export_content.dart",
+  "apps/avelune_studio/lib/presentation/features/game_export/studio_game_export_page.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_page.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_table_detail.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_table_entry.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_trainer_detail.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_trainer_stats.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_variant_conditions.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_commerce_references.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_evolution_entry.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_item_effects.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_move_recipe_panel.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_shop_catalog.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_evolution.dart"
+ ]
+}

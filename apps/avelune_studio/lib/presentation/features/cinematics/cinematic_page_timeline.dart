@@ -39,10 +39,7 @@ extension _CinematicPageTimeline on _CinematicWorkspacePageState {
             state.selection
               ..clear()
               ..add(id);
-            final block = controller.transport.plan?.timelineItems
-                .where((b) => b.stepId == id)
-                .firstOrNull;
-            if (block != null) controller.transport.seek(block.startMs);
+            seekCinematicStep(controller.transport, id);
             refresh();
           },
           onMove: (index) {

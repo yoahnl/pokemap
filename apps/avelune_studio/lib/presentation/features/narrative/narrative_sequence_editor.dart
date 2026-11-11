@@ -7,6 +7,7 @@ import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../../features/narrative/application/narrative_interaction.dart';
 import '../../../features/narrative/application/narrative_editing.dart';
+import '../../../features/narrative/application/narrative_interaction_edits.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 
 class NarrativeSequenceEditor extends StatelessWidget {
@@ -32,11 +33,8 @@ class NarrativeSequenceEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void replace(int i, NarrativeSequenceStep step) {
-      final next = [...steps];
-      next[i] = step;
-      onChanged(next);
-    }
+    void replace(int i, NarrativeSequenceStep step) =>
+        onChanged(replacedNarrativeStep(steps, i, step));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,6 +44,8 @@ class NarrativeSequenceEditor extends StatelessWidget {
             builder: (context) {
               final i = indexed.$1, step = indexed.$2;
               final choices = targets(step.kind);
+              final up = movedNarrativeStep(steps, i, -1);
+              final down = movedNarrativeStep(steps, i, 1);
               void update({
                 String? target,
                 bool? value,
@@ -70,31 +70,20 @@ class NarrativeSequenceEditor extends StatelessWidget {
                         Expanded(child: Text('${i + 1}. ${labels[step.kind]}')),
                         IconButton(
                           tooltip: 'Monter l’action',
-                          onPressed: i == 0
-                              ? null
-                              : () {
-                                  final next = [...steps];
-                                  next[i] = next[i - 1];
-                                  next[i - 1] = step;
-                                  onChanged(next);
-                                },
+                          onPressed: up == null ? null : () => onChanged(up),
                           icon: const Icon(Icons.arrow_upward),
                         ),
                         IconButton(
                           tooltip: 'Descendre l’action',
-                          onPressed: i + 1 == steps.length
+                          onPressed: down == null
                               ? null
-                              : () {
-                                  final next = [...steps];
-                                  next[i] = next[i + 1];
-                                  next[i + 1] = step;
-                                  onChanged(next);
-                                },
+                              : () => onChanged(down),
                           icon: const Icon(Icons.arrow_downward),
                         ),
                         IconButton(
                           tooltip: 'Retirer l’action',
-                          onPressed: () => onChanged([...steps]..removeAt(i)),
+                          onPressed: () =>
+                              onChanged(withoutNarrativeItem(steps, i)),
                           icon: const Icon(Icons.close),
                         ),
                       ],
@@ -148,8 +137,8 @@ class NarrativeSequenceEditor extends StatelessWidget {
                         value: '${step.milliseconds}',
                         label: 'Attente en millisecondes',
                         onChanged: (v) {
-                          final ms = int.tryParse(v);
-                          if (ms != null && ms >= 0) update(ms: ms);
+                          final ms = narrativeWaitMilliseconds(v);
+                          if (ms != null) update(ms: ms);
                         },
                       ),
                   ],
@@ -165,13 +154,8 @@ class NarrativeSequenceEditor extends StatelessWidget {
               StudioButton(
                 label: '+ ${labels[kind]}',
                 secondary: true,
-                onPressed: () => onChanged([
-                  ...steps,
-                  NarrativeSequenceStep(
-                    kind: kind,
-                    targetId: targets(kind).keys.firstOrNull ?? '',
-                  ),
-                ]),
+                onPressed: () =>
+                    onChanged(addedNarrativeStep(steps, kind, targets(kind))),
               ),
           ],
         ),

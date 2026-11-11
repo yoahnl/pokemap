@@ -1,0 +1,2748 @@
+{
+ "area": "C1_cinematics",
+ "testCases": [
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_transport_controls_test.dart",
+   "test": "UI11 the playhead follows a drag on the ruler",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "PresentationTimeline",
+    "PresentationWorkspacePage",
+    "ValueKey presentation-timeline-ruler"
+   ],
+   "asserts": "Dragging then tapping the ruler moves PresentationPreviewTransport.timeUs forward then back; the document stays clean (dirty false, no error).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_preview_transport.dart",
+     "symbol": "PresentationPreviewTransport.seek/pause"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentations_ui11_transport_test.dart",
+     "test": "canonical clock preserves pauses, exclusive ends and seek without mutation"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations_ui11_transport_test.dart",
+     "test": "step and loop use shared microsecond transport semantics"
+    }
+   ],
+   "gap": "Pixel-to-time mapping of a ruler scrub (dx/pixelsPerSecond*1e6 rounded, clamped 0..durationUs, pause before seek) exists only in presentation_timeline_ruler.dart. Transport seek/step semantics are proven, the pointer mapping is not."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_transport_controls_test.dart",
+   "test": "UI11 scrubbing does not churn the media between frames",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "PresentationTimeline",
+    "presentation-timeline-ruler"
+   ],
+   "asserts": "While a ruler drag is active transport.scrubbing is true, StudioPresentationVisuals.mediaPublishes grows and mediaReleases stays constant; after release scrubbing is false and releases are still unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/platform/rendering/presentation_workspace_visuals.dart",
+     "symbol": "StudioPresentationVisuals._syncMedia / _publishMedia"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_preview_transport.dart",
+     "symbol": "PresentationPreviewTransport.setScrubbing"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "No non-legacy test reads mediaReleases/mediaPublishes or setScrubbing. Only the media-epoch bump on seek is proven (presentations_ui11_transport_test 'document replacement and manual scrubs invalidate media epochs'). The 'no decoder teardown while scrubbing, republish each sample' rule in presentation_workspace_visuals.dart is unproven."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_transport_controls_test.dart",
+   "test": "UI11 transport answers the keyboard without a focused panel",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "PresentationWorkspacePage._PresentationPageShortcuts (HardwareKeyboard handler)",
+    "PresentationTimeline"
+   ],
+   "asserts": "Space toggles play/pause, arrows step one frame, End seeks to asset.durationUs, Home seeks to 0; dirty stays false and port.writes stays 0.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_preview_transport.dart",
+     "symbol": "PresentationPreviewTransport.play/pause/stepForward/stepBackward/seek"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentations_ui11_transport_test.dart",
+     "test": "canonical clock preserves pauses, exclusive ends and seek without mutation"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations_ui11_transport_test.dart",
+     "test": "step and loop use shared microsecond transport semantics"
+    }
+   ],
+   "gap": "Key-to-command table (space/arrows/home/end), the 'ignored while a text field is focused' guard (editingText) and the 'ignored when route is not current' guard exist only in presentation_page_shortcuts.dart. Transport semantics themselves are proven."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_transport_controls_test.dart",
+   "test": "UI11 a refused timeline drag stops warning once released",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "PresentationTimeline",
+    "ValueKey clip-<id>",
+    "'Déplacement refusé' banner",
+    "PresentationViewState.actionError"
+   ],
+   "asserts": "Dragging a clip 900 px past the duration sets view.actionError and shows 'Déplacement refusé'; on release the error clears and controller.active.asset is unchanged (drag refused, not clamped).",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_authoring/lib/src/domains/narrative/presentation_timeline_editing_controller.dart",
+     "symbol": "PresentationTimelineEditingController.updateDrag/finishDrag/cancelDrag"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "The refusal rule (target index/track kind mismatch, start<0, end>durationUs, end<=start for non-markers => gesture invalid, cancelDrag, no command emitted) lives in PresentationTimeline.update() only. The owner controller CLAMPS instead of refusing (_updateMove clamps delta; trims clamp), so owner semantics differ and nothing outside the legacy test pins either behaviour for the Studio. Decide: adopt clamp (and say so) or extract refusal."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_field_guard_test.dart",
+   "test": "UI11 invalid focused duration blocks save and switching until corrected",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort",
+    "ui11_presentation_widget_test.dart#tapUi11"
+   ],
+   "legacySymbols": [
+    "PresentationInspector.field (StudioCommitField)",
+    "PresentationViewState.invalidFields",
+    "PresentationWorkspacePage.flush",
+    "tab 'Animations'"
+   ],
+   "asserts": "Entering -2 in 'Durée (s)' leaves view.invalidFields non-empty, Save is refused (writes 0, asset unchanged), switching to the Animations tab is refused (tab and selection unchanged); entering 8 clears the invalid set, saves once, persists durationUs 8000000 and clears dirty.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_controller.dart",
+     "symbol": "PresentationWorkspaceController._flush/flushEdits (guards open/create/save/duplicate/delete/reload)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_editing.dart",
+     "symbol": "PresentationWorkspaceEditing.patchClip"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/coordination/presentation_editing_sessions.dart",
+     "symbol": "PresentationEditingSessions.invalidFieldsFor"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart",
+     "test": "failed grouped edit rolls back all commands and accepts correction"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart",
+     "test": "create no disk write, grouped canonical intent, undo redo save and reopen"
+    }
+   ],
+   "gap": "Proven: save refuses when flushEdits returns false and saves when true (no disk write while refused). NOT proven outside legacy: (1) the rule that a rejected numeric field adds to invalidFields and makes flush() false (PresentationWorkspacePage.flush + PresentationInspector.field.tryCommit); (2) that patchClip rejects a negative durationUs (unsure: probably the map_core codec, no non-legacy assertion found); (3) that open()/switching is refused while flush is false for presentations (only save is tested); (4) the tab-switch refusal itself is UI."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_widget_test.dart",
+   "test": "UI11 real shared renderer early composition",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "PresentationWorkspacePage",
+    "ValueKey presentation-canvas",
+    "PresentationCanvas"
+   ],
+   "asserts": "The real fixture composes through the shared renderer: canvas present, a tap selects clip 'title.clip', visuals.diagnostic is null, no writes, no exception.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_widget_test.dart",
+   "test": "UI11 blank to image text canvas timeline save and reopen via controls",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort",
+    "tapUi11"
+   ],
+   "legacySymbols": [
+    "PresentationWorkspacePage",
+    "PresentationInspector fields 'Durée (s)' / 'Contenu du texte'",
+    "PresentationTimeline clip bar drag",
+    "'Nouvelle présentation' / 'Composition vide' dialogs"
+   ],
+   "asserts": "Creates a blank presentation, adds an image from the catalogue and a text clip, edits duration (8 s) and unicode text, saves once (dirty false), drags the text clip so startUs>0 with duration unchanged, saves again, reloads from disk equal to the in-memory asset and reopens both documents.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_controller.dart",
+     "symbol": "PresentationWorkspaceController.create/open"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_editing.dart",
+     "symbol": "addMediaClip/addText/patchClip/apply"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_publication.dart",
+     "symbol": "PresentationWorkspaceController.save"
+    },
+    {
+     "path": "packages/map_authoring/lib/src/domains/narrative/presentation_timeline_editing_controller.dart",
+     "symbol": "PresentationTimelineEditingController.beginDrag/finishDrag"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart",
+     "test": "guided clip creation is atomic with defaults, lock refusal and publication"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart",
+     "test": "create no disk write, grouped canonical intent, undo redo save and reopen"
+    },
+    {
+     "file": "apps/avelune_studio/test/ui11_presentation_library_test.dart",
+     "test": "visual layer ordering preserves tracks, remains a draft and supports undo"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_atomic_ui11_test.dart",
+     "test": "final edited asset, image and scene recover as one transaction"
+    },
+    {
+     "file": "packages/map_authoring/test/domains/narrative/presentation_cinematic_authoring_test.dart",
+     "test": "applies one atomic batch across selected Presentation clips"
+    },
+    {
+     "file": "packages/map_editor/test/ui/canvas/cinematics/presentation_timeline_editing_controller_test.dart",
+     "test": "multi-clip drag stays local then emits one snapped batch"
+    }
+   ],
+   "gap": "Every link is proven separately (create, text/image add, patch, save+reopen equality, batch edit, drag->batch emission). Not proven as a chain through the Studio PresentationWorkspaceController: applying a timeline-drag command ('presentationClip.batch') via controller.apply then saving. Unicode text/8 s duration through patchClip is not asserted in non-legacy tests (unsure)."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_canvas_gesture_test.dart",
+   "test": "UI11 real scale handle preview cancel and one undo",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort",
+    "ui11_presentation_widget_test.dart#tapUi11"
+   ],
+   "legacySymbols": [
+    "PresentationCanvas",
+    "PresentationCanvasGestures (begin/updateGesture/end/cancel)",
+    "PresentationFrameRenderer geometry",
+    "tooltip 'Annuler'"
+   ],
+   "asserts": "Dragging the scale handle keeps the asset unchanged until pointer-up, then patches only the selected text clip (scaleX==scaleY!=1; translateX untouched), one 'Annuler' restores the original asset and canUndo false; an Escape-cancelled second drag changes nothing.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_pose_projection.dart",
+     "symbol": "presentationPosePatch/presentationPose/presentationPoseKey"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_gesture_projection.dart",
+     "symbol": "projectPresentationGesture"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_editing.dart",
+     "symbol": "PresentationWorkspaceController.patchClip/undo"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_pose_projection_test.dart",
+     "test": "gesture trajectory preserves endpoint deltas and scale ratios"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_gesture_projection_test.dart",
+     "test": "a gesture changes only its clip and preserves the complete asset"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart",
+     "test": "guided clip creation is atomic with defaults, lock refusal and publication"
+    }
+   ],
+   "gap": "Pointer-to-transform math exists only in presentation_canvas_gestures.dart: handle hit radius 14 px, rotate handle 22 px above bounds.topCenter, rotationTurns += angle delta/(2*pi), scale factor = distance ratio clamped .01..100 applied to scaleX and scaleY, translate normalised by canvas size, commit only if delta!=Offset.zero and a patch exists, 'Transformation refusée' error. Escape cancel and one-undo-per-gesture are proven only here (single apply->single undo is proven in the controller test)."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_canvas_gesture_test.dart",
+   "test": "UI11 real rotate handle preview cancel and one undo",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort",
+    "ui11_presentation_widget_test.dart#tapUi11"
+   ],
+   "legacySymbols": [
+    "PresentationCanvas",
+    "PresentationCanvasGestures (begin/updateGesture/end/cancel)",
+    "PresentationFrameRenderer geometry",
+    "tooltip 'Annuler'"
+   ],
+   "asserts": "Dragging the rotate handle keeps the asset unchanged until pointer-up, then patches only the selected text clip (rotationTurns!=0; translateX untouched), one 'Annuler' restores the original asset and canUndo false; an Escape-cancelled second drag changes nothing.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_pose_projection.dart",
+     "symbol": "presentationPosePatch/presentationPose/presentationPoseKey"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_gesture_projection.dart",
+     "symbol": "projectPresentationGesture"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_editing.dart",
+     "symbol": "PresentationWorkspaceController.patchClip/undo"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_pose_projection_test.dart",
+     "test": "gesture trajectory preserves endpoint deltas and scale ratios"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_gesture_projection_test.dart",
+     "test": "a gesture changes only its clip and preserves the complete asset"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart",
+     "test": "guided clip creation is atomic with defaults, lock refusal and publication"
+    }
+   ],
+   "gap": "Pointer-to-transform math exists only in presentation_canvas_gestures.dart: handle hit radius 14 px, rotate handle 22 px above bounds.topCenter, rotationTurns += angle delta/(2*pi), scale factor = distance ratio clamped .01..100 applied to scaleX and scaleY, translate normalised by canvas size, commit only if delta!=Offset.zero and a patch exists, 'Transformation refusée' error. Escape cancel and one-undo-per-gesture are proven only here (single apply->single undo is proven in the controller test)."
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_responsive_test.dart",
+   "test": "UI11 responsive 1536 portrait and compare",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "PresentationWorkspacePage",
+    "'Paysage 16:9' StudioSelect",
+    "tooltip 'Comparer les formats'",
+    "PresentationViewState.portrait/compare"
+   ],
+   "asserts": "Re-layouts at 1536 px wide (text scale 1) without exception, toggles portrait and compare view flags, dirty stays false and writes stay 0. (name generated by a loop over sizes 1536/1440/1280/1024)",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_responsive_test.dart",
+   "test": "UI11 responsive 1440 portrait and compare",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "PresentationWorkspacePage",
+    "'Paysage 16:9' StudioSelect",
+    "tooltip 'Comparer les formats'",
+    "PresentationViewState.portrait/compare"
+   ],
+   "asserts": "Re-layouts at 1440 px wide (text scale 1) without exception, toggles portrait and compare view flags, dirty stays false and writes stay 0. (name generated by a loop over sizes 1536/1440/1280/1024)",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_responsive_test.dart",
+   "test": "UI11 responsive 1280 portrait and compare",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "PresentationWorkspacePage",
+    "'Paysage 16:9' StudioSelect",
+    "tooltip 'Comparer les formats'",
+    "PresentationViewState.portrait/compare"
+   ],
+   "asserts": "Re-layouts at 1280 px wide (text scale 1) without exception, toggles portrait and compare view flags, dirty stays false and writes stay 0. (name generated by a loop over sizes 1536/1440/1280/1024)",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_responsive_test.dart",
+   "test": "UI11 responsive 1024 portrait and compare",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "PresentationWorkspacePage",
+    "'Paysage 16:9' StudioSelect",
+    "tooltip 'Comparer les formats'",
+    "PresentationViewState.portrait/compare"
+   ],
+   "asserts": "Re-layouts at 1024 px wide (text scale 1.5) without exception, toggles portrait and compare view flags, dirty stays false and writes stay 0. (name generated by a loop over sizes 1536/1440/1280/1024)",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/ui11_presentation_busy_test.dart",
+   "test": "UI11 a slow creation shows progress and blocks a second start",
+   "harness": [
+    "support/ui11_workspace_harness.dart#Ui11WorkspaceHarness",
+    "support/ui11_widget_port.dart#Ui11WidgetPort",
+    "support/ui11_presentation_fixture.dart#Ui11PresentationFixture",
+    "support/m2_ui_fixture.dart#WidgetResourcePort",
+    "Ui11WidgetPort.gate (blocks PresentationPort.prepare)"
+   ],
+   "legacySymbols": [
+    "PresentationWorkspacePage header 'Nouvelle présentation' OutlinedButton",
+    "LinearProgressIndicator"
+   ],
+   "asserts": "While port.prepare is gated controller.busy is true, a LinearProgressIndicator shows and the 'Nouvelle présentation' button is disabled; after release busy is false, the indicator disappears and the active asset is titled 'Montage lent'.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_library.dart",
+     "symbol": "PresentationWorkspaceController._create (_loading, _generation ticket)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_controller.dart",
+     "symbol": "PresentationWorkspaceController.busy"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart",
+     "test": "create no disk write, grouped canonical intent, undo redo save and reopen"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart",
+     "test": "one shared draft, late opening cannot overwrite B"
+    }
+   ],
+   "gap": "Create and late-response supersession are proven, but busy==true while prepare is pending and busy==false afterwards are not asserted outside legacy. 'A second creation is blocked' is only the disabled button in presentation_page_header.dart: the owner has no re-entrancy refusal (a second create bumps _generation so the first returns false) - unsure whether that is the intended product rule."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart",
+   "test": "UI10 uses owner actions for actor recovery and real controls for invalid fields",
+   "harness": [
+    "support/ui10_workspace_harness.dart#Ui10WorkspaceHarness",
+    "support/ui10_widget_port.dart#Ui10WidgetPort",
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui08_workspace_harness.dart#Ui08WorkspaceHarness",
+    "support/m2_ui_fixture.dart#pumpIo/WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "CinematicWorkspacePage",
+    "CinematicInspector + CinematicCommitField 'Durée (ms)'",
+    "StudioSelect 'Rôle dans le jeu'/'Carte de contexte'",
+    "ValueKey cinematic-map-pick",
+    "'Enregistrer' button",
+    "'Prévisualiser'",
+    "tooltip 'Retour à Histoire'"
+   ],
+   "asserts": "Creates a cinematic; addAction(actorMove) with no actor is refused ('Ajoutez et sélectionnez un acteur.', no steps); after adding an actor the move is added, role/map/placement/destination are set through the UI; an invalid duration '-2' blocks Save (writes 0, view error, dirty), the corrected value saves once and reloads identical; re-invalidating then reload(confirm=false)/stale confirmation/confirm=true keep or discard the draft correctly with no extra disk reads; preview plays; leaving the page leaves the map file byte-identical.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_actions.dart",
+     "symbol": "CinematicWorkspaceController.addAction/addMove/updateDuration"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart",
+     "symbol": "setDestination/placeActorAt/bindActor/setMap/addActor"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart",
+     "symbol": "save/reload"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_preview_transport.dart",
+     "symbol": "CinematicPreviewTransport"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "spatial destination is one history edit; paths survive binding and duplication"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "reloading discards only the chosen cinematic inputs"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "a failed reload keeps the previous session and inputs"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "a superseded reload cannot replace a newer session"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard resets rejected text in place"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "uncommitted input protects an otherwise clean owner from source invalidation"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart",
+     "test": "cinematic save preserves concurrent import, every map and linked sources"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart",
+     "test": "canonical intermediate movement, backwards scrub and stop never modify author asset"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "preview transport evaluates canonical frames without semantic edits or workspace rebuilds"
+    }
+   ],
+   "gap": "Not proven outside legacy: addAction(actorMove, actorId: null) refusing with 'Ajoutez et sélectionnez un acteur.' and leaving the timeline empty (message exists in cinematic_workspace_actions.dart; the generated test 'action input validation blocks ${kind.name} before mutation' passes an actor); the integer parsing/<=0 rejection of the duration text (owner only receives ints; owner message differs: 'La durée doit être strictement positive.'); reload with confirm=false specifically preserving rejected field text '-2' (the controller tests prove it on 'duration' fields, same owner)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics_ui10_responsive_test.dart",
+   "test": "UI10 1440.0x900.0 inspector edit keyboard save and reopen",
+   "harness": [
+    "support/ui10_workspace_harness.dart#Ui10WorkspaceHarness",
+    "support/ui10_widget_port.dart#Ui10WidgetPort",
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui08_workspace_harness.dart#Ui08WorkspaceHarness",
+    "support/m2_ui_fixture.dart#pumpIo/WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "CinematicWorkspacePage",
+    "CinematicInspector title field ValueKey cinematic-title-<id>",
+    "tooltip 'Inspecteur de cinématique'",
+    "Cmd+S CallbackShortcuts"
+   ],
+   "asserts": "At 1440x900 (text scale 1) edits the title in the inspector, saves with Cmd+S: asset title updated, dirty false, writes 1 and the reloaded asset has the new title. (name generated: size doubles printed with .0)",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "CinematicWorkspaceController.edit/_flushInputs"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart",
+     "symbol": "CinematicWorkspaceController.save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState.commitField"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "action input flush commits focused text before native insertion"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "editing during awaited publication keeps later draft and source conflicts preserve it"
+    }
+   ],
+   "gap": "Proven: edit -> save -> independent reread, and that a focused pending text is committed through flushEdits before the next owner action. Not proven: that save() itself flushes a still-focused pending title (cinematic_workspace_publication.dart line ~74 calls flushEdits; no non-legacy test drives save() with a pending field), and the Cmd+S binding / responsive layout (UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics_ui10_responsive_test.dart",
+   "test": "UI10 1280.0x800.0 inspector edit keyboard save and reopen",
+   "harness": [
+    "support/ui10_workspace_harness.dart#Ui10WorkspaceHarness",
+    "support/ui10_widget_port.dart#Ui10WidgetPort",
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui08_workspace_harness.dart#Ui08WorkspaceHarness",
+    "support/m2_ui_fixture.dart#pumpIo/WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "CinematicWorkspacePage",
+    "CinematicInspector title field ValueKey cinematic-title-<id>",
+    "tooltip 'Inspecteur de cinématique'",
+    "Cmd+S CallbackShortcuts"
+   ],
+   "asserts": "At 1280x800 (text scale 1) edits the title in the inspector, saves with Cmd+S: asset title updated, dirty false, writes 1 and the reloaded asset has the new title. (name generated: size doubles printed with .0)",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "CinematicWorkspaceController.edit/_flushInputs"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart",
+     "symbol": "CinematicWorkspaceController.save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState.commitField"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "action input flush commits focused text before native insertion"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "editing during awaited publication keeps later draft and source conflicts preserve it"
+    }
+   ],
+   "gap": "Proven: edit -> save -> independent reread, and that a focused pending text is committed through flushEdits before the next owner action. Not proven: that save() itself flushes a still-focused pending title (cinematic_workspace_publication.dart line ~74 calls flushEdits; no non-legacy test drives save() with a pending field), and the Cmd+S binding / responsive layout (UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics_ui10_responsive_test.dart",
+   "test": "UI10 1024.0x640.0 inspector edit keyboard save and reopen",
+   "harness": [
+    "support/ui10_workspace_harness.dart#Ui10WorkspaceHarness",
+    "support/ui10_widget_port.dart#Ui10WidgetPort",
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui08_workspace_harness.dart#Ui08WorkspaceHarness",
+    "support/m2_ui_fixture.dart#pumpIo/WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "CinematicWorkspacePage",
+    "CinematicInspector title field ValueKey cinematic-title-<id>",
+    "tooltip 'Inspecteur de cinématique'",
+    "Cmd+S CallbackShortcuts"
+   ],
+   "asserts": "At 1024x640 (text scale 1.5) edits the title in the inspector, saves with Cmd+S: asset title updated, dirty false, writes 1 and the reloaded asset has the new title. (name generated: size doubles printed with .0)",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "CinematicWorkspaceController.edit/_flushInputs"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart",
+     "symbol": "CinematicWorkspaceController.save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState.commitField"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "action input flush commits focused text before native insertion"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "editing during awaited publication keeps later draft and source conflicts preserve it"
+    }
+   ],
+   "gap": "Proven: edit -> save -> independent reread, and that a focused pending text is committed through flushEdits before the next owner action. Not proven: that save() itself flushes a still-focused pending title (cinematic_workspace_publication.dart line ~74 calls flushEdits; no non-legacy test drives save() with a pending field), and the Cmd+S binding / responsive layout (UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics_ui10_spatial_test.dart",
+   "test": "UI10 destination uses 16 pixel cells after actual zoom pan and publication",
+   "harness": [
+    "support/ui10_workspace_harness.dart#Ui10WorkspaceHarness",
+    "support/ui10_widget_port.dart#Ui10WidgetPort",
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui08_workspace_harness.dart#Ui08WorkspaceHarness",
+    "support/m2_ui_fixture.dart#pumpIo/WidgetResourcePort",
+    "tileSize parameter"
+   ],
+   "legacySymbols": [
+    "CinematicMapScene/CinematicMapOverlay",
+    "ValueKey cinematic-map-viewport / cinematic-map-pick / cinematic-clip-walk",
+    "tooltips 'Agrandir la carte' / 'Déplacer la vue'",
+    "button 'Choisir la destination'"
+   ],
+   "asserts": "After zoom and pan, choosing the destination of step 'walk' at cell (12,10) with 16 px tiles creates a dedicated stage point (12,10) bound to the walk target while the shared 'arrival' point stays at x=13; dirty true; undo restores the original JSON, redo reapplies; Save writes once, reload equals the edited asset and the map file bytes are unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart",
+     "symbol": "CinematicWorkspaceController.setDestination"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart",
+     "symbol": "save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "undo/redo"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "spatial destination is one history edit; paths survive binding and duplication"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart",
+     "test": "cinematic save preserves concurrent import, every map and linked sources"
+    }
+   ],
+   "gap": "Pointer-to-cell conversion under pan/zoom/tile size (floor(local/cell)) is legacy (cinematic_map_scene.dart). Not asserted outside legacy: that setDestination on a step whose target is a SHARED binding leaves the shared target/point untouched and rebinds only that step (the controller test starts from a fresh target with one point)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics_ui10_spatial_test.dart",
+   "test": "UI10 destination uses 32 pixel cells after actual zoom pan and publication",
+   "harness": [
+    "support/ui10_workspace_harness.dart#Ui10WorkspaceHarness",
+    "support/ui10_widget_port.dart#Ui10WidgetPort",
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui08_workspace_harness.dart#Ui08WorkspaceHarness",
+    "support/m2_ui_fixture.dart#pumpIo/WidgetResourcePort",
+    "tileSize parameter"
+   ],
+   "legacySymbols": [
+    "CinematicMapScene/CinematicMapOverlay",
+    "ValueKey cinematic-map-viewport / cinematic-map-pick / cinematic-clip-walk",
+    "tooltips 'Agrandir la carte' / 'Déplacer la vue'",
+    "button 'Choisir la destination'"
+   ],
+   "asserts": "After zoom and pan, choosing the destination of step 'walk' at cell (12,10) with 32 px tiles creates a dedicated stage point (12,10) bound to the walk target while the shared 'arrival' point stays at x=13; dirty true; undo restores the original JSON, redo reapplies; Save writes once, reload equals the edited asset and the map file bytes are unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart",
+     "symbol": "CinematicWorkspaceController.setDestination"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart",
+     "symbol": "save"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "undo/redo"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "spatial destination is one history edit; paths survive binding and duplication"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_independent_publication_ui10_test.dart",
+     "test": "cinematic save preserves concurrent import, every map and linked sources"
+    }
+   ],
+   "gap": "Pointer-to-cell conversion under pan/zoom/tile size (floor(local/cell)) is legacy (cinematic_map_scene.dart). Not asserted outside legacy: that setDestination on a step whose target is a SHARED binding leaves the shared target/point untouched and rebinds only that step (the controller test starts from a fresh target with one point)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics_ui10_widget_test.dart",
+   "test": "UI10 full Studio frame early composition with isolated real project",
+   "harness": [
+    "support/ui10_workspace_harness.dart#Ui10WorkspaceHarness",
+    "support/ui10_widget_port.dart#Ui10WidgetPort",
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui08_workspace_harness.dart#Ui08WorkspaceHarness",
+    "support/m2_ui_fixture.dart#pumpIo/WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "CinematicWorkspacePage",
+    "'Prévisualiser' button",
+    "ValueKey cinematic-timeline-ruler / cinematic-map-viewport / cinematic-clip-camera"
+   ],
+   "asserts": "Opens the full frame on the isolated project, the preview button starts the transport, ruler taps at 1100/2050/2600 ms seek to exactly those times (the hero is between x=8 and 13 at 1100), stop returns to 0, selecting the camera clip works, and the authored asset JSON, reads and writes are untouched.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_preview_transport.dart",
+     "symbol": "CinematicPreviewTransport.seek/advance/stop"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "preparePreview"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart",
+     "test": "canonical intermediate movement, backwards scrub and stop never modify author asset"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "preview transport evaluates canonical frames without semantic edits or workspace rebuilds"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart",
+   "test": "preview camera zoom shake fade uses playback transform and Stop restores author view",
+   "harness": [
+    "support/ui10_workspace_harness.dart#Ui10WorkspaceHarness",
+    "support/ui10_widget_port.dart#Ui10WidgetPort",
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui08_workspace_harness.dart#Ui08WorkspaceHarness",
+    "support/m2_ui_fixture.dart#pumpIo/WidgetResourcePort",
+    "support/ui10_parity_fixture.dart#createUi10ParityFixture"
+   ],
+   "legacySymbols": [
+    "CinematicPlaybackViewport",
+    "ValueKey cinematic-runtime-transform / cinematic-preview-fade",
+    "CinematicViewState.mapTransform"
+   ],
+   "asserts": "At 0/1000/1950/2450/3200/3749 ms the studio transform differs between camera moments, fade alpha is 0 before 2900 ms and 1 at the end, the author map transform never changes, Stop removes the playback viewport and restores the author view; asset untouched, no writes. Also mounts a second 960x640 CinematicPlaybackViewport for capture.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/read_models/cinematic_viewport_projection.dart",
+     "symbol": "CinematicViewportProjection.frameAt"
+    },
+    {
+     "path": "packages/map_core/lib/src/runtime/pixel_perfect_camera_projection.dart",
+     "symbol": "resolvePixelPerfectCameraZoom/snapPixelPerfectCameraPosition"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_preview_transport.dart",
+     "symbol": "CinematicPreviewTransport"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/cinematic_viewport_state_parity_test.dart",
+     "test": "projection keeps camera endpoints, resets and scrubs deterministically"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_viewport_state_parity_test.dart",
+     "test": "projection shares shake envelope and preserves fade during following wait"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_viewport_state_parity_test.dart",
+     "test": "pixel projection quantizes zoom and snaps origins on physical pixels"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics_ui10_preview_runtime_parity_test.dart",
+     "test": "preview matches real Flame actors camera shake fade at ${dimensions.$1}x${dimensions.$2} reset=${dimensions.$3}"
+    }
+   ],
+   "gap": "Camera/shake/fade values per instant and pixel-perfect quantisation are proven in map_core and against the real Flame runtime. Not proven: the Studio-side construction of the initial camera in cinematic_playback_viewport.dart (centre = player position else map centre, visible = min(15,mapWidth) x min(11,mapHeight) cells - the runtime parity test uses a fixed 15x11 window) and that author pan/zoom is isolated from preview (UI)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart",
+   "test": "UI10 timeline drag reorders and duration handle commits once with undo redo",
+   "harness": [
+    "support/ui10_workspace_harness.dart#Ui10WorkspaceHarness",
+    "support/ui10_widget_port.dart#Ui10WidgetPort",
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui08_workspace_harness.dart#Ui08WorkspaceHarness",
+    "support/m2_ui_fixture.dart#pumpIo/WidgetResourcePort"
+   ],
+   "legacySymbols": [
+    "CinematicTimelineEditor",
+    "StudioTimelineClip handles ValueKey cinematic-duration-walk / cinematic-clip-walk",
+    "tooltips 'Annuler la cinématique' / 'Rétablir la cinématique'"
+   ],
+   "asserts": "Dragging the duration handle leaves the asset untouched until release, then walk.durationMs grows (>1200); undo/redo restore/reapply the exact JSON; dragging the clip block reorders steps once and undo restores; an Escape-cancelled drag changes nothing; no disk writes.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_timeline.dart",
+     "symbol": "CinematicWorkspaceController.moveSteps"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_actions.dart",
+     "symbol": "updateDuration"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "undo/redo"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "invalid durations and unrelated clipboard bindings do not mutate history"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_timeline_editing_operations_test.dart",
+     "test": "moves a multi-selection while preserving ids and relative order"
+    }
+   ],
+   "gap": "moveSteps/updateDuration + undo/redo are proven. Gesture semantics are legacy-only: draft-until-release, resize clamp 1..3600000 ms, insertion index = number of blocks whose midpoint precedes the dragged time, Escape cancellation, single commit on release."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "targeted discard recovers a rejected inspector field and its validation diagnostics",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "input 'Nom de la cinématique' (CinematicCommitField)"
+   ],
+   "asserts": "A rejected empty title leaves field.problem/inputs.error/inspectorError set and flushEdits false; discardInputs(confirmed) restores the text in place (same field object), clears diagnostics, flushEdits true, saveAll true with the same asset and unchanged project.json.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "CinematicWorkspaceController.prepareInputDiscard/discardInputs"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState.discard"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard resets rejected text in place"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard keeps export blocked until every invalid owner is recovered"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard preserves unsaved assets and other cinematic drafts"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "accepting a corrected field clears its rejection in place"
+    }
+   ],
+   "gap": "Discard/recovery mechanics are proven on 'duration' fields. Not proven outside legacy: that a blank title is REJECTED by the owner (controller.rename('')/_edit(copyWith(title:''))) - unsure where the refusal is raised (CinematicAsset model or controller.edit) and no non-legacy test asserts it."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "targeted discard preserves an identical independent inspector error before confirmation",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "input 'Nom de la cinématique'"
+   ],
+   "asserts": "With an independent identical diagnostic (controller.rename('') error mirrored into inputs.error/inspectorError), targeted discard resets the field text to 'Départ' but keeps the independent error; flushEdits stays false and saveAll refuses. (name generated by a loop over duringConfirmation false/true)",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "CinematicWorkspaceController.discardInputs"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState diagnostics provenance"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard preserves an independent diagnostic identical to a rejected field error"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard preserves action diagnostics arriving during confirmation"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard preserves an independent inspector error mirrored in the input guard"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "an identical independent diagnostic survives discarding the committed field"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "targeted discard preserves an identical independent inspector error during confirmation",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "input 'Nom de la cinématique'"
+   ],
+   "asserts": "With an independent identical diagnostic (controller.rename('') error mirrored into inputs.error/inspectorError), targeted discard resets the field text to 'Départ' but keeps the independent error and refuses a first discard that raced with it; flushEdits stays false and saveAll refuses. (name generated by a loop over duringConfirmation false/true)",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "CinematicWorkspaceController.discardInputs"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState diagnostics provenance"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard preserves an independent diagnostic identical to a rejected field error"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard preserves action diagnostics arriving during confirmation"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard preserves an independent inspector error mirrored in the input guard"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "an identical independent diagnostic survives discarding the committed field"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "inspector delegates accepted and rejected commits on focus loss to its input owner",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "CinematicCommitField focus listener / onSubmitted"
+   ],
+   "asserts": "A valid title commits (asset title changes, field.pending false, flushEdits true), an empty title is rejected (asset same instance, field.problem set, inspectorError set, flushEdits false), discard restores the accepted title and project.json is byte-identical. Trigger: focus loss. (name generated by a loop over submit false/true)",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState.commitField"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "CinematicWorkspaceController.edit"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "always commit validates a clean field through the owner"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "accepting a corrected field clears its rejection in place"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "a rejected field is retried even without another edit"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "action input flush commits focused text before native insertion"
+    }
+   ],
+   "gap": "Owner commit/reject mechanics are proven. The focus-loss/submit trigger is UI (cinematic_commit_field.dart). Rejection of a blank title by the owner is not asserted outside legacy (see first inspector case)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "inspector delegates accepted and rejected commits on submission to its input owner",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "CinematicCommitField focus listener / onSubmitted"
+   ],
+   "asserts": "A valid title commits (asset title changes, field.pending false, flushEdits true), an empty title is rejected (asset same instance, field.problem set, inspectorError set, flushEdits false), discard restores the accepted title and project.json is byte-identical. Trigger: Enter/done. (name generated by a loop over submit false/true)",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState.commitField"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "CinematicWorkspaceController.edit"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "always commit validates a clean field through the owner"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "accepting a corrected field clears its rejection in place"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "a rejected field is retried even without another edit"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "action input flush commits focused text before native insertion"
+    }
+   ],
+   "gap": "Owner commit/reject mechanics are proven. The focus-loss/submit trigger is UI (cinematic_commit_field.dart). Rejection of a blank title by the owner is not asserted outside legacy (see first inspector case)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "focused duration commits canonical value and invalid duration is rejected",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "CinematicCommitField 'Durée (ms)'",
+    "view.error"
+   ],
+   "asserts": "Step duration 1750 commits to the asset; -2 is rejected (asset unchanged, view.error contains 'strictement positive', text kept); unmounting the inspector keeps the pending text owned so flushEdits/saveAll refuse and disk is unchanged; remounting shows -2 again; correcting to 1750 clears the error and save persists 1750.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_actions.dart",
+     "symbol": "CinematicWorkspaceController.updateDuration"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "flushEdits/saveAll"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "invalid durations and unrelated clipboard bindings do not mutate history"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "uncommitted input protects an otherwise clean owner from source invalidation"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard keeps export blocked until every invalid owner is recovered"
+    }
+   ],
+   "gap": "updateDuration(-1) refusal, guard persistence and save are proven. The text parsing in cinematic_inspector_step.dart (int.tryParse; reject null/<=0 with 'Saisissez une durée entière strictement positive.') only exists in the legacy field; the owner message is 'La durée doit être strictement positive.'."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "uncommitted focused text remains owned and blocks publication after the inspector is removed",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "CinematicCommitField"
+   ],
+   "asserts": "Free text typed in 'Durée (ms)' stays owned by the controller after the inspector is unmounted: flushEdits false, saveAll false, asset and disk unchanged; remounting shows the text; replacing it with 900 commits, saves and reloads 900.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "flushEdits/saveAll/accessProblem"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "uncommitted input protects an otherwise clean owner from source invalidation"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard keeps export blocked until every invalid owner is recovered"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_published_guard_ui10_test.dart",
+     "test": "published cinematic test preserves dirty dependencies and focused invalid edit blocks close"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "invalid command number and title remain blocked until corrected",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "CinematicCommitField 'Intensité (0 à 1)' / 'Nom de la cinématique'",
+    "view.error"
+   ],
+   "asserts": "Shake intensity 2 is rejected ('Valeur invalide'), 0.5 accepted; clearing the title is rejected (asset title unchanged) and restoring 'Départ' clears the error; save succeeds.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/authoring/cinematic_command_authoring_operations.dart",
+     "symbol": "updateCinematicTimelineCommandStep"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "edit"
+    }
+   ],
+   "coverage": "uncovered",
+   "coveringTests": [],
+   "gap": "unsure: no non-legacy test found asserting that intensity outside 0..1 (or volume/fade/blank title) is refused. The range check (finite, >=0, <=max, integer for ms) is written in cinematic_inspector_commands.dart#_number; whether updateCinematicTimelineCommandStep rejects it too is not asserted in the tests I read (map_core 'rejects an incompatible media kind without partial mutation' covers only media kind)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "tab transition commits focused title before showing actors",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "StudioTabs 'Acteurs'",
+    "'Ajouter un acteur'"
+   ],
+   "asserts": "Typing a new title then tapping the Actors tab commits the title (asset updated), switches view.inspectorTab to 'actors' and shows the add-actor control.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState.commitField"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "edit"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "action input flush commits focused text before native insertion"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "always commit validates a clean field through the owner"
+    }
+   ],
+   "gap": "Commit-on-blur through the owner is proven; the trigger 'leaving the field by changing tab unfocuses and commits' is only in CinematicInspector tab onChanged / CinematicCommitField._onFocus."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "tab transition preserves a rejected focused title across actors and properties",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "StudioTabs"
+   ],
+   "asserts": "A rejected blank title survives switching to Actors and back to Properties: the same CinematicFieldInput keeps text '' and problem, inputs.error stays, saveAll refuses, asset and disk unchanged.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+     "symbol": "CinematicInputState.field (instance retention)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "saveAll"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "targeted input discard resets rejected text in place"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "uncommitted input protects an otherwise clean owner from source invalidation"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart",
+     "test": "a rejected field is retried even without another edit"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "retired inspector preview resolves tabs and content without changing rejected input",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "StudioTabs",
+    "view.inspectorTab = 'preview'"
+   ],
+   "asserts": "An unknown inspector tab ('preview') falls back to 'properties' and renders the title field with the rejected text; input revision, errors, asset and disk are unchanged.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "camera target and zoom update canonical focus while actor choices preserve identity",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "StudioSelect 'Cible caméra' / 'Cadrage'"
+   ],
+   "asserts": "Choosing target 'actor:<id>' then zoom 'close' stores a camera focus binding with that actor id and CinematicCameraZoomPreset.close on the last step.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/authoring/cinematic_authoring_operations.dart",
+     "symbol": "updateCinematicTimelineBasicBlockStep (cameraFocusBinding)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "edit"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/cinematic_authoring_operations_test.dart",
+     "test": "V1-131 updates camera focus and cleans stale camera bindings"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_authoring_operations_test.dart",
+     "test": "V1-131 validates camera focus target bindings"
+    }
+   ],
+   "gap": "Domain update/validation of camera focus bindings is proven. The option-id codec ('actor:<id>' / 'point:<id>' / 'center'), default zoom 'medium' and 'target ?? sceneCenter' fallbacks are only in cinematic_inspector_camera.dart."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart",
+   "test": "guided initial placement is nonblocking and map entity role remains explicitly unbound",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "MapWorkspaceController/NarrativeWorkspaceController wiring inline"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "CinematicViewState",
+    "StudioSelect",
+    "StudioTabs",
+    "StudioSelect 'Position initiale' / 'Repère initial' / 'Rôle dans le jeu' / 'Personnage exact'",
+    "view.initialPlacementChoice"
+   ],
+   "asserts": "Choosing 'stagePoint' as initial position without a point writes nothing and raises no error (view.initialPlacementChoice staged); then choosing 'start' writes the placement and clears the staged choice; choosing role mapEntity creates a mapEntity binding with mapEntityId null and the 'Personnage exact' select stays disabled when no model is loaded.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart",
+     "symbol": "CinematicWorkspaceController.setPlacement/bindActor"
+    },
+    {
+     "path": "packages/map_core/lib/src/authoring/cinematic_authoring_operations.dart",
+     "symbol": "upsertCinematicActorInitialPlacement/upsertCinematicActorBinding"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/cinematic_authoring_operations_test.dart",
+     "test": "upserts and removes actor bindings with validation"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_authoring_operations_test.dart",
+     "test": "upserts placements and target bindings without altering timeline"
+    }
+   ],
+   "gap": "Domain upserts proven. Not proven: the staging rule (choices fromMovementTarget/stagePoint are held as UI state until a concrete id is chosen, never written half-formed) and the binding construction on role change (mapEntityId kept only when switching to mapEntity) - both only in cinematic_inspector_actors.dart."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_animation_ui10_test.dart",
+   "test": "typed animation inspector edits repeat count and retains invalid input diagnostic",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "StudioSelect 'Lecture de l’animation'",
+    "field 'Répétitions'"
+   ],
+   "asserts": "Switching playback to repeatCount shows 'Répétitions'; 0 is rejected (view.error contains 'strictement positive'), 4 is accepted and stored as playback.repeatCount 4.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_animation.dart",
+     "symbol": "CinematicWorkspaceController.addAnimation/updateAnimation"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_animation_commands_contract_test.dart",
+     "test": "animation uses canonical command, preserves unknown metadata and undoes repeat edit"
+    }
+   ],
+   "gap": "updateAnimation(repeatCount 3), metadata preservation and refusal of a mismatched direction are proven. Legacy-only: the repeat/duration text validation (int>0 with message), the defaults when switching kind (repeatCount(2), forDuration(1000ms)) and the error mirroring into view.error/inspectorError."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_animation_ui10_test.dart",
+   "test": "two unpublished drafts remain visible in their selected folder",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "support/map_workspace_fixture.dart#WorkspaceTestVisuals"
+   ],
+   "legacySymbols": [
+    "CinematicLibrary",
+    "CinematicViewStore.folderId",
+    "ValueKey cinematic-library-<id>",
+    "EventMapLoader"
+   ],
+   "asserts": "With a catalogue folder 'intro', create(folderId: intro) then duplicate yields two drafts whose session.folderId is 'intro'; the library filtered on that folder lists both and project.json stays byte-identical.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart",
+     "symbol": "CinematicWorkspaceController.create(folderId)/duplicate"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_edit_session.dart",
+     "symbol": "CinematicEditSession.folderId"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_animation_commands_contract_test.dart",
+     "test": "two unpublished duplicates preserve distinct identities and first draft"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    }
+   ],
+   "gap": "Draft identities and no-write creation are proven. Not proven outside legacy: that create(folderId)/duplicate carry folderId into the session, and the library visibility predicate (search over 'title map-name id', folder match session.folderId ?? catalogue entry.folderId, archived hidden unless toggled) which lives only in cinematic_library.dart."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_completion_policy_ui10_test.dart",
+   "test": "completion picker edits both policies with undo and canonical save/reopen",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "packages/map_core/test/fixtures/cinematic_facing_fixture.dart (facingProject/facingCinematic)"
+   ],
+   "legacySymbols": [
+    "CinematicInspector tab 'document'",
+    "StudioSelect 'À la fin'",
+    "StudioToggleRow 'Autoriser le croisement des personnages en mouvement'"
+   ],
+   "asserts": "The 3D document panel shows 'keepFinal' and the crossing toggle (off); toggling it edits allowMobileActorCrossing with undo/redo; choosing restoreInitial then keepFinal changes only actorCompletionPolicy (timeline and stageContext equal), undo/redo restore it, save persists and reopen equals the asset.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/authoring/cinematic_authoring_operations.dart",
+     "symbol": "setCinematicActorCompletionPolicy"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "CinematicWorkspaceController.edit/undo/redo/save"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/cinematic_actor_completion_policy_test.dart",
+     "test": "completion policy defaults to keepFinal and is serialized explicitly"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_actor_completion_policy_test.dart",
+     "test": "all authoring copy paths preserve an explicit restore policy"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_actor_completion_policy_test.dart",
+     "test": "restoreInitial changes only the terminal preview actor pose"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    }
+   ],
+   "gap": "Domain semantics and generic edit/undo/save are proven. Not proven: the Studio edit of the two fields (setCinematicActorCompletionPolicy via controller.edit; copyWith(allowMobileActorCrossing)) with exact undo/redo/reopen, and the rule that the crossing toggle is offered only when project.settings.dimension == threeD (cinematic_inspector.dart). allowMobileActorCrossing itself is covered by map_core/map_authoring/map_runtime tests (cinematic_mobile_crossing*)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_facing_mode_ui10_test.dart",
+   "test": "facing picker preserves manual route, undo and canonical save/reopen",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "facingProject/facingCinematic fixture"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "StudioSelect 'Orientation pendant le déplacement'"
+   ],
+   "asserts": "Switching a manual-route move from followMovement to preserve and back keeps path mode 'manual' and the 'corner' waypoint, undo/redo restore the mode, and each save reopens to an equal asset.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/authoring/cinematic_authoring_operations.dart",
+     "symbol": "updateCinematicTimelineActorMoveStep (facingMode)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "edit/undo/redo/save"
+    }
+   ],
+   "coverage": "covered",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/cinematic_actor_move_facing_test.dart",
+     "test": "editing facing duration or motion preserves a manual route and preview"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_actor_move_facing_test.dart",
+     "test": "typed authoring helpers default, update and round trip facing mode"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_native_composition_commands_test.dart",
+     "test": "relative points preserve routes and replay from the new actor origin"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    }
+   ],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_jump_ui10_test.dart",
+   "test": "jump preview lifts only the drawn actor and returns to its ground position",
+   "harness": [
+    "support: none (inline CinematicMapModel + _JumpVisuals)",
+    "packages/map_core/test/fixtures/cinematic_facing_fixture.dart"
+   ],
+   "legacySymbols": [
+    "CinematicMapOverlay",
+    "ValueKey cinematic-actor-actor",
+    "CinematicViewState"
+   ],
+   "asserts": "At t=500 ms the jump pose has liftCells 1 at (8,8) and the actor widget is exactly one cell (20 px) higher than at ground; at 1000 ms it returns to the ground position.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_jump_ui10_test.dart",
+   "test": "jump inspector authors height duration target and facing with safe refusal and save/reopen",
+   "harness": [
+    "support/cinematic_adapter_fixture.dart#CinematicAdapterFixture",
+    "facingProject/facingCinematic fixture"
+   ],
+   "legacySymbols": [
+    "CinematicInspector",
+    "ValueKey jump-height-<id> / duration-facing-scene-<id>",
+    "StudioSelect 'Orientation pendant le déplacement'"
+   ],
+   "asserts": "Height 0 is refused (view.error mentions hauteur, height stays 0.5), 1.25 accepted; duration 100 is refused (stays 1000, view.error mentions 'durée du saut'), 1400 accepted; facing preserve with undo/redo; save reopens to an equal asset with duration 1400 and manual waypoint 'corner'.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/authoring/cinematic_authoring_operations.dart",
+     "symbol": "updateCinematicTimelineActorJumpStep (heightCells<=4, duration 200..30000)"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_actions.dart",
+     "symbol": "addJump/updateDuration"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+     "symbol": "save"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/cinematic_actor_jump_test.dart",
+     "test": "typed authoring adds defaults and edits only the jump contract"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_actor_jump_test.dart",
+     "test": "typed authoring refuses invalid height $height without mutation"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_actor_jump_test.dart",
+     "test": "invalid jump duration $duration blocks authoring and playback"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_actor_move_facing_test.dart",
+     "test": "editing facing duration or motion preserves a manual route and preview"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    }
+   ],
+   "gap": "Height validation, max duration 30000 and the typed edit are proven in map_core (names generated over height/duration lists). unsure: map_core proves the lower duration bound only through updateCinematicAsset on a pre-built invalid asset, not through updateCinematicTimelineActorJumpStep(durationMs: 100). The inspector re-implements both ranges with its own messages; text parsing (double.tryParse, finite) is legacy-only."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_library_thumbnail_ui10_test.dart",
+   "test": "thumbnail forgets A while B waits and after null or missing map",
+   "harness": [
+    "support/map_workspace_fixture.dart#WorkspaceTestVisuals/workspaceSession/WorkspaceMemoryPort",
+    "inline _DelayedLoader/_MapIdentityVisuals"
+   ],
+   "legacySymbols": [
+    "CinematicLibraryThumbnail",
+    "EventMapLoader.load"
+   ],
+   "asserts": "The thumbnail never shows map A while B is loading, shows B when it resolves, shows the 'Aucune carte choisie' tooltip for a null id and 'Carte indisponible' for a missing map, reusing the same State.",
+   "category": "ui_only",
+   "owner": [],
+   "coverage": "n/a",
+   "coveringTests": [],
+   "gap": ""
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_spatial_map_scene_test.dart",
+   "test": "3D cinematic keeps existing point commands, preview and Escape cancellation",
+   "harness": [
+    "support/spatial_narrative_fixture.dart#SpatialNarrativeVisuals/spatialNarrativeCinematic"
+   ],
+   "legacySymbols": [
+    "CinematicMapScene",
+    "CinematicSpatialMapScene",
+    "SpatialSceneView onCell/onDragStart/onDragUpdate/onDragEnd"
+   ],
+   "asserts": "In path mode a cell pick reports Offset(10.5,9.5) without touching the asset; in select mode dragging the stage point at (8,9) to (9,9) reports Offset(9.5,9.5) only on drag end, Escape cancels a drag; during preview the camera pose follows the viewport projection (x/z/y from worldHeightAt, zoom ratio 1), drags are refused, Escape stops the preview and restores pan/zoom and overlays; preview resources disposed once.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart",
+     "symbol": "CinematicWorkspaceController.moveStagePointTo/appendWaypoint"
+    },
+    {
+     "path": "packages/map_core/lib/src/read_models/cinematic_viewport_projection.dart",
+     "symbol": "CinematicViewportProjection"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_native_composition_commands_test.dart",
+     "test": "relative points preserve routes and replay from the new actor origin"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "spatial destination is one history edit; paths survive binding and duplication"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_spatial_projection_contract_test.dart",
+     "test": "3D actor origin uses feet while authored stage points remain unchanged"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_viewport_state_parity_test.dart",
+     "test": "projection keeps camera endpoints, resets and scrubs deterministically"
+    }
+   ],
+   "gap": "Commit side (moveStagePointTo, append/destination bounds) and projection maths are proven. Legacy-only: cell centre (+.5) reporting, drag = original point + cell delta (no integer rounding, unlike the 2D handle which rounds), stage-point pick by floor(x/y), the initial 3D camera window 15x11 around the player and zoom = scene zoom*15/visibleWidth, and the 'hero' / 'cinematic:<id>' content-id codec."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart",
+   "test": "map clicks and point drag respect pan zoom resize at 16 px",
+   "harness": [
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui07_story_fixture.dart#Ui07StoryFixture",
+    "support/map_workspace_fixture.dart#WorkspaceTestVisuals"
+   ],
+   "legacySymbols": [
+    "CinematicMapScene",
+    "ValueKey cinematic-map-pick / cinematic-point-<id>",
+    "CinematicPointHandle"
+   ],
+   "asserts": "With 16 px tiles, after a pan/zoom matrix and a viewport resize, taps map to the right cells (7,5) then (6,4); in select mode dragging a point handle by 2 cells reports one move Offset(x+2,y) only on release; an Escape-cancelled drag reports nothing; the map JSON is untouched. (name generated by a loop over tile sizes 16/32)",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart",
+     "symbol": "moveStagePointTo/setDestination/placeActorAt/appendWaypoint"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "spatial destination is one history edit; paths survive binding and duplication"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_native_composition_commands_test.dart",
+     "test": "relative points preserve routes and replay from the new actor origin"
+    }
+   ],
+   "gap": "Commit-side bounds checks and undo are proven; pointer-to-cell conversion under pan/zoom (floor(local/cell)), drag-to-grid rounding (roundToDouble of dx/cellWidth) and commit-only-on-release live only in cinematic_map_scene.dart / cinematic_point_handle.dart."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart",
+   "test": "map clicks and point drag respect pan zoom resize at 32 px",
+   "harness": [
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui07_story_fixture.dart#Ui07StoryFixture",
+    "support/map_workspace_fixture.dart#WorkspaceTestVisuals"
+   ],
+   "legacySymbols": [
+    "CinematicMapScene",
+    "ValueKey cinematic-map-pick / cinematic-point-<id>",
+    "CinematicPointHandle"
+   ],
+   "asserts": "With 32 px tiles, after a pan/zoom matrix and a viewport resize, taps map to the right cells (7,5) then (6,4); in select mode dragging a point handle by 2 cells reports one move Offset(x+2,y) only on release; an Escape-cancelled drag reports nothing; the map JSON is untouched. (name generated by a loop over tile sizes 16/32)",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart",
+     "symbol": "moveStagePointTo/setDestination/placeActorAt/appendWaypoint"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "spatial destination is one history edit; paths survive binding and duplication"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_native_composition_commands_test.dart",
+     "test": "relative points preserve routes and replay from the new actor origin"
+    }
+   ],
+   "gap": "Commit-side bounds checks and undo are proven; pointer-to-cell conversion under pan/zoom (floor(local/cell)), drag-to-grid rounding (roundToDouble of dx/cellWidth) and commit-only-on-release live only in cinematic_map_scene.dart / cinematic_point_handle.dart."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_timeline_gestures_ui10_test.dart",
+   "test": "timeline empty lane, reorder, resize once and Escape preserve authored time",
+   "harness": [
+    "inline asset (CinematicAsset)",
+    "moveCinematicTimelineSteps in the test's own onMove callback"
+   ],
+   "legacySymbols": [
+    "CinematicTimelineEditor",
+    "StudioTimelineClip handles",
+    "'Sans action' label"
+   ],
+   "asserts": "An actor lane without actions renders its label; the duration handle commits exactly once on release (draft before), Escape cancels, dragging a clip reorders it first via the callback, and the marker keeps durationMs null.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/authoring/cinematic_timeline_editing_operations.dart",
+     "symbol": "moveCinematicTimelineSteps"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_actions.dart",
+     "symbol": "updateDuration"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/cinematic_timeline_editing_operations_test.dart",
+     "test": "moves a multi-selection while preserving ids and relative order"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart",
+     "test": "lazy library, draft create, canonical steps, undo save independent reread"
+    }
+   ],
+   "gap": "The test's onMove/onDuration are local lambdas, not the owner. Proven elsewhere: ordering operation and controller moveSteps/updateDuration. Legacy-only: single commit on release, resize clamp 1..3600000, insertion index by block midpoint, Escape cancel, duration-editable rule (cinematicDurationEditable excludes actorFace and marker)."
+  },
+  {
+   "file": "apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart",
+   "test": "scrub applies camera and fade while stop restores the work view",
+   "harness": [
+    "support/ui10_cinematic_fixture.dart#createUi10Fixture",
+    "support/ui07_story_fixture.dart",
+    "support/map_workspace_fixture.dart#WorkspaceTestVisuals"
+   ],
+   "legacySymbols": [
+    "CinematicMapScene",
+    "ValueKey cinematic-runtime-transform / cinematic-preview-fade / cinematic-point-start",
+    "CinematicViewState.mapTransform"
+   ],
+   "asserts": "Seeking to the camera block start/end changes the runtime transform, fade end gives alpha 1, the author map transform is never modified, point handles are hidden during preview, and stop removes the runtime transform.",
+   "category": "behaviour",
+   "owner": [
+    {
+     "path": "packages/map_core/lib/src/read_models/cinematic_viewport_projection.dart",
+     "symbol": "CinematicViewportProjection.frameAt"
+    },
+    {
+     "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_preview_transport.dart",
+     "symbol": "CinematicPreviewTransport.seek/stop"
+    }
+   ],
+   "coverage": "partial",
+   "coveringTests": [
+    {
+     "file": "packages/map_core/test/cinematic_viewport_state_parity_test.dart",
+     "test": "projection keeps camera endpoints, resets and scrubs deterministically"
+    },
+    {
+     "file": "packages/map_core/test/cinematic_viewport_state_parity_test.dart",
+     "test": "fade-out remains opaque after its block until the next fade-in"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart",
+     "test": "canonical intermediate movement, backwards scrub and stop never modify author asset"
+    }
+   ],
+   "gap": "Projection values are proven. Studio wiring is legacy-only: initial camera construction, application of pixel-perfect zoom/origin to a Transform, hiding handles/paths while previewActive, and isolation of the author pan/zoom from the preview."
+  }
+ ],
+ "supportFiles": [
+  {
+   "path": "apps/avelune_studio/test/support/ui11_workspace_harness.dart",
+   "usedBy": [
+    "apps/avelune_studio/test/ui11_presentation_transport_controls_test.dart",
+    "apps/avelune_studio/test/ui11_presentation_field_guard_test.dart",
+    "apps/avelune_studio/test/ui11_presentation_widget_test.dart",
+    "apps/avelune_studio/test/ui11_presentation_canvas_gesture_test.dart",
+    "apps/avelune_studio/test/ui11_presentation_responsive_test.dart",
+    "apps/avelune_studio/test/ui11_presentation_busy_test.dart"
+   ],
+   "legacyDependencies": [
+    "apps/avelune_studio/lib/presentation/features/presentations/presentation_view_state.dart",
+    "apps/avelune_studio/lib/presentation/features/presentations/presentation_workspace_page.dart",
+    "apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_application_frame.dart (other presentation/ zone)",
+    "apps/avelune_studio/lib/presentation/theme/studio_theme.dart (other presentation/ zone)"
+   ],
+   "reusableWithoutLegacy": "create(): Ui11PresentationFixture on-disk project, MapWorkspaceController + NarrativeWorkspaceController + LocalNarrativeAdapter + LocalPresentationAdapter wiring, PresentationWorkspaceController.open(fixture asset), StudioPresentationVisuals prepare/settled/close/dispose ordering and the shutdown() teardown proving owned visuals and fixture close; settle()/shutdown() pump helpers. Not reusable: app() (StudioApplicationFrame + PresentationWorkspacePage), capture(), views (PresentationViewStore)."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/ui11_widget_port.dart",
+   "usedBy": [
+    "apps/avelune_studio/test/support/ui11_workspace_harness.dart",
+    "apps/avelune_studio/test/ui11_presentation_transport_controls_test.dart (via harness.port.writes)",
+    "apps/avelune_studio/test/ui11_presentation_busy_test.dart (port.gate)"
+   ],
+   "legacyDependencies": [
+    "none directly; imports support/m2_ui_fixture.dart (WidgetResourcePort), which itself imports lib/presentation/features/map_workspace/map_workspace_screen.dart and presentation/theme (other zone) - hence its blast membership"
+   ],
+   "reusableWithoutLegacy": "PresentationPort decorator counting reads/writes, an async gate on prepare() and a tester.runAsync bridge; reusable as is for controller-level widget-free tests (the runAsync bridge is only needed with a WidgetTester)."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/ui10_workspace_harness.dart",
+   "usedBy": [
+    "apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart",
+    "apps/avelune_studio/test/cinematics_ui10_responsive_test.dart",
+    "apps/avelune_studio/test/cinematics_ui10_spatial_test.dart",
+    "apps/avelune_studio/test/cinematics_ui10_widget_test.dart",
+    "apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart",
+    "apps/avelune_studio/test/cinematics_ui10_timeline_gesture_test.dart"
+   ],
+   "legacyDependencies": [
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_page.dart",
+    "apps/avelune_studio/lib/presentation/shared/widgets/buttons/studio_action_card.dart (other zone)",
+    "apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_primary_navigation.dart (other zone)",
+    "support/ui08_workspace_harness.dart (imports presentation/features/map_workspace/map_workspace_screen.dart)"
+   ],
+   "reusableWithoutLegacy": "createUi10Fixture(tileSize) isolated on-disk project, loading the first map and feeding visuals.setActiveMap, LocalCinematicAdapter port wiring, capture bookkeeping; the navigation open() script (Histoire > 'Cinématiques sur carte' > library item) is legacy-only."
+  },
+  {
+   "path": "apps/avelune_studio/test/support/ui10_widget_port.dart",
+   "usedBy": [
+    "apps/avelune_studio/test/support/ui10_workspace_harness.dart",
+    "apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart"
+   ],
+   "legacyDependencies": [
+    "none directly; imports support/m2_ui_fixture.dart (WidgetResourcePort -> legacy map_workspace_screen/studio_theme)"
+   ],
+   "reusableWithoutLegacy": "CinematicPort decorator counting reads/writes with the tester.runAsync bridge; same pattern as ui11_widget_port.dart."
+  }
+ ],
+ "legacyFiles": [
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_commit_field.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "_CinematicCommitFieldState._commit",
+     "what": "commit on focus loss/submit through the owner, fallback message 'Corrigez la saisie de « label ».' when the owner gives none",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart#CinematicInputState.commitField",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "CinematicInspector._edit",
+     "what": "controller.edit wrapper: owner-id guard, re-injects the previous stageContext.manualPaths into the result, mirrors a rejection into view.error/inspectorError and clears them on success",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "CinematicInspector._project",
+     "what": "replaces the active asset inside controller.project for map_core authoring calls (controller has a private _with doing the same)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart#_with (private)",
+     "testedBy": null
+    },
+    {
+     "symbol": "document fields completion policy / crossing toggle",
+     "what": "setCinematicActorCompletionPolicy / copyWith(allowMobileActorCrossing) with crossing toggle only when settings.dimension==threeD",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "tab fallback",
+     "what": "unknown inspectorTab -> 'properties'",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_actors.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "role onChanged",
+     "what": "CinematicActorBinding construction: mapEntityId kept only for kind mapEntity",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart#bindActor (takes a finished binding)",
+     "testedBy": null
+    },
+    {
+     "symbol": "initial placement staging",
+     "what": "'fromMovementTarget'/'stagePoint' held in view.initialPlacementChoice until a concrete id is chosen; other kinds written immediately with targetId/stagePointId carried over",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_animation.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "update()/tryCommit",
+     "what": "animation command rebuild from clip choice and playback; count/duration text must be int>0 ('Saisissez une valeur entière strictement positive.'); defaults repeatCount(2) / forDuration(1000)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_animation.dart#updateAnimation",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_animation_commands_contract_test.dart (only the controller call)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_camera.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "camera onChanged callbacks",
+     "what": "option-id codec 'center'|'actor:<id>'|'point:<id>' -> CinematicCameraTargetBinding, default zoom medium, mode focus uses target ?? sceneCenter, reset/hold clear the binding (inventory says ui_retire with no destination: small logic is present)",
+     "ownerEquivalent": "packages/map_core/lib/src/authoring/cinematic_authoring_operations.dart#updateCinematicTimelineBasicBlockStep (takes typed bindings)",
+     "testedBy": "packages/map_core/test/cinematic_authoring_operations_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_commands.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_number.tryCommit",
+     "what": "numeric rule: finite, >=0, <=max, integer for ms, message 'Valeur invalide pour « label »'",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "_commandFields media kind",
+     "what": "sound/music/fx -> CinematicMediaAssetKind filter of project media; dialogue link choice",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_step.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "Durée (ms) tryCommit",
+     "what": "int parse, jump range 200..30000 ms (cinematicTimelineActorMoveMinimumDurationMs..cinematicTimelineMaximumDurationMs) with its own message, otherwise >0; then controller.updateDuration",
+     "ownerEquivalent": "packages/map_core/lib/src/authoring/cinematic_authoring_operations.dart#updateCinematicTimelineActorJumpStep (also validates)",
+     "testedBy": "packages/map_core/test/cinematic_actor_jump_test.dart (partially)"
+    },
+    {
+     "symbol": "jump-height tryCommit",
+     "what": "double parse, finite, >0 and <=4 cells",
+     "ownerEquivalent": "packages/map_core/lib/src/authoring/cinematic_authoring_operations.dart#cinematicTimelineActorJumpMaximumHeightCells",
+     "testedBy": "packages/map_core/test/cinematic_actor_jump_test.dart"
+    },
+    {
+     "symbol": "_updateMotion/actor step dispatch",
+     "what": "which map_core updateCinematicTimelineActor{Move,Jump,Facing,Emote}Step to call per step kind",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "_parallelFields",
+     "what": "join disabled for first step, already joined or marker; ArgumentError remapped to the grouped-motion message; dissolve",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_timeline.dart#joinCinematicParallelSteps/dissolveCinematicParallelSteps",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_native_composition_commands_test.dart"
+    },
+    {
+     "symbol": "_relativePointFields",
+     "what": "rebase a stage point onto an actor origin (model.rebasePoint), point coordinate text parse (finite)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_map_model.dart#CinematicMapModel.rebasePoint",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_native_composition_commands_test.dart (rebase only)"
+    },
+    {
+     "symbol": "_waypoint",
+     "what": "reorder/remove a waypoint then controller.setManualPath",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart#setManualPath",
+     "testedBy": "packages/map_core/test/cinematic_authoring_operations_test.dart ('reorderCinematicManualPathWaypoint reorders waypoints'; setManualPath itself only in the controller test)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_labels.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "cinematicDurationEditable",
+     "what": "which steps expose an editable duration (not actorFace/marker, durationMs != null)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "cinematicLaneAction",
+     "what": "lane kind -> default step kind mapping",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_library.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "CinematicLibrary.build entries filter",
+     "what": "visibility predicate: substring match of search on 'title map-name id', folder match session.folderId ?? catalogue entry.folderId, archived hidden unless toggled, 'Sans carte' fallback",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_library_thumbnail.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_CinematicLibraryThumbnailState.build",
+     "what": "uses the open workspace document if present else the loaded one, and only when its id equals mapId (never a stale map)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/events/application/event_map_loader.dart#EventMapLoader.load (loading only)",
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_overlay.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_actor custom animation pick",
+     "what": "custom clip chosen by definitionId and direction (clip.direction null or == animation direction/facing)",
+     "ownerEquivalent": "apps/avelune_studio/lib/platform/rendering/cinematic_actor_animation.dart#cinematicActorAnimation (state only)",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_actor_animation_ui10_test.dart"
+    },
+    {
+     "symbol": "jump lift",
+     "what": "screen y = (y - liftCells)*cellHeight",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_scene.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_commands.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "paste",
+     "what": "insertion index = after the focused step, else append",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_timeline.dart#pasteSteps (index given)",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart ('invalid durations and unrelated clipboard bindings do not mutate history')"
+    },
+    {
+     "symbol": "create",
+     "what": "empty folder id -> null folderId; copy clipboard kept in page state (CinematicTimelineClipboard) instead of the controller",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart#create",
+     "testedBy": null
+    },
+    {
+     "symbol": "play",
+     "what": "flush, toggle pause, else preparePlan() then play",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart#prepareMapPlan",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart ('preview transport evaluates canonical frames...')"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_header.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_map.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "point()",
+     "what": "mode dispatch: destination->setDestination (back to select on success), placement->placeActorAt (back to select), path->appendWaypoint (stays in path); out-of-map message 'Choisissez une case dans la carte.' (duplicates owner _checkPoint)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart#setDestination/placeActorAt/appendWaypoint",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart"
+    },
+    {
+     "symbol": "movePoint",
+     "what": "moveStagePointTo with a shared-point confirmation dialog and spatialError mirroring",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_spatial.dart#moveStagePointTo",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_native_composition_commands_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_timeline.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "onSelect",
+     "what": "selecting a step also seeks the transport to that block's startMs",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "shortcuts",
+     "what": "delete/backspace, undo/redo, copy/paste/duplicate, space -> play, ignored while editing text (textAwareEditorShortcuts)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_path_painter.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_playback_viewport.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_CinematicPlaybackViewportState.build",
+     "what": "initial viewport camera: centre = player actor position else map centre; visible window = min(15,mapWidth) x min(11,mapHeight) cells; then CinematicViewportProjection.frameAt + resolvePixelPerfectCameraZoom/snapPixelPerfectCameraPosition",
+     "ownerEquivalent": "packages/map_core/lib/src/read_models/cinematic_viewport_projection.dart#CinematicViewportProjection (+ pixel_perfect_camera_projection.dart)",
+     "testedBy": "packages/map_core/test/cinematic_viewport_state_parity_test.dart (projection only; the initial-camera construction is untested outside legacy)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_point_handle.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "onPanEnd",
+     "what": "destination = round(point + dragDelta/cell) (2D snaps to whole cells), emitted only on release, Escape cancels",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_spatial_map_scene.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_viewportFrame/_cameraPose",
+     "what": "same initial camera window (15x11 around player or map centre), camera y = worldHeightAt, zoom = controller zoom*15/visibleWidth, pan compensation",
+     "ownerEquivalent": "packages/map_core/lib/src/read_models/cinematic_viewport_projection.dart#CinematicViewportProjection",
+     "testedBy": "packages/map_core/test/cinematic_viewport_state_parity_test.dart (projection only)"
+    },
+    {
+     "symbol": "onContent/_start/onDragUpdate",
+     "what": "content-id codec 'hero' (player actor) vs 'cinematic:<actorId>'; stage point picked by floor cell; drag destination = point + cell delta; commit only if moved",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "cinematicSpatialOverlays",
+     "what": "path preview cells",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_map_model.dart#cinematicPreviewCells",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_spatial_projection_contract_test.dart ('authored path previews every terrain cell from start to destination')"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_editor.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "_CinematicTimelineEditorState (draftDuration/insertion)",
+     "what": "resize draft clamp 1..3600000 ms; insertion index = count of blocks whose midpoint <= dragged time; draft discarded when the asset changes; time layout read model",
+     "ownerEquivalent": "packages/map_core/lib/src/read_models/cinematic_timeline_time_layout_read_model.dart#buildCinematicTimelineTimeLayoutReadModel (layout only)",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_native_composition_commands_test.dart (total duration only)"
+    },
+    {
+     "symbol": "ruler seek",
+     "what": "transport.seek(round(dx/scale)) on tap and drag (transport clamps)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_preview_transport.dart#seek",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_preview_transport_ui10_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_gestures.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "select",
+     "what": "shift/meta/control toggles a step in the multi-selection, plain click selects it alone",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "onResize*/onDrag*",
+     "what": "see cinematic_timeline_editor.dart",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "fitOnce",
+     "what": "default scale = width/max(1000,duration) clamped .008..0.5 (view concern)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_painter.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_transport_listenable.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_view_state.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "CinematicViewState.reconcile",
+     "what": "prunes selection to existing step ids; actorId falls back to the first required actor",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "error/actionError/spatialError/inspectorError accessors",
+     "what": "delegated to the owner CinematicInputState",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart#CinematicInputState",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_page.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "flush/_flushFocus/attachInputHost",
+     "what": "navigation and actions guarded by controller.flushEdits; input host attach/detach",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart#flushEdits/attachInputHost/detachInputHost",
+     "testedBy": "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart ('a superseded input host cannot clear its successor guard or suspend its preview')"
+    },
+    {
+     "symbol": "error precedence",
+     "what": "state.error ?? actionError ?? spatialError ?? controller.error ?? readOnlyReason shown (display ordering)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_canvas.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "build frame source",
+     "what": "frame = gesture projection evaluated by PresentationCinematicEvaluator else transport.frame",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_gesture_projection.dart#projectPresentationGesture",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_gesture_projection_test.dart"
+    },
+    {
+     "symbol": "select",
+     "what": "hit test -> editing.selectClip (shift = additive), miss clears selection",
+     "ownerEquivalent": "packages/map_authoring/lib/src/domains/narrative/presentation_timeline_editing_controller.dart#selectClip + packages/map_player_ui PresentationFrameGeometryController.hitTest",
+     "testedBy": "packages/map_player_ui/test/player/presentation_frame_geometry_test.dart; packages/map_editor/test/ui/canvas/cinematics/presentation_timeline_editing_controller_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_canvas_gestures.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "begin/updateGesture/end",
+     "what": "handle hit radius 14 px, rotate handle 22 px above topCenter, rotation = angle delta/(2*pi), scale = clamp(distance ratio,.01,100) on scaleX and scaleY, translation normalised by canvas size, pose patch via presentationPosePatch(preserveTrajectoryDelta), projection preview, commit only when moved, 'Transformation refusée' on projection error",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_pose_projection.dart#presentationPosePatch + presentation_gesture_projection.dart#projectPresentationGesture (patch/projection only)",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_pose_projection_test.dart; presentation_gesture_projection_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_clip_labels.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_document_settings.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "duration tryCommit",
+     "what": "text with comma decimal -> finite >0 seconds -> durationUs round -> apply('presentationCinematic.update') keeping title/description; mark invalidFields 'documentDuration'",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_controller.dart#apply (action 'presentationCinematic.update')",
+     "testedBy": null
+    },
+    {
+     "symbol": "folder select / create folder",
+     "what": "setFolder / createFolder then setFolder",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_library.dart#setFolder/createFolder",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart ('folder move stays in draft and participates in undo and publication')"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_inspector.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "field().tryCommit",
+     "what": "numeric parse with comma, non-finite refused, factor (s->us), us keys rounded, grouped patch, onPatch result drives invalidFields add/remove",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_editing.dart#patchClip (accepts the patch)",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_clip_media_contract_test.dart (patch results, not parsing)"
+    },
+    {
+     "symbol": "tab switch guard",
+     "what": "beforeSelection() (flush) must pass to change inspector tab",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_inspector_animation.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "transition onChanged",
+     "what": "default transition duration = min(clip duration, 500 ms), 'none' -> 0 us",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_inspector_text.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "style patches",
+     "what": "fontFamily '' -> null (Player font); style map merged per change",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_inspector_transform.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "poseKey",
+     "what": "pose key from orientationOverride/portrait/pose (duplicate of owned logic)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_pose_projection.dart#presentationPoseKey",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_pose_projection_test.dart"
+    },
+    {
+     "symbol": "number().tryCommit",
+     "what": "double parse (comma), finite, rotation degrees <-> turns (1/360), trajectory mode also writes 'to' (absolute, not delta-preserving), invalidFields bookkeeping",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_pose_projection.dart#presentationPosePatch (absolute trajectory branch)",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_pose_projection_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_body.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_commands.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "selectAddedClip",
+     "what": "after adding a clip: select it and seek the playhead to its start",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "deleteSelection",
+     "what": "builds 'presentationClip.deleteBatch' with selected ids itself (owner PresentationTimelineEditingController.deleteSelection exists)",
+     "ownerEquivalent": "packages/map_authoring/lib/src/domains/narrative/presentation_timeline_editing_controller.dart#deleteSelection",
+     "testedBy": "packages/map_editor/test/ui/canvas/cinematics/presentation_timeline_editing_controller_test.dart"
+    },
+    {
+     "symbol": "addMedia",
+     "what": "catalogue filtered by media kind; import then add; stale-owner guard (activeId unchanged)",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_editing.dart#addMediaClip/importMedia",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_clip_media_contract_test.dart"
+    },
+    {
+     "symbol": "save/create",
+     "what": "flush then transport.pause then controller.save; name prompt then template prompt then controller.create",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_publication.dart#save",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_header.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "play button",
+     "what": "flush; pause if playing else await visuals.settled then play; back = flush + transport.stop",
+     "ownerEquivalent": null,
+     "testedBy": null
+    },
+    {
+     "symbol": "format select",
+     "what": "portrait flag drives visuals.setOrientation (re-prepare)",
+     "ownerEquivalent": "apps/avelune_studio/lib/platform/rendering/presentation_workspace_visuals.dart#StudioPresentationVisuals.setOrientation",
+     "testedBy": "apps/avelune_studio/test/presentations_ui11_renderer_parity_test.dart (orientation render only)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_library_actions.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "documentMenu",
+     "what": "stale-dialog guard: act only if activeId and revision are unchanged after the dialog; delete confirmation; duplicate/archive/reload/delete dispatch",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_library.dart#duplicate + apps/avelune_studio/lib/features/presentations/application/presentation_workspace_publication.dart#setArchived/reload/delete",
+     "testedBy": "apps/avelune_studio/test/ui11_presentation_library_test.dart ('archive and restore preserve the real asset after independent reopening'); presentation_controller_ui11_test.dart (duplicate)"
+    },
+    {
+     "symbol": "template id labels",
+     "what": "blank/titleIdentity/... -> French labels (display)",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_preview.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "consumers()",
+     "what": "scenes (published + sceneDrafts) whose ScenePresentationCinematicPayload targets the asset, narrowed to interaction-cue bindings of a selected cue marker",
+     "ownerEquivalent": "packages/map_core/lib/src/read_models/presentation_reference_graph.dart#PresentationReferenceGraph (diagnostics, not this list)",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_references_ui11_test.dart (diagnostics only)"
+    },
+    {
+     "symbol": "scenarioPreview",
+     "what": "scene resolution (previewSceneId, single, ambiguity picker, none => 'Liez cette présentation…' error), pause + release visuals, createScenarioPreview, re-prepare",
+     "ownerEquivalent": "apps/avelune_studio/lib/platform/rendering/presentation_scenario_preview.dart#createScenarioPreview",
+     "testedBy": "apps/avelune_studio/test/presentations_ui11_scenario_test.dart (the run, not the scene choice)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_shortcuts.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "handleShortcut",
+     "what": "Cmd/Ctrl+S save, Cmd/Ctrl+Z (shift) undo/redo after flush, space/arrows/home/end transport, ignored while an EditableText is focused or route not current",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_timeline.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "update()",
+     "what": "drag refusal rule: target track missing or kind mismatch (move only), start<0, end>durationUs, end<=start (non markers) => invalid, no updateDrag, banner 'Déplacement refusé'; us = dx/pixelsPerSecond*1e6; target track index = origin + round(dy/36)",
+     "ownerEquivalent": "packages/map_authoring/lib/src/domains/narrative/presentation_timeline_editing_controller.dart#updateDrag (clamping)",
+     "testedBy": "packages/map_editor/test/ui/canvas/cinematics/presentation_timeline_editing_controller_test.dart (no refusal case)"
+    },
+    {
+     "symbol": "finish/cancel",
+     "what": "invalid => cancelDrag, else onCommand(finishDrag()), StateError => cancel; Escape cancels",
+     "ownerEquivalent": "packages/map_authoring/lib/src/domains/narrative/presentation_timeline_editing_controller.dart#finishDrag/cancelDrag",
+     "testedBy": "packages/map_editor/test/ui/canvas/cinematics/presentation_timeline_editing_controller_test.dart ('cancel restores the exact source placements')"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_timeline_clip.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_timeline_ruler.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "scrub",
+     "what": "pause, seek(round(dx/scale*1e6) clamped 0..durationUs); drag start/end toggles transport.scrubbing",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_preview_transport.dart#seek/setScrubbing",
+     "testedBy": "apps/avelune_studio/test/presentations_ui11_transport_test.dart (seek only; setScrubbing untested)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_timeline_track.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "editTrack",
+     "what": "builds 'presentationTrack.update' (label, hold policy, clips re-encoded) and 'presentationTrack.move' (index +/-1 bounds check) commands",
+     "ownerEquivalent": "packages/map_authoring presentationTrack.update/move actions",
+     "testedBy": "packages/map_authoring/test/domains/narrative/presentation_cinematic_authoring_test.dart ('creates, updates, moves, duplicates and deletes tracks')"
+    },
+    {
+     "symbol": "command()",
+     "what": "refused editing command shown as 'Opération refusée : error' without throwing",
+     "ownerEquivalent": null,
+     "testedBy": null
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_transport_listenable.dart",
+   "verdict": "pure_ui",
+   "logic": []
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_view_state.dart",
+   "verdict": "logic_already_owned",
+   "logic": [
+    {
+     "symbol": "selectedId/selected",
+     "what": "derived from editing.selectedClipIds.firstOrNull / editing.sourceClip",
+     "ownerEquivalent": "packages/map_authoring/lib/src/domains/narrative/presentation_timeline_editing_controller.dart#selectedClipIds/sourceClip",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_editing_sessions_test.dart ('an asset revision preserves its editor and clipboard while reconciling clip selection')"
+    },
+    {
+     "symbol": "invalidFields",
+     "what": "set owned per asset id by PresentationEditingSessions",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/coordination/presentation_editing_sessions.dart#invalidFieldsFor",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_editing_sessions_test.dart (distinct sets only)"
+    }
+   ]
+  },
+  {
+   "path": "apps/avelune_studio/lib/presentation/features/presentations/presentation_workspace_page.dart",
+   "verdict": "logic_to_extract",
+   "logic": [
+    {
+     "symbol": "flush()",
+     "what": "unfocus then 'no invalid field' (view.invalidFields.isEmpty): the guard installed as controller.flushEdits",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_controller.dart#flushEdits (hook only)",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_controller_ui11_test.dart ('failed grouped edit rolls back all commands and accepts correction')"
+    },
+    {
+     "symbol": "bindPreview/sync/didUpdateWidget",
+     "what": "preview lease install/release, owner-supersession, suspendPreview wiring",
+     "ownerEquivalent": "apps/avelune_studio/lib/features/presentations/coordination/presentation_editing_sessions.dart#bindPreview/installPreview/suspendPreview/releasePreview",
+     "testedBy": "apps/avelune_studio/test/presentations/presentation_editing_sessions_test.dart"
+    }
+   ]
+  }
+ ],
+ "notes": [
+  "Counts of generated test names: ui11_presentation_canvas_gesture_test (loop scale/rotate), ui11_presentation_responsive_test (loop 1536/1440/1280/1024), cinematics_ui10_responsive_test (loop; names print doubles, e.g. 'UI10 1440.0x900.0 ...'), cinematics_ui10_spatial_test (loop 16/32), cinematic_spatial_gestures_ui10_test (loop 16/32; the loop declares late fixtures plus setUp/tearDown inside the for), cinematic_inspector_ui10_test (two loops: duringConfirmation, submit). Each generated case is listed separately.",
+  "Inventory destinations that do not exist: apps/avelune_studio/lib/platform/rendering/viewports/presentation_canvas_surface.dart (for presentation_canvas.dart) and .../viewports/cinematic_path_painter_surface.dart (for cinematic_path_painter.dart). The 'render_separate' extraction target is therefore not there; both files are verdicted pure_ui/logic_already_owned on their own merit.",
+  "Inventory disagrees with reading: cinematic_inspector_camera.dart is classed ui_retire with no destination but holds the 'actor:'/'point:'/'center' codec and focus defaults; cinematic_transport_listenable.dart and presentation_transport_listenable.dart are plain Listenable adapters (pure_ui, not mixed). cinematic_view_state.dart and presentation_view_state.dart name world_draft_inputs.dart as destination, which is unrelated (only a bare invalidFields set).",
+  "Legacy refusal vs owner clamp: PresentationTimeline refuses an out-of-bounds drag ('Déplacement refusé', no command) whereas PresentationTimelineEditingController clamps/snap-bounds the preview and emits a command. No non-legacy test pins either; a product decision is needed before deleting ui11_presentation_transport_controls_test 'a refused timeline drag...'.",
+  "2D vs 3D point drag semantics differ: cinematic_point_handle.dart rounds the destination to whole cells (round(point + delta/cell)); cinematic_spatial_map_scene.dart uses point + integer cell delta (keeps the fractional part of the point) and reports taps at cell centre (+.5). The tests (cinematic_spatial_gestures_ui10_test for 2D vs cinematic_spatial_map_scene_test for 3D) each pin one of them; neither is pinned outside legacy.",
+  "Initial camera for the playback viewport is built in the legacy widgets with a window clamped to the map (min(15,w) x min(11,h) in cinematic_playback_viewport.dart; fixed 15x11 in cinematic_spatial_map_scene.dart). cinematics_ui10_preview_runtime_parity_test (non-legacy) builds its projection with a fixed 15*cell x 11*cell window on a large map, so it cannot detect the clamp. This is the one place where Studio and Player could diverge on small maps.",
+  "cinematic_inspector.dart#_edit re-injects stageContext.manualPaths after every inspector edit. map_core already preserves them in updateCinematicTimelineActorMoveStep (cinematic_actor_move_facing_test: 'editing facing duration or motion preserves a manual route and preview'), and the controller has the same _keepPaths privately for its own methods. The wrapper looks redundant for move/jump/facing edits but is the only protection for other inspector edits (unsure); extract/replace deliberately.",
+  "The inspector re-implements range validation already enforced by the owner (jump height <=4, jump duration 200..30000: map_core cinematicTimelineActorJump*/cinematicTimelineMaximumDurationMs) with different messages ('La durée du saut doit être comprise entre 200 et 30000 ms.' vs the owner's ArgumentError). The legacy tests assert on the UI messages (contains 'hauteur', 'durée du saut', 'strictement positive'); the owner texts differ for the last one.",
+  "ui11_presentation_field_guard_test, canvas_gesture_test, responsive_test and busy_test import tapUi11 from ui11_presentation_widget_test.dart (cross-test import): the helper must move or die with the widget test when these are retired.",
+  "support/ui11_widget_port.dart and support/ui10_widget_port.dart are in blast.json only through support/m2_ui_fixture.dart, which imports lib/presentation/features/map_workspace/map_workspace_screen.dart and presentation/theme/studio_theme.dart (other zone). Their own code is legacy-free and reusable.",
+  "Non-blast owner tests used as coverage also exist in packages/map_editor (presentation_timeline_editing_controller_test, presentation_studio_timeline_test). I only cite the controller-level (widget-free) one; map_editor's presentation_studio_timeline_test pilots a different UI (map_editor widgets), not Avelune Studio's.",
+  "Not a legacy-UI dependency but visible: ui11_presentation_library_test.dart (non-blast) proves layer ordering/archive/restore through PresentationWorkspaceController, and ui11_fixture_test.dart proves the fixture; both stay valid after the retirement.",
+  "I did not find any non-legacy test for allowMobileActorCrossing through the Studio controller (covered in map_core/map_authoring/map_runtime only), nor for CinematicLibrary filtering, nor for presentation consumers() list."
+ ]
+}

@@ -190,3 +190,8 @@ class PokemonDocumentEditing {
     editEvolution(json, index, 'conditionText', conditions);
   }
 }
+
+String? pokemonOptionalChoice(String value) => value.isEmpty ? null : value;
+
+Object? pokemonDocumentNumberInput(String text) =>
+    text.isEmpty ? null : int.tryParse(text) ?? text;

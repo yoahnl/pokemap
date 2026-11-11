@@ -21,23 +21,18 @@ extension _PresentationDocumentSettings on _PresentationWorkspacePageState {
                     label: 'Durée du montage (s)',
                     value: '${session.asset.durationUs / 1000000}',
                     tryCommit: (text) {
-                      final duration = double.tryParse(
-                        text.replaceAll(',', '.'),
+                      final valid = commitPresentationField(
+                        view?.invalidFields ?? <String>{},
+                        presentationDocumentDurationField,
+                        parsePresentationDocumentDurationUs(text),
+                        (durationUs) => controller.apply(
+                          'presentationCinematic.update',
+                          presentationDurationUpdate(
+                            session.asset,
+                            durationUs as int,
+                          ),
+                        ),
                       );
-                      final valid =
-                          duration != null &&
-                          duration.isFinite &&
-                          duration > 0 &&
-                          controller.apply('presentationCinematic.update', {
-                            'title': session.asset.title,
-                            'description': session.asset.description,
-                            'durationUs': (duration * 1000000).round(),
-                          });
-                      if (valid) {
-                        view?.invalidFields.remove('documentDuration');
-                      } else {
-                        view?.invalidFields.add('documentDuration');
-                      }
                       rebuild(() {});
                       return valid;
                     },

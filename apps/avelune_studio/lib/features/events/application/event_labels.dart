@@ -13,6 +13,17 @@ const eventSourceKinds = [
   NarrativeEventSourceKind.outcomeReceived,
 ];
 
+List<NarrativeEventSourceKind> eventSourceKindsFor(ProjectDimension dimension) => [
+  for (final kind in eventSourceKinds)
+    if (kind != NarrativeEventSourceKind.modelInteract ||
+        dimension == ProjectDimension.threeD)
+      if ((kind != NarrativeEventSourceKind.entityBump &&
+              kind != NarrativeEventSourceKind.entityAutorun &&
+              kind != NarrativeEventSourceKind.triggerBump) ||
+          dimension == ProjectDimension.twoD)
+        kind,
+];
+
 String eventName(NarrativeEventRecord record) =>
     record.definitionOrNull?.name ?? record.draftOrNull!.name;
 

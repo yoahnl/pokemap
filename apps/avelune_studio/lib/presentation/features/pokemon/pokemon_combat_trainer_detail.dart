@@ -12,6 +12,7 @@ import 'pokemon_combat_detail_header.dart';
 import 'pokemon_combat_species_picker.dart';
 import 'pokemon_combat_trainer_stats.dart';
 import '../../../features/pokemon/application/pokemon_combat_references.dart';
+import '../../../features/pokemon/application/pokemon_combat_authoring_rules.dart';
 
 class PokemonCombatTrainerDetail extends StatelessWidget {
   const PokemonCombatTrainerDetail({
@@ -299,7 +300,7 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
                       value: pokemon.heldItemId,
                       options: {'': 'Aucun', ...index.items},
                       onChanged: (id) => change(
-                        pokemon.copyWith(heldItemId: id.isEmpty ? null : id),
+                        pokemon.copyWith(heldItemId: pokemonOptionalChoice(id)),
                       ),
                     ),
                   ),
@@ -311,7 +312,7 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
                     value: pokemon.ballItemId ?? '',
                     options: ballOptions,
                     onChanged: (id) => change(
-                      pokemon.copyWith(ballItemId: id.isEmpty ? null : id),
+                      pokemon.copyWith(ballItemId: pokemonOptionalChoice(id)),
                     ),
                   ),
                 ),
@@ -332,7 +333,7 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
               loadSpecies: loadSpecies,
             ),
             const SizedBox(height: 8),
-            Text('Attaques (${pokemon.moves.length}/4)'),
+            Text('Attaques (${pokemon.moves.length}/$pokemonTrainerMoveLimit)'),
             for (final move in pokemon.moves)
               ListTile(
                 dense: true,
@@ -355,7 +356,7 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
                   icon: const Icon(Icons.close),
                 ),
               ),
-            if (pokemon.moves.length < 4)
+            if (pokemonTrainerCanAddMove(pokemon))
               StudioButton(
                 key: ValueKey('${trainer.id}:$indexInTeam:add-move'),
                 label: 'Ajouter une attaque',

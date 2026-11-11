@@ -54,13 +54,11 @@ class ResourceFilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final count =
-        (filters.scope == ResourceCatalogScope.all ? 0 : 1) +
-        (!forMapPicker && filters.usage != ResourceCatalogUsage.all ? 1 : 0) +
-        (filters.showComponents ? 1 : 0) +
-        (filters.context == ResourceCatalogContext.all ? 0 : 1) +
-        (showType && filters.typeKind.isNotEmpty ? 1 : 0) +
-        (categoryTree != null && category.isNotEmpty ? 1 : 0);
+    final count = filters.activeFilterCount(
+      forMapPicker: forMapPicker,
+      showType: showType,
+      categorySelected: categoryTree != null && category.isNotEmpty,
+    );
     return StudioButton(
       key: const ValueKey('resource-filter-button'),
       label: count == 0 ? 'Filtres' : 'Filtres ($count)',
@@ -213,11 +211,7 @@ class ResourceFilterButton extends StatelessWidget {
                             label: 'Réinitialiser',
                             secondary: true,
                             onPressed: () {
-                              draft.context = ResourceCatalogContext.all;
-                              draft.scope = ResourceCatalogScope.all;
-                              draft.usage = ResourceCatalogUsage.all;
-                              draft.showComponents = false;
-                              draft.typeKind = '';
+                              draft.resetDraftFields();
                               draftCategory = '';
                               refresh();
                             },
@@ -232,11 +226,7 @@ class ResourceFilterButton extends StatelessWidget {
                             key: const ValueKey('resource-filter-apply'),
                             label: 'Appliquer',
                             onPressed: () {
-                              filters.context = draft.context;
-                              filters.scope = draft.scope;
-                              filters.usage = draft.usage;
-                              filters.showComponents = draft.showComponents;
-                              if (showType) filters.typeKind = draft.typeKind;
+                              filters.applyDraft(draft, showType: showType);
                               close();
                               onCategoryChanged?.call(draftCategory);
                               onChanged();

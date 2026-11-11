@@ -7,7 +7,7 @@ import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../shared/widgets/layout/studio_section.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
-import 'regional_map_link_dialog.dart';
+import 'package:avelune_studio/features/regional_map/application/regional_map_choices.dart';
 
 class RegionalMapLinkedMaps extends StatefulWidget {
   const RegionalMapLinkedMaps({
@@ -33,7 +33,7 @@ class _RegionalMapLinkedMapsState extends State<RegionalMapLinkedMaps> {
   final _search = TextEditingController();
   var _query = '';
 
-  static const _limit = 20;
+  static const _limit = regionalLinkCandidateLimit;
 
   @override
   void dispose() {
@@ -46,19 +46,14 @@ class _RegionalMapLinkedMapsState extends State<RegionalMapLinkedMaps> {
     final folders = mapLibraryFolderLabels(widget.project.groups);
     final maps = {for (final map in widget.project.maps) map.id: map};
     final linked = widget.mapIds;
-    final lastLocked =
-        linked.length == 1 &&
-        widget.discovery == ProjectRegionPointDiscovery.onMapVisit;
+    final lastLocked = regionalLastLinkedLocked(linked, widget.discovery);
     final needle = _query.trim().toLowerCase();
-    final candidates = [
-      if (needle.isNotEmpty)
-        for (final map in widget.project.maps)
-          if (!linked.contains(map.id) &&
-              '${regionalMapChoiceLabel(map, folders)} ${map.id}'
-                  .toLowerCase()
-                  .contains(needle))
-            map,
-    ];
+    final candidates = regionalLinkCandidates(
+      project: widget.project,
+      linked: linked,
+      folders: folders,
+      query: _query,
+    );
     final textTheme = Theme.of(context).textTheme;
     return StudioSection(
       title: 'Cartes liées à la visite du lieu',

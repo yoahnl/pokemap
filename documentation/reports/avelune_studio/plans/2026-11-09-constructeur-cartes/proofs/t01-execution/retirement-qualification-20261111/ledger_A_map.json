@@ -1,0 +1,2464 @@
+{
+ "zone": "A_map",
+ "extractions": [
+  {
+   "from": "apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_workspace_actions.dart:mapLibraryOpenAction",
+   "to": "apps/avelune_studio/lib/features/map_workspace/application/map_library_commands.dart:mapLibraryOpenAction",
+   "legacyTestsRerun": "flutter test --no-pub test/map_workspace/map_library_retirement_test.dart (avec continuity + context_identity_host) : +15 vert (copie HEAD) ; puis lot de 7 fichiers legacy : +48 vert (copie HEAD recréée). Le fichier legacy ne fait plus qu’un export show mapLibraryOpenAction."
+  },
+  {
+   "from": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_context_menu_binding.dart:_openContextMenuFromKeyboard (sélection + message « Aucun élément visible… »)",
+   "to": "apps/avelune_studio/lib/features/map_workspace/application/map_selection_context.dart:keyboardContextTarget, mapContextNoVisibleSelection",
+   "legacyTestsRerun": "flutter test --no-pub test/map_workspace/context_identity_host_test.dart : vert (+15 avec les deux autres, puis +48 dans le lot de 7)."
+  },
+  {
+   "from": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_settings_recovery_binding.dart:_settingsRecoveryTargets",
+   "to": "apps/avelune_studio/lib/features/project_settings/application/project_settings_recovery.dart:projectSettingsRecoveryTargets (+ typedef ProjectSettingsRecoveryTarget, ProjectSettingsRecoveryMapVisuals)",
+   "legacyTestsRerun": "flutter test --no-pub test/project_settings/project_settings_retirement_continuity_test.dart : 6/6 vert (+15 puis +48)."
+  },
+  {
+   "from": "apps/avelune_studio/lib/presentation/features/map_workspace/project_settings_recovery_pane.dart:_pending/_available/_recover (re-lecture + textes)",
+   "to": "apps/avelune_studio/lib/features/project_settings/application/project_settings_recovery.dart:projectSettingsRecoveryPending/Available/Confirmed/Outcome, projectSettingsRecoveryChanged",
+   "legacyTestsRerun": "idem continuity : 6/6 vert."
+  },
+  {
+   "from": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart:_openFailureOwner, _openSettingsSection (origine) ; workspace_settings_recovery_binding.dart:backLabel",
+   "to": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_failure_routing.dart:workspaceSpaceForFailure, workspaceSettingsOrigin, workspaceSettingsReturnLabel",
+   "legacyTestsRerun": "continuity (3 cas StudioFailureOwner) + studio_test_export_scope_journey_test + studio_game_export_control_test : vert (+48). map_workspace_screen.dart reçoit une seule ligne d’import."
+  },
+  {
+   "from": "apps/avelune_studio/dev/hgss_lighting_comparison.dart:comparisonPlanRelativePath…prepareComparisonMap (fonctions pures)",
+   "to": "apps/avelune_studio/dev/hgss_lighting_comparison_owner.dart (version propre, nouveau fichier)",
+   "legacyTestsRerun": "Non applicable : dev/* interdit de modification, l’ancien harnais garde sa copie (duplication temporaire, voir decisions). L’ancien test test/dev/hgss_lighting_comparison_test.dart n’a pas été relancé."
+  }
+ ],
+ "decisions": [
+  {
+   "topic": "Ouverture clavier du menu contextuel (Maj+F10 / touche Menu)",
+   "legacyBehaviour": "workspace_context_menu_binding.dart:_openContextMenuFromKeyboard ouvre le menu sur la sélection ou affiche « Aucun élément visible n’est sélectionné… » (logique désormais dans keyboardContextTarget).",
+   "ownerBehaviour": "MapEditingSurface appelle mapEditingShortcuts sans onContextMenu : le raccourci n’est pas câblé sur la nouvelle surface et MapEditingInputSession n’a pas d’entrée clavier.",
+   "where": "apps/avelune_studio/lib/platform/rendering/viewports/map_editing_surface.dart:53-59 ; lib/features/map_workspace/coordination/map_editing_shortcuts.dart:79-84"
+  },
+  {
+   "topic": "Fermeture du menu contextuel au changement de carte",
+   "legacyBehaviour": "L’écran appelle MapContextInteractionSession.releaseIfStale à chaque _changed (workspace_context_menu_binding.dart:4-11).",
+   "ownerBehaviour": "MapEditingInputSession.reconcile ferme bien le menu, mais aucun code non legacy ne l’appelle ; le test propriétaire l’appelle explicitement.",
+   "where": "apps/avelune_studio/lib/features/map_workspace/coordination/map_editing_input_session.dart:102-110"
+  },
+  {
+   "topic": "Deux sessions de menu contextuel",
+   "legacyBehaviour": "MapContextInteractionSession (application/) n’est utilisée que par l’ancien écran ; elle a dispose() qui bloque open/run.",
+   "ownerBehaviour": "La nouvelle surface utilise MapEditingInputSession (coordination/), sans garde de dispose. Les tests propriétaires context_keyboard/context_menu*/context_move prouvent MapContextInteractionSession : si elle part avec l’ancienne UI, ces preuves doivent être portées sur MapEditingInputSession.",
+   "where": "apps/avelune_studio/lib/features/map_workspace/application/map_context_interaction_session.dart ; lib/features/map_workspace/coordination/map_editing_input_session.dart"
+  },
+  {
+   "topic": "Brouillon de bordure conservé par carte",
+   "legacyBehaviour": "Une vue par carte (registre _views de l’ancien écran) : le brouillon d’une carte est retrouvé au retour.",
+   "ownerBehaviour": "Avec une seule vue, MapWorkspaceEditingState.reconcileResources efface borderDraft quand mapId change. Aucun propriétaire non legacy ne tient le registre de vues par carte.",
+   "where": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_map_library_binding.dart:8 ; lib/features/map_workspace/application/map_workspace_editing_state.dart:436-445"
+  },
+  {
+   "topic": "Bordure dépréciée encore sélectionnée",
+   "legacyBehaviour": "WorkspaceResourceOwnerBindings.reconcileBrushes efface borderBlueprintId si la bordure est dépréciée ou non publiée et remet l’outil sélection.",
+   "ownerBehaviour": "MapWorkspaceEditingState.reconcileResources garde borderBlueprintId « muret » déprécié (constaté en test : la première version du test propriétaire échouait avec Actual: muret). Deux propriétaires, deux règles.",
+   "where": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_resource_owner_bindings.dart:182-193 ; lib/features/map_workspace/application/map_workspace_editing_state.dart:545-551"
+  },
+  {
+   "topic": "Harnais dev hgss dupliqué",
+   "legacyBehaviour": "dev/hgss_lighting_comparison.dart contient les fonctions pures et l’UI (studio_toggle_row, studioTheme).",
+   "ownerBehaviour": "dev/hgss_lighting_comparison_owner.dart contient une copie à l’identique des fonctions pures ; l’ancien harnais doit l’importer et supprimer sa copie (dev/* non modifiable dans cette passe).",
+   "where": "apps/avelune_studio/dev/hgss_lighting_comparison.dart:23-204"
+  },
+  {
+   "topic": "Import devenu redondant",
+   "legacyBehaviour": "map_workspace_layout.dart importe map_catalogue_workspace_actions.dart et map_library_commands.dart.",
+   "ownerBehaviour": "Depuis l’extraction, flutter analyze signale un info unnecessary_import (pas d’erreur ni warning) ; fichier legacy non touché pour rester minimal.",
+   "where": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart:21"
+  },
+  {
+   "topic": "Cas ui_only copié",
+   "legacyBehaviour": "scene_only_warp « the passive marker never displays an outgoing destination label » est qualifié ui_only.",
+   "ownerBehaviour": "Il ne teste que le peintre MapEditingOverlay (platform/rendering) : copié dans le test propriétaire avec ThemeData().colorScheme.primary. À garder ou retirer selon l’arbitrage.",
+   "where": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_owner_test.dart"
+  },
+  {
+   "topic": "Interférences de sessions parallèles",
+   "legacyBehaviour": "-",
+   "ownerBehaviour": "Pendant la passe, la copie QA t01-write-A_map a été supprimée par un tiers et des dossiers avelune_m3_story_* du temp système ont disparu en cours de test (PathNotFoundException au teardown) ; la copie a été recréée et toutes les vérifications relancées. Par ailleurs map_core était en cours de modification dans l’arbre réel (fichiers runtime exportés absents) : les vérifications de référence ont été faites dans la copie HEAD, puis l’arbre réel a été vérifié une fois compilable.",
+   "where": "/Users/karim/Library/Caches/AveluneQA/t01-write-A_map"
+  }
+ ],
+ "devHarnesses": [
+  {
+   "file": "apps/avelune_studio/dev/hgss_lighting_comparison.dart",
+   "verdict": "réécrire",
+   "note": "Mesure un moteur réutilisable ; version propre des fonctions pures écrite dans dev/hgss_lighting_comparison_owner.dart (testée par test/dev/hgss_lighting_comparison_owner_test.dart). Reste à réécrire l’UI du main sans studio_toggle_row/studioTheme."
+  },
+  {
+   "file": "apps/avelune_studio/dev/presentation_comparison_controls.dart",
+   "verdict": "supprimer",
+   "note": "Deux interrupteurs d’ancienne UI ; la logique est dans SpatialSceneController. À remplacer par de simples Switch Material dans la réécriture du harnais hgss."
+  },
+  {
+   "file": "apps/avelune_studio/dev/model_source_replacement_native.dart",
+   "verdict": "supprimer",
+   "note": "_replace lève déjà UnsupportedError : ne produit plus aucune preuve."
+  },
+  {
+   "file": "apps/avelune_studio/dev/map_elements_latency.dart",
+   "verdict": "réécrire",
+   "note": "Mesure MapEditorController/EditableMapDocument et rendus 2D/3D : moteur réutilisable, l’ancienne UI n’est que l’hôte. Pas de version _owner écrite (non rapide)."
+  },
+  {
+   "file": "apps/avelune_studio/dev/model_shadow_performance_main.dart",
+   "verdict": "réécrire",
+   "note": "Mesure ResourceNavigation.mutate(model3d.configure) et stockage ; pas de version _owner écrite."
+  },
+  {
+   "file": "apps/avelune_studio/dev/exterior_decoration_native_main.dart",
+   "verdict": "réécrire",
+   "note": "Mesure MapExteriorDecorationController + SpatialMapEditingViewport ; hôte à remplacer par MapEditingSurface. Pas de version _owner écrite."
+  }
+ ],
+ "supportFiles": [
+  {
+   "file": "apps/avelune_studio/test/support/map_palette_retirement_driver.dart",
+   "note": "Remplacé localement par armDecor dans decor_order_owner_test.dart et chooseBorder dans map_disk_owner_fixture.dart (même useMapResource)."
+  },
+  {
+   "file": "apps/avelune_studio/test/support/m2_ui_fixture.dart",
+   "note": "Non modifié ; à scinder (cœur disque/ports vs app()) par une passe dédiée, partagé avec apps/pokemap_hub."
+  },
+  {
+   "file": "apps/avelune_studio/test/support/map_context_harness.dart / map_selection_harness.dart",
+   "note": "Non modifiés ; équivalents propres map_context_owner_fixture.dart / map_selection_owner_fixture.dart."
+  }
+ ],
+ "commands": [
+  {
+   "command": "flutter test --no-pub -r failures-only <21 fichiers *_owner_test.dart>",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-A_map/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+132 -0"
+  },
+  {
+   "command": "flutter test --no-pub -r failures-only <21 fichiers *_owner_test.dart>",
+   "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+132 -0"
+  },
+  {
+   "command": "flutter analyze --no-pub <36 fichiers créés ou modifiés>",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-A_map/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "No issues found"
+  },
+  {
+   "command": "flutter analyze --no-pub lib/presentation/features/map_workspace/ (+ owners extraits)",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-A_map/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "1 info unnecessary_import map_workspace_layout.dart:21 (fichier non modifié)"
+  },
+  {
+   "command": "flutter test --no-pub -r failures-only test/project_settings/project_settings_retirement_continuity_test.dart test/map_workspace/map_library_retirement_test.dart test/map_workspace/context_identity_host_test.dart test/game_export/studio_test_export_scope_journey_test.dart test/game_export/studio_game_export_control_test.dart test/map_workspace/context_menu_test.dart test/map_workspace/keyboard_delete_host_test.dart",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-A_map/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+48 -0"
+  },
+  {
+   "command": "flutter test --no-pub test/project_settings/project_settings_retirement_continuity_test.dart test/map_workspace/map_library_retirement_test.dart test/map_workspace/context_identity_host_test.dart",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-write-A_map/apps/avelune_studio (première copie)",
+   "exitCode": 0,
+   "result": "+15 -0"
+  },
+  {
+   "command": "python3 check_clean.py <tests et supports nouveaux>",
+   "cwd": "/Users/karim/Project/pokemonProject",
+   "exitCode": 0,
+   "result": "25/25 CLEAN"
+  },
+  {
+   "command": "python3 -I A_mut.py (22 mutations du propriétaire, une à la fois, restaurées après chaque run)",
+   "cwd": "scratchpad",
+   "exitCode": 0,
+   "result": "26 runs : 22 détectées (test rouge), 4 survivantes (M2 sur parity et move, M5 sur inspector, M15) ; chaque fichier de test a au moins une mutation détectée (M20, M21, M22 complètent parity/move/inspector)"
+  }
+ ],
+ "createdFiles": [
+  "apps/avelune_studio/dev/hgss_lighting_comparison_owner.dart",
+  "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_failure_routing.dart",
+  "apps/avelune_studio/lib/features/project_settings/application/project_settings_recovery.dart",
+  "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/context_identity_host_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/context_keyboard_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/context_menu_host_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/context_menu_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/context_menu_parity_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/context_move_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/decor_order_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/inspector_fields_undo_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/map_camera_settings_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/map_library_open_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/map_palette_retirement_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/scoped_map_workspace_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/selection_identity_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/spatial_model_animation_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/uwu5_border_availability_host_owner_test.dart",
+  "apps/avelune_studio/test/project_settings/project_settings_recovery_owner_test.dart",
+  "apps/avelune_studio/test/support/map_context_owner_fixture.dart",
+  "apps/avelune_studio/test/support/map_disk_owner_fixture.dart",
+  "apps/avelune_studio/test/support/map_selection_owner_fixture.dart"
+ ],
+ "modifiedFiles": [
+  "apps/avelune_studio/lib/features/map_workspace/application/map_library_commands.dart",
+  "apps/avelune_studio/lib/features/map_workspace/application/map_selection_context.dart",
+  "apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_workspace_actions.dart",
+  "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+  "apps/avelune_studio/lib/presentation/features/map_workspace/project_settings_recovery_pane.dart",
+  "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_context_menu_binding.dart",
+  "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart",
+  "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_settings_recovery_binding.dart"
+ ],
+ "cases": [
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "depth of field pairs preserve lighting and restore the source image",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "depth of field pairs preserve lighting and restore the source image"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "atmosphere pairs share the clock and independently restore all flags",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "atmosphere pairs share the clock and independently restore all flags"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "contact capture requires every named actor to have the authored flag",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "contact capture requires every named actor to have the authored flag"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "contact shadow comparison keeps the same hour and scenery in each pair",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "contact shadow comparison keeps the same hour and scenery in each pair"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "contact plans reject mixed lighting, masked props and unowned paths",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "contact plans reject mixed lighting, masked props and unowned paths"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "depth of field plans preserve unmasked assets and exclude other modes",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "depth of field plans preserve unmasked assets and exclude other modes"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "comparison plans retain both modes and bound the day/night folder",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "comparison plans retain both modes and bound the day/night folder"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "loads the owned day/night plan and rejects a foreign copy or mixed mode",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "loads the owned day/night plan and rejects a foreign copy or mixed mode"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "lamp shadow plans stay in their folder and reject other lighting modes",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "lamp shadow plans stay in their folder and reject other lighting modes"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "lamp shadow comparison rejects masking without changing older modes",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "lamp shadow comparison rejects masking without changing older modes"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "day night comparisons require the actual unmasked assets",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "day night comparisons require the actual unmasked assets"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "lamp shadow comparison changes only occlusion at a fixed 22h",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "lamp shadow comparison changes only occlusion at a fixed 22h"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "day/night samples noon before, a full day after, and 22h for the probe",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "day/night samples noon before, a full day after, and 22h for the probe"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "day/night uses authored lighting and restores noon without changing the profile",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "day/night uses authored lighting and restores noon without changing the profile"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "comparison hides only requested instances without mutating its source",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "comparison hides only requested instances without mutating its source"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "an unknown removal fails instead of producing a misleading comparison",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "an unknown removal fails instead of producing a misleading comparison"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "an unfiltered comparison preserves the original scene identity",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "an unfiltered comparison preserves the original scene identity"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+   "test": "the renderer map carries the same filtered scene as its scene argument",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_owner_test.dart",
+     "test": "the renderer map carries the same filtered scene as its scene argument"
+    }
+   ],
+   "note": "Copie à l’identique des 18 cas contre dev/hgss_lighting_comparison_owner.dart (fonctions pures du harnais, sans UI). Le harnais dev d’origine n’a pas pu être modifié : il garde sa propre copie tant qu’il n’importe pas _owner.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/rendering/rendering_preferences_ui_test.dart",
+   "test": "display preferences are available without an open project",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/rendering/rendering_preferences_ui_test.dart",
+   "test": "global display choice exposes exactly the five supported limits",
+   "classification": "covered_elsewhere",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/rendering/rendering_preferences_test.dart",
+     "test": "each supported choice persists through the same loaded controller"
+    },
+    {
+     "file": "apps/avelune_studio/test/rendering/rendering_preferences_test.dart",
+     "test": "same value does not write and unsupported values are rejected"
+    },
+    {
+     "file": "apps/avelune_studio/test/rendering/rendering_preferences_test.dart",
+     "test": "startup reads once and applies the persisted global limit"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Couverture vérifiée en relisant rendering_preferences_test.dart (StudioRenderingPreferences.setLimit : écriture en attente visible, échec qui restaure, valeurs non supportées refusées)."
+  },
+  {
+   "file": "apps/avelune_studio/test/rendering/rendering_preferences_ui_test.dart",
+   "test": "pending writes are not shown as saved and failure rolls back",
+   "classification": "covered_elsewhere",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/rendering/rendering_preferences_test.dart",
+     "test": "a changed limit is visible while persistence is pending"
+    },
+    {
+     "file": "apps/avelune_studio/test/rendering/rendering_preferences_test.dart",
+     "test": "failed persistence restores the last durable limit"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Couverture vérifiée en relisant rendering_preferences_test.dart (StudioRenderingPreferences.setLimit : écriture en attente visible, échec qui restaure, valeurs non supportées refusées)."
+  },
+  {
+   "file": "apps/avelune_studio/test/rendering/rendering_preferences_ui_test.dart",
+   "test": "changing display preferences retains the mounted workspace",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart",
+   "test": "retired settings retain map drafts and the real exit guard Size(1500.0, 1100.0)",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/project_settings/project_settings_recovery_owner_test.dart",
+     "test": "retired settings retain map drafts and the real exit guard Size(1500.0, 1100.0)"
+    }
+   ],
+   "note": "Extraction de la reprise des brouillons (cibles, règles pending/available, confirmation, textes) et du routage StudioFailureOwner ; testés au niveau propriétaire. Non repris : dialogues de consentement, navigation réelle dans l’écran, garde de sortie WorkspaceWorkflow (déjà couverte par workspace_publication_workflow_test / project_settings_session_test selon la qualification), indicateur « À corriger dans » de la page d’export (UI).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart",
+   "test": "retired settings retain map drafts and the real exit guard Size(700.0, 900.0)",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/project_settings/project_settings_recovery_owner_test.dart",
+     "test": "retired settings retain map drafts and the real exit guard Size(700.0, 900.0)"
+    }
+   ],
+   "note": "Extraction de la reprise des brouillons (cibles, règles pending/available, confirmation, textes) et du routage StudioFailureOwner ; testés au niveau propriétaire. Non repris : dialogues de consentement, navigation réelle dans l’écran, garde de sortie WorkspaceWorkflow (déjà couverte par workspace_publication_workflow_test / project_settings_session_test selon la qualification), indicateur « À corriger dans » de la page d’export (UI).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart",
+   "test": "retired settings return to export and preserve StudioFailureOwner.general diagnostics and identity guards",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/project_settings/project_settings_recovery_owner_test.dart",
+     "test": "retired settings return to export and preserve StudioFailureOwner.general diagnostics and identity guards"
+    }
+   ],
+   "note": "Extraction de la reprise des brouillons (cibles, règles pending/available, confirmation, textes) et du routage StudioFailureOwner ; testés au niveau propriétaire. Non repris : dialogues de consentement, navigation réelle dans l’écran, garde de sortie WorkspaceWorkflow (déjà couverte par workspace_publication_workflow_test / project_settings_session_test selon la qualification), indicateur « À corriger dans » de la page d’export (UI).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart",
+   "test": "retired settings return to export and preserve StudioFailureOwner.image diagnostics and identity guards",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/project_settings/project_settings_recovery_owner_test.dart",
+     "test": "retired settings return to export and preserve StudioFailureOwner.image diagnostics and identity guards"
+    }
+   ],
+   "note": "Extraction de la reprise des brouillons (cibles, règles pending/available, confirmation, textes) et du routage StudioFailureOwner ; testés au niveau propriétaire. Non repris : dialogues de consentement, navigation réelle dans l’écran, garde de sortie WorkspaceWorkflow (déjà couverte par workspace_publication_workflow_test / project_settings_session_test selon la qualification), indicateur « À corriger dans » de la page d’export (UI).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart",
+   "test": "retired settings return to export and preserve StudioFailureOwner.timeWeather diagnostics and identity guards",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/project_settings/project_settings_recovery_owner_test.dart",
+     "test": "retired settings return to export and preserve StudioFailureOwner.timeWeather diagnostics and identity guards"
+    }
+   ],
+   "note": "Extraction de la reprise des brouillons (cibles, règles pending/available, confirmation, textes) et du routage StudioFailureOwner ; testés au niveau propriétaire. Non repris : dialogues de consentement, navigation réelle dans l’écran, garde de sortie WorkspaceWorkflow (déjà couverte par workspace_publication_workflow_test / project_settings_session_test selon la qualification), indicateur « À corriger dans » de la page d’export (UI).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart",
+   "test": "identity conflict recovery requires consent and retains the map draft",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/project_settings/project_settings_recovery_owner_test.dart",
+     "test": "identity conflict recovery requires consent and retains the map draft"
+    }
+   ],
+   "note": "Extraction de la reprise des brouillons (cibles, règles pending/available, confirmation, textes) et du routage StudioFailureOwner ; testés au niveau propriétaire. Non repris : dialogues de consentement, navigation réelle dans l’écran, garde de sortie WorkspaceWorkflow (déjà couverte par workspace_publication_workflow_test / project_settings_session_test selon la qualification), indicateur « À corriger dans » de la page d’export (UI).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/infrastructure/full_kanto_converter_lifecycle_test.dart",
+   "test": "published Kanto opens renders edits saves and cold reopens in Studio",
+   "classification": "not_replaced",
+   "replacement": [],
+   "note": "Test opt-in (AVELUNE_KANTO_STUDIO_LIFECYCLE=1, projet publié externe, 383 cartes) : non réécrit. Perdu : preuve à l’échelle réelle et rendu headless ; la publication + réouverture à froid à petite échelle reste couverte (map_catalog_mutation_test). Une réécriture propre devrait monter MapEditingSurface au lieu de MapWorkspaceScreen.",
+   "mutationDetected": null
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/train_workspace_capture_test.dart",
+   "test": "real Train copy renders with demand resources and desktop panels",
+   "classification": "not_replaced",
+   "replacement": [],
+   "note": "Test opt-in de capture sur le projet Train, abandonné (mémoire projet). Perdu : mesure lecture 0 / décodages sur gros projet réel ; chargement à la demande couvert sur fixtures (studio_map_resources_test).",
+   "mutationDetected": null
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/scoped_map_workspace_test.dart",
+   "test": "scoped map test opens the runtime without loading all workshops",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/scoped_map_workspace_owner_test.dart",
+     "test": "scoped map test opens the runtime without loading all workshops"
+    }
+   ],
+   "note": "Réécrit sur WorkspaceWorkflow.test + ScopedTestMapPort : aucune lecture complète ni atelier pendant le lancement, même document propre ; le dialogue « Tester cette carte » est UI.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/scoped_map_workspace_test.dart",
+   "test": "map rendering stays scoped without a global workshop banner",
+   "classification": "not_replaced",
+   "replacement": [],
+   "note": "Non traité faute de temps. Perdu si l’ancien test disparaît : le contexte d’atlas par carte ([\"first\"] puis [\"second\"]) fourni à loadVisuals par l’écran et l’enchaînement activation/atelier Pokémon sans lecture complète. La file de projection et les ateliers scopés restent couverts (workspace_session_lifecycle_test, workspace_workshop_navigation_test).",
+   "mutationDetected": null
+  },
+  {
+   "file": "apps/avelune_studio/test/presentation/scoped_map_workspace_test.dart",
+   "test": "injected catalogue owner guard preserves drafts and Studio navigation without the retired screen",
+   "classification": "not_replaced",
+   "replacement": [],
+   "note": "Non traité faute de temps. Perdu : l’échec d’enregistrement du catalogue qui garde brouillon + erreur au niveau navigation et l’intégration avec la garde de sortie du workspace ; les décisions du WorkingCatalogWorkflow restent couvertes (working_catalog_workspace_test).",
+   "mutationDetected": null
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_keyboard_test.dart",
+   "test": "a single decor reports blocked stacking actions",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_keyboard_owner_test.dart",
+     "test": "a single decor reports blocked stacking actions"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart (MaterialApp par défaut, sans studioTheme).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_keyboard_test.dart",
+   "test": "right-clicking another cell never reuses the old target",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_keyboard_owner_test.dart",
+     "test": "right-clicking another cell never reuses the old target"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart (MaterialApp par défaut, sans studioTheme).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_keyboard_test.dart",
+   "test": "changing maps or entering exterior editing closes the pending request",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_keyboard_owner_test.dart",
+     "test": "changing maps or entering exterior editing closes the pending request"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart (MaterialApp par défaut, sans studioTheme).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_keyboard_test.dart",
+   "test": "disposing a context session prevents new requests and commands",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_keyboard_owner_test.dart",
+     "test": "disposing a context session prevents new requests and commands"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart (MaterialApp par défaut, sans studioTheme).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_palette_retirement_test.dart",
+   "test": "2D 1536.0 keeps native editing after palette retirement",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_palette_retirement_owner_test.dart",
+     "test": "2D 1536.0 keeps native editing after palette retirement"
+    }
+   ],
+   "note": "Réécrit sur MapEditingSurface (platform) + MapEditingViewportSession : mêmes assertions de document, historique (undoToken/historyTokens), ports (reads/catalogs/writes), save et réouverture. Perdu : les champs de palette propres à l’ancienne MapWorkspaceViewState (paletteAtlasTransforms, fittedPaletteAtlases, revealPalette, elementsVisible) et l’absence des contrôles de palette (UI). Annuler/Rétablir passent par MapWorkspaceController.restore au lieu des boutons.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_palette_retirement_test.dart",
+   "test": "2D 700.0 keeps native editing after palette retirement",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_palette_retirement_owner_test.dart",
+     "test": "2D 700.0 keeps native editing after palette retirement"
+    }
+   ],
+   "note": "Réécrit sur MapEditingSurface (platform) + MapEditingViewportSession : mêmes assertions de document, historique (undoToken/historyTokens), ports (reads/catalogs/writes), save et réouverture. Perdu : les champs de palette propres à l’ancienne MapWorkspaceViewState (paletteAtlasTransforms, fittedPaletteAtlases, revealPalette, elementsVisible) et l’absence des contrôles de palette (UI). Annuler/Rétablir passent par MapWorkspaceController.restore au lieu des boutons.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_palette_retirement_test.dart",
+   "test": "3D 1536.0 keeps native editing after palette retirement",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_palette_retirement_owner_test.dart",
+     "test": "3D 1536.0 keeps native editing after palette retirement"
+    }
+   ],
+   "note": "Réécrit sur MapEditingSurface (platform) + MapEditingViewportSession : mêmes assertions de document, historique (undoToken/historyTokens), ports (reads/catalogs/writes), save et réouverture. Perdu : les champs de palette propres à l’ancienne MapWorkspaceViewState (paletteAtlasTransforms, fittedPaletteAtlases, revealPalette, elementsVisible) et l’absence des contrôles de palette (UI). Annuler/Rétablir passent par MapWorkspaceController.restore au lieu des boutons.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_palette_retirement_test.dart",
+   "test": "3D 700.0 keeps native editing after palette retirement",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_palette_retirement_owner_test.dart",
+     "test": "3D 700.0 keeps native editing after palette retirement"
+    }
+   ],
+   "note": "Réécrit sur MapEditingSurface (platform) + MapEditingViewportSession : mêmes assertions de document, historique (undoToken/historyTokens), ports (reads/catalogs/writes), save et réouverture. Perdu : les champs de palette propres à l’ancienne MapWorkspaceViewState (paletteAtlasTransforms, fittedPaletteAtlases, revealPalette, elementsVisible) et l’absence des contrôles de palette (UI). Annuler/Rétablir passent par MapWorkspaceController.restore au lieu des boutons.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart",
+   "test": "1536.0 dirty workspace retires its library and retains its owners",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart",
+   "test": "1536.0 empty workspace retires its library and retains its owners",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart",
+   "test": "900.0 dirty workspace retires its library and retains its owners",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart",
+   "test": "900.0 empty workspace retires its library and retains its owners",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart",
+   "test": "destination opening still activates the real owner after closing",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_library_open_owner_test.dart",
+     "test": "destination opening still activates the real owner after closing"
+    }
+   ],
+   "note": "mapLibraryOpenAction extrait dans application/map_library_commands.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_parity_test.dart",
+   "test": "context actions and direct commands honour the same deletion guard",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_parity_owner_test.dart",
+     "test": "context actions and direct commands honour the same deletion guard"
+    }
+   ],
+   "note": "Relocalisé (harnais propre) ; dossier disque passé de AveluneQA/studio-t01-retirement-20261109 en dur à Directory.systemTemp.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_parity_test.dart",
+   "test": "a dependency added after opening the request is still enforced at execution",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_parity_owner_test.dart",
+     "test": "a dependency added after opening the request is still enforced at execution"
+    }
+   ],
+   "note": "Relocalisé (harnais propre) ; dossier disque passé de AveluneQA/studio-t01-retirement-20261109 en dur à Directory.systemTemp.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_parity_test.dart",
+   "test": "a menu edit survives saving and reopening from disk",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_parity_owner_test.dart",
+     "test": "a menu edit survives saving and reopening from disk"
+    }
+   ],
+   "note": "Relocalisé (harnais propre) ; dossier disque passé de AveluneQA/studio-t01-retirement-20261109 en dur à Directory.systemTemp.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "pixel selection finds a tiny offset decor",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "pixel selection finds a tiny offset decor"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "geometry inputs save and reload through the real workspace adapter",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "geometry inputs save and reload through the real workspace adapter"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "new decor is authored and Shift drag commits one pixel once",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "new decor is authored and Shift drag commits one pixel once"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "Shift-click with a slight jitter toggles the decor without moving it",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "Shift-click with a slight jitter toggles the decor without moving it"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "Escape during a Shift press keeps the selection unchanged",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "Escape during a Shift press keeps the selection unchanged"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "right handle stretches only width and Shift repeat is one undo",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "right handle stretches only width and Shift repeat is one undo"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "geometry inputs accept integers and natural size can be restored",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "geometry inputs accept integers and natural size can be restored"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "Shift rebases without a jump at zoom 0.5 and grid keeps residue",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "Shift rebases without a jump at zoom 0.5 and grid keeps residue"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "Shift rebases without a jump at zoom 1.0 and grid keeps residue",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "Shift rebases without a jump at zoom 1.0 and grid keeps residue"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "Shift rebases without a jump at zoom 1.5 and grid keeps residue",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "Shift rebases without a jump at zoom 1.5 and grid keeps residue"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "Shift rebases without a jump at zoom 2.0 and grid keeps residue",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "Shift rebases without a jump at zoom 2.0 and grid keeps residue"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "Shift rebases without a jump at zoom 3.0 and grid keeps residue",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "Shift rebases without a jump at zoom 3.0 and grid keeps residue"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "corners preserve the initial ratio across Shift changes and sides clamp at one",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "corners preserve the initial ratio across Shift changes and sides clamp at one"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "Escape, tool change and source change cancel without history",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "Escape, tool change and source change cancel without history"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "invalid geometry inputs preserve state and snapping preserves custom size",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "invalid geometry inputs preserve state and snapping preserves custom size"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart",
+   "test": "guided detach is undoable and Environment ownership disables transforms",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_transform_host_owner_test.dart",
+     "test": "guided detach is undoable and Environment ownership disables transforms"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_host_test.dart",
+   "test": "native right click and context session delete with save and cold reopen",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_host_owner_test.dart",
+     "test": "native right click and context session delete with save and cold reopen"
+    }
+   ],
+   "note": "Relocalisé (harnais propre) ; dossier disque en Directory.systemTemp.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_host_test.dart",
+   "test": "opening and closing a context request adds no map mutation",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_host_owner_test.dart",
+     "test": "opening and closing a context request adds no map mutation"
+    }
+   ],
+   "note": "Relocalisé (harnais propre) ; dossier disque en Directory.systemTemp.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_host_test.dart",
+   "test": "properties requests navigation for the selected identity",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_host_owner_test.dart",
+     "test": "properties requests navigation for the selected identity"
+    }
+   ],
+   "note": "Relocalisé (harnais propre) ; dossier disque en Directory.systemTemp.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_host_test.dart",
+   "test": "opening an unbound story zone explains the missing interaction and preserves it",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_host_owner_test.dart",
+     "test": "opening an unbound story zone explains the missing interaction and preserves it"
+    }
+   ],
+   "note": "Relocalisé (harnais propre) ; dossier disque en Directory.systemTemp.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "border and environment layer visibility follows canonical generated ownership",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "border and environment layer visibility follows canonical generated ownership"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "hidden character rejects stale commands and resumes after showing",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "hidden character rejects stale commands and resumes after showing"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "stale character commands preserve a lock and resume after unlocking",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "stale character commands preserve a lock and resume after unlocking"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "hidden marker rejects stale commands and resumes after showing",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "hidden marker rejects stale commands and resumes after showing"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "stale marker commands preserve a lock and resume after unlocking",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "stale marker commands preserve a lock and resume after unlocking"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "hidden warp rejects stale commands and resumes after showing",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "hidden warp rejects stale commands and resumes after showing"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "stale warp commands preserve a lock and resume after unlocking",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "stale warp commands preserve a lock and resume after unlocking"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "hidden zone rejects stale commands and resumes after showing",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "hidden zone rejects stale commands and resumes after showing"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "stale zone commands preserve a lock and resume after unlocking",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "stale zone commands preserve a lock and resume after unlocking"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "hidden trigger rejects stale commands and resumes after showing",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "hidden trigger rejects stale commands and resumes after showing"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "stale trigger commands preserve a lock and resume after unlocking",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "stale trigger commands preserve a lock and resume after unlocking"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "hidden decor and its hidden layer are excluded from real taps and stale moves",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "hidden decor and its hidden layer are excluded from real taps and stale moves"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "locked front decor lets real taps and drags reach the decor behind",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "locked front decor lets real taps and drags reach the decor behind"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "family lock allows clicking behind all its effects",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "family lock allows clicking behind all its effects"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "locking an effects layer makes its decor click through",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "locking an effects layer makes its decor click through"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_test.dart",
+   "test": "locking a decor during a drag cancels its pending movement",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/locked_element_selection_owner_test.dart",
+     "test": "locking a decor during a drag cancels its pending movement"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart",
+   "test": "undo restores the previous sign title without a new history entry",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/inspector_fields_undo_owner_test.dart",
+     "test": "undo restores the previous sign title without a new history entry"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart",
+   "test": "undo restores the previous gameplay zone name",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/inspector_fields_undo_owner_test.dart",
+     "test": "undo restores the previous gameplay zone name"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart",
+   "test": "redo restores the changed sign title",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/inspector_fields_undo_owner_test.dart",
+     "test": "redo restores the changed sign title"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart",
+   "test": "a sign edit targets its captured identity and preserves the other sign",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/inspector_fields_undo_owner_test.dart",
+     "test": "a sign edit targets its captured identity and preserves the other sign"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/inspector_fields_undo_test.dart",
+   "test": "an invalid arrival coordinate preserves the target and valid input remains possible",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/inspector_fields_undo_owner_test.dart",
+     "test": "an invalid arrival coordinate preserves the target and valid input remains possible"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_warp_inspector_retirement_test.dart",
+   "test": "select selected active warp keeps a neutral inspector after rebuild",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_warp_inspector_retirement_test.dart",
+   "test": "select selected sceneOnly warp keeps a neutral inspector after rebuild",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_warp_inspector_retirement_test.dart",
+   "test": "select without selection still routes to connections",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_warp_inspector_retirement_test.dart",
+   "test": "warp selected active warp keeps a neutral inspector after rebuild",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_warp_inspector_retirement_test.dart",
+   "test": "warp selected sceneOnly warp keeps a neutral inspector after rebuild",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_warp_inspector_retirement_test.dart",
+   "test": "warp without selection still routes to connections",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_warp_inspector_retirement_test.dart",
+   "test": "connection tool keeps priority over a selected existing warp",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_move_test.dart",
+   "test": "a gameplay zone is really moved by the menu action",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_move_owner_test.dart",
+     "test": "a gameplay zone is really moved by the menu action"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_move_test.dart",
+   "test": "a story zone moves the same way",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_move_owner_test.dart",
+     "test": "a story zone moves the same way"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_move_test.dart",
+   "test": "a character under the zone does not move instead of it",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_move_owner_test.dart",
+     "test": "a character under the zone does not move instead of it"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+   "test": "canonical border preparation and canvas drawing preserve cardinal sprites and disk persistence",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+     "test": "canonical border preparation and canvas drawing preserve cardinal sprites and disk persistence"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart (M3StoryFixture disque + MapEditingSurface/MapEditingInputSession) : famille Bordures via MapToolCommandRunner.runFamily, bordure via useMapResource, tracé par vrais clics canevas + Entrée, sauvegarde MapWorkspaceController.save et relecture LocalMapWorkspaceAdapter.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+   "test": "an empty border catalogue refuses canvas tracing without changing the document",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+     "test": "an empty border catalogue refuses canvas tracing without changing the document"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart (M3StoryFixture disque + MapEditingSurface/MapEditingInputSession) : famille Bordures via MapToolCommandRunner.runFamily, bordure via useMapResource, tracé par vrais clics canevas + Entrée, sauvegarde MapWorkspaceController.save et relecture LocalMapWorkspaceAdapter.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+   "test": "canonical border preparation and canvas preview finish in one undoable save",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+     "test": "canonical border preparation and canvas preview finish in one undoable save"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart (M3StoryFixture disque + MapEditingSurface/MapEditingInputSession) : famille Bordures via MapToolCommandRunner.runFamily, bordure via useMapResource, tracé par vrais clics canevas + Entrée, sauvegarde MapWorkspaceController.save et relecture LocalMapWorkspaceAdapter.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+   "test": "Escape preserves the same draft then canonical reselection discards it without writes",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+     "test": "Escape preserves the same draft then canonical reselection discards it without writes"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart (M3StoryFixture disque + MapEditingSurface/MapEditingInputSession) : famille Bordures via MapToolCommandRunner.runFamily, bordure via useMapResource, tracé par vrais clics canevas + Entrée, sauvegarde MapWorkspaceController.save et relecture LocalMapWorkspaceAdapter.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+   "test": "switching tools keeps the unfinished border draft",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+     "test": "switching tools keeps the unfinished border draft"
+    }
+   ],
+   "note": "La partie changement de carte (brouillon propre à chaque carte puis retrouvé au retour) n’est pas reprise : le registre de vues par carte n’existe que dans l’ancien écran (workspace_map_library_binding.dart:8) ; avec une seule vue, MapWorkspaceEditingState.reconcileResources efface le brouillon au changement de carte. Voir decisions.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+   "test": "border draft rejects a crossing and leaves its anchors unchanged",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+     "test": "border draft rejects a crossing and leaves its anchors unchanged"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart (M3StoryFixture disque + MapEditingSurface/MapEditingInputSession) : famille Bordures via MapToolCommandRunner.runFamily, bordure via useMapResource, tracé par vrais clics canevas + Entrée, sauvegarde MapWorkspaceController.save et relecture LocalMapWorkspaceAdapter.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+   "test": "clicking the origin closes and previews the final segment",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+     "test": "clicking the origin closes and previews the final segment"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart (M3StoryFixture disque + MapEditingSurface/MapEditingInputSession) : famille Bordures via MapToolCommandRunner.runFamily, bordure via useMapResource, tracé par vrais clics canevas + Entrée, sauvegarde MapWorkspaceController.save et relecture LocalMapWorkspaceAdapter.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+   "test": "grid-edge draft reaches the outer border of the map",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+     "test": "grid-edge draft reaches the outer border of the map"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart (M3StoryFixture disque + MapEditingSurface/MapEditingInputSession) : famille Bordures via MapToolCommandRunner.runFamily, bordure via useMapResource, tracé par vrais clics canevas + Entrée, sauvegarde MapWorkspaceController.save et relecture LocalMapWorkspaceAdapter.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+   "test": "horizontal facades draw without rotation and refuse vertical edits",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+     "test": "horizontal facades draw without rotation and refuse vertical edits"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart (M3StoryFixture disque + MapEditingSurface/MapEditingInputSession) : famille Bordures via MapToolCommandRunner.runFamily, bordure via useMapResource, tracé par vrais clics canevas + Entrée, sauvegarde MapWorkspaceController.save et relecture LocalMapWorkspaceAdapter.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+   "test": "a published stone chain uses grid edges through the host",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart",
+     "test": "a published stone chain uses grid edges through the host"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart (M3StoryFixture disque + MapEditingSurface/MapEditingInputSession) : famille Bordures via MapToolCommandRunner.runFamily, bordure via useMapResource, tracé par vrais clics canevas + Entrée, sauvegarde MapWorkspaceController.save et relecture LocalMapWorkspaceAdapter.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_construction_retirement_test.dart",
+   "test": "terrain keeps its canvas without mounting retired construction controls",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_construction_retirement_test.dart",
+   "test": "border keeps its canvas without mounting retired construction controls",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_construction_retirement_test.dart",
+   "test": "environment keeps its canvas without mounting retired construction controls",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_construction_retirement_test.dart",
+   "test": "2D terrain inspector retains its document and selection while construction controls are retired",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_construction_retirement_test.dart",
+   "test": "3D terrain inspector retains its document and selection while construction controls are retired",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart",
+   "test": "canonically prepared border stays visible over opaque ground after canvas drawing and disk reopen",
+   "classification": "not_replaced",
+   "replacement": [],
+   "note": "Non traité faute de temps : exige les visuels réels (StudioMapResources via M2UiFixture) et une capture pixel. Perdu : la bordure visible au-dessus d’un sol opaque, la révision de blueprint du reçu et l’immuabilité tuile/collision après tracé canevas. Le tracé + save + relecture reste prouvé par border_drawing_host_owner_test.",
+   "mutationDetected": null
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_order_e2e_test.dart",
+   "test": "mixed render contexts can be reordered from the inspector",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_order_owner_test.dart",
+     "test": "mixed render contexts can be reordered from the inspector"
+    }
+   ],
+   "note": "Réécrit : décor armé via useMapResource, posé par vrais clics canevas, MapEditingCommands.reorder (la commande appelée par les boutons Passer devant/derrière), MapWorkspaceController.restore, save + relecture disque.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_order_e2e_test.dart",
+   "test": "a mixed decor stack moves one neighboring rank and saves it",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_order_owner_test.dart",
+     "test": "a mixed decor stack moves one neighboring rank and saves it"
+    }
+   ],
+   "note": "Réécrit : décor armé via useMapResource, posé par vrais clics canevas, MapEditingCommands.reorder (la commande appelée par les boutons Passer devant/derrière), MapWorkspaceController.restore, save + relecture disque.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_identity_host_test.dart",
+   "test": "twin ids in two families stay distinct rows of the real menu",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_identity_host_owner_test.dart",
+     "test": "twin ids in two families stay distinct rows of the real menu"
+    }
+   ],
+   "note": "Unicité des clés de cibles et cible unique sélectionnée au niveau MapEditingInputSession ; le surlignage des lignes est UI.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_identity_host_test.dart",
+   "test": "Shift+F10 reopens the menu on the target chosen in the stack",
+   "classification": "replaced_partial",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_identity_host_owner_test.dart",
+     "test": "Shift+F10 reopens the menu on the target chosen in the stack"
+    }
+   ],
+   "note": "Règle de cible clavier extraite (keyboardContextTarget) et prouvée ; non repris : le raccourci Maj+F10 lui-même (non câblé dans MapEditingSurface) et l’ancrage visuel du menu près de la cible après zoom (remplacé par la cellule de la requête).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_identity_host_test.dart",
+   "test": "a deleted target is never replaced by its homonym on Shift+F10",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_identity_host_owner_test.dart",
+     "test": "a deleted target is never replaced by its homonym on Shift+F10"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart (MapEditingInputSession, vrais clics droits).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_identity_host_test.dart",
+   "test": "a map change really closes the menu, it does not only hide it",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_identity_host_owner_test.dart",
+     "test": "a map change really closes the menu, it does not only hide it"
+    }
+   ],
+   "note": "Prouvé avec MapEditingInputSession.reconcile appelé explicitement : aucun code non legacy n’appelle reconcile automatiquement (voir decisions).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/decor_order_cross_context_repro_test.dart",
+   "test": "overlapping decors can exchange their visible order",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/decor_order_owner_test.dart",
+     "test": "overlapping decors can exchange their visible order"
+    }
+   ],
+   "note": "Disponibilité du bouton remplacée par decorOrderContext().backwardProblem == null (même règle reorderProblemAt que l’inspecteur legacy).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart",
+   "test": "Terrains requests the resource picker when it is hidden",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_owner_test.dart",
+     "test": "Terrains requests the resource picker when it is hidden"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart",
+   "test": "Passages requests the resource picker when it is hidden",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_owner_test.dart",
+     "test": "Passages requests the resource picker when it is hidden"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart",
+   "test": "character placement requests its hidden resource picker",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_owner_test.dart",
+     "test": "character placement requests its hidden resource picker"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart",
+   "test": "decor intention arms the selected asset and native placement consumes it",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_owner_test.dart",
+     "test": "decor intention arms the selected asset and native placement consumes it"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_test.dart",
+   "test": "choosing an eraser changes the active tool and derived intention",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_tool_strip_state_host_owner_test.dart",
+     "test": "choosing an eraser changes the active tool and derived intention"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/selection_identity_test.dart",
+   "test": "choosing a decor drops the gameplay zone selection",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/selection_identity_owner_test.dart",
+     "test": "choosing a decor drops the gameplay zone selection"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/selection_identity_test.dart",
+   "test": "choosing a character drops the sign selection",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/selection_identity_owner_test.dart",
+     "test": "choosing a character drops the sign selection"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/selection_identity_test.dart",
+   "test": "choosing a warp drops the sign selection",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/selection_identity_owner_test.dart",
+     "test": "choosing a warp drops the sign selection"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/selection_identity_test.dart",
+   "test": "deletion follows the active selection after switching families",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/selection_identity_owner_test.dart",
+     "test": "deletion follows the active selection after switching families"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/selection_identity_test.dart",
+   "test": "a click on empty ground clears the destructive target",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/selection_identity_owner_test.dart",
+     "test": "a click on empty ground clears the destructive target"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/selection_identity_test.dart",
+   "test": "selecting never writes to the document or the history",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/selection_identity_owner_test.dart",
+     "test": "selecting never writes to the document or the history"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/selection_identity_test.dart",
+   "test": "a twin id on another map never becomes the target",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/selection_identity_owner_test.dart",
+     "test": "a twin id on another map never becomes the target"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/selection_identity_test.dart",
+   "test": "the target survives pan and zoom without moving anything",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/selection_identity_owner_test.dart",
+     "test": "the target survives pan and zoom without moving anything"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_selection_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_test.dart",
+   "test": "a real right click resolves decor actions and selects its target",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_owner_test.dart",
+     "test": "a real right click resolves decor actions and selects its target"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_test.dart",
+   "test": "a lone decor has one honest reason for both unavailable directions",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_owner_test.dart",
+     "test": "a lone decor has one honest reason for both unavailable directions"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_test.dart",
+   "test": "a real right click never paints places or erases",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_owner_test.dart",
+     "test": "a real right click never paints places or erases"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_test.dart",
+   "test": "closing a context request preserves the map and its history",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_owner_test.dart",
+     "test": "closing a context request preserves the map and its history"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_test.dart",
+   "test": "overlapping targets remain distinct and choosing one updates selection",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_owner_test.dart",
+     "test": "overlapping targets remain distinct and choosing one updates selection"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_test.dart",
+   "test": "a right click after pan and zoom resolves the correct cell",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_owner_test.dart",
+     "test": "a right click after pan and zoom resolves the correct cell"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_test.dart",
+   "test": "context deletion uses the shared command and undo",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_owner_test.dart",
+     "test": "context deletion uses the shared command and undo"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_test.dart",
+   "test": "a target removed while its request is open is refused",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_owner_test.dart",
+     "test": "a target removed while its request is open is refused"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/context_menu_test.dart",
+   "test": "an empty cell offers coordinates and a scoped tile erase",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/context_menu_owner_test.dart",
+     "test": "an empty cell offers coordinates and a scoped tile erase"
+    }
+   ],
+   "note": "Relocalisé : harnais propre map_context_owner_fixture.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/spatial_model_animation_test.dart",
+   "test": "placed clips, speed and loop survive edits, duplication and undo",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/spatial_model_animation_owner_test.dart",
+     "test": "placed clips, speed and loop survive edits, duplication and undo"
+    }
+   ],
+   "note": "Cas logique copié sans l’import de model_animation_controls.dart.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/spatial_model_animation_test.dart",
+   "test": "animation UI selects clips and controls temporary preview separately",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/uwu5_border_availability_host_test.dart",
+   "test": "an unavailable selected border is never replaced by another",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/uwu5_border_availability_host_owner_test.dart",
+     "test": "an unavailable selected border is never replaced by another"
+    }
+   ],
+   "note": "Réécrit sur map_disk_owner_fixture.dart ; la réconciliation est celle de WorkspaceResourceOwnerBindings.reconcileBrushes (coordination), appelée explicitement (dans l’ancien écran elle l’était par le listener du contrôleur).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/spatial_transport_retirement_test.dart",
+   "test": "platform-deck retains its mechanics and selection without transport panels",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/spatial_transport_retirement_test.dart",
+   "test": "lift-deck retains its mechanics and selection without transport panels",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_camera_panel_test.dart",
+   "test": "2D map settings retain catalogue actions without the retired camera controls",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_camera_panel_test.dart",
+   "test": "3D map settings retain catalogue actions without the retired camera controls",
+   "classification": "ui_only",
+   "replacement": [],
+   "mutationDetected": null,
+   "note": "Qualification ui_only reprise."
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_camera_panel_test.dart",
+   "test": "camera override notice identifies the effective project camera values",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_camera_settings_owner_test.dart",
+     "test": "camera override notice identifies the effective project camera values"
+    }
+   ],
+   "note": "Trois cas logiques copiés (MapSpatialSettingsCommands, mapCameraOverrides) sans les imports legacy.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_camera_panel_test.dart",
+   "test": "camera projection edits remain undoable and redoable",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_camera_settings_owner_test.dart",
+     "test": "camera projection edits remain undoable and redoable"
+    }
+   ],
+   "note": "Trois cas logiques copiés (MapSpatialSettingsCommands, mapCameraOverrides) sans les imports legacy.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/map_camera_panel_test.dart",
+   "test": "invalid camera input preserves the document and valid input can follow",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/map_camera_settings_owner_test.dart",
+     "test": "invalid camera input preserves the document and valid input can follow"
+    }
+   ],
+   "note": "Trois cas logiques copiés (MapSpatialSettingsCommands, mapCameraOverrides) sans les imports legacy.",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_test.dart",
+   "test": "a single-map project places a guided passive arrival point",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_owner_test.dart",
+     "test": "a single-map project places a guided passive arrival point"
+    }
+   ],
+   "note": "Copie sans studioTheme (MapEditingViewport2D/MapEditingOverlay de platform/rendering).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_test.dart",
+   "test": "a passive point keeps identity and local coordinates through move and undo redo",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_owner_test.dart",
+     "test": "a passive point keeps identity and local coordinates through move and undo redo"
+    }
+   ],
+   "note": "Copie sans studioTheme (MapEditingViewport2D/MapEditingOverlay de platform/rendering).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_test.dart",
+   "test": "passive mode retains identity and canonical local target without outgoing data",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_owner_test.dart",
+     "test": "passive mode retains identity and canonical local target without outgoing data"
+    }
+   ],
+   "note": "Copie sans studioTheme (MapEditingViewport2D/MapEditingOverlay de platform/rendering).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_test.dart",
+   "test": "passive activation requires explicit destination and both valid coordinates",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_owner_test.dart",
+     "test": "passive activation requires explicit destination and both valid coordinates"
+    }
+   ],
+   "note": "Copie sans studioTheme (MapEditingViewport2D/MapEditingOverlay de platform/rendering).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_test.dart",
+   "test": "late arrival choice cannot retarget another selection or disposed form",
+   "classification": "replaced",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_owner_test.dart",
+     "test": "late arrival choice cannot retarget another selection or disposed form"
+    }
+   ],
+   "note": "Copie sans studioTheme (MapEditingViewport2D/MapEditingOverlay de platform/rendering).",
+   "mutationDetected": true
+  },
+  {
+   "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_test.dart",
+   "test": "the passive marker never displays an outgoing destination label",
+   "classification": "ui_only",
+   "replacement": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/scene_only_warp_authoring_owner_test.dart",
+     "test": "the passive marker never displays an outgoing destination label"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "ui_only selon la qualification, mais copié quand même (peintre MapEditingOverlay de platform/rendering) avec ThemeData().colorScheme.primary au lieu de studioTheme()."
+  },
+  {
+   "file": "apps/avelune_studio/integration_test/map_collision_native_journey_test.dart",
+   "test": "the real Studio paints, erases, and saves collision strokes",
+   "classification": "not_replaced",
+   "replacement": [],
+   "note": "Test d’intégration (StudioBootstrap) non réécrit faute de temps. Il n’importe que StudioMapTool depuis l’ancien map_workspace_view_state.dart : repointer l’import vers features/map_workspace/application/map_workspace_editing_state.dart suffirait probablement (non vérifié). Perdu sinon : undo/redo puis save et contenu disque via le Studio réel ; peinture/effacement couverts par map_collision_stroke_test.",
+   "mutationDetected": null
+  }
+ ],
+ "mutations": [
+  {
+   "mutation": "M20 story guard skipped",
+   "file": "lib/features/map_workspace/application/map_entity_editing_commands.dart",
+   "test": "test/map_workspace/context_menu_parity_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+1 -2: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M21 move command does not arm",
+   "file": "lib/features/map_workspace/application/map_context_command_runner.dart",
+   "test": "test/map_workspace/context_move_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+0 -3: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M22 undo replays redo",
+   "file": "lib/features/map_workspace/application/editable_map_document.dart",
+   "test": "test/map_workspace/inspector_fields_undo_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+2 -3: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M1 session open ignores dispose",
+   "file": "lib/features/map_workspace/application/map_context_interaction_session.dart",
+   "test": "test/map_workspace/context_keyboard_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+3 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M2 session close keeps request",
+   "file": "lib/features/map_workspace/application/map_context_interaction_session.dart",
+   "test": "test/map_workspace/context_menu_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+6 -3: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M2 session close keeps request",
+   "file": "lib/features/map_workspace/application/map_context_interaction_session.dart",
+   "test": "test/map_workspace/context_menu_host_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+1 -3: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M2 session close keeps request",
+   "file": "lib/features/map_workspace/application/map_context_interaction_session.dart",
+   "test": "test/map_workspace/context_menu_parity_owner_test.dart",
+   "exitCode": 0,
+   "detected": false,
+   "tail": [
+    "+3: All tests passed!"
+   ]
+  },
+  {
+   "mutation": "M2 session close keeps request",
+   "file": "lib/features/map_workspace/application/map_context_interaction_session.dart",
+   "test": "test/map_workspace/context_move_owner_test.dart",
+   "exitCode": 0,
+   "detected": false,
+   "tail": [
+    "+3: All tests passed!"
+   ]
+  },
+  {
+   "mutation": "M3 transform snap ignores step",
+   "file": "lib/features/map_workspace/coordination/map_decor_transform_draft.dart",
+   "test": "test/map_workspace/decor_transform_host_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+7 -9: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M4 lock/hide never blocks",
+   "file": "lib/features/map_workspace/application/editable_map_document.dart",
+   "test": "test/map_workspace/locked_element_selection_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+1 -15: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M5 warp target apply ignores coordinates",
+   "file": "lib/features/map_workspace/application/map_warp_target_session.dart",
+   "test": "test/map_workspace/inspector_fields_undo_owner_test.dart",
+   "exitCode": 0,
+   "detected": false,
+   "tail": [
+    "+5: All tests passed!"
+   ]
+  },
+  {
+   "mutation": "M5 warp target apply ignores coordinates",
+   "file": "lib/features/map_workspace/application/map_warp_target_session.dart",
+   "test": "test/map_workspace/scene_only_warp_authoring_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+5 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M6 clearSelection keeps target",
+   "file": "lib/features/map_workspace/application/map_workspace_editing_state.dart",
+   "test": "test/map_workspace/selection_identity_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+7 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M7 tile eraser becomes decor eraser",
+   "file": "lib/features/map_workspace/application/map_tool_command_runner.dart",
+   "test": "test/map_workspace/map_tool_strip_state_host_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+4 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M8 border draft never closes",
+   "file": "lib/features/map_workspace/application/map_border_drawing_draft.dart",
+   "test": "test/map_workspace/border_drawing_host_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+9 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M9 deprecated border kept selected",
+   "file": "lib/features/map_workspace/coordination/workspace_resource_owner_bindings.dart",
+   "test": "test/map_workspace/uwu5_border_availability_host_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+0 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M10 keyboard target without refusal message",
+   "file": "lib/features/map_workspace/application/map_selection_context.dart",
+   "test": "test/map_workspace/context_identity_host_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+3 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M11 reorder inverted",
+   "file": "lib/features/map_workspace/application/map_editing_commands.dart",
+   "test": "test/map_workspace/decor_order_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+0 -3: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M12 library open does not close first",
+   "file": "lib/features/map_workspace/application/map_library_commands.dart",
+   "test": "test/map_workspace/map_library_open_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+0 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M13 decor resource does not arm placement",
+   "file": "lib/features/map_workspace/coordination/map_resource_placement.dart",
+   "test": "test/map_workspace/map_palette_retirement_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+0 -4: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M14 map test launches with stale revision",
+   "file": "lib/features/map_workspace/coordination/workspace_workflow.dart",
+   "test": "test/map_workspace/scoped_map_workspace_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+0 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M15 busy settings still recoverable",
+   "file": "lib/features/project_settings/application/project_settings_recovery.dart",
+   "test": "test/project_settings/project_settings_recovery_owner_test.dart",
+   "exitCode": 0,
+   "detected": false,
+   "tail": [
+    "+7: All tests passed!"
+   ]
+  },
+  {
+   "mutation": "M16 general failure not routed to settings",
+   "file": "lib/features/map_workspace/coordination/workspace_failure_routing.dart",
+   "test": "test/project_settings/project_settings_recovery_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+0 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M17 camera override notice missing pitch",
+   "file": "lib/features/map_workspace/application/map_spatial_settings_commands.dart",
+   "test": "test/map_workspace/map_camera_settings_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+2 -1: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M18 day/night noon moved",
+   "file": "dev/hgss_lighting_comparison_owner.dart",
+   "test": "test/dev/hgss_lighting_comparison_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+16 -2: Some tests failed."
+   ]
+  },
+  {
+   "mutation": "M19 animation loop not persisted",
+   "file": "lib/features/map_workspace/application/spatial_model_editing_commands.dart",
+   "test": "test/map_workspace/spatial_model_animation_owner_test.dart",
+   "exitCode": 1,
+   "detected": true,
+   "tail": [
+    "+0 -1: Some tests failed."
+   ]
+  }
+ ]
+}

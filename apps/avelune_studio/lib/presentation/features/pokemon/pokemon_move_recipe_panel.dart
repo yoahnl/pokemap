@@ -17,9 +17,7 @@ class PokemonMoveRecipePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!controller.supportsMoveRecipes ||
-        move.userCreated ||
-        controller.moveInsertGroup != null) {
+    if (!controller.recipePanelAvailableFor(move)) {
       return const SizedBox.shrink();
     }
     final choices = controller.recipeChoices;

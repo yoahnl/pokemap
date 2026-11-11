@@ -11,9 +11,8 @@ import 'package:avelune_studio/platform/rendering/contracts/presentation_workspa
 
 import 'presentation_view_state.dart';
 import 'presentation_transport_listenable.dart';
-import '../../../features/presentations/application/presentation_pose_projection.dart';
 
-import 'package:avelune_studio/features/presentations/application/presentation_gesture_projection.dart';
+import 'package:avelune_studio/features/presentations/application/presentation_canvas_transform.dart';
 
 part 'presentation_canvas_gestures.dart';
 
@@ -45,7 +44,7 @@ class _PresentationCanvasState extends State<PresentationCanvas> {
   Offset? start;
   Offset delta = Offset.zero;
   PresentationClip? dragging;
-  String gesture = 'move';
+  PresentationCanvasGesture gesture = PresentationCanvasGesture.move;
   Rect? initialBounds;
   PresentationCinematicAsset? projection;
   Map<String, Object?>? pendingPatch;

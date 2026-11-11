@@ -325,6 +325,24 @@ final class RegionalMapController {
     if (destination != null) loadMap(destination.mapId);
   }
 
+  void placePoint({
+    required double dx,
+    required double dy,
+    required double width,
+    required double height,
+  }) => editPoint(u: dx / width, v: dy / height);
+
+  void dragPoint({
+    required double dx,
+    required double dy,
+    required double width,
+    required double height,
+  }) {
+    final selected = point;
+    if (selected == null) return;
+    editPoint(u: selected.u + dx / width, v: selected.v + dy / height);
+  }
+
   void deletePoint() {
     if (point == null) return;
     if (_change(

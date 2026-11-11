@@ -1,6 +1,19 @@
 import 'package:map_core/map_core_domain.dart';
 
 class PokemonShopEditing {
+  static const priceBounds = (minimum: 1, optional: false);
+  static const sellPriceBounds = (minimum: 1, optional: true);
+  static const stockBounds = (minimum: 0, optional: true);
+
+  static List<ShopEntryDefinition> unresolvedEntries(
+    ShopDefinition shop,
+    ProjectItemCatalog? catalog,
+  ) => [
+    for (final entry in shop.entries)
+      if (catalog?.entries.any((item) => item.id == entry.itemId) != true)
+        entry,
+  ];
+
   static List<ProjectItemDefinition> candidates(
     ShopDefinition shop,
     Iterable<ProjectItemDefinition> items,

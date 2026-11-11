@@ -3,6 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
 import '../../../features/pokemon/domain/pokemon_commerce_port.dart';
+import '../../../features/pokemon/application/pokemon_shop_editing.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import 'pokemon_ui_parts.dart';
 
@@ -109,15 +110,10 @@ class PokemonCommerceReferences extends StatelessWidget {
     final references = snapshot.narrativeReferences.usagesFor(
       NarrativeDependencyKey.synthetic(sourceKind: 'shop', sourceId: shop.id),
     );
-    final unresolved = shop.entries
-        .where(
-          (entry) =>
-              snapshot.catalog?.entries.any(
-                (item) => item.id == entry.itemId,
-              ) !=
-              true,
-        )
-        .toList();
+    final unresolved = PokemonShopEditing.unresolvedEntries(
+      shop,
+      snapshot.catalog,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

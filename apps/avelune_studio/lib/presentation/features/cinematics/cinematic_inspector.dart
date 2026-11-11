@@ -16,6 +16,8 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import 'cinematic_labels.dart';
 
+import 'package:avelune_studio/features/cinematics/application/cinematic_actor_choices.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_camera_options.dart';
 import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
 
 import 'cinematic_view_state.dart';
@@ -51,40 +53,17 @@ class CinematicInspector extends StatelessWidget {
     CinematicAsset Function(CinematicAsset) transform,
   ) {
     if (controller.active?.asset.id != owner.id) return false;
-    final accepted = controller.edit((current) {
-      final next = transform(current), context = current.stageContext;
-      final result = next.stageContext;
-      if (context == null || result == null || context.manualPaths.isEmpty) {
-        return next;
-      }
-      return next.copyWith(
-        stageContext: CinematicStageContext(
-          backdropMode: result.backdropMode,
-          actorBindings: result.actorBindings,
-          actorAppearanceBindings: result.actorAppearanceBindings,
-          initialPlacements: result.initialPlacements,
-          movementTargetBindings: result.movementTargetBindings,
-          stagePoints: result.stagePoints,
-          manualPaths: context.manualPaths,
-        ),
-      );
-    });
-    if (!accepted) {
-      view.error = view.inspectorError = controller.error;
-    } else if (view.error == view.inspectorError) {
-      view.error = view.inspectorError = null;
-    }
+    final accepted = controller.editFromInspector(
+      owner.id,
+      transform,
+      view.inputs,
+    );
     changed();
     return accepted;
   }
 
-  ProjectManifest _project(CinematicAsset asset) => controller.project.copyWith(
-    cinematics: [
-      for (final c in controller.project.cinematics)
-        if (c.id != asset.id) c,
-      asset,
-    ],
-  );
+  ProjectManifest _project(CinematicAsset asset) =>
+      controller.projectWith(asset);
 
   void _mode(CinematicMapMode mode) {
     FocusManager.instance.primaryFocus?.unfocus();

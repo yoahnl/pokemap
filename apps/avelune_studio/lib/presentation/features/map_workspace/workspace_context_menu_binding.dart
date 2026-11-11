@@ -36,11 +36,8 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
         document.exteriorDecoration?.editingExterior == true) {
       return;
     }
-    final selected = selectedContextTarget(document, project, _view);
+    final selected = keyboardContextTarget(document, project, _view);
     if (selected == null) {
-      document.error =
-          'Aucun élément visible n’est sélectionné sur cette carte : '
-          'sélectionnez-en un pour ouvrir son menu.';
       _changed();
       return;
     }

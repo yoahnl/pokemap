@@ -1,6 +1,31 @@
 part of 'dialogue_workspace_controller.dart';
 
 extension DialogueWorkspaceCommands on DialogueWorkspaceController {
+  Map<String, String> get textValueChoices {
+    bool supported(String id) {
+      try {
+        dialogueFactPlaceholder(id);
+        return project.facts.where((fact) => fact.id == id).length == 1;
+      } on FormatException {
+        return false;
+      }
+    }
+
+    return {
+      'player_name': 'Nom du joueur',
+      for (final fact in project.facts.where((fact) => supported(fact.id)))
+        'fact:${fact.id}': '${fact.label} (${fact.valueKind.wireName})',
+    };
+  }
+
+  bool insertTextValueChoice(String id, String choice, {bool response = false}) =>
+      insertTextValue(
+        id,
+        choice.startsWith('fact:') ? choice.substring(5) : choice,
+        response: response,
+        fact: choice.startsWith('fact:'),
+      );
+
   bool insertTextValue(String id, String value, {bool response = false, bool fact = false}) {
     final String placeholder;
     if (value == 'player_name' && !fact) {

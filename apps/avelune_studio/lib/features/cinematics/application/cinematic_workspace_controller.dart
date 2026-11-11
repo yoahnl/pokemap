@@ -16,6 +16,7 @@ part 'cinematic_workspace_actions.dart';
 part 'cinematic_workspace_animation.dart';
 part 'cinematic_workspace_spatial.dart';
 part 'cinematic_workspace_timeline.dart';
+part 'cinematic_workspace_inspector.dart';
 
 class CinematicWorkspaceController {
   CinematicWorkspaceController(

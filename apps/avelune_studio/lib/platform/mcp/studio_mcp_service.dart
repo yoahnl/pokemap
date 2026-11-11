@@ -68,6 +68,8 @@ class StudioMcpService extends ChangeNotifier {
   StudioMcpState get state => _state;
   StudioMcpConnection? _connection;
   StudioMcpConnection? get connection => _connection;
+  String? get readyClientConfiguration =>
+      _state == StudioMcpState.ready ? _connection?.clientConfiguration : null;
   String? _error;
   String? get error => _error;
   String? _diagnosticCode;

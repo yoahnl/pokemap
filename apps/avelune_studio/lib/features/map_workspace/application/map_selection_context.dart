@@ -49,6 +49,20 @@ MapContextPlacement? selectedContextTarget(
         );
 }
 
+const mapContextNoVisibleSelection =
+    'Aucun élément visible n’est sélectionné sur cette carte : '
+    'sélectionnez-en un pour ouvrir son menu.';
+
+MapContextPlacement? keyboardContextTarget(
+  EditableMapDocument document,
+  ProjectManifest project,
+  MapWorkspaceEditingState? view,
+) {
+  final selected = selectedContextTarget(document, project, view);
+  if (selected == null) document.error = mapContextNoVisibleSelection;
+  return selected;
+}
+
 void armMapContextMove({
   required EditableMapDocument document,
   required MapWorkspaceEditingState view,
