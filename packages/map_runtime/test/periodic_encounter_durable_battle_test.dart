@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'session/spatial_exploration_game_session_runtime_test.dart' as session;

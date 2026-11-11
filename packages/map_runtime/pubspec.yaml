@@ -36,6 +36,8 @@ dependencies:
     path: ../map_render_3d
   map_core:
     path: ../map_core
+  map_story:
+    path: ../map_story
   map_distribution:
     path: ../map_distribution
   map_authoring:

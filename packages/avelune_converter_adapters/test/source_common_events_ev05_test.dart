@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:test/test.dart';
 
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';

@@ -25,6 +25,8 @@ dependencies:
     path: ../../packages/map_authoring
   map_core:
     path: ../../packages/map_core
+  map_story:
+    path: ../../packages/map_story
   map_distribution:
     path: ../../packages/map_distribution
   map_gameplay:

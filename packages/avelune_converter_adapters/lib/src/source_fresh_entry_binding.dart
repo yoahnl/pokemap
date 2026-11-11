@@ -572,7 +572,7 @@ Map<String, Object?>? _homeRecoveryAdmission(
   final recovery = scenes.singleWhere((scene) =>
       scene.metadata['sourcePageIndex'] ==
       '${event.pages.last.originalPageIndex}');
-  if (!buildSceneRuntimePlan(recovery).canBuild) return null;
+  if (!checkSceneRuntimeCompilation(recovery).canCompile) return null;
   final unreachable = diagnoseScene(recovery)
       .diagnostics
       .where((diagnostic) =>

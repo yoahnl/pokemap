@@ -181,50 +181,6 @@ void main() {
       }
     });
 
-    test('compiles, previews change and restores by explicit selection', () {
-      final scene = _scene(['costume', 'original']);
-      final project = _project(scenes: [scene]);
-      final diagnostics = diagnoseSceneAgainstProject(scene, project);
-      expect(
-        diagnostics.hasErrors,
-        isFalse,
-        reason: diagnostics.diagnostics
-            .map((issue) => issue.message)
-            .join('\n'),
-      );
-      final built = buildSceneRuntimePlan(scene);
-      expect(built.plan, isNotNull);
-      final preview = previewSceneRuntimePath(
-        built.plan!,
-        input: SceneDryRunInputState(
-          consequenceState: SceneDryRunConsequenceState(
-            playerAvatarCharacterId: 'original',
-            money: 42,
-            itemQuantityById: {'potion': 2},
-          ),
-        ),
-      );
-
-      expect(preview.status, SceneDryRunPreviewStatus.completed);
-      expect(preview.consequenceState.playerAvatarCharacterId, 'original');
-      expect(preview.consequenceState.money, 42);
-      expect(preview.consequenceState.itemQuantityById, {'potion': 2});
-      expect(preview.consequenceChanges.map((change) => change.afterSummary), [
-        'avatar=costume',
-        'avatar=original',
-      ]);
-      expect(preview.consequenceChanges.first.beforeSummary, 'avatar=original');
-      expect(
-        buildSceneRuntimePlan(
-          SceneAsset.fromJson({
-            ...scene.toJson(),
-            'executionProfile': 'preSession',
-          }),
-        ).plan,
-        isNull,
-      );
-    });
-
     test('indexes persistent avatar references for deletion safeguards', () {
       final scene = _scene(['costume']);
       final index = buildCharacterStudioReferenceIndex(

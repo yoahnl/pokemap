@@ -112,29 +112,6 @@ void main() {
       );
     });
 
-    test('the runtime plan transports the awaitable ids per marker', () {
-      final asset = scene(
-        bindings: [
-          ScenePresentationInteractionCueBinding(
-            markerId: 'cue_dialogue',
-            awaitableNodeId: 'intro_dialogue',
-          ),
-          ScenePresentationInteractionCueBinding(
-            markerId: 'cue_name',
-            awaitableNodeId: 'ask_name',
-          ),
-        ],
-      );
-      final plan = buildSceneRuntimePlan(asset).plan!;
-      final intent = plan.nodes
-          .singleWhere((node) => node.id == 'presentation')
-          .intent;
-      expect(
-        intent.presentationAwaitableNodeIdsByMarkerId,
-        const {'cue_dialogue': 'intro_dialogue', 'cue_name': 'ask_name'},
-      );
-    });
-
     test('a cue carries no copy of the dialogue, prompt or branches', () {
       final binding = ScenePresentationInteractionCueBinding(
         markerId: 'cue_name',

@@ -297,7 +297,22 @@
           "stableErrors",
           "NewGameDraft",
           "NewGameSeed",
-          "pureTimelineEvaluator"
+          "pureTimelineEvaluator",
+          "sceneRuntimeCompilationCheck"
+        ]
+      },
+      {
+        "id": "map_story",
+        "owns": [
+          "sceneRuntimeCompiler",
+          "sceneRuntimeExecutor",
+          "sceneDryRunPreview",
+          "sceneStructuredInteractionPort",
+          "narrativeEventExecutionCoordinator",
+          "narrativeEventStateTransactions",
+          "narrativeOutcomeOutbox",
+          "narrativeParallelScheduler",
+          "narrativeTriggerEnterFronts"
         ]
       },
       {
@@ -397,6 +412,30 @@
       {
         "from": "map_editor",
         "to": "map_player_ui"
+      },
+      {
+        "from": "map_story",
+        "to": "map_core"
+      },
+      {
+        "from": "map_gameplay",
+        "to": "map_story"
+      },
+      {
+        "from": "map_authoring",
+        "to": "map_story"
+      },
+      {
+        "from": "map_runtime",
+        "to": "map_story"
+      },
+      {
+        "from": "map_player_ui",
+        "to": "map_story"
+      },
+      {
+        "from": "map_editor",
+        "to": "map_story"
       }
     ],
     "forbiddenEdges": [
@@ -415,6 +454,34 @@
       {
         "from": "map_editor",
         "to": "map_runtime"
+      },
+      {
+        "from": "map_core",
+        "to": "map_story"
+      },
+      {
+        "from": "map_story",
+        "to": "map_gameplay"
+      },
+      {
+        "from": "map_story",
+        "to": "map_runtime"
+      },
+      {
+        "from": "map_story",
+        "to": "map_authoring"
+      },
+      {
+        "from": "map_story",
+        "to": "map_player_ui"
+      },
+      {
+        "from": "map_story",
+        "to": "map_editor"
+      },
+      {
+        "from": "map_story",
+        "to": "map_distribution"
       }
     ]
   },

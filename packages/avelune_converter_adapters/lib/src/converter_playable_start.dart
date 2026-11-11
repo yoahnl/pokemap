@@ -176,7 +176,7 @@ final class ConverterPlayableStartService {
       if (sceneId != null && sceneId.isNotEmpty) {
         final scene =
             project.scenes.singleWhere((entry) => entry.id == sceneId);
-        if (!buildSceneRuntimePlan(scene).canBuild) {
+        if (!checkSceneRuntimeCompilation(scene).canCompile) {
           throw StateError(
               'The authored entry Scene cannot build a native plan.');
         }

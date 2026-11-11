@@ -7,6 +7,7 @@ import 'package:avelune_converter_adapters/src/source_event_sound_binding.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:test/test.dart';
 
 import 'support/source_external_original_fixture.dart';

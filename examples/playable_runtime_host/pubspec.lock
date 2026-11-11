@@ -764,6 +764,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  map_story:
+    dependency: "direct dev"
+    description:
+      path: "../../packages/map_story"
+      relative: true
+    source: path
+    version: "0.1.0"
   marionette_flutter:
     dependency: "direct dev"
     description:

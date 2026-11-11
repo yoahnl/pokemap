@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 import 'package:map_runtime/src/application/narrative_scene_runtime_execution.dart';
 import 'package:map_runtime/src/application/scene_runtime/scene_runtime_host_callbacks.dart';
 import 'package:map_runtime/src/application/scene_runtime/scene_fact_condition_runtime_resolver.dart';

@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';

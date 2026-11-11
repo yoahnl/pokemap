@@ -4,6 +4,7 @@ import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_adapters/src/source_event_sound_binding.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:test/test.dart';
 import 'package:image/image.dart' as image;
 import 'support/literal_tile_fixture.dart';

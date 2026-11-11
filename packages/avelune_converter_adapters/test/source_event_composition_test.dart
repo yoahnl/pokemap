@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:image/image.dart' as image;
 import 'package:test/test.dart';

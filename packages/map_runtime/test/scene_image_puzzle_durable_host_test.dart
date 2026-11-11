@@ -9,6 +9,7 @@ import 'package:flame/game.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';

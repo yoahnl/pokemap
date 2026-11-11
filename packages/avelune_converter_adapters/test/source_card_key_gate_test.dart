@@ -8,6 +8,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 import 'package:test/test.dart';
 
 import '../../avelune_converter_core/test/support/interpretation_profile_fixture.dart';

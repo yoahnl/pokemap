@@ -73,9 +73,9 @@ void main() {
             .join('\n'),
       );
 
-      final plan = buildSceneRuntimePlan(scene);
+      final plan = checkSceneRuntimeCompilation(scene);
       expect(
-        plan.canBuild,
+        plan.canCompile,
         isTrue,
         reason: plan.diagnostics
             .map(

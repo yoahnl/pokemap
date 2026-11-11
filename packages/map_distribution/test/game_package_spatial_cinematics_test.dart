@@ -28,7 +28,7 @@ void main() {
       'map3d@1'
     ]);
     final decoded = _project(files);
-    expect(buildSceneRuntimePlan(decoded.scenes.single).canBuild, isTrue);
+    expect(checkSceneRuntimeCompilation(decoded.scenes.single).canCompile, isTrue);
     expect(decoded.cinematics.single.timeline.steps.map((s) => s.kind), [
       CinematicTimelineStepKind.wait,
       CinematicTimelineStepKind.camera,

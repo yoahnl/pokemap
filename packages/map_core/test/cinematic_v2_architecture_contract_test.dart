@@ -369,6 +369,7 @@ List<String> _validateContract(Map<String, dynamic> contract) {
   ).map((package) => package['id'] as String).toSet();
   if (packageIds.difference({
         'map_core',
+        'map_story',
         'map_gameplay',
         'map_authoring',
         'map_runtime',
@@ -376,7 +377,7 @@ List<String> _validateContract(Map<String, dynamic> contract) {
         'map_distribution',
         'map_editor',
       }).isNotEmpty ||
-      packageIds.length != 7) {
+      packageIds.length != 8) {
     issues.add('packages.ownership_invalid');
   }
   final edges = _objects(ownership['dependencyEdges']);
@@ -387,6 +388,9 @@ List<String> _validateContract(Map<String, dynamic> contract) {
   }
   if (!forbiddenEdges.map(_edgeKey).contains('map_runtime->map_player_ui')) {
     issues.add('packages.reverse_boundary_missing');
+  }
+  if (!forbiddenEdges.map(_edgeKey).contains('map_core->map_story')) {
+    issues.add('packages.story_boundary_missing');
   }
   if (_hasCycle(packageIds, edges)) {
     issues.add('packages.dependency_cycle');

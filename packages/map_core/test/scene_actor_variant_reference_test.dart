@@ -21,7 +21,7 @@ void main() {
       isFalse,
       reason: '${diagnostics.diagnostics.map((d) => d.code).toList()}',
     );
-    expect(buildSceneRuntimePlan(scene).canBuild, isTrue);
+    expect(checkSceneRuntimeCompilation(scene).canCompile, isTrue);
   });
 
   test(

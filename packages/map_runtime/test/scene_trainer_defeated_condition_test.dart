@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/scene_runtime/scene_trainer_defeated_condition.dart';
 import 'package:map_runtime/src/spatial/spatial_scene_callbacks.dart';

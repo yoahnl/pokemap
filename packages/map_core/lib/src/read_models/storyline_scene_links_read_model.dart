@@ -2,7 +2,7 @@ import '../diagnostics/scene_diagnostics.dart';
 import '../diagnostics/storyline_scene_link_diagnostics.dart';
 import '../models/project_manifest.dart';
 import '../models/storyline_asset.dart';
-import '../runtime/scene_runtime_plan_builder.dart';
+import '../operations/scene_runtime_compilation_check.dart';
 import 'narrative_dependency_index.dart';
 
 final class StorylineStepSceneLinksReadModel {
@@ -99,7 +99,7 @@ StorylineStepSceneLinksReadModel buildStorylineStepSceneLinksReadModel({
             dependencyDefinitions != null && dependencyDefinitions.length > 1;
         final scene = isAmbiguousReference ? null : sceneById[sceneId];
         final sceneDiagnostics = scene == null ? null : diagnoseScene(scene);
-        final planResult = scene == null ? null : buildSceneRuntimePlan(scene);
+        final planResult = scene == null ? null : checkSceneRuntimeCompilation(scene);
         final referenceResolution = dependencyDefinitions == null
             ? scene == null
                 ? NarrativeDependencyResolution.missing
@@ -116,7 +116,7 @@ StorylineStepSceneLinksReadModel buildStorylineStepSceneLinksReadModel({
               : scene?.name ?? 'Scene introuvable',
           exists: isAmbiguousReference || scene != null,
           hasSceneErrors: sceneDiagnostics?.hasErrors ?? false,
-          isRuntimeBuildable: planResult?.canBuild ?? false,
+          isRuntimeBuildable: planResult?.canCompile ?? false,
           diagnostics: List<StorylineSceneLinkDiagnostic>.unmodifiable(
             diagnostics.where((diagnostic) => diagnostic.sceneId == sceneId),
           ),

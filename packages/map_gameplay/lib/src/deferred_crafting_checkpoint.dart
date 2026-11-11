@@ -1,5 +1,5 @@
 import 'package:map_core/map_core.dart';
-import 'narrative_event_state_transactions.dart';
+import 'package:map_story/map_story.dart';
 
 bool sameDeferredCraftingCheckpointFields(GameState first, GameState second) =>
     first.saveId == second.saveId &&

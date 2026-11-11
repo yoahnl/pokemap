@@ -22,5 +22,7 @@ dependencies:
   map_battle:
     path: ../map_battle
 dev_dependencies:
+  map_story:
+    path: ../map_story
   lints: ^6.1.0
   test: ^1.24.0

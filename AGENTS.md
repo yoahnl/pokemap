@@ -32,14 +32,15 @@ No workspace orchestrator (`melos.yaml` absent): run commands per package.
 | Path | Role |
 |---|---|
 | `packages/map_core` | Shared contracts, JSON models, validation. Pure Dart. |
+| `packages/map_story` | Scene engine and narrative event orchestration. Pure Dart. |
 | `packages/map_gameplay` | Pure overworld decisions. Pure Dart. |
 | `packages/map_battle` | Battle mechanics. Pure Dart. |
 | `packages/map_runtime` | Flutter + Flame runtime integration. |
 | `packages/map_editor` | Desktop authoring UI and editor use cases. |
 | `examples/playable_runtime_host` | Runtime host and smoke fixtures. |
 
-Preserve the public barrels `lib/<package>.dart` of `map_core`, `map_gameplay`,
-`map_battle` and `map_runtime` when adding exported API.
+Preserve the public barrels `lib/<package>.dart` of `map_core`, `map_story`,
+`map_gameplay`, `map_battle` and `map_runtime` when adding exported API.
 
 ## 3. Invariants
 
@@ -52,7 +53,8 @@ Preserve the public barrels `lib/<package>.dart` of `map_core`, `map_gameplay`,
 - **Honest validation:** no claim without a command that actually ran with a
   known result. Not run, interrupted, timed out or unknown is not a success.
   No fake tests, invented totals or deleting code to stage a RED phase.
-- **Boundaries:** pure Dart packages stay Flutter/Flame-free; gameplay rules
+- **Boundaries:** pure Dart packages stay Flutter/Flame-free; dependencies run
+  gameplay → story → core, never the reverse; gameplay rules
   never hide in Flame components; the editor does not couple to runtime
   internals; PokeMap owns its data (external formats are never runtime needs).
 - **Project and game compatibility:** valid authoring projects, maps and games
@@ -182,6 +184,7 @@ nested instruction files: before editing under a directory, check for a nearer
 
 ```bash
 cd packages/map_core && dart test && dart analyze
+cd packages/map_story && dart test && dart analyze
 cd packages/map_gameplay && dart test && dart analyze
 cd packages/map_battle && dart test && dart analyze
 cd packages/map_runtime && flutter test && flutter analyze

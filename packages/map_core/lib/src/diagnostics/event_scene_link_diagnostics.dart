@@ -1,7 +1,7 @@
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
 import '../models/project_manifest.dart';
-import '../runtime/scene_runtime_plan_builder.dart';
+import '../operations/scene_runtime_compilation_check.dart';
 import 'scene_diagnostics.dart';
 
 enum EventSceneLinkDiagnosticSeverity {
@@ -217,8 +217,8 @@ EventSceneLinkDiagnosticsReport diagnoseEventSceneLinks({
           );
         }
 
-        final planResult = buildSceneRuntimePlan(scene);
-        if (!planResult.canBuild) {
+        final planResult = checkSceneRuntimeCompilation(scene);
+        if (!planResult.canCompile) {
           diagnostics.add(
             EventSceneLinkDiagnostic(
               code: EventSceneLinkDiagnosticCode

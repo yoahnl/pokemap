@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 
 import 'scene_runtime/scene_consequence_runtime_writer.dart';
 import 'scene_runtime/scene_fact_condition_runtime_resolver.dart';

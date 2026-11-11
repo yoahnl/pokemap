@@ -1513,7 +1513,7 @@ bool _hasCorpusEvidenceMismatch(
           if (sceneId == null) continue;
           final matches = scenesById[sceneId] ?? const <SceneAsset>[];
           if (matches.length != 1 ||
-              !buildSceneRuntimePlan(matches.single).canBuild) {
+              !checkSceneRuntimeCompilation(matches.single).canCompile) {
             recordMap(
               'The MapEvent target Scene is absent, duplicated, or not '
                   'buildable in the read-only manifest.',
@@ -3307,7 +3307,7 @@ bool _receiptTargetsMatchCurrentEvidence({
       final sceneMatches =
           scenesById[definition.sceneId] ?? const <SceneAsset>[];
       if (sceneMatches.length != 1 ||
-          !buildSceneRuntimePlan(sceneMatches.single).canBuild) {
+          !checkSceneRuntimeCompilation(sceneMatches.single).canCompile) {
         return false;
       }
       definitions.add(definition);

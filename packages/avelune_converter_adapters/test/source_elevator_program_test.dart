@@ -10,6 +10,7 @@ import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:test/test.dart';
 
 import 'support/native_writer_fixture.dart';

@@ -10,6 +10,7 @@ import 'package:test/test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 
 import 'package:avelune_converter_adapters/src/source_event_projection.dart';
 import 'package:avelune_converter_adapters/src/source_event_study_composer.dart';

@@ -15,7 +15,7 @@ import '../models/narrative_map_projection.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/project_manifest.dart';
-import '../runtime/scene_runtime_plan_builder.dart';
+import 'scene_runtime_compilation_check.dart';
 import 'build_narrative_outcome_event_source_catalog.dart';
 import 'build_narrative_spatial_event_source_catalog.dart';
 import 'narrative_event_canonical_json.dart';
@@ -68,7 +68,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     for (final scene in project.scenes)
       NarrativeEventProjectSceneEntry(
         scene: scene,
-        buildable: buildSceneRuntimePlan(scene).canBuild &&
+        buildable: checkSceneRuntimeCompilation(scene).canCompile &&
             sceneDiagnostics.diagnose(scene).errorCount == 0,
       ),
   ]..sort(_compareScenes);

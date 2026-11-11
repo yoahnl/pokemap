@@ -10,7 +10,7 @@ import '../models/scene_asset.dart';
 import '../models/script_conditions.dart';
 import '../operations/narrative_event_claim_fingerprints.dart';
 import '../operations/narrative_event_registry_codec.dart';
-import '../runtime/scene_runtime_plan_builder.dart';
+import '../operations/scene_runtime_compilation_check.dart';
 import 'legacy_event_migration_models.dart';
 
 abstract final class LegacyScenarioDiagnosticCodes {
@@ -315,8 +315,8 @@ LegacyScenarioSourceProjection projectLegacyScenarioSourceReadOnly({
         );
       } else {
         final scene = matches.single;
-        final plan = buildSceneRuntimePlan(scene);
-        if (!plan.canBuild) {
+        final plan = checkSceneRuntimeCompilation(scene);
+        if (!plan.canCompile) {
           escalate(LegacyMigrationClassification.blocked);
           diagnose(
             LegacyScenarioDiagnosticCodes.sceneNotBuildable,
@@ -748,7 +748,7 @@ bool hasEquivalentLegacyScenarioSceneCandidate({
   final matchingNodes = scenario.nodes
       .where((node) => node.id == sourceNodeId)
       .toList(growable: false);
-  if (matchingNodes.length != 1 || !buildSceneRuntimePlan(scene).canBuild) {
+  if (matchingNodes.length != 1 || !checkSceneRuntimeCompilation(scene).canCompile) {
     return false;
   }
   return _sameObservableTrace(scenario, sourceNodeId, scene);

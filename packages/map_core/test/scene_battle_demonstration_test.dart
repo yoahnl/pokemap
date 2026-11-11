@@ -15,27 +15,6 @@ Map<String, dynamic> _demonstration() => {
 };
 
 void main() {
-  test(
-    'battle demonstration survives strict payload serialization and planning',
-    () {
-      final payload = SceneBattlePayload.fromJson({
-        'battleKind': 'wild',
-        'battleTemplateId': 'capture-target',
-        'demonstration': _demonstration(),
-      });
-      expect(payload.toJson()['demonstration'], _demonstration());
-      expect(SceneBattlePayload.fromJson(payload.toJson()), payload);
-      final plan = buildSceneRuntimePlan(_scene(payload)).plan!;
-      expect(plan.nodes[1].intent.battleDemonstration, payload.demonstration);
-      final updated = updateSceneBattlePayload(
-        _scene(payload),
-        nodeId: 'battle',
-        battleKind: 'wild',
-        battleTemplateId: 'other',
-      );
-      expect(updated.updatedPayload.demonstration, payload.demonstration);
-    },
-  );
 
   for (final dimension in ProjectDimension.values) {
     test('demonstration support is explicit for $dimension', () {

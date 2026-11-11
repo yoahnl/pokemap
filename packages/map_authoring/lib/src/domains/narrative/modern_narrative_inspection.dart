@@ -162,7 +162,7 @@ final class ModernNarrativeInspector {
           ),
         );
       }
-      if (!buildSceneRuntimePlan(scene).canBuild && !report.hasErrors) {
+      if (!checkSceneRuntimeCompilation(scene).canCompile && !report.hasErrors) {
         diagnostics.add(
           ModernNarrativeDiagnostic(
             code: 'scene.runtimePlanUnavailable',

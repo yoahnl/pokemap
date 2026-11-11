@@ -291,6 +291,7 @@ avelune/
 │   └── avelune_android/
 ├── packages/
 │   ├── map_core/
+│   ├── map_story/
 │   ├── map_gameplay/
 │   ├── map_battle/
 │   ├── map_authoring/
@@ -321,7 +322,8 @@ Cette arborescence est volontairement simplifiée ; elle ne liste pas tous les o
 | [`Avelune iOS`](apps/Avelune%20iOS/) | Lecteur natif SwiftUI avec runtime embarqué. |
 | [`avelune_android`](apps/avelune_android/) | Lecteur natif Kotlin/Compose avec runtime embarqué. |
 | [Bibliothèque embarquée partagée](apps/pokemap_hub/) | Bibliothèque Dart, assets et services partagés par les hôtes natifs. |
-| [`map_core`](packages/map_core/) | Modèles partagés, contrats, sérialisation et validation des données. |
+| [`map_core`](packages/map_core/) | Modèles partagés, contrats, sérialisation et validation des données, dont le contrôle de compilabilité des scènes. |
+| [`map_story`](packages/map_story/) | Moteur narratif : compilation, exécution et aperçu des scènes, orchestration des événements, transactions, outbox et planification parallèle. |
 | [`map_gameplay`](packages/map_gameplay/) | Règles d'exploration, état de jeu, progression et opérations métier hors combat. |
 | [`map_battle`](packages/map_battle/) | Règles et résolution des combats. |
 | [`map_authoring`](packages/map_authoring/) | API canonique de manipulation des projets et contrats d'automatisation. |
@@ -339,13 +341,14 @@ Cette arborescence est volontairement simplifiée ; elle ne liste pas tous les o
 
 ### Répartition des responsabilités
 
-L'architecture distingue les données, les règles, l'orchestration et l'affichage. Les packages `map_core`, `map_gameplay` et `map_battle` constituent le socle Dart indépendant de l'interface.
+L'architecture distingue les données, les règles, l'orchestration et l'affichage. Les packages `map_core`, `map_story`, `map_gameplay` et `map_battle` constituent le socle Dart indépendant de l'interface. `map_story` dépend de `map_core` ; `map_gameplay` et les couches d'intégration dépendent de `map_story`, jamais l'inverse.
 
 Concrètement, une modification doit être placée au bon niveau :
 
 | Exemple de changement | Emplacement à privilégier |
 | --- | --- |
 | Nouveau contrat partagé ou format de données | `map_core` |
+| Exécution d'une scène ou orchestration d'un événement narratif | `map_story` |
 | Règle de déplacement, effet d'objet hors combat ou progression | `map_gameplay` |
 | Calcul de dégâts ou résolution d'une action de combat | `map_battle` |
 | Opération de création ou modification de projet exposable aux outils | `map_authoring` |
@@ -443,7 +446,7 @@ La documentation MCP distingue les tests du serveur et la gate de conformité in
 
 ### Vérifier le package concerné
 
-Pour les bibliothèques Dart indépendantes de Flutter, notamment `map_core`, `map_gameplay` et `map_battle`, lancer depuis leur dossier :
+Pour les bibliothèques Dart indépendantes de Flutter, notamment `map_core`, `map_story`, `map_gameplay` et `map_battle`, lancer depuis leur dossier :
 
 ```bash
 dart pub get

@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:avelune_converter_adapters/avelune_converter_adapters.dart';
 import 'package:avelune_converter_core/avelune_converter_core.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:avelune_converter_adapters/src/native_mutation_batches.dart';
 import 'support/native_writer_fixture.dart';
 import 'package:test/test.dart';

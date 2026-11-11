@@ -1,4 +1,4 @@
-import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 
 import 'narrative_runtime_activity_gate.dart';
 

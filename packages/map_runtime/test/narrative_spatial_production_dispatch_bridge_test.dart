@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 import 'package:map_runtime/src/application/narrative_spatial_production_dispatch_bridge.dart';
 
 const _eventId = 'evt_019abcde-0000-7000-8000-000000000001';

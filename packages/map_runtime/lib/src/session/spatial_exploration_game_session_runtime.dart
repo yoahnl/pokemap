@@ -47,6 +47,7 @@ import '../application/spatial_field_obstacle_interaction.dart';
 import '../application/spatial_field_traversal_interaction.dart';
 import 'runtime_overworld_interaction_port.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../spatial/spatial_exploration_session.dart';

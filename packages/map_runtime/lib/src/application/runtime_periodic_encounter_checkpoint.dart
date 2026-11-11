@@ -1,6 +1,7 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 
 PeriodicEncounterOutcome? periodicEncounterOutcome(BattleOutcome outcome) =>
     switch (outcome.type) {

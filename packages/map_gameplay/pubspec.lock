@@ -184,6 +184,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  map_story:
+    dependency: "direct main"
+    description:
+      path: "../map_story"
+      relative: true
+    source: path
+    version: "0.1.0"
   matcher:
     dependency: transitive
     description:

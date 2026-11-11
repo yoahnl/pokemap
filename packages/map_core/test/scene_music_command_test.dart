@@ -165,14 +165,14 @@ void main() {
         durationMs: 0,
       );
       expect(SceneInteractiveCommand.fromJson(fade.toJson()), fade);
-      expect(buildSceneRuntimePlan(musicScene(play)).canBuild, isTrue);
+      expect(checkSceneRuntimeCompilation(musicScene(play)).canCompile, isTrue);
       expect(
-        buildSceneRuntimePlan(
+        checkSceneRuntimeCompilation(
           SceneAsset.fromJson({
             ...musicScene(play).toJson(),
             'executionProfile': 'preSession',
           }),
-        ).canBuild,
+        ).canCompile,
         isFalse,
       );
       expect(

@@ -66,7 +66,7 @@ void main() {
     expect(command.toJson(), textFactCommand());
     expect(command.outputPortIds, ['completed', 'cancelled']);
     expect(SceneInteractiveCommand.fromJson(command.toJson()), command);
-    expect(buildSceneRuntimePlan(textFactScene()).canBuild, isTrue);
+    expect(checkSceneRuntimeCompilation(textFactScene()).canCompile, isTrue);
   });
 
   test('text input authoring requires one declared string Fact', () {

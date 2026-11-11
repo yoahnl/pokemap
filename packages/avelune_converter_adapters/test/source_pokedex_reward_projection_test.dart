@@ -9,6 +9,7 @@ import 'package:avelune_converter_adapters/src/source_pokedex_reward_binding.dar
 import 'package:avelune_converter_adapters/src/source_event_projection.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 
 final class _Files implements SourceFilePort {
   _Files(this.bytes, this.paths, this.sourceRoot);

@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'scene_runtime/scene_interactive_text_input.dart';
 import 'scene_runtime/scene_interactive_integer.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 
 import 'scene_runtime/scene_interactive_pokemon_gift.dart';
 

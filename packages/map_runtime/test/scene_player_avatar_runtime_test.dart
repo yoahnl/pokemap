@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/narrative_scene_runtime_execution.dart';
 import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';

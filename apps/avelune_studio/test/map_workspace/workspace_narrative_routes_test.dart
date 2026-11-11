@@ -16,6 +16,7 @@ import 'package:avelune_studio/features/scenes/application/scene_workspace_contr
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_story/map_story.dart';
 
 import '../support/event_backend_fixture.dart';
 import '../support/ui08_event_fixture.dart';

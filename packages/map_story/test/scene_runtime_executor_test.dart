@@ -1,0 +1,1094 @@
+import 'dart:async';
+
+import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('SceneRuntimeExecutor MVP', () {
+    test('executes start to end', () async {
+      final plan = _plan(
+        nodes: [_startNode(), _endNode()],
+        edges: [_edge('edge_start_end', 'node_start', 'completed', 'node_end')],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.sceneId, 'scene_test');
+      expect(result.finalNodeId, 'node_end');
+      expect(result.sceneOutcomeId, isNull);
+      expect(result.errorCode, isNull);
+      expect(
+        result.trace.map((entry) => (entry.nodeId, entry.outputPortId)),
+        [('node_start', 'completed'), ('node_end', null)],
+      );
+    });
+
+    test('executes a structured preSession interaction callback', () async {
+      final scene = SceneAsset(
+        id: 'scene_pre_session',
+        name: 'Pre-session',
+        executionProfile: SceneExecutionProfile.preSession,
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: <SceneNode>[
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_input',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.preSessionInteraction(
+                ScenePreSessionInteractionSpec.text(
+                  prompt: SceneInteractionPrompt(
+                    localizationKey: 'new_game.name',
+                    fallbackText: 'Votre nom ?',
+                  ),
+                ),
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: <SceneEdge>[
+            SceneEdge(
+              id: 'edge_start_input',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_input',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_input_end',
+              fromNodeId: 'node_input',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+      );
+      final intents = <SceneRuntimePlanIntent>[];
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(
+          requestStructuredInteraction: (intent) {
+            intents.add(intent);
+            return 'completed';
+          },
+        ),
+      ).execute(buildSceneRuntimePlan(scene).plan!);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(intents, hasLength(1));
+      expect(
+        intents.single.preSessionInteraction?.kind,
+        SceneInteractionRequestKind.text,
+      );
+    });
+
+    test('exposes final scene outcome id from end intent', () async {
+      final plan = _plan(
+        nodes: [
+          _startNode(),
+          _endNode(sceneOutcomeId: 'scene_done'),
+        ],
+        edges: [_edge('edge_start_end', 'node_start', 'completed', 'node_end')],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end');
+      expect(result.sceneOutcomeId, 'scene_done');
+    });
+
+    test('executes a plan built from a SceneAsset without ProjectManifest',
+        () async {
+      final scene = SceneAsset(
+        id: 'scene_test',
+        name: 'Runtime Executor Test Scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_dialogue',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(dialogueId: 'dialogue_test'),
+            ),
+            SceneNode(
+              id: 'node_battle',
+              kind: SceneNodeKind.battle,
+              payload: SceneBattlePayload(
+                battleKind: 'trainer',
+                trainerId: 'trainer_test',
+                declaredOutcomes: const ['victory', 'defeat'],
+              ),
+            ),
+            SceneNode(id: 'node_end_victory', kind: SceneNodeKind.end),
+            SceneNode(id: 'node_end_defeat', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_dialogue',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_dialogue',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_dialogue_battle',
+              fromNodeId: 'node_dialogue',
+              fromPortId: 'completed',
+              toNodeId: 'node_battle',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_battle_victory',
+              fromNodeId: 'node_battle',
+              fromPortId: 'victory',
+              toNodeId: 'node_end_victory',
+              kind: SceneEdgeKind.battleVictory,
+            ),
+            SceneEdge(
+              id: 'edge_battle_defeat',
+              fromNodeId: 'node_battle',
+              fromPortId: 'defeat',
+              toNodeId: 'node_end_defeat',
+              kind: SceneEdgeKind.battleDefeat,
+            ),
+          ],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 1000, y: -80),
+            SceneNodeLayout(nodeId: 'node_dialogue', x: -300, y: 440),
+            SceneNodeLayout(nodeId: 'node_battle', x: 0, y: 0),
+          ],
+        ),
+      );
+      final plan = buildSceneRuntimePlan(scene).plan!;
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(startBattle: (_) => 'defeat'),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_defeat');
+      expect(result.trace.map((entry) => entry.nodeId), [
+        'node_start',
+        'node_dialogue',
+        'node_battle',
+        'node_end_defeat',
+      ]);
+    });
+
+    test('builds and routes declared Yarn outcome ports from a SceneAsset',
+        () async {
+      final scene = SceneAsset(
+        id: 'scene_dialogue_outcome',
+        name: 'Dialogue outcome',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_dialogue',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(
+                dialogueId: 'dialogue_test',
+                expectedOutcomes: const ['accept'],
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_dialogue',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_dialogue',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_dialogue_accept',
+              fromNodeId: 'node_dialogue',
+              fromPortId: 'accept',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.dialogueOutcome,
+            ),
+          ],
+        ),
+      );
+      final build = buildSceneRuntimePlan(scene);
+
+      expect(build.diagnostics, isEmpty);
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'accept'),
+      ).execute(build.plan!);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end');
+    });
+
+    test('executes start to dialogue completed to end', () async {
+      final plan = _plan(
+        nodes: [_startNode(), _dialogueNode(), _endNode()],
+        edges: [
+          _edge('edge_start_dialogue', 'node_start', 'completed',
+              'node_dialogue'),
+          _edge('edge_dialogue_end', 'node_dialogue', 'completed', 'node_end'),
+        ],
+      );
+      var dialogueCalls = 0;
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(
+          showDialogue: (intent) {
+            dialogueCalls++;
+            expect(intent.dialogueId, 'dialogue_test');
+            return 'completed';
+          },
+        ),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(dialogueCalls, 1);
+      expect(
+        result.trace.map((entry) => entry.nodeId),
+        ['node_start', 'node_dialogue', 'node_end'],
+      );
+    });
+
+    test('routes an expected dialogue outcome through its dynamic port',
+        () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'accept'),
+      ).execute(_dialogueOutcomePlan());
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_accept');
+      expect(result.trace[1].outputPortId, 'accept');
+    });
+
+    test('keeps completed fallback when dialogue declares outcomes', () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'completed'),
+      ).execute(_dialogueOutcomePlan());
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_completed');
+      expect(result.trace[1].outputPortId, 'completed');
+    });
+
+    test('executes battle victory branch', () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(startBattle: (_) => 'victory'),
+      ).execute(_battleBranchPlan());
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_victory');
+      expect(
+        result.trace.map((entry) => (entry.nodeId, entry.outputPortId)),
+        [
+          ('node_start', 'completed'),
+          ('node_battle', 'victory'),
+          ('node_end_victory', null),
+        ],
+      );
+    });
+
+    test('executes battle defeat branch', () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(startBattle: (_) => 'defeat'),
+      ).execute(_battleBranchPlan());
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_defeat');
+      expect(
+        result.trace.map((entry) => (entry.nodeId, entry.outputPortId)),
+        [
+          ('node_start', 'completed'),
+          ('node_battle', 'defeat'),
+          ('node_end_defeat', null),
+        ],
+      );
+    });
+
+    test(
+      'unavailable condition stops without choosing either boolean branch',
+      () async {
+        final result = await SceneRuntimeExecutor(
+          callbacks: _callbacks(
+            evaluateCondition: (_) =>
+                throw const SceneRuntimeConditionUnavailable(
+                  'Récompense indisponible : rechargez la scène.',
+                ),
+          ),
+        ).execute(_conditionBranchPlan());
+        expect(result.status, SceneRuntimeExecutionStatus.failed);
+        expect(result.errorCode?.name, 'conditionUnavailable');
+        expect(result.trace.map((entry) => entry.nodeId), [
+          'node_start',
+          'node_condition',
+        ]);
+        expect(result.trace.last.outputPortId, isNull);
+        expect(result.message, contains('Récompense indisponible'));
+      },
+    );
+
+    test('executes condition true branch', () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(evaluateCondition: (_) async => 'true'),
+      ).execute(_conditionBranchPlan());
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_victory');
+      expect(result.trace[1].outputPortId, 'true');
+    });
+
+    test('executes condition false branch', () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(evaluateCondition: (_) => 'false'),
+      ).execute(_conditionBranchPlan());
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_defeat');
+      expect(result.trace[1].outputPortId, 'false');
+    });
+
+    test('executes merge as passthrough', () async {
+      final plan = _plan(
+        nodes: [_startNode(), _mergeNode(), _endNode()],
+        edges: [
+          _edge('edge_start_merge', 'node_start', 'completed', 'node_merge'),
+          _edge('edge_merge_end', 'node_merge', 'completed', 'node_end'),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(
+        result.trace.map((entry) => (entry.nodeId, entry.outputPortId)),
+        [
+          ('node_start', 'completed'),
+          ('node_merge', 'completed'),
+          ('node_end', null),
+        ],
+      );
+    });
+
+    test('routes a deferred dialogue outcome through BranchByOutcome',
+        () async {
+      final plan = _deferredDialogueBranchPlan();
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'accept'),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_accept');
+      expect(result.context.lastOutcomeByNodeId['node_dialogue'], 'accept');
+      expect(result.context.branchProvenance, hasLength(1));
+      expect(result.context.branchProvenance.single.routedPortId, 'accept');
+      expect(result.context.branchProvenance.single.usedFallback, isFalse);
+    });
+
+    test('routes an unknown resumed outcome through the typed default fallback',
+        () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(
+        _deferredDialogueBranchPlan(
+          fallbackPolicy: SceneBranchOutcomeFallbackPolicy.defaultRoute,
+          includeDefaultEdge: true,
+          executeSource: false,
+        ),
+        context: SceneExecutionContext.empty.recordOutcome(
+          nodeId: 'node_dialogue',
+          outcome: 'legacy_unknown',
+        ),
+      );
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_default');
+      expect(result.context.branchProvenance.single.usedFallback, isTrue);
+      expect(result.context.branchProvenance.single.sourceOutcome,
+          'legacy_unknown');
+    });
+
+    test('fails with unroutedOutcome when exact policy has no route', () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(
+        _deferredDialogueBranchPlan(executeSource: false),
+        context: SceneExecutionContext.empty.recordOutcome(
+          nodeId: 'node_dialogue',
+          outcome: 'legacy_unknown',
+        ),
+      );
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(result.errorCode, SceneRuntimeExecutionErrorCode.unroutedOutcome);
+      expect(result.message, contains('legacy_unknown'));
+    });
+
+    test('does not reapply a persistent node already present in the context',
+        () async {
+      final consequence = SceneConsequence.setFact(
+        factId: 'fact_once',
+        value: true,
+      );
+      final plan = _plan(
+        nodes: [_startNode(), _consequenceNode(consequence), _endNode()],
+        edges: [
+          _edge('start_action', 'node_start', 'completed', 'node_consequence'),
+          _edge(
+            'action_end',
+            'node_consequence',
+            'completed',
+            'node_end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        ],
+      );
+      var writes = 0;
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(applyConsequence: (_) {
+          writes++;
+          return 'completed';
+        }),
+      ).execute(
+        plan,
+        context: SceneExecutionContext(
+          appliedPersistentNodeIds: const {'node_consequence'},
+        ),
+      );
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(writes, 0);
+      expect(result.context.appliedPersistentNodeIds,
+          contains('node_consequence'));
+    });
+
+    test('preserves applied persistent nodes when a later transition fails',
+        () async {
+      final consequence = SceneConsequence.setFact(
+        factId: 'fact_before_failure',
+        value: true,
+      );
+      final plan = _plan(
+        nodes: [_startNode(), _consequenceNode(consequence)],
+        edges: [
+          _edge('start_action', 'node_start', 'completed', 'node_consequence'),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(
+          result.errorCode, SceneRuntimeExecutionErrorCode.missingTransition);
+      expect(
+        result.context.appliedPersistentNodeIds,
+        contains('node_consequence'),
+      );
+    });
+
+    test('executes cinematic completed via callback', () async {
+      final plan = _plan(
+        nodes: [_startNode(), _cinematicNode(), _endNode()],
+        edges: [
+          _edge('edge_start_cinematic', 'node_start', 'completed',
+              'node_cinematic'),
+          _edge(
+            'edge_cinematic_end',
+            'node_cinematic',
+            'completed',
+            'node_end',
+            kind: SceneEdgeKind.cinematicCompleted,
+          ),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(playCinematic: (_) => Future.value('completed')),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end');
+      expect(result.trace[1].outputPortId, 'completed');
+    });
+
+    test('calls applyConsequence and follows completed output', () async {
+      final consequence = SceneConsequence.setFact(
+        factId: 'fact_test_gate_unlocked',
+        value: true,
+      );
+      final plan = _plan(
+        nodes: [_startNode(), _consequenceNode(consequence), _endNode()],
+        edges: [
+          _edge(
+            'edge_start_consequence',
+            'node_start',
+            'completed',
+            'node_consequence',
+          ),
+          _edge(
+            'edge_consequence_end',
+            'node_consequence',
+            'completed',
+            'node_end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        ],
+      );
+      final applied = <SceneConsequence>[];
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(
+          applyConsequence: (consequence) {
+            applied.add(consequence);
+            return 'completed';
+          },
+        ),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end');
+      expect(applied, [consequence]);
+      expect(
+        result.trace.map((entry) => (entry.nodeId, entry.outputPortId)),
+        [
+          ('node_start', 'completed'),
+          ('node_consequence', 'completed'),
+          ('node_end', null),
+        ],
+      );
+    });
+
+    test('fails when applyConsequence callback throws', () async {
+      final plan = _plan(
+        nodes: [
+          _startNode(),
+          _consequenceNode(
+            SceneConsequence.markEventConsumed(
+              mapId: 'map_test',
+              eventId: 'event_gate',
+            ),
+          ),
+          _endNode(),
+        ],
+        edges: [
+          _edge(
+            'edge_start_consequence',
+            'node_start',
+            'completed',
+            'node_consequence',
+          ),
+          _edge(
+            'edge_consequence_end',
+            'node_consequence',
+            'completed',
+            'node_end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(
+          applyConsequence: (_) => throw StateError('write seam unavailable'),
+        ),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(result.errorCode, SceneRuntimeExecutionErrorCode.callbackFailed);
+      expect(result.message, contains('write seam unavailable'));
+      expect(result.trace.last.nodeId, 'node_consequence');
+      expect(result.trace.last.outputPortId, isNull);
+    });
+
+    test('fails when start node is missing from plan', () async {
+      final plan = _plan(
+        nodes: [_endNode()],
+        edges: const [],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(result.errorCode, SceneRuntimeExecutionErrorCode.missingStartNode);
+      expect(result.trace, isEmpty);
+    });
+
+    test('fails when returned port has no transition', () async {
+      final plan = _plan(
+        nodes: [_startNode(), _dialogueNode(), _endNode()],
+        edges: [
+          _edge('edge_start_dialogue', 'node_start', 'completed',
+              'node_dialogue'),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'completed'),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(
+          result.errorCode, SceneRuntimeExecutionErrorCode.missingTransition);
+      expect(result.trace.last.nodeId, 'node_dialogue');
+      expect(result.trace.last.outputPortId, 'completed');
+    });
+
+    test('fails when returned port is unsupported', () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'accept'),
+      ).execute(_dialoguePlan());
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(
+        result.errorCode,
+        SceneRuntimeExecutionErrorCode.unsupportedPortResult,
+      );
+      expect(result.trace.last.nodeId, 'node_dialogue');
+      expect(result.trace.last.outputPortId, 'accept');
+    });
+
+    test('fails when multiple transitions match same node and port', () async {
+      final plan = _plan(
+        nodes: [_startNode(), _endNode(), _endNode(id: 'node_end_defeat')],
+        edges: [
+          _edge('edge_start_end', 'node_start', 'completed', 'node_end'),
+          _edge(
+              'edge_start_end_2', 'node_start', 'completed', 'node_end_defeat'),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(
+        result.errorCode,
+        SceneRuntimeExecutionErrorCode.ambiguousTransition,
+      );
+    });
+
+    test('fails when target node is missing', () async {
+      final plan = _plan(
+        nodes: [_startNode()],
+        edges: [
+          _edge('edge_start_missing', 'node_start', 'completed', 'node_end'),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(
+          result.errorCode, SceneRuntimeExecutionErrorCode.targetNodeMissing);
+    });
+
+    test('fails when callback throws', () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(
+          showDialogue: (_) => throw StateError('dialogue failed'),
+        ),
+      ).execute(_dialoguePlan());
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(result.errorCode, SceneRuntimeExecutionErrorCode.callbackFailed);
+      expect(result.message, contains('dialogue failed'));
+      expect(result.trace.last.nodeId, 'node_dialogue');
+      expect(result.trace.last.outputPortId, isNull);
+    });
+
+    test('fails when maxSteps is exceeded', () async {
+      final plan = _plan(
+        nodes: [_startNode(), _mergeNode()],
+        edges: [
+          _edge('edge_start_merge', 'node_start', 'completed', 'node_merge'),
+          _edge('edge_merge_start', 'node_merge', 'completed', 'node_start'),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(),
+        maxSteps: 3,
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(
+          result.errorCode, SceneRuntimeExecutionErrorCode.stepLimitExceeded);
+      expect(result.trace.map((entry) => entry.nodeId), [
+        'node_start',
+        'node_merge',
+        'node_start',
+      ]);
+    });
+
+    test('does not mutate SceneRuntimePlan', () async {
+      final plan = _dialoguePlan();
+      final beforeNodes = List<SceneRuntimePlanNode>.of(plan.nodes);
+      final beforeEdges = List<SceneRuntimePlanEdge>.of(plan.edges);
+
+      await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'completed'),
+      ).execute(plan);
+
+      expect(plan.nodes, beforeNodes);
+      expect(plan.edges, beforeEdges);
+      expect(plan.startNodeId, 'node_start');
+    });
+  });
+}
+
+SceneRuntimeExecutionCallbacks _callbacks({
+  FutureOr<String> Function(SceneRuntimePlanIntent intent)? evaluateCondition,
+  FutureOr<String> Function(SceneRuntimePlanIntent intent)? showDialogue,
+  FutureOr<String> Function(SceneRuntimePlanIntent intent)? startBattle,
+  FutureOr<String> Function(SceneRuntimePlanIntent intent)? playCinematic,
+  FutureOr<String> Function(SceneRuntimePlanIntent intent)?
+      requestStructuredInteraction,
+  FutureOr<String> Function(SceneConsequence consequence)? applyConsequence,
+}) {
+  return SceneRuntimeExecutionCallbacks(
+    evaluateCondition: evaluateCondition ?? (_) => 'true',
+    showDialogue: showDialogue ?? (_) => 'completed',
+    startBattle: startBattle ?? (_) => 'victory',
+    playCinematic: playCinematic ?? (_) => 'completed',
+    requestStructuredInteraction: requestStructuredInteraction,
+    applyConsequence: applyConsequence ?? (_) => 'completed',
+  );
+}
+
+SceneRuntimePlan _dialoguePlan() {
+  return _plan(
+    nodes: [_startNode(), _dialogueNode(), _endNode()],
+    edges: [
+      _edge('edge_start_dialogue', 'node_start', 'completed', 'node_dialogue'),
+      _edge('edge_dialogue_end', 'node_dialogue', 'completed', 'node_end'),
+    ],
+  );
+}
+
+SceneRuntimePlan _dialogueOutcomePlan() {
+  return _plan(
+    nodes: [
+      _startNode(),
+      _dialogueNode(expectedOutcomes: const ['accept', 'refuse']),
+      _endNode(id: 'node_end_accept'),
+      _endNode(id: 'node_end_refuse'),
+      _endNode(id: 'node_end_completed'),
+    ],
+    edges: [
+      _edge('edge_start_dialogue', 'node_start', 'completed', 'node_dialogue'),
+      _edge(
+        'edge_dialogue_accept',
+        'node_dialogue',
+        'accept',
+        'node_end_accept',
+        kind: SceneEdgeKind.dialogueOutcome,
+      ),
+      _edge(
+        'edge_dialogue_refuse',
+        'node_dialogue',
+        'refuse',
+        'node_end_refuse',
+        kind: SceneEdgeKind.dialogueOutcome,
+      ),
+      _edge(
+        'edge_dialogue_completed',
+        'node_dialogue',
+        'completed',
+        'node_end_completed',
+      ),
+    ],
+  );
+}
+
+SceneRuntimePlan _battleBranchPlan() {
+  return _plan(
+    nodes: [
+      _startNode(),
+      _battleNode(),
+      _endNode(id: 'node_end_victory'),
+      _endNode(id: 'node_end_defeat'),
+    ],
+    edges: [
+      _edge('edge_start_battle', 'node_start', 'completed', 'node_battle'),
+      _edge(
+        'edge_battle_victory',
+        'node_battle',
+        'victory',
+        'node_end_victory',
+        kind: SceneEdgeKind.battleVictory,
+      ),
+      _edge(
+        'edge_battle_defeat',
+        'node_battle',
+        'defeat',
+        'node_end_defeat',
+        kind: SceneEdgeKind.battleDefeat,
+      ),
+    ],
+  );
+}
+
+SceneRuntimePlan _conditionBranchPlan() {
+  return _plan(
+    nodes: [
+      _startNode(),
+      _conditionNode(),
+      _endNode(id: 'node_end_victory'),
+      _endNode(id: 'node_end_defeat'),
+    ],
+    edges: [
+      _edge(
+        'edge_start_condition',
+        'node_start',
+        'completed',
+        'node_condition',
+      ),
+      _edge(
+        'edge_condition_true',
+        'node_condition',
+        'true',
+        'node_end_victory',
+        kind: SceneEdgeKind.conditionTrue,
+      ),
+      _edge(
+        'edge_condition_false',
+        'node_condition',
+        'false',
+        'node_end_defeat',
+        kind: SceneEdgeKind.conditionFalse,
+      ),
+    ],
+  );
+}
+
+SceneRuntimePlan _deferredDialogueBranchPlan({
+  SceneBranchOutcomeFallbackPolicy fallbackPolicy =
+      SceneBranchOutcomeFallbackPolicy.exact,
+  bool includeDefaultEdge = false,
+  bool executeSource = true,
+}) {
+  return _plan(
+    nodes: [
+      _startNode(),
+      if (executeSource)
+        _dialogueNode(expectedOutcomes: const ['accept', 'refuse']),
+      if (executeSource) _mergeNode(),
+      _branchNode(fallbackPolicy: fallbackPolicy),
+      _endNode(id: 'node_end_accept'),
+      _endNode(id: 'node_end_refuse'),
+      if (includeDefaultEdge) _endNode(id: 'node_end_default'),
+    ],
+    edges: [
+      if (executeSource) ...[
+        _edge(
+          'edge_start_dialogue',
+          'node_start',
+          'completed',
+          'node_dialogue',
+        ),
+        _edge(
+          'edge_dialogue_completed_merge',
+          'node_dialogue',
+          'completed',
+          'node_merge',
+        ),
+        _edge(
+          'edge_dialogue_accept_merge',
+          'node_dialogue',
+          'accept',
+          'node_merge',
+          kind: SceneEdgeKind.dialogueOutcome,
+        ),
+        _edge(
+          'edge_dialogue_refuse_merge',
+          'node_dialogue',
+          'refuse',
+          'node_merge',
+          kind: SceneEdgeKind.dialogueOutcome,
+        ),
+        _edge(
+          'edge_merge_branch',
+          'node_merge',
+          'completed',
+          'node_branch',
+        ),
+      ] else
+        _edge('edge_start_branch', 'node_start', 'completed', 'node_branch'),
+      _edge(
+        'edge_branch_accept',
+        'node_branch',
+        'accept',
+        'node_end_accept',
+        kind: SceneEdgeKind.branchOutcome,
+      ),
+      _edge(
+        'edge_branch_refuse',
+        'node_branch',
+        'refuse',
+        'node_end_refuse',
+        kind: SceneEdgeKind.branchOutcome,
+      ),
+      if (includeDefaultEdge)
+        _edge(
+          'edge_branch_default',
+          'node_branch',
+          'default',
+          'node_end_default',
+          kind: SceneEdgeKind.branchOutcome,
+        ),
+    ],
+  );
+}
+
+SceneRuntimePlan _plan({
+  required List<SceneRuntimePlanNode> nodes,
+  required List<SceneRuntimePlanEdge> edges,
+}) {
+  return SceneRuntimePlan(
+    sceneId: 'scene_test',
+    startNodeId: 'node_start',
+    nodes: nodes,
+    edges: edges,
+    declaredOutcomes: const [],
+  );
+}
+
+SceneRuntimePlanNode _startNode() {
+  return SceneRuntimePlanNode(
+    id: 'node_start',
+    kind: SceneNodeKind.start,
+    intent: SceneRuntimePlanIntent.start(),
+  );
+}
+
+SceneRuntimePlanNode _dialogueNode({
+  List<String> expectedOutcomes = const <String>[],
+}) {
+  return SceneRuntimePlanNode(
+    id: 'node_dialogue',
+    kind: SceneNodeKind.yarnDialogue,
+    intent: SceneRuntimePlanIntent.showDialogue(
+      dialogueId: 'dialogue_test',
+      expectedOutcomes: expectedOutcomes,
+    ),
+  );
+}
+
+SceneRuntimePlanNode _battleNode() {
+  return SceneRuntimePlanNode(
+    id: 'node_battle',
+    kind: SceneNodeKind.battle,
+    intent: SceneRuntimePlanIntent.startBattle(
+      battleKind: 'trainer',
+      trainerId: 'trainer_test',
+      declaredOutcomes: const ['victory', 'defeat'],
+    ),
+  );
+}
+
+SceneRuntimePlanNode _conditionNode() {
+  return SceneRuntimePlanNode(
+    id: 'node_condition',
+    kind: SceneNodeKind.condition,
+    intent: SceneRuntimePlanIntent.evaluateCondition(
+      source: SceneConditionSource(
+        sourceKind: SceneConditionSourceKind.factLikeStoryFlag,
+        sourceId: 'fact_test',
+        operator: SceneConditionOperator.isTrue,
+      ),
+    ),
+  );
+}
+
+SceneRuntimePlanNode _branchNode({
+  SceneBranchOutcomeFallbackPolicy fallbackPolicy =
+      SceneBranchOutcomeFallbackPolicy.exact,
+}) {
+  return SceneRuntimePlanNode(
+    id: 'node_branch',
+    kind: SceneNodeKind.branchByOutcome,
+    intent: SceneRuntimePlanIntent.branchByOutcome(
+      sourceNodeId: 'node_dialogue',
+      fallbackPolicy: fallbackPolicy,
+      sourceOutcomes: const ['completed', 'accept', 'refuse'],
+    ),
+  );
+}
+
+SceneRuntimePlanNode _mergeNode() {
+  return SceneRuntimePlanNode(
+    id: 'node_merge',
+    kind: SceneNodeKind.merge,
+    intent: SceneRuntimePlanIntent.merge(),
+  );
+}
+
+SceneRuntimePlanNode _cinematicNode() {
+  return SceneRuntimePlanNode(
+    id: 'node_cinematic',
+    kind: SceneNodeKind.cinematic,
+    intent: SceneRuntimePlanIntent.playCinematic(
+      cinematicId: 'cinematic_test',
+    ),
+  );
+}
+
+SceneRuntimePlanNode _consequenceNode(SceneConsequence consequence) {
+  return SceneRuntimePlanNode(
+    id: 'node_consequence',
+    kind: SceneNodeKind.action,
+    intent: SceneRuntimePlanIntent.applyConsequence(
+      consequence: consequence,
+    ),
+  );
+}
+
+SceneRuntimePlanNode _endNode({
+  String id = 'node_end',
+  String? sceneOutcomeId,
+}) {
+  return SceneRuntimePlanNode(
+    id: id,
+    kind: SceneNodeKind.end,
+    intent: SceneRuntimePlanIntent.end(sceneOutcomeId: sceneOutcomeId),
+  );
+}
+
+SceneRuntimePlanEdge _edge(
+  String id,
+  String fromNodeId,
+  String fromPortId,
+  String toNodeId, {
+  SceneEdgeKind kind = SceneEdgeKind.defaultFlow,
+}) {
+  return SceneRuntimePlanEdge(
+    id: id,
+    fromNodeId: fromNodeId,
+    fromPortId: fromPortId,
+    toNodeId: toNodeId,
+    kind: kind,
+  );
+}

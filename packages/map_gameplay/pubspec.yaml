@@ -19,6 +19,8 @@ environment:
 dependencies:
   map_core:
     path: ../map_core
+  map_story:
+    path: ../map_story
 
 dev_dependencies:
   lints: ^6.1.0

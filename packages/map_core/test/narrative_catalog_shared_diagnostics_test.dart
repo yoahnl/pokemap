@@ -61,7 +61,7 @@ void main() {
         for (final entry in catalog.scenes) {
           expect(
             entry.buildable,
-            buildSceneRuntimePlan(entry.scene).canBuild &&
+            checkSceneRuntimeCompilation(entry.scene).canCompile &&
                 diagnoseSceneAgainstProject(
                       entry.scene,
                       project,

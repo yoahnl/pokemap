@@ -2101,8 +2101,8 @@ final class SceneActions {
         return currentScenes[id] ?? lookupRewardScenes?.call(id) ?? const <SceneAsset>[];
       },
     );
-    final runtimePlan = buildSceneRuntimePlan(scene);
-    if (diagnostics.hasErrors || !runtimePlan.canBuild) {
+    final runtimePlan = checkSceneRuntimeCompilation(scene);
+    if (diagnostics.hasErrors || !runtimePlan.canCompile) {
       throw NarrativeAuthoringException(
         'scene.publication_blocked',
         'The Scene is not safe for the canonical runtime.',
@@ -2117,7 +2117,7 @@ final class SceneActions {
                 if (item.edgeId != null) 'edgeId': item.edgeId,
               },
           ],
-          'runtimePlanBuildable': runtimePlan.canBuild,
+          'runtimePlanBuildable': runtimePlan.canCompile,
         },
       );
     }

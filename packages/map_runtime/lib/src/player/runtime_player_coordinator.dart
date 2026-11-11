@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:avelune_rendering/avelune_rendering.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 
 import '../session/game_session_contract.dart';
 import '../session/game_session_controller.dart';

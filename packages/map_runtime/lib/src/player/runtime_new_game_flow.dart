@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:path/path.dart' as p;
 
 import '../application/dialogue_runtime_models.dart';

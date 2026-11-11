@@ -219,7 +219,8 @@ Après `CIN-010`, il ne reste aucun dual-reader, fallback, bridge, writer legacy
 
 | Package | Responsabilité CIN-V2 |
 |---|---|
-| `map_core` | modèles, codecs, capabilities, erreurs, draft/seed, évaluateur pur |
+| `map_core` | modèles, codecs, capabilities, erreurs, draft/seed, évaluateur pur, contrôle de compilabilité des scènes |
+| `map_story` | compilateur, exécuteur et dry-run des scènes, port d'interactions structurées, orchestration Event V2 |
 | `map_gameplay` | projection `NewGameSeed → GameState` |
 | `map_authoring` | opérations/queries sémantiques et graphe de références |
 | `map_runtime` | orchestration preSession, horloge, transaction save, mixer, lifecycle |
@@ -227,7 +228,7 @@ Après `CIN-010`, il ne reste aucun dual-reader, fallback, bridge, writer legacy
 | `map_distribution` | sécurité, package offline et preflight plateforme |
 | `map_editor` | Studio, preview partagée et authoring guidé |
 
-`map_player_ui` peut dépendre de `map_runtime` selon l'architecture actuelle. L'inverse est interdit. `map_core` et `map_gameplay` restent purs Dart. `map_authoring` ne dépend pas de l'éditeur. `map_editor` ne consomme pas les internals du runtime.
+`map_player_ui` peut dépendre de `map_runtime` selon l'architecture actuelle. L'inverse est interdit. `map_core`, `map_story` et `map_gameplay` restent purs Dart. `map_story` dépend de `map_core` ; `map_gameplay`, `map_authoring`, `map_runtime`, `map_player_ui` et `map_editor` dépendent de `map_story` ; `map_core` ne dépend jamais de `map_story`, ni `map_story` des couches qui le consomment. `map_authoring` ne dépend pas de l'éditeur. `map_editor` ne consomme pas les internals du runtime.
 
 ## Deux rails de livraison
 

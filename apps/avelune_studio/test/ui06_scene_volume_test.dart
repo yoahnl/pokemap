@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/scenes/application/scene_edit_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_story/map_story.dart';
 
 void main() {
   test(

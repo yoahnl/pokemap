@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_port.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
 

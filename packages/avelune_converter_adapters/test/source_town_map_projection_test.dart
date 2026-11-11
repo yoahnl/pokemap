@@ -8,6 +8,7 @@ import 'package:avelune_converter_adapters/src/source_town_map_binding.dart';
 import 'package:avelune_converter_adapters/src/source_event_projection.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 import 'support/source_town_map_original_fixture.dart';
 
 Map<int, MapData> _nativeMaps(NormalizedSourceProject source,

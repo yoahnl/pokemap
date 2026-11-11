@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_story/map_story.dart';
 
 class SceneBuilderEditingState {
   String? nodeId, edgeId;

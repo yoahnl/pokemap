@@ -230,30 +230,6 @@ void main() {
     });
   }
 
-  test('consequence dry-run names the imposed move order', () {
-    final scene = _scene(
-      SceneActionPayload.consequence(
-        SceneConsequence.fromJson({
-          'kind': 'givePokemonFromCatalog',
-          'speciesId': 'fixture_species',
-          'formId': 'fixture_form',
-          'level': 7,
-          'moveIds': ['exceptional_move', 'fixture_move'],
-        }),
-      ),
-    );
-    final plan = buildSceneRuntimePlan(scene);
-    expect(plan.canBuild, isTrue);
-    final result = previewSceneRuntimePath(
-      plan.plan!,
-      input: const SceneDryRunInputState(),
-    );
-    expect(result.status, SceneDryRunPreviewStatus.completed);
-    expect(
-      result.consequenceChanges.single.afterSummary,
-      contains('exceptional_move, fixture_move'),
-    );
-  });
 }
 
 SceneAsset _scene(SceneActionPayload payload) {

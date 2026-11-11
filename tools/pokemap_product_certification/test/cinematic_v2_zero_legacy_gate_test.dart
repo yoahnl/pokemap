@@ -231,6 +231,7 @@ Set<String> _productionFilesContaining(Directory repositoryRoot, String token) {
 Iterable<File> _productionSourceFiles(Directory repositoryRoot) sync* {
   const roots = <String>[
     'packages/map_core/lib',
+    'packages/map_story/lib',
     'packages/map_authoring/lib',
     'packages/map_runtime/lib',
     'packages/map_player_ui/lib',

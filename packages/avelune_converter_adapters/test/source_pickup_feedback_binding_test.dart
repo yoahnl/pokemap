@@ -24,6 +24,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:test/test.dart';
 
 import 'support/literal_tile_fixture.dart';

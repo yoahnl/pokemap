@@ -5,7 +5,7 @@ import '../models/map_data.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/world_rule.dart';
-import '../runtime/scene_runtime_plan_builder.dart';
+import '../operations/scene_runtime_compilation_check.dart';
 import 'world_rule_target_context_read_model.dart';
 
 enum GoldenSliceReadinessIssueSeverity {
@@ -165,7 +165,7 @@ GoldenSliceReadinessReport buildGoldenSliceReadinessReport(
         }
 
         final sceneDiagnostics = diagnoseSceneAgainstProject(scene, project);
-        final planResult = buildSceneRuntimePlan(scene);
+        final planResult = checkSceneRuntimeCompilation(scene);
         final dialogueNodeIds = <String>[];
         final battleNodeIds = <String>[];
         for (final node in scene.graph.nodes) {
@@ -260,7 +260,7 @@ GoldenSliceReadinessReport buildGoldenSliceReadinessReport(
             ),
           );
         }
-        if (!planResult.canBuild) {
+        if (!planResult.canCompile) {
           issues.add(
             GoldenSliceReadinessIssue(
               code: GoldenSliceReadinessIssueCode
@@ -361,7 +361,7 @@ GoldenSliceReadinessReport buildGoldenSliceReadinessReport(
             pageIndex: pageIndex,
             sceneId: scene.id,
             sceneExists: true,
-            runtimePlanBuildable: planResult.canBuild,
+            runtimePlanBuildable: planResult.canCompile,
             containsDialogue: dialogueNodeIds.isNotEmpty,
             containsBattle: battleNodeIds.isNotEmpty,
             battleVictoryReachable: victoryReachable,

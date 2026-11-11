@@ -2484,7 +2484,7 @@ Map<String, Object?> _sceneDetail(ProjectSnapshot snapshot, SceneAsset scene, {S
   return {
     ...scene.toJson(),
     'resourceKind': 'scene',
-    'runtimeBuildable': buildSceneRuntimePlan(scene).canBuild,
+    'runtimeBuildable': checkSceneRuntimeCompilation(scene).canCompile,
     'diagnostics': [
       for (final diagnostic in snapshot.loadDiagnostics)
         if (diagnostic.resourceKind == 'itemCatalog')

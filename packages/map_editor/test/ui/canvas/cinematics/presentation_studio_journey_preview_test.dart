@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_journey_preview.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 

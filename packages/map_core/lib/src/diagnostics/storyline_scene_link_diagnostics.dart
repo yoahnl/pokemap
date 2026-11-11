@@ -1,6 +1,6 @@
 import '../models/project_manifest.dart';
 import '../models/storyline_asset.dart';
-import '../runtime/scene_runtime_plan_builder.dart';
+import '../operations/scene_runtime_compilation_check.dart';
 import 'scene_diagnostics.dart';
 
 enum StorylineSceneLinkDiagnosticSeverity {
@@ -193,8 +193,8 @@ StorylineSceneLinkDiagnosticsReport diagnoseStorylineSceneLinks({
             );
           }
 
-          final planResult = buildSceneRuntimePlan(scene);
-          if (!planResult.canBuild) {
+          final planResult = checkSceneRuntimeCompilation(scene);
+          if (!planResult.canCompile) {
             diagnostics.add(
               StorylineSceneLinkDiagnostic(
                 code: StorylineSceneLinkDiagnosticCode

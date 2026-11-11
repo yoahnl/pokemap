@@ -78,23 +78,6 @@ void main() {
     expect(recovering, isNot(continuing));
   });
 
-  test('runtime planning preserves distinct recovery behavior', () {
-    final continuing = buildSceneRuntimePlan(
-      sceneFor(SceneBattlePayload.fromJson(battleJson('continueScene'))),
-    );
-    final recovering = buildSceneRuntimePlan(
-      sceneFor(
-        SceneBattlePayload.fromJson(battleJson('returnToRecoveryPoint')),
-      ),
-    );
-    expect(continuing.plan, isNotNull);
-    expect(recovering.plan, isNotNull);
-    expect(
-      recovering.plan!.nodes[1].intent,
-      isNot(continuing.plan!.nodes[1].intent),
-    );
-  });
-
   test('changing a linked trainer retains its recovery choice', () {
     final scene = sceneFor(
       SceneBattlePayload.fromJson(battleJson('returnToRecoveryPoint')),

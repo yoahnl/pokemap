@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 
 sealed class NarrativeSpatialProductionDispatchResult {
   const NarrativeSpatialProductionDispatchResult(

@@ -297,9 +297,9 @@ void main() {
         expect(sceneId, isNotNull);
         final scene =
             scenes.singleWhere((candidate) => candidate.id == sceneId);
-        final planResult = buildSceneRuntimePlan(scene);
+        final planResult = checkSceneRuntimeCompilation(scene);
         expect(
-          planResult.canBuild,
+          planResult.canCompile,
           isTrue,
           reason: '$sceneId must be executable before AUTO_SAFE is allowed.',
         );

@@ -51,6 +51,10 @@ void main() {
       contains('test/avelune_compatibility_baseline_package_test.dart'),
     );
     expect(source, contains('test_native_host_contracts.py'));
+    expect(source, contains('name: Story engine contracts'));
+    expect(source, contains('working-directory: packages/map_story'));
+    expect(source, contains('test/map_story_dependency_boundary_test.dart'));
+    expect(source, isNot(contains('narrative_event_runtime_performance_test.dart')));
     expect(source, contains('working-directory: apps/avelune_studio'));
     expect(source, contains('test/app/studio_bootstrap_test.dart'));
     expect(source, contains('test/home/recent_projects_test.dart'));

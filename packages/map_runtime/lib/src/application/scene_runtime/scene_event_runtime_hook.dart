@@ -1,6 +1,7 @@
 import 'scene_npc_pose_consequence_buffer.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_story/map_story.dart';
 
 import 'scene_interactive_pokemon_gift.dart';
 import 'scene_interactive_text_input.dart';

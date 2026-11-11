@@ -80,6 +80,31 @@ jobs:
             test/gameplay_roadmap_dashboard_test.dart \
             test/gameplay_roadmap_dashboard_cli_test.dart \
             test/gameplay_roadmap_repository_consistency_test.dart
+      - name: Story engine contracts
+        working-directory: packages/map_story
+        timeout-minutes: 3
+        run: |
+          dart pub get
+          dart analyze
+          dart test \
+            test/map_story_dependency_boundary_test.dart \
+            test/scene_runtime_compilation_check_parity_test.dart \
+            test/scene_execution_context_test.dart \
+            test/scene_runtime_plan_test.dart \
+            test/scene_runtime_executor_test.dart \
+            test/scene_runtime_dry_run_preview_test.dart \
+            test/scene_structured_interaction_port_test.dart \
+            test/narrative_event_dispatch_planner_test.dart \
+            test/narrative_event_condition_eligibility_test.dart \
+            test/narrative_event_dispatch_truth_table_test.dart \
+            test/narrative_event_execution_coordinator_test.dart \
+            test/narrative_event_lifecycle_test.dart \
+            test/narrative_event_transaction_concurrency_test.dart \
+            test/narrative_outcome_outbox_processor_test.dart \
+            test/narrative_outcome_outbox_reentrancy_test.dart \
+            test/narrative_outcome_outbox_retry_test.dart \
+            test/narrative_parallel_scheduler_test.dart \
+            test/narrative_trigger_enter_fronts_test.dart
       - name: Avelune package compatibility baseline
         working-directory: packages/map_distribution
         timeout-minutes: 2

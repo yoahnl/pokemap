@@ -1131,32 +1131,6 @@ void main() {
     );
   });
 
-  test(
-    'actor world actions compile with the guided publication gate open',
-    () {
-      for (final wire in [_route(), _visibility()]) {
-        final scene = _scene(wire);
-        final node = scene.graph.nodes[1];
-        expect(
-          sceneExecutionCapabilityForNode(SceneExecutionProfile.world, node),
-          SceneExecutionCapabilityIds.worldAction,
-        );
-        final plan = buildSceneRuntimePlan(scene);
-        expect(plan.canBuild, isTrue);
-        expect(
-          plan.plan!.nodes[1].intent.kind,
-          SceneRuntimePlanIntentKind.executeInteractiveCommand,
-        );
-        expect(
-          NarrativeCommandCatalog.canonical()
-              .byId(wire['kind'] as String)!
-              .isPublishable,
-          isTrue,
-        );
-      }
-    },
-  );
-
   test('actor commands remain forbidden in pre-session scenes', () {
     for (final wire in [_route(), _visibility()]) {
       final scene = SceneAsset.fromJson({
@@ -1169,7 +1143,7 @@ void main() {
         ),
         isTrue,
       );
-      expect(buildSceneRuntimePlan(scene).canBuild, isFalse);
+      expect(checkSceneRuntimeCompilation(scene).canCompile, isFalse);
     }
   });
 }

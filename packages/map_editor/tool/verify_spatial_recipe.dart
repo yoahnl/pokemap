@@ -223,7 +223,7 @@ Future<Map<String, Object?>> verifySpatialRecipe(
         mapsById: maps,
       );
       _require(
-        !report.hasErrors && buildSceneRuntimePlan(scene).canBuild,
+        !report.hasErrors && checkSceneRuntimeCompilation(scene).canCompile,
         'Scene $id cannot build',
       );
       receipts.add({'sceneId': id});

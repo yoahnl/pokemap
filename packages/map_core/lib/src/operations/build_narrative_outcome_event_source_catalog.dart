@@ -8,7 +8,7 @@ import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../read_models/linked_asset_public_contracts.dart';
-import '../runtime/scene_runtime_plan_builder.dart';
+import 'scene_runtime_compilation_check.dart';
 import 'narrative_event_canonical_json.dart';
 
 /// Builds a project-wide, producer-qualified catalog of Event V2 outcomes.
@@ -140,7 +140,7 @@ void _appendSingleSceneOutcomes(
     ...dialogueExpectedOutcomes,
   }.toList()
     ..sort(compareNarrativeEventUtf16);
-  final sceneRuntimeBuildable = buildSceneRuntimePlan(scene).canBuild;
+  final sceneRuntimeBuildable = checkSceneRuntimeCompilation(scene).canCompile;
   final sceneProjectReferencesValid =
       sceneDiagnostics.diagnose(scene).errorCount == 0;
   final sceneMapReferencesVerifiable =

@@ -52,18 +52,6 @@ void main() {
     }
   });
 
-  test('whiteOut builds an autonomous runtime command', () {
-    final scene = whiteOutScene();
-    final result = buildSceneRuntimePlan(scene);
-    expect(result.canBuild, isTrue);
-    final intent = result.plan!.nodes
-        .singleWhere((node) => node.id == 'recovery')
-        .intent;
-    expect(intent.kind, SceneRuntimePlanIntentKind.executeInteractiveCommand);
-    expect(intent.interactiveCommand!.toJson(), {'kind': 'whiteOut'});
-    expect(SceneAsset.fromJson(scene.toJson()).graph.edges, scene.graph.edges);
-  });
-
   test('whiteOut has a guided parameterless catalog builder', () {
     final descriptor = NarrativeCommandCatalog.canonical().commands.singleWhere(
       (command) => command.id == 'whiteOut',

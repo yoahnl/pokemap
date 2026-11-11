@@ -4,6 +4,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_narrative_event_documents.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_story/map_story.dart';
 import 'package:test/test.dart';
 
 Map<String, dynamic> command({String output = 'mosaic-image'}) =>

@@ -233,6 +233,7 @@ pokemap/
 │   └── pokemap_hub/
 ├── packages/
 │   ├── map_core/
+│   ├── map_story/
 │   ├── map_gameplay/
 │   ├── map_battle/
 │   ├── map_authoring/
@@ -261,7 +262,8 @@ This tree is deliberately simplified; it does not list every tool, fixture, or r
 
 | Package | Primary responsibility |
 | --- | --- |
-| [`map_core`](../../packages/map_core/) | Shared models, contracts, serialization, and data validation. |
+| [`map_core`](../../packages/map_core/) | Shared models, contracts, serialization, and data validation, including the scene compilability check. |
+| [`map_story`](../../packages/map_story/) | Narrative engine: scene compilation, execution and preview, event orchestration, transactions, outbox and parallel scheduling. |
 | [`map_gameplay`](../../packages/map_gameplay/) | Exploration rules, game state, progression, and business operations outside battles. |
 | [`map_battle`](../../packages/map_battle/) | Battle rules and resolution. |
 | [`map_authoring`](../../packages/map_authoring/) | Canonical project authoring API and automation contracts. |
@@ -277,13 +279,14 @@ This tree is deliberately simplified; it does not list every tool, fixture, or r
 
 ### Separation of responsibilities
 
-The architecture distinguishes data, rules, orchestration, and presentation. The `map_core`, `map_gameplay`, and `map_battle` packages form the interface-independent Dart foundation.
+The architecture distinguishes data, rules, orchestration, and presentation. The `map_core`, `map_story`, `map_gameplay`, and `map_battle` packages form the interface-independent Dart foundation. `map_story` depends on `map_core`; `map_gameplay` and the integration layers depend on `map_story`, never the reverse.
 
 In practice, each change should live at the appropriate level:
 
 | Example change | Preferred location |
 | --- | --- |
 | New shared contract or data format | `map_core` |
+| Scene execution or narrative event orchestration | `map_story` |
 | Movement rule, out-of-battle item effect, or progression | `map_gameplay` |
 | Damage calculation or battle action resolution | `map_battle` |
 | Project creation or editing operation exposed to tools | `map_authoring` |
@@ -394,7 +397,7 @@ The MCP documentation distinguishes server tests from the cross-package conforma
 
 ### Check the relevant package
 
-For Flutter-independent Dart libraries, including `map_core`, `map_gameplay`, and `map_battle`, run the following from their directory:
+For Flutter-independent Dart libraries, including `map_core`, `map_story`, `map_gameplay`, and `map_battle`, run the following from their directory:
 
 ```bash
 dart pub get

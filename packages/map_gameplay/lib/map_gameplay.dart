@@ -310,65 +310,6 @@ export 'src/new_game_state_builder.dart'
         playerObjectPronounScriptVariable,
         playerPossessivePronounScriptVariable,
         playerReflexivePronounScriptVariable;
-export 'src/narrative_event_dispatch_planner.dart'
-    show NarrativeEventDispatchPlanner;
-export 'src/narrative_trigger_enter_fronts.dart'
-    show
-        NarrativeTriggerEnterFrontResolution,
-        resolveNarrativeTriggerEnterFronts;
-export 'src/narrative_event_state_transactions.dart'
-    show
-        NarrativeEventStateTransaction,
-        NarrativeEventStateTransactionDecision,
-        NarrativeEventStateTransactionCommit,
-        NarrativeEventStateTransactionRollback,
-        NarrativeEventStateTransactionCallback,
-        NarrativeEventAfterCommitCallback,
-        NarrativeEventStateTransactions,
-        NarrativeEventStateCheckpointOwner;
-export 'src/narrative_event_execution_coordinator.dart'
-    show
-        NarrativeEventActivity,
-        NarrativeEventActivityPort,
-        NoopNarrativeEventActivityPort,
-        NarrativeSceneExecutionRequest,
-        NarrativeSceneExecutionCallback,
-        NarrativeSceneExecutionResult,
-        NarrativeSceneExecutionCompleted,
-        NarrativeSceneExecutionFailed,
-        NarrativeSceneExecutionCancelled,
-        NarrativeEventExecutionFailureKind,
-        NarrativeEventExecutionFailure,
-        NarrativeEventExecutionResult,
-        NarrativeEventExecutionNoMatch,
-        NarrativeEventExecutionClaimedButIneligible,
-        NarrativeEventExecutionSucceeded,
-        NarrativeEventExecutionFailed,
-        NarrativeEventExecutionCancelled,
-        NarrativeExecutionIdFactory,
-        NarrativeCorrelationIdFactory,
-        NarrativeDeliveryIdFactory,
-        NarrativeEventExecutionCoordinator;
-export 'src/narrative_outcome_outbox_processor.dart'
-    show
-        NarrativeOutcomeOutboxSnapshot,
-        GameStateNarrativeOutcomeOutboxSnapshot,
-        NarrativeOutcomeOutboxSnapshotFactory,
-        NarrativeOutcomeDispatchRequest,
-        NarrativeOutcomeDispatcher,
-        NarrativeOutcomeDispatchResult,
-        NarrativeOutcomeDispatchDelivered,
-        NarrativeOutcomeDispatchInfrastructureFailureBeforePlanning,
-        NarrativeOutcomeDispatchTerminalFailure,
-        NarrativeOutcomeTerminalReason,
-        NarrativeOutcomeOutboxProcessResult,
-        NarrativeOutcomeOutboxEmpty,
-        NarrativeOutcomeOutboxBusy,
-        NarrativeOutcomeOutboxDelivered,
-        NarrativeOutcomeOutboxRetryScheduled,
-        NarrativeOutcomeOutboxTerminalized,
-        NarrativeOutcomeOutboxDataInconsistency,
-        NarrativeOutcomeOutboxProcessor;
 export 'src/validation/narrative_physical_reachability_validator.dart'
     show
         NarrativePhysicalReachabilityVerdict,
@@ -415,7 +356,6 @@ export 'src/field_traversal_action.dart';
 export 'src/field_traversal_geometry.dart';
 export 'src/spatial_field_traversal_action.dart';
 
-export 'src/narrative_parallel_scheduler.dart';
 
 export 'src/party_readiness.dart';
 export 'src/party_companion_trail.dart';
