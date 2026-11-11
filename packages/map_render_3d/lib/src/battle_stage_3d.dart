@@ -452,7 +452,7 @@ final class _BattleStageGame extends FlameGame3D<World3D, BattleStageCamera> {
 
   late final BattleStageTextureCache textures = BattleStageTextureCache(
     resourceBudget: _resourceBudget,
-    importer: (image) => SpatialActorTexture.fromImage(
+    importer: (image) => createSpatialActorTexture(
       image,
       textureAllocator:
           (device as FlutterFrameGraphicsDevice).allocateRgbaTexture,
@@ -506,11 +506,11 @@ final class _BattleStageGame extends FlameGame3D<World3D, BattleStageCamera> {
       }
       var actor = _actors[frame.id];
       if (actor == null) {
-        actor = BattleStageTexturedQuad(texture.texture);
+        actor = BattleStageTexturedQuad(texture.gpuTexture);
         _actors[frame.id] = actor;
         world.add(actor.mesh);
       }
-      actor.setTexture(texture.texture);
+      actor.setTexture(texture.gpuTexture);
       actor.material.albedoColor = frame.tint.withValues(
         red: frame.tint.r * frame.tint.a,
         green: frame.tint.g * frame.tint.a,
@@ -606,11 +606,11 @@ final class _BattleStageGame extends FlameGame3D<World3D, BattleStageCamera> {
     BattleStageDrawOrder order,
   ) {
     final underlay = _underlays.putIfAbsent(id, () {
-      final quad = BattleStageTexturedQuad(texture.texture);
+      final quad = BattleStageTexturedQuad(texture.gpuTexture);
       world.add(quad.mesh);
       return quad;
     });
-    underlay.setTexture(texture.texture);
+    underlay.setTexture(texture.gpuTexture);
     underlay.material.albedoColor = tint.withValues(
       red: tint.r * tint.a,
       green: tint.g * tint.a,

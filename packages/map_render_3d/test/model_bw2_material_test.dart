@@ -5,7 +5,8 @@ import 'dart:typed_data';
 import 'package:flame_3d/graphics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_render_3d/map_render_3d.dart';
+import 'package:map_render_3d/src/model_playback.dart';
+import 'package:map_render_3d/src/model_byte_loader.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 import 'package:map_render_3d/src/glb_renderer_layout.dart';
 

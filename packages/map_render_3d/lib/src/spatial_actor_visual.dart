@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/core.dart';
@@ -10,9 +11,9 @@ import 'package:map_core/map_core.dart';
 
 import 'spatial_ground.dart' show applySpatialGroundColorKey;
 
-final class SpatialActorTexture {
-  SpatialActorTexture._(this.texture, this._alpha);
-  final Texture texture;
+final class SpatialActorTexture implements ActorTexture {
+  SpatialActorTexture._(this._gpuTexture, this._alpha);
+  final Texture _gpuTexture;
   final Uint8List _alpha;
   final _footAnchors = <ui.Rect, ({double x, double y})?>{};
 
@@ -20,88 +21,105 @@ final class SpatialActorTexture {
     if (_footAnchors.containsKey(frame)) return _footAnchors[frame];
     return _footAnchors[frame] = spatialActorFrameFootAnchor(
       _alpha,
-      width: texture.width,
-      height: texture.height,
+      width: width,
+      height: height,
       frame: frame,
     );
   }
 
+  @override
+  int get width => _gpuTexture.width;
+
+  @override
+  int get height => _gpuTexture.height;
+
   static Future<SpatialActorTexture> fromImage(
     ui.Image image, {
     TilesetTransparentColor? transparentColor,
-    GpuTexture Function(int width, int height)? textureAllocator,
-  }) async {
-    if (transparentColor == null) {
-      final data = await image.toByteData();
-      if (data == null)
-        throw StateError('Actor texture pixels are unavailable.');
-      final rgba = data.buffer.asUint8List(
-        data.offsetInBytes,
-        data.lengthInBytes,
-      );
-      final alpha = Uint8List(image.width * image.height);
-      for (var index = 0; index < alpha.length; index++) {
-        alpha[index] = rgba[index * 4 + 3];
-      }
-      return SpatialActorTexture._(
-        textureAllocator == null
-            ? ImageTexture(data, width: image.width, height: image.height)
-            : _SpatialActorImageTexture(
-                data,
-                width: image.width,
-                height: image.height,
-                allocate: textureAllocator,
-              ),
-        alpha,
-      );
-    }
-    final data = await image.toByteData(
-      format: ui.ImageByteFormat.rawStraightRgba,
-    );
-    if (data == null) {
-      throw StateError('Actor texture pixels are unavailable.');
-    }
+  }) => createSpatialActorTexture(image, transparentColor: transparentColor);
+}
+
+SpatialActorTexture resolveSpatialActorTexture(ActorTexture texture) {
+  if (texture is SpatialActorTexture) return texture;
+  throw ArgumentError.value(
+    texture,
+    'texture',
+    'This actor texture was not created by the Flame 3D renderer.',
+  );
+}
+
+extension SpatialActorTextureGpu on SpatialActorTexture {
+  Texture get gpuTexture => _gpuTexture;
+}
+
+Future<SpatialActorTexture> createSpatialActorTexture(
+  ui.Image image, {
+  TilesetTransparentColor? transparentColor,
+  GpuTexture Function(int width, int height)? textureAllocator,
+}) async {
+  if (transparentColor == null) {
+    final data = await image.toByteData();
+    if (data == null) throw StateError('Actor texture pixels are unavailable.');
     final rgba = data.buffer.asUint8List(
       data.offsetInBytes,
       data.lengthInBytes,
     );
-    applySpatialGroundColorKey(rgba, transparentColor);
     final alpha = Uint8List(image.width * image.height);
     for (var index = 0; index < alpha.length; index++) {
       alpha[index] = rgba[index * 4 + 3];
     }
-    final decoded = Completer<ui.Image>();
-    ui.decodeImageFromPixels(
-      rgba,
-      image.width,
-      image.height,
-      ui.PixelFormat.rgba8888,
-      decoded.complete,
+    return SpatialActorTexture._(
+      textureAllocator == null
+          ? ImageTexture(data, width: image.width, height: image.height)
+          : _SpatialActorImageTexture(
+              data,
+              width: image.width,
+              height: image.height,
+              allocate: textureAllocator,
+            ),
+      alpha,
     );
-    final processed = await decoded.future;
-    try {
-      if (textureAllocator == null) {
-        return SpatialActorTexture._(
-          await ImageTexture.create(processed),
-          alpha,
-        );
-      }
-      final pixels = await processed.toByteData();
-      if (pixels == null) {
-        throw StateError('Actor texture pixels are unavailable.');
-      }
-      return SpatialActorTexture._(
-        _SpatialActorImageTexture(
-          pixels,
-          width: processed.width,
-          height: processed.height,
-          allocate: textureAllocator,
-        ),
-        alpha,
-      );
-    } finally {
-      processed.dispose();
+  }
+  final data = await image.toByteData(
+    format: ui.ImageByteFormat.rawStraightRgba,
+  );
+  if (data == null) {
+    throw StateError('Actor texture pixels are unavailable.');
+  }
+  final rgba = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+  applySpatialGroundColorKey(rgba, transparentColor);
+  final alpha = Uint8List(image.width * image.height);
+  for (var index = 0; index < alpha.length; index++) {
+    alpha[index] = rgba[index * 4 + 3];
+  }
+  final decoded = Completer<ui.Image>();
+  ui.decodeImageFromPixels(
+    rgba,
+    image.width,
+    image.height,
+    ui.PixelFormat.rgba8888,
+    decoded.complete,
+  );
+  final processed = await decoded.future;
+  try {
+    if (textureAllocator == null) {
+      return SpatialActorTexture._(await ImageTexture.create(processed), alpha);
     }
+    final pixels = await processed.toByteData();
+    if (pixels == null) {
+      throw StateError('Actor texture pixels are unavailable.');
+    }
+    return SpatialActorTexture._(
+      _SpatialActorImageTexture(
+        pixels,
+        width: processed.width,
+        height: processed.height,
+        allocate: textureAllocator,
+      ),
+      alpha,
+    );
+  } finally {
+    processed.dispose();
   }
 }
 
@@ -138,7 +156,7 @@ final class SpatialActorVisual {
        assert(height > 0);
   final double x, y, z;
   final double? groundY;
-  final SpatialActorTexture texture;
+  final ActorTexture texture;
   final ui.Rect frame;
   final double? width;
   final double height;
@@ -148,7 +166,7 @@ final class SpatialActorVisual {
   final bool landingDust;
   double get resolvedWidth => width ?? height * frame.width / frame.height;
   ({double x, double y})? get contactShadowFootAnchor =>
-      texture.footAnchor(frame);
+      resolveSpatialActorTexture(texture).footAnchor(frame);
 }
 
 ({Quaternion rotation, Vector3 scale}) spatialActorTransform(

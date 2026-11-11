@@ -1,3 +1,4 @@
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flame/components.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
@@ -10,9 +11,9 @@ final class SpatialCinematicEmoteVisuals {
 
   final RuntimeResourceBudget resourceBudget;
   final CinematicEmoteSpriteCache _cache;
-  final _textures = <String, Future<SpatialActorTexture>>{};
+  final _textures = <String, Future<ActorTexture>>{};
   final _reservations = <RuntimeResourceReservation>[];
-  final _frames = <String, (SpatialActorTexture, List<Sprite>)>{};
+  final _frames = <String, (ActorTexture, List<Sprite>)>{};
   bool _disposed = false;
 
   Future<void> prepare(Iterable<CinematicAsset> cinematics) async {

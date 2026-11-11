@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flame_3d/core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_render_3d/map_render_3d.dart';
+import 'package:map_render_3d/src/spatial_actor_visual.dart';
 
 void main() {
   test('billboard attachment clears the projected head at real camera pitches', () {

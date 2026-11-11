@@ -3163,7 +3163,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       var actor = actors[entry.key];
       if (actor == null) {
         final actorMaterial = SpatialPixelMaterial(
-          frame.texture.texture,
+          resolveSpatialActorTexture(frame.texture).gpuTexture,
           lightingRole: SpatialPixelLightingRole.actor,
         );
         const width = 1.92;
@@ -3261,7 +3261,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       } else if (!selected && actorSelections.containsKey(entry.key)) {
         actor.mesh.removeAll(actorSelections.remove(entry.key)!);
       }
-      final texture = frame.texture.texture;
+      final texture = resolveSpatialActorTexture(frame.texture).gpuTexture;
       actor.material
         ..albedoTexture = texture
         ..uvRect.setValues(

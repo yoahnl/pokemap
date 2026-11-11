@@ -111,6 +111,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  avelune_render_contracts:
+    dependency: transitive
+    description:
+      path: "../../packages/avelune_render_contracts"
+      relative: true
+    source: path
+    version: "0.1.0"
   avelune_rendering:
     dependency: transitive
     description:
@@ -124,7 +131,7 @@ packages:
       path: "../avelune_studio"
       relative: true
     source: path
-    version: "0.3.36+336"
+    version: "0.3.37+337"
   boolean_selector:
     dependency: transitive
     description:

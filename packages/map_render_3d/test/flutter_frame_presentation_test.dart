@@ -17,19 +17,19 @@ void main() {
       expect(first.backend, same(second.backend));
       expect(GpuBackend.instance, same(first.backend));
       final image = makeImage();
-      final texture = await SpatialActorTexture.fromImage(
+      final texture = await createSpatialActorTexture(
         image,
         textureAllocator: first.allocateRgbaTexture,
       );
       image.dispose();
       expect(first.textureAllocations, 0);
       expect(second.textureAllocations, 0);
-      final resource = texture.texture.resource;
+      final resource = texture.gpuTexture.resource;
       expect(first.textureAllocations, 1);
       expect(first.colorTextureAllocationBytes, 8 * 8 * 4);
       expect(backend.uploads, 1);
       expect(second.textureAllocations, 0);
-      expect(texture.texture.resource, same(resource));
+      expect(texture.gpuTexture.resource, same(resource));
       expect(first.textureAllocations, 1);
     },
   );

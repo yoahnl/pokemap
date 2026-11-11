@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
+import 'package:map_render_3d/src/spatial_actor_visual.dart'
+    show SpatialActorTextureGpu, resolveSpatialActorTexture;
 import 'package:map_runtime/src/spatial/spatial_entity_visual_plan.dart';
 
 const pickup = MapEntity(
@@ -243,9 +245,9 @@ void main() {
     final source = await image(64, 48);
     addTearDown(source.dispose);
     final masked = await plan.createTexture('items', source);
-    expect(masked.texture.sourceData.getUint8(3), 0);
+    expect(resolveSpatialActorTexture(masked).gpuTexture.sourceData.getUint8(3), 0);
     final unchanged = await plan.createTexture('other-items', source);
-    expect(unchanged.texture.sourceData.getUint8(3), 255);
+    expect(resolveSpatialActorTexture(unchanged).gpuTexture.sourceData.getUint8(3), 255);
     expect((await source.toByteData())!.getUint8(3), 255);
   });
 }

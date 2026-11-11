@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
@@ -8,7 +9,7 @@ final class SpatialFieldObstacleBurst {
   SpatialFieldObstacleBurst(this.budget);
 
   final RuntimeResourceBudget budget;
-  final _textures = <FieldAbility, SpatialActorTexture>{};
+  final _textures = <FieldAbility, ActorTexture>{};
   final _reservations = <RuntimeResourceReservation>[];
   FieldAbility? _ability;
   double _x = 0, _y = 0, _z = 0, _elapsed = 0;

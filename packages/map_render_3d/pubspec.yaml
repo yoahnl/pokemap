@@ -14,6 +14,8 @@ dependencies:
   flame_3d:
     path: ../../third_party/flame_3d
   crypto: ^3.0.7
+  avelune_render_contracts:
+    path: ../avelune_render_contracts
   map_core:
     path: ../map_core
 dev_dependencies:

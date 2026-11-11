@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
@@ -86,7 +87,7 @@ final class SpatialEntityVisualPlan {
   final Map<String, TilesetTransparentColor> _transparentColors;
   final Set<String> imageIds;
 
-  Future<SpatialActorTexture> createTexture(String imageId, ui.Image image) =>
+  Future<ActorTexture> createTexture(String imageId, ui.Image image) =>
       SpatialActorTexture.fromImage(
         image,
         transparentColor: _transparentColors[imageId],
@@ -107,7 +108,7 @@ final class SpatialEntityVisualPlan {
   }
 
   Map<String, SpatialActorVisual> frames({
-    required Map<String, SpatialActorTexture> textures,
+    required Map<String, ActorTexture> textures,
     required int elapsedMs,
     bool Function(MapEntity entity)? isPresent,
   }) {

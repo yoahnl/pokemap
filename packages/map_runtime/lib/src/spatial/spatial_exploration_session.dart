@@ -1,6 +1,7 @@
 import '../player/real_weather_service.dart';
 import 'dart:io';
 import 'dart:async';
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flame/components.dart';
 import 'dart:ui' as ui;
@@ -274,7 +275,7 @@ final class SpatialExplorationSession {
   final _SpatialActorAssets _assets;
   final bool _ownsAssets;
   Map<String, ui.Image> get _images => _assets.images;
-  Map<String, SpatialActorTexture> get _textures => _assets.textures;
+  Map<String, ActorTexture> get _textures => _assets.textures;
   final Object _assetOwner = Object();
   final Object _avatarAssetOwner = Object();
   final Object _companionAssetOwner = Object();
@@ -2824,7 +2825,7 @@ final class _SpatialActorAssets {
   final RuntimeResourceBudget budget;
   final reservations = <String, RuntimeResourceReservation>{};
   final images = <String, ui.Image>{};
-  final textures = <String, SpatialActorTexture>{};
+  final textures = <String, ActorTexture>{};
   final owners = <Object, Set<String>>{};
   final pending = <String, Future<void>>{};
   bool disposed = false;

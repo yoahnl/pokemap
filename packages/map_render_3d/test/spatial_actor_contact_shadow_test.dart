@@ -230,7 +230,7 @@ void main() {
     final expected = await image.toByteData();
     final original = await SpatialActorTexture.fromImage(image);
     expect(
-      original.texture.sourceData.buffer.asUint8List(),
+      original.gpuTexture.sourceData.buffer.asUint8List(),
       expected!.buffer.asUint8List(),
     );
     expect(original.footAnchor(const Rect.fromLTWH(0, 0, 8, 8)), (

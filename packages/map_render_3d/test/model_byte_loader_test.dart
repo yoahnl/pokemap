@@ -11,7 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
-import 'package:map_render_3d/map_render_3d.dart';
+import 'package:map_render_3d/src/model_byte_loader.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 
 void main() {

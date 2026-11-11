@@ -32,6 +32,8 @@ dependencies:
   archive: ^4.0.9
   path: ^1.8.3
   path_provider: ^2.1.2
+  avelune_render_contracts:
+    path: ../avelune_render_contracts
   map_render_3d:
     path: ../map_render_3d
   map_core:

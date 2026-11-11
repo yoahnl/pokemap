@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_render_3d/src/spatial_actor_visual.dart'
+    show SpatialActorTextureGpu, resolveSpatialActorTexture;
 import 'package:map_story/map_story.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/narrative_scene_runtime_execution.dart';
@@ -158,7 +160,9 @@ void main() {
         expect(fixture.session.bundle.map.id, 'target');
         expect(fixture.session.frame(0).texture, isNotNull);
         expect(
-          fixture.session.frame(0).texture.texture.sourceData.getUint8(3),
+          resolveSpatialActorTexture(fixture.session.frame(0).texture)
+              .gpuTexture
+              .sourceData.getUint8(3),
           failAfterOther ? 255 : 0,
         );
       },
