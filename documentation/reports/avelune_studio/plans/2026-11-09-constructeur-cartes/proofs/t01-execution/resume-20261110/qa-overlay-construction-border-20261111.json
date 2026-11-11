@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-10T23:41:07.121667+00:00",
+  "baseline": "468d1d62af188568da578a020c8081fed1c82997",
+  "parentOverlay": {
+    "path": "proofs/t01-execution/resume-20261110/qa-overlay-authoring-navigation-20261111.json",
+    "sha256": "55e1727ca565a9fbd26e9b83d219390ff9575dc8af561419dcafed7a77f0c199"
+  },
+  "scope": "QA delta for the map construction UI and border resource UI retirement closures, prior to their tests; source files from concurrent Scene work are not synchronized.",
+  "currentFiles": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_editor_pane.dart",
+      "sha256": "945cb783b84e487354e849df54718579758d81470bc546f4e03886b69286be22",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_selection_inspector.dart",
+      "sha256": "9d1c266f80e8ec8f4a2044a7c70f2eded3b7df04b68598ae867198c3be5e3c7e",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+      "sha256": "a128bf50d7da1bc4917394afb4c2b4cdd3d0292ff6658d2b538e577d0aa93b2d",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/uwu5_border_availability_host_test.dart",
+      "sha256": "ae96f5ff7c5d4ac8294af6b846f7e32110ee5c46efc5ceb898d76082e88b9dde",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart",
+      "sha256": "7160c08b6da78260d5f735bd02438aa52bb4457312ff82704b48bd6c7f95f56b",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/environment_authoring_host_test.dart",
+      "sha256": "e36841ea451590c46a80a04f8e700570da9aa2110cdea2264fa360afc1069c16",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_construction_retirement_test.dart",
+      "sha256": "87c3a2e4aa244ca722792fcbb777bc8d20dbced815431bf3d40f5ebc62fd0a33",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+      "sha256": "af8227df00a66c23afbcd99a21d48ba3a028615b0ef8ddaaaa1fa6528d2ca613",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/resources/resource_library_screen.dart",
+      "sha256": "aee6730978342519fc30e88a3a4a5fab53cb6edb7e341851e40472706ff02355",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart",
+      "sha256": "9578c427fd282ca10d9a322a0914323590d3271167b3b4edb1890368f20a117b",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/native_ledge_editor_test.dart",
+      "sha256": "40586c01fd6b85f0386a4392b69258e39cb0c22d6dd7e7983945e512bb8cf8ef",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/horizontal_facade_resource_test.dart",
+      "sha256": "4364c997a9b6446b6bbcaa6601810bdd69f48c8361df76ad839b606cea7689a3",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/resource_family_widgets_test.dart",
+      "sha256": "66af4bca7429fd5498c7a283c2c0b7327f49d5e68b980daf3c7e23c7826bbbbc",
+      "matchesWorkspaceAtCapture": true
+    }
+  ],
+  "deletedInWorkspaceAndQa": [
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_terrain_tool_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_border_tool_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_environment_tool_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_terrain_inspector.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_cliff_guide.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_terrain_controls.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_terrain_surface_editor.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_ramp_editor.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_ledge_editor.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_fishing_editor.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/border_creation_dialog.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/border_discard_dialog.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/border_pattern_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/border_sequence_controls.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/border_source_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/native_ledge_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/resource_border_draft_bar.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/resource_border_lifecycle.dart",
+    "apps/avelune_studio/lib/presentation/features/resources/resource_border_confirmation_dialog.dart"
+  ],
+  "sampleProtectedOwners": [
+    {
+      "path": "apps/avelune_studio/lib/features/resources/application/border_creation_draft.dart",
+      "sha256": "2beec8eccc526ef916bb7dc7025c23911d6c6cd66613995de0531d415ce11b76"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/resources/coordination/border_creation_workflow.dart",
+      "sha256": "1b6a25c1abc3ba6225763fefda49761e556ddc63dc2cb610df435f5fc491db27"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+      "sha256": "9879d5fb36457397c8d4543de14e6c3d49cc565dcf2da77a11716b350ab63e49"
+    }
+  ],
+  "limitations": [
+    "Test execution is documented separately; this snapshot alone does not prove behavior.",
+    "Five package roots remain linked to the live checkout; whole workspace and native visual/G0 acceptance remain open."
+  ]
+}
+

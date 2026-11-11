@@ -1,0 +1,20 @@
+00:00 +0: loading test/tooling/jsonl_worker_test.dart
+00:00 +0: JsonlWorker unit export error boundary sanitizes a quoted local path with a controlled export port
+00:00 +0 -1: JsonlWorker unit export error boundary sanitizes a quoted local path with a controlled export port [E]
+  Invalid argument (message): must not contain a machine-local path: "Dialogue \"/Users/private/opening.yarn\" could not be compiled."
+  package:map_authoring/src/contracts/authoring_error.dart 121:5  _safeText
+  package:map_authoring/src/contracts/authoring_error.dart 37:19  new AuthoringError
+  package:map_authoring/src/tooling/jsonl_worker.dart 2263:12     _failure
+  package:map_authoring/src/tooling/jsonl_worker.dart 325:16      JsonlWorker.processLine
+  ===== asynchronous gap ===========================
+  test/tooling/jsonl_worker_test.dart 1222:5                      _request
+  ===== asynchronous gap ===========================
+  test/tooling/jsonl_worker_test.dart 185:24                      main.<fn>.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  test/tooling/jsonl_worker_test.dart: JsonlWorker unit export error boundary sanitizes a quoted local path with a controlled export port
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

@@ -1,0 +1,11 @@
+LIVE_DEPS_BEFORE 428:9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be
+OWNED_RUNNER_PID 37131
++8: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/spatial_platform_controls_test.dart: route platform session persistence stays targeted with 0 foreign maps
+platform-studio foreign=0 repeat=0 reads=88 elapsedUs=752428
+platform-studio foreign=0 repeat=1 reads=89 elapsedUs=460356
++9: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/spatial_platform_controls_test.dart: route platform session persistence stays targeted with 90 foreign maps
+platform-studio foreign=90 repeat=0 reads=89 elapsedUs=385553
+platform-studio foreign=90 repeat=1 reads=91 elapsedUs=445141
++89: All tests passed!
+RESULT 0 SECONDS 72.2 OBSERVED_OWNED_PIDS [37131, 37182, 37190, 37200, 37205, 37328, 37332, 37374, 37442, 37520, 37689, 37757, 37762, 37765, 37774, 37924, 38449, 38454, 38458, 38496, 38504, 38508, 38519]
+LIVE_DEPS_AFTER 428:9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be UNCHANGED True

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T10:35:03Z",
+  "status": "partial_not_accepted",
+  "scope": "Retrait de deux dialogues de paramètres de carte et du montage compact de palette Cinématiques.",
+  "previousCheckpoint": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-239.json",
+  "runs": [
+    {
+      "cwd": "apps/avelune_studio",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub --concurrency=1 test/presentation/map_contextual_item_use_settings_test.dart test/presentation/map_escape_rope_settings_test.dart test/map_workspace/workspace_map_catalog_operation_test.dart test/scenes/scene_condition_catalog_refresh_host_test.dart test/map_workspace/map_camera_panel_test.dart test/map_workspace/map_library_retirement_test.dart test/map_workspace/workspace_publication_workflow_test.dart test/cinematics_ui10_error_recovery_test.dart -r failures-only",
+      "environment": "TMPDIR et AVELUNE_QA_ROOT dans un sous-répertoire QA propre à ce run",
+      "exitCode": 0,
+      "output": "+37: All tests passed!",
+      "runnerPid": 93538,
+      "observedDescendantsAfterRun": [],
+      "note": "Parcours ciblés de la carte, des scènes, de la bibliothèque, des sauvegardes et de la récupération Cinématiques ; recouvre la passe historique de 239."
+    },
+    {
+      "cwd": "apps/avelune_studio",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter analyze --no-pub",
+      "exitCode": 1,
+      "output": "6 informations, aucun avertissement ni erreur ; six diagnostics dans des fichiers hors de cette tranche."
+    },
+    {
+      "cwd": "apps/avelune_studio",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter analyze --no-pub --no-fatal-infos",
+      "exitCode": 0,
+      "output": "Les six mêmes informations restent présentes."
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check sur les deux dialogues, trois parents de carte et la page Cinématiques",
+      "exitCode": 0
+    }
+  ],
+  "sourceHashes": {
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_workspace_actions.dart": "354d6c415ae025f7d40a943bb113fd1f7ac89fa1f0db209ce10cf20f0cfecf54",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart": "8cf2070d9a1c5d1d02f9dea9bfbe42e93ec0b1a7a56448a00aa64e5d030756e6",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart": "16d6d78a676cc622a3532c949632f7e339be23f115728f889f1c9ed3e1fab184",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_page.dart": "0cc552a53562fcb2523693373b7f4775c76b034f16ef1803a347c4cf9b33e061"
+  },
+  "removedUi": [
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_contextual_item_use_settings.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_escape_rope_settings.dart"
+  ],
+  "preservedOwners": [
+    "MapMetadataSettingsDraft",
+    "MapContextualItemUseCollectionDraft",
+    "WorkspaceSessionControllers.loadSceneItems",
+    "runWorkspaceMapCatalogOperation",
+    "saveWorkspaceMapMetadata",
+    "mapLibraryOpenAction"
+  ],
+  "independentReview": "Un réviseur distinct a contrôlé les suppressions et reconstruit les trois préimages des parents à l’identique ; il a également vérifié la préimage et le seul montage compact supprimé de la page Cinématiques. Aucune exécution de tests par le réviseur.",
+  "limits": [
+    "Les captures de ce gel ne remplacent pas une recette native 2D/3D ou une comparaison avec les maquettes.",
+    "La page Cinématiques et la palette de son inspecteur restent présentes ; le montage compact a seul été retiré.",
+    "Le chargement d’objets reste utilisé par les scènes et a été conservé.",
+    "La sauvegarde préalable d’une carte sale puis la mutation des métadonnées sont deux opérations distinctes ; l’extraction ne les rend pas atomiques.",
+    "Aucun lot T00/T01 ni G0 accepté ; ce checkpoint ne revendique aucun nouveau diagnostic G0."
+  ],
+  "mcpParity": "N/A"
+}

@@ -1,0 +1,69 @@
+{
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "--test",
+    "--test-concurrency=1",
+    "test/game_export_profile_stdio.test.ts",
+    "test/presentation_caption_staging_stdio.test.ts"
+  ],
+  "exitCode": 0,
+  "interrupted": false,
+  "durationSeconds": 61.28643989562988,
+  "ownedProcesses": {
+    "91428": {
+      "ppid": 91425,
+      "start": "Tue Nov 10 17:18:14 2026",
+      "command": "node --import tsx --test --test-concurrency=1 test/game_export_profile_stdio.test.ts test/presentation_caption_staging_stdio.test.ts"
+    },
+    "91441": {
+      "ppid": 91437,
+      "start": "Tue Nov 10 17:18:14 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_authoring/.dart_tool/package_config.json /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/tools/pokemap_mcp/test/fixtures/unused_model_export_fixture.dart /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-if_pvsg_/export-profile-mcp-slu9fI/project"
+    },
+    "91437": {
+      "ppid": 91428,
+      "start": "Tue Nov 10 17:18:14 2026",
+      "command": "/opt/homebrew/Cellar/node/26.12.1_1/bin/node --heap-prof-interval=524288 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-timeout=0 --test-concurrency=1 --max-http-header-size=16384 --stack-trace-limit=10 --test-coverage-lines=0 --test-isolation=process --inspect-port=127.0.0.1:9229 --heapsnapshot-near-heap-limit=0 --test-coverage-functions=0 --test-coverage-branches=0 --cpu-prof-interval=1000 --report-signal=SIGUSR2 --experimental-addon-modules --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/game_export_profile_stdio.test.ts"
+    },
+    "91438": {
+      "ppid": 91437,
+      "start": "Tue Nov 10 17:18:14 2026",
+      "command": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.28.1 --ping"
+    },
+    "91927": {
+      "ppid": 91437,
+      "start": "Tue Nov 10 17:18:34 2026",
+      "command": "/opt/homebrew/Cellar/node/26.12.1_1/bin/node /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/tools/pokemap_mcp/dist/src/index.js --root /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-if_pvsg_/export-profile-mcp-slu9fI/project --export-root /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-if_pvsg_/export-profile-mcp-slu9fI/exports --dart /opt/homebrew/share/flutter-3.47.5/bin/dart --authoring-timeout-ms 120000"
+    },
+    "91931": {
+      "ppid": 91927,
+      "start": "Tue Nov 10 17:18:35 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart bin/pokemap_authoring.dart --root /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-if_pvsg_/export-profile-mcp-slu9fI/project --export-root /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-if_pvsg_/export-profile-mcp-slu9fI/exports --timeout-ms 120000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    },
+    "92306": {
+      "ppid": 92301,
+      "start": "Tue Nov 10 17:18:55 2026",
+      "command": "/Users/karim/Project/pokemonProject/tools/pokemap_mcp/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.28.1 --ping"
+    },
+    "92309": {
+      "ppid": 92301,
+      "start": "Tue Nov 10 17:18:55 2026",
+      "command": "/opt/homebrew/Cellar/node/26.12.1_1/bin/node /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/tools/pokemap_mcp/dist/src/index.js --root /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/caption-staging-mcp-SSK0fM --artifact-root /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/caption-staging-mcp-SSK0fM --authoring-timeout-ms 120000 --dart /opt/homebrew/share/flutter-3.47.5/bin/dart"
+    },
+    "92301": {
+      "ppid": 91428,
+      "start": "Tue Nov 10 17:18:55 2026",
+      "command": "/opt/homebrew/Cellar/node/26.12.1_1/bin/node --heap-prof-interval=524288 --watch-kill-signal=SIGTERM --inspect-publish-uid=stderr,http --test-timeout=0 --test-concurrency=1 --max-http-header-size=16384 --stack-trace-limit=10 --test-coverage-lines=0 --test-isolation=process --inspect-port=127.0.0.1:9229 --heapsnapshot-near-heap-limit=0 --test-coverage-functions=0 --test-coverage-branches=0 --cpu-prof-interval=1000 --report-signal=SIGUSR2 --experimental-addon-modules --use-largepages=off --network-family-autoselection-attempt-timeout=500 --secure-heap-min=2 --import=tsx --v8-pool-size=4 --secure-heap=0 --tls-cipher-list=TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA --node-snapshot --trace-event-file-pattern=node_trace.${rotation}.log --import tsx test/presentation_caption_staging_stdio.test.ts"
+    },
+    "92313": {
+      "ppid": 92309,
+      "start": "Tue Nov 10 17:18:56 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart bin/pokemap_authoring.dart --root /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/caption-staging-mcp-SSK0fM --artifact-root /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/caption-staging-mcp-SSK0fM --timeout-ms 120000 --export-timeout-ms 120000 --max-input-bytes 1048576"
+    }
+  },
+  "liveOwnedPids": [],
+  "log": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t00-mcp-export-and-captions-final.log",
+  "tmp": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-if_pvsg_"
+}

@@ -1,0 +1,12 @@
+✔ live MCP certifies the shared nine-action Event V2 cycle and atomic refusals (26615.384ms)
+✔ live MCP discovers and authors native autorun sources without interaction or legacy substitution (13019.233834ms)
+✔ live MCP discovers and authors native bump sources without interaction or legacy substitution (12211.866375ms)
+✔ live MCP discovers and authors native trigger contact sources without interaction or legacy substitution (12264.069375ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 65368.412666

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "t00AdditiveResourceRegistryRepair",
+  "createdAtUtc": "2026-11-11T00:56:22.294255+00:00",
+  "paths": [
+    {
+      "path": "packages/map_authoring/lib/src/registry/resource_kind_registry.dart",
+      "beforeSha256": "fdde0efba1d54945140d0aa6af3706fc7a5813d718e54231c84c4113f3ad44fb",
+      "afterSha256": "26202e7b33678e3d823b71be123118574cb64854e76af96f269441e76087d741",
+      "preexistingChange": "mapHealth.query.requiredFilters: [mapId] retained byte for byte"
+    },
+    {
+      "path": "packages/map_authoring/test/registry/action_registry_test.dart",
+      "beforeSha256": "e57c9e6a786c267b89746abc9ddbd392cf4892e12fc709bd49ff16a4a9a7f846",
+      "afterSha256": "ab216d04e07f01fc2737d2b7b31f8e04b4a6f9ac62ac3a48f801da6d219ea33f",
+      "preexistingChange": null
+    }
+  ],
+  "addedResourceKinds": [
+    "mapAtmosphere",
+    "mapEditor",
+    "battleRecipeFile",
+    "pokemonCatalog",
+    "cinematicMediaAsset"
+  ],
+  "queryableResourceKindsChanged": false,
+  "mapHealthBlockUnchanged": true,
+  "registryDeltaOnlyAddsFiveDescriptors": true,
+  "staticCanonicalListComparison": {
+    "expected": 99,
+    "registered": 99,
+    "match": true,
+    "proofTier": "source comparison; not Dart test execution"
+  },
+  "validation": {
+    "dartAnalyze": {
+      "command": "dart analyze lib/src/registry/resource_kind_registry.dart test/registry/action_registry_test.dart",
+      "exitCode": 0,
+      "issues": 0
+    },
+    "gitDiffCheckExitCode": 0,
+    "testFileFormatted": true,
+    "flutterOrDartTestRunnerStarted": false
+  },
+  "centralTests": [
+    "test/registry/action_registry_test.dart",
+    "test/api/authoring_capability_discovery_test.dart",
+    "test/parity/full_authoring_parity_test.dart"
+  ],
+  "limits": [
+    "Generic queries remain unsupported for the five resource kinds.",
+    "MCP describe.resourceKinds continues to reflect the queryable subset; no claim that mutation-only kinds become visible there.",
+    "No live MCP probe, conformance run or server reload performed.",
+    "Handlers, formats and MCP goldens unchanged."
+  ]
+}

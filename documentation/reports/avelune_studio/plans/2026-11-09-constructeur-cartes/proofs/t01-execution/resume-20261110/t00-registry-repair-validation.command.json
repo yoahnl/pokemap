@@ -1,0 +1,43 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_authoring",
+  "registryDiscovery": {
+    "command": "dart test -j 1 -r failures-only test/registry/action_registry_test.dart test/api/authoring_capability_discovery_test.dart test/parity/full_authoring_parity_test.dart test/api/map_health_description_test.dart test/api/map_health_query_test.dart test/tooling/jsonl_worker_test.dart",
+    "exitCode": 0,
+    "passedCount": 82,
+    "log": {
+      "path": "t00-registry-discovery-parity.log",
+      "sha256": "ecd13d8e0c64082dbf9fcc63da95f03ec8d519babba2912e9fa164351f5643eb"
+    }
+  },
+  "manifest": {
+    "path": "t00-additive-resource-registry-repair-manifest.json",
+    "sha256": "fa734ad5402cbb205abcb713d83542abe4dc7a3eb3b1200c1395e2edf69392c9"
+  },
+  "mcpAfterChange": {
+    "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/tools/pokemap_mcp",
+    "command": "node --import tsx --test --test-concurrency=1 --test-name-pattern='MCP stdio queries and edits working catalogs' test/catalog_storage_stdio.test.ts",
+    "exitCode": 0,
+    "passedCount": 1,
+    "durationMilliseconds": 36825.364625
+  },
+  "mutationRegressions": {
+    "command": "dart test -j 1 -r failures-only test/domains/maps/map_lifecycle_atmosphere_test.dart test/documents/map_atmosphere_authoring_test.dart test/documents/map_editor_authoring_test.dart test/workspace/battle_recipe_import_test.dart test/domains/narrative/dialogue_audio_media_actions_test.dart test/domains/narrative/dialogue_audio_media_jsonl_test.dart",
+    "exitCode": 1,
+    "passedCount": 53,
+    "skippedCount": 4,
+    "failedCount": 1,
+    "failure": "map_atmosphere_authoring_test.dart: receipt undo reads one history entry without legacy or unrelated entry reads; history.preparation_required"
+  },
+  "isolatedFailure": {
+    "command": "dart test -r expanded test/documents/map_atmosphere_authoring_test.dart",
+    "exitCode": 1,
+    "passedCount": 8,
+    "skippedCount": 1,
+    "failedCount": 1,
+    "notes": "The same failure reproduces in isolation; cause under investigation."
+  },
+  "limitations": [
+    "The five added resource kinds are registered as non-queryable. No generic handler is claimed.",
+    "The history failure is not resolved by the registry change; G0 and full authoring qualification remain open."
+  ]
+}

@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "scope": "T01 map library and map lifecycle presentation retirement",
+  "repository": "/Users/karim/Project/pokemonProject",
+  "state": "frozen_for_centralized_QA",
+  "entries": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator.dart",
+      "before": "2f9bff68142c373a32166487fb28160f7740eb608a45a7b744406dd5b681cdd1",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator_actions.dart",
+      "before": "09ddf6222b6da28f9e19960e4537cb196fbf9d617b75c20136464991983f99ad",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator_actions.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_library_group_actions.dart",
+      "before": "bd8a8cbc03f3c7680a0540d1bde1a639bc6fa0e16288b6f80b1c1056370fb6d9",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_library_group_actions.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator_forms.dart",
+      "before": "8ee2d2a788f41831f9fdbb78c7f4069efd47d890631d01ab431495adada48772",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_library_navigator_forms.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_actions.dart",
+      "before": "e60d23fa5b3e8109af55fb37fba564fd842a1a3670a4f83a5a50cbff81f11b51",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_actions.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_tile.dart",
+      "before": "d6988bbd8d6972f8d0dd2dad4ec0d681824abb607e7219e5cb8b853fe1c87664",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_library_row_tile.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_compact_navigator.dart",
+      "before": "f27f03a2349f21a56ece6a76cc9ce6a59e4e03c51860a6c4c899af8ae4363b6a",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_compact_navigator.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_empty_view.dart",
+      "before": "71efa137355c9c097d0d22823e419355821661b3bc559089ccd3452c167e95a2",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_empty_view.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_creation_dialog.dart",
+      "before": "114b9e437da655f931b43236e631fe14cab2d1fd8721b48e0659e121706d6e38",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_creation_dialog.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_lifecycle_workspace_actions.dart",
+      "before": "96627ee0323c969ed72588296060a775ad27ef54749186b609049b029115cf2b",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_lifecycle_workspace_actions.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_duplicate_dialog.dart",
+      "before": "5c193b0c536c04971217f33a69a4d19e30991c3583bc80eeead89dab49df6a85",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_duplicate_dialog.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_resize_dialog.dart",
+      "before": "4f0f39c306197292ab38a23af36688e00fbc387742354314feadb58ccae09f41",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_resize_dialog.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_resize_preview.dart",
+      "before": "279782f567842f81537f266848ec1c438a0b73085f16357179ceca51d822f2c0",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_resize_preview.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_delete_dialog.dart",
+      "before": "602ea5f4e9b98e18cdd16cb440a75646dfbedd57d206f710678e0999de9d4e7c",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_delete_dialog.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_lifecycle_issues.dart",
+      "before": "542ae4838f9268badd76ea9fa21f06e391efe394e9cb0f726a6dcffad6a245f9",
+      "statusBefore": "",
+      "after": null,
+      "statusAfter": "D apps/avelune_studio/lib/presentation/features/map_workspace/map_lifecycle_issues.dart",
+      "change": "deleted"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart",
+      "before": "5aaa1c5f21655151ceddac552671501267a8f5521067e4934faf438e5e3633b1",
+      "statusBefore": "",
+      "after": "172f411906db8b6546c84542c7b5f611dbf99260d7b51802db5d1485f91d72e9",
+      "statusAfter": "M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_layout.dart",
+      "change": "modified"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_editor_pane.dart",
+      "before": "945cb783b84e487354e849df54718579758d81470bc546f4e03886b69286be22",
+      "statusBefore": "M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_editor_pane.dart",
+      "after": "4eaa943dffcae328592a2d9013124f80b7a05fc48792401dd53f66b79c3b7ac4",
+      "statusAfter": "M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_editor_pane.dart",
+      "change": "modified"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_toolbar.dart",
+      "before": "5ce271d700f2d626ed28ec860e7e1c8a9b8acf85b0b73f2d3145a80e55513631",
+      "statusBefore": "",
+      "after": "ac311d61fb174271a261afd77ded712c5cd5d7f7174d0712531a7be9d30df665",
+      "statusAfter": "M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_toolbar.dart",
+      "change": "modified"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_left_column.dart",
+      "before": "e120ed079bd632850674fca0531e0256839d360a72fd330b934d3cdd1c94cd6e",
+      "statusBefore": "",
+      "after": "3577060db25d5d2cda4b94a9c24571d530ee3469f34b59aa9e7ae5ed9eaec9f2",
+      "statusAfter": "M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_left_column.dart",
+      "change": "modified"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_workspace_actions.dart",
+      "before": "a69f8056c3ddfd7b3eb45626e80be2230a38b7885de211403214405fae5d0a01",
+      "statusBefore": "",
+      "after": "2e67f53f452f39e5217cc2acc11124be8aec736bd280ec98873ad1c10565cfec",
+      "statusAfter": "M apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_workspace_actions.dart",
+      "change": "modified"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_map_library_binding.dart",
+      "before": "205450a524a20a3c240d2d755c081a6cd6d57331945b7253a709094e5a957a0e",
+      "statusBefore": "",
+      "after": "8e9923183384527f65315f365582877c5d80a7e41d4485a4204f92418121558b",
+      "statusAfter": "M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_map_library_binding.dart",
+      "change": "modified"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_home_binding.dart",
+      "before": "4d79ab7c3611c5ca0bc6979503fd8e3e65a41833265b2008194ba3b92e254d76",
+      "statusBefore": "",
+      "after": "8b4c5e5029ebdf13302fa18e8bceabde809761829c3bda34ae28b7269a9f4d21",
+      "statusAfter": "M apps/avelune_studio/lib/presentation/features/map_workspace/workspace_home_binding.dart",
+      "change": "modified"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart",
+      "before": "d564974a30d4a1264013fa4ed7b51ad7605c5293f6d62fdb118279e5c0d2b05a",
+      "statusBefore": "",
+      "after": "f9fd88dc095a67226879c210ddd67c04c991bb818d388727b22b0f4500fc4bc7",
+      "statusAfter": "M apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart",
+      "change": "modified"
+    },
+    {
+      "path": "apps/avelune_studio/integration_test/map_authoring_player_journey_test.dart",
+      "before": "ae1add014efff7c188bad44736d62431c643b90340538bd18abbf5101f976f82",
+      "statusBefore": "",
+      "after": "d84242d489ed1b28b32ff786128fa515add8cf1f95153e93e173d4f2396efeaa",
+      "statusAfter": "M apps/avelune_studio/integration_test/map_authoring_player_journey_test.dart",
+      "change": "modified"
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart",
+      "before": null,
+      "statusBefore": "",
+      "after": "b5b170cb8ab1a6a8cdd6c51d8f1f4b1300a65a532db1ae50cad18f352fc9a164",
+      "statusAfter": "?? apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart",
+      "change": "added"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "before": "26023c1b0f4986a5e1f40eedd0758e4ada32a3a1c85dd5c1db37966ddad9ff37",
+      "statusBefore": "M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "after": "1d84f9d7da7eec864546888fd41404ae53329559995595d33b162a7ca7229ffe",
+      "statusAfter": "M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "change": "modified"
+    }
+  ],
+  "validation": {
+    "analyze": {
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/dart analyze lib/presentation/features/map_workspace/map_workspace_layout.dart lib/presentation/features/map_workspace/map_workspace_editor_pane.dart lib/presentation/features/map_workspace/map_workspace_toolbar.dart lib/presentation/features/map_workspace/map_workspace_left_column.dart lib/presentation/features/map_workspace/map_catalogue_workspace_actions.dart lib/presentation/features/map_workspace/map_workspace_screen.dart test/map_workspace/map_library_retirement_test.dart test/resource_io/resource_administration_journey_host_test.dart integration_test/map_authoring_player_journey_test.dart",
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+      "exitCode": 0,
+      "result": "No issues found!"
+    },
+    "diffCheck": {
+      "scope": "manifest entries",
+      "exitCode": 0
+    },
+    "deletedImportsSearch": {
+      "scope": "apps/avelune_studio/**/*.dart",
+      "exitCode": 1,
+      "result": "No references to deleted files"
+    },
+    "flutterTestsRun": false,
+    "nativeApplicationRun": false,
+    "playerValidationRun": false,
+    "gitWrites": false
+  },
+  "qaTests": {
+    "mountAndConsumers": [
+      "test/map_workspace/map_library_retirement_test.dart",
+      "test/resource_io/resource_administration_journey_host_test.dart",
+      "test/presentation/map_escape_rope_settings_test.dart",
+      "test/presentation/map_contextual_item_use_settings_test.dart"
+    ],
+    "catalogLifecycle": [
+      "test/map_workspace/map_catalogue_host_test.dart",
+      "test/map_workspace/map_catalogue_groups_host_test.dart",
+      "test/map_workspace/map_catalogue_home_entry_host_test.dart",
+      "test/map_workspace/map_lifecycle_host_test.dart",
+      "test/map_workspace/map_lifecycle_layout_host_test.dart",
+      "test/map_workspace/map_catalog_lifecycle_session_test.dart",
+      "test/map_workspace/map_catalog_lifecycle_races_test.dart",
+      "test/map_workspace/map_catalog_preparation_test.dart",
+      "test/map_workspace/map_catalog_recovery_test.dart",
+      "test/map_workspace/workspace_map_resize_test.dart",
+      "test/map_workspace/workspace_map_catalog_operation_test.dart",
+      "test/map_workspace/workspace_map_catalog_bindings_test.dart",
+      "test/map_workspace/map_library_tree_test.dart",
+      "test/map_workspace/map_library_organization_session_test.dart",
+      "test/presentation/map_library_navigation_test.dart",
+      "test/presentation/map_library_creation_context_test.dart",
+      "test/presentation/map_catalogue_row_actions_test.dart"
+    ],
+    "nativeIntegration": [
+      "integration_test/map_authoring_player_journey_test.dart"
+    ]
+  },
+  "limits": [
+    "The new mount test seeds a pending publication receipt to verify presentation preservation; actual publication and retry remain covered by unchanged catalogue tests.",
+    "The integration test still depends on pre-existing retired UI including home-tool-map; its two removed library-row activations are migrated, but no Player validation is claimed."
+  ],
+  "mcpParity": "N/A",
+  "preservedOwnersAndSharedForms": [
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_map_catalog_actions.dart",
+      "sha256": "b9102c1ac80d9a0bd0e057cf6a1bd634de8c83f97f5bd6160f1493ca500ed5f6",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_map_catalog_bindings.dart",
+      "sha256": "0fff55e5628d78200b0851e5f42bbc8812acdf34c041a6e3874648a8bc0d59f7",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart",
+      "sha256": "8c0674c69e57eaef8531b080c00b4302ab171d6164cb7c9db2830826d0d19f64",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_catalog_commands.dart",
+      "sha256": "8aaf41042d187e24e75267684dd4d6b634ba3c4280a7f810a9aeff7f894671c3",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_catalog_preparation.dart",
+      "sha256": "3cda791f486dd404db21fffde22a5dad6a02d17c58c1daebeefe5771769cdc1f",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/map_library_commands.dart",
+      "sha256": "052c1426c57da4ed7158504147ddbc1066628a3f5996fadbdd3993fa4eee6319",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/application/map_library_organization_session.dart",
+      "sha256": "75faddfdd28415b83d357a894e37aff38c83508e15bcb2747603d8a459bdf76e",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_catalogue_form_dialog.dart",
+      "sha256": "18b305fd9c9618328bfb164f4e3cb40784fc8dcb64873c9c04af74909d861226",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_escape_rope_settings.dart",
+      "sha256": "036e117883f09a4c9b1478bb95b61a0ae809f248117e898f36efe8fc83a4ae10",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_contextual_item_use_settings.dart",
+      "sha256": "02dcfbb1c3e2854e4f8f2403485e342e88303c91a8f0f661c4776bbd036fe7f6",
+      "unchangedFromHead": true
+    }
+  ]
+}

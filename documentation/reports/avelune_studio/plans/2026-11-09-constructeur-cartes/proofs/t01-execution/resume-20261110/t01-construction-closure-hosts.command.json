@@ -1,0 +1,122 @@
+{
+  "command": [
+    "env",
+    "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+    "test",
+    "--no-pub",
+    "--concurrency=1",
+    "--timeout=120s",
+    "-r",
+    "failures-only",
+    "test/map_workspace/map_construction_retirement_test.dart",
+    "test/map_workspace/border_drawing_host_test.dart",
+    "test/map_workspace/uwu5_border_availability_host_test.dart",
+    "test/map_workspace/uwu6_first_border_host_test.dart",
+    "test/resource_io/environment_authoring_host_test.dart"
+  ],
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "exitCode": 1,
+  "interrupted": false,
+  "durationSeconds": 55.15494394302368,
+  "ownedProcesses": {
+    "74579": {
+      "ppid": 74569,
+      "start": "Wed Nov 11 00:40:38 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --packages=/opt/homebrew/share/flutter-3.47.5/packages/flutter_tools/.dart_tool/package_config.json /opt/homebrew/share/flutter-3.47.5/bin/cache/flutter_tools.snapshot test --no-pub --concurrency=1 --timeout=120s -r failures-only test/map_workspace/map_construction_retirement_test.dart test/map_workspace/border_drawing_host_test.dart test/map_workspace/uwu5_border_availability_host_test.dart test/map_workspace/uwu6_first_border_host_test.dart test/resource_io/environment_authoring_host_test.dart"
+    },
+    "74614": {
+      "ppid": 74579,
+      "start": "Wed Nov 11 00:40:39 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/package_config.json /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/objective_c/7ad245dadc/hook.dill --config=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/objective_c/7ad245dadc/input.json"
+    },
+    "74627": {
+      "ppid": 74622,
+      "start": "Wed Nov 11 00:40:39 2026",
+      "command": "(clang)"
+    },
+    "74629": {
+      "ppid": 74623,
+      "start": "Wed Nov 11 00:40:39 2026",
+      "command": "(clang)"
+    },
+    "74632": {
+      "ppid": 74614,
+      "start": "Wed Nov 11 00:40:39 2026",
+      "command": "(clang)"
+    },
+    "74635": {
+      "ppid": 74632,
+      "start": "Wed Nov 11 00:40:39 2026",
+      "command": "(clang)"
+    },
+    "74622": {
+      "ppid": 74614,
+      "start": "Wed Nov 11 00:40:39 2026",
+      "command": "(clang)"
+    },
+    "74623": {
+      "ppid": 74614,
+      "start": "Wed Nov 11 00:40:39 2026",
+      "command": "(clang)"
+    },
+    "74642": {
+      "ppid": 74579,
+      "start": "Wed Nov 11 00:40:40 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/package_config.json /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/avelune_gen5_sprite_native/7ad245dadc/hook.dill --config=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/avelune_gen5_sprite_native/7ad245dadc/input.json"
+    },
+    "74652": {
+      "ppid": 74642,
+      "start": "Wed Nov 11 00:40:40 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --target=arm64-apple-darwin -mmacos-version-min=13 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/ -fPIC -O3 -Wl,-encryptable -DRELEASE -DNDEBUG -I/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src -I/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/include /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/probe_pure.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/api_sprite_bridge.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/sprite_composer.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/ncgr.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/ncer.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/nanr.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/nmcr.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/nmar.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/nclr.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/nitro_util.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/file_util.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/ppm.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/coords.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/lz.c -framework Foundation --shared -o /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/shared/avelune_gen5_sprite_native/build/7ad245dadc/libavelune_gen5_sprite_native.dylib -L/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/shared/avelune_gen5_sprite_native/build/7ad245dadc/"
+    },
+    "74653": {
+      "ppid": 74652,
+      "start": "Wed Nov 11 00:40:40 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -cc1 -triple arm64-apple-macosx13.0.0 -O3 -Wundef-prefix=TARGET_OS_ -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -Werror=implicit-function-declaration -emit-obj -dumpdir /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/shared/avelune_gen5_sprite_native/build/7ad245dadc/libavelune_gen5_sprite_native.dylib- -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name probe_pure.c -mrelocation-model pic -pic-level 2 -mframe-pointer=non-leaf -mllvm -extra-vectorizer-passes -fno-strict-return -ffp-contract=on -fno-rounding-math -funwind-tables=1 -fobjc-msgsend-selector-stubs -fno-sized-deallocation -target-sdk-version=27.0 -fdepfile-entry=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/SDKSettings.json -fvisibility-inlines-hidden-static-local-var -fno-modulemap-allow-subdirectory-search -fdefine-target-os-macros -fno-assume-unique-vtables -fno-modulemap-allow-subdirectory-search -enable-tlsdesc -target-cpu apple-m1 -target-feature +v8.5a -target-feature +aes -target-feature +altnzcv -target-feature +ccdp -target-feature +ccpp -target-feature +complxnum -target-feature +crc -target-feature +dotprod -target-feature +flagm -target-feature +fp-armv8 -target-feature +fp16fml -target-feature +fptoint -target-feature +fullfp16 -target-feature +jsconv -target-feature +lse -target-feature +neon -target-feature +pauth -target-feature +perfmon -target-feature +predres -target-feature +ras -target-feature +rcpc -target-feature +rdm -target-feature +sb -target-feature +sha2 -target-feature +sha3 -target-feature +specrestrict -target-feature +ssbs -target-abi darwinpcs -debugger-tuning=lldb -fdebug-compilation-dir=/Users/karim/Project/pokemonProject/packages/avelune_gen5_sprite_native -target-linker-version 1166.2 -fcoverage-compilation-dir=/Users/karim/Project/pokemonProject/packages/avelune_gen5_sprite_native -resource-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/ -D RELEASE -D NDEBUG -I /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src -I /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/include -internal-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/local/include -internal-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include -internal-externc-isystem /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/SubFrameworks -internal-iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks -Wno-elaborated-enum-base -ferror-limit 19 -stack-protector 1 -fstack-check -mdarwin-stkchk-strong-link -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fmax-type-align=16 -fcommon -vectorize-loops -vectorize-slp -clang-vendor-feature=+disableNonDependentMemberExprInCurrentInstantiation -fno-odr-hash-protocols -clang-vendor-feature=+enableAggressiveVLAFolding -clang-vendor-feature=+revert09abecef7bbf -clang-vendor-feature=+thisNoAlignAttr -clang-vendor-feature=+thisNoNullAttr -clang-vendor-feature=+disableAtImportPrivateFrameworkInImplementationError -Wno-error=allocator-wrappers -fdwarf2-cfi-asm -o /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-x6dbk5rt/probe_pure-053268.o -x c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/probe_pure.c"
+    },
+    "74668": {
+      "ppid": 74652,
+      "start": "Wed Nov 11 00:40:41 2026",
+      "command": "(clang)"
+    },
+    "74683": {
+      "ppid": 74579,
+      "start": "Wed Nov 11 00:40:42 2026",
+      "command": "(xcrun)"
+    },
+    "74691": {
+      "ppid": 74579,
+      "start": "Wed Nov 11 00:40:42 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root /opt/homebrew/share/flutter-3.47.5/bin/cache/artifacts/engine/common/flutter_patched_sdk/ --incremental --no-print-incremental-dependencies --target=flutter --experimental-emit-debug-metadata -DFLUTTER_BUILD_NAME=0.3.37 -DFLUTTER_BUILD_NUMBER=337 -DFLUTTER_VERSION=3.47.5 -DFLUTTER_CHANNEL=stable -DFLUTTER_GIT_URL=https://github.com/flutter/flutter.git -DFLUTTER_FRAMEWORK_REVISION=6a19cca564 -DFLUTTER_ENGINE_REVISION=af7e796e16 -DFLUTTER_DART_VERSION=3.13.4 --output-dill /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-x6dbk5rt/flutter_tools.RTQ1es/flutter_test_compiler.u1gJk2/output.dill --packages /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/package_config.json -Ddart.vm.profile=false -Ddart.vm.product=false --enable-asserts --track-widget-creation --initialize-from-dill /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/build/test_cache/build/454d9ef0bca602967be51e4bf41273f5.cache.dill.track.dill --verbosity=error --enable-experiment=alternative-invalidation-strategy"
+    },
+    "74721": {
+      "ppid": 74579,
+      "start": "Wed Nov 11 00:40:46 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/build/unit_test_assets /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-x6dbk5rt/flutter_tools.RTQ1es/flutter_test_listener.014st6/listener.dart.dill"
+    },
+    "74735": {
+      "ppid": 74579,
+      "start": "Wed Nov 11 00:40:50 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/build/unit_test_assets /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-x6dbk5rt/flutter_tools.RTQ1es/flutter_test_listener.gi9FhM/listener.dart.dill"
+    },
+    "75088": {
+      "ppid": 74579,
+      "start": "Wed Nov 11 00:41:12 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/build/unit_test_assets /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-x6dbk5rt/flutter_tools.RTQ1es/flutter_test_listener.lCuSj3/listener.dart.dill"
+    },
+    "75140": {
+      "ppid": 74579,
+      "start": "Wed Nov 11 00:41:17 2026",
+      "command": "(flutter_tester)"
+    },
+    "75261": {
+      "ppid": 74579,
+      "start": "Wed Nov 11 00:41:27 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/build/unit_test_assets /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-x6dbk5rt/flutter_tools.RTQ1es/flutter_test_listener.FbIR68/listener.dart.dill"
+    }
+  },
+  "liveOwnedPids": [],
+  "log": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-construction-closure-hosts.log",
+  "tmp": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-x6dbk5rt"
+}

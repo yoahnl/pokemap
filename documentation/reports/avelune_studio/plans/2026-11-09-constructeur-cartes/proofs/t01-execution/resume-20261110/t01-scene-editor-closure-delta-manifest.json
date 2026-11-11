@@ -1,0 +1,983 @@
+{
+  "schemaVersion": 1,
+  "kind": "t01HistoricalSceneEditorClosureDelta",
+  "task": "/root/t01_story_retirement_finish",
+  "createdAtUtc": "2026-11-10T23:57:09.762225+00:00",
+  "repository": "/Users/karim/Project/pokemonProject",
+  "gitHead": "468d1d62af188568da578a020c8081fed1c82997",
+  "scope": "Current complete historical Scene editor closure only; excludes prior graph retirement and other agents changes.",
+  "counts": {
+    "closurePaths": 56,
+    "modified": 31,
+    "added": 1,
+    "deleted": 24,
+    "unchangedOwnersAndContracts": 38,
+    "sharedFilesRetained": 3,
+    "knownPreexistingOverlapPaths": 14
+  },
+  "syncSafety": {
+    "isCopyInstruction": false,
+    "qaSourceCopyTouched": false,
+    "blindWholeFileOverwriteAllowed": false,
+    "rule": "Compare each QA target against its known receipt/baseline before applying. Current hashes identify desired source state only. For pre-existing overlaps, apply only closure hunks and preserve QA-specific concurrent changes. A mismatch requires reconciliation, never forced overwrite.",
+    "preclosureBaselineCoverage": "Exact preclosure content hashes were captured for the 22 deleted source files. Full preclosure snapshots were not captured for modified files; HEAD hashes are not claimed to be their preclosure hashes. Known prior overlaps are enumerated; any unattributable delta remains review-required.",
+    "importantAbsentUntrackedFile": "scene_block_presentation.dart was untracked before deletion, so git diff alone omits this ABSENT path. Remove from QA only after ownership/baseline confirmation."
+  },
+  "closurePaths": [
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_battle_recovery_selection.dart",
+      "action_by_this_closure": "added",
+      "current_sha256_or_absent": "f89e953af9a1bb1db85c5f03dfdd43b2eb8fd09526aac631611c1e0202986f22",
+      "head_sha256_or_absent": "ABSENT",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Extract historical UI selection intent only; no restriction added to models, loading or generic edit session."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/events/event_outcome_picker.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "d9c8c5314ffaec0d1dacbd62ed2a9a09812ed16c1be18f4aba21874fef73437c",
+      "head_sha256_or_absent": "865dc9cd87f9d6a0cdf760002c666654978ad122eff9ad12b9a945cd1140ba5b",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Nullable producer editor callback; disabled open button."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/events/event_page_content.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "90aa68b51b500205189fb45dad167e9f8aaecc2639cb8204341368c39d72ee42",
+      "head_sha256_or_absent": "6b7c573ea31208cd3e4dc798975f552576ca8e29a32b679cbb2e70c1deee5338",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Nullable onScene editor callback."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/events/event_scene_panel.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "9505745354c347ba51f2ac25c92b1159008ffad9f3bb13b7f609fa0b8ad0ea69",
+      "head_sha256_or_absent": "797479aa718f9018de716fc278af11e65fb9a866725e2428483aa236766f1c50",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Nullable onOpen; association select/remove preserved."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/events/event_trigger_panel.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "264572a03f0e694a3f42d4c4c79d1c52b4ad6284092b3ee9a739c99a3943aa9b",
+      "head_sha256_or_absent": "aed4176a6a6062dce479572f5eeba9722ef1d766fa065cd00ffe46ffcab06841",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Nullable producer editor callback."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/events/event_workspace_layout.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "7a12493b700d71cd6d3b9a91d7e8d41bb5ebb9fc4d7a554b96647c541e3f5915",
+      "head_sha256_or_absent": "e05150cd2e497d51c68cfdf7c2c38cbd58bf9feb0a6e1138df362763e85b87ed",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Propagate unavailable editor as null."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/events/event_workspace_page.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "65074d245d3aa2e53a8ff921fe926f01dfc5fe8bb03cfea3fc550e4b6ea9b0d8",
+      "head_sha256_or_absent": "1aa6cb956912038e57ec43e10f628bb2ccbaa11bf52a90782c7a8c4c448e9e7c",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Optional onScene; guard before flush; disable row editor callbacks."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "977e2e488d8c45834b9da104c03af60f8a1bd22c7e638cf62e94fcc39456f0fc",
+      "head_sha256_or_absent": "32cd1d0534f36d553e137349f3b670caa0afea53d640d6e7df266209ba637de4",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Remove obsolete SceneBuilder imports, UI store, mirrored selection callbacks and orphaned setter only."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_lifecycle_binding.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "67a9c58655d9988c08987af02863b9aca6fa1087f6276f13171c62f63c964721",
+      "head_sha256_or_absent": "75ed2afe5e86fd3f7dde81b3e34f064163c4409089779713b6fd90a1901a4f96",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Remove obsolete scene UI store disposal only."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_presentation_binding.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "67bc0e7ac6167c8b5a67edd9a478a646d3e62bf8185ec7702ff0e9b294a11c5a",
+      "head_sha256_or_absent": "0c2d55c9215d3d82428aca4518a56dcb12942000b44d76c5e709e6007490300d",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Disable onConsumer editor route only."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_scene_return_binding.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "072b6063de24c4a0699033e37e2938e0336123e3928b15fea5b59d4eb3b3078f",
+      "head_sha256_or_absent": "248a318916c3540c33838669886bff469beda7661ee6040ccc941c2ef0955940",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": "Previous Carte closure removed _openInteractionScene. This closure changes only _openScene; preserve all other deltas.",
+      "attribution": "Only _openScene wrapper changed to return editor unavailable; pre-existing Carte removal retained."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "10ad9c99f36c2f211e2f1f7ab19eac4599b0c355f1d7b448944c6d396cde0cbc",
+      "head_sha256_or_absent": "9bad60d139cc1c97b56aa4263bb2a3c26a9f81312b8e666426ec7eb035fb9e68",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Remove sceneViews argument only."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_secondary_content.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "232c286ecb15491bd5d3d2bdd50e2491b3cf72891d8bcecdb86ddfa7b8edeb1c",
+      "head_sha256_or_absent": "b9892335dd846128b464d6b88c458f052e8b5338906eb45a2b84584d3b2ae4f4",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Remove scene editor composition/store/import; disable editor routes from Histoire, events, cinematics; preserve owners."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_story_binding.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "c2a3c991541a452b75a16287def2bb8efd4352d1f7779008a61fcea3a6ac0dc9",
+      "head_sha256_or_absent": "600f7c4f7ff754250714d143738dbc40029c77431bd8879afa2062ca7f15bcfb",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "_openScenes reports unavailable; owner save path preserved."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane_creation.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "ad8c09be75875fa553f4ed2a635d466d552b7126608f2613b81a592e6663d5bc",
+      "head_sha256_or_absent": "7e48ad221d9bec4892096e5592460811c72e1f730e79c58690db2e98910119ac",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Remove private _createScene UI intent before owner.create."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane_overview.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "896828770d27f167b1f52c49255875e70347c419b8c0dfa56a65779feec9dd57",
+      "head_sha256_or_absent": "a2b305a2b11098b237b6af185d48c3b8a7b43547cec25288e9bcea87695fc265",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Disable onCreateScene."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/scene_node_focus.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "995d2ae85b4a6f123e9588162e670df60475ac0a6969f29bab45873c10c1635f",
+      "preclosure_sha256_if_captured": "7fe4e9dd4cbe1f2b7cd5ddf526e28887e5de43d3542b2f37f1434b6e1d07a247",
+      "preexisting_delta": "Modified by the previous graph retirement.",
+      "attribution": "Obsolete UI mirroring removed; canonical navigation.sceneNodes retained."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/scene_reference_chooser.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "247d5df68b9c1218dfca5f93319279ef252b6dfa16a621017eafb83dacddd9ab",
+      "head_sha256_or_absent": "a2cc05a6c775de083b049a7bed86d3a0bdda3b85650776ca462bbe88e3b31422",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Import application scene_labels instead of removed inspector."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_action_form.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "4fc3766768290916552af2a4f68900953d763137858cc759f4c97a46973296eb",
+      "preclosure_sha256_if_captured": "4fc3766768290916552af2a4f68900953d763137858cc759f4c97a46973296eb",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_actor_action_form.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "4e3e407002a43773e0be7fdd115442e9c67a0b79e68b7b3592cebf0338ff4325",
+      "preclosure_sha256_if_captured": "4e3e407002a43773e0be7fdd115442e9c67a0b79e68b7b3592cebf0338ff4325",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_battle_demonstration_form.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "58e07b9e20613a636452ff60a4f8ef5553a003654f11b9e683b21e9034bd81cc",
+      "preclosure_sha256_if_captured": "58e07b9e20613a636452ff60a4f8ef5553a003654f11b9e683b21e9034bd81cc",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_block_presentation.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "ABSENT",
+      "preclosure_sha256_if_captured": "e50615074f0b9f7ae608b0dee3fc399231927579c39a98e9428af9dcd0d59fc6",
+      "preexisting_delta": "Untracked file added by the previous graph retirement; now deleted by this closure.",
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_commands.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "cbd2c063e449c668e33480b7e7da81bc148e5b67542d10bd67d9a360bb6f349d",
+      "preclosure_sha256_if_captured": "c464acbd43b3009906949c5753a20512ef115bd495792908ed300ecc28559f9e",
+      "preexisting_delta": "Modified by the previous graph retirement.",
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_header.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "435c203fa14f83fb63baa8dddc89a07b636cd8eae2be0a2898404d1a7965a0bf",
+      "preclosure_sha256_if_captured": "ceb9ab835c9a6c5cfaeef2cf24c13e95686842ead5887423edb9517672276498",
+      "preexisting_delta": "Modified by the previous graph retirement.",
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_page.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "cb59b332fc93ad056127fdc15f1f192100f43e7ea2041fccd379ce577f7b40b0",
+      "preclosure_sha256_if_captured": "fb955167ba0520cdd88034019fab7208627f9adc7077106ce7fe1c7a692663b9",
+      "preexisting_delta": "Modified by the previous graph retirement.",
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_view_state.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "4c49d259559ce72e3758cdac2f41eae6dec6103bf4bf689809f5f5cfea5a828f",
+      "preclosure_sha256_if_captured": "a567f571bc00c408b7896ab8f49cc912e3fa9b41c010b5ea59fe80e4766debc7",
+      "preexisting_delta": "Modified by the previous graph retirement.",
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_condition_form.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "677591503b269a957c161ca2a75d6b3c133d562cb8888bcad0512e8c3d32aa65",
+      "preclosure_sha256_if_captured": "677591503b269a957c161ca2a75d6b3c133d562cb8888bcad0512e8c3d32aa65",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_dialogue_choice_policy_form.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "5f47c81a73348ae9033cfdc6d5ac83938cb648aa95f2722ca6a1735a9abf66b8",
+      "preclosure_sha256_if_captured": "5f47c81a73348ae9033cfdc6d5ac83938cb648aa95f2722ca6a1735a9abf66b8",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_dialogue_line_policy_form.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "fe2a2aed7868b6f698106b7a803f1403fea46294c9beb1acb185923af009501b",
+      "preclosure_sha256_if_captured": "fe2a2aed7868b6f698106b7a803f1403fea46294c9beb1acb185923af009501b",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_image_puzzle_form.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "b379749a997d7af21cca28a31ac6ac3e1a0292ae125ebfb052749d44720831be",
+      "preclosure_sha256_if_captured": "b379749a997d7af21cca28a31ac6ac3e1a0292ae125ebfb052749d44720831be",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_inspector.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "516b1755ecf004c06ec9ae349d2929839eb5f9636b7528f3a0d714ad25b45b75",
+      "preclosure_sha256_if_captured": "2ff07ed5c1cf3e5fe6cb16bbdb8c09fe8088fdee0a8347905600ec338916150c",
+      "preexisting_delta": "Modified by the previous graph retirement.",
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_inspector_fields.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "9b13c99b1aa253c4b2dbca1815be2d9a5ebe0482b2438ac17667a265580df585",
+      "preclosure_sha256_if_captured": "9b13c99b1aa253c4b2dbca1815be2d9a5ebe0482b2438ac17667a265580df585",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_integer_condition_form.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "b8679559f696743dd0bc2514b150f3a5763557f2f8e79e489b5479bef3aa3010",
+      "preclosure_sha256_if_captured": "b8679559f696743dd0bc2514b150f3a5763557f2f8e79e489b5479bef3aa3010",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_library_panel.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "d314fa532136e8e474b92bf8ca69fec41edf42a805381b23cf44c3d5d771c4f6",
+      "preclosure_sha256_if_captured": "407e829d97f62e1626737b9b2366c4031dfa83cf55dae0dbae4d063608ae0463",
+      "preexisting_delta": "Modified by the previous graph retirement.",
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_npc_pose_action_form.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "4f9ff45f8e6e1bfa54a49eee543c2ffa385d5db8f5644d21fbb21c6521c6a7d2",
+      "preclosure_sha256_if_captured": "4f9ff45f8e6e1bfa54a49eee543c2ffa385d5db8f5644d21fbb21c6521c6a7d2",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_payload_picker.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "fa094b3720a120635af388314dde55ead5ce2910c01377bbf3f3ff61fdbc1d21",
+      "preclosure_sha256_if_captured": "fa094b3720a120635af388314dde55ead5ce2910c01377bbf3f3ff61fdbc1d21",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_pokemon_gift_moves_editor.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "43d52da0d5893ff03c86e7cbaed2dc110aa59fa21261220476006d5356500ef8",
+      "preclosure_sha256_if_captured": "43d52da0d5893ff03c86e7cbaed2dc110aa59fa21261220476006d5356500ef8",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_preview_panel.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "c80c3b971772844c04f68b1abcdc17493c377c94a56ed8cdea2117ebbed2c43f",
+      "preclosure_sha256_if_captured": "c80c3b971772844c04f68b1abcdc17493c377c94a56ed8cdea2117ebbed2c43f",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_world_visual_action_form.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "28b785c91eb806673d38fde06335c59ed19f53c275112c8303731c54f6a3d2aa",
+      "preclosure_sha256_if_captured": "28b785c91eb806673d38fde06335c59ed19f53c275112c8303731c54f6a3d2aa",
+      "preexisting_delta": null,
+      "attribution": "Retire complete historical Scene editor composition."
+    },
+    {
+      "path": "apps/avelune_studio/test/dialogues_ui09_nested_navigation_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "1cb67eed331c3ba338b220c3d479afc0983a6598ffd959724b85eadc0be60cd4",
+      "head_sha256_or_absent": "fe8b8ed8c8d54e18d172f03216d182b36ee971967d414b19ee93c573a4dcaaa7",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Real navigation owners preserve dirty exact scene and event return without disk publication."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/scene_music_form_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "c619c1e9af34c9985f515d194c552958c84875ddf32aa32bea22b856a4504aeb",
+      "head_sha256_or_absent": "9e06d25d850a3c88caad0d0f5942191cb15b406ac36916e5246cb4a9a84c80d3",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Migrate widget expectations to actual SceneActionDraft."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/scene_npc_pose_action_form_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "853cb8b9a7c54055afbf4f1821970cd411e550ae2543528d4af9a3dc8bacdced",
+      "head_sha256_or_absent": "0d42e8b20e5b1d379bfe9a15c15568e53df5d78b54b45f6ad002501acf1973d9",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Migrate both pose modes and missing reference protections to SceneNpcPoseDraft."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/scene_white_out_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "4c5b4b9d0afd889f4ead296d79a410db6b02c6730591d2abe088a1689b905cac",
+      "head_sha256_or_absent": "a63ef8139557d8532956efe6331735320ee071f0835c1bde687423f458b682b3",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Preserve whiteOut and historical recovery selection guard; preserve existing 3D data and generic session."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/std06_converted_route_edit_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "0f031d77cced6feb4e7bf9e2394da86b711aedf85fc8fcd888b8b64be867a398",
+      "head_sha256_or_absent": "52bc5665bac0437529470bd8c8a05032901956695f1d3260b00fff5cd4ef26b3",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Preserve real converted route publication/reopen/receipt through SceneActorActionDraft; conditional skip retained."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui05_narrative_overview_collection_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "6a416e28234cf2a38e0dc7b1b5c127e342f9a5741fb7631e6f8ccdbcc5d93b8e",
+      "head_sha256_or_absent": "f0731e4ab828e3986eb7cf04fa6375efb47a9ad74957ed205c3347758a0b73fa",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Disable UI scene creation; preserve event owner journey; add real scene owner creation/save/cold reopen."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui05_narrative_overview_links_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "db71db5dc07e99be5bae2ccd67191b7eb6ed9bbbc294fbff8f430c3e7094945b",
+      "head_sha256_or_absent": "8e99ab4410d4a92ca501d566d20488e3de7725dcc83b1dddcfd512abd0de0f28",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Unavailable editor retains actual scene owner dirty draft and disk state."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui06_scene_action_form_test.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "374d5b6e1b169fca31624590a7388bfcd3e5414fa03186a93ce518da78685330",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Redundant retired-widget witness. Real guarantees remain in scene_action_selection_contract_test.dart, scene_action_draft_test.dart and scene_action_payload_test.dart."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui06_scene_inspector_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "11bc316eed7942e4b12f4213b05e89e7fb19f7f0d88c75f4c06ea567485f1f0c",
+      "head_sha256_or_absent": "0775e7197f9981d8173a9e2b0bb66752a9ca564dc15a250583f3d955f02dc2c1",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "First mixed case moved to retargetDialogue; shared linked document widget tests retained."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui06_scene_journey_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "3b2565429b11eadbe38cef63af7db4443d17d089d8bbbf21a95d4487d9256695",
+      "head_sha256_or_absent": "0ed96548aea93b7670dab8b2dd2bd39e1f06095f0e05711f43a6ac904eb9a277",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": "Adapted to retired canvas before this closure.",
+      "attribution": "Real scene commands, undo, linked reader and preview replace retired composition assertions."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui08_event_journey_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "5e1d185abcc15639af13e4c61927a057891912470516c9f40e441c09f7143d49",
+      "head_sha256_or_absent": "a539145d4a718f126fb23156c6e3213f5ad4b156c9f492a63c1543cb5ce92cc9",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": "Previous application simulation migration and fixed prepareAllMaps wait; both preserved.",
+      "attribution": "Association still works, editor opening disabled; real owner dirty draft retained; previous simulation wait fix preserved."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "ca5d4b57f0e026167b0169ac1d338c6886f70dc0682ef104b09f2552ce2b087f",
+      "head_sha256_or_absent": "25cf4b5c6a0e246670af3ad4029c4fdf2903efe2ac8f23c29ea981f57aa24ade",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": "Adapted to retired canvas before this closure.",
+      "attribution": "First mixed case migrated to native request/navigation selection; shared document UI case retained."
+    },
+    {
+      "path": "apps/avelune_studio/test/scene_canvas_addition_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "a90c4cd90075607bf7b31c8b4f09003281eedf803309f42433cf7ea0c3cf8cec",
+      "head_sha256_or_absent": "46e59ef1e13530fb1e96aeb9d058559e00e986774601523198ae9d208fedcb9d",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": "Modified by the previous graph/palette retirement.",
+      "attribution": "Real Histoire unavailable-creation and Backspace nonmutation for existing/new owner drafts."
+    },
+    {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "5ad4856841c5e4b78c960603fe7c59ec9c03430a748998aa9b955fa9c7e18415",
+      "head_sha256_or_absent": "acf4283b164be9b14a659432d3a6e1bc5cda74a6b530c488601dcd8e076c47a8",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": "Migrated to commands by previous graph retirement.",
+      "attribution": "External selection migrated from obsolete focus/store to canonical navigation.sceneNodes; previous command tests retained."
+    },
+    {
+      "path": "apps/avelune_studio/test/scenes/scene_image_puzzle_form_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "77b3d6ed0c071311ead6fc2f98f2ee6eab0dc0e5c2897b36b5b6db0f60dc4b44",
+      "head_sha256_or_absent": "411be8724a36f4c463fca01deeecddfae7cf8027c7de0a4c1f0e85b365587f1d",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Exact puzzle definition and image filtering via real draft."
+    },
+    {
+      "path": "apps/avelune_studio/test/scenes/scene_integer_forms_test.dart",
+      "action_by_this_closure": "modified",
+      "current_sha256_or_absent": "a9049281de6bded5659e87f3200f274cc12baa6eb19c38e4f1789d4aebf3a46e",
+      "head_sha256_or_absent": "888dea4f1b4f3d6cdb0e7fb8b8f3d06ebad10fe063817b2e3d48a1d0295da152",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Roundtrip typed numeric commands and conditions via real drafts."
+    },
+    {
+      "path": "apps/avelune_studio/test/scenes/scene_pokemon_gift_moves_lifecycle_test.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "ecb5061177efbd39af7341a0fff0b46244f0bca8ba237aa0c64e01a40335c038",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Redundant retired-widget witness. Stronger real publication/undo/redo/cold-reopen guarantees remain in scene_pokemon_gift_moves_lifecycle_contract_test.dart."
+    }
+  ],
+  "knownPreexistingOverlaps": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_scene_return_binding.dart",
+      "reason": "Previous Carte closure removed _openInteractionScene. This closure changes only _openScene; preserve all other deltas."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/scene_node_focus.dart",
+      "reason": "Modified by the previous graph retirement."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_block_presentation.dart",
+      "reason": "Untracked file added by the previous graph retirement; now deleted by this closure."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_commands.dart",
+      "reason": "Modified by the previous graph retirement."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_header.dart",
+      "reason": "Modified by the previous graph retirement."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_page.dart",
+      "reason": "Modified by the previous graph retirement."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_view_state.dart",
+      "reason": "Modified by the previous graph retirement."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_inspector.dart",
+      "reason": "Modified by the previous graph retirement."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_library_panel.dart",
+      "reason": "Modified by the previous graph retirement."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui06_scene_journey_test.dart",
+      "reason": "Adapted to retired canvas before this closure."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui08_event_journey_test.dart",
+      "reason": "Previous application simulation migration and fixed prepareAllMaps wait; both preserved."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart",
+      "reason": "Adapted to retired canvas before this closure."
+    },
+    {
+      "path": "apps/avelune_studio/test/scene_canvas_addition_test.dart",
+      "reason": "Modified by the previous graph/palette retirement."
+    },
+    {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "reason": "Migrated to commands by previous graph retirement."
+    }
+  ],
+  "deletedTests": [
+    {
+      "path": "apps/avelune_studio/test/presentation/ui06_scene_action_form_test.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "374d5b6e1b169fca31624590a7388bfcd3e5414fa03186a93ce518da78685330",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Redundant retired-widget witness. Real guarantees remain in scene_action_selection_contract_test.dart, scene_action_draft_test.dart and scene_action_payload_test.dart."
+    },
+    {
+      "path": "apps/avelune_studio/test/scenes/scene_pokemon_gift_moves_lifecycle_test.dart",
+      "action_by_this_closure": "deleted",
+      "current_sha256_or_absent": "ABSENT",
+      "head_sha256_or_absent": "ecb5061177efbd39af7341a0fff0b46244f0bca8ba237aa0c64e01a40335c038",
+      "preclosure_sha256_if_captured": null,
+      "preexisting_delta": null,
+      "attribution": "Redundant retired-widget witness. Stronger real publication/undo/redo/cold-reopen guarantees remain in scene_pokemon_gift_moves_lifecycle_contract_test.dart."
+    }
+  ],
+  "unchangedOwnersAndContracts": [
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_diagnostics.dart",
+      "current_sha256": "976f5929ff7a7a9ae6af2cc0ad9d2e05de2151e5618e717e4d58aa74669b11ad",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_event_source.dart",
+      "current_sha256": "c1f511e3dc867792765c9c351decd17de30698c540d4f7bf07ee15621d6adbaf",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_interactions.dart",
+      "current_sha256": "3bd9a0e831e01f72509f5e86bfad29619b6740f8713b1e232686dbdd06c79cf7",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_presentations.dart",
+      "current_sha256": "9ec9bed93b3579e2e38806235e3b66e51f319d6613df3cac0ee883e9b0cd4a5f",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_resources.dart",
+      "current_sha256": "d7c187da8bcd55c6a55aac3c49111586e71ae0cdfdd47123f1573404d040a20b",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_session.dart",
+      "current_sha256": "c5ce3a469d38ee0f32a7458d772d9150ede5b217245e17a1ede92431d0c7d21e",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow.dart",
+      "current_sha256": "4db5b8d4e71071aeac932f330467e10c738125142f9e66034901f70aca10bca5",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow_close.dart",
+      "current_sha256": "85c404064f530a7f1da88017a063cc6e36194dbd0cc571551db23572cd866485",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/periodic_reward_selection.dart",
+      "current_sha256": "802dde44b01d455fb9fe2ead10b045b62e8d7516b8fe33956748cbe662f88b2a",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_controller.dart",
+      "current_sha256": "324b5200d0d60aa3dbd2f629eab8b215f1915c314cf5bb60f030c263e17b9c3d",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_editing.dart",
+      "current_sha256": "21010fc42a09d966a6bacba3edc9d24e8a037a2cbbef0a7ba336116e799f5aef",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_library.dart",
+      "current_sha256": "b028f15a4b5788f4f1fbd07cd75264455f01f0687b94094ebc773840360bf19c",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_publication.dart",
+      "current_sha256": "2ef556cd9eb2240549d6537b1215c4f09e12620a0a6cc23e6d498a8e52b1d874",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_references.dart",
+      "current_sha256": "731b60a882b4d8a0a7b03e84f3eecf46f17dca4032c6e436d8a5ed22a2d689b9",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_action_draft.dart",
+      "current_sha256": "dd63312bd7abd1b957b8d9ea7cda3ec9e14dd3cdfbf4a93dc0c298c692c67829",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_action_payload.dart",
+      "current_sha256": "f3c00b2867b34dcb3677b1bf59879d18e62744e058d9e2b6cfd02bafb26419e1",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_action_references.dart",
+      "current_sha256": "218eba85524870b1ce396921c7ec282f2ea31fc4004a6db4e622fd954abf2f8a",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_actor_action_draft.dart",
+      "current_sha256": "522426056501fd4c030749980e06925eb3edd66824f4cb60362ebc56f528e337",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_battle_demonstration_draft.dart",
+      "current_sha256": "50a71b916424c06ff793cf1cb37afb9cab816c18d5ef5513e16e42ba8f4050b8",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_builder_editing_state.dart",
+      "current_sha256": "690aefd86e45dbdd3c9f781daa8af6f127fe3c60fc80a2a7c458dae02938bbfa",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_condition_draft.dart",
+      "current_sha256": "b5516d5761cb64e701d70cdad9b2e67c08cae135ee173c830448c3aee55dd5cf",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_dialogue_choice_policy_draft.dart",
+      "current_sha256": "987c607928dbe1af4fa849e452bf149c6d388fe5fb2877db5ee4f20890e53b97",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_dialogue_line_policy_draft.dart",
+      "current_sha256": "b5102849bb1e89acbdcf730fae6c0881e24efe2d68896f3e729f820969884390",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_dialogue_results.dart",
+      "current_sha256": "00c673e871049a2c7ebe4b3496d98f47e079b1e9a27bae59b5d30885bdc2a9ca",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart",
+      "current_sha256": "d90d785451ffe823b51b225355b20baca934b997290bcf9715375af9ac4308cf",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_image_puzzle_draft.dart",
+      "current_sha256": "a3afd9f65b64fa6224a50ffb0eb5bbdecdc0971e79d8d11a9b0a3b5a8ccd8f85",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_integer_authoring_fields.dart",
+      "current_sha256": "d5833b216d95c1315bdd220f33b37b7c8723fb7b7f610f85a68371dc0863a91a",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_integer_condition_draft.dart",
+      "current_sha256": "2d4e5bcb8d22f720b30935ab8aaee3248ceba41e1caf2cedde7e9e7864a68dc2",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_linked_document_reader.dart",
+      "current_sha256": "18dbdb66d90c36ffa9cd2f909940c622b5da8569038df301a4828f26bf65a1e1",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_node_search.dart",
+      "current_sha256": "a7be2e4a2e5678982bb6b139dd5bc4b8d5df97a0de45fcd75c45fffab2281ff7",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_npc_pose_draft.dart",
+      "current_sha256": "7d2d52c89155fa062766349598d07282006fdc1e834bd878faf07c0e54e02d3e",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_pokemon_gift_moves_draft.dart",
+      "current_sha256": "6317f549993be29d5695313c83aa087f8ad25a4e10e1ddd7a880446978f5c660",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_readable_summary.dart",
+      "current_sha256": "48354fd55ec44fc7241a309d2ab60f10632f61df65684d9332deabb85d3c1d32",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_workspace_controller.dart",
+      "current_sha256": "918eef33c56f2cdb1c9c7ca3264c47b832e0dcc210168bb4bc8cd866aea52b10",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_world_visual_draft.dart",
+      "current_sha256": "d5becbaa8f6b3456f37ef5dfcb25a00600425ab503a8847e3da36a853cc100bc",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/data/local_scene_adapter.dart",
+      "current_sha256": "891dd3cf01e9f3746cd456a0bcbb794104e173b9c4467cf1d3c955dff9a6110d",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/domain/scene_port.dart",
+      "current_sha256": "cc7719bb20aae06daf5bea6c62f8447541dcd1f61eb8a7b3718d39b8f2bdaa15",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/domain/scene_presentation_creation_request.dart",
+      "current_sha256": "39e4f812887e1e5c64a3f608ed9100421a32f1b02a63d4507615ddf5549e9c4e",
+      "matches_HEAD": true,
+      "modified_by_this_closure": false
+    }
+  ],
+  "sharedFilesExplicitlyRetained": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/periodic_reward_picker.dart",
+      "current_sha256": "3fe6d35fe69c66d57fb2e08eca17b82252b380dc88f9ac1e19941a05b34c8307",
+      "matches_HEAD": true,
+      "status": "Explicitly retained for shared consumers; outside this retirement."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_linked_document.dart",
+      "current_sha256": "bda92a17c5a3f6ae4bae53480ef068254face73be67acd476fade2df5170afee",
+      "matches_HEAD": true,
+      "status": "Explicitly retained for shared consumers; outside this retirement."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_linked_cinematic.dart",
+      "current_sha256": "60eac4d15906fbbfc7909c5824fc70ab69a70e18895edb4dc8458fe8d37a3fba",
+      "matches_HEAD": true,
+      "status": "Explicitly retained for shared consumers; outside this retirement."
+    }
+  ],
+  "priorGraphRetirementExcluded": [
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_block_choice.dart",
+      "current_sha256_or_absent": "3446c6d39db7486b791788c953731b127cf0ea48093139cf49170efdccfaea19",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_labels.dart",
+      "current_sha256_or_absent": "1572f8f7e4a12d58a116aa8781369aa5faf722f30c607a876c5e0d76ca96d8a1",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/coordination/scene_builder_session.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/coordination/scene_graph_viewport.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_graph_canvas.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_types.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_menu.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_node.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_surface.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_layer.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_painter.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_minimap.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/test/support/scene_canvas_test_harness.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/test/support/ui06_scene_construction_driver.dart",
+      "current_sha256_or_absent": "ABSENT",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/test/scenes/scene_graph_projection_contract_test.dart",
+      "current_sha256_or_absent": "c730abaa35bc884fe5f5713af66b042a364ede16c33ef299b7e70b7de0d8c28f",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/test/scenes/scene_view_reconciliation_ui07_test.dart",
+      "current_sha256_or_absent": "8dbcb20a0c92f504ffe4580303c77738260a6b4256f42a9d53db2515b6642243",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/test/ui06_scene_construction_test.dart",
+      "current_sha256_or_absent": "38dd3cdbdb2f178a99bf9ad55427fe21c12d5780d8c8cb46a345174db45c7566",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    },
+    {
+      "path": "apps/avelune_studio/test/ui06_scene_volume_test.dart",
+      "current_sha256_or_absent": "d1a4697d4af0abf43eefab894fa76879654d53fdc41ad5de7824e1fbc9b1f693",
+      "modified_by_this_closure": false,
+      "reason": "Prior graph family retirement; excluded from the 56-path closure delta."
+    }
+  ],
+  "validation": {
+    "command": "dart analyze lib test",
+    "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+    "exitCode": 0,
+    "errors": 0,
+    "warnings": 0,
+    "infos": 7,
+    "scope": "7 info diagnostics outside current closure",
+    "diffCheckExitCode": 0,
+    "flutterTestsRunByThisClosure": false,
+    "behavioralValidation": "Pending parent central QA; STD06 conditional case requires AVELUNE_STD06_DOOR_REFERENCE."
+  },
+  "mcpParity": "N/A"
+}

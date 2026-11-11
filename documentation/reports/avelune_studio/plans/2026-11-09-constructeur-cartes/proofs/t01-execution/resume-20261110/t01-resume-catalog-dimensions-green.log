@@ -1,0 +1,20 @@
+00:00 +0: loading test/narrative_event_partial_catalog_authoring_test.dart
+00:00 +0: unloaded mapEnter does not block an unrelated draft
+00:00 +1: unloaded entityInteract does not block an unrelated draft
+00:00 +2: unloaded entityBump does not block an unrelated draft
+00:00 +3: unloaded entityAutorun does not block an unrelated draft
+00:00 +4: unloaded modelInteract does not block an unrelated draft
+00:00 +5: unloaded triggerEnter does not block an unrelated draft
+00:00 +6: unloaded triggerBump does not block an unrelated draft
+00:00 +7: unloaded modelInteract stays blocking in a 2D project
+00:00 +8: unloaded triggerBump stays blocking in a 3D project
+00:00 +9: publication still rejects an unloaded source in a partial catalog
+00:00 +10: complete inventory keeps missing map sources blocking
+00:00 +11: partial inventory keeps missing owners on loaded maps blocking
+00:00 +12: partial inventory keeps loaded unavailable sources blocking
+00:00 +13: simulation never handles an event with an unloaded source
+00:00 +14: partial inventory keeps undeclared maps blocking
+00:00 +15: partial inventory keeps duplicated manifest identities blocking
+00:00 +16: proposed records still require a fully resolved source
+00:00 +17: loading the source map restores contextual validity
+00:00 +18: All tests passed!

@@ -1,0 +1,60 @@
+{
+  "date": "2026-11-11",
+  "command": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+    "run",
+    "tools/t01_check_g0.dart",
+    "--allowlist",
+    "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/t01-technical-exceptions.json"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "exitCode": 1,
+  "gate": "G0",
+  "proofTier": "static_retirement",
+  "passed": false,
+  "counts": {
+    "inventoryEntries": 993,
+    "approvedExceptions": 12,
+    "reachableSources": 4431,
+    "studioSourcesInspected": 2013,
+    "violations": 1433
+  },
+  "violationKinds": {
+    "physical": 388,
+    "reachability": 809,
+    "historical_symbol": 236
+  },
+  "physicalByArea": {
+    "map_workspace": 104,
+    "pokemon": 48,
+    "resources": 48,
+    "shared": 44,
+    "cinematics": 29,
+    "narrative": 23,
+    "presentations": 21,
+    "events": 19,
+    "dialogues": 13,
+    "project_settings": 10,
+    "terrains": 9,
+    "game_export": 5,
+    "regional_map": 5,
+    "theme": 4,
+    "verification": 2,
+    "rendering": 1,
+    "settings": 1,
+    "stories": 1,
+    "shell": 1
+  },
+  "previous": {
+    "path": "t01-g0-static-diagnostic-20261111.json",
+    "sha256": "d5397d13202b1af0bb028c71ab840ced2ba408a79e6d990fe84b5571c5223fc4",
+    "physical": 395,
+    "reachability": 823,
+    "historical_symbol": 228
+  },
+  "scopeNotes": [
+    "Diagnostic du checkout vivant, non figé ; les counts sont des signalements de l’outil et ne mesurent pas des fonctionnalités en panne.",
+    "Les catégories peuvent se recouper. Les symboles signalés ont augmenté depuis le diagnostic précédent et nécessitent une investigation ; ils ne doivent pas être ignorés.",
+    "Sept fichiers historiques de présentation ont été retirés entre les deux diagnostics, mais G0 reste non accepté."
+  ]
+}

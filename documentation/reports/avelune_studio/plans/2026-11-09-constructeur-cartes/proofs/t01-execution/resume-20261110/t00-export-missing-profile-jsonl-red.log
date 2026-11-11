@@ -1,0 +1,17 @@
+00:00 +0: loading test/tooling/jsonl_export_missing_profile_test.dart
+00:00 +0: game_export without a profile returns a safe failure and keeps the JSONL worker alive
+00:12 +0 -1: game_export without a profile returns a safe failure and keeps the JSONL worker alive [E]
+  JSONL worker exited before missing-profile: code 74; The JSONL input stream failed unexpectedly.
+  
+  package:matcher                                             fail
+  test/tooling/jsonl_export_missing_profile_test.dart 95:11   main.<fn>.request
+  ===== asynchronous gap ===========================
+  test/tooling/jsonl_export_missing_profile_test.dart 111:26  main.<fn>
+  
+00:12 +0 -1: Some tests failed.
+
+Failing tests:
+  test/tooling/jsonl_export_missing_profile_test.dart: game_export without a profile returns a safe failure and keeps the JSONL worker alive
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

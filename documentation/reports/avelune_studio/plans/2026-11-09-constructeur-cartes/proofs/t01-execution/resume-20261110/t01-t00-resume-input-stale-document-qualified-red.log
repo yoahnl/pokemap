@@ -1,0 +1,35 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation/apps/avelune_studio/test/map_workspace/map_editing_input_session_test.dart
+00:00 +0: delete affects the document that opened the menu
+00:00 +1: a replacement document with the same IDs rejects a stale command
+00:00 +1 -1: a replacement document with the same IDs rejects a stale command [E]
+  Expected: same instance as _MapData:<MapData(id: a, name: a, size: GridSize(width: 20, height: 16), version: ProjectVersion.v8, spatialScene: null, visualStack: null, tilesetId: , layers: [MapLayer.tile(id: ground, name: Sol, isVisible: true, opacity: 1.0, purpose: MapLayerPurpose.visual, palette: [TileLayerPaletteEntry(tilesetId: atlas, localTileId: 0, transform: SmartTileSpriteTransform(quarterTurns: 0, flipX: false))], cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])], placedElements: [], movingPlatforms: [], movingProps: [], entities: [MapEntity(id: sign, name: Panneau, kind: MapEntityKind.sign, pos: GridPos(x: 4, y: 4), size: GridSize(width: 1, height: 1), npc: null, sign: MapEntitySignData(title: Quai, dialogue: null, plainText: ), item: null, spawn: null, fieldObstacle: null, healingDisplay: null, interactiveEncounter: null, presentation: null, counterInteractionSides: [], interactionMode: MapEntityInteractionMode.front, editorVisual: null, blocksMovement: true, properties: {})], connections: [], warps: [], triggers: [], gameplayZones: [], mapMetadata: MapMetadata(displayName: , mapType: MapType.route, musicPath: null, musicVolume: null, battleMusicPath: null, weather: MapWeather.none, isIndoor: false, allowBicycle: true, allowEscapeRope: true, escapeRopeDungeonId: null, contextualItemUses: [], defaultSpawnId: null, tags: []), properties: {}, events: [])>
+    Actual: _MapData:<MapData(id: a, name: a, size: GridSize(width: 20, height: 16), version: ProjectVersion.v8, spatialScene: null, visualStack: null, tilesetId: , layers: [MapLayer.tile(id: ground, name: Sol, isVisible: true, opacity: 1.0, purpose: MapLayerPurpose.visual, palette: [TileLayerPaletteEntry(tilesetId: atlas, localTileId: 0, transform: SmartTileSpriteTransform(quarterTurns: 0, flipX: false))], cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])], placedElements: [], movingPlatforms: [], movingProps: [], entities: [], connections: [], warps: [], triggers: [], gameplayZones: [], mapMetadata: MapMetadata(displayName: , mapType: MapType.route, musicPath: null, musicVolume: null, battleMusicPath: null, weather: MapWeather.none, isIndoor: false, allowBicycle: true, allowEscapeRope: true, escapeRopeDungeonId: null, contextualItemUses: [], defaultSpawnId: null, tags: []), properties: {}, events: [])>
+  
+  package:matcher                                              expect
+  package:flutter_test/src/widget_tester.dart 473:18           expect
+  test/map_workspace/map_editing_input_session_test.dart 68:5  main.<fn>
+  
+00:00 +1 -1: a stale menu cannot select on a replacement document
+00:00 +1 -2: a stale menu cannot select on a replacement document [E]
+  Expected: false
+    Actual: <true>
+  
+  package:matcher                                              expect
+  package:flutter_test/src/widget_tester.dart 473:18           expect
+  test/map_workspace/map_editing_input_session_test.dart 78:5  main.<fn>
+  
+00:00 +1 -2: reconcile closes a menu after the document is replaced
+00:00 +1 -3: reconcile closes a menu after the document is replaced [E]
+  Expected: false
+    Actual: <true>
+  
+  package:matcher                                              expect
+  package:flutter_test/src/widget_tester.dart 473:18           expect
+  test/map_workspace/map_editing_input_session_test.dart 86:5  main.<fn>
+  
+00:00 +1 -3: Some tests failed.
+
+Failing tests:
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation/apps/avelune_studio/test/map_workspace/map_editing_input_session_test.dart: a replacement document with the same IDs rejects a stale command
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation/apps/avelune_studio/test/map_workspace/map_editing_input_session_test.dart: a stale menu cannot select on a replacement document
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation/apps/avelune_studio/test/map_workspace/map_editing_input_session_test.dart: reconcile closes a menu after the document is replaced

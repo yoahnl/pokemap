@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T08:59:51Z",
+  "scope": "T01 moving-prop UI retirement and integrated regression",
+  "status": "partial_not_accepted",
+  "runs": [
+    {
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub --concurrency=1 test/cinematics/cinematic_controller_ui10_test.dart test/cinematics/cinematic_inspector_ui10_test.dart test/cinematics/cinematic_published_guard_ui10_test.dart test/cinematics_ui10_error_recovery_test.dart test/cinematics/cinematic_animation_ui10_test.dart test/map_workspace/map_decor_order_context_test.dart test/map_workspace/map_decor_animation_panel_test.dart test/map_workspace/context_identity_test.dart test/map_workspace/context_menu_test.dart test/map_workspace/spatial_transport_retirement_test.dart test/map_workspace/decor_order_cross_context_repro_test.dart test/map_workspace/decor_order_e2e_test.dart test/map_workspace/context_menu_parity_test.dart test/map_workspace/moving_prop_authoring_test.dart test/map_workspace/workspace_publication_workflow_test.dart test/project_settings/project_settings_retirement_continuity_test.dart -r failures-only",
+      "cwd": "apps/avelune_studio",
+      "environment": "TMPDIR and AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+      "exitCode": 0,
+      "output": "+108: All tests passed!",
+      "runnerPid": 22369,
+      "liveOwnedProcessesAfterRun": [],
+      "note": "Historical integrated checkpoint; this group overlaps earlier runs and preceded the subsequent cinematic commit extraction."
+    }
+  ],
+  "sourceHashes": {
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_inspector.dart": "e504db4a5248e30582986aad2639b41e2247c112281a8ffbff3151ce89820c44",
+    "apps/avelune_studio/lib/features/map_workspace/application/map_moving_prop_commands.dart": "1e642261a1c97dfe67ef68693d0fbae5afda064b9bf413bc97b7e182e5f918a2",
+    "apps/avelune_studio/test/map_workspace/moving_prop_authoring_test.dart": "1df221ad0bfd883900873641728cdf11615f83b19abf997c1810fd5f2832cbc5",
+    "apps/avelune_studio/lib/features/map_workspace/application/map_decor_order_context.dart": "fec28c097f524029b567ef04e33850c6beb1958bc87b77c1a38135bc28cab7b4",
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart": "faa66e782603330af41fb43403281db5518eb2d76e004e568b43e876822e455c",
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart": "2f479771dfb9389b0f526592458de78b4698a37b95fb61d8f105c6b2bbc62ca4"
+  },
+  "removedUi": [
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_decor_order_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_moving_prop_panel.dart"
+  ],
+  "independentReview": "A separate read-only review reconstructed the pre-removal inspector hash and found no concrete lost moving-prop responsibility in the scoped owners and tests.",
+  "limits": [
+    "The tests use flutter_tester and do not prove native Studio interactions, Player behavior, visual mockup fidelity, or acceptance of T00/T01 or G0.",
+    "The UI for editing moving props is intentionally absent until the future replacement; the preserved commands and data remain available to their owners.",
+    "No complete export or latency budget was established by this checkpoint."
+  ]
+}

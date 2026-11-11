@@ -1,0 +1,39 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart
+00:00 +0: canonical border preparation and canvas drawing preserve cardinal sprites and disk persistence
+00:05 +1: an empty border catalogue refuses canvas tracing without changing the document
+00:07 +2: canonical border preparation and canvas preview finish in one undoable save
+00:10 +3: cancelling a trace leaves the map and history untouched
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: null
+  Actual: <Instance of 'MapBorderDrawingDraft'>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart:176:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart line 176
+The test description was:
+  cancelling a trace leaves the map and history untouched
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:14 +3 -1: cancelling a trace leaves the map and history untouched [E]
+  Test failed. See exception logs above.
+  The test description was: cancelling a trace leaves the map and history untouched
+  
+00:14 +3 -1: switching tools keeps the unfinished border draft
+00:17 +4 -1: border draft rejects a crossing and leaves its anchors unchanged
+00:17 +5 -1: clicking the origin closes and previews the final segment
+00:17 +6 -1: grid-edge draft reaches the outer border of the map
+00:17 +7 -1: horizontal facades draw without rotation and refuse vertical edits
+00:19 +8 -1: a published stone chain uses grid edges through the host
+00:21 +9 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart: cancelling a trace leaves the map and history untouched

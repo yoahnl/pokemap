@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "t00AtmosphereUndoFixtureRepair",
+  "createdAtUtc": "2026-11-11T02:17:22.817635+00:00",
+  "paths": [
+    {
+      "path": "packages/map_authoring/test/documents/map_atmosphere_authoring_test.dart",
+      "beforeSha256": "328fe83198bac1b1933f61f4a547afc5e2a3b53acb0a5e8fe5f19c82dfee2f17",
+      "afterSha256": "a88f5cd0a6eedf6af0dba812e4609c96db0c124c310fe0d88a047f9d40840257",
+      "preexistingChange": false
+    }
+  ],
+  "delta": {
+    "positive": "Legacy journal created before seed and stable throughout. Foreign invalid entry remains after seed. Existing unreadable-file tripwires retained; actual target receipt read counted exactly once. Legacy bytes/stat and unrelated entry preserved.",
+    "negative": "Legacy journal initially absent, retained window asserted with null legacySnapshot; introducing legacy after preparation must raise history.preparation_required. Project/map/atmosphere/legacy/window/sequence/target receipt bytes unchanged; entry directory inventory unchanged; atmosphere revision/settings unchanged.",
+    "instrumentation": "Test-only _CountingReadFile records content reads on target receipt, leaving _UnreadableFile unchanged.",
+    "outsideTargetTestRegion": "Only exception import and counter helper added. Other existing tests and existing helper bytes retained exactly."
+  },
+  "unchangedProduction": [
+    {
+      "path": "packages/map_authoring/lib/src/history/file_history_store.dart",
+      "sha256": "169427a5a0f5b5c0f65834440783993199c52ebcec9013cdf12a150819b1fedb",
+      "unchangedSinceBefore": true,
+      "matchesHEAD": true
+    },
+    {
+      "path": "packages/map_authoring/lib/src/history/history_store.dart",
+      "sha256": "025f5b15ca9430e0761151a0cbe1aac3ca9ef1cb86af6ab63f6126fde46500a6",
+      "unchangedSinceBefore": true,
+      "matchesHEAD": true
+    },
+    {
+      "path": "packages/map_authoring/lib/src/documents/map_atmosphere_authoring.dart",
+      "sha256": "e5de555d288598d3eb5b51b9a94c2bf8d7e1163d6811c2ac62142a144fc73fff",
+      "unchangedSinceBefore": true,
+      "matchesHEAD": true
+    }
+  ],
+  "validation": {
+    "dartAnalyzeCommand": "dart analyze test/documents/map_atmosphere_authoring_test.dart",
+    "dartAnalyzeExitCode": 0,
+    "dartAnalyzeIssues": 0,
+    "gitDiffCheckExitCode": 0,
+    "outsideTargetTestsPreserved": true,
+    "runnerStarted": false,
+    "QAIntegration": "Not synced; central parent validation required."
+  },
+  "centralTests": {
+    "focusedNames": [
+      "receipt undo reads one history entry without legacy or unrelated entry reads",
+      "receipt undo refuses legacy changes after preparation without overwriting data"
+    ],
+    "regressions": [
+      "test/documents/map_atmosphere_authoring_test.dart",
+      "test/documents/map_editor_authoring_test.dart",
+      "test/history/incremental_history_store_test.dart",
+      "test/history/history_retention_window_test.dart",
+      "test/history/undo_redo_contract_test.dart"
+    ]
+  },
+  "mcpParity": "N/A; test-only fixture correction, no production change."
+}

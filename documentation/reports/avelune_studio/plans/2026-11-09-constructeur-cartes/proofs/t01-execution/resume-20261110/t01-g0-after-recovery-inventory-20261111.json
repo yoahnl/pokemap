@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-11",
+  "command": [
+    "dart",
+    "run",
+    "tools/t01_check_g0.dart",
+    "--allowlist",
+    "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/t01-technical-exceptions.json"
+  ],
+  "cwd": "apps/avelune_studio",
+  "exitCode": 1,
+  "gate": "G0",
+  "proofTier": "static_retirement",
+  "passed": false,
+  "counts": {
+    "inventoryEntries": 996,
+    "approvedExceptions": 12,
+    "reachableSources": 4396,
+    "studioSourcesInspected": 1981,
+    "violations": 1315
+  },
+  "violationKinds": {
+    "physical": 347,
+    "reachability": 725,
+    "historical_symbol": 243
+  },
+  "guardTests": {
+    "command": "flutter test --no-pub test/architecture/t01_retirement_gate_test.dart -r failures-only",
+    "cwd": "apps/avelune_studio",
+    "exitCode": 0,
+    "output": "+14: All tests passed!"
+  },
+  "newTemporaryUiStillPresent": [
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_commit_field.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/project_settings_recovery_pane.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_settings_recovery_binding.dart"
+  ],
+  "scopeNotes": [
+    "Diagnostic statique sur le checkout courant ; il ne prouve ni intégration native, ni conformité visuelle, ni acceptation d’un lot.",
+    "Trois fichiers de récupération et de saisie créés après l’inventaire initial sont désormais classés comme UI temporaire à retirer ; aucun n’a été ajouté aux exceptions techniques.",
+    "Les catégories de violations se recoupent et ne sont ni un nombre de fonctionnalités cassées ni un pourcentage de complétion."
+  ]
+}

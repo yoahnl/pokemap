@@ -1,0 +1,12 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart
+00:00 +0: canonical border preparation and canvas drawing preserve cardinal sprites and disk persistence
+00:05 +1: an empty border catalogue refuses canvas tracing without changing the document
+00:07 +2: canonical border preparation and canvas preview finish in one undoable save
+00:10 +3: Escape preserves the same draft then canonical reselection discards it without writes
+00:12 +4: switching tools keeps the unfinished border draft
+00:15 +5: border draft rejects a crossing and leaves its anchors unchanged
+00:15 +6: clicking the origin closes and previews the final segment
+00:15 +7: grid-edge draft reaches the outer border of the map
+00:15 +8: horizontal facades draw without rotation and refuse vertical edits
+00:17 +9: a published stone chain uses grid edges through the host
+00:19 +10: All tests passed!

@@ -1,0 +1,14 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/pokemon/pokemon_workspace_leave_test.dart
+00:00 +0: late external overwrite consent cannot apply a changed preview
+00:00 +0 -1: late external overwrite consent cannot apply a changed preview [E]
+  Expected: false
+    Actual: <true>
+  
+  package:matcher                                       expect
+  package:flutter_test/src/widget_tester.dart 473:18    expect
+  test/pokemon/pokemon_workspace_leave_test.dart 301:7  main.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/pokemon/pokemon_workspace_leave_test.dart: late external overwrite consent cannot apply a changed preview

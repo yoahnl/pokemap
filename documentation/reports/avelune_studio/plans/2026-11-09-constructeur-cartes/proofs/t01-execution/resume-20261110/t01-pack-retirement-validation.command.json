@@ -1,0 +1,75 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "environment": {
+    "AVELUNE_QA_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "TMPDIR": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+  },
+  "frozenPaths": [
+    {
+      "path": "lib/presentation/features/resources/resource_workspace_pane.dart",
+      "before": "e35b5016c66208b2765930cab345984270f4a399dee629f7da4b96798f448057",
+      "after": "09bc19ee90a5ca600b53f98f87c46fb6d0aa2fb0c797ca073f75a504a818fb76"
+    },
+    {
+      "path": "lib/presentation/features/resources/resource_workspace_actions.dart",
+      "before": "e5f44bad1051bcba002d10032fb150865ce33aa1d8eb40cee4ec721bb9498c1f",
+      "after": "333226bee23a27c41d3870d3c00c48967205cfd358ff3309332ad810503b8be7"
+    },
+    {
+      "path": "lib/presentation/features/resources/resource_library_layout.dart",
+      "before": "2229cf2405de4f45b64a5ee3b0967718b11598fdafa0f0466ed70b333a613618",
+      "after": "474893122f618c9a1b6df8e68977029ef64ed754b2b08824caf478977e2a51ac"
+    },
+    {
+      "path": "lib/presentation/features/resources/resource_pack_selection.dart",
+      "before": "3a9ff8ad73b4ebf7985be193527053646db9aca483df702b9788fed8aa8bb54c",
+      "after": null
+    },
+    {
+      "path": "lib/presentation/features/resources/resource_pack_transfer_dialog.dart",
+      "before": "efc67bdaf2a211f7a369f3cfab77bb02940ed47a9021ae011c66af3219368a6c",
+      "after": null
+    },
+    {
+      "path": "test/resource_io/resource_pack_retirement_continuity_test.dart",
+      "before": null,
+      "initial": "5026a91453c929ef236df3f29574489b78cb84519dfdb41a5585a6f1ce158b28",
+      "after": "defb99a21472efb8555368b7f2f6c52398544f8e3c69ec4b6b47419c143d52fd"
+    }
+  ],
+  "initialAttempt": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r failures-only test/resource_io/resource_pack_retirement_continuity_test.dart",
+    "status": "interrupted_after_hang",
+    "completedBeforeInterruption": 2,
+    "unfinished": "catalogue retirement preserves an unknown publication and its real workspace close guard",
+    "shutdownExitCode": 0,
+    "notes": "Exit 0 resulted from interruption and is not a passing run. Shutdown reported the unfinished case and stream sink errors."
+  },
+  "diagnosis": "Controller futures constructed in tester.runAsync were awaited from the fake-async widget zone. Independent source review found the same boundary; commands now run in tester.runAsync without dropping assertions.",
+  "isolatedRetest": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=60s -r expanded test/resource_io/resource_pack_retirement_continuity_test.dart --plain-name 'catalogue retirement preserves an unknown publication and its real workspace close guard'",
+    "exitCode": 0,
+    "passedCount": 1,
+    "stdout": "00:02 +1: All tests passed!"
+  },
+  "regressions": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r failures-only test/resource_io/resource_pack_retirement_continuity_test.dart test/application/resource_pack_transfer_controller_test.dart test/application/resource_pack_budget_controller_test.dart test/application/resource_pack_route_workflow_test.dart test/presentation/resource_pack_transfer_dialog_test.dart test/presentation/resource_pack_budget_dialog_test.dart test/resource_io/resource_pack_import_host_test.dart test/resource_io/resource_pack_export_host_test.dart test/resource_io/resource_pack_reedition_host_test.dart test/resource_io/resource_pack_cancellation_host_test.dart test/platform/native_resource_pack_export_sink_test.dart",
+    "exitCode": 0,
+    "passedCount": 70,
+    "stdout": "+70: All tests passed!",
+    "runnerPid": 38692
+  },
+  "linkedDependenciesFingerprint": {
+    "files": 2999,
+    "before": "9b22b813333e72ceaa9c31c3ec3d229d20fa3647b7c77cd7f56378c0d438cbaa",
+    "after": "9b22b813333e72ceaa9c31c3ec3d229d20fa3647b7c77cd7f56378c0d438cbaa",
+    "scope": "Tracked and nonignored files in nine packages linked from the QA checkout."
+  },
+  "limitations": [
+    "The isolated retest overlaps the 70-test group.",
+    "The transport pack in the new continuity test is instrumented; existing real import/export host tests were also retained and run.",
+    "Old pack transfer presentation is temporarily unavailable while controllers and close guards remain.",
+    "This is not native visual, full Studio or G0 acceptance."
+  ],
+  "mcpParity": "N/A for presentation retirement and tests."
+}

@@ -1,0 +1,92 @@
+{
+  "command": [
+    "env",
+    "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+    "test",
+    "--no-pub",
+    "--concurrency=1",
+    "--timeout=120s",
+    "-r",
+    "expanded",
+    "test/resource_io/border_retirement_continuity_test.dart",
+    "test/pokemon/pokemon_retired_scene_reference_test.dart",
+    "test/pokemon/pokemon_commerce_guard_host_test.dart",
+    "test/pokemon/pokemon_workspace_leave_test.dart",
+    "test/pokemon/pokemon_commerce_refresh_host_test.dart",
+    "test/presentation/ui08_event_journey_test.dart"
+  ],
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "exitCode": 0,
+  "interrupted": false,
+  "durationSeconds": 68.4,
+  "passedCount": 32,
+  "failedCount": 0,
+  "observedRunnerPid": 9634,
+  "observedOwnedPids": [
+    9634,
+    9681,
+    9686,
+    9719,
+    9738,
+    10009,
+    10030,
+    10045,
+    10452
+  ],
+  "observedPidsAbsentAfterRun": true,
+  "liveDependencyFingerprint": {
+    "algorithm": "sha256 of sorted tracked and nonignored file paths and file-content sha256",
+    "files": 428,
+    "before": "9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be",
+    "after": "9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be",
+    "roots": [
+      "packages/avelune_design_system",
+      "packages/avelune_gen5_sprite_native",
+      "packages/avelune_rendering",
+      "third_party/flame_3d",
+      "packages/map_render_3d"
+    ]
+  },
+  "comparedAfterRun": [
+    {
+      "path": "apps/avelune_studio/test/pokemon/pokemon_commerce_guard_host_test.dart",
+      "sha256": "bb5c07d866eea591fa38bd4031fe3d66b44180c478db3af269492631d6a23964"
+    },
+    {
+      "path": "apps/avelune_studio/test/pokemon/pokemon_workspace_leave_test.dart",
+      "sha256": "e983eb718a0e39066441485fdd8dc1962655012c1ee04dd88a9441cd94829cdc"
+    },
+    {
+      "path": "apps/avelune_studio/test/pokemon/pokemon_commerce_refresh_host_test.dart",
+      "sha256": "7bd4cbee199d45031707901ee0c15f6c408f2deff12bbbc285fd58f3daed21f7"
+    },
+    {
+      "path": "apps/avelune_studio/test/pokemon/pokemon_retired_scene_reference_test.dart",
+      "sha256": "dd61792fbde991030c23e630a3737a1df3b8bfe0966ac284b717e558b17ee283"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/border_retirement_continuity_test.dart",
+      "sha256": "8b657e9699482b2808f7f87e026763ef52876fca4635ad194475846aa5e96ec1"
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui08_event_journey_test.dart",
+      "sha256": "46886495a53e1b70f1b2759c8d5a1e4c457f05e5a4b9a049c34ef3427fdec681"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_navigation_binding.dart",
+      "sha256": "5c7b04234eb80c060fdaa28c87b860cc72a74590c5794171c78885caa09b0b8d"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/resources/resource_library_screen.dart",
+      "sha256": "233f78ab59a2bb39d8443d36978c874410047326fef6f2c6170a960a96e7e97f"
+    }
+  ],
+  "comparisonScope": "These files matched the repository and QA copy after the run; the whole selectively refreshed QA copy is not qualified.",
+  "previousAttempt": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r expanded test/pokemon/pokemon_retired_scene_reference_test.dart",
+    "exitCode": 1,
+    "reason": "The tap on 'Annuler les modifications' found two matching text widgets. The finder was restricted to the AlertDialog and the isolated rerun passed."
+  },
+  "log": "t01-resume-navigation-borders-scenarios-group.log"
+}

@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-10",
+  "baseline": "468d1d62af188568da578a020c8081fed1c82997",
+  "checkedTrackedDart": 2888,
+  "mismatch": [],
+  "qaOverlaysSha256": {
+    "packages/map_core/lib/src/operations/build_narrative_event_project_catalog.dart": "0382e5c1e722135bcd02f465785d0abd6a077d94bdb15348b3596fc8dd373a7c",
+    "packages/map_core/test/narrative_event_partial_catalog_authoring_test.dart": "0e8b41cdbe69d443344c89d68c55d4b118d10245cc5741e71b60f1a8b6bd57de",
+    "apps/avelune_studio/test/presentation/ui05_narrative_overview_collection_test.dart": "ec981dc22c42b9196e00f2cc25c5a4146fe3230b37e4eff9b5f6e8ab82166bb6"
+  },
+  "linkedBefore": {
+    "baseline": "468d1d62af188568da578a020c8081fed1c82997",
+    "currentHead": "468d1d62af188568da578a020c8081fed1c82997",
+    "linkedFiles": 428,
+    "linkedDigest": "94bfa916c40ca144cf3d05a091d934e22bd0a1b323bacbfc3bd7a69bf082ce2a",
+    "linkedMissing": [],
+    "linkedStatus": []
+  },
+  "linkedAfter": {
+    "files": 428,
+    "digest": "94bfa916c40ca144cf3d05a091d934e22bd0a1b323bacbfc3bd7a69bf082ce2a",
+    "missing": [],
+    "status": []
+  },
+  "isolationLimit": "Five linked packages resolve into the live checkout; content digests stable across the observed runs.",
+  "purpose": "QA snapshot for T00/T01 resumption, not qualification of the concurrent working tree.",
+  "synchronizedFiles": [
+    {
+      "path": "apps/avelune_studio/lib/features/pokemon/application/pokemon_media_editing_session.dart",
+      "op": "add",
+      "blob": "9d2ae2fca5dea7ba2a226869dc789bf61494ef3d"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/pokemon/domain/pokemon_workspace_models.dart",
+      "op": "update",
+      "blob": "d1796ec09e18b610addd47c65d23d8840ab7d8ef"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_detail_tabs.dart",
+      "op": "update",
+      "blob": "2f6b9947e03c660b7095775678b6e6b202a67e0d"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_detail.dart",
+      "op": "update",
+      "blob": "99514a9e09e3304a0e005dac46ca22f1dd3a37cb"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_header.dart",
+      "op": "update",
+      "blob": "a5ed8f7d354e2625e0fa400ce769db56a96a9e11"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_library.dart",
+      "op": "update",
+      "blob": "851b7ca517050d3f8fa64e757f3dfec677f1cfc4"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_list_item.dart",
+      "op": "update",
+      "blob": "8b54c9b2e415effaf6aec12aad39c2a8913bf556"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_workspace_page.dart",
+      "op": "update",
+      "blob": "1abe3103b7b1299f1bd80bedfe85a23bfd0cf170"
+    },
+    {
+      "path": "apps/avelune_studio/test/pokemon/pokemon_external_png_import_test.dart",
+      "op": "update",
+      "blob": "3b648b4b52729268b584567302f6ff9928bb6bd4"
+    },
+    {
+      "path": "apps/avelune_studio/test/pokemon/pokemon_lot_a_visual_host_test.dart",
+      "op": "update",
+      "blob": "d8cea18a9494091417e4a217d37123e9e9331ca5"
+    },
+    {
+      "path": "apps/avelune_studio/test/pokemon/pokemon_media_animation_host_test.dart",
+      "op": "update",
+      "blob": "0888286e0504bf264578501ffe1ee812f64834c5"
+    },
+    {
+      "path": "apps/avelune_studio/test/pokemon/pokemon_media_roles_test.dart",
+      "op": "update",
+      "blob": "cdd4137ee48d915aa1b1e23611cfaad1da6db883"
+    },
+    {
+      "path": "apps/avelune_studio/test/pokemon/pokemon_shared_media_host_test.dart",
+      "op": "update",
+      "blob": "79bac7e2dc46c63619a6f80fdb29e445de40e0ea"
+    },
+    {
+      "path": "apps/avelune_studio/test/pokemon/pokemon_workspace_host_test.dart",
+      "op": "update",
+      "blob": "228f7c5e66ef41f2ded7e4c01ac80d5e0496a701"
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui05_narrative_overview_collection_test.dart",
+      "op": "update",
+      "blob": "5dfea6e6ea8d6e16463aabf23c5d1ef36a4146dc"
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/gameplay/pokemon_catalog_actions.dart",
+      "op": "update",
+      "blob": "152068401c390c2e9bdc6446de23066270959b97"
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/gameplay/pokemon_external/avelune_catalog_release.dart",
+      "op": "update",
+      "blob": "0f850a2c923a052a1a6e8d5d7489dba6936873dc"
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/gameplay/pokemon_external/avelune_pokemon_media_source.dart",
+      "op": "update",
+      "blob": "5d17c72c8f48264f53cbbf3f2a4420fe3e045eeb"
+    },
+    {
+      "path": "packages/map_authoring/lib/src/domains/gameplay/pokemon_media_import_actions.dart",
+      "op": "update",
+      "blob": "a7ed1cf0aaacfb440c915dbe1ec4fbc04a7c4255"
+    },
+    {
+      "path": "packages/map_authoring/lib/src/references/resource_usage_walk.dart",
+      "op": "update",
+      "blob": "9667b9d9416d9ed474ddfa98526d4c6e72d627f6"
+    },
+    {
+      "path": "packages/map_authoring/lib/src/workspace/catalog/catalog_audio_media_selection.dart",
+      "op": "update",
+      "blob": "0ce1c1c3ee732f4a15002869a01930f3f9dad610"
+    },
+    {
+      "path": "packages/map_authoring/lib/src/workspace/catalog/catalog_authoring_session.dart",
+      "op": "update",
+      "blob": "5219cb5c997f08313650aa8e5652d34ceae1bfbf"
+    },
+    {
+      "path": "packages/map_authoring/lib/src/workspace/catalog/catalog_workshop_selection.dart",
+      "op": "update",
+      "blob": "a40efa3196acad02572ebf420d3d0f1ebd4d3ac2"
+    },
+    {
+      "path": "packages/map_runtime/lib/src/player/runtime_pokemon_overworld_resolver.dart",
+      "op": "add",
+      "blob": "a6847dafad2ec7f80e5396d6fbfca89d986d0842"
+    },
+    {
+      "path": "packages/map_runtime/lib/src/spatial/spatial_exploration_session.dart",
+      "op": "update",
+      "blob": "92387c92e46104202f06a26e93f469973ba5c80d"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_media_preview.dart",
+      "op": "delete"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_media_role_card.dart",
+      "op": "delete"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_media.dart",
+      "op": "delete"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_thumbnail.dart",
+      "op": "delete"
+    }
+  ],
+  "scopeNotes": [
+    "The original repository and its concurrently modified files were not changed by synchronizing the QA copy.",
+    "The baseline excludes unrelated uncommitted working-tree changes; the three listed overlays are the tested work in progress.",
+    "The 2,888 checked Dart files match the frozen Git baseline apart from the listed code overlay."
+  ]
+}

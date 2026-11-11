@@ -1,0 +1,9 @@
++3 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/stories/story_coherence_contract_test.dart: scene link diagnostics stay scoped and distinguish exact scene IDs from names and missing references [E]
+  StorylineStep.sceneLinkIds contains duplicate id first
+  package:map_core/src/models/storyline_asset.dart 1282:7  _validateUniqueIds
+  package:map_core/src/models/storyline_asset.dart 1274:3  _immutableNonBlankUniqueStrings
+  package:map_core/src/models/storyline_asset.dart 435:24  new StorylineStep
+  test/stories/story_coherence_contract_test.dart 247:9    _story
+  test/stories/story_coherence_contract_test.dart 60:9     main.<fn>
+  
++10 -1: Some tests failed.

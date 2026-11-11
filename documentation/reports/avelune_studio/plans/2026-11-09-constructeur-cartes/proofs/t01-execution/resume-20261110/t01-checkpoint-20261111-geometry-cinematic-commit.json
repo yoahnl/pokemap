@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T09:11:11Z",
+  "scope": "T01 decor geometry retirement, cinematic commit extraction and proof-contract correction",
+  "status": "partial_not_accepted",
+  "runs": [
+    {
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub --concurrency=1 test/cinematics/cinematic_input_state_test.dart test/cinematics/cinematic_controller_ui10_test.dart test/cinematics/cinematic_inspector_ui10_test.dart test/cinematics/cinematic_published_guard_ui10_test.dart test/cinematics_ui10_error_recovery_test.dart test/cinematics/cinematic_animation_ui10_test.dart test/map_workspace/map_decor_order_context_test.dart test/map_workspace/map_decor_animation_panel_test.dart test/map_workspace/context_identity_test.dart test/map_workspace/context_menu_test.dart test/map_workspace/spatial_transport_retirement_test.dart test/map_workspace/decor_order_cross_context_repro_test.dart test/map_workspace/decor_order_e2e_test.dart test/map_workspace/context_menu_parity_test.dart test/map_workspace/moving_prop_authoring_test.dart test/map_workspace/decor_transform_host_test.dart test/map_workspace/workspace_publication_workflow_test.dart test/project_settings/project_settings_retirement_continuity_test.dart -r failures-only",
+      "cwd": "apps/avelune_studio",
+      "environment": "TMPDIR and AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+      "exitCode": 0,
+      "output": "+137: All tests passed!",
+      "runnerPid": 29224,
+      "liveOwnedProcessesAfterRun": [],
+      "note": "Integrated flutter_tester checkpoint; overlaps earlier runs."
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -q test_update_plan",
+      "cwd": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes",
+      "exitCode": 0,
+      "output": "Ran 20 tests; OK",
+      "note": "Validator fixtures include decoded valid and invalid PNG/JPEG images, G0 freshness, and the unchanged visual thresholds."
+    },
+    {
+      "command": "flutter analyze --no-pub",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 1,
+      "output": "Six informational lints in unchanged files; no error or warning reported."
+    },
+    {
+      "command": "flutter analyze --no-pub --no-fatal-infos",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 0,
+      "output": "The same six informational lints remain."
+    },
+    {
+      "command": "dart analyze tools/t01_validate_screenshot.dart",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 0,
+      "output": "No issues found!"
+    },
+    {
+      "command": "dart --disable-dart-dev --packages=<Studio package_config> tools/t01_check_g0.dart --root <checkout> --inventory <canonical inventory> --allowlist <canonical exceptions>",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 1,
+      "passed": false,
+      "counts": {"inventoryEntries": 996, "approvedExceptions": 12, "reachableSources": 4396, "studioSourcesInspected": 1981, "violations": 1305},
+      "violationKinds": {"physical": 344, "reachability": 719, "historical_symbol": 242},
+      "roots": 978,
+      "contexts": ["studio", "pokemap_hub", "unys_3d_sources"],
+      "note": "Diagnostic summary only; categories overlap. G0 is not accepted."
+    }
+  ],
+  "sourceHashes": {
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart": "fe2d2ef82eb336ddae3a95026a1933bbaf591f48c1a556cc34a0a6ca7380749a",
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart": "2f479771dfb9389b0f526592458de78b4698a37b95fb61d8f105c6b2bbc62ca4",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_commit_field.dart": "7b5354215c0c49ec2e737179d8ae57e0b352d7f05dc42fef8a8c48e94e6a2611",
+    "apps/avelune_studio/test/cinematics/cinematic_input_state_test.dart": "178325eb7a61d5d43955bb493712117e10e5b8ac7578413a280a245c5fae12e4",
+    "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart": "ef495b8a30f63d7c1e8e25008c792b301f60cb4aa0bbfea36cb1188f1fefa2ae",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_inspector.dart": "9542ee236251124d375c26fb2239f5c963864bdb43868d0702dc8e069978fae4",
+    "apps/avelune_studio/test/map_workspace/decor_transform_host_test.dart": "325f3b7ad715aef4c3133f04a33e8780eb6207115dc313de1f140e313e0512e5",
+    "apps/avelune_studio/lib/features/map_workspace/application/map_editing_commands.dart": "281c2c417618e28fa4baf8729e4f17ea40617d5f51a668241055c181f0c753cb",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/map_editing_viewport_session.dart": "d2ed22dd79799a988b1c32531283413eee5045a018fd663fad45a91e896d0eba",
+    "apps/avelune_studio/tools/t01_validate_screenshot.dart": "8ed1a004853f775dd3a241aa8b99217ee34a3eb273a73ef5cba62c1abaae165b",
+    "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/update_plan.py": "18c23c35188e3ef36042b152ed56c8ba368c1609cbdaee369a489ca3625d17f8"
+  },
+  "removedUi": [
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_decor_order_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_moving_prop_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_decor_geometry_panel.dart"
+  ],
+  "independentReview": "Separate read-only reviews found no concrete regression in the geometry retirement or cinematic commit extraction. Only the field-owner identity check is constant-time; the existing error getter may scan fields.",
+  "limits": [
+    "The cinematic targeted input-discard API is not yet connected to a recovery UI outside the old Cinematics page.",
+    "The current checkpoint proves targeted Flutter, widget and persistence scenarios, not a complete export, native Studio interaction, Player acceptance, visual mockup fidelity or latency budget.",
+    "The browser security policy blocked opening the local HTML artifact for a new screenshot; the embedded plan and viewer were checked structurally, not visually retested.",
+    "G0 and T00/T01 remain unaccepted; the three removed panels have no replacement UI until later work.",
+    "No matching live Studio Dart Tooling Daemon was found; no hot reload was performed."
+  ]
+}

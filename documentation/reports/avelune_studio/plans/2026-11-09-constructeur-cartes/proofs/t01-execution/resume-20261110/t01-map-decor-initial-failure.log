@@ -1,0 +1,53 @@
+LIVE_DEPS_BEFORE 428:9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be
+OWNED_RUNNER_PID 61010
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart
+00:00 +0: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart: 1536.0 dirty workspace retires its library and retains its owners
+00:01 +1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart: 1536.0 empty workspace retires its library and retains its owners
+00:01 +2: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart: 900.0 dirty workspace retires its library and retains its owners
+00:02 +3: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart: 900.0 empty workspace retires its library and retains its owners
+00:02 +4: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_library_retirement_test.dart: destination opening still activates the real owner after closing
+00:02 +5: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart
+test/resource_io/decor_retirement_continuity_test.dart:217:19: Error: Undefined name 'ResourceImportIntent'.
+          intent: ResourceImportIntent.source,
+                  ^^^^^^^^^^^^^^^^^^^^
+test/resource_io/decor_retirement_continuity_test.dart:128:15: Error: The method 'beginCollisionPointer' isn't defined for the type 'DecorDraft'.
+ - 'DecorDraft' is from 'package:avelune_studio/features/decors/application/decor_draft.dart' ('lib/features/decors/application/decor_draft.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'beginCollisionPointer'.
+        draft.beginCollisionPointer(5, 10, fine: true, solid: true);
+              ^^^^^^^^^^^^^^^^^^^^^
+test/resource_io/decor_retirement_continuity_test.dart:129:15: Error: The method 'endCollisionPointer' isn't defined for the type 'DecorDraft'.
+ - 'DecorDraft' is from 'package:avelune_studio/features/decors/application/decor_draft.dart' ('lib/features/decors/application/decor_draft.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'endCollisionPointer'.
+        draft.endCollisionPointer();
+              ^^^^^^^^^^^^^^^^^^^
+00:02 +5 -1: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart [E]
+  Failed to load "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart":
+  Compilation failed for testPath=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart: test/resource_io/decor_retirement_continuity_test.dart:217:19: Error: Undefined name 'ResourceImportIntent'.
+            intent: ResourceImportIntent.source,
+                    ^^^^^^^^^^^^^^^^^^^^
+  test/resource_io/decor_retirement_continuity_test.dart:128:15: Error: The method 'beginCollisionPointer' isn't defined for the type 'DecorDraft'.
+   - 'DecorDraft' is from 'package:avelune_studio/features/decors/application/decor_draft.dart' ('lib/features/decors/application/decor_draft.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'beginCollisionPointer'.
+          draft.beginCollisionPointer(5, 10, fine: true, solid: true);
+                ^^^^^^^^^^^^^^^^^^^^^
+  test/resource_io/decor_retirement_continuity_test.dart:129:15: Error: The method 'endCollisionPointer' isn't defined for the type 'DecorDraft'.
+   - 'DecorDraft' is from 'package:avelune_studio/features/decors/application/decor_draft.dart' ('lib/features/decors/application/decor_draft.dart').
+  Try correcting the name to the name of an existing method, or defining a method named 'endCollisionPointer'.
+          draft.endCollisionPointer();
+                ^^^^^^^^^^^^^^^^^^^
+  .
+00:02 +5 -1: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_resource_io_test.dart
+00:05 +5 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_resource_io_test.dart: fine collision owner saves through the real adapter and reopens independently
+00:07 +6 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_resource_io_test.dart: PNG selection, collision, variant, repeated placement, undo and disk reopen
+00:07 +7 -1: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart
+00:14 +7 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart: decor duplicate action opens independent definition dialog
+00:20 +8 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart: used decor removal refuses and leaves definitions untouched
+00:23 +9 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart: source replacement can be prepared without an active map or placement
+00:24 +10 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart: free definition then planche removal preserve source and map
+00:28 +11 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart: duplicate saves only its focused decor owner after explicit choice
+00:33 +12 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart
+RESULT 1 SECONDS 42.9 OBSERVED_OWNED_PIDS [61010, 61054, 61063, 61122, 61175, 61191, 61689]
+LIVE_DEPS_AFTER 428:9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be UNCHANGED True

@@ -1,0 +1,54 @@
+Analyzing map_authoring...
+
+warning - test/workspace/gen5_battle_source_import_test.dart:20:22 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+warning - test/workspace/gen5_battle_source_import_test.dart:20:46 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+   info - lib/src/domains/distribution/runtime_project_projection_builder.dart:688:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/distribution/runtime_project_projection_builder.dart:692:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/distribution/runtime_project_projection_builder.dart:698:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/maps/entity_actions.dart:615:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/maps/entity_actions.dart:904:13 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/maps/entity_actions.dart:918:13 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/maps/entity_actions.dart:1563:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/maps/map_lifecycle_actions.dart:231:32 - Unnecessary 'const' keyword. Try removing the keyword. - unnecessary_const
+   info - lib/src/domains/maps/spatial_map_actions.dart:193:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/maps/spatial_map_actions.dart:365:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/narrative/event_actions.dart:349:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/narrative/event_simulation_query.dart:38:45 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/narrative/event_simulation_query.dart:41:5 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/domains/narrative/event_simulation_query.dart:46:43 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/parity/full_authoring_parity.dart:705:45 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_contextual_item_scope.dart:26:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_contextual_item_scope.dart:58:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_contextual_item_scope.dart:73:13 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_map_metadata_selection.dart:65:25 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_narrative_event_documents.dart:330:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_narrative_event_documents.dart:335:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_periodic_reward_consumers.dart:141:72 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_scene_workshop_selection.dart:238:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_spatial_map_selection.dart:251:34 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_spatial_map_selection.dart:293:15 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_spatial_map_selection.dart:316:15 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/catalog/catalog_spatial_map_selection.dart:321:15 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/native_workshop_snapshot.dart:265:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/native_workshop_snapshot.dart:841:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/src/workspace/native_workshop_snapshot.dart:1126:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/maps/entity_presentation_actions_test.dart:43:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/maps/entity_presentation_actions_test.dart:48:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/maps/entity_presentation_actions_test.dart:54:9 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/maps/smart_tile_map_scope_test.dart:4:8 - The import of 'package:map_authoring/src/domains/maps/smart_tile_native_transition_guard.dart' is unnecessary because all of the used elements are also provided by the import of 'package:map_authoring/map_authoring.dart'. Try removing the import directive. - unnecessary_import
+   info - test/domains/maps/spatial_field_obstacle_actions_test.dart:111:3 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/maps/spatial_model_visibility_actions_test.dart:6:8 - The import of 'package:map_authoring/src/domains/maps/entity_actions.dart' is unnecessary because all of the used elements are also provided by the import of 'package:map_authoring/map_authoring.dart'. Try removing the import directive. - unnecessary_import
+   info - test/domains/maps/spatial_model_visibility_actions_test.dart:104:13 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/maps/spatial_model_visibility_actions_test.dart:106:13 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/narrative/periodic_reward_condition_transport_test.dart:6:8 - The import of 'package:map_authoring/src/support/authoring_fingerprint.dart' is unnecessary because all of the used elements are also provided by the import of 'package:map_authoring/map_authoring.dart'. Try removing the import directive. - unnecessary_import
+   info - test/domains/narrative/periodic_reward_condition_transport_test.dart:320:21 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/narrative/periodic_reward_condition_transport_test.dart:744:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/narrative/periodic_reward_condition_transport_test.dart:797:26 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/narrative/periodic_reward_condition_transport_test.dart:848:15 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/narrative/periodic_reward_condition_transport_test.dart:917:15 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/domains/narrative/periodic_reward_condition_transport_test.dart:1473:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/workspace/catalog_asset_import_test.dart:773:36 - Statements in a for should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - test/workspace/catalog_contextual_item_selection_test.dart:278:11 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - tool/gen5_source_workshop_batch.dart:108:19 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+50 issues found.

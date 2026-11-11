@@ -1,0 +1,58 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_decor_animation_panel_test.dart
+00:00 +0: decor properties and order retain animation data without the retired animation tab
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: [
+            _MapPlacedElementBehavior:MapPlacedElementBehavior(id: , enabled: true, triggerScope:
+MapPlacedElementTriggerScope.defaultScope, cooldownMs: null, trigger:
+MapPlacedElementTriggerType.onAction, effect: MapPlacedElementEffect(type:
+MapPlacedElementEffectType.playAnimationOnce, message: null, dialogue: null, animationEnabled: null,
+targetMapId: null, targetPos: null))
+          ]
+  Actual: [
+            _MapPlacedElementBehavior:MapPlacedElementBehavior(id: tree-1::behavior::0, enabled:
+true, triggerScope: MapPlacedElementTriggerScope.defaultScope, cooldownMs: null, trigger:
+MapPlacedElementTriggerType.onAction, effect: MapPlacedElementEffect(type:
+MapPlacedElementEffectType.playAnimationOnce, message: null, dialogue: null, animationEnabled: null,
+targetMapId: null, targetPos: null))
+          ]
+   Which: at location [0] is _MapPlacedElementBehavior:<MapPlacedElementBehavior(id:
+tree-1::behavior::0, enabled: true, triggerScope: MapPlacedElementTriggerScope.defaultScope,
+cooldownMs: null, trigger: MapPlacedElementTriggerType.onAction, effect:
+MapPlacedElementEffect(type: MapPlacedElementEffectType.playAnimationOnce, message: null, dialogue:
+null, animationEnabled: null, targetMapId: null, targetPos: null))> instead of
+_MapPlacedElementBehavior:<MapPlacedElementBehavior(id: , enabled: true, triggerScope:
+MapPlacedElementTriggerScope.defaultScope, cooldownMs: null, trigger:
+MapPlacedElementTriggerType.onAction, effect: MapPlacedElementEffect(type:
+MapPlacedElementEffectType.playAnimationOnce, message: null, dialogue: null, animationEnabled: null,
+targetMapId: null, targetPos: null))>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_decor_animation_panel_test.dart:73:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_decor_animation_panel_test.dart line 73
+The test description was:
+  decor properties and order retain animation data without the retired animation tab
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +0 -1: decor properties and order retain animation data without the retired animation tab [E]
+  Test failed. See exception logs above.
+  The test description was: decor properties and order retain animation data without the retired animation tab
+  
+00:01 +0 -1: idle image selects terminal frame with undo and native reopen
+00:01 +1 -1: idle image normalizes durations and preserves speed mode and triggers
+00:01 +2 -1: random departure clears a fixed waiting image
+00:01 +3 -1: invalid speed and frame leave map and history intact
+00:01 +4 -1: animation triggers retain indices of unrelated behaviors and survive JSON
+00:01 +5 -1: missing selection does not mutate another placement
+00:01 +6 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_decor_animation_panel_test.dart: decor properties and order retain animation data without the retired animation tab

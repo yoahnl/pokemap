@@ -1,0 +1,82 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "environment": {
+    "AVELUNE_QA_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "TMPDIR": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+  },
+  "workingCatalogManifest": {
+    "path": "t01-resources-working-catalog-retirement-freeze.json",
+    "sha256": "6ab444702ea69f7a794655244474816b8120c284251d7f2a6bbbf1bee1d82586"
+  },
+  "changesSinceFreeze": [
+    {
+      "path": "test/presentation/scoped_map_workspace_test.dart",
+      "before": "250b660d43b84ab7040f4e12851f358ed5b702241f20aa0e4f88026acaefcd72",
+      "after": "5acf56e2c92fa5abb90e24b70db79ccb6a1346fe8f7cc9e61869e3ee200195f3",
+      "reason": "Acknowledge the actual launch confirmation and use expectSync in asynchronous UI callbacks."
+    },
+    {
+      "path": "test/resource_io/environment_retirement_continuity_test.dart",
+      "before": "ace79b75fecfd089da7a30a87bf9bb5083086785787dc998deb1f1160e9933ce",
+      "after": "21f29be97f9d094deb7b5724c69f9a6f09574f22acd0104848b6b4174a8a69f5",
+      "reason": "Add explicit save refusal, cancel and discard/reopen protection for an invalid environment draft."
+    },
+    {
+      "path": "test/resource_io/resource_pack_retirement_continuity_test.dart",
+      "before": "defb99a21472efb8555368b7f2f6c52398544f8e3c69ec4b6b47419c143d52fd",
+      "after": "0dfff22fc8abfc01957442bf320ad07b968c725508bba5ff31dd902da271837d",
+      "reason": "Test normal catalogue and UI publication reconciliation; honor AVELUNE_QA_ROOT and clean owned setup; pump real async work before settling."
+    },
+    {
+      "path": "lib/presentation/features/resources/resource_library_layout.dart",
+      "before": "7c84c6912353ab2e921f7883d47ceef72411721fc587a2e193183ee61e6d15a4",
+      "after": "d0c449b46b3c377bb63818a543f426bd75aebf596a719b9aceb51d784cac82c1"
+    },
+    {
+      "path": "lib/presentation/features/resources/resource_workspace_pane.dart",
+      "before": "b44afc63adcd5a7e293baec605aa768df73d1e855c99145909d5b1d03c30f76d",
+      "after": "5d77342f2fc4ffe107e26ed482fbe68f9ce957319506432a973bacb97acfa735"
+    }
+  ],
+  "initialFailures": [
+    {
+      "test": "resource_pack_retirement_continuity_test.dart",
+      "result": "4 passed, 1 failed: pumpAndSettle timed out after UI reconciliation click; fixture crossed fake/real async zones."
+    },
+    {
+      "test": "scoped_map_workspace_test.dart",
+      "result": "1 passed, 2 failed: unacknowledged launch confirmation and guarded expect inside an async callback."
+    }
+  ],
+  "isolatedAfterCorrections": [
+    {
+      "test": "invalid environment close refuses save retains cancel and only explicit discard permits a clean disk reopen",
+      "passedCount": 1,
+      "exitCode": 0
+    },
+    {
+      "test": "catalogue retirement preserves an unknown publication and its real workspace close guard",
+      "passedCount": 1,
+      "exitCode": 0
+    },
+    {
+      "test": "test/presentation/scoped_map_workspace_test.dart",
+      "passedCount": 3,
+      "exitCode": 0
+    }
+  ],
+  "regressions": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r failures-only test/presentation/scoped_map_workspace_test.dart test/presentation/working_catalog_workspace_test.dart test/presentation/working_catalog_model_source_test.dart test/application/working_catalog_controller_test.dart test/application/working_catalog_contact_shadow_test.dart test/resource_io/working_catalog_adapter_test.dart test/resource_io/working_catalog_model_light_test.dart test/resource_io/working_catalog_contact_shadow_test.dart test/resource_io/working_catalog_classification_test.dart test/platform/rendering/working_catalog_preview_session_test.dart test/resource_io/resource_pack_retirement_continuity_test.dart test/application/resource_pack_transfer_controller_test.dart test/presentation/resource_pack_transfer_dialog_test.dart test/resource_io/resource_pack_import_host_test.dart test/resource_io/environment_retirement_continuity_test.dart",
+    "exitCode": 0,
+    "passedCount": 106,
+    "runnerPid": 91985,
+    "stdout": "+106: All tests passed!"
+  },
+  "limitations": [
+    "The isolated cases are included in the 106-test group.",
+    "The former dev/model_source_replacement_native.dart replace action now fails explicitly; no native GLB replacement or performance proof is claimed.",
+    "At this recorded point the UI handles pending publication; subsequent review identified import reconciliation and recovery states requiring additional follow-up.",
+    "No G0 or native visual acceptance."
+  ],
+  "mcpParity": "N/A for presentation and tests."
+}

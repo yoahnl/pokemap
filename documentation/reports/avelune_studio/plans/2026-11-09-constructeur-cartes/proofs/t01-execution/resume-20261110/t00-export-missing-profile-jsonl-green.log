@@ -1,0 +1,3 @@
+00:00 +0: loading test/tooling/jsonl_export_missing_profile_test.dart
+00:00 +0: game_export without a profile returns a safe failure and keeps the JSONL worker alive
+00:19 +1: All tests passed!

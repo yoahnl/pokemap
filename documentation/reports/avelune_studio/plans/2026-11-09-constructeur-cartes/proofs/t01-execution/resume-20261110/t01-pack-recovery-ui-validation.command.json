@@ -1,0 +1,58 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "environment": {
+    "AVELUNE_QA_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "TMPDIR": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+  },
+  "sources": [
+    {
+      "path": "lib/presentation/features/resources/resource_workspace_pane.dart",
+      "before": "5d77342f2fc4ffe107e26ed482fbe68f9ce957319506432a973bacb97acfa735",
+      "after": "1cc3dee972adcdd93294899acc9d9c5bab094c63ffaac1f73de48e319bc67973"
+    },
+    {
+      "path": "test/resource_io/resource_pack_retirement_continuity_test.dart",
+      "before": "0dfff22fc8abfc01957442bf320ad07b968c725508bba5ff31dd902da271837d",
+      "after": "85a73d15bd03cf30797eecf6a7607ae3e064bd9998cb6fa5e271976bd59ed4a4"
+    }
+  ],
+  "purpose": "Expose recovery-only UI for retained pack publication, import reconciliation and finalization. Preserve close guards and do not restart an import during recovery.",
+  "initialFailures": [
+    {
+      "passed": 5,
+      "failed": 2,
+      "reason": "A test incorrectly rejected an AbsorbPointer ancestor with absorbing=false; changed to reject only actively absorbing ancestors."
+    },
+    {
+      "passed": 5,
+      "failed": 2,
+      "reason": "The test assigned phase without preparedSummary, yielding a null check in _rememberImported; corrected the fixture to reach retained states through the real controller preparation and one initial apply."
+    }
+  ],
+  "isolated": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r expanded test/resource_io/resource_pack_retirement_continuity_test.dart",
+    "exitCode": 0,
+    "passedCount": 7,
+    "stdout": "00:05 +7: All tests passed!"
+  },
+  "regressions": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r failures-only test/resource_io/resource_pack_retirement_continuity_test.dart test/application/resource_pack_transfer_controller_test.dart test/map_workspace/workspace_publication_workflow_test.dart",
+    "exitCode": 0,
+    "passedCount": 35,
+    "runnerPid": 7772,
+    "stdout": "+35: All tests passed!"
+  },
+  "assertions": [
+    "Normal catalogue announces unavailable pack transfers at two sizes.",
+    "Publication reconciliation uses its actual UI action and performs no second export.",
+    "Import reconciliation and finalization use actual UI actions; the first reconcile failure keeps the close guard and the second succeeds without a second apply.",
+    "Recovery job uses the original operationId; the waiting state does not show a running spinner.",
+    "The test transport is instrumented; project and map fixture bytes remain unchanged."
+  ],
+  "limitations": [
+    "The 7 isolated cases are included in the 35-test group.",
+    "The tests use the real controller and UI with an instrumented transport; they do not prove native archive recovery or an actual desktop session.",
+    "No native visual, G0 or full T01 acceptance."
+  ],
+  "mcpParity": "N/A for presentation and tests."
+}

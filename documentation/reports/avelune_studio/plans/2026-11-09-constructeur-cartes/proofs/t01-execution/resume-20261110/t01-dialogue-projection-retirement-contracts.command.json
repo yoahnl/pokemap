@@ -1,0 +1,71 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+    "test",
+    "--no-pub",
+    "--concurrency=1",
+    "--timeout=120s",
+    "-r",
+    "failures-only",
+    "test/dialogues/dialogue_structure_projection_test.dart",
+    "test/dialogues/dialogue_selection_commands_test.dart"
+  ],
+  "exitCode": 0,
+  "interrupted": false,
+  "durationSeconds": 17.6075541973114,
+  "ownedProcesses": {
+    "60729": {
+      "ppid": 60728,
+      "start": "Tue Nov 10 18:21:04 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --packages=/opt/homebrew/share/flutter-3.47.5/packages/flutter_tools/.dart_tool/package_config.json /opt/homebrew/share/flutter-3.47.5/bin/cache/flutter_tools.snapshot test --no-pub --concurrency=1 --timeout=120s -r failures-only test/dialogues/dialogue_structure_projection_test.dart test/dialogues/dialogue_selection_commands_test.dart"
+    },
+    "60762": {
+      "ppid": 60729,
+      "start": "Tue Nov 10 18:21:05 2026",
+      "command": "(dartvm)"
+    },
+    "60780": {
+      "ppid": 60762,
+      "start": "Tue Nov 10 18:21:06 2026",
+      "command": "(clang)"
+    },
+    "60781": {
+      "ppid": 60780,
+      "start": "Tue Nov 10 18:21:06 2026",
+      "command": "(ld)"
+    },
+    "60784": {
+      "ppid": 60729,
+      "start": "Tue Nov 10 18:21:06 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/package_config.json /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/avelune_gen5_sprite_native/7ad245dadc/hook.dill --config=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/avelune_gen5_sprite_native/7ad245dadc/input.json"
+    },
+    "60803": {
+      "ppid": 60792,
+      "start": "Tue Nov 10 18:21:07 2026",
+      "command": "(clang)"
+    },
+    "60792": {
+      "ppid": 60784,
+      "start": "Tue Nov 10 18:21:06 2026",
+      "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --target=arm64-apple-darwin -mmacos-version-min=13 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/ -fPIC -O3 -Wl,-encryptable -DRELEASE -DNDEBUG -I/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src -I/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/include /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/probe_pure.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/api_sprite_bridge.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/sprite_composer.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/ncgr.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/ncer.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/nanr.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/nmcr.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/nmar.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/nclr.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/nitro_util.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/file_util.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/ppm.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/coords.c /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/avelune_gen5_sprite_native/src/vendor/source/lz.c -framework Foundation --shared -o /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/shared/avelune_gen5_sprite_native/build/7ad245dadc/libavelune_gen5_sprite_native.dylib -L/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/hooks_runner/shared/avelune_gen5_sprite_native/build/7ad245dadc/"
+    },
+    "60828": {
+      "ppid": 60729,
+      "start": "Tue Nov 10 18:21:08 2026",
+      "command": "(dartaotruntime)"
+    },
+    "60861": {
+      "ppid": 60729,
+      "start": "Tue Nov 10 18:21:14 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/build/unit_test_assets /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-m59ss_yt/flutter_tools.hzLSLY/flutter_test_listener.QUSgXO/listener.dart.dill"
+    },
+    "60872": {
+      "ppid": 60729,
+      "start": "Tue Nov 10 18:21:16 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/build/unit_test_assets /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-m59ss_yt/flutter_tools.hzLSLY/flutter_test_listener.bLeYtb/listener.dart.dill"
+    }
+  },
+  "liveOwnedPids": [],
+  "log": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-dialogue-projection-retirement-contracts.log",
+  "tmp": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-m59ss_yt"
+}

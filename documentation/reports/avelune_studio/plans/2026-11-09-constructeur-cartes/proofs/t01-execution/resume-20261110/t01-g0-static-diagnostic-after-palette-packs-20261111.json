@@ -1,0 +1,87 @@
+{
+  "date": "2026-11-11",
+  "command": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+    "run",
+    "tools/t01_check_g0.dart",
+    "--allowlist",
+    "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/t01-technical-exceptions.json"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "exitCode": 1,
+  "gate": "G0",
+  "proofTier": "static_retirement",
+  "passed": false,
+  "counts": {
+    "inventoryEntries": 993,
+    "approvedExceptions": 12,
+    "reachableSources": 4404,
+    "studioSourcesInspected": 1988,
+    "violations": 1351
+  },
+  "violationKinds": {
+    "physical": 358,
+    "reachability": 747,
+    "historical_symbol": 246
+  },
+  "physicalByArea": {
+    "cinematics": 29,
+    "dialogues": 13,
+    "events": 19,
+    "game_export": 5,
+    "map_workspace": 80,
+    "narrative": 23,
+    "pokemon": 48,
+    "presentations": 21,
+    "project_settings": 10,
+    "regional_map": 5,
+    "rendering": 1,
+    "resources": 42,
+    "settings": 1,
+    "stories": 1,
+    "terrains": 9,
+    "verification": 2,
+    "other": 49
+  },
+  "previous": {
+    "path": "t01-g0-static-diagnostic-after-map-decor-20261111.json",
+    "sha256": "e70c8ddd028e9e1c045572c0ec909dc65f56c281a8c846b27f2b39d25f95b758",
+    "physical": 369,
+    "reachability": 771,
+    "historical_symbol": 239
+  },
+  "followupSymbolDiagnostic": {
+    "exitCode": 1,
+    "note": "Repeated the diagnostic and selected historical_symbol violations in the three new test paths; seven were present. This is not an exemption: those legacy surfaces still require retirement.",
+    "violations": [
+      {
+        "path": "apps/avelune_studio/test/map_workspace/map_palette_retirement_test.dart",
+        "symbols": [
+          "MapElementsPanel",
+          "MapWorkspaceLayout",
+          "MapWorkspaceToolStrip"
+        ]
+      },
+      {
+        "path": "apps/avelune_studio/test/support/map_palette_retirement_driver.dart",
+        "symbols": [
+          "MapWorkspaceLayout"
+        ]
+      },
+      {
+        "path": "apps/avelune_studio/test/resource_io/resource_pack_retirement_continuity_test.dart",
+        "symbols": [
+          "ResourceCatalogView",
+          "ResourceLibraryScreen",
+          "ResourceWorkspacePane"
+        ]
+      }
+    ]
+  },
+  "scopeNotes": [
+    "Diagnostic on the live checkout, not a frozen complete acceptance proof.",
+    "Nine map palette files and two pack presentation files were retired since the preceding diagnostic.",
+    "The categories overlap and are not a count of broken functions; seven historical-symbol findings occur in the new continuity tests.",
+    "G0 remains unaccepted; native visual comparison and native Player integration are not proven."
+  ]
+}

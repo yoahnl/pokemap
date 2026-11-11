@@ -1,0 +1,12 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/presentations/presentation_clip_media_contract_test.dart
+00:00 +0: image source changes preserve orientation variants until explicitly cleared
+00:02 +1: video source changes preserve orientation variants until explicitly cleared
+00:02 +2: audio source changes preserve orientation variants until explicitly cleared
+00:03 +3: audio kind bus and looping persist without changing source variants or timeline
+00:03 +4: caption source locale and language fallback persist independently of clip timing
+00:04 +5: image rejects missing and incompatible media without changing draft or files
+00:04 +6: video rejects missing and incompatible media without changing draft or files
+00:05 +7: audio rejects missing and incompatible media without changing draft or files
+00:05 +8: captions rejects missing and incompatible media without changing draft or files
+00:06 +9: music rejects orientation variants and voice cannot become music before variants are cleared
+00:06 +10: All tests passed!

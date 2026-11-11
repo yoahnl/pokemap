@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T08:53:19Z",
+  "scope": "T01 decor-order retirement and cinematic input recovery",
+  "status": "partial_not_accepted",
+  "runs": [
+    {
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub --concurrency=1 test/cinematics/cinematic_controller_ui10_test.dart test/cinematics/cinematic_inspector_ui10_test.dart test/cinematics/cinematic_published_guard_ui10_test.dart test/cinematics_ui10_error_recovery_test.dart test/map_workspace/map_decor_order_context_test.dart test/map_workspace/map_decor_animation_panel_test.dart test/map_workspace/context_identity_test.dart test/map_workspace/context_menu_test.dart test/map_workspace/spatial_transport_retirement_test.dart test/map_workspace/decor_order_cross_context_repro_test.dart test/map_workspace/decor_order_e2e_test.dart test/map_workspace/context_menu_parity_test.dart -r failures-only",
+      "cwd": "apps/avelune_studio",
+      "environment": "TMPDIR and AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+      "exitCode": 0,
+      "output": "+81: All tests passed!",
+      "runnerPid": 9687,
+      "liveOwnedProcessesAfterRun": [],
+      "note": "Integrated flutter_tester run; groups in earlier receipts overlap."
+    },
+    {
+      "command": "flutter analyze --no-pub",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 1,
+      "output": "Six informational lints in unchanged files; no error or warning reported."
+    },
+    {
+      "command": "flutter analyze --no-pub --no-fatal-infos",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 0,
+      "output": "The same six informational lints remain."
+    },
+    {
+      "command": "dart analyze tools/t01_validate_screenshot.dart",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 0,
+      "output": "No issues found!"
+    },
+    {
+      "command": "dart --disable-dart-dev --packages=<Studio package_config> tools/t01_check_g0.dart --root <checkout> --inventory <canonical inventory> --allowlist <canonical exceptions>",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 1,
+      "passed": false,
+      "counts": {"inventoryEntries": 996, "approvedExceptions": 12, "reachableSources": 4397, "studioSourcesInspected": 1982, "violations": 1311},
+      "violationKinds": {"physical": 346, "reachability": 723, "historical_symbol": 242},
+      "roots": 977,
+      "contexts": ["studio", "pokemap_hub", "unys_3d_sources"],
+      "note": "Diagnostic summary only; violation categories overlap. G0 is not accepted."
+    }
+  ],
+  "sourceHashes": {
+    "apps/avelune_studio/lib/features/map_workspace/application/map_editing_commands.dart": "281c2c417618e28fa4baf8729e4f17ea40617d5f51a668241055c181f0c753cb",
+    "apps/avelune_studio/lib/features/map_workspace/application/map_context_menu_actions.dart": "91e02e481276ef5e78819bbd595d58302ffb3f02cbc8dcdf64c4be76d3c3d953",
+    "apps/avelune_studio/lib/features/map_workspace/application/map_decor_order_context.dart": "fec28c097f524029b567ef04e33850c6beb1958bc87b77c1a38135bc28cab7b4",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_decor_inspector_tabs.dart": "fe0b7e7008b0470782dbaca31048e1b74c0e2d2b0b05ebdaa3f1fd6f981c601c",
+    "apps/avelune_studio/test/map_workspace/map_decor_animation_panel_test.dart": "521b2fb11078eb17eb6c3bf07fb314a4163ace164a662ceaf2b94674d264ac7e",
+    "apps/avelune_studio/test/map_workspace/map_decor_order_context_test.dart": "30c3bd27bb19000fe14e10f0a7a1ef3d9f9197e3bf414a9ac4066fbd81efc214",
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart": "faa66e782603330af41fb43403281db5518eb2d76e004e568b43e876822e455c",
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart": "2f479771dfb9389b0f526592458de78b4698a37b95fb61d8f105c6b2bbc62ca4",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_commit_field.dart": "58b96782e5c49c199e903b1375575d6ed801f0b00830c4074c1ae76c004ad3b1",
+    "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart": "9bea20325499f2db678e8bed74da6ed2b6d60fa51ef69daf06e78a97a8c6fd16",
+    "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart": "2710a644e64c751bf0675d94ae83eb4fa28e7e195b1f646710207d00782047a6"
+  },
+  "removedUi": ["apps/avelune_studio/lib/presentation/features/map_workspace/map_decor_order_panel.dart"],
+  "independentReview": "A separate read-only review found no concrete regression in the decor-order extraction or its scoped test coverage; it did not rerun the tests.",
+  "limits": [
+    "The targeted cinematic input-discard API is not yet connected to a recovery UI outside the old Cinematics page.",
+    "The real WorkspaceWorkflow export-preparation guard was exercised with no narrative owner; this does not prove a complete export or package.",
+    "No native Studio interaction, Player acceptance, visual mockup comparison, or latency budget is established by these tests.",
+    "The previous recovery receipt has historical source fingerprints and must not be treated as the current checkpoint.",
+    "No matching live Studio Dart Tooling Daemon was found; no hot reload was performed."
+  ]
+}

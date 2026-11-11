@@ -1,0 +1,5 @@
++1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/pokemon/pokemon_external_png_import_test.dart: Studio imports PNGs safely: normal
+[runtime_loader] project manifest lookup path=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/studio-png-cCu7IO/offline-runtime/project.json
+[runtime_loader] project manifest read ok bytes=168
+[runtime_loader] project manifest validated maps=1 tilesets=1 scenarios=0
++23: All tests passed!

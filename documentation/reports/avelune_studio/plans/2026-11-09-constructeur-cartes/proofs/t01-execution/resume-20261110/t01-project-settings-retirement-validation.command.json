@@ -1,0 +1,43 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "environment": {
+    "AVELUNE_QA_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "TMPDIR": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+  },
+  "manifest": {
+    "path": "t01-project-settings-retirement-freeze.json",
+    "sha256": "ebd2bb320cec6e1d727e5e0a7f6a98ef335a38abd852db191ec414577665e787"
+  },
+  "isolated": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r expanded test/project_settings/project_settings_retirement_continuity_test.dart",
+    "exitCode": 0,
+    "passedCount": 5,
+    "stdout": "00:04 +5: All tests passed!"
+  },
+  "regressions": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r failures-only test/project_settings/project_settings_retirement_continuity_test.dart test/project_settings/project_audio_binding_scope_test.dart test/project_settings/project_cs_audio_controller_test.dart test/project_settings/project_field_ability_scope_test.dart test/project_settings/project_identity_shared_export_test.dart test/project_settings/project_settings_preview_controller_test.dart test/project_settings/project_settings_session_test.dart test/project_settings/project_settings_work_counts_test.dart test/project_surf/project_surf_condition_race_test.dart test/project_surf/project_surf_condition_session_test.dart test/project_surf/project_surf_controller_test.dart test/project_surf/project_surf_navigation_test.dart test/project_surf/project_surf_panel_test.dart test/project_surf/project_surf_persistence_test.dart test/project_visuals/map_project_inheritance_journey_test.dart test/project_visuals/map_weather_controls_test.dart test/project_visuals/model_light_workshop_test.dart test/project_visuals/project_preview_scope_test.dart test/project_visuals/project_settings_navigation_test.dart test/project_visuals/project_visuals_controller_test.dart test/project_visuals/project_weather_mode_matrix_test.dart test/project_visuals/spatial_visual_controls_test.dart test/map_workspace/workspace_workflow_test.dart test/map_workspace/workspace_publication_workflow_test.dart test/presentation/scoped_map_workspace_test.dart test/resource_io/resource_pack_retirement_continuity_test.dart",
+    "exitCode": 0,
+    "passedCount": 142,
+    "runnerPid": 10037,
+    "stdout": "+142: All tests passed!"
+  },
+  "analysis": {
+    "command": "flutter analyze --no-pub --no-fatal-infos",
+    "exitCode": 0,
+    "errors": 0,
+    "warnings": 0,
+    "infos": 7
+  },
+  "linkedDependenciesFingerprint": {
+    "files": 2999,
+    "before": "9b22b813333e72ceaa9c31c3ec3d229d20fa3647b7c77cd7f56378c0d438cbaa",
+    "after": "9b22b813333e72ceaa9c31c3ec3d229d20fa3647b7c77cd7f56378c0d438cbaa"
+  },
+  "limitations": [
+    "The isolated five cases are included in the 142-test group.",
+    "The continuity witnesses use in-memory ports; they do not prove disk durability or a produced game package.",
+    "Retired settings editing is temporarily unavailable; controller state and guards remain.",
+    "This is selective QA, not native visual, G0 or T01 acceptance."
+  ],
+  "mcpParity": "N/A for presentation retirement and tests."
+}

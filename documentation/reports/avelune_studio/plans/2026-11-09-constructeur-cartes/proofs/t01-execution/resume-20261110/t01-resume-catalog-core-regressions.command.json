@@ -1,0 +1,35 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+    "test",
+    "--concurrency=1",
+    "--timeout=90s",
+    "-r",
+    "failures-only",
+    "test/narrative_map_projection_test.dart",
+    "test/narrative_event_draft_authoring_test.dart",
+    "test/narrative_event_source_authoring_v2_test.dart",
+    "test/narrative_event_publication_test.dart",
+    "test/narrative_event_dispatch_authority_test.dart",
+    "test/narrative_event_v2_integrity_validation_test.dart"
+  ],
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_core",
+  "exitCode": 0,
+  "interrupted": false,
+  "durationSeconds": 2.995607852935791,
+  "ownedProcesses": {
+    "2566": {
+      "ppid": 2565,
+      "start": "Tue Nov 10 23:23:50 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --mark_main_isolate_as_system_isolate --packages=.dart_tool/package_config.json .dart_tool/pub/bin/test/test.dart-3.13.4.snapshot --concurrency=1 --timeout=90s -r failures-only test/narrative_map_projection_test.dart test/narrative_event_draft_authoring_test.dart test/narrative_event_source_authoring_v2_test.dart test/narrative_event_publication_test.dart test/narrative_event_dispatch_authority_test.dart test/narrative_event_v2_integrity_validation_test.dart"
+    },
+    "2595": {
+      "ppid": 2566,
+      "start": "Tue Nov 10 23:23:51 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../../../../opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-vrj48e_h/dart_test.kernel.vr3pZP/output.dill --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_core/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    }
+  },
+  "liveOwnedPids": [],
+  "log": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-resume-catalog-core-regressions.log",
+  "tmp": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-vrj48e_h"
+}

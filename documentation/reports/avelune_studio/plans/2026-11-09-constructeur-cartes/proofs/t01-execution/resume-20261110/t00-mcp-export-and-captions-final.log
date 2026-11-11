@@ -1,0 +1,10 @@
+✔ MCP authors an export profile with CAS and exports its persisted metadata (40132.909334ms)
+✔ MCP stages WebVTT with its native MIME while preserving other media guards (19221.448292ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 60389.17875

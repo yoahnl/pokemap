@@ -1,0 +1,50 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "environment": {
+    "AVELUNE_QA_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "TMPDIR": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+  },
+  "manifest": {
+    "path": "t01-map-palette-retirement.manifest.json",
+    "sha256": "e54748e5e997503fa60c91a05ffa171d8146eaa9a9d780975727ba0a93ba507c",
+    "note": "Original freeze; the continuity test was subsequently corrected as recorded below."
+  },
+  "initialAttempt": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=90s -r expanded test/map_workspace/map_palette_retirement_test.dart",
+    "exitCode": 1,
+    "failedCount": 4,
+    "failure": "All four configurations failed at line 235: an Undo result was required to have the same MapData identity as the previous snapshot."
+  },
+  "repair": {
+    "path": "test/map_workspace/map_palette_retirement_test.dart",
+    "before": "f3b0bfae7d1eeb815af87c6c23276eaf4b8db90f35c0af5c830cc85aa45a07bb",
+    "after": "d85e37eca4bff5d8bb0b06de53133e1e6b5b794cac4a09b091d74e4fa4840de5",
+    "reason": "History restores a delta by reconstructing MapData. Identity remains required around mounting, while Undo/Redo now checks complete map and JSON equality, history/tokens, preserved saved/base state, no writes before save, and exact saved/reopened snapshot."
+  },
+  "isolatedRetest": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=90s -r expanded test/map_workspace/map_palette_retirement_test.dart",
+    "exitCode": 0,
+    "passedCount": 4,
+    "stdout": "00:04 +4: All tests passed!"
+  },
+  "regressions": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r failures-only test/map_workspace/map_palette_retirement_test.dart test/map_workspace/decor_order_cross_context_repro_test.dart test/map_workspace/decor_order_e2e_test.dart test/presentation/ui02_palette_test.dart test/presentation/map_workspace_palette_dock_filters_test.dart test/presentation/map_workspace_resource_families_test.dart test/presentation/map_palette_context_compatibility_test.dart test/map_workspace/map_resource_placement_test.dart test/map_workspace/map_tool_strip_state_host_test.dart test/map_workspace/map_tool_intent_commands_test.dart test/map_workspace/map_palette_intent_test.dart test/map_workspace/map_placement_intent_journey_test.dart test/map_workspace/spatial_shared_commands_test.dart test/map_workspace/spatial_group_disk_journey_test.dart test/map_workspace/warp_disk_journey_test.dart test/map_workspace/scene_only_warp_authoring_test.dart test/map_workspace/warp_player_journey_test.dart test/map_workspace/field_obstacle_placement_test.dart test/resource_io/terrain_deleted_history_host_test.dart",
+    "exitCode": 0,
+    "passedCount": 80,
+    "runnerPid": 41857,
+    "stdout": "+80: All tests passed!"
+  },
+  "linkedDependenciesFingerprint": {
+    "files": 2999,
+    "before": "9b22b813333e72ceaa9c31c3ec3d229d20fa3647b7c77cd7f56378c0d438cbaa",
+    "after": "9b22b813333e72ceaa9c31c3ec3d229d20fa3647b7c77cd7f56378c0d438cbaa",
+    "scope": "Tracked and nonignored files in nine packages linked from the QA checkout."
+  },
+  "limitations": [
+    "The isolated four cases are included in the 80-test group.",
+    "The 2D/3D continuity test uses test visuals and an in-memory port; disk and runtime regressions have their own tests in the group.",
+    "Neither of the two native integration_test journeys was executed; both retain a dependency on the earlier retired home-tool-map entry.",
+    "G0 and native visual fidelity remain unaccepted."
+  ],
+  "mcpParity": "N/A for presentation retirement and tests."
+}

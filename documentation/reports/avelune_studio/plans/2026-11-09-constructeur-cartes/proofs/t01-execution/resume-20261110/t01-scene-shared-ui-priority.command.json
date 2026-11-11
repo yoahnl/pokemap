@@ -1,0 +1,52 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "command": [
+    "flutter",
+    "test",
+    "--no-pub",
+    "--concurrency=1",
+    "--timeout=120s",
+    "-r",
+    "expanded",
+    "test/events/retired_daily_condition_ui_test.dart",
+    "test/cinematics/retired_linked_dialogue_preview_test.dart",
+    "test/presentation/ui06_scene_inspector_test.dart",
+    "test/presentation/ui11_scene_presentation_binding_test.dart",
+    "test/cinematics/dialogue_working_source_ui10_test.dart"
+  ],
+  "executable": "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+  "environment": {
+    "AVELUNE_QA_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "TMPDIR": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+  },
+  "exitCode": 0,
+  "passedCount": 10,
+  "failedCount": 0,
+  "durationSeconds": 16,
+  "runnerPid": 35531,
+  "observedOwnedPids": [
+    35531,
+    35573,
+    35579,
+    35642,
+    35679,
+    35807,
+    35832,
+    35871
+  ],
+  "liveDependencyFingerprint": {
+    "files": 428,
+    "before": "9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be",
+    "after": "9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be"
+  },
+  "sourceManifest": {
+    "path": "t01-scene-shared-ui-closure-delta-manifest.json",
+    "sha256": "f4202d45e53fddc5326dc9c92a0e042b384949b3dcd807aca697fc6b3cef3c0a",
+    "comparedToQaAndRepositoryAfterRun": true
+  },
+  "log": {
+    "path": "t01-scene-shared-ui-priority.log",
+    "sha256": "8d3592d6a49c0a827e53a8ce4b51b6766df6712f43f84036b1d3a4e49de24b8b"
+  },
+  "limitation": "Targeted tests in a selectively refreshed QA copy; not a full-workspace, native 2D/3D, visual or G0 qualification."
+}

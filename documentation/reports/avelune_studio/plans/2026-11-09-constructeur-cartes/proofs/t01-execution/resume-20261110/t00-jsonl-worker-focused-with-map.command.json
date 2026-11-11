@@ -1,0 +1,32 @@
+{
+  "command": [
+    "env",
+    "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+    "test",
+    "--concurrency=1",
+    "--timeout=120s",
+    "test/tooling/jsonl_worker_test.dart",
+    "--name",
+    "golden describe and malformed input|every described resource kind"
+  ],
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_authoring",
+  "exitCode": 0,
+  "interrupted": false,
+  "durationSeconds": 2.9107329845428467,
+  "ownedProcesses": {
+    "55566": {
+      "ppid": 55555,
+      "start": "Wed Nov 11 00:20:50 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --mark_main_isolate_as_system_isolate --packages=.dart_tool/package_config.json .dart_tool/pub/bin/test/test.dart-3.13.4.snapshot --concurrency=1 --timeout=120s test/tooling/jsonl_worker_test.dart --name golden describe and malformed input|every described resource kind"
+    },
+    "55595": {
+      "ppid": 55566,
+      "start": "Wed Nov 11 00:20:50 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../../../../opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-h9uxgcmz/dart_test.kernel.TS0BOL/output.dill --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_authoring/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    }
+  },
+  "liveOwnedPids": [],
+  "log": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t00-jsonl-worker-focused-with-map.log",
+  "tmp": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-h9uxgcmz"
+}

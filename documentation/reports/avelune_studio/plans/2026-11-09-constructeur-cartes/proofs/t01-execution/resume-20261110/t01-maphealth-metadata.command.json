@@ -1,0 +1,65 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_authoring",
+  "change": "The canonical mapHealth query descriptor now declares mapId as the required list filter, consistent with its existing listShape and get-by-id contract.",
+  "testFirst": {
+    "command": "dart test -r expanded test/api/map_health_description_test.dart",
+    "exitCode": 1,
+    "reason": "requiredFilters was null; expected mapId"
+  },
+  "targetedGroup": {
+    "command": "dart test -j 1 -r expanded test/api/map_health_description_test.dart test/api/map_health_query_test.dart test/tooling/jsonl_worker_test.dart",
+    "exitCode": 0,
+    "passedCount": 35
+  },
+  "mcpStdio": {
+    "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/tools/pokemap_mcp",
+    "command": "node --import tsx --test --test-concurrency=1 --test-name-pattern='MCP stdio queries and edits working catalogs' test/catalog_storage_stdio.test.ts",
+    "exitCode": 0,
+    "passedCount": 1,
+    "durationMilliseconds": 33121.690875
+  },
+  "analysis": {
+    "targetedDart": {
+      "exitCode": 0,
+      "result": "No issues found"
+    },
+    "mcpTypeScript": {
+      "command": "npm run check",
+      "exitCode": 0
+    },
+    "fullDart": {
+      "command": "dart analyze",
+      "exitCode": 2,
+      "notes": "Two warnings in test/workspace/gen5_battle_source_import_test.dart and 48 informational diagnostics; no errors."
+    }
+  },
+  "separateFailure": {
+    "command": "dart test -r expanded test/registry/action_registry_test.dart",
+    "exitCode": 1,
+    "failedCount": 2,
+    "observedIn": [
+      "selective QA copy",
+      "working checkout"
+    ],
+    "tests": [
+      "provides the canonical minimal resource kinds",
+      "registers every resource kind used by canonical mutations"
+    ],
+    "missingKinds": [
+      "mapAtmosphere",
+      "mapEditor",
+      "battleRecipeFile",
+      "pokemonCatalog",
+      "cinematicMediaAsset"
+    ],
+    "notes": "The only change to resource_kind_registry.dart adds a mapHealth metadata filter; the two failures concern registry membership and must not be represented as fixed."
+  },
+  "sourceSha256": {
+    "packages/map_authoring/lib/src/registry/resource_kind_registry.dart": "fdde0efba1d54945140d0aa6af3706fc7a5813d718e54231c84c4113f3ad44fb",
+    "packages/map_authoring/test/api/map_health_description_test.dart": "576ec2bb329086656f6d41860156cf6beebbb109131451a2e0a16f2b6188243c",
+    "packages/map_authoring/test/tooling/jsonl_worker_test.dart": "9a62b0150835cee794e43b6b500a7ab5fae10dd5c7d676e6e7089e8e4a2ab124",
+    "packages/map_authoring/test/tooling/goldens/describe_and_error.jsonl": "075f8021dc47e3408d534e8a10024202c612cca392411b6f1834f948587c471e",
+    "tools/pokemap_mcp/test/catalog_storage_stdio.test.ts": "b5a51de2f758ef0cd86c2324a3d73e7f6d10806c23ae5af343aa282342146dd2"
+  },
+  "limitation": "Targeted test results do not qualify the entire package, project or G0."
+}

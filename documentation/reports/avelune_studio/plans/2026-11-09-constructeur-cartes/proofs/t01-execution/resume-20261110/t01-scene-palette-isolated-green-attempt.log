@@ -1,0 +1,4 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/scene_canvas_addition_test.dart
+00:00 +0: retired block palette cannot mutate any active scene
+00:02 +1: text deletion does not disconnect the selected scene edge
+00:03 +2: All tests passed!

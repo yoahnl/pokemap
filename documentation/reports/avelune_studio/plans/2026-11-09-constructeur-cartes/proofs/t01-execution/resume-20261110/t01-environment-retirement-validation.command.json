@@ -1,0 +1,44 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "environment": {
+    "AVELUNE_QA_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "TMPDIR": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+  },
+  "manifest": {
+    "path": "t01-resources-environment-retirement-freeze.json",
+    "sha256": "ac65a4e7095eac035d8b50aa82c16f0f8fe863f25f0b8b8430889b952bbee0e2"
+  },
+  "isolated": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=90s -r expanded test/resource_io/environment_retirement_continuity_test.dart",
+    "exitCode": 0,
+    "passedCount": 3,
+    "stdout": "00:04 +3: All tests passed!"
+  },
+  "regressions": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r failures-only test/resource_io/environment_scope_test.dart test/presentation/spatial_environment_editor_test.dart test/resource_io/environment_authoring_host_test.dart test/resource_io/environment_retirement_continuity_test.dart test/resource_io/decor_retirement_continuity_test.dart test/application/environment_draft_test.dart test/resource_io/resource_navigation_receipt_recovery_test.dart test/application/environment_editing_commands_test.dart test/application/spatial_environment_commands_test.dart test/map_workspace/map_resource_placement_test.dart test/map_workspace/environment_canvas_ownership_test.dart test/map_workspace/spatial_environment_gesture_test.dart test/resource_io/border_retirement_continuity_test.dart test/resource_io/resource_pack_retirement_continuity_test.dart",
+    "exitCode": 0,
+    "passedCount": 46,
+    "runnerPid": 68598,
+    "stdout": "+46: All tests passed!"
+  },
+  "analysis": {
+    "command": "flutter analyze --no-pub --no-fatal-infos",
+    "exitCode": 0,
+    "errors": 0,
+    "warnings": 0,
+    "infos": 7,
+    "note": "Selectively synchronized QA checkout after the environment retirement; seven existing style infos remain."
+  },
+  "linkedDependenciesFingerprint": {
+    "files": 2999,
+    "before": "9b22b813333e72ceaa9c31c3ec3d229d20fa3647b7c77cd7f56378c0d438cbaa",
+    "after": "9b22b813333e72ceaa9c31c3ec3d229d20fa3647b7c77cd7f56378c0d438cbaa",
+    "scope": "Tracked and nonignored files in nine linked packages."
+  },
+  "limitations": [
+    "The isolated three cases are included in the 46-test group.",
+    "Editing, duplication and deletion of environments are temporarily unavailable in the retired presentation; owners and drafts remain.",
+    "This selective QA checkout is not whole-Studio, native visual or G0 acceptance."
+  ],
+  "mcpParity": "N/A for presentation retirement and tests."
+}

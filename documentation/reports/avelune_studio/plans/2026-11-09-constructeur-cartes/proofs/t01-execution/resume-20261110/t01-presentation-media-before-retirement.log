@@ -1,0 +1,80 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/presentations/presentation_clip_media_contract_test.dart
+00:00 +0: image source changes preserve orientation variants until explicitly cleared
+00:01 +1: video source changes preserve orientation variants until explicitly cleared
+00:02 +2: audio source changes preserve orientation variants until explicitly cleared
+00:02 +2 -1: audio source changes preserve orientation variants until explicitly cleared [E]
+  Expected: true
+    Actual: <false>
+  PresentationCinematicAuthoringException(presentation_cinematic.payload_invalid): The Presentation cinematic payload is invalid.
+  
+  package:matcher                                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18                  expect
+  test/presentations/presentation_clip_media_contract_test.dart 71:9  main.<fn>
+  
+00:02 +2 -1: audio kind bus and looping persist without changing source variants or timeline
+00:02 +2 -2: audio kind bus and looping persist without changing source variants or timeline [E]
+  Expected: true
+    Actual: <false>
+  
+  package:matcher                                                      expect
+  package:flutter_test/src/widget_tester.dart 473:18                   expect
+  test/presentations/presentation_clip_media_contract_test.dart 125:5  main.<fn>
+  
+00:02 +2 -2: caption source locale and language fallback persist independently of clip timing
+00:02 +2 -3: caption source locale and language fallback persist independently of clip timing [E]
+  Expected: not null
+    Actual: <null>
+  Import impossible : PresentationMediaProbeException(presentation_media.mime_mismatch): Declared MIME text/plain conflicts with observed text/vtt.
+  
+  package:matcher                                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18                  expect
+  test/presentations/presentation_clip_media_contract_test.dart 50:5  main.import
+  
+00:02 +2 -3: image rejects missing and incompatible media without changing draft or files
+00:03 +2 -4: image rejects missing and incompatible media without changing draft or files [E]
+  Expected: true
+    Actual: <false>
+  PresentationCinematicAuthoringException(presentation_cinematic.request_invalid): must differ from beforeBytes
+  
+  package:matcher                                                      expect
+  package:flutter_test/src/widget_tester.dart 473:18                   expect
+  test/presentations/presentation_clip_media_contract_test.dart 224:9  main.<fn>
+  
+00:03 +2 -4: video rejects missing and incompatible media without changing draft or files
+00:03 +2 -5: video rejects missing and incompatible media without changing draft or files [E]
+  Expected: true
+    Actual: <false>
+  PresentationCinematicAuthoringException(presentation_cinematic.request_invalid): must differ from beforeBytes
+  
+  package:matcher                                                      expect
+  package:flutter_test/src/widget_tester.dart 473:18                   expect
+  test/presentations/presentation_clip_media_contract_test.dart 224:9  main.<fn>
+  
+00:03 +2 -5: audio rejects missing and incompatible media without changing draft or files
+00:04 +2 -6: audio rejects missing and incompatible media without changing draft or files [E]
+  Expected: true
+    Actual: <false>
+  PresentationCinematicAuthoringException(presentation_cinematic.request_invalid): must differ from beforeBytes
+  
+  package:matcher                                                      expect
+  package:flutter_test/src/widget_tester.dart 473:18                   expect
+  test/presentations/presentation_clip_media_contract_test.dart 224:9  main.<fn>
+  
+00:04 +2 -6: captions rejects missing and incompatible media without changing draft or files
+00:04 +2 -7: captions rejects missing and incompatible media without changing draft or files [E]
+  Expected: not null
+    Actual: <null>
+  Import impossible : PresentationMediaProbeException(presentation_media.mime_mismatch): Declared MIME text/plain conflicts with observed text/vtt.
+  
+  package:matcher                                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18                  expect
+  test/presentations/presentation_clip_media_contract_test.dart 50:5  main.import
+  
+00:04 +2 -7: Some tests failed.
+
+Failing tests:
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/presentations/presentation_clip_media_contract_test.dart: audio kind bus and looping persist without changing source variants or timeline
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/presentations/presentation_clip_media_contract_test.dart: audio rejects missing and incompatible media without changing draft or files
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/presentations/presentation_clip_media_contract_test.dart: audio source changes preserve orientation variants until explicitly cleared
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/presentations/presentation_clip_media_contract_test.dart: caption source locale and language fallback persist independently of clip timing
+  ... and 3 more

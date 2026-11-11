@@ -1,0 +1,32 @@
+OWNED_RUNNER_PID 64023
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart
+00:00 +0: retired decor workshop keeps its owner and published use at Size(1536.0, 1024.0)
+00:02 +1: retired decor workshop keeps its owner and published use at Size(760.0, 620.0)
+00:03 +2: environment palette keeps its recipe without an entry to the retired decor workshop
+00:03 +3: imported source remains available when its retired decor route is requested
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following _TypeError was thrown running a test:
+Null check operator used on a null value
+
+When the exception was thrown, this was the stack:
+#0      main.<anonymous closure> (file:///Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart:252:42)
+<asynchronous suspension>
+#1      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#2      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  imported source remains available when its retired decor route is requested
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:05 +3 -1: imported source remains available when its retired decor route is requested [E]
+  Test failed. See exception logs above.
+  The test description was: imported source remains available when its retired decor route is requested
+  
+00:05 +3 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart: imported source remains available when its retired decor route is requested
+RESULT 1 SECONDS 11.5 OBSERVED_OWNED_PIDS [64023, 64064, 64073, 64088]

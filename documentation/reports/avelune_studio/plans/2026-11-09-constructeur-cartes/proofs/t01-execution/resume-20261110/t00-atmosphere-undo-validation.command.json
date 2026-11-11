@@ -1,0 +1,44 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_authoring",
+  "environment": {
+    "TMPDIR": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+  },
+  "fixtureManifest": {
+    "path": "t00-atmosphere-undo-fixture-repair.manifest.json",
+    "sha256": "af1ba44394125ffe71672af84b3a7e17c95de3a32ec184067e7b68c4115e09f8"
+  },
+  "synchronizedTest": {
+    "path": "packages/map_authoring/test/documents/map_atmosphere_authoring_test.dart",
+    "beforeSha256": "328fe83198bac1b1933f61f4a547afc5e2a3b53acb0a5e8fe5f19c82dfee2f17",
+    "afterSha256": "a88f5cd0a6eedf6af0dba812e4609c96db0c124c310fe0d88a047f9d40840257"
+  },
+  "runs": [
+    {
+      "command": "dart test -j 1 -r failures-only test/documents/map_atmosphere_authoring_test.dart",
+      "exitCode": 0,
+      "passedCount": 10,
+      "skippedCount": 1,
+      "stdout": "+10 ~1: 1 skipped test.\n+10 ~1: All other tests passed!"
+    },
+    {
+      "command": "dart test -j 1 -r failures-only test/domains/maps/map_lifecycle_atmosphere_test.dart test/documents/map_atmosphere_authoring_test.dart test/documents/map_editor_authoring_test.dart test/workspace/battle_recipe_import_test.dart test/domains/narrative/dialogue_audio_media_actions_test.dart test/domains/narrative/dialogue_audio_media_jsonl_test.dart",
+      "exitCode": 0,
+      "passedCount": 55,
+      "skippedCount": 4,
+      "stdout": "+55 ~4: 4 skipped tests.\n+55 ~4: All other tests passed!"
+    },
+    {
+      "command": "dart test -j 1 -r failures-only test/documents/map_atmosphere_authoring_test.dart test/documents/map_editor_authoring_test.dart test/history/incremental_history_store_test.dart test/history/history_retention_window_test.dart test/history/undo_redo_contract_test.dart",
+      "exitCode": 0,
+      "passedCount": 76,
+      "skippedCount": 1,
+      "stdout": "+76 ~1: 1 skipped test.\n+76 ~1: All other tests passed!"
+    }
+  ],
+  "limitations": [
+    "The three groups overlap; passed counts must not be summed as unique tests.",
+    "The preceding failure is retained in t00-registry-repair-validation.command.json.",
+    "These are focused tests on the selectively synchronized QA checkout, not whole-product or G0 acceptance.",
+    "No production history store was modified for the fixture repair."
+  ]
+}

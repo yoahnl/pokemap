@@ -1,0 +1,12 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "command": "flutter analyze --no-pub --no-fatal-infos",
+  "exitCode": 0,
+  "infos": 7,
+  "warnings": 0,
+  "errors": 0,
+  "scope": "Selectively synchronized QA checkout after map palette and pack presentation retirement.",
+  "limitations": [
+    "Seven existing style infos remain; no native rendering or G0 acceptance is claimed."
+  ]
+}

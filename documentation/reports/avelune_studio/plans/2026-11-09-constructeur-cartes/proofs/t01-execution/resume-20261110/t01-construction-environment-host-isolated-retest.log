@@ -1,0 +1,4 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/environment_authoring_host_test.dart
+00:00 +0: canonical resource editor entry, UI publication and canvas gestures survive disk reopen
+00:07 +1: canonical resource editor entry rejects an invalid recipe and retains its draft on library return without writes
+00:10 +2: All tests passed!

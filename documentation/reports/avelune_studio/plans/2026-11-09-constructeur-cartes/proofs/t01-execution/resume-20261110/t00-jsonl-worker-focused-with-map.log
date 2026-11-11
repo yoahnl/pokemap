@@ -1,0 +1,4 @@
+00:00 +0: loading test/tooling/jsonl_worker_test.dart
+00:00 +0: JsonlWorker golden describe and malformed input are byte-for-byte stable
+00:00 +1: JsonlWorker every described resource kind has an executable query route
+00:00 +2: All tests passed!

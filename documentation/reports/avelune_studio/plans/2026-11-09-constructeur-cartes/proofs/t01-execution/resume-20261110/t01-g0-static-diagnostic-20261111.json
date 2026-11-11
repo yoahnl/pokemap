@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-11",
+  "command": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+    "run",
+    "tools/t01_check_g0.dart",
+    "--allowlist",
+    "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/t01-technical-exceptions.json"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "exitCode": 1,
+  "gate": "G0",
+  "proofTier": "static_retirement",
+  "passed": false,
+  "counts": {
+    "inventoryEntries": 993,
+    "approvedExceptions": 12,
+    "reachableSources": 4437,
+    "studioSourcesInspected": 2017,
+    "violations": 1446
+  },
+  "violationKinds": {
+    "physical": 395,
+    "reachability": 823,
+    "historical_symbol": 228
+  },
+  "physicalByArea": {
+    "map_workspace": 106,
+    "resources": 50,
+    "pokemon": 48,
+    "shared": 44,
+    "cinematics": 29,
+    "narrative": 23,
+    "presentations": 21,
+    "events": 19,
+    "dialogues": 13,
+    "project_settings": 10,
+    "terrains": 9,
+    "game_export": 5,
+    "regional_map": 5,
+    "theme": 4,
+    "scenes": 3,
+    "verification": 2,
+    "rendering": 1,
+    "settings": 1,
+    "stories": 1,
+    "shell": 1
+  },
+  "scopeNotes": [
+    "Diagnostic du checkout vivant, non figé ; les counts sont des signalements de l’outil et ne mesurent pas des fonctionnalités en panne.",
+    "Les trois types de signalements se recoupent potentiellement ; seuls les signalements physiques portent sur des fichiers de l’inventaire encore présents.",
+    "Les fichiers scènes restants comprennent encore des consommateurs dans Événements et Cinématiques ; le diagnostic ne justifie pas leur suppression sans extraction et migration."
+  ],
+  "inputs": [
+    {
+      "path": "apps/avelune_studio/tools/t01_check_g0.dart",
+      "sha256": "e9c1cf1c5f262d8b0920398efef15bac9ca5642aefd15f9e8f1361830ce65c80"
+    },
+    {
+      "path": "apps/avelune_studio/tools/t01_retirement_gate.dart",
+      "sha256": "19afe0f9ad6b1b2f6926f33e2c16d6c1270ee53900229659e6a7fa75f7db3952"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/ui-retirement-inventory.json",
+      "sha256": "3d3e8df684693bc5b5041204cb05d852775d0cf6646cb006b8c5d818ee921200"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/t01-technical-exceptions.json",
+      "sha256": "7c57aaa0ec5deb6f252b5b442a819e8d3013b3d2656109bbbf92eadbcdc86540"
+    }
+  ]
+}

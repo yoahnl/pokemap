@@ -1,0 +1,76 @@
+{
+  "scope": "T00 RUI-002: diagnose the render host Release AOT failure, not visual acceptance",
+  "hostLog": {
+    "path": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/tools/pokemap_render_host/build/macos/Logs/Build/FD1B3EC5-817B-466C-B00B-6DFDCE7C8175.xcactivitylog",
+    "sha256": "058c2d098696a72104bf2d24951fd3d96e3bcd1bbdcf35141d6beecc37798762",
+    "firstError": "Unexpected object (Class with illegal cid, full-aot): package:flutter/src/widgets/_window_macos.dart Class _Rect; Dart snapshot generator exited -6.",
+    "command": "flutter build macos --release",
+    "sdk": "Flutter 3.47.5 stable / Dart 3.13.4"
+  },
+  "upstream": {
+    "issue": "https://github.com/flutter/flutter/issues/191575",
+    "fix": "https://github.com/dart-lang/sdk/commit/f9bd4cef8bdaa3119ebffb36d48d2b2e6cfabe76",
+    "fixture": "https://github.com/dart-lang/sdk/blob/f9bd4cef8bdaa3119ebffb36d48d2b2e6cfabe76/tests/ffi/regress_flutter191575_test.dart",
+    "fixtureSha256": "2d69305a860c59ed1f3b79d1162911b6dffdaba090448a8c40b4d3716a6c28ee",
+    "gitBlobSha1": "c1f9c1fb6c5b4c9d333cbf7454301a805a9fbf6e"
+  },
+  "checks": [
+    {
+      "version": "3.13.4 stable",
+      "distribution": "installed Flutter 3.47.5 SDK",
+      "architecture": "macos_arm64",
+      "compileExitCode": 254,
+      "result": "Unexpected object (Class with illegal cid, full-aot), DeadStruct1",
+      "aotRun": "not run because compilation failed"
+    },
+    {
+      "version": "3.13.7 stable",
+      "distribution": "official Dart stable archive",
+      "archiveBytes": 225890953,
+      "archiveMd5Base64": "YXfcEAqcq5ioO66VeTdEmg==",
+      "architecture": "macos_arm64",
+      "compileExitCode": 254,
+      "result": "Unexpected object (Class with illegal cid, full-aot), DeadStruct1",
+      "aotRun": "not run because compilation failed"
+    },
+    {
+      "version": "3.14.0-315.3.beta",
+      "distribution": "official Dart beta archive matching published Flutter 3.50.0-0.4.pre beta",
+      "archiveBytes": 237655346,
+      "archiveMd5Base64": "fHS6zzVm1fHvTBSKwY8HHw==",
+      "architecture": "macos_arm64",
+      "compileExitCode": 254,
+      "result": "Unexpected object (Class with illegal cid, full-aot), DeadStruct1",
+      "aotRun": "not run because compilation failed"
+    },
+    {
+      "version": "3.15.0-118.1.beta",
+      "distribution": "official Dart beta archive",
+      "archiveBytes": 241729734,
+      "archiveMd5Base64": "UFTM0T0BE93aVUKTHelHmQ==",
+      "architecture": "macos_arm64",
+      "compileExitCode": 0,
+      "aotRunExitCode": 0,
+      "result": "The official regression compiles and runs, checking the live callback result."
+    }
+  ],
+  "method": "Compile the same upstream fixture with dart compile aot-snapshot; run dartaotruntime only after a successful compile. Archives were checksum-verified and extracted in temporary QA directories, which were removed afterwards. Installed Flutter was not modified.",
+  "observedFlutterDistributionMetadata": {
+    "asOf": "2026-11-11",
+    "stable": {
+      "flutter": "3.47.9",
+      "dart": "3.13.7"
+    },
+    "beta": {
+      "flutter": "3.50.0-0.4.pre",
+      "dart": "3.14.0-315.3.beta"
+    },
+    "source": "https://storage.googleapis.com/flutter_infra_release/releases/releases_macos.json"
+  },
+  "limitations": [
+    "The small FFI reproduction supports the compiler diagnosis but does not reproduce the full host kernel.",
+    "Dart 3.15 beta alone is not a compatible Flutter SDK and was not substituted into Flutter.",
+    "The full render host has not been rebuilt with a compatible fixed Flutter SDK; no Release 3D rendering or visual acceptance is claimed.",
+    "The reproduction was executed on macos_arm64 only; no conclusion about a separate x86_64 invocation is claimed."
+  ]
+}

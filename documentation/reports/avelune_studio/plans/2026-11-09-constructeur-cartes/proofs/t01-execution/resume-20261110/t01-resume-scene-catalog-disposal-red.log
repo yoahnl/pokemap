@@ -1,0 +1,30 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation/apps/avelune_studio/test/scenes/scene_condition_catalog_refresh_host_test.dart
+00:00 +0: Commerce publication is visible to a fresh scene catalogue without changing cached Pokemon data
+00:01 +0 -1: Commerce publication is visible to a fresh scene catalogue without changing cached Pokemon data [E]
+  Expected: throws <Instance of 'StateError'>
+    Actual: <Instance of 'Future<Map<String, String>>'>
+     Which: emitted {
+                      'potion': 'Potion',
+                      'antidote': 'Antidote',
+                      'revive': 'Revive',
+                      'ether': 'Ether',
+                      'poke-ball': 'Poké Ball',
+                      'lab-key': 'Lab Key',
+                      'tm-protect': 'TM Protect',
+                      'hm-surf': 'HM Surf',
+                      'leftovers': 'Leftovers',
+                      'lucky-charm': 'Lucky Charm',
+                      'hidden-tonic': 'Hidden Tonic'
+                    }
+  
+  package:matcher                                                    expectLater
+  package:flutter_test/src/widget_tester.dart 507:8                  expectLater
+  test/scenes/scene_condition_catalog_refresh_host_test.dart 189:11  main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                         _CustomZone.registerUnaryCallback
+  test/scenes/scene_condition_catalog_refresh_host_test.dart 25:21   main.<fn>
+  
+00:01 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation/apps/avelune_studio/test/scenes/scene_condition_catalog_refresh_host_test.dart: Commerce publication is visible to a fresh scene catalogue without changing cached Pokemon data

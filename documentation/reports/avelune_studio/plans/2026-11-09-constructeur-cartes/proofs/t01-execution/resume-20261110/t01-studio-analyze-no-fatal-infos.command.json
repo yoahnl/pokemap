@@ -1,0 +1,29 @@
+{
+  "command": [
+    "env",
+    "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+    "analyze",
+    "--no-pub",
+    "--no-fatal-infos"
+  ],
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "exitCode": 0,
+  "interrupted": false,
+  "durationSeconds": 9.234151840209961,
+  "ownedProcesses": {
+    "60718": {
+      "ppid": 60708,
+      "start": "Wed Nov 11 00:26:23 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --packages=/opt/homebrew/share/flutter-3.47.5/packages/flutter_tools/.dart_tool/package_config.json /opt/homebrew/share/flutter-3.47.5/bin/cache/flutter_tools.snapshot analyze --no-pub --no-fatal-infos"
+    },
+    "60771": {
+      "ppid": 60718,
+      "start": "Wed Nov 11 00:26:23 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart language-server --dart-sdk /opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk --disable-server-feature-completion --disable-server-feature-search"
+    }
+  },
+  "liveOwnedPids": [],
+  "log": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-studio-analyze-no-fatal-infos.log",
+  "tmp": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-5qqifurl"
+}

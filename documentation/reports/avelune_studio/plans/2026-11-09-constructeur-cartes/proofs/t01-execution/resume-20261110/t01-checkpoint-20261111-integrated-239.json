@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T10:26:08Z",
+  "status": "partial_not_accepted",
+  "scope": "Gel intermédiaire T01 : retrait de la barre Cinématiques et extraction de la collection des règles d’utilisation d’objets avant retrait des panneaux de carte.",
+  "gitHead": "3624e0493d81",
+  "runs": [
+    {
+      "cwd": "apps/avelune_studio",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub --concurrency=1 test/cinematics/cinematic_input_state_test.dart test/cinematics/cinematic_controller_ui10_test.dart test/cinematics/cinematic_inspector_ui10_test.dart test/cinematics/cinematic_published_guard_ui10_test.dart test/cinematics_ui10_error_recovery_test.dart test/cinematics/cinematic_animation_ui10_test.dart test/cinematics/retired_linked_dialogue_preview_test.dart test/cinematics/cinematic_timeline_gestures_ui10_test.dart test/cinematics_ui10_widget_test.dart test/cinematics_ui10_parity_viewport_test.dart test/cinematics/cinematic_projection_test.dart test/cinematics/cinematic_preview_transport_ui10_test.dart test/map_workspace/map_decor_order_context_test.dart test/map_workspace/map_decor_animation_panel_test.dart test/map_workspace/context_identity_test.dart test/map_workspace/context_menu_test.dart test/map_workspace/spatial_transport_retirement_test.dart test/map_workspace/decor_order_cross_context_repro_test.dart test/map_workspace/decor_order_e2e_test.dart test/map_workspace/context_menu_parity_test.dart test/map_workspace/moving_prop_authoring_test.dart test/map_workspace/decor_transform_host_test.dart test/map_workspace/workspace_publication_workflow_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/presentation/map_warp_door_inspector_test.dart test/presentation/map_warp_ladder_editor_test.dart test/presentation/map_warp_transition_editor_test.dart test/cinematics/cinematic_adapter_ui10_test.dart test/cinematics/cinematic_coexistence_ui10_test.dart test/cinematics/cinematic_independent_publication_ui10_test.dart test/map_workspace/entity_presentation_controls_test.dart test/map_workspace/healing_display_inspector_test.dart test/map_workspace/interactive_encounter_inspector_test.dart test/presentation/map_contextual_item_use_settings_test.dart test/presentation/map_escape_rope_settings_test.dart -r failures-only",
+      "environment": "TMPDIR et AVELUNE_QA_ROOT dans un sous-répertoire QA propre à ce run",
+      "exitCode": 0,
+      "output": "+239: All tests passed!",
+      "runnerPid": 86606,
+      "observedDescendantsAfterRun": [],
+      "note": "35 fichiers ; reprend et élargit la passe historique de 168 tests ; groupes non additionnables."
+    },
+    {
+      "cwd": "packages/map_authoring",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/dart test test/domains/maps/map_metadata_contextual_item_test.dart -r failures-only",
+      "exitCode": 0,
+      "output": "+9: All tests passed!",
+      "runnerPid": 88018,
+      "note": "Plan/apply puis relecture, 128 acceptées, 129 et doublons refusés sans altérer les octets ; ne prouve pas une réouverture dans un autre processus."
+    },
+    {
+      "cwd": "packages/map_authoring",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/dart analyze test/domains/maps/map_metadata_contextual_item_test.dart",
+      "exitCode": 0,
+      "output": "No issues found!"
+    },
+    {
+      "cwd": "apps/avelune_studio",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/dart --disable-dart-dev --packages=.dart_tool/package_config.json tools/t01_check_g0.dart --root ../.. --allowlist documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/t01-technical-exceptions.json",
+      "exitCode": 1,
+      "passed": false,
+      "counts": {
+        "inventoryEntries": 996,
+        "approvedExceptions": 12,
+        "reachableSources": 4387,
+        "studioSourcesInspected": 1972,
+        "violations": 1277
+      },
+      "violationKinds": {
+        "physical": 335,
+        "reachability": 701,
+        "historical_symbol": 241
+      },
+      "note": "Diagnostic antérieur aux retraits éventuels suivants ; catégories qui se recoupent, ce ne sont ni des fonctionnalités cassées ni un pourcentage."
+    },
+    {
+      "cwd": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes",
+      "command": "python3 -m unittest test_update_plan",
+      "exitCode": 0,
+      "output": "Ran 20 tests; OK"
+    },
+    {
+      "cwd": ".",
+      "command": "bash tools/scripts/check_markdown_hygiene.sh",
+      "exitCode": 0,
+      "output": "Markdown hygiene: no new Markdown files."
+    }
+  ],
+  "sourceHashes": {
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_page.dart": "a74df9539314b2ac11fa3b966b7ff963ca09514d2e47493e0fd14582b5e04fe4",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_commands.dart": "344e7cf23b8eea6928b06152d22d9509b97aa126a45f8127791624cf8aedcfd0",
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart": "401ecf97e80272acea10c843bec931d12dda4fe2c1259b838156e46fe8fe3587",
+    "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart": "24bcf3ae850d0df0cf7ec1bef4cd0685938a60585272d4d61bfedacc94901d82",
+    "apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart": "550a74cc6e14082f5ca781515e8fe0b54b45ddc54624dfa090c92b71013947b4",
+    "apps/avelune_studio/lib/features/map_workspace/application/map_metadata_settings_draft.dart": "225cf12658301a85152890ee142e50d04b71489c570bd74b2499728cf90fdcf0",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_contextual_item_use_settings.dart": "a194bb6d8aefeeaf3be0a552f8c4b0a31a34102f59951a7d51021f611261f0cc",
+    "apps/avelune_studio/test/presentation/map_contextual_item_use_settings_test.dart": "042f01a8001ef49b0b900a8adb4bb41bcc70f68ea092c92ab8082107543633d2",
+    "packages/map_authoring/test/domains/maps/map_metadata_contextual_item_test.dart": "0e5287435d7d4c076c19fee96b42d0af942cab52e53f4dc3ca8a1667df68fd78"
+  },
+  "removedUi": [
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_document_toolbar.dart"
+  ],
+  "independentReview": "Relecture distincte des cinématiques et du draft d’objets : aucun défaut concret restant détecté ; aucun test exécuté par le réviseur.",
+  "limits": [
+    "Les pages et autres panneaux historiques subsistent ; aucun lot T00/T01 ni G0 accepté.",
+    "Les deux dialogues historiques de paramètres de carte étaient encore présents à ce gel ; le draft est extrait mais leur retrait n’est pas couvert par ce checkpoint.",
+    "L’identité générée est unique pour la collection et les règles courantes de la carte, pas une garantie d’unicité historique entre sessions.",
+    "Une carte sale est sauvegardée avant la mutation des métadonnées dans deux opérations successives ; l’extraction ne garantit pas leur atomicité globale.",
+    "Un diagnostic indépendant existant est préservé ; le canal unique ne permet pas d’afficher simultanément un second message de réconciliation cinématique.",
+    "Aucune recette native Studio ni capture de fidélité à la maquette ne résulte de ces tests.",
+    "Le seul DTD détecté appartient à une autre application ; aucun hot reload de celle-ci."
+  ],
+  "mcpParity": "N/A"
+}

@@ -1,0 +1,12 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/presentation/resource_family_widgets_test.dart
+00:00 +0: context filter exposes an explicit usage context
+00:00 +1: context draft counts apply cancel reset tag and keyboard in a small window
+00:01 +2: context can be chosen and applied with keyboard traversal
+00:01 +3: components draft counts apply cancel reset and removable tag
+00:02 +4: character resources retain their authored animation preview
+00:02 +5: filter draft cancels applies resets and tags remove one filter
+00:02 +6: map filter uses availability without a competing usage selector
+00:03 +7: library families availability and details at Size(1536.0, 1024.0)
+00:04 +8: library families availability and details at Size(720.0, 620.0)
+00:05 +9: library families availability and details at Size(760.0, 480.0)
+00:06 +10: All tests passed!

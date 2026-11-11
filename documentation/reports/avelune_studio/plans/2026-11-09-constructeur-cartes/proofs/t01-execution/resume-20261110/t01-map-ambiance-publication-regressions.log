@@ -1,0 +1,5 @@
++0 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_ambiance_publication_contract_test.dart: map ambiance publishes cycle atmosphere and weather without an inspector and preserves another map draft [E]
+  Ouvrez la carte avant de régler son ambiance.
+  package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart 304:14  LocalMapWorkspaceAdapter.loadAtmosphere
+  
++13 -1: Some tests failed.

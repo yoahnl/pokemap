@@ -1,0 +1,9 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/map_decor_animation_panel_test.dart
+00:00 +0: decor properties and order retain animation data without the retired animation tab
+00:00 +1: idle image selects terminal frame with undo and native reopen
+00:00 +2: idle image normalizes durations and preserves speed mode and triggers
+00:00 +3: random departure clears a fixed waiting image
+00:00 +4: invalid speed and frame leave map and history intact
+00:00 +5: animation triggers retain indices of unrelated behaviors and survive JSON
+00:00 +6: missing selection does not mutate another placement
+00:00 +7: All tests passed!

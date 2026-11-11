@@ -1,0 +1,26 @@
+00:00 +0: loading test/ports/artifact_media_type_test.dart
+00:00 +0: stages ASCII and UTF-8 WebVTT with the native caption MIME
+00:00 +0 -1: stages ASCII and UTF-8 WebVTT with the native caption MIME [E]
+  Expected: 'text/vtt'
+    Actual: 'text/plain'
+     Which: is different.
+            Expected: text/vtt
+              Actual: text/plain
+                           ^
+             Differ at offset 5
+  
+  package:matcher                                expect
+  test/ports/artifact_media_type_test.dart 15:7  main.<fn>
+  
+00:00 +0 -1: ordinary text keeps its MIME and refuses a caption declaration
+00:00 +1 -1: invalid UTF-8 is not classified as captions and image bytes reject a caption MIME
+00:00 +2 -1: recognizes valid UTF-8 JSON objects and arrays without accepting malformed text
+00:00 +3 -1: sniffs every supported audio format from its signature
+00:00 +4 -1: distinguishes an H.264 MP4 video from an M4A audio container
+00:00 +5 -1: Some tests failed.
+
+Failing tests:
+  test/ports/artifact_media_type_test.dart: stages ASCII and UTF-8 WebVTT with the native caption MIME
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

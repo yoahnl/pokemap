@@ -1,0 +1,112 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "command": [
+    "flutter",
+    "test",
+    "--no-pub",
+    "--concurrency=1",
+    "--timeout=120s",
+    "-r",
+    "failures-only",
+    "test/map_workspace/spatial_platform_sessions_test.dart",
+    "test/map_workspace/spatial_platform_controls_test.dart",
+    "test/map_workspace/spatial_lift_controls_test.dart",
+    "test/presentation/model_collision_controls_test.dart",
+    "test/presentation/model_ramp_controls_test.dart",
+    "test/application/model_definition_lifecycle_test.dart",
+    "test/resource_io/model_resource_adapter_test.dart",
+    "test/resource_io/model_resource_workflow_test.dart",
+    "test/narrative/periodic_reward_selection_test.dart",
+    "test/events/event_condition_draft_test.dart",
+    "test/events/event_conditions_logic_test.dart",
+    "test/events_ui08_conditions_simulation_test.dart",
+    "test/presentation/ui08_event_journey_test.dart",
+    "test/scenes/periodic_reward_picker_test.dart",
+    "test/scenes/scene_linked_document_reader_contract_test.dart",
+    "test/dialogues/dialogue_working_source_contract_test.dart",
+    "test/cinematics/cinematic_preview_transport_ui10_test.dart",
+    "test/cinematics/cinematic_preview_media_ui10_test.dart",
+    "test/cinematics/cinematic_preview_reopen_journey_test.dart",
+    "test/presentations/presentation_controller_ui11_test.dart"
+  ],
+  "executable": "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+  "environment": {
+    "AVELUNE_QA_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "TMPDIR": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+  },
+  "exitCode": 0,
+  "passedCount": 89,
+  "failedCount": 0,
+  "durationSeconds": 72.2,
+  "runnerPid": 37131,
+  "observedOwnedPids": [
+    37131,
+    37182,
+    37190,
+    37200,
+    37205,
+    37328,
+    37332,
+    37374,
+    37442,
+    37520,
+    37689,
+    37757,
+    37762,
+    37765,
+    37774,
+    37924,
+    38449,
+    38454,
+    38458,
+    38496,
+    38504,
+    38508,
+    38519
+  ],
+  "liveDependencyFingerprint": {
+    "files": 428,
+    "before": "9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be",
+    "after": "9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be"
+  },
+  "isolatedChecks": [
+    {
+      "test": "test/map_workspace/spatial_transport_retirement_test.dart",
+      "exitCode": 0,
+      "passedCount": 2,
+      "runnerPid": 30230
+    },
+    {
+      "test": "test/resource_io/model_workshop_scope_test.dart",
+      "exitCode": 0,
+      "passedCount": 5,
+      "runnerPid": 30711
+    }
+  ],
+  "sourceSha256": {
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_inspector.dart": "0f842c69fc29b77c241d1e3d8ca0693a75cffe846b094680f042cbd75a419afd",
+    "apps/avelune_studio/test/map_workspace/spatial_transport_retirement_test.dart": "11c16fb9a0c7799c2a46381bcf692274fb4df46a3f4049aa429056b8de33fea8",
+    "apps/avelune_studio/lib/presentation/features/resources/model_resource_library.dart": "56b6191908cfc942287fb797c95fce53f569d5bfaaf97188003bf1c4bbca0ebb",
+    "apps/avelune_studio/test/resource_io/model_workshop_scope_test.dart": "4b96f01e3214d0d3b46b318cbb6231dba80be16ed1fc0aab9e380c965c2dbda3"
+  },
+  "relatedPlaybackChecks": [
+    {
+      "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_core",
+      "command": "dart test -j 1 -r expanded test/spatial_platform_contract_test.dart test/spatial_lift_contract_test.dart",
+      "exitCode": 0,
+      "passedCount": 5
+    },
+    {
+      "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_runtime",
+      "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r expanded test/spatial_platform_playback_test.dart test/spatial_lift_playback_test.dart",
+      "exitCode": 0,
+      "passedCount": 6,
+      "runnerPid": 41015
+    }
+  ],
+  "log": {
+    "path": "t01-transport-model-story-regressions.log",
+    "sha256": "fc8844d4888ce4700c0ce3246ce18a70f2faa9d6c388615a7881ddc1ce824b8b"
+  },
+  "limitation": "Selective QA copy, 20 test files checked against repository before the combined run; playback tests are not native visual acceptance."
+}

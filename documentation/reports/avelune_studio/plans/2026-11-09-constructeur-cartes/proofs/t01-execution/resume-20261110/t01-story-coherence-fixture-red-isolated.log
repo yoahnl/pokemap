@@ -1,0 +1,19 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/stories/story_coherence_contract_test.dart
+00:00 +0: a healthy story has no coherence entries
+00:00 +1: an unknown story keeps its diagnostic without fabricating navigation targets
+00:00 +2: a missing fact keeps its original diagnostic and exact edge and node targets
+00:00 +3: scene link diagnostics stay scoped and distinguish exact scene IDs from names and missing references
+00:00 +3 -1: scene link diagnostics stay scoped and distinguish exact scene IDs from names and missing references [E]
+  StorylineStep.sceneLinkIds contains duplicate id first
+  package:map_core/src/models/storyline_asset.dart 1282:7  _validateUniqueIds
+  package:map_core/src/models/storyline_asset.dart 1274:3  _immutableNonBlankUniqueStrings
+  package:map_core/src/models/storyline_asset.dart 435:24  new StorylineStep
+  test/stories/story_coherence_contract_test.dart 247:9    _story
+  test/stories/story_coherence_contract_test.dart 60:9     main.<fn>
+  
+00:00 +3 -1: a structured scenario diagnostic never opens a same-ID scene implicitly
+00:00 +4 -1: coherence reads current story and scene drafts without publishing or changing history
+00:00 +5 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/stories/story_coherence_contract_test.dart: scene link diagnostics stay scoped and distinguish exact scene IDs from names and missing references

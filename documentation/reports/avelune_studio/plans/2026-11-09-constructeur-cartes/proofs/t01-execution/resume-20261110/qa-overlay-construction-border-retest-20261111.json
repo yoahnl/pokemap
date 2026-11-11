@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-10T23:52:32.879682+00:00",
+  "parentOverlay": {
+    "path": "proofs/t01-execution/resume-20261110/qa-overlay-construction-border-20261111.json",
+    "sha256": "28df98b7bf2cfb6a0a309d9abb1763deb7b9fb326cab97bb2d9e8bb52732180f"
+  },
+  "scope": "Test-only deltas following independently reproduced host failures; earlier receipts retain their original source versions.",
+  "currentFiles": [
+    {
+      "path": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+      "sha256": "ae0842fb4eb060343c2d4d7da4ec8ce98bae6d65d9577c58f0803a9451f365c3",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/environment_authoring_host_test.dart",
+      "sha256": "f75113d2eefde644e1690b90608cc1639f28ed2ed9a2421fc07db15e78b52c12",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/resource_family_widgets_test.dart",
+      "sha256": "abeb24eaa3446c2379a00259fff4389cf0ea3694768c5f5d2481f78b8c0d0277",
+      "matchesWorkspaceAtCapture": true
+    }
+  ],
+  "limitations": [
+    "QA copy remains selectively synchronized; concurrent Scene changes are excluded.",
+    "This snapshot alone is not evidence of native visual or G0 acceptance."
+  ]
+}
+

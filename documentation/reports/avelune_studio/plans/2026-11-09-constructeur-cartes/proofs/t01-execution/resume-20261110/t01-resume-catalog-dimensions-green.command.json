@@ -1,0 +1,30 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+    "test",
+    "--concurrency=1",
+    "--timeout=90s",
+    "-r",
+    "expanded",
+    "test/narrative_event_partial_catalog_authoring_test.dart"
+  ],
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_core",
+  "exitCode": 0,
+  "interrupted": false,
+  "durationSeconds": 2.332267999649048,
+  "ownedProcesses": {
+    "98571": {
+      "ppid": 98569,
+      "start": "Tue Nov 10 23:19:48 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --mark_main_isolate_as_system_isolate --packages=.dart_tool/package_config.json .dart_tool/pub/bin/test/test.dart-3.13.4.snapshot --concurrency=1 --timeout=90s -r expanded test/narrative_event_partial_catalog_authoring_test.dart"
+    },
+    "98598": {
+      "ppid": 98571,
+      "start": "Tue Nov 10 23:19:48 2026",
+      "command": "(dartaotruntime)"
+    }
+  },
+  "liveOwnedPids": [],
+  "log": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-resume-catalog-dimensions-green.log",
+  "tmp": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/resume-check-tmp-dg6u2jog"
+}

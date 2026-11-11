@@ -1,0 +1,32 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+    "test",
+    "--concurrency=1",
+    "--timeout=120s",
+    "-r",
+    "failures-only",
+    "test/domains/narrative/scene_dialogue_choice_policy_actions_test.dart",
+    "test/domains/narrative/scene_dialogue_line_feedback_actions_test.dart",
+    "test/workspace/native_workshop_snapshot_test.dart",
+    "test/domains/narrative/narrative_entity_bump_transport_test.dart"
+  ],
+  "exitCode": 0,
+  "interrupted": false,
+  "durationSeconds": 6.50878381729126,
+  "ownedProcesses": {
+    "80142": {
+      "ppid": 80138,
+      "start": "Tue Nov 10 14:17:31 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --mark_main_isolate_as_system_isolate --packages=.dart_tool/package_config.json .dart_tool/pub/bin/test/test.dart-3.13.4.snapshot --concurrency=1 --timeout=120s -r failures-only test/domains/narrative/scene_dialogue_choice_policy_actions_test.dart test/domains/narrative/scene_dialogue_line_feedback_actions_test.dart test/workspace/native_workshop_snapshot_test.dart test/domains/narrative/narrative_entity_bump_transport_test.dart"
+    },
+    "80146": {
+      "ppid": 80142,
+      "start": "Tue Nov 10 14:17:31 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-1scllxi9/dart_test.kernel.f0TCrF/output.dill --packages=/Users/karim/Project/pokemonProject/packages/map_authoring/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    }
+  },
+  "liveOwnedPids": [],
+  "log": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-resume-dialogue-actions-parity-green.log",
+  "tmp": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-1scllxi9"
+}

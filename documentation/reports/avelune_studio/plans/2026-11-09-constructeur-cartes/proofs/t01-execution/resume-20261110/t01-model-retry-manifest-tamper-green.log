@@ -1,0 +1,12 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/workspace_catalog_model_replacement_test.dart
+00:00 +0: a replacement publishes the native model receipt and preserves its map
+00:01 +1: retry reconciles a published manifest model receipt without repeating the picker or mutation, same inspection=false
+00:01 +2: retry reconciles a published manifest model receipt without repeating the picker or mutation, same inspection=true
+00:02 +3: a manifest model retry refuses a tampered published source without replaying or rewriting files
+00:02 +4: a published receipt refuses a same-name model backed by the same original bytes
+00:03 +5: a pending receipt for another model is preserved and blocks the replacement
+00:03 +6: a cancelled native picker returns false without altering project files
+00:04 +7: unavailable and busy owners refuse before invoking a replacement
+00:04 +8: a model read failure propagates the source error while preserving project data
+00:04 +9: a late result stays bound to its initial resource owner after rebinding
+00:05 +10: All tests passed!

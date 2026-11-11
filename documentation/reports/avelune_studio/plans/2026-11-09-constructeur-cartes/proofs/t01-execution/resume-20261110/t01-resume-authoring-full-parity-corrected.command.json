@@ -1,0 +1,39 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+    "test",
+    "--concurrency=1",
+    "--timeout=120s",
+    "-r",
+    "failures-only",
+    "test/parity/full_authoring_parity_test.dart"
+  ],
+  "exitCode": 0,
+  "interrupted": false,
+  "durationSeconds": 28.32182812690735,
+  "ownedProcesses": {
+    "77766": {
+      "ppid": 77765,
+      "start": "Tue Nov 10 14:14:50 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --mark_main_isolate_as_system_isolate --packages=.dart_tool/package_config.json .dart_tool/pub/bin/test/test.dart-3.13.4.snapshot --concurrency=1 --timeout=120s -r failures-only test/parity/full_authoring_parity_test.dart"
+    },
+    "77769": {
+      "ppid": 77766,
+      "start": "Tue Nov 10 14:14:50 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-d7o8frkt/dart_test.kernel.A4wQN8/output.dill --packages=/Users/karim/Project/pokemonProject/packages/map_authoring/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    },
+    "77800": {
+      "ppid": 77766,
+      "start": "Tue Nov 10 14:14:52 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart tool/pmcp085_conformance.dart --transport-receipts /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-d7o8frkt/pmcp-item-receipts-u2tEkp/receipts.json"
+    },
+    "78022": {
+      "ppid": 77766,
+      "start": "Tue Nov 10 14:15:03 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart tool/pmcp085_conformance.dart"
+    }
+  },
+  "liveOwnedPids": [],
+  "log": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-resume-authoring-full-parity-corrected.log",
+  "tmp": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-d7o8frkt"
+}

@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "kind": "t01SceneSharedUiClosureDelta",
+  "createdAtUtc": "2026-11-11T00:31:48.085701+00:00",
+  "repository": "/Users/karim/Project/pokemonProject",
+  "gitHead": "468d1d62af188568da578a020c8081fed1c82997",
+  "scope": "Only closure of final 3 historical Scene shared UI files and their actual consumers. Previous 56-path closure is not re-exported.",
+  "counts": {
+    "paths": 12,
+    "modified": 7,
+    "added": 2,
+    "deleted": 3,
+    "unchangedOwners": 43
+  },
+  "paths": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_preview_status.dart",
+      "action": "modified",
+      "beforeSha256OrAbsent": "a80df5d819c6c238ce082be21badf4d5122a0b6182964a63ffe3d5a4f57874e5",
+      "currentSha256OrAbsent": "f671caabdb91243845ea11006cde26d5b77e4c2c3ac983b88563c3619ebe9251",
+      "gitStatusBefore": ""
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/events/event_condition_dialog.dart",
+      "action": "modified",
+      "beforeSha256OrAbsent": "323349ea23d268fae6a20b4be24aaa5b9b07a65b8e03d63d2ec022211dc5c06a",
+      "currentSha256OrAbsent": "6a4a51b8524077771ed65e87641edf56e0d54962786cf7bda0b3a82ad1d640e4",
+      "gitStatusBefore": ""
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/events/event_conditions.dart",
+      "action": "modified",
+      "beforeSha256OrAbsent": "a299bf37b903b9819b6772093ab0607ed8693a9eb92d7f813cc90ce1ffaa5084",
+      "currentSha256OrAbsent": "c9b5912463d41ca24cd08672871a210af75b27f68492f116b41372cc35962c54",
+      "gitStatusBefore": ""
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "action": "modified",
+      "beforeSha256OrAbsent": "977e2e488d8c45834b9da104c03af60f8a1bd22c7e638cf62e94fcc39456f0fc",
+      "currentSha256OrAbsent": "26023c1b0f4986a5e1f40eedd0758e4ada32a3a1c85dd5c1db37966ddad9ff37",
+      "gitStatusBefore": "M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/periodic_reward_picker.dart",
+      "action": "deleted",
+      "beforeSha256OrAbsent": "3fe6d35fe69c66d57fb2e08eca17b82252b380dc88f9ac1e19941a05b34c8307",
+      "currentSha256OrAbsent": "ABSENT",
+      "gitStatusBefore": ""
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_linked_cinematic.dart",
+      "action": "deleted",
+      "beforeSha256OrAbsent": "60eac4d15906fbbfc7909c5824fc70ab69a70e18895edb4dc8458fe8d37a3fba",
+      "currentSha256OrAbsent": "ABSENT",
+      "gitStatusBefore": ""
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_linked_document.dart",
+      "action": "deleted",
+      "beforeSha256OrAbsent": "bda92a17c5a3f6ae4bae53480ef068254face73be67acd476fade2df5170afee",
+      "currentSha256OrAbsent": "ABSENT",
+      "gitStatusBefore": ""
+    },
+    {
+      "path": "apps/avelune_studio/test/cinematics/dialogue_working_source_ui10_test.dart",
+      "action": "modified",
+      "beforeSha256OrAbsent": "d566d00e3ca794a0aa6f1804039b728becf420660d54ff86a610e38094557875",
+      "currentSha256OrAbsent": "a08b961e81d94369d27e271971a71c40bbe99d8362a7e9f684848038a70ddb1a",
+      "gitStatusBefore": ""
+    },
+    {
+      "path": "apps/avelune_studio/test/cinematics/retired_linked_dialogue_preview_test.dart",
+      "action": "added",
+      "beforeSha256OrAbsent": "ABSENT",
+      "currentSha256OrAbsent": "31385b4d111c61b9317f4dbc009ee41fa751630fc5445880090358466d138943",
+      "gitStatusBefore": ""
+    },
+    {
+      "path": "apps/avelune_studio/test/events/retired_daily_condition_ui_test.dart",
+      "action": "added",
+      "beforeSha256OrAbsent": "ABSENT",
+      "currentSha256OrAbsent": "968037db3a7dbf3fdfc0d392111ce559c96ddad4a3bbe2839d117c6f4d32d84c",
+      "gitStatusBefore": ""
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui06_scene_inspector_test.dart",
+      "action": "modified",
+      "beforeSha256OrAbsent": "11bc316eed7942e4b12f4213b05e89e7fb19f7f0d88c75f4c06ea567485f1f0c",
+      "currentSha256OrAbsent": "8c6470afc740cd8c23d794bc1573a8c7e1d3e96f1a95763c1c9872f345cc960b",
+      "gitStatusBefore": "M apps/avelune_studio/test/presentation/ui06_scene_inspector_test.dart"
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart",
+      "action": "modified",
+      "beforeSha256OrAbsent": "ca5d4b57f0e026167b0169ac1d338c6886f70dc0682ef104b09f2552ce2b087f",
+      "currentSha256OrAbsent": "4cc87280ae355a23dea3ab6024eba0ef69fe7f8b6d8786369f089e249ac97538",
+      "gitStatusBefore": "M apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart"
+    }
+  ],
+  "unchangedOwners": [
+    {
+      "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+      "sha256": "08fae2276d7a58159a9a3384137764e511e2c0516973eb94b6587283ab05c25c",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/dialogues/application/dialogue_working_source.dart",
+      "sha256": "8c42aa6d6ec203a1cfd807d2025cd133b4a5c4f13ba0ee10a08f8ef460072745",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/events/application/event_condition_draft.dart",
+      "sha256": "476d894a855cb63cc31ee2f169c21199e2221ae7bdd83f923af4fad902e5d959",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_diagnostics.dart",
+      "sha256": "976f5929ff7a7a9ae6af2cc0ad9d2e05de2151e5618e717e4d58aa74669b11ad",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_event_source.dart",
+      "sha256": "c1f511e3dc867792765c9c351decd17de30698c540d4f7bf07ee15621d6adbaf",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_interactions.dart",
+      "sha256": "3bd9a0e831e01f72509f5e86bfad29619b6740f8713b1e232686dbdd06c79cf7",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_presentations.dart",
+      "sha256": "9ec9bed93b3579e2e38806235e3b66e51f319d6613df3cac0ee883e9b0cd4a5f",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_resources.dart",
+      "sha256": "d7c187da8bcd55c6a55aac3c49111586e71ae0cdfdd47123f1573404d040a20b",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_session.dart",
+      "sha256": "c5ce3a469d38ee0f32a7458d772d9150ede5b217245e17a1ede92431d0c7d21e",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow.dart",
+      "sha256": "4db5b8d4e71071aeac932f330467e10c738125142f9e66034901f70aca10bca5",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow_close.dart",
+      "sha256": "85c404064f530a7f1da88017a063cc6e36194dbd0cc571551db23572cd866485",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/narrative_workspace_controller.dart",
+      "sha256": "09e2796da2f74674648fdd20683ef0bc7322ab93755bf6374312f512a10f72bf",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/application/periodic_reward_selection.dart",
+      "sha256": "802dde44b01d455fb9fe2ead10b045b62e8d7516b8fe33956748cbe662f88b2a",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/narrative/data/local_periodic_reward_choice_adapter.dart",
+      "sha256": "b5c675c56643c53b3063535b46bcc08447cedb6f38784bbdc45c9185e27ba80e",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_controller.dart",
+      "sha256": "324b5200d0d60aa3dbd2f629eab8b215f1915c314cf5bb60f030c263e17b9c3d",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_editing.dart",
+      "sha256": "21010fc42a09d966a6bacba3edc9d24e8a037a2cbbef0a7ba336116e799f5aef",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_library.dart",
+      "sha256": "b028f15a4b5788f4f1fbd07cd75264455f01f0687b94094ebc773840360bf19c",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_publication.dart",
+      "sha256": "2ef556cd9eb2240549d6537b1215c4f09e12620a0a6cc23e6d498a8e52b1d874",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_references.dart",
+      "sha256": "731b60a882b4d8a0a7b03e84f3eecf46f17dca4032c6e436d8a5ed22a2d689b9",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_action_draft.dart",
+      "sha256": "dd63312bd7abd1b957b8d9ea7cda3ec9e14dd3cdfbf4a93dc0c298c692c67829",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_action_payload.dart",
+      "sha256": "f3c00b2867b34dcb3677b1bf59879d18e62744e058d9e2b6cfd02bafb26419e1",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_action_references.dart",
+      "sha256": "218eba85524870b1ce396921c7ec282f2ea31fc4004a6db4e622fd954abf2f8a",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_actor_action_draft.dart",
+      "sha256": "522426056501fd4c030749980e06925eb3edd66824f4cb60362ebc56f528e337",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_battle_demonstration_draft.dart",
+      "sha256": "50a71b916424c06ff793cf1cb37afb9cab816c18d5ef5513e16e42ba8f4050b8",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_builder_editing_state.dart",
+      "sha256": "690aefd86e45dbdd3c9f781daa8af6f127fe3c60fc80a2a7c458dae02938bbfa",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_condition_draft.dart",
+      "sha256": "b5516d5761cb64e701d70cdad9b2e67c08cae135ee173c830448c3aee55dd5cf",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_dialogue_choice_policy_draft.dart",
+      "sha256": "987c607928dbe1af4fa849e452bf149c6d388fe5fb2877db5ee4f20890e53b97",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_dialogue_line_policy_draft.dart",
+      "sha256": "b5102849bb1e89acbdcf730fae6c0881e24efe2d68896f3e729f820969884390",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_dialogue_results.dart",
+      "sha256": "00c673e871049a2c7ebe4b3496d98f47e079b1e9a27bae59b5d30885bdc2a9ca",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart",
+      "sha256": "d90d785451ffe823b51b225355b20baca934b997290bcf9715375af9ac4308cf",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_image_puzzle_draft.dart",
+      "sha256": "a3afd9f65b64fa6224a50ffb0eb5bbdecdc0971e79d8d11a9b0a3b5a8ccd8f85",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_integer_authoring_fields.dart",
+      "sha256": "d5833b216d95c1315bdd220f33b37b7c8723fb7b7f610f85a68371dc0863a91a",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_integer_condition_draft.dart",
+      "sha256": "2d4e5bcb8d22f720b30935ab8aaee3248ceba41e1caf2cedde7e9e7864a68dc2",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_linked_document_reader.dart",
+      "sha256": "18dbdb66d90c36ffa9cd2f909940c622b5da8569038df301a4828f26bf65a1e1",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_node_search.dart",
+      "sha256": "a7be2e4a2e5678982bb6b139dd5bc4b8d5df97a0de45fcd75c45fffab2281ff7",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_npc_pose_draft.dart",
+      "sha256": "7d2d52c89155fa062766349598d07282006fdc1e834bd878faf07c0e54e02d3e",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_pokemon_gift_moves_draft.dart",
+      "sha256": "6317f549993be29d5695313c83aa087f8ad25a4e10e1ddd7a880446978f5c660",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_readable_summary.dart",
+      "sha256": "48354fd55ec44fc7241a309d2ab60f10632f61df65684d9332deabb85d3c1d32",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_workspace_controller.dart",
+      "sha256": "918eef33c56f2cdb1c9c7ca3264c47b832e0dcc210168bb4bc8cd866aea52b10",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_world_visual_draft.dart",
+      "sha256": "d5becbaa8f6b3456f37ef5dfcb25a00600425ab503a8847e3da36a853cc100bc",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/data/local_scene_adapter.dart",
+      "sha256": "891dd3cf01e9f3746cd456a0bcbb794104e173b9c4467cf1d3c955dff9a6110d",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/domain/scene_port.dart",
+      "sha256": "cc7719bb20aae06daf5bea6c62f8447541dcd1f61eb8a7b3718d39b8f2bdaa15",
+      "matches_HEAD": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/domain/scene_presentation_creation_request.dart",
+      "sha256": "39e4f812887e1e5c64a3f608ed9100421a32f1b02a63d4507615ddf5549e9c4e",
+      "matches_HEAD": true
+    }
+  ],
+  "preexistingOverlaps": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "action": "modified",
+      "beforeSha256OrAbsent": "977e2e488d8c45834b9da104c03af60f8a1bd22c7e638cf62e94fcc39456f0fc",
+      "currentSha256OrAbsent": "26023c1b0f4986a5e1f40eedd0758e4ada32a3a1c85dd5c1db37966ddad9ff37",
+      "gitStatusBefore": "M apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart"
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui06_scene_inspector_test.dart",
+      "action": "modified",
+      "beforeSha256OrAbsent": "11bc316eed7942e4b12f4213b05e89e7fb19f7f0d88c75f4c06ea567485f1f0c",
+      "currentSha256OrAbsent": "8c6470afc740cd8c23d794bc1573a8c7e1d3e96f1a95763c1c9872f345cc960b",
+      "gitStatusBefore": "M apps/avelune_studio/test/presentation/ui06_scene_inspector_test.dart"
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart",
+      "action": "modified",
+      "beforeSha256OrAbsent": "ca5d4b57f0e026167b0169ac1d338c6886f70dc0682ef104b09f2552ce2b087f",
+      "currentSha256OrAbsent": "4cc87280ae355a23dea3ab6024eba0ef69fe7f8b6d8786369f089e249ac97538",
+      "gitStatusBefore": "M apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart"
+    }
+  ],
+  "syncSafety": {
+    "qaSourceCopyTouched": false,
+    "blindOverwriteAllowed": false,
+    "rule": "Each before hash is the actual content captured before this closure. Compare QA baseline first; reconcile rather than overwrite when hashes differ. MapWorkspaceScreen and two migrated tests had previous changes, all retained."
+  },
+  "behavior": {
+    "dailyConditionUi": "Editing disabled; direct chooseEventCondition returns null before constructing a dialog; daily creation choice removed; no reward query scope or callback remains in presentation.",
+    "linkedDialogueUi": "External linked text projection removed from CinematicPreviewStatus; inline dialogueText preserved; no replacement fallback.",
+    "ownersAndFallback": "No owner, draft codec, model, runtime, transport or PresentationWorkspaceController.assetFor fallback modified."
+  },
+  "testMigrations": {
+    "ui06_scene_inspector_test": "Retarget case retained. Exact linked reading, one read, cached compiled document, missing/exact starts and zero writes moved to SceneLinkedDocumentReader. Old cinematic visual-label case retired.",
+    "ui11_scene_presentation_binding_test": "Typed request case retained. Old preview-only callback no-fallback policy retired with its UI. New actual owner test keeps working draft precedence and existing catalogue fallback with unchanged manifest bytes.",
+    "dialogue_working_source_ui10_test": "Real dirty simplified draft wins against clean full editor snapshot, compilation and original disk bytes retained via SceneLinkedDocumentReader."
+  },
+  "validation": {
+    "dartAnalyze": {
+      "command": "dart analyze lib test",
+      "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 0,
+      "infosOutsideScope": 7
+    },
+    "gitDiffCheckExitCode": 0,
+    "historicalSymbolScanMatches": 0,
+    "scenePresentationDartFilesRemaining": 0,
+    "flutterRunnerStarted": false,
+    "behavioralTests": "Not run here; central parent QA required."
+  },
+  "centralTests": [
+    "test/events/retired_daily_condition_ui_test.dart",
+    "test/cinematics/retired_linked_dialogue_preview_test.dart",
+    "test/presentation/ui06_scene_inspector_test.dart",
+    "test/presentation/ui11_scene_presentation_binding_test.dart",
+    "test/cinematics/dialogue_working_source_ui10_test.dart",
+    "test/narrative/periodic_reward_selection_test.dart",
+    "test/events/event_condition_draft_test.dart",
+    "test/events/event_conditions_logic_test.dart",
+    "test/events_ui08_conditions_simulation_test.dart",
+    "test/presentation/ui08_event_journey_test.dart",
+    "test/scenes/periodic_reward_picker_test.dart",
+    "test/scenes/scene_linked_document_reader_contract_test.dart",
+    "test/dialogues/dialogue_working_source_contract_test.dart",
+    "test/cinematics/cinematic_preview_transport_ui10_test.dart",
+    "test/cinematics/cinematic_preview_media_ui10_test.dart",
+    "test/cinematics/cinematic_preview_reopen_journey_test.dart",
+    "test/presentations/presentation_controller_ui11_test.dart"
+  ],
+  "limits": [
+    "Global G0 and behavioral acceptance remain central tasks; empty Scene presentation folder is source evidence only.",
+    "Daily widget test proves no mutation callback and exact reference/predicate/group preservation; absence of daily query is additionally proven by deleting its only presentation query wiring, rather than an injected dummy query counter.",
+    "No UI moved into another folder and no new runtime capability or restriction introduced."
+  ],
+  "mcpParity": "N/A"
+}

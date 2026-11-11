@@ -1,0 +1,87 @@
+{
+  "scope": "T01 temporary scoped recovery after historical project settings retirement",
+  "status": "frozen for centralized QA; no behavioral execution in this agent",
+  "previousFreeze": "t01-project-settings-retirement-freeze.json",
+  "changes": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "change": "modified",
+      "beforeSha256": "10893f934ec08fe1b801c0c6520500e3ca0aac2404b6691c51f8a3e944193994",
+      "afterSha256": "a21d145a1e8247765dbd07ba8bc916912820fce04769cdb63709886ce65a9279"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart",
+      "change": "modified",
+      "beforeSha256": "6d8ffe2a03903e50f45cf99d3ee4c70a0aa5836098e4b808d02f5f623c70ce77",
+      "afterSha256": "edd8bdf3734d0f7b06e6c1cf8cab7ce046280ac287072fe671b474a6a027e9cb"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/project_settings_recovery_pane.dart",
+      "change": "added",
+      "beforeSha256": null,
+      "afterSha256": "3e82195128fe8d89c43bdaef7760be410d7f7878c0dc0697e86ea75396fece65"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_settings_recovery_binding.dart",
+      "change": "added",
+      "beforeSha256": null,
+      "afterSha256": "ba0e45b15e5c7d8ffc1078ac29a21b1bee3402e528d9fab1e0764a366b1e057c"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart",
+      "change": "modified",
+      "beforeSha256": "57a46e5e719266e0180614626e32e02d9a8dbda0be1575bc085986568447f9c9",
+      "afterSha256": "68154018fdd5698823876fea11c0eaae0414e29cbfe304e651037b4a4a0ebceb"
+    }
+  ],
+  "actions": [
+    "discard scoped Image or Time/Weather through VisualSettingsDraft.discardWhere per project/map owner",
+    "discard CS and Surf together as the existing canonical Field Abilities section",
+    "discard Sounds through its existing owner",
+    "discard General through the shared identity owner",
+    "resolve an identity conflict by explicit consent to reloadExternal after displaying stored and local metadata"
+  ],
+  "guards": [
+    "only owners already created by WorkspaceSessionControllers and already open map weather drafts are considered",
+    "each button identifies one section and its project or map scope",
+    "all recovery requires a cancellable confirmation",
+    "owner notifications or changed target availability during confirmation refuse recovery",
+    "operations in progress disable recovery",
+    "no save, global reload or new owner initialization",
+    "a visual document error without a dirty or invalid section exposes a disabled action and a diagnostic; no unsafe document-wide recovery is attempted"
+  ],
+  "tests": {
+    "path": "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart",
+    "casesAuthored": 6,
+    "newWitnesses": [
+      "cancelled targeted discard preserves invalid input",
+      "owner change during confirmation refuses discard",
+      "image recovery leaves weather draft, weather invalid input and map history unchanged",
+      "invalid identity recovery preserves the same owner and restores persisted metadata without a write",
+      "typed identity conflict displays both versions, preserves local draft on cancellation and calls reloadExternal only after consent",
+      "actual screen exit/export preparation and typed diagnostic return routes remain covered"
+    ],
+    "execution": "not run; centralized QA owner",
+    "storageTier": "memory ports; no disk or game package production proof"
+  },
+  "verification": {
+    "dartFormatParse": "exit 0 for five Dart files; existing screen formatting deliberately retained",
+    "gitDiffCheck": "exit 0",
+    "oldWidgetReferences": "rg no matches across apps packages examples",
+    "screenDelta": "inverse of the import and part additions reconstructs exactly the source captured at recovery-task start",
+    "visualController": "not edited by this agent; source changed concurrently by its owning agent",
+    "protectedVisualControllerObservedSha256": "8c25873f53bebaea3aea0c7a0d5a890a1d7952ca4e2b49a0ae4d88aa084a834d",
+    "analyzer": "not run",
+    "native": "not run",
+    "gitWrites": "none"
+  },
+  "excluded": [
+    "all cinematic controllers, transports and draft owners",
+    "SpatialVisualControls",
+    "project_visuals_controller.dart and its tests",
+    "previous freeze manifest and centralized QA artifacts"
+  ],
+  "mcpParity": "N/A; presentation recovery only; canonical authoring contracts unchanged",
+  "ownedProcesses": [],
+  "ownedDisposableArtifacts": []
+}

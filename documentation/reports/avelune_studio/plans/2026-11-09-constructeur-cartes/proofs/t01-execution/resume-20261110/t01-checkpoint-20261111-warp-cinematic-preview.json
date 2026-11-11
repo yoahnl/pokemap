@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T09:31:14Z",
+  "scope": "T01 warp subpanel and cinematic preview UI retirement",
+  "status": "partial_not_accepted",
+  "runs": [
+    {
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub --concurrency=1 test/cinematics/cinematic_input_state_test.dart test/cinematics/cinematic_controller_ui10_test.dart test/cinematics/cinematic_inspector_ui10_test.dart test/cinematics/cinematic_published_guard_ui10_test.dart test/cinematics_ui10_error_recovery_test.dart test/cinematics/cinematic_animation_ui10_test.dart test/cinematics/retired_linked_dialogue_preview_test.dart test/cinematics/cinematic_timeline_gestures_ui10_test.dart test/cinematics_ui10_widget_test.dart test/cinematics_ui10_parity_viewport_test.dart test/cinematics/cinematic_projection_test.dart test/cinematics/cinematic_preview_transport_ui10_test.dart test/map_workspace/map_decor_order_context_test.dart test/map_workspace/map_decor_animation_panel_test.dart test/map_workspace/context_identity_test.dart test/map_workspace/context_menu_test.dart test/map_workspace/spatial_transport_retirement_test.dart test/map_workspace/decor_order_cross_context_repro_test.dart test/map_workspace/decor_order_e2e_test.dart test/map_workspace/context_menu_parity_test.dart test/map_workspace/moving_prop_authoring_test.dart test/map_workspace/decor_transform_host_test.dart test/map_workspace/workspace_publication_workflow_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/presentation/map_warp_door_inspector_test.dart test/presentation/map_warp_ladder_editor_test.dart test/presentation/map_warp_transition_editor_test.dart -r failures-only",
+      "cwd": "apps/avelune_studio",
+      "environment": "TMPDIR and AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+      "exitCode": 0,
+      "output": "+168: All tests passed!",
+      "runnerPid": 45758,
+      "liveOwnedProcessesAfterRun": [],
+      "note": "Integrated flutter_tester run; overlaps previous groups."
+    },
+    {
+      "command": "flutter analyze --no-pub",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 1,
+      "output": "Six informational lints in unchanged files; no error or warning reported."
+    },
+    {
+      "command": "flutter analyze --no-pub --no-fatal-infos",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 0,
+      "output": "The same six informational lints remain."
+    },
+    {
+      "command": "dart --disable-dart-dev --packages=<Studio package_config> tools/t01_check_g0.dart --root <checkout> --inventory <canonical inventory> --allowlist <canonical exceptions>",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 1,
+      "passed": false,
+      "counts": {"inventoryEntries": 996, "approvedExceptions": 12, "reachableSources": 4391, "studioSourcesInspected": 1976, "violations": 1289},
+      "violationKinds": {"physical": 339, "reachability": 709, "historical_symbol": 241},
+      "roots": 978,
+      "contexts": ["studio", "pokemap_hub", "unys_3d_sources"],
+      "note": "Diagnostic summary only; categories overlap. G0 is not accepted."
+    }
+  ],
+  "sourceHashes": {
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_warp_inspector.dart": "f8fdf7b8bf609354b834fca7535d33b4881898375d7378f768b896fdbc4cccf2",
+    "apps/avelune_studio/lib/features/map_workspace/application/map_warp_drafts.dart": "ab033012f1b891afdf2461d7c77b6eb084a3d4268791831a1a1ad9f9265a7939",
+    "apps/avelune_studio/lib/features/map_workspace/application/warp_editing_commands.dart": "9d2898918a7d6d12477ff48501bd3be0a22a0264a362eb25c992a620dff4303d",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_page.dart": "38c2eeece2e426b1077f33f9143859498ad2fd9231968fcde7c6e99f1be432b5",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_editor.dart": "70c7797f6f31a278afbb32536d06a91aa64083be74af6720c9cd1230e959b35f",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_timeline.dart": "fe7a4f6a13f1d32ec9099cd32f8cb348b381f704255e6a19a523130556d584c4",
+    "apps/avelune_studio/test/cinematics/retired_linked_dialogue_preview_test.dart": "4888ed7b700d56c94a9cdb9d0712861c7a88ac375a71209345353084dfba938e",
+    "apps/avelune_studio/test/cinematics_ui10_widget_test.dart": "f02878e6c64fb497de76b145e34aea84ec20df071fe624235bb41c0c3f06475a",
+    "apps/avelune_studio/test/cinematics_ui10_parity_viewport_test.dart": "2ad090ad749656f0902881a3b54d8f9685844c7d2bd897453a17ed1231277766",
+    "apps/avelune_studio/test/cinematics/cinematic_timeline_gestures_ui10_test.dart": "3283e879748c2d80b6a52bc2b952968d746e07b8fe589cae1af820919ff91d3e"
+  },
+  "removedUi": [
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_warp_door_editor.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_warp_ladder_editor.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_warp_transition_editor.dart",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_preview_status.dart",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_transport_bar.dart"
+  ],
+  "independentReview": "Separate read-only reviews reconstructed the pre-removal source hashes and found no concrete loss in the scoped warp and cinematic transport owners or retained tests.",
+  "limits": [
+    "The main warp inspector and Cinematics page still exist and have not been accepted as retired.",
+    "Removed visual controls, including cinematic stop, timeline zoom and diagnostic navigation, have no replacement UI until later work.",
+    "The current checkpoint proves targeted Flutter/widget and persistence scenarios, not native Studio interaction, complete export, Player acceptance, visual mockup fidelity or latency budget.",
+    "The browser security policy blocked a new screenshot of the local artifact; existing captures remain available.",
+    "No matching live Studio Dart Tooling Daemon was found; no hot reload was performed."
+  ]
+}

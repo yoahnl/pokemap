@@ -1,0 +1,387 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-11",
+  "scope": "T01 Resources environment UI retirement",
+  "proofTier": "source_freeze_not_runtime_acceptance",
+  "status": "implementation_frozen_central_qa_pending",
+  "g0Accepted": false,
+  "t01Accepted": false,
+  "gitWrites": false,
+  "beforeAfter": {
+    "changed": [
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart",
+        "before": "2d0de581453cf0152f5fb9dcd0335ab0c3a557ca5937dc1e7aecdb35295fd6e1",
+        "after": "af93e4eab6c82e08e3a7b86995b66e194767358b03387cfea41778d15c63f561"
+      },
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+        "before": "09bc19ee90a5ca600b53f98f87c46fb6d0aa2fb0c797ca073f75a504a818fb76",
+        "after": "b44afc63adcd5a7e293baec605aa768df73d1e855c99145909d5b1d03c30f76d"
+      },
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart",
+        "before": "474893122f618c9a1b6df8e68977029ef64ed754b2b08824caf478977e2a51ac",
+        "after": "7c84c6912353ab2e921f7883d47ceef72411721fc587a2e193183ee61e6d15a4"
+      },
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_actions.dart",
+        "before": "333226bee23a27c41d3870d3c00c48967205cfd358ff3309332ad810503b8be7",
+        "after": "894e5959583a34a69f126d2fcb785a2f32b7401ea0f2f07e3e1a1d0010067480"
+      },
+      {
+        "path": "apps/avelune_studio/test/resource_io/environment_scope_test.dart",
+        "before": "1d5a6a3b05b3a1ef8655d166624707b3acf1dfb712a577786d79723aaa78b498",
+        "after": "e284761df58435b6f3b4fd21e9d06d27d7b5a779a5b5aa48407c852c1c068591"
+      },
+      {
+        "path": "apps/avelune_studio/test/resource_io/environment_authoring_host_test.dart",
+        "before": "f75113d2eefde644e1690b90608cc1639f28ed2ed9a2421fc07db15e78b52c12",
+        "after": "583c1ca3286a2e398925b545a1d974fe0292548bdc4b26ce003d9208238c99fd"
+      },
+      {
+        "path": "apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart",
+        "before": "1b06f30f5e363c614739e3a8e1f8ca15a30b01bb4b58700e07aa274d1e2f6c5b",
+        "after": "f48fc26d2ad514100dcd2cc40f4f0639537913707e2cc4399ee402a28553200b"
+      },
+      {
+        "path": "apps/avelune_studio/test/presentation/spatial_environment_editor_test.dart",
+        "before": "9ae71bcba30e8073273e8fa4ad253c6a6733c68a080b6267456c51ca67768644",
+        "after": "0c17583e615e40d1c544a8a32aefdad2464b973a47d41d2acce8a9252a21038e"
+      }
+    ],
+    "deleted": [
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/resources/environment_decor_picker.dart",
+        "before": "8ca24d1585ec4e6a93e2f51d9cbcfd1ff2c0912549f14e39da38611536cf7ca9"
+      },
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/resources/environment_library.dart",
+        "before": "1e3cf74963638845fe5d9983eaf0d563eb16f742757203dcbc661502534a3aa9"
+      },
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/resources/environment_editor_palette.dart",
+        "before": "24dbd9b5656d87e9f2e126dfd37e6bc32d57cb4aeb7093daba8aa73d9e8e6780"
+      },
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/resources/environment_editor_screen.dart",
+        "before": "4a1da041adc8fdaabacf83b2f81aca07140a0f8323eb82018b086681d27531d1"
+      }
+    ],
+    "added": [
+      {
+        "path": "apps/avelune_studio/test/resource_io/environment_retirement_continuity_test.dart",
+        "after": "ace79b75fecfd089da7a30a87bf9bb5083086785787dc998deb1f1160e9933ce"
+      }
+    ],
+    "protectedResourcesUnchanged": 75,
+    "protectedWorkspaceCoordinationUnchanged": 25
+  },
+  "protectedFiles": {
+    "apps/avelune_studio/lib/presentation/features/resources/resource_library_screen.dart": "233f78ab59a2bb39d8443d36978c874410047326fef6f2c6170a960a96e7e97f",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_pack_route_workflow.dart": "cecd4a2fd3d37e2ac9c1efc0ddf929d3863d27171e2d89173ce8ea29d1474fae",
+    "apps/avelune_studio/lib/features/resources/coordination/model_resource_workflow.dart": "0803261faa45b26cbb6edc233100d1e5ee27e11382811d223cc237aa7bc3cbb8",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_navigation.dart": "328ff7edd7781f6f433198588ccfcd4833f2d6b0dea76d5ad6ff660302fac4f6",
+    "apps/avelune_studio/lib/features/resources/coordination/border_creation_workflow.dart": "1b6a25c1abc3ba6225763fefda49761e556ddc63dc2cb610df435f5fc491db27",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_replacement_workflow.dart": "c3d6bc5bd406f40e2c49946b88ebf03ca280b00d11faa4aa499e2c6e0d81b762",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_character_management.dart": "c0bdd77547e139e67fe406c23b39f2982c07df3fb612a79095156da584a83159",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management_publication.dart": "b69d65a92ee5ac4ca9e3006441d6a28436cc0d8c587038c3fc33aaf94de9baeb",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_lifecycle.dart": "43b0f09cc370b8226940a7b5ecf0b01ca05d09841574b8c5a9ef320da8a758ac",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_saving.dart": "a1d262b8f7ce670aab27c9ce28031da9b70f04ae4b788cdefddf563d1218e02f",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_environment.dart": "9b9c4299f8d08484e4ffb81ed7c4a5d9960d5e1d22ad4f81f4426b7d0d16fa52",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_workspace_import_workflow.dart": "4e8c21eeae5762ccf90997b83f3100372fa81345d6d2348f016bdd51527298ad",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_terrain_lifecycle.dart": "571e39e1981fbb114e430cb07db7cdb1f35349cf4ec8ac504ce2e935416d69f0",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_definition_lifecycle.dart": "722d24ac37e84cf03be41d04377396704671b1f770a60c21d3d1b7ef060d50dc",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_terrain_management.dart": "1b8d919763e4cd16b0c9cb85a8f1fb72227704d84d6f3c519162073e95abfc2b",
+    "apps/avelune_studio/lib/features/resources/coordination/project_catalog_partition_workflow.dart": "5f99bcd8cc2b67427b5ba4aa6cd3cdbed65d383df1cd73c3225230ca1788917e",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_library_publication.dart": "5fd20cf3b6c77adcfe04c949223d282c8f18045bb405d4f77a19138f8464a293",
+    "apps/avelune_studio/lib/features/resources/coordination/working_catalog_workflow.dart": "75a4f14c38ffda85e5af24af1b9587e4a7a05b24d957cf65b9f4057d415ed53a",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_terrain.dart": "85e8836ce411f9643dfdd0b895b3843b1aa8deef68ff6ead23aa07b4086f6620",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart": "0c3665e5e3cce435c0e01a6e9adfded1ddaba567d0bd6e6fc36e4b0aedb832d3",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_border_management.dart": "32464ed1ca92936a158955755a61dd4ca8afc6f34ad846c39c5c2a32bf1069c4",
+    "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart": "9879d5fb36457397c8d4543de14e6c3d49cc565dcf2da77a11716b350ab63e49",
+    "apps/avelune_studio/lib/features/resources/application/resource_pack_review_projection.dart": "e89342aa8835f9abbbcea1c3d103720a82ffa8476bb657a489472aedfbf7f264",
+    "apps/avelune_studio/lib/features/resources/application/resource_lifecycle_publication.dart": "98761e54f38605a515a994eeb64916865d2741ba6b732786bf354153c661f2dd",
+    "apps/avelune_studio/lib/features/resources/application/border_pattern_associations.dart": "70902d534c164ae51294a0cee0200928d33a050a725ecdc1e54d8f9247ca4c60",
+    "apps/avelune_studio/lib/features/resources/application/resource_category_tree.dart": "e19e5433311217d0742ad9add18a92401e82f176c524a33876bb2939ff951f17",
+    "apps/avelune_studio/lib/features/resources/application/resource_border_lifecycle_controller.dart": "f6182ebca930063cf2bed62fe19189be7b51bb1992463b70198dca53e2b2c812",
+    "apps/avelune_studio/lib/features/resources/application/border_creation_draft.dart": "2beec8eccc526ef916bb7dc7025c23911d6c6cd66613995de0531d415ce11b76",
+    "apps/avelune_studio/lib/features/resources/application/model_light_draft.dart": "f41aa7cb62b16b96bae667e92e8214d74035323dee14cc673ae96280faa8561e",
+    "apps/avelune_studio/lib/features/resources/application/resource_containers.dart": "5f243a4f4aa7c1b464287d1a0db2105a3d1d280a64386de95bed94fe0bfa28c7",
+    "apps/avelune_studio/lib/features/resources/application/environment_draft.dart": "119b4e755775f6efa92fa747a3431fc469cc8d99d9be952a3efd40dcb26e14ac",
+    "apps/avelune_studio/lib/features/resources/application/resource_usage_replacement_controller.dart": "159c61d893fd9083c5ae009629c7dcfa67a84e53f5676ec84b0e3370c60576ac",
+    "apps/avelune_studio/lib/features/resources/application/model_definition_drafts.dart": "6ac57c24c6865e4fa03a57c937c163250b421cef452c775ad97d4d92e9d7d42f",
+    "apps/avelune_studio/lib/features/resources/application/resource_family_tree.dart": "a6953b69baace94e5d677c904fc9d9b8ccff23f8f530123c589f4ae0bc8b2560",
+    "apps/avelune_studio/lib/features/resources/application/resource_terrain_lifecycle_controller.dart": "3695ff84a1f0129045b986795cff703a8261897bf59ab46b631092f6939d9c27",
+    "apps/avelune_studio/lib/features/resources/application/resource_usage_controller.dart": "101e5c9a6c7451719eb79bc2db7011b357dfc505f36a09f836fcfb6ad4f7ffd0",
+    "apps/avelune_studio/lib/features/resources/application/atlas_selection_controller.dart": "9766ef8eabaa5318c84e885bc790e369c5cd3739de726de04b43ea85eaedca13",
+    "apps/avelune_studio/lib/features/resources/application/resource_pack_transfer_controller.dart": "412fbeebbf80a6d9ac9d41a52ef73107d20c946744354c79e9e60a39fa5a2284",
+    "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart": "4135e64554b0a50e05d72fd2e95f07276004a87964dcbda33742d5dccc01c3cf",
+    "apps/avelune_studio/lib/features/resources/application/resource_open_map_usage.dart": "4fd3dddae8d4c8e036f017231613bd7a2e6f2a45e578bb56e456e8ca8c9aa1db",
+    "apps/avelune_studio/lib/features/resources/application/working_catalog_controller.dart": "adbe7ae3e5c110f0a2514b37d7fd6d4595235dce512f3de8dc4b3b6b103b824d",
+    "apps/avelune_studio/lib/features/resources/application/resource_creation_sources.dart": "fd874472b56b0d5be3549b13a2242556004a212251366e48ad5c11549f21410a",
+    "apps/avelune_studio/lib/features/resources/application/resource_image_import_draft.dart": "5d9ffe6576472f77b43cdbe80911a3fc21ac4fe5c10bb703274c34b418bfdcfe",
+    "apps/avelune_studio/lib/features/resources/application/resource_terrain_actions.dart": "c9a56cdea60d59fe6bdefb28f14b55a3ced7d67a7e1db7abfbb1bbb66275662e",
+    "apps/avelune_studio/lib/features/resources/application/resource_removal_controller.dart": "638334330e4d69a2430f21c9eb5efad578da2811a3144af3963e78fc34c34695",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_mutation.dart": "d1160e45e5a72e3d955171306223b571163e3b3d8bc3b73889c212a91ee30b2b",
+    "apps/avelune_studio/lib/features/resources/data/resource_no_change.dart": "10f31d1d820dbe95aeddafaf69b512da6bb516ef5c9b089957008ed607207eb1",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_apply.dart": "fab41f808fec11cebe1a044035300b424aa84938914e8e1c457e8e4febfbd548",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_character_operations.dart": "1f1adffb05fb3d2ec3bff2782f70e9aa9bba28d65634b8439b4b3f45d45a6ec0",
+    "apps/avelune_studio/lib/features/resources/data/local_model_source_replacement.dart": "408b65cd00779e178277a4f31d266e4ad32188ce7845560007431b0bff7c785e",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_usage_adapter.dart": "f9e228ec843f719e10d7dec518adcac7553a1a72ca9dde0d3b3b7e06ce7cf528",
+    "apps/avelune_studio/lib/features/resources/data/local_border_resource_adapter.dart": "519a9bcb8155f720272e28bc1392443d919a2fac24930c8cd20488fa318aebfb",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_receipt.dart": "10b525dc06445f5acb70078f7a6263296173d80495db9f69197f49a14fc172df",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_classification.dart": "36d046f1e6706ecc5874c1e81ba8fc1bfac6a079bca18c4b15484eb75868cbab",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_index_preparation.dart": "910cba028c03025cece907577a72a0baac64bc6299e027be08ad5f84a6cfed6c",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_preparation.dart": "9c1a4f4c238753c3323a20f330bdf9e1fcb56870ee91bd00fb115a4cabd94127",
+    "apps/avelune_studio/lib/features/resources/data/local_character_removal_adapter.dart": "071a9e19d5bb92e0088748e918683cb1eca3985bc9fddb633aff2cd56d7ffe1e",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_preparation.dart": "46c13e68b546ecf5f24ac2fd2829618cdd0b5fa10747d0e3e0130f103bffc1ec",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_pack_adapter.dart": "d876fd57a0a3bae861433f74a13f5108d45c1abae5a3e2bbc1a0a7e03338d478",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_reconciliation.dart": "b13f4903c8ca2b96fb54d8261dc8d0f9efecb37c1692cf4f960f2662587d3f4d",
+    "apps/avelune_studio/lib/features/resources/data/local_working_catalog_adapter.dart": "c29d59e17494adec8498dd17bc0527c8f55136e0318250419217a48f78eb63fc",
+    "apps/avelune_studio/lib/features/resources/data/local_character_contact_shadow.dart": "6d6baff3b98229617a7f28d4aa5bd0916b93b3106aee52ef0177b4c51858b897",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_mutation_context.dart": "39fe79c670da68a11f1cb89f9e51051c1b5d77733505809e00ab868d9549c6da",
+    "apps/avelune_studio/lib/features/resources/data/border_resource_sources.dart": "0556608d0bd7192cacd6a4786b02bd816fbb76665d31d40960fc3e74ad97937e",
+    "apps/avelune_studio/lib/features/resources/data/local_resource_adapter.dart": "f0855a1978e8b6eaa4b826ee377c094010de1225e2f66761f77fcedbda450de2",
+    "apps/avelune_studio/lib/features/resources/domain/studio_search_text.dart": "8777af456d38a5a12925b6d4dab8194e2be6166d598c0a864dec795efccfb325",
+    "apps/avelune_studio/lib/features/resources/domain/resource_mutation_preparation.dart": "7bb3f068e46bc92ec0cb04a36e269bdbf2dd842fb1b8c22a6b66c748a67641f5",
+    "apps/avelune_studio/lib/features/resources/domain/resource_image_picker.dart": "777f9754b7a68eb7f1c15366539d9f04b7a07eb8c67348bdc33c3ba71747f9f4",
+    "apps/avelune_studio/lib/features/resources/domain/resource_port.dart": "5c41c27e31b312bd6dc9b49b43920e30ca7f1edd66e9fea4a98a1a5846d4dc09",
+    "apps/avelune_studio/lib/features/resources/domain/model_source_picker.dart": "3304d0c1dc85cc017e25083193439a46917c1d780d47803d31295caff4505620",
+    "apps/avelune_studio/lib/features/resources/domain/border_sequence_primitives.dart": "892ee284cfd61f169d60579c63b75b625e1ea56247db06d1ffe1b8dd00796e23",
+    "apps/avelune_studio/lib/features/resources/domain/resource_lifecycle_port.dart": "b7a2916da55eabb4dc6c164395042e9d7bfdda4cd7941072d4dcf2d1107b8eeb",
+    "apps/avelune_studio/lib/features/resources/domain/working_catalog_port.dart": "761d22f120b7942cd3222910f4a5456bd2b8447524a6de87240e7b4bda2dc859",
+    "apps/avelune_studio/lib/features/resources/domain/resource_pack_port.dart": "f0f81da27509962685f7429a9c20fbb664102439c4e3557596af195a727893e1",
+    "apps/avelune_studio/lib/features/resources/domain/resource_usage_port.dart": "a484922372e6d34a8eed4b0de9270fe1bf8782e2e60cf7f348669fcf2811b5bc",
+    "apps/avelune_studio/lib/features/resources/domain/model_resource_port.dart": "8194d990e51e9f3e737439ded9d2596d4469439733873be4a1e8555364afc199",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_diagnostics.dart": "976f5929ff7a7a9ae6af2cc0ad9d2e05de2151e5618e717e4d58aa74669b11ad",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/map_decor_transform_draft.dart": "aea9fd50bc0f0720bf94f1e947fc1a1846ce0d99b1e4e3b02e51b84d9afaf7c3",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/map_workspace_viewport_state.dart": "ec5a69df087ac184cd595b3c8afd5b8d5cd2d65deabdb20bc780f8a1a712904e",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_resources.dart": "d7c187da8bcd55c6a55aac3c49111586e71ae0cdfdd47123f1573404d040a20b",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workshop_routes.dart": "b278f2734ff6bec5ac2ace4be9a1d07086fb8412181829ca2da0b4b8a9a06d22",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow_close.dart": "85c404064f530a7f1da88017a063cc6e36194dbd0cc571551db23572cd866485",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_publication_workflow.dart": "e0cf527924e093c05c3c452bff96a630f27afe88bf42f58fa86c06828845bc6a",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow.dart": "4db5b8d4e71071aeac932f330467e10c738125142f9e66034901f70aca10bca5",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/map_resource_placement.dart": "da359d45413e3c25567114e2782949652dfb343386a86c8d9ae6acae63014c2b",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_event_source.dart": "c1f511e3dc867792765c9c351decd17de30698c540d4f7bf07ee15621d6adbaf",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_session_initialization.dart": "e1f54588a41605cadde2693144059af65dd3e83dd708f86d6d19da1c5652a2e8",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/map_editing_shortcuts.dart": "14bbfc282b2ba081812cab9f871a454ae131ffcba0a609b1e735cfd6f3ca5117",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_destination_workflow.dart": "49f46291445342d339f6b45e757132113d9780fe4c1749fb2dad96fd5d322084",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_session_controllers.dart": "d899354305c6223e00a049debf73ba27b66bd3513f435f661fb7d6762886b409",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_interactions.dart": "3bd9a0e831e01f72509f5e86bfad29619b6740f8713b1e232686dbdd06c79cf7",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_session_loader.dart": "ae93f9d31ff6b8800d415f7edf25b748163676dc9f25bb0f7effa9ff4feb890f",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_map_catalog_bindings.dart": "0fff55e5628d78200b0851e5f42bbc8812acdf34c041a6e3874648a8bc0d59f7",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/spatial_map_neighbor_session.dart": "fa816abb41bf8084f229649142403c23ad5d8c70188db2ecfc62f02df0d9b85f",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_resource_owner_bindings.dart": "1f3b0efef8d0d2eacb66d0e864c42ad489351decf03cc0084877fcfbc1cf26f3",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/map_editing_input_session.dart": "c70ef2ba0cd4e65b780ff205f0f5aa6497bea5a566d81895aabe15b0fe186922",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_presentations.dart": "9ec9bed93b3579e2e38806235e3b66e51f319d6613df3cac0ee883e9b0cd4a5f",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_map_catalog_actions.dart": "b9102c1ac80d9a0bd0e057cf6a1bd634de8c83f97f5bd6160f1493ca500ed5f6",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_session.dart": "c5ce3a469d38ee0f32a7458d772d9150ede5b217245e17a1ede92431d0c7d21e",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_visual_projection_queue.dart": "5f05a3a839bdd207f021acb65e4e320daf4ff6ad58dd802b90f3cab317391ce6",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/map_editing_viewport_session.dart": "d2ed22dd79799a988b1c32531283413eee5045a018fd663fad45a91e896d0eba",
+    "apps/avelune_studio/test/resource_io/resource_navigation_receipt_recovery_test.dart": "33cf3c4c68f1481d7dee1f704797061f206de5b0ae86862f95a849e5861fc0e0",
+    "apps/avelune_studio/test/resource_io/resource_pack_retirement_continuity_test.dart": "defb99a21472efb8555368b7f2f6c52398544f8e3c69ec4b6b47419c143d52fd",
+    "apps/avelune_studio/test/resource_io/border_retirement_continuity_test.dart": "8b657e9699482b2808f7f87e026763ef52876fca4635ad194475846aa5e96ec1",
+    "apps/avelune_studio/test/application/environment_draft_test.dart": "2d141ffc68a35b36df51f6ec96d482066250bde7f1f650f78d24aced6a85b7f1",
+    "apps/avelune_studio/test/application/environment_editing_commands_test.dart": "460205d51dd391efd86bd17add1b0987931de9c29f827316ce4a025d54614f2a",
+    "apps/avelune_studio/test/application/spatial_environment_commands_test.dart": "d66483b471431b48d82cf047486842c9ff0779172f411305b29c884913e3fe8e",
+    "apps/avelune_studio/test/map_workspace/spatial_environment_gesture_test.dart": "2aaead97908587c6ee81c7156f0556e7b555efae27c9536f0096992e013100c6",
+    "apps/avelune_studio/test/map_workspace/environment_canvas_ownership_test.dart": "e5897ea235f32eb7ddae1c4840e09446ec68676ecafe7f11b35da8eb2499f7c6",
+    "apps/avelune_studio/test/map_workspace/map_resource_placement_test.dart": "cb1a8821496b40809036706ae361dc2faf905be24216dfd322ad9438c186b4ee"
+  },
+  "validationExecuted": [
+    {
+      "command": [
+        "dart",
+        "format",
+        "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+        "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_actions.dart",
+        "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart",
+        "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart",
+        "apps/avelune_studio/test/resource_io/environment_scope_test.dart",
+        "apps/avelune_studio/test/presentation/spatial_environment_editor_test.dart",
+        "apps/avelune_studio/test/resource_io/environment_authoring_host_test.dart",
+        "apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart",
+        "apps/avelune_studio/test/resource_io/environment_retirement_continuity_test.dart"
+      ],
+      "exitCode": 0,
+      "result": "Nine surviving edited Dart files formatted; six changed by formatter."
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "rg",
+        "-n",
+        "EnvironmentEditorScreen|EnvironmentLibrary|environment_editor_screen.dart|environment_editor_palette.dart|environment_decor_picker.dart|environment_library.dart",
+        "apps",
+        "packages",
+        "examples",
+        "--glob",
+        "*.dart"
+      ],
+      "exitCode": 1,
+      "result": "No remaining Dart references."
+    },
+    {
+      "command": [
+        "shasum",
+        "-a",
+        "256",
+        "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+        "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_actions.dart",
+        "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart",
+        "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart",
+        "apps/avelune_studio/lib/presentation/features/resources/environment_editor_screen.dart",
+        "apps/avelune_studio/lib/presentation/features/resources/environment_editor_palette.dart",
+        "apps/avelune_studio/lib/presentation/features/resources/environment_decor_picker.dart",
+        "apps/avelune_studio/lib/presentation/features/resources/environment_library.dart"
+      ],
+      "exitCode": 0,
+      "result": "Before-edit digests matched the initial snapshot."
+    },
+    {
+      "exitCode": 0,
+      "result": "Only the declared delta changed; 75 resource owners and 25 workspace coordination files match.",
+      "method": "Read-only Python hashlib.sha256 snapshots compared in session; paths and digests are listed in beforeAfter and protectedFiles."
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "json.tool",
+        "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t01-execution/resume-20261110/t01-resources-environment-retirement-freeze.json"
+      ],
+      "exitCode": 0,
+      "result": "JSON syntax accepted; output redirected to /dev/null."
+    }
+  ],
+  "qaPending": {
+    "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+    "commands": [
+      [
+        "flutter",
+        "test",
+        "test/resource_io/environment_scope_test.dart",
+        "test/presentation/spatial_environment_editor_test.dart",
+        "test/resource_io/environment_authoring_host_test.dart",
+        "test/resource_io/environment_retirement_continuity_test.dart",
+        "test/resource_io/decor_retirement_continuity_test.dart",
+        "test/application/environment_draft_test.dart",
+        "test/resource_io/resource_navigation_receipt_recovery_test.dart",
+        "test/application/environment_editing_commands_test.dart",
+        "test/application/spatial_environment_commands_test.dart",
+        "test/map_workspace/map_resource_placement_test.dart",
+        "test/map_workspace/environment_canvas_ownership_test.dart",
+        "test/map_workspace/spatial_environment_gesture_test.dart",
+        "test/resource_io/border_retirement_continuity_test.dart",
+        "test/resource_io/resource_pack_retirement_continuity_test.dart",
+        "-r",
+        "failures-only"
+      ],
+      [
+        "flutter",
+        "analyze"
+      ]
+    ],
+    "tests": [
+      "test/resource_io/environment_scope_test.dart",
+      "test/presentation/spatial_environment_editor_test.dart",
+      "test/resource_io/environment_authoring_host_test.dart",
+      "test/resource_io/environment_retirement_continuity_test.dart",
+      "test/resource_io/decor_retirement_continuity_test.dart",
+      "test/application/environment_draft_test.dart",
+      "test/resource_io/resource_navigation_receipt_recovery_test.dart",
+      "test/application/environment_editing_commands_test.dart",
+      "test/application/spatial_environment_commands_test.dart",
+      "test/map_workspace/map_resource_placement_test.dart",
+      "test/map_workspace/environment_canvas_ownership_test.dart",
+      "test/map_workspace/spatial_environment_gesture_test.dart",
+      "test/resource_io/border_retirement_continuity_test.dart",
+      "test/resource_io/resource_pack_retirement_continuity_test.dart"
+    ],
+    "notExecutedByAgent": true
+  },
+  "assertions": {
+    "scopeTests": [
+      "Real publication preserves three generated zones on two maps, their data and map bytes; source PNG bytes unchanged.",
+      "An unused published preset has no map zones before and after its shared definition changes."
+    ],
+    "spatialCandidates": [
+      "Real catalog candidate selection, private-map exclusion, nature-family count and exclusion of selected identities.",
+      "Typed spatial palette and comma-decimal offsets retained; 2D/3D compatibility test preserved."
+    ],
+    "authoringHost": [
+      "Publication through actual environment owner then generic catalog use, original canvas gestures, generation and fresh disk reopen.",
+      "Invalid empty recipe refuses publication; owner, error and disk bytes retained after one-step catalog return."
+    ],
+    "continuity": [
+      "1536x1024 and 760x620: published use invokes the real native useMapEnvironment path; dirty preset refuses use with no additional map or undo change.",
+      "Return from the direct retired route retains selection, marks, query, owner identity, raw invalid input and error; return from family route reaches catalog in one step.",
+      "Global save refuses invalid draft without discarding it; maps, project definitions and source bytes remain unchanged.",
+      "Copied and new owner drafts coexist unchanged after separate returns; no implicit publication."
+    ]
+  },
+  "limits": [
+    "No Flutter test runner, analyzer, native render or device validation executed by this agent.",
+    "Editing, duplication and deletion UI is temporarily unavailable; owner operations remain intact.",
+    "Draft preservation is in-session; return does not imply durable save.",
+    "Existing modified work was retained; the shared Decor continuity test was edited from its current 1b06f30f snapshot."
+  ],
+  "initialGitState": {
+    "preexistingModified": [
+      "apps/avelune_studio/lib/presentation/features/resources/environment_editor_palette.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_actions.dart",
+      "apps/avelune_studio/test/resource_io/environment_authoring_host_test.dart"
+    ],
+    "preexistingUntracked": [
+      "apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart"
+    ],
+    "cleanAtStart": [
+      "apps/avelune_studio/lib/presentation/features/resources/environment_editor_screen.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/environment_decor_picker.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/environment_library.dart",
+      "apps/avelune_studio/test/resource_io/environment_scope_test.dart",
+      "apps/avelune_studio/test/presentation/spatial_environment_editor_test.dart"
+    ]
+  },
+  "finalGitState": {
+    "deleted": [
+      "apps/avelune_studio/lib/presentation/features/resources/environment_decor_picker.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/environment_library.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/environment_editor_palette.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/environment_editor_screen.dart"
+    ],
+    "modified": [
+      "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart",
+      "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_actions.dart",
+      "apps/avelune_studio/test/resource_io/environment_scope_test.dart",
+      "apps/avelune_studio/test/resource_io/environment_authoring_host_test.dart",
+      "apps/avelune_studio/test/presentation/spatial_environment_editor_test.dart"
+    ],
+    "untracked": [
+      "apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart",
+      "apps/avelune_studio/test/resource_io/environment_retirement_continuity_test.dart",
+      "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t01-execution/resume-20261110/t01-resources-environment-retirement-freeze.json"
+    ]
+  },
+  "independentReview": {
+    "performed": false,
+    "verdict": "No independent review verdict claimed; parent central QA pending."
+  },
+  "nonGoals": [
+    "No owner, codec, persisted project/map/export contract or native environment action changes.",
+    "No Studio redesign, replacement workshop, implicit publication/discard, Git mutation or T01/G0 acceptance."
+  ]
+}

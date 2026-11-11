@@ -1,0 +1,31 @@
+{
+  "command": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+    "test",
+    "--concurrency=1",
+    "--timeout=120s",
+    "-r",
+    "expanded",
+    "test/tooling/jsonl_worker_test.dart",
+    "--name",
+    "a quoted local path"
+  ],
+  "exitCode": 1,
+  "interrupted": false,
+  "durationSeconds": 3.3577380180358887,
+  "ownedProcesses": {
+    "73111": {
+      "ppid": 73072,
+      "start": "Tue Nov 10 17:02:19 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --mark_main_isolate_as_system_isolate --packages=.dart_tool/package_config.json .dart_tool/pub/bin/test/test.dart-3.13.4.snapshot --concurrency=1 --timeout=120s -r expanded test/tooling/jsonl_worker_test.dart --name a quoted local path"
+    },
+    "73158": {
+      "ppid": 73111,
+      "start": "Tue Nov 10 17:02:19 2026",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root ../../../../../../../../../opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk --platform=lib/_internal/vm_platform_strong.dill --target=vm --filesystem-scheme org-dartlang-root --output-dill /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-qe6e202g/dart_test.kernel.3EDsSc/output.dill --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_authoring/.dart_tool/package_config.json --incremental --no-print-incremental-dependencies"
+    }
+  },
+  "liveOwnedPids": [],
+  "log": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t00-export-quoted-path-red.log",
+  "tmp": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-check-tmp-qe6e202g"
+}

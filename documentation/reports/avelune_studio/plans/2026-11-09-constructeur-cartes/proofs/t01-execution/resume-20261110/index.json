@@ -1,0 +1,3500 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-10T14:11:54.601038+00:00",
+  "scope": "T00/T01 progress only; no acceptance or full-workspace qualification",
+  "runs": [
+    {
+      "id": "t01-exact-20261110-events-and-pokemon",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_trainer_species_reader_test.dart",
+        "test/events/event_scene_selection_test.dart",
+        "test/events/event_scene_search_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 21,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-exact-20261110-events-and-pokemon.command.json",
+        "sha256": "084803f6c725b3447538f083a3f637f06a19981674089a2df9520c02f9667e07"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-exact-20261110-events-and-pokemon.log",
+        "sha256": "ee394cf3e206298fda9c4993a9b7cc3407c464177fe0cb4ce7bee61542f2149f"
+      }
+    },
+    {
+      "id": "t01-exact-20261110-presentation-lifecycle",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/workspace_presentation_creation_test.dart",
+        "test/presentations/presentation_visual_session_test.dart",
+        "test/map_workspace/workspace_session_lifecycle_test.dart",
+        "test/map_workspace/workspace_cinematic_routes_contract_test.dart",
+        "test/presentations/presentation_atomic_ui11_test.dart",
+        "test/presentation/ui11_scene_presentation_binding_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 24,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-exact-20261110-presentation-lifecycle.command.json",
+        "sha256": "8715c7147a06faaafaad5fd493b3264760085766723dc4d8b83208da13314f6a"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-exact-20261110-presentation-lifecycle.log",
+        "sha256": "e4f95fe0a9e53cb3f912435c9819d0bb6a43f80f62d6365028fe11f3b57c85a8"
+      }
+    },
+    {
+      "id": "t01-resume-authoring-full-parity-corrected",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/parity/full_authoring_parity_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 29,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-authoring-full-parity-corrected.command.json",
+        "sha256": "cebd4568d79687eba58e9b0d861c5dae5be8aadb85b34aa4352543831b43d949"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-authoring-full-parity-corrected.log",
+        "sha256": "1b90e17996aa0628fc310b59fa27e9713e94f471d9c3cfc454891167fb2525f4"
+      }
+    },
+    {
+      "id": "t01-resume-dialogue-actions-parity-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/domains/narrative/scene_dialogue_choice_policy_actions_test.dart",
+        "test/domains/narrative/scene_dialogue_line_feedback_actions_test.dart",
+        "test/workspace/native_workshop_snapshot_test.dart",
+        "test/domains/narrative/narrative_entity_bump_transport_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 52,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-dialogue-actions-parity-green.command.json",
+        "sha256": "814c1a7949eae39c82320465d048a2adc8dc49bc7256484376742f11ea781a12"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-dialogue-actions-parity-green.log",
+        "sha256": "ec4b8096d3a3b88632a1e7a4466c966b036626656c21ee30c213187122993635"
+      }
+    },
+    {
+      "id": "t01-resume-resource-usage-navigation",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/map_workspace/workspace_resource_usage_navigation_test.dart",
+        "test/map_workspace/workspace_narrative_routes_test.dart",
+        "test/application/resource_usage_controller_test.dart",
+        "test/resource_io/resource_usages_host_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 27,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-resource-usage-navigation.command.json",
+        "sha256": "28aae56d07b7dad483e0fb2297e835b960836ec7bdaab0ca05aa4f18503a46c3"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-resource-usage-navigation.log",
+        "sha256": "eff020566795021f633233d6ff421769fcd0d9ffa7ff8d3cdf7716bcad87ffff"
+      }
+    },
+    {
+      "id": "t01-resume-scene-catalog-disposal-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/scenes/scene_condition_catalog_refresh_host_test.dart",
+        "test/scenes/scene_condition_source_draft_contract_test.dart",
+        "test/map_workspace/workspace_resource_usage_navigation_test.dart",
+        "test/map_workspace/workspace_narrative_routes_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 30,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-scene-catalog-disposal-green.command.json",
+        "sha256": "601b85e9badccd65f2ff15b053a09d7878a73c6a3e54d6423bfe6edd685fe0ce"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-scene-catalog-disposal-green.log",
+        "sha256": "28d64582ac24fc885a4669852b35f347f05af5616b87789420b8e2fc6ba3ce53"
+      }
+    },
+    {
+      "id": "t01-resume-scene-catalog-disposal-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/scenes/scene_condition_catalog_refresh_host_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": null,
+      "classification": "expected_red",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-scene-catalog-disposal-red.command.json",
+        "sha256": "222c64e212450d1337604db05cbe57f05c3307f78f0d183024990b237c43d1ae"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-scene-catalog-disposal-red.log",
+        "sha256": "5c3ca1e87ed08fb473bf47bc765e3053ac8f7a6c842592ed1b0860746e913802"
+      }
+    },
+    {
+      "id": "t01-resume-scene-controls-retirement",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/scenes/scene_action_selection_contract_test.dart",
+        "test/scenes/scene_action_destination_contract_test.dart",
+        "test/scenes/scene_graph_projection_contract_test.dart",
+        "test/scenes/scene_authoring_commands_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 37,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-scene-controls-retirement.command.json",
+        "sha256": "0e2e1138ce9d038df51f0ed062ca6096b38c05f733c8845533085c153ace00b2"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-scene-controls-retirement.log",
+        "sha256": "2c58b5e1c0d43dc9136f4032f364a96e6f53860dd92bf558b32f1a95ba8c01fe"
+      }
+    },
+    {
+      "id": "t01-t00-resume-input-stale-document-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/map_workspace/map_editing_input_session_test.dart",
+        "test/presentation/map_workspace_journey_test.dart",
+        "test/presentation/map_editing_surface_busy_test.dart",
+        "test/map_workspace/map_context_interaction_session_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 14,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-t00-resume-input-stale-document-green.command.json",
+        "sha256": "18e5cc3b9ff6a5ff29b97b01404b9595f1311c38c8f85806cb8f481f414f9ef9"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-t00-resume-input-stale-document-green.log",
+        "sha256": "15052f6d8aa0c51931c7b8ead38e700f6287d357944eace4ff5ec5f6e7ca3aa3"
+      }
+    },
+    {
+      "id": "t01-t00-resume-input-stale-document-qualified-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/map_workspace/map_editing_input_session_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": null,
+      "classification": "expected_red",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-t00-resume-input-stale-document-qualified-red.command.json",
+        "sha256": "77d59effd187b2c1a0d6ec80cd90d7a7f43b5a46adeb0cbcf490351931eb9a2e"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-t00-resume-input-stale-document-qualified-red.log",
+        "sha256": "10b271fe9e7c210e99013ea3618425a658dc5eb89821c2c6a8def4809257657f"
+      }
+    },
+    {
+      "id": "t01-exact-20261110-event-source-selection",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/events/event_source_selection_session_test.dart",
+        "test/events_ui08_source_loading_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 12,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-exact-20261110-event-source-selection.command.json",
+        "sha256": "f51b42596130941c90fcc710ab5dd8290338d77bf051c97d0dae8ff994daa161"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-exact-20261110-event-source-selection.log",
+        "sha256": "29aac680c365ef09727dd98e35d29dd27b3d72583ea4f3668a95483ac932a521"
+      }
+    },
+    {
+      "id": "t01-exact-20261110-model-retry-and-scene-gift",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/workspace_catalog_model_replacement_test.dart",
+        "test/resource_io/local_model_source_replacement_test.dart",
+        "test/resource_io/resource_reconciliation_retry_test.dart",
+        "test/resource_io/model_source_command_guard_test.dart",
+        "test/scenes/scene_pokemon_gift_moves_lifecycle_contract_test.dart",
+        "test/scenes/scene_pokemon_gift_moves_lifecycle_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 26,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-exact-20261110-model-retry-and-scene-gift.command.json",
+        "sha256": "78d91461864efb0518feb58e745a4602c3f250deebf9cd888b79b028f887b305"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-exact-20261110-model-retry-and-scene-gift.log",
+        "sha256": "719c59ab1e8cb891cff5b961278f87efaad6b97cc170df87c0e7babf32bc2c3e"
+      }
+    },
+    {
+      "id": "t01-model-retry-manifest-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/map_workspace/workspace_catalog_model_replacement_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 9,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-model-retry-manifest-green.command.json",
+        "sha256": "908be7ef38f3c8b2b4b8c7064bce1e277c2e80b13b397e008a82a344ec54c69d"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-model-retry-manifest-green.log",
+        "sha256": "81f2ad533ece5a24878bf66aca6d2666e2ebf547a8532eb9cbad67678343c252"
+      }
+    },
+    {
+      "id": "t01-model-retry-manifest-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/map_workspace/workspace_catalog_model_replacement_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": null,
+      "classification": "expected_red",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-model-retry-manifest-red.command.json",
+        "sha256": "61ebd9382708da5c5f8221e63f74ed6bd479549c6dc3f5658f2e79dbb35e03a1"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-model-retry-manifest-red.log",
+        "sha256": "edcd0f8415a0d3f4dd6f7771cecdf061660efb4ff5892537b4b60051e526e6e2"
+      }
+    },
+    {
+      "id": "t01-model-retry-manifest-tamper-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/map_workspace/workspace_catalog_model_replacement_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-model-retry-manifest-tamper-green.command.json",
+        "sha256": "af82e535ab721e71dca852cd6106dcd51e62e5ddb411c6b8598d6044d460c1c7"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-model-retry-manifest-tamper-green.log",
+        "sha256": "c4c2cd4e357dd3cfe34170721a50b26d7e7b22b35e5bd4c20e1cdb7d4b7ec664"
+      }
+    },
+    {
+      "id": "t01-presentation-library-before-retirement-qualified",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/ui11_presentation_library_test.dart",
+        "test/ui11_presentation_library_widget_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 4,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-library-before-retirement-qualified.command.json",
+        "sha256": "a13fd1ec2b3c153981405b2c0c3cbf3568ee9f44e7e174ebfba0a7e32dc44695"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-library-before-retirement-qualified.log",
+        "sha256": "850895bcdd00872ba6f102f438a51a64ceace88846d7b8baf12b7edd7a99bee1"
+      }
+    },
+    {
+      "id": "t01-presentation-library-retired-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/ui11_presentation_busy_test.dart",
+        "test/ui11_presentation_canvas_gesture_test.dart",
+        "test/ui11_presentation_field_guard_test.dart",
+        "test/ui11_presentation_library_test.dart",
+        "test/ui11_presentation_responsive_test.dart",
+        "test/ui11_presentation_transport_controls_test.dart",
+        "test/ui11_presentation_widget_test.dart",
+        "test/presentation/workspace_text_editing_shortcuts_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 27,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-library-retired-regressions.command.json",
+        "sha256": "f2ccda8a61bf2e944d9f21e2089e9626224d75e6cf386197cb214bb3a176636d"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-library-retired-regressions.log",
+        "sha256": "e16d801f87aef94b44f23f5c99af28f6a20943482363739e68fc71350710070c"
+      }
+    },
+    {
+      "id": "t01-story-coherence-before-retirement",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/stories/story_coherence_contract_test.dart",
+        "test/stories/story_coherence_scene_open_test.dart",
+        "test/presentation/ui07_story_selection_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 10,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-coherence-before-retirement.command.json",
+        "sha256": "b615da365d0cba16c8f17ebb637853823af4b2cfe05f5a043ca23b3dec28aa21"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-coherence-before-retirement.log",
+        "sha256": "7866bb4c93853f67072f69d228b6c8b9421dca5a394661b4b11cc267aade763d"
+      },
+      "failedCount": 1
+    },
+    {
+      "id": "t01-story-coherence-fixture-red-isolated",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/stories/story_coherence_contract_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 5,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-coherence-fixture-red-isolated.command.json",
+        "sha256": "eb2d791a1f9a6ed3dc89569d96a8194cb428ade128e70fc256d62a1ef4cec3b6"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-coherence-fixture-red-isolated.log",
+        "sha256": "51b937ac403243c65d7e9df13b169ed6d33d4930af7b14dbc4039ccb829bf9f9"
+      },
+      "failedCount": 1
+    },
+    {
+      "id": "t01-story-coherence-before-retirement-fixed",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/stories/story_coherence_contract_test.dart",
+        "test/stories/story_coherence_scene_open_test.dart",
+        "test/presentation/ui07_story_selection_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 11,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-coherence-before-retirement-fixed.command.json",
+        "sha256": "494a653614be92ada05195f799d8f7b9c7f7f50c95c8e01a7ce72a37bac6e827"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-coherence-before-retirement-fixed.log",
+        "sha256": "d465777fbb176815e7ad38f1cb5df1299e9d77b3c3498439898f7478a48f114f"
+      }
+    },
+    {
+      "id": "t01-presentation-media-before-retirement",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/presentations/presentation_clip_media_contract_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 2,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-media-before-retirement.command.json",
+        "sha256": "d2ec21973b9b78139e1561868a84e67d4c85e1c94a154d8c30a1ad15c25f97eb"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-media-before-retirement.log",
+        "sha256": "aa3705b602b8488e8bc031d8aa9582b78a040b112f76782e8fa364fa2362f46a"
+      },
+      "failedCount": 7
+    },
+    {
+      "id": "t01-story-coherence-retired-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/stories/story_coherence_contract_test.dart",
+        "test/presentation/ui07_story_selection_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 9,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-coherence-retired-regressions.command.json",
+        "sha256": "1f1a299935c5c774bcb3239c1d42d46f5fb49799571b9437d1e7556ea10e705f"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-coherence-retired-regressions.log",
+        "sha256": "d304697576cac2811119f4cc9c8fcdbf94c033fde8d9733d04dab69430e6ecf3"
+      }
+    },
+    {
+      "id": "t01-webvtt-artifact-store-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/ports/artifact_media_type_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 5,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-webvtt-artifact-store-red.command.json",
+        "sha256": "9e85d1289597fa960f2e5995877dd4d5842b4e11dc9ee2b54eb2c826d2a22742"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-webvtt-artifact-store-red.log",
+        "sha256": "5059d70f6cd2aa2d1ede7304a7917777c7d91f69d870cdc320305270ef55076c"
+      },
+      "failedCount": 1
+    },
+    {
+      "id": "t01-webvtt-artifact-store-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/ports/artifact_media_type_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 6,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-webvtt-artifact-store-green.command.json",
+        "sha256": "503f0f452f0e59d05b730ac49ab64a2eb953fcce731ffb28a4d8a907d1e80cac"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-webvtt-artifact-store-green.log",
+        "sha256": "13818ce36655720ab65e42348444413b36b07464a972164dde2b2761bfc4c594"
+      }
+    },
+    {
+      "id": "t01-presentation-media-after-webvtt-fix",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/presentations/presentation_clip_media_contract_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-media-after-webvtt-fix.command.json",
+        "sha256": "13dcacabfea5361d31db4e0f92b179e83aa43e65144cd5071a20aaee2a7e07a9"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-media-after-webvtt-fix.log",
+        "sha256": "14d533b181c0d1399cdd0927effd68cb3d558887eea6672227a5d256e57f5548"
+      }
+    },
+    {
+      "id": "t01-webvtt-artifact-store-boundaries-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/ports/artifact_media_type_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 7,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-webvtt-artifact-store-boundaries-green.command.json",
+        "sha256": "6996fafa1614390bc7590b52d2ccdb62fac403861a1326b11ce157649a5e539e"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-webvtt-artifact-store-boundaries-green.log",
+        "sha256": "c91b2607a9d3dd0c0934de9e117bf233fa0727ecc21158c434faf3ecd82e7b2d"
+      }
+    },
+    {
+      "id": "t01-presentation-media-boundaries-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/presentations/presentation_clip_media_contract_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-media-boundaries-green.command.json",
+        "sha256": "9cd853378c20b52bd4075043c1f05d26a594458e81a0f31859afd492677b96f8"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-media-boundaries-green.log",
+        "sha256": "04960b2f31e3e67896fbb3cae676e9d7f98cbead01846c64a7fadff2fb33a23f"
+      }
+    },
+    {
+      "id": "t00-export-missing-profile-jsonl-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/tooling/jsonl_export_missing_profile_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 0,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-missing-profile-jsonl-red.command.json",
+        "sha256": "fee2b78b1ac6b6229f649b52d3431efc2dbae7263e6b8d464021d5e94893a001"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-missing-profile-jsonl-red.log",
+        "sha256": "e65dee0a1e3c3e3811f70f18bbd5da3663ff8365fa5eb049e74ab67fccd97d4d"
+      },
+      "failedCount": 1
+    },
+    {
+      "id": "t00-export-missing-profile-jsonl-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/tooling/jsonl_export_missing_profile_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 1,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-missing-profile-jsonl-green.command.json",
+        "sha256": "824da8ef4868f9a5fc389af43dd52b536a7bd70d626a82016e5776f97356dd07"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-missing-profile-jsonl-green.log",
+        "sha256": "c13fb09ee2446508c67e2f4fae8a1ce7f3458298389655548203744b0137f674"
+      }
+    },
+    {
+      "id": "t00-export-unsafe-message-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/tooling/jsonl_worker_test.dart",
+        "--name",
+        "unit export error boundary"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 0,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-unsafe-message-red.command.json",
+        "sha256": "720ab8431a513f3ba732c2b03a3a5c802837cf8e6073fe2b9ec48637af7e0c3e"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-unsafe-message-red.log",
+        "sha256": "c7eb22ee70848b9468921965080a7a5b9d4b5f4b0bb557a112beaf71865c4706"
+      },
+      "failedCount": 4
+    },
+    {
+      "id": "t00-export-unsafe-message-qualified-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/tooling/jsonl_worker_test.dart",
+        "--name",
+        "unit export error boundary"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-unsafe-message-qualified-red.command.json",
+        "sha256": "7608c616d57bc82287144c408820745ef7703a26a506caab6fb648dd38136fd1"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-unsafe-message-qualified-red.log",
+        "sha256": "a7c6acb5c08e9878ebfb20513a956928c1b3bb98816421acefc549099382d7dc"
+      },
+      "failedCount": 3
+    },
+    {
+      "id": "t01-presentation-media-retired-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/ui11_presentation_busy_test.dart",
+        "test/ui11_presentation_canvas_gesture_test.dart",
+        "test/ui11_presentation_field_guard_test.dart",
+        "test/ui11_presentation_library_test.dart",
+        "test/ui11_presentation_responsive_test.dart",
+        "test/ui11_presentation_transport_controls_test.dart",
+        "test/ui11_presentation_widget_test.dart",
+        "test/presentation/workspace_text_editing_shortcuts_test.dart",
+        "test/presentations/presentation_clip_media_contract_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": true,
+      "passedCount": null,
+      "classification": "interrupted",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-media-retired-regressions.command.json",
+        "sha256": "21e79b88d3ced06470345aacafdb61ea6b0499d122e9bf781c2513946d966170"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-media-retired-regressions.log",
+        "sha256": "91744256eedbbb5e0749e0936ad1c3cc10f017b671b0239b13229350e8df3d9b"
+      }
+    },
+    {
+      "id": "t01-presentation-canvas-after-media-isolated",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/ui11_presentation_canvas_gesture_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 2,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-canvas-after-media-isolated.command.json",
+        "sha256": "42c7ccd1437922d45ec6e914c8874e1bba823b9e5cfd6ba2d92c61d03b1cc982"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-presentation-canvas-after-media-isolated.log",
+        "sha256": "81169b0be345cb3e058cb2065fef62f35f128ba506b2c4b875845cd65cd97d5d"
+      }
+    },
+    {
+      "id": "t01-media-retired-regressions-group-a",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/ui11_presentation_busy_test.dart",
+        "test/ui11_presentation_field_guard_test.dart",
+        "test/ui11_presentation_library_test.dart",
+        "test/ui11_presentation_responsive_test.dart",
+        "test/presentation/workspace_text_editing_shortcuts_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 19,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-media-retired-regressions-group-a.command.json",
+        "sha256": "befeed54a9d637e7acf70d32d22d446dac42d186997af656f345460ea209d637"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-media-retired-regressions-group-a.log",
+        "sha256": "adf48776aa032b21d7e49602facb0c59135a0996a54f7d52c1e547bc547d78d6"
+      }
+    },
+    {
+      "id": "t01-media-retired-regressions-group-b",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/ui11_presentation_transport_controls_test.dart",
+        "test/ui11_presentation_widget_test.dart",
+        "test/presentations/presentation_clip_media_contract_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 16,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-media-retired-regressions-group-b.command.json",
+        "sha256": "64d660026aa6d06e43de50e99f5158b7d3028a1a15a0d82e818d8e58ccbd9ade"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-media-retired-regressions-group-b.log",
+        "sha256": "5777bec462ce9fc02fa23d28567801632a750c1c7a51ba0ce88607445ce816c4"
+      }
+    },
+    {
+      "id": "t00-export-quoted-path-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/tooling/jsonl_worker_test.dart",
+        "--name",
+        "a quoted local path"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 0,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-quoted-path-red.command.json",
+        "sha256": "7a47a9746513a50e15070367c8dd7931ee5f3599700869a9c78f70d0b593f6cb"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-quoted-path-red.log",
+        "sha256": "6cb6fe4c4617fd87892c1cf841b56daee5945e96d8c3d9fa8595fe675f115013"
+      },
+      "failedCount": 1
+    },
+    {
+      "id": "resume-20261110-pokemon-retirement",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_species_provenance_test.dart",
+        "test/pokemon/pokemon_document_editing_test.dart",
+        "test/pokemon/pokemon_trainer_species_reader_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 14,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/resume-20261110-pokemon-retirement.command.json",
+        "sha256": "d7a82e69371e8c939dfd7d5d5768f36c11764d30da33bb8191e717aa5c178b37"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/resume-20261110-pokemon-retirement.log",
+        "sha256": "eb34840bb0af246c464d2130d06c614faaceaeff95d46e9620fb1c70d6487de1"
+      }
+    },
+    {
+      "id": "t00-export-quoted-path-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/tooling/jsonl_worker_test.dart",
+        "--name",
+        "unit export error boundary|narrative trace messages"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 6,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-quoted-path-green.command.json",
+        "sha256": "36d61ed7dcd23b5e40c3c887a3880ad26956fe1a137ef60a0176ee32720a3d1d"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-quoted-path-green.log",
+        "sha256": "57a05c2cf43402808126ae5b7a68f481027f7a7632cbe23465aae5e1f2e0d48d"
+      }
+    },
+    {
+      "id": "t00-export-jsonl-full-after-sanitization",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/tooling/jsonl_worker_test.dart",
+        "test/tooling/jsonl_export_missing_profile_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 27,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-jsonl-full-after-sanitization.command.json",
+        "sha256": "6c667e29c5f5716a49227d97385aa6c6a75c2b6966adbb44cae40cbc24aa12da"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-export-jsonl-full-after-sanitization.log",
+        "sha256": "d806f046ef71eb89a6733d7b0c3daa522169c83c2306420957088524411014e0"
+      },
+      "failedCount": 2,
+      "notes": "Two broader worker checks failed: byte-for-byte describe golden and query of periodicRewardNode. Targeted error-boundary cases passed separately; this run is not green."
+    },
+    {
+      "id": "t00-jsonl-worker-isolated-rerun",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/tooling/jsonl_worker_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 26,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-jsonl-worker-isolated-rerun.command.json",
+        "sha256": "338cc71e3fe050056cf265439f247ae0a7bae104686d02d42369adc66ba04a93"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-jsonl-worker-isolated-rerun.log",
+        "sha256": "64bfb4e1a42dfc35ef234f42d44d6da6ade794ce3f0f2ee6308c30c2522bc83c"
+      },
+      "failedCount": 2,
+      "notes": "Two broader worker checks failed: byte-for-byte describe golden and query of periodicRewardNode. Targeted error-boundary cases passed separately; this run is not green."
+    },
+    {
+      "id": "t01-pokemon-form-links-retired",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_form_links_test.dart",
+        "test/pokemon/pokemon_document_editing_test.dart",
+        "test/pokemon/pokemon_trainer_species_reader_test.dart",
+        "test/pokemon/pokemon_forms_evolution_host_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 20,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-form-links-retired.command.json",
+        "sha256": "1629050ffb419ff1dfe22964d0ec4a8104d72cd094ba24bb29e35e2e226c47a1"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-form-links-retired.log",
+        "sha256": "73edb691630d6e565ff6a0cabbf5c9d8f40d67d91d8bd603a298cbc86dc4c8a6"
+      }
+    },
+    {
+      "id": "t00-mcp-export-and-captions-final",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--test",
+        "--test-concurrency=1",
+        "test/game_export_profile_stdio.test.ts",
+        "test/presentation_caption_staging_stdio.test.ts"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 2,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-mcp-export-and-captions-final.command.json",
+        "sha256": "c7f0426fa054498c389c675bc121b5e8100fb5685b7f73c680a11906cfadc012"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-mcp-export-and-captions-final.log",
+        "sha256": "4cdc9a849d9302faed5c92f87f729731f2caad917dbb4807527acdc4f7704981"
+      }
+    },
+    {
+      "id": "t01-pokemon-variant-times-retired",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_combat_table_commands_test.dart",
+        "test/pokemon/pokemon_encounter_variants_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-variant-times-retired.command.json",
+        "sha256": "b89e0d375d6040dc310ae731bdad3cf9250b471628185cb28ebb6a7bda8005fa"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-variant-times-retired.log",
+        "sha256": "48c35c1fb5dfe4d50641a4117a34d7c4f85e73fc98d6a1eefddec58617b653ae"
+      }
+    },
+    {
+      "id": "t01-encounter-variant-core-regression",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/project_encounter_variants_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 6,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-encounter-variant-core-regression.command.json",
+        "sha256": "2b173faff6117993c0b0440c5965fab2380887f1fa4119f9d09c450f447e2ecb"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-encounter-variant-core-regression.log",
+        "sha256": "bf913535e1f9cbe6baa3a3eb87d88b320b8b3152a3b8bcd591b5ca1ffa2855df"
+      }
+    },
+    {
+      "id": "t01-encounter-variant-gameplay-regression",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/encounter_variants_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 28,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-encounter-variant-gameplay-regression.command.json",
+        "sha256": "9c6d01e6f23a366e91dd3b538c9c6270db23325a3fad5741ced63befd78caf42"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-encounter-variant-gameplay-regression.log",
+        "sha256": "a677cc592243fa12424b8b29ba49fe7086d977d60951c7f4be315b5f7bdc84a2"
+      }
+    },
+    {
+      "id": "t01-pokemon-import-retirement-group1",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_external_import_host_test.dart",
+        "test/pokemon/pokemon_external_dependency_host_test.dart",
+        "test/pokemon/pokemon_json_collision_host_test.dart",
+        "test/pokemon/pokemon_corrections_host_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 16,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-import-retirement-group1.command.json",
+        "sha256": "2a7200d0307e96c00b942d2bc50f1b0d7c350a1b35a63694cebc33546dd1eefd"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-import-retirement-group1.log",
+        "sha256": "5777bec462ce9fc02fa23d28567801632a750c1c7a51ba0ce88607445ce816c4"
+      }
+    },
+    {
+      "id": "t01-pokemon-import-retirement-group2",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_workspace_host_test.dart",
+        "test/pokemon/pokemon_project_switch_host_test.dart",
+        "test/pokemon/pokemon_lot_a_visual_host_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-import-retirement-group2.command.json",
+        "sha256": "8baeb9098c04538ece5814fa57e60a7a0df5a3b0b5ecee54439f64c10aa5c983"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-import-retirement-group2.log",
+        "sha256": "48c35c1fb5dfe4d50641a4117a34d7c4f85e73fc98d6a1eefddec58617b653ae"
+      }
+    },
+    {
+      "id": "t01-pokemon-import-retirement-group3",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_external_png_import_test.dart",
+        "test/pokemon/pokemon_external_gen5_import_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 23,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-import-retirement-group3.command.json",
+        "sha256": "0e0403e5d9e5a72c206c2d95a979aae4eea824fae0e3ba187fefeeb2cfd1ee89"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-import-retirement-group3.log",
+        "sha256": "0e41c7b3d956d267bbb3b3cf1a06fcca94791dcd1489e656f42a1add2dafc179"
+      }
+    },
+    {
+      "id": "t01-pokemon-import-retirement-regression",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_workspace_leave_test.dart",
+        "test/pokemon/pokemon_external_plan_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 18,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-import-retirement-regression.command.json",
+        "sha256": "643ecb902726c00088651dfda3afad737763b7cd011bb53a4eaa9197f123b310"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-import-retirement-regression.log",
+        "sha256": "c177286b7c13c10000d365864a2777aa2243387e8a22ddb0cf29bf478a3a835f"
+      },
+      "failedCount": 1,
+      "notes": "The test fixture accidentally reused the same canonical const preview; a distinct instance and explicit identity assertion were then verified in the green reruns."
+    },
+    {
+      "id": "t01-pokemon-external-consent-identity-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/pokemon/pokemon_workspace_leave_test.dart",
+        "--plain-name",
+        "late external overwrite consent cannot apply a changed preview"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 0,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-external-consent-identity-red.command.json",
+        "sha256": "bd166d27466073e79c1964c1a4fc61135a84161e8411d9cbf24e925ca7c605a4"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-external-consent-identity-red.log",
+        "sha256": "679e9f74b8df8060deb4cb48c9eb19c0e4b32f285fba04da768e3d6fb87e1875"
+      },
+      "failedCount": 1,
+      "notes": "The test fixture accidentally reused the same canonical const preview; a distinct instance and explicit identity assertion were then verified in the green reruns."
+    },
+    {
+      "id": "t01-pokemon-external-consent-identity-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/pokemon/pokemon_workspace_leave_test.dart",
+        "--plain-name",
+        "late external overwrite consent cannot apply a changed preview"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 1,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-external-consent-identity-green.command.json",
+        "sha256": "ff9dbf0e40a160f73e6a08e7010d00468dd7a701004adad048a34196edc0bd6c"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-external-consent-identity-green.log",
+        "sha256": "2a10f94a9d6e51535e50cdc3a4d1cdddd7fde5281e131ee17a105491f2530d81"
+      }
+    },
+    {
+      "id": "t01-pokemon-import-retirement-regression-fixed",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_workspace_leave_test.dart",
+        "test/pokemon/pokemon_external_plan_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 19,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-import-retirement-regression-fixed.command.json",
+        "sha256": "095eb9ee4132a52c969caa0c6b60572ebe16e50c415a06bdc8026ccba02157c0"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-pokemon-import-retirement-regression-fixed.log",
+        "sha256": "adf48776aa032b21d7e49602facb0c59135a0996a54f7d52c1e547bc547d78d6"
+      }
+    },
+    {
+      "id": "t01-story-progression-retirement-contracts",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/stories/story_progression_sources_test.dart",
+        "test/story_graph_canvas_test.dart",
+        "test/ui07_story_graph_volume_test.dart",
+        "test/presentation/ui07_story_construction_test.dart",
+        "test/presentation/ui07_story_selection_test.dart",
+        "test/presentation/ui07_story_journey_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 14,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-progression-retirement-contracts.command.json",
+        "sha256": "18cf033a8f791053005309eab73d63c616dc91e8db5c4238a7dc15ee282de637"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-progression-retirement-contracts.log",
+        "sha256": "eb34840bb0af246c464d2130d06c614faaceaeff95d46e9620fb1c70d6487de1"
+      }
+    },
+    {
+      "id": "t01-story-progression-domain-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/stories/"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 42,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-progression-domain-regressions.command.json",
+        "sha256": "092cf515b1ad02712a3832b578d014be59f2e814bb16f1312d0130e5a419a3f7"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-progression-domain-regressions.log",
+        "sha256": "f01ca8ec667252fdb761f766d051174a0220c0b5f261eb0a8085d44c31b1ac41"
+      },
+      "notes": "This directory run includes some tests already counted in the focused 14-test story group."
+    },
+    {
+      "id": "t01-story-progression-workspace-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/presentation/ui05_narrative_overview_collection_test.dart",
+        "test/dialogues_ui09_nested_navigation_test.dart",
+        "test/map_workspace/workspace_story_journey_contract_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": true,
+      "passedCount": null,
+      "classification": "interrupted_with_observed_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-progression-workspace-regressions.command.json",
+        "sha256": "7d42569d679423534a7f6c9f7932864ea44b09bb49437309d74ff162c2a81fa6"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-progression-workspace-regressions.log",
+        "sha256": "6efecfd0bd252c8b0d1435e0d3539f089e38c083a31dc2e7c9b364a362d4182e"
+      },
+      "notes": "EventWorkspacePage was absent during ui05 mixed creation; the runner later exceeded its 240 second overall deadline and was interrupted. The group is not green."
+    },
+    {
+      "id": "t01-story-ui05-event-probe",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/presentation/ui05_narrative_overview_collection_test.dart",
+        "--plain-name",
+        "overview creates a scene and an event through their owners"
+      ],
+      "exitCode": 0,
+      "interrupted": true,
+      "passedCount": null,
+      "classification": "diagnostic_only_not_a_test_pass",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-ui05-event-probe.command.json",
+        "sha256": "f4d5686020ba1417fa34a1ae267f019100074284b6f55aa58ea57d70408a2f61"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-ui05-event-probe.log",
+        "sha256": "7deb1bca9a716fcc859c4e2aafed4b82d44bd8f37956435582cd39ac713484de"
+      },
+      "notes": "Instrumented QA-only test. The diagnostic run intentionally returned after exposing catalogBlocked; its exit code is not proof that the original UI05 test passed."
+    },
+    {
+      "id": "t01-story-ui05-catalog-diagnostic-only",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/presentation/ui05_narrative_overview_collection_test.dart",
+        "--plain-name",
+        "overview creates a scene and an event through their owners"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": null,
+      "classification": "diagnostic_only_not_a_test_pass",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-ui05-catalog-diagnostic-only.command.json",
+        "sha256": "4d83ca53862cd37ad0765ecae5be12c1d49ac198d6c7e0050226377d19ba7cc9"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-story-ui05-catalog-diagnostic-only.log",
+        "sha256": "787f98eb55ae4745cc0b9b71151c5e0557b5fea43e4ab9bf73fd72b6d9678418"
+      },
+      "notes": "Instrumented QA-only test. The diagnostic run intentionally returned after exposing catalogBlocked; its exit code is not proof that the original UI05 test passed."
+    },
+    {
+      "id": "t01-map-ambiance-publication-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/map_ambiance_publication_contract_test.dart",
+        "test/application/map_atmosphere_controller_test.dart",
+        "test/project_visuals/project_settings_navigation_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 13,
+      "failedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-ambiance-publication-regressions.command.json",
+        "sha256": "3e1542530a53a25bb0eeb0a32f8d6a1ce6b69586fd08dfbf923c96787dfed06a"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-ambiance-publication-regressions.log",
+        "sha256": "e7d23b9d1ee77147362d75097604a8be0a0dbb1e7c23f533552c48bc555a710a"
+      },
+      "notes": "The cold adapter test requested B atmosphere before loading B; correction and rerun pending."
+    },
+    {
+      "id": "t01-map-ambiance-publication-regressions-fixed",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/map_ambiance_publication_contract_test.dart",
+        "test/application/map_atmosphere_controller_test.dart",
+        "test/project_visuals/project_settings_navigation_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 14,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-ambiance-publication-regressions-fixed.command.json",
+        "sha256": "518ebe941fe3eb53b43909b8db73bf6e7736f4eb865415a8d763b4517218853e"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-ambiance-publication-regressions-fixed.log",
+        "sha256": "eb34840bb0af246c464d2130d06c614faaceaeff95d46e9620fb1c70d6487de1"
+      }
+    },
+    {
+      "id": "t01-map-ambiance-editing-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/map_spatial_settings_commands_test.dart",
+        "test/presentation/map_atmosphere_settings_panel_test.dart",
+        "test/project_visuals/map_weather_controls_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 15,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-ambiance-editing-regressions.command.json",
+        "sha256": "8c2eb3d6bdcb5f939ec4e0e0f23952e8203785ae2b040f094006902e8f108c15"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-ambiance-editing-regressions.log",
+        "sha256": "155df81800a28745df697aa8776741aaad8a67c789bbb93953cc95da6096723f"
+      }
+    },
+    {
+      "id": "t01-map-ambiance-preview-dev-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/presentation/day_night_controls_test.dart",
+        "test/dev/hgss_lighting_comparison_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 23,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-ambiance-preview-dev-regressions.command.json",
+        "sha256": "2a1abe2facf2cfbc08517d9e4183dd024a38d513cb4494ebe85cc9dc63726ee1"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-ambiance-preview-dev-regressions.log",
+        "sha256": "c30fd3391abaa882db90740189fd29882d26f637c992a647854391a6e2a93d99"
+      }
+    },
+    {
+      "id": "t01-event-partial-catalog-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/narrative_event_partial_catalog_authoring_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 6,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-event-partial-catalog-red.command.json",
+        "sha256": "199bbce5325f9ba11d667ca583cc95760d647f31ebd35c7796707d7143b6a7c7"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-event-partial-catalog-red.log",
+        "sha256": "96d02ace72d9dbcc362dfb1f379000b541838dad28f5002e92304ffde8a6cd32"
+      },
+      "failedCount": 7
+    },
+    {
+      "id": "t01-event-partial-catalog-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/narrative_event_partial_catalog_authoring_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 16,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-event-partial-catalog-green.command.json",
+        "sha256": "4e42d0fabcd8b2aa02f28ad5dc90b293773e01171ec849da1cca9379defdddc1"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-event-partial-catalog-green.log",
+        "sha256": "7ee24dadfbc895829cbd24be35581007c55638f889c87456e2dcf456420f74a7"
+      },
+      "notes": "First correction passed 16 cases; later review identified a known 2D/3D incompatibility not yet covered. Superseded by subsequent tests."
+    },
+    {
+      "id": "t01-dialogue-projection-retirement-contracts",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/dialogues/dialogue_structure_projection_test.dart",
+        "test/dialogues/dialogue_selection_commands_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-dialogue-projection-retirement-contracts.command.json",
+        "sha256": "cbd5a9d9b77fab32995739623aae2bec24640abee4d14970ffb87296be6a411a"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-dialogue-projection-retirement-contracts.log",
+        "sha256": "48c35c1fb5dfe4d50641a4117a34d7c4f85e73fc98d6a1eefddec58617b653ae"
+      }
+    },
+    {
+      "id": "t01-dialogue-projection-retirement-ui-contracts",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/dialogues_ui09_interaction_test.dart",
+        "test/dialogues_ui09_safety_test.dart",
+        "test/dialogues_ui09_volume_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-dialogue-projection-retirement-ui-contracts.command.json",
+        "sha256": "22b3191abbf471cbaadcc74e9b6c091869700301a920d359f56eec7f3062dfae"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-dialogue-projection-retirement-ui-contracts.log",
+        "sha256": "4e29dc592b108c84591a5f23275859704858dabf5d7e4fd49dae250939ace3d8"
+      }
+    },
+    {
+      "id": "t01-dialogue-projection-retirement-visual-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/dialogues_ui09_visual_test.dart",
+        "test/dialogues_ui09_responsive_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 4,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-dialogue-projection-retirement-visual-regressions.command.json",
+        "sha256": "7319c71584f5972c266c122de01191b6aa050e028d5b0d396b0caa1fd3e2c785"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-dialogue-projection-retirement-visual-regressions.log",
+        "sha256": "dba96462601ec92aa29ef705139440762ec7b24e502ccd1249f2f623b4fd0bef"
+      }
+    },
+    {
+      "id": "t01-resume-catalog-dimensions-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "expanded",
+        "test/narrative_event_partial_catalog_authoring_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 16,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-dimensions-red.command.json",
+        "sha256": "fb24a9cde5520e8866ac5b6433f3e50586f3bc7338b338616d6d7810f9230df8"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-dimensions-red.log",
+        "sha256": "a1e305d5253c8b89ad8ceed0e2ba0a99ce90cfb98783fc7031e0de2ac6f30ff7"
+      },
+      "failedCount": 2,
+      "notes": "Initial fixture assertion incorrectly treated manifest IDs as loaded maps; this failure does not reproduce the production defect."
+    },
+    {
+      "id": "t01-resume-catalog-dimensions-qualified-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "expanded",
+        "test/narrative_event_partial_catalog_authoring_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 16,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-dimensions-qualified-red.command.json",
+        "sha256": "d08c9859ce5d2e6194be696a5195b424d5702ee4fcc1f172b9116b3b3a4f6fff"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-dimensions-qualified-red.log",
+        "sha256": "33359296527f07d78218d29eac7f26d8dde58533b463803cb3765be05ef9c1a2"
+      },
+      "failedCount": 2,
+      "notes": "Two known dimension incompatibilities emitted warning instead of error."
+    },
+    {
+      "id": "t01-resume-catalog-dimensions-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "expanded",
+        "test/narrative_event_partial_catalog_authoring_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 18,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-dimensions-green.command.json",
+        "sha256": "134e56d048038c921f077daaf1a5cb37ec5b82484fd3429db3d5e3cf5b8f6804"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-dimensions-green.log",
+        "sha256": "f305d4734b75f3356b6167ad6605b3cf839f4a1089b3bfa99823170b34ce96b5"
+      },
+      "notes": "First fix passed 18 tests but was superseded by two further dimension cases."
+    },
+    {
+      "id": "t01-resume-catalog-entity-dimensions-red",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "expanded",
+        "test/narrative_event_partial_catalog_authoring_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 18,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-entity-dimensions-red.command.json",
+        "sha256": "a81ee4ac8dc01f142207b1dce9405f42916fa4fbace12c53217e91a543606c41"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-entity-dimensions-red.log",
+        "sha256": "5c8d5491220eef0620878203f557cec0229f9458f1ca60039765afa0e487a787"
+      },
+      "failedCount": 2,
+      "notes": "Two additional entity types emitted warning instead of error in 3D."
+    },
+    {
+      "id": "t01-resume-catalog-all-dimensions-green",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "expanded",
+        "test/narrative_event_partial_catalog_authoring_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 20,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-all-dimensions-green.command.json",
+        "sha256": "8ad936a134fa4ed9e4e9720b578e6d3e970af71d0e6c14f8d89b2e4de3e39313"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-all-dimensions-green.log",
+        "sha256": "e4f724f7b2dda4e8b7d5edbda0866bc257a9025865dee982949fd7784c163f5d"
+      },
+      "notes": "Final focused group covers all four known dimension incompatibilities."
+    },
+    {
+      "id": "t01-resume-catalog-core-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "failures-only",
+        "test/narrative_map_projection_test.dart",
+        "test/narrative_event_draft_authoring_test.dart",
+        "test/narrative_event_source_authoring_v2_test.dart",
+        "test/narrative_event_publication_test.dart",
+        "test/narrative_event_dispatch_authority_test.dart",
+        "test/narrative_event_v2_integrity_validation_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 75,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-core-regressions.command.json",
+        "sha256": "8e4817c60f30dec6e51d6614189ce44b98d097cf5dedb9644ffd5b30337de349"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-core-regressions.log",
+        "sha256": "22ef09dbdb9b1eaa747e3e01cd0deefee790dd29afe840b7c7302c6e5fb146e7"
+      }
+    },
+    {
+      "id": "t01-resume-catalog-activation-regression",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "failures-only",
+        "test/narrative_event_activation_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 8,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-activation-regression.command.json",
+        "sha256": "bc9172dab2339e8064d708996c09c07db717ef802253a4e66144650dedcb0af9"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-catalog-activation-regression.log",
+        "sha256": "f497506cbdcc088847704aeac5c37438a1d132f43dcdb32f185256b17ae8a348"
+      }
+    },
+    {
+      "id": "t01-resume-ui05-event-after-catalog-fix",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=60s",
+        "-r",
+        "expanded",
+        "test/presentation/ui05_narrative_overview_collection_test.dart",
+        "--plain-name",
+        "overview creates a scene and an event through their owners"
+      ],
+      "exitCode": 0,
+      "interrupted": true,
+      "passedCount": null,
+      "classification": "interrupted_with_observed_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-ui05-event-after-catalog-fix.command.json",
+        "sha256": "b1bd7acdaa03c58aa33704bf138dad925140e87774279d8082ec119b557e1a24"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-ui05-event-after-catalog-fix.log",
+        "sha256": "5d696e2a86fda46f6a5b40dde0bbcafa06b22883047481d478298ca97ba47471"
+      },
+      "notes": "Uninstrumented test still asserted before asynchronous preparation completed; runner later interrupted at 85 seconds."
+    },
+    {
+      "id": "t01-resume-ui05-event-readiness-probe",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=60s",
+        "-r",
+        "expanded",
+        "test/presentation/ui05_narrative_overview_collection_test.dart",
+        "--plain-name",
+        "overview creates a scene and an event through their owners"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 1,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-ui05-event-readiness-probe.command.json",
+        "sha256": "5f1f52674ccae583df35b85b9934c4405d033160f96f1f05056f4b97fc4aec8e"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-ui05-event-readiness-probe.log",
+        "sha256": "8c3ac2b3bd3468f8ef37a1eddbd7c48e7c1ee5beba7e860b45931b99f786eb63"
+      },
+      "notes": "Bounded readiness wait verifies page or owner error; the same test change was applied to the workspace after this run."
+    },
+    {
+      "id": "t01-resume-ui05-full-after-catalog-fix",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "failures-only",
+        "test/presentation/ui05_narrative_overview_collection_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 3,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-ui05-full-after-catalog-fix.command.json",
+        "sha256": "6f2bcef96def2d84332b9e3ae2509ed1e4a48913427786d243b3058bac75cd6b"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-ui05-full-after-catalog-fix.log",
+        "sha256": "bf770831027ec73b0cc89996c7f54e1501c66c69c433e8b311abc7bdebdf9ffb"
+      },
+      "notes": "All three UI05 tests passed with the bounded readiness wait. QA baseline 468d1d62 with core/test overlay; linked dependencies fingerprinted before/after."
+    },
+    {
+      "id": "t01-resume-story-workspace-navigation-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "failures-only",
+        "test/dialogues_ui09_nested_navigation_test.dart",
+        "test/map_workspace/workspace_story_journey_contract_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 4,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-story-workspace-navigation-regressions.command.json",
+        "sha256": "da1d7398820864d75158405b51953f9fd57d5913d8ac6566488d9891bf58e8d8"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-story-workspace-navigation-regressions.log",
+        "sha256": "dba96462601ec92aa29ef705139440762ec7b24e502ccd1249f2f623b4fd0bef"
+      },
+      "notes": "Two remaining mixed navigation files passed on QA baseline 468d1d62 with the core overlay."
+    },
+    {
+      "id": "t01-resume-pokemon-media-contracts",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_media_roles_test.dart",
+        "test/pokemon/pokemon_media_animation_host_test.dart",
+        "test/pokemon/pokemon_shared_media_host_test.dart",
+        "test/pokemon/pokemon_media_picker_workflow_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 18,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-pokemon-media-contracts.command.json",
+        "sha256": "08aef0b5857f3dbb36edb8593adaafc2d2ea65b1159e9d88a4db7cb590a4dd24"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-pokemon-media-contracts.log",
+        "sha256": "c2852032b4c44f4af84de07af03fc865ae1c8999e5aac1cd1ad814516de97129"
+      },
+      "notes": "First media group passed against the synchronized 468d1d62 QA baseline; linked dependency roots remain shared."
+    },
+    {
+      "id": "t01-resume-pokemon-media-workspace-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_workspace_host_test.dart",
+        "test/pokemon/pokemon_lot_a_visual_host_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 9,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-pokemon-media-workspace-regressions.command.json",
+        "sha256": "894e5566dc1a5f986d9f2a756ec8c9d3bff70fda9b9603b4c83aa150a90cf124"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-pokemon-media-workspace-regressions.log",
+        "sha256": "d304697576cac2811119f4cc9c8fcdbf94c033fde8d9733d04dab69430e6ecf3"
+      },
+      "notes": "Frozen QA baseline 468d1d62 with documented overlays; five linked dependencies fingerprinted unchanged across the media runs."
+    },
+    {
+      "id": "t01-resume-pokemon-media-import-navigation-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "failures-only",
+        "test/pokemon/pokemon_external_png_import_test.dart",
+        "test/pokemon/pokemon_external_gen5_import_test.dart",
+        "test/pokemon/pokemon_project_switch_host_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 24,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-pokemon-media-import-navigation-regressions.command.json",
+        "sha256": "52d463413ffff4b37db74a8408a9064dd8b25c95c2ca0e0bcb2d06b5f493b73c"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-pokemon-media-import-navigation-regressions.log",
+        "sha256": "b06af5f84b3824b7fec933a3794ffdff67a167332fc2d869e48ff8582e382b9e"
+      },
+      "notes": "Frozen QA baseline 468d1d62 with documented overlays; five linked dependencies fingerprinted unchanged across the media runs."
+    },
+    {
+      "id": "t01-resume-event-direct-jsonl-regressions",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=90s",
+        "-r",
+        "failures-only",
+        "test/domains/narrative/event_scoped_two_map_transport_test.dart",
+        "test/domains/narrative/event_record_batch_transport_test.dart",
+        "test/domains/narrative/narrative_entity_bump_transport_test.dart",
+        "test/domains/narrative/narrative_entity_autorun_transport_test.dart",
+        "test/domains/narrative/narrative_trigger_bump_transport_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 38,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-event-direct-jsonl-regressions.command.json",
+        "sha256": "22717287153d2e2585608e4740bb716fc1ede42e9b15152955ae8016b246356f"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-event-direct-jsonl-regressions.log",
+        "sha256": "cad097bf23fdac34841ea3a0e1a361c98518cc0fc4498c82d47222725a199205"
+      },
+      "notes": "Direct API and in-process JSONL with the two-map scoped-read witness on QA baseline 468d1d62. This does not prove complete transport certification or every gateway syscall."
+    },
+    {
+      "id": "t01-resume-event-mcp-stdio",
+      "command": [
+        "env",
+        "POKEMAP_TEST_DART=/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "node",
+        "--import",
+        "tsx",
+        "--test",
+        "--test-concurrency=1",
+        "test/event_v2_transport_parity_stdio.test.ts",
+        "test/narrative_entity_bump_stdio.test.ts",
+        "test/narrative_entity_autorun_stdio.test.ts",
+        "test/narrative_trigger_bump_stdio.test.ts"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 4,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-event-mcp-stdio.command.json",
+        "sha256": "ea06f93f7b9494d4c5e09a3265ad5dec7c4746631cb260371980db19ea1a7619"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-event-mcp-stdio.log",
+        "sha256": "9ca1be86227f371128abbe298f303e53a229ca9c3180ebf98990e9048743371c"
+      },
+      "notes": "Real owned stdio server built in the QA copy; covers the shared nine-action Event V2 cycle and native contact-source authoring. Does not cover PMCP-085 certification or the two-map scoped-read witness over external stdio."
+    },
+    {
+      "id": "t01-resume-map-camera-retirement",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/map_camera_panel_test.dart",
+        "test/map_workspace/map_spatial_settings_commands_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-map-camera-retirement.command.json",
+        "sha256": "858b140e940428b7a99ee19b5a27fdd69fd0d7b2ccb97aa783c9ee8a4f78369d"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-map-camera-retirement.log",
+        "sha256": "48c35c1fb5dfe4d50641a4117a34d7c4f85e73fc98d6a1eefddec58617b653ae"
+      },
+      "notes": "Camera panel removal on the QA snapshot: preserved camera commands and catalogue controls with 2D and 3D widget witnesses. No native visual acceptance."
+    },
+    {
+      "id": "t01-resume-scene-graph-retirement",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/scene_graph_canvas_test.dart",
+        "test/scene_canvas_addition_test.dart",
+        "test/ui06_scene_construction_test.dart",
+        "test/ui06_scene_volume_test.dart",
+        "test/presentation/ui06_scene_journey_test.dart",
+        "test/presentation/ui08_event_journey_test.dart",
+        "test/presentation/ui11_scene_presentation_binding_test.dart",
+        "test/scenes/scene_view_reconciliation_ui07_test.dart",
+        "test/scenes/scene_graph_projection_contract_test.dart",
+        "test/scenes/scene_authoring_commands_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 22,
+      "failedCount": 2,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-scene-graph-retirement.command.json",
+        "sha256": "8b889fc672c534f8d40b1e1b01a9c2cbd8eb99f0a9d5dc99b97c8475305dc619"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-scene-graph-retirement.log",
+        "sha256": "6d9a8c2429d601a6fbbc5b13d42441b2eb7150e2e0e55c85e24985eb8ef07abb"
+      },
+      "notes": "Initial scene-retirement group failed on the palette finder and a journey still looking for the retired Simulation UI; isolated reruns recorded separately."
+    },
+    {
+      "id": "t01-scene-palette-isolated-red",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/scene_canvas_addition_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 1,
+      "failedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-scene-palette-isolated-red.command.json",
+        "sha256": "3076c00439c7d24b8f51353408f9911370c69ef09a020d667b59e2c099d52bf3"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-scene-palette-isolated-red.log",
+        "sha256": "d11ce663473adf367b1e3eb6e4de4fba5b0f45887a1ed0cd3133f16a07c04d1e"
+      },
+      "notes": "Reproduced a non-unique scrollable finder in the palette witness; the separate text-edit protection passed."
+    },
+    {
+      "id": "t01-ui08-event-journey-isolated-red",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/presentation/ui08_event_journey_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 0,
+      "failedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-ui08-event-journey-isolated-red.command.json",
+        "sha256": "08dd536da8cf84b6c2c54f002563e57cca64a484157d35bdb8362524c0692b60"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-ui08-event-journey-isolated-red.log",
+        "sha256": "ab2f7480c5041483726b144114361549dfd2e0354fc5d41401c0cfce1f119115"
+      },
+      "notes": "Reproduced the event journey looking for the removed Simulation UI."
+    },
+    {
+      "id": "t01-scene-palette-isolated-green-attempt",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/scene_canvas_addition_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 2,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-scene-palette-isolated-green-attempt.command.json",
+        "sha256": "d6fe731581196bd8f26d422eaec32f9d89fd976c78c1a1de58430955c11a3e71"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-scene-palette-isolated-green-attempt.log",
+        "sha256": "70cc127ca658dd98bd20269aa91c9a9a1064aaa69dfb93117cd0045477395e6a"
+      },
+      "notes": "After narrowing the finder, all disabled palette entries are exercised across two scenes and cannot mutate their owners."
+    },
+    {
+      "id": "t01-ui08-event-journey-isolated-green-attempt",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/presentation/ui08_event_journey_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 0,
+      "failedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-ui08-event-journey-isolated-green-attempt.command.json",
+        "sha256": "dd97d4504a399c03192e7a2350909543a72c5392908f7102e5ae12111ca7e11b"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-ui08-event-journey-isolated-green-attempt.log",
+        "sha256": "f1b2e2a6fc842fcd0671532e3eae6e6ddd8b26c2924fec663687a83553598e88"
+      },
+      "notes": "First application-session replacement failed due to nested runAsync in the widget harness; not a passing simulation."
+    },
+    {
+      "id": "t01-ui08-event-journey-isolated-corrected",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/presentation/ui08_event_journey_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 0,
+      "failedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-ui08-event-journey-isolated-corrected.command.json",
+        "sha256": "3f3b5f1b8e6398c39569a30a9d7446ffa1c7eca0993893718e68b9b9f88ac053"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-ui08-event-journey-isolated-corrected.log",
+        "sha256": "384c3608d160aa27e9f8743fbd81a73564d62a70d10f490f4b9cc69be1b7f7f3"
+      },
+      "notes": "A second attempt reproduced runAsync reentrancy because the pumping helper itself raced with deferred map preparation."
+    },
+    {
+      "id": "t01-resume-map-decor-animation-retirement",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/map_decor_animation_panel_test.dart",
+        "test/presentation/map_inspector_ui02_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 7,
+      "failedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-map-decor-animation-retirement.command.json",
+        "sha256": "6f38a3d58366bbb1ac55da3bff3015c93e2cd9fae9fd6ce472fb15d09feb57df"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-map-decor-animation-retirement.log",
+        "sha256": "e02e98bcc12a9400fbc30bd325645fc752571db25d14f3eac87cfbe3d2d929bd"
+      },
+      "notes": "Initial decor retirement group failed because the new fixture used an empty behavior ID normalized by JSON decoding."
+    },
+    {
+      "id": "t01-map-decor-isolated-red",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/map_workspace/map_decor_animation_panel_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 6,
+      "failedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-decor-isolated-red.command.json",
+        "sha256": "4795a065ebbbb5c0557547303c09b2a66686ca2db7c244b6e9af4beb32bfebc8"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-decor-isolated-red.log",
+        "sha256": "afadef389df65a37448a173deaae0124559a29ffeff2ccab0f18271c35771ded"
+      },
+      "notes": "Reproduced the canonical behavior-ID mismatch in isolation while six existing command tests passed."
+    },
+    {
+      "id": "t01-map-decor-isolated-corrected",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/map_workspace/map_decor_animation_panel_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 7,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-decor-isolated-corrected.command.json",
+        "sha256": "548c1d1dbe60c93b120ec6c064470736fd6946de131bf4b1182ff329c56023d4"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-decor-isolated-corrected.log",
+        "sha256": "2d4194427e25c4235a63ee2d644c8e3f09e3b4ed86c5e4d0fa94966f0ff454d3"
+      },
+      "notes": "The new witness uses and checks the canonical behavior ID before and after JSON; six existing command tests remain green."
+    },
+    {
+      "id": "t01-ui08-event-journey-isolated-after-race",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/presentation/ui08_event_journey_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 1,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-ui08-event-journey-isolated-after-race.command.json",
+        "sha256": "09330f09351e2e01de958571690948a6075cdd634fb7b7083e1cec87483408ba"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-ui08-event-journey-isolated-after-race.log",
+        "sha256": "e6fcd4994c07618363a478c85c732b5c798fb528e11c5060dc6629ee63f54b20"
+      },
+      "notes": "The event journey uses the real application simulation session after bounded preparation, preserving map/scene drafts and avoiding additional writes."
+    },
+    {
+      "id": "t01-resume-scene-graph-retirement-retest",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/scene_graph_canvas_test.dart",
+        "test/scene_canvas_addition_test.dart",
+        "test/ui06_scene_construction_test.dart",
+        "test/ui06_scene_volume_test.dart",
+        "test/presentation/ui06_scene_journey_test.dart",
+        "test/presentation/ui08_event_journey_test.dart",
+        "test/presentation/ui11_scene_presentation_binding_test.dart",
+        "test/scenes/scene_view_reconciliation_ui07_test.dart",
+        "test/scenes/scene_graph_projection_contract_test.dart",
+        "test/scenes/scene_authoring_commands_test.dart",
+        "test/presentation/ui05_narrative_overview_collection_test.dart",
+        "test/dialogues_ui09_nested_navigation_test.dart",
+        "test/map_workspace/workspace_story_journey_contract_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 31,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-scene-graph-retirement-retest.command.json",
+        "sha256": "60fa6daf9f2561499b4273b4717929ff485821741d7320899b48311e8bbb3191"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-scene-graph-retirement-retest.log",
+        "sha256": "eea726898d6245c10b1d6b39f10ded2158dfaaafa9203640312b85178f8c7ca1"
+      },
+      "notes": "Scene retirement, selection, undo, persistence and story/event/dialogue navigation passed together on the selectively synchronized QA copy. The old graph gestures remain unavailable."
+    },
+    {
+      "id": "t01-resume-map-decor-animation-retirement-retest",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/map_decor_animation_panel_test.dart",
+        "test/presentation/map_inspector_ui02_test.dart",
+        "test/map_workspace/decor_order_e2e_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-map-decor-animation-retirement-retest.command.json",
+        "sha256": "4de38fdcb774ef478c1f828212cadf50cfc6c40247f0bd02d26c122efe1f995d"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-map-decor-animation-retirement-retest.log",
+        "sha256": "48c35c1fb5dfe4d50641a4117a34d7c4f85e73fc98d6a1eefddec58617b653ae"
+      },
+      "notes": "Decor animation commands, serialization and remaining inspector/order behavior passed together on the selectively synchronized QA copy. The old animation controls remain unavailable."
+    },
+    {
+      "id": "t00-jsonl-worker-focused-retest",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/tooling/jsonl_worker_test.dart",
+        "--name",
+        "golden describe and malformed input|every described resource kind"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 1,
+      "failedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-jsonl-worker-focused-retest.command.json",
+        "sha256": "c4b831f2ccc20d179453d7d649db142ef70babfcb3e84c0f7b4651ae73702cd0"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-jsonl-worker-focused-retest.log",
+        "sha256": "e7f55dd9c9108680f68a2a9d988fa6cf00b7c151a416656343d10679adb05f47"
+      },
+      "notes": "Golden passed; the new positive reward reference expectation omitted the real schemaVersion field."
+    },
+    {
+      "id": "t00-jsonl-worker-focused-schema-corrected",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/tooling/jsonl_worker_test.dart",
+        "--name",
+        "golden describe and malformed input|every described resource kind"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 1,
+      "failedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-jsonl-worker-focused-schema-corrected.command.json",
+        "sha256": "a84e8f28bceb7735ae9c74fc9d3bf2562635d854b23b9e39dceaa0bd33f1454f"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-jsonl-worker-focused-schema-corrected.log",
+        "sha256": "5697c3ba9d6ba615c975d0d3811ea71e0157b1d5697701cd27fc7012c71f16bc"
+      },
+      "notes": "Golden passed; the generic smoke then reached mapHealth without the required map scope."
+    },
+    {
+      "id": "t00-jsonl-worker-focused-with-map",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/tooling/jsonl_worker_test.dart",
+        "--name",
+        "golden describe and malformed input|every described resource kind"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 2,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-jsonl-worker-focused-with-map.command.json",
+        "sha256": "7d0791eafb59a45dcd8051363a8eb810930a0979d310d00c4bf2639683523f64"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-jsonl-worker-focused-with-map.log",
+        "sha256": "e101c26257eb852f5561f602afa40bba471bbcaabe4ca5faf0d006be83542552"
+      },
+      "notes": "Golden and all described query routes passed with a real scoped scene and physical map fixture."
+    },
+    {
+      "id": "t00-jsonl-worker-full-and-scoped-regressions",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "test",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/tooling/jsonl_worker_test.dart",
+        "test/api/periodic_reward_choice_query_test.dart",
+        "test/api/map_health_query_test.dart",
+        "test/tooling/jsonl_export_missing_profile_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 44,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-jsonl-worker-full-and-scoped-regressions.command.json",
+        "sha256": "025c5f690e67fc609e95f7d5939a4d57f1f5c51d8d7148e375a6313b9aa5b234"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-jsonl-worker-full-and-scoped-regressions.log",
+        "sha256": "a89429f8fdcf0649d3f9316c8314a9f885a229a0d9b2f7f6a42901109d68a208"
+      },
+      "notes": "Complete JSONL worker file and periodic reward, map health and export-profile regressions passed on the QA snapshot. mapHealth discovery metadata remains incomplete."
+    },
+    {
+      "id": "t01-studio-combined-flutter-analyze",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": null,
+      "failedCount": null,
+      "classification": "analysis_incomplete_qa",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-studio-combined-flutter-analyze.command.json",
+        "sha256": "2d2ff4ef804f78f6c0fdccaf6af769acdba8fff0cda901d166fba20574cb078a"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-studio-combined-flutter-analyze.log",
+        "sha256": "c3a9bddac6542dc4817a37bc3b675a728a18f538dfcea7bd42bad78817b0b49a"
+      },
+      "notes": "Exit 1: two errors came from a baseline benchmark support file absent from the QA copy; four warnings and seven infos also reported."
+    },
+    {
+      "id": "t01-studio-combined-flutter-analyze-complete-qa",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": null,
+      "failedCount": null,
+      "classification": "analysis_warnings",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-studio-combined-flutter-analyze-complete-qa.command.json",
+        "sha256": "497338fc248c936efe59a1009e6edf8cccd4f6db0dad0a569c02e6228d44af5a"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-studio-combined-flutter-analyze-complete-qa.log",
+        "sha256": "33868340d7daf215c3399fc3236737fc9a2cc888ee3af88ae76dbd0595c72469"
+      },
+      "notes": "Exit 1 after restoring the missing baseline file: zero errors, four unused private UI bindings and seven informational lints."
+    },
+    {
+      "id": "t01-studio-final-flutter-analyze",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "analyze",
+        "--no-pub"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": null,
+      "failedCount": null,
+      "classification": "analysis_informational_lints",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-studio-final-flutter-analyze.command.json",
+        "sha256": "844690c876ded3c3dd3ec0d153641b4f8298fc5c1b7a7d646d3fc3ab06408bdd"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-studio-final-flutter-analyze.log",
+        "sha256": "2579d32cea475ce018ee98f4af909756c0bcf86e71172875e4b4f0a8db168b71"
+      },
+      "notes": "Exit 1 under Flutter's default fatal-info policy: zero errors, zero warnings and seven baseline informational lints after the dead bindings were removed."
+    },
+    {
+      "id": "t01-studio-analyze-no-fatal-infos",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "analyze",
+        "--no-pub",
+        "--no-fatal-infos"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": null,
+      "failedCount": null,
+      "classification": "analysis_informational_lints",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-studio-analyze-no-fatal-infos.command.json",
+        "sha256": "d4771aef008c08c8ac73d054f2f989c786979e430846cb77e1f0bd0b8caee31d"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-studio-analyze-no-fatal-infos.log",
+        "sha256": "4e652b5bea366cd35c64a8ff7d8e4ccd16fc32004b99eec23760abb81f11831f"
+      },
+      "notes": "Exit 0 with --no-fatal-infos; zero errors, zero warnings and the same seven informational lints remain."
+    },
+    {
+      "id": "t00-authoring-dart-analyze",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "analyze"
+      ],
+      "exitCode": 3,
+      "interrupted": false,
+      "passedCount": null,
+      "failedCount": null,
+      "classification": "analysis_incomplete_qa",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-authoring-dart-analyze.command.json",
+        "sha256": "2795b34a046183ddc23850bdb6d65036b13de5b2baf507813cd6beb24d205298"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-authoring-dart-analyze.log",
+        "sha256": "1244be984513d00a849c3d17521fd3bfbdcb992dc4b9fe3c3f6b898e209123ff"
+      },
+      "notes": "Exit 3: six errors came from missing baseline QA support files; two warnings and 48 informational lints also reported."
+    },
+    {
+      "id": "t00-authoring-dart-analyze-complete-qa",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+        "analyze"
+      ],
+      "exitCode": 2,
+      "interrupted": false,
+      "passedCount": null,
+      "failedCount": null,
+      "classification": "analysis_warnings",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t00-authoring-dart-analyze-complete-qa.command.json",
+        "sha256": "b84b8070c658ce997922e099e62acb957e2b93c777df47f5ba0510da4db15c18"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t00-authoring-dart-analyze-complete-qa.log",
+        "sha256": "5d97c28e1074d66618246cb95400d187cd75d92caa9b73c6e955cfe554866f29"
+      },
+      "notes": "Exit 2 after restoring baseline support files: zero errors, two warnings and 48 informational lints in the QA snapshot."
+    },
+    {
+      "id": "t01-map-unused-bindings-regressions",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/workspace_narrative_routes_test.dart",
+        "test/ui12_workspace_return_test.dart",
+        "test/ui13_verification_navigation_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 12,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-unused-bindings-regressions.command.json",
+        "sha256": "b72f9bca8f3c924cee8b211dadc58f443f68f35f82746f6e6039a4a1ec196a7b"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-map-unused-bindings-regressions.log",
+        "sha256": "29aac680c365ef09727dd98e35d29dd27b3d72583ea4f3668a95483ac932a521"
+      },
+      "notes": "Navigation, returns and diagnostics remained covered after removal of four unused presentation bindings."
+    },
+    {
+      "id": "t01-construction-closure-hosts",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/map_construction_retirement_test.dart",
+        "test/map_workspace/border_drawing_host_test.dart",
+        "test/map_workspace/uwu5_border_availability_host_test.dart",
+        "test/map_workspace/uwu6_first_border_host_test.dart",
+        "test/resource_io/environment_authoring_host_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 16,
+      "failedCount": 3,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-closure-hosts.command.json",
+        "sha256": "987310184b70a295a53cd57902c5dc29874b97ad6b8d69419825d55fca89c84e"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-closure-hosts.log",
+        "sha256": "1559ec450b84f48fd222cb3583bc27758d2e41e59db62a4b5ea0c35a32206e5d"
+      },
+      "notes": "Initial 19-test construction closure group: Escape preserved the border draft and two environment journeys sought an already removed creation button. Corrective tests are pending."
+    },
+    {
+      "id": "t01-construction-border-host-isolated-red",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/map_workspace/border_drawing_host_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 9,
+      "failedCount": 1,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-border-host-isolated-red.command.json",
+        "sha256": "79ff95bb0c0628f11cc3329bcb99232283e6f69c0db960a450d9404fb2d12af2"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-border-host-isolated-red.log",
+        "sha256": "c7f0e4bdc49b121f18bb1ab0c20d721e53a1d06e8bc436d865ced51903afcaaa"
+      },
+      "notes": "Isolated reproduction: Escape correctly returned to selection while retaining the draft, contrary to the migrated test's cancellation assumption."
+    },
+    {
+      "id": "t01-construction-environment-host-isolated-red",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/resource_io/environment_authoring_host_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 0,
+      "failedCount": 2,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-environment-host-isolated-red.command.json",
+        "sha256": "b864600f977ba354cd8bada9659fb7bee9187383dba0f97492c9010d68dd9d24"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-environment-host-isolated-red.log",
+        "sha256": "da14ea7d5455fe69a2bdba18a3c2f8ccd69c97a66e41d593b2e97c05a0a24318"
+      },
+      "notes": "Isolated reproduction: both environment journeys sought a creation action already absent from the resource UI."
+    },
+    {
+      "id": "t01-border-resources-closure-regressions",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/presentation/native_ledge_editor_test.dart",
+        "test/resource_io/horizontal_facade_resource_test.dart",
+        "test/presentation/resource_family_widgets_test.dart",
+        "test/application/border_creation_draft_test.dart",
+        "test/resource_io/border_creation_workflow_test.dart",
+        "test/resource_io/border_publication_retry_test.dart",
+        "test/application/resource_border_lifecycle_controller_test.dart",
+        "test/resource_io/resource_border_lifecycle_workflow_test.dart",
+        "test/presentation/border_creation_journey_test.dart",
+        "test/resource_io/ledge_border_metadata_test.dart",
+        "test/resource_io/border_sequence_resource_test.dart",
+        "test/resource_io/border_jump_behavior_preservation_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 66,
+      "failedCount": 3,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-border-resources-closure-regressions.command.json",
+        "sha256": "b196343df3142e1545b40b37903df854f1df4c66e95e388e2bc378b9550107b0"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-border-resources-closure-regressions.log",
+        "sha256": "10128228807a4793f0c949a5298e7ae0b29257e1d990404d3d9f0cb27d7e4073"
+      },
+      "notes": "First border resource closure group failed at three viewport sizes because a test looked for a filter button already absent from the library."
+    },
+    {
+      "id": "t01-resource-family-isolated-red",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/presentation/resource_family_widgets_test.dart"
+      ],
+      "exitCode": 1,
+      "interrupted": false,
+      "passedCount": 7,
+      "failedCount": 3,
+      "classification": "diagnostic_failure",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resource-family-isolated-red.command.json",
+        "sha256": "0501fd25cdc5ca77a48ff023bd9e3ba222a91a45f70c9cc4cc8d9f20f4b58793"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resource-family-isolated-red.log",
+        "sha256": "15f5e45c6b900c53b7a33133e7225a43388a9cf1deae305388079917ba12c504"
+      },
+      "notes": "Reproduced the absent library filter button at three sizes; seven other cases passed."
+    },
+    {
+      "id": "t01-resource-family-isolated-retest",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/presentation/resource_family_widgets_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resource-family-isolated-retest.command.json",
+        "sha256": "70479c24aba331759c461cf8ecad0cb1c59b2952ab6b08b40184a0b228f5fdd7"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resource-family-isolated-retest.log",
+        "sha256": "30e27303cfab6aabe85a8f6b93feeca94f8322cb0f0da6dc5e97562e682b59a5"
+      },
+      "notes": "The library is tested with the actual button absent; the real standalone filter and shared state retain scope, counts, cancel, apply, reset and sorting checks."
+    },
+    {
+      "id": "t01-construction-border-host-isolated-retest",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/map_workspace/border_drawing_host_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-border-host-isolated-retest.command.json",
+        "sha256": "859460de4d3958b0fb1411d52c77e1312462a8ec1125b03464afce320d1712ba"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-border-host-isolated-retest.log",
+        "sha256": "1565dd7af62f178273e2b4137696dcbe77fdaa65fcf5ebd30c8475bf91d4e725"
+      },
+      "notes": "Escape preserves the draft; canonical resource reselection discards it without writes. Border gestures, history and disk reopen remain checked."
+    },
+    {
+      "id": "t01-construction-environment-host-isolated-retest",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "test/resource_io/environment_authoring_host_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 2,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-environment-host-isolated-retest.command.json",
+        "sha256": "5d84a68ad5ca0b28fc0cc760db2b6bc2c62d68a78f6a647555c4346cfc386359"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-environment-host-isolated-retest.log",
+        "sha256": "900d1b0337c8bec732a4ede987bd40ef6e6fa947a5a1fb79cb9e1f1355b98f77"
+      },
+      "notes": "Canonical editor entry, UI publication, canvas gestures, negative validation and disk reopen passed."
+    },
+    {
+      "id": "t01-construction-closure-hosts-retest",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/map_construction_retirement_test.dart",
+        "test/map_workspace/border_drawing_host_test.dart",
+        "test/map_workspace/uwu5_border_availability_host_test.dart",
+        "test/map_workspace/uwu6_first_border_host_test.dart",
+        "test/resource_io/environment_authoring_host_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 19,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-closure-hosts-retest.command.json",
+        "sha256": "c791e2caf6e508a134c8339bd0044d2f01f6eb26a78f65573490ce659bf77bfe"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-closure-hosts-retest.log",
+        "sha256": "0efd77d898c727fd982eb3b52891a1e4824e74d01a07174c6f3b43386c1c84cc"
+      },
+      "notes": "Combined construction host group passed after the two isolated fixture corrections. The retained border visibility witness counted 2048 blue pixels."
+    },
+    {
+      "id": "t01-border-resources-closure-regressions-retest",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/presentation/native_ledge_editor_test.dart",
+        "test/resource_io/horizontal_facade_resource_test.dart",
+        "test/presentation/resource_family_widgets_test.dart",
+        "test/application/border_creation_draft_test.dart",
+        "test/resource_io/border_creation_workflow_test.dart",
+        "test/resource_io/border_publication_retry_test.dart",
+        "test/application/resource_border_lifecycle_controller_test.dart",
+        "test/resource_io/resource_border_lifecycle_workflow_test.dart",
+        "test/presentation/border_creation_journey_test.dart",
+        "test/resource_io/ledge_border_metadata_test.dart",
+        "test/resource_io/border_sequence_resource_test.dart",
+        "test/resource_io/border_jump_behavior_preservation_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 69,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-border-resources-closure-regressions-retest.command.json",
+        "sha256": "9ef897dc24cfaae1de842fd6eea6b7466f36df9afc139232c33bbf763d883cff"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-border-resources-closure-regressions-retest.log",
+        "sha256": "766522c8f4924d0e66a66ed63b90df299db239751f6feb9861bad85e8d32aff9"
+      },
+      "notes": "Complete targeted resource-border group passed after the filter test was migrated to its real standalone component and shared state. A separate dead navigation action is under correction."
+    },
+    {
+      "id": "t01-construction-domain-and-viewports",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/map_workspace/map_terrain_settings_commands_test.dart",
+        "test/application/spatial_terrain_surface_editing_test.dart",
+        "test/application/spatial_ramp_editing_commands_test.dart",
+        "test/presentation/spatial_ramp_editor_test.dart",
+        "test/presentation/spatial_fractional_ramp_editor_test.dart",
+        "test/map_workspace/spatial_ledge_editing_commands_test.dart",
+        "test/presentation/spatial_fishing_editor_test.dart",
+        "test/application/spatial_border_commands_test.dart",
+        "test/application/environment_editing_commands_test.dart",
+        "test/application/spatial_environment_commands_test.dart",
+        "test/application/environment_draft_test.dart",
+        "test/resource_io/environment_scope_test.dart",
+        "test/presentation/spatial_border_editor_test.dart",
+        "test/map_workspace/spatial_terrain_surface_tools_test.dart",
+        "test/map_workspace/spatial_exterior_border_editor_test.dart",
+        "test/map_workspace/spatial_environment_gesture_test.dart",
+        "test/map_workspace/environment_canvas_ownership_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 64,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-domain-and-viewports.command.json",
+        "sha256": "aea1aeee91222b50b26c6aa84f2473d05626d10e22c02e4db4a92a6fa2dc4019"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-construction-domain-and-viewports.log",
+        "sha256": "cb0aef818a7d0a13ade17a53dd8945d3d1ecc84574b9b8bf76a3c57115975892"
+      },
+      "notes": "Targeted terrain, 3D slopes and ledges, border, environment, preview ownership and viewport tests passed on the QA snapshot."
+    },
+    {
+      "id": "t01-resume-navigation-borders-scenarios-group",
+      "command": [
+        "env",
+        "AVELUNE_QA_ROOT=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/resource_io/border_retirement_continuity_test.dart",
+        "test/pokemon/pokemon_retired_scene_reference_test.dart",
+        "test/pokemon/pokemon_commerce_guard_host_test.dart",
+        "test/pokemon/pokemon_workspace_leave_test.dart",
+        "test/pokemon/pokemon_commerce_refresh_host_test.dart",
+        "test/presentation/ui08_event_journey_test.dart"
+      ],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 32,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-navigation-borders-scenarios-group.command.json",
+        "sha256": "f776ef0b6a7cd27e020cc12bd6d45405a82c79ffd8d7d81c0508e4ef74563220"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-resume-navigation-borders-scenarios-group.log",
+        "sha256": "cf1308bd5aa7c59db34c581a1f0a3e9ae32c487163bc0432b1cbd4726dbc36ae"
+      },
+      "notes": "Borders stay usable in compact and wide layouts, unavailable scene links preserve Pokemon drafts, map links keep their guard, and event/scene association remains testable. Targeted selectively refreshed QA copy, not full-workspace or native acceptance."
+    },
+    {
+      "id": "t01-scene-shared-ui-priority",
+      "command": ["flutter", "test", "--no-pub", "--concurrency=1", "--timeout=120s", "-r", "expanded", "test/events/retired_daily_condition_ui_test.dart", "test/cinematics/retired_linked_dialogue_preview_test.dart", "test/presentation/ui06_scene_inspector_test.dart", "test/presentation/ui11_scene_presentation_binding_test.dart", "test/cinematics/dialogue_working_source_ui10_test.dart"],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 10,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-scene-shared-ui-priority.command.json",
+        "sha256": "9bd53976fa116ccd5ad8652893a6e5b6af3feecf883948068ddb10fd9017f028"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-scene-shared-ui-priority.log",
+        "sha256": "8d3592d6a49c0a827e53a8ce4b51b6766df6712f43f84036b1d3a4e49de24b8b"
+      },
+      "notes": "Daily condition references and negation survive unavailable UI; linked-draft precedence, selection and existing fallback remain protected."
+    },
+    {
+      "id": "t01-transport-model-story-regressions",
+      "command": ["flutter", "test", "--no-pub", "--concurrency=1", "--timeout=120s", "-r", "failures-only", "test/map_workspace/spatial_platform_sessions_test.dart", "test/map_workspace/spatial_platform_controls_test.dart", "test/map_workspace/spatial_lift_controls_test.dart", "test/presentation/model_collision_controls_test.dart", "test/presentation/model_ramp_controls_test.dart", "test/application/model_definition_lifecycle_test.dart", "test/resource_io/model_resource_adapter_test.dart", "test/resource_io/model_resource_workflow_test.dart", "test/narrative/periodic_reward_selection_test.dart", "test/events/event_condition_draft_test.dart", "test/events/event_conditions_logic_test.dart", "test/events_ui08_conditions_simulation_test.dart", "test/presentation/ui08_event_journey_test.dart", "test/scenes/periodic_reward_picker_test.dart", "test/scenes/scene_linked_document_reader_contract_test.dart", "test/dialogues/dialogue_working_source_contract_test.dart", "test/cinematics/cinematic_preview_transport_ui10_test.dart", "test/cinematics/cinematic_preview_media_ui10_test.dart", "test/cinematics/cinematic_preview_reopen_journey_test.dart", "test/presentations/presentation_controller_ui11_test.dart"],
+      "exitCode": 0,
+      "interrupted": false,
+      "passedCount": 89,
+      "failedCount": 0,
+      "classification": "focused_green",
+      "receipt": {
+        "path": "proofs/t01-execution/resume-20261110/t01-transport-model-story-regressions.command.json",
+        "sha256": "7dffa9591ae3b5299a34cdd7dab0b5f40b05e178e2b4038744b7c5eb574576f3"
+      },
+      "log": {
+        "path": "proofs/t01-execution/resume-20261110/t01-transport-model-story-regressions.log",
+        "sha256": "fc8844d4888ce4700c0ce3246ce18a70f2faa9d6c388615a7881ddc1ce824b8b"
+      },
+      "notes": "Also records separate 2-case and 5-case host checks and 11 data/runtime playback checks. QA copy is selective."
+    }
+  ],
+  "snapshotComparison": {
+    "scope": "15 touched or directly exercised Studio files; no claim about all dependencies",
+    "source": "isolated source-validation-exact-20261110-1355 with later selective copies",
+    "files": [
+      {
+        "path": "apps/avelune_studio/lib/features/pokemon/application/pokemon_trainer_species_reader.dart",
+        "sha256": "7f76214ad5d084572b8a903cab3dc4607fdcd09c590ada06af9c9a19c0086251",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_workspace_page.dart",
+        "sha256": "69dfece211962afa794c2f7bec4e783720c2ccb41deea37f5743e34b4c4b6d8b",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/test/pokemon/pokemon_trainer_species_reader_test.dart",
+        "sha256": "0fdc6c122d36f0642ed29004fc15cffeee99ec5a9760a611cb8c02ab817c3ef9",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/lib/features/events/application/event_scene_selection.dart",
+        "sha256": "3e2ecf8f5b0574457bbe34953464c78f9feb6da97e3c8845391c1d0d1b22c181",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/events/event_scene_panel.dart",
+        "sha256": "797479aa718f9018de716fc278af11e65fb9a866725e2428483aa236766f1c50",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/test/events/event_scene_selection_test.dart",
+        "sha256": "d9ed2ae03e0f0cd077daf95402e6e61adb0eff248d61c65a9bf2921564fe9e72",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/test/events/event_scene_search_test.dart",
+        "sha256": "c40c513965e1ed4fdb6e34a76e01990892a99513a375de60ff15072c4c92fd8c",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_session.dart",
+        "sha256": "c5ce3a469d38ee0f32a7458d772d9150ede5b217245e17a1ede92431d0c7d21e",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_presentations.dart",
+        "sha256": "9ec9bed93b3579e2e38806235e3b66e51f319d6613df3cac0ee883e9b0cd4a5f",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_session_controllers.dart",
+        "sha256": "d899354305c6223e00a049debf73ba27b66bd3513f435f661fb7d6762886b409",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/lib/features/presentations/coordination/presentation_visual_session.dart",
+        "sha256": "ded067a0a34262a19917808ade236abbdf34b3c830520565f791df8525a5dcfc",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+        "sha256": "a389841dc4f1643143b14b922f9d8cf128ccbb779a9fa623d2309c159f39856a",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_presentation_binding.dart",
+        "sha256": "0c2d55c9215d3d82428aca4518a56dcb12942000b44d76c5e709e6007490300d",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/test/map_workspace/workspace_presentation_creation_test.dart",
+        "sha256": "57d3b18b54daa2a697a2f8081024b9b6c27a3360c3e2858dddbe587fe6b0930c",
+        "matchesWorkingTreeWhenCompared": true
+      },
+      {
+        "path": "apps/avelune_studio/test/presentations/presentation_visual_session_test.dart",
+        "sha256": "7bf3d61406714e9244cfdd37bd1c7ac8cbe2455788dca796a4062a9a958de7fa",
+        "matchesWorkingTreeWhenCompared": true
+      }
+    ]
+  },
+  "limitations": [
+    "Earlier resume runs used an epoch 9 QA copy with selective later copies.",
+    "The two exact-20261110 green groups ran before subsequent unrelated extractions.",
+    "The QA snapshot is not full native 2D/3D, export, Player or visual acceptance.",
+    "G0 remains open; T02 not started.",
+    "The later event-source, model-receipt and presentation-retirement runs used selective copies after the original 15-file comparison; each receipt identifies the executed files and result.",
+    "Later groups ran in the selectively refreshed QA copy; matching target files do not qualify the entire evolving workspace.",
+    "Earlier JSONL worker runs failed on a stale golden and missing scoped fixture; the corrected 44-test group is recorded separately. The subsequently corrected mapHealth descriptor is covered by its own receipt.",
+    "An interrupted media run is retained as interrupted even though its process returned code 0.",
+    "Current resumption uses selected sources from frozen commit 468d1d62 plus the identified core/test overlay; five linked packages still resolve to the live checkout. Their tracked and nonignored contents are fingerprinted around Studio test runs."
+  ],
+  "resumptionSnapshot": {
+    "path": "proofs/t01-execution/resume-20261110/qa-source-snapshot.json",
+    "sha256": "eb8689c8ca865ac279873196bef0ace59c09119ef823ccf053d74c4cfe47c3e4"
+  },
+  "sceneMapOverlaySnapshot": {
+    "path": "proofs/t01-execution/resume-20261110/qa-overlay-scenes-map-20261111.json",
+    "sha256": "d77f8f64e8c17dc2d73e17c0cc309ee5a6ec0f1d361638f0b120704b1a350bad"
+  },
+  "authoringNavigationOverlaySnapshot": {
+    "path": "proofs/t01-execution/resume-20261110/qa-overlay-authoring-navigation-20261111.json",
+    "sha256": "55e1727ca565a9fbd26e9b83d219390ff9575dc8af561419dcafed7a77f0c199"
+  },
+  "constructionBorderOverlaySnapshot": {
+    "path": "proofs/t01-execution/resume-20261110/qa-overlay-construction-border-20261111.json",
+    "sha256": "28df98b7bf2cfb6a0a309d9abb1763deb7b9fb326cab97bb2d9e8bb52732180f"
+  },
+  "constructionBorderRetestOverlaySnapshot": {
+    "path": "proofs/t01-execution/resume-20261110/qa-overlay-construction-border-retest-20261111.json",
+    "sha256": "bdda7ac63257a010a19cf676b0e86a0966f513cd237a09b3b4f3f21b7885a26c"
+  },
+  "sceneEditorClosureManifest": {
+    "path": "proofs/t01-execution/resume-20261110/t01-scene-editor-closure-delta-manifest.json",
+    "sha256": "6453020bd6fd4896294ee9c2dc068355a0352779e37f0aff28247c688d4db598",
+    "status": "source_frozen_tests_in_progress",
+    "supersededPaths": [
+      "apps/avelune_studio/test/presentation/ui08_event_journey_test.dart"
+    ]
+  },
+  "sceneSharedUiClosureManifest": {
+    "path": "proofs/t01-execution/resume-20261110/t01-scene-shared-ui-closure-delta-manifest.json",
+    "sha256": "f4202d45e53fddc5326dc9c92a0e042b384949b3dcd807aca697fc6b3cef3c0a"
+  },
+  "mapHealthMetadataValidation": {
+    "path": "proofs/t01-execution/resume-20261110/t01-maphealth-metadata.command.json",
+    "sha256": "64e847b439d53d90b0821cc6c60e5db96389b24c858215f895eb4f45d4d2d7a1"
+  },
+  "previousG0Diagnostic": {
+    "path": "proofs/t01-execution/resume-20261110/t01-g0-static-diagnostic-20261111.json",
+    "sha256": "d5397d13202b1af0bb028c71ab840ced2ba408a79e6d990fe84b5571c5223fc4",
+    "status": "failed_diagnostic_on_live_checkout"
+  },
+  "closuresG0Diagnostic": {
+    "path": "proofs/t01-execution/resume-20261110/t01-g0-static-diagnostic-after-closures-20261111.json",
+    "sha256": "fe5513ecb3ec46f0ddcec78a965be14f4726f5000d04665e76cef146e92b9a01",
+    "status": "failed_diagnostic_on_live_checkout"
+  },
+  "mapDecorClosureValidation": {
+    "path": "proofs/t01-execution/resume-20261110/t01-map-decor-closure.command.json",
+    "sha256": "098793197320bec7d41fe901a08db9399f7d9405425b3e0e58bf10fa59f3e38a"
+  },
+  "registryRepairValidation": {
+    "path": "proofs/t01-execution/resume-20261110/t00-registry-repair-validation.command.json",
+    "sha256": "41301236f7310b02b436da91629e94c539d791f0e583da11f7254724d2242c3a",
+    "note": "Includes the initial failing history runs; see the subsequent fixture repair validation."
+  },
+  "atmosphereUndoFixtureRepairValidation": {
+    "path": "proofs/t01-execution/resume-20261110/t00-atmosphere-undo-validation.command.json",
+    "sha256": "2c248749f9527b0fac4c211103e9a5fb3de755edad84e2a030c3ef3f273a5b22"
+  },
+  "mapDecorG0Diagnostic": {
+    "path": "proofs/t01-execution/resume-20261110/t01-g0-static-diagnostic-after-map-decor-20261111.json",
+    "sha256": "e70c8ddd028e9e1c045572c0ec909dc65f56c281a8c846b27f2b39d25f95b758",
+    "status": "failed_diagnostic_on_live_checkout"
+  },
+  "mapPaletteRetirementValidation": {
+    "path": "proofs/t01-execution/resume-20261110/t01-map-palette-retirement-validation.command.json",
+    "sha256": "73a13917880ee704b7031c0f94fdaa8ad9fc4c753377aa9fe22d30b9288659ab"
+  },
+  "packRetirementValidation": {
+    "path": "proofs/t01-execution/resume-20261110/t01-pack-retirement-validation.command.json",
+    "sha256": "f7f91cbb64a1ba4f2a42f7042ff90aa95b78cf4e3dd5d896c9d28119abb5a7eb"
+  },
+  "studioAnalysisAfterPalettePacks": {
+    "path": "proofs/t01-execution/resume-20261110/t01-studio-analyze-after-palette-packs.command.json",
+    "sha256": "4776dd720f61b53ae7e6f64d06a32aab8f56b7e85a6c809b39349f0448c06122"
+  },
+  "environmentRetirementValidation": {
+    "path": "proofs/t01-execution/resume-20261110/t01-environment-retirement-validation.command.json",
+    "sha256": "fbd7039c5b329ef93c3b9837e08ebc9939769648d52aa208c7d84fd8357cb18d"
+  },
+  "renderHostAotDiagnosis": {
+    "path": "proofs/t01-execution/resume-20261110/t00-render-host-aot-regression.command.json",
+    "sha256": "a6d3eb7e5c9afc59c2a957e5e237d1e33c9044e6dcec966c662de47fd91ab768"
+  },
+  "technicalTwoDJourneys": {
+    "path": "proofs/t01-execution/resume-20261110/t00-technical-2d-journeys.command.json",
+    "sha256": "15915478b35a8e70a0ef6eb4c45595d474cf71c093bd1c970b7bfd46f417c652"
+  },
+  "workingCatalogAndPackReviewValidation": {
+    "path": "proofs/t01-execution/resume-20261110/t01-working-catalog-pack-review-validation.command.json",
+    "sha256": "4065dbf22429e1dd616dc09274f587a19d6a51aa856fe40f43075f3307fd14e5"
+  },
+  "packRecoveryUiValidation": {
+    "path": "proofs/t01-execution/resume-20261110/t01-pack-recovery-ui-validation.command.json",
+    "sha256": "e12b1d44ba62320eac1b20bad566885a683766f18bfd3fbc1c58b169218829dc"
+  },
+  "projectSettingsRetirementValidation": {
+    "path": "proofs/t01-execution/resume-20261110/t01-project-settings-retirement-validation.command.json",
+    "sha256": "258e5f2dcf7778c8d18cfa59f5eb87f5a79a9fc2e99b4bcd725e06a7739c26c3"
+  },
+  "palettePacksG0Diagnostic": {
+    "path": "proofs/t01-execution/resume-20261110/t01-g0-static-diagnostic-after-palette-packs-20261111.json",
+    "sha256": "0c6b25cb615a43754febf38408cd3f5fdd5af9d896ec7d8e6d61feba1ce23cb8",
+    "status": "failed_diagnostic_on_live_checkout"
+  },
+  "currentG0Diagnostic": {
+    "path": "proofs/t01-execution/resume-20261110/t01-g0-static-diagnostic-after-environment-20261111.json",
+    "sha256": "b5518c34dffffd2e1d331726bd7235fcfdaf8970ac611532b9cffe27654e6a98",
+    "status": "failed_diagnostic_on_live_checkout"
+  }
+}

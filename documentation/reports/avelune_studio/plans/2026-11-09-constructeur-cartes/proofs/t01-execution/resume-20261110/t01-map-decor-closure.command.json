@@ -1,0 +1,109 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "executable": "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+  "environment": {
+    "AVELUNE_QA_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+    "TMPDIR": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+  },
+  "targeted": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r failures-only test/map_workspace/map_library_retirement_test.dart test/resource_io/decor_retirement_continuity_test.dart test/resource_io/decor_resource_io_test.dart test/resource_io/resource_lifecycle_host_test.dart test/resource_io/resource_administration_journey_host_test.dart test/presentation/map_escape_rope_settings_test.dart test/presentation/map_contextual_item_use_settings_test.dart",
+    "exitCode": 0,
+    "passedCount": 24,
+    "durationSeconds": 62.6,
+    "runnerPid": 92250,
+    "liveDependencyFingerprint": {
+      "files": 428,
+      "before": "9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be",
+      "after": "9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be"
+    },
+    "log": {
+      "path": "t01-map-decor-integrated.log",
+      "sha256": "800d5ce3d4548d5e85b44b5f121dc2b26406c6e6da588aec1d27872c525069b9"
+    }
+  },
+  "regressions": {
+    "commandPrefix": ["flutter", "test", "--no-pub", "--concurrency=1", "--timeout=120s", "-r", "failures-only"],
+    "files": [
+      "test/map_workspace/map_catalogue_host_test.dart",
+      "test/map_workspace/map_catalogue_groups_host_test.dart",
+      "test/map_workspace/map_catalogue_home_entry_host_test.dart",
+      "test/map_workspace/map_lifecycle_host_test.dart",
+      "test/map_workspace/map_lifecycle_layout_host_test.dart",
+      "test/map_workspace/map_catalog_lifecycle_session_test.dart",
+      "test/map_workspace/map_catalog_lifecycle_races_test.dart",
+      "test/map_workspace/map_catalog_preparation_test.dart",
+      "test/map_workspace/map_catalog_recovery_test.dart",
+      "test/map_workspace/workspace_map_resize_test.dart",
+      "test/map_workspace/workspace_map_catalog_operation_test.dart",
+      "test/map_workspace/workspace_map_catalog_bindings_test.dart",
+      "test/map_workspace/map_library_tree_test.dart",
+      "test/map_workspace/map_library_organization_session_test.dart",
+      "test/presentation/map_library_navigation_test.dart",
+      "test/presentation/map_library_creation_context_test.dart",
+      "test/presentation/map_catalogue_row_actions_test.dart",
+      "test/application/decor_draft_test.dart",
+      "test/presentation/decor_collision_editor_test.dart",
+      "test/presentation/decor_collision_mask_test.dart",
+      "test/resource_io/resource_decor_owner_concurrency_test.dart",
+      "test/resource_io/resource_navigation_save_test.dart",
+      "test/resource_io/resource_navigation_receipt_recovery_test.dart",
+      "test/resource_io/resource_library_context_preservation_test.dart",
+      "test/presentation/spatial_environment_editor_test.dart",
+      "test/resource_io/environment_scope_test.dart",
+      "test/resource_io/border_retirement_continuity_test.dart"
+    ],
+    "exitCode": 0,
+    "passedCount": 101,
+    "durationSeconds": 122.4,
+    "runnerPid": 93787,
+    "liveDependencyFingerprint": {
+      "files": 428,
+      "before": "9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be",
+      "after": "9fdb1cbad0364aa61dc273d8698f325ca39baa73e29a89f59cf05e924da7d7be"
+    },
+    "log": {
+      "path": "t01-map-catalog-decor-regressions.log",
+      "sha256": "8564980e47d08e8c7ea86071c4337d3355334b757f3c2f58a2e7c6e6a8215951"
+    }
+  },
+  "initialAttempts": [
+    {
+      "exitCode": 1,
+      "reason": "New Decor witness did not import the draft extension or ResourceImportIntent; the 12 loaded cases passed.",
+      "log": {
+        "path": "t01-map-decor-initial-failure.log",
+        "sha256": "7eb3c1d2292c3955e86840acad4018334752338a2bfd89bfbd9b629e2ad63701"
+      }
+    },
+    {
+      "exitCode": 1,
+      "reason": "Imported image grid was incompatible with the project settings; the witness now uses the real project tile dimensions.",
+      "log": {
+        "path": "t01-decor-source-grid-failure.log",
+        "sha256": "3670633b8d91aac044b93e6c99a3b69521216fe1fa67abce8992ff4c891153f6"
+      }
+    },
+    {
+      "exitCode": 0,
+      "passedCount": 4,
+      "log": {
+        "path": "t01-decor-continuity-retest.log",
+        "sha256": "d4990b85a60dd404f856710a4473892db0c0de2adc60270c7f378babeac3e160"
+      }
+    }
+  ],
+  "mapManifest": {
+    "path": "t01-map-library-retirement-manifest.json",
+    "sha256": "0862698bee3fd31f83f2e6f795b59886fd81852ae0943263e08a72837bcaeb11"
+  },
+  "integratedSourceSha256": {
+    "apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart": "4bdaa5bf285aedd8f4404a9482fcb8cf75e13778c12468136195a1fb6eaaea8d",
+    "apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart": "1b06f30f5e363c614739e3a8e1f8ca15a30b01bb4b58700e07aa274d1e2f6c5b"
+  },
+  "limitations": [
+    "37 target paths matched QA and repository after the runs; the map manifest predates the additional coordinated Decor change in the shared journey test.",
+    "The migrated integration_test/map_authoring_player_journey_test.dart was not run and still references the previously retired home-tool-map entry; Player is not qualified.",
+    "Old map-library and decor-editing UI is temporarily unavailable; domain owners, project data and published resources are retained.",
+    "A selectively refreshed QA copy and passing tests do not qualify G0, native visual fidelity or all 2D/3D journeys."
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+  "sources": [
+    {
+      "path": "integration_test/map_depth_native_journey_test.dart",
+      "before": "c8fab4e24e2084f8f31450354ec712dd9ae394917d4b04aeca7c0e106215809d",
+      "after": "d85e4781f158d5d4f53319316056b2c6da59d48bf9d52c4d805e8c837c4c22ab"
+    },
+    {
+      "path": "integration_test/map_authoring_player_journey_test.dart",
+      "before": "523b985453d07183accd00ba7f1c45c0bf6d18552dbd9e85442b305e4137fc88",
+      "initial": "cc1178b7d859933feec0616056852025f4f44e6a357925d07280a4d774ae0f9a",
+      "after": "b36ce3281041b85e7d13506c0ea1647bfc983929ec269d052aede63afcd877a4"
+    },
+    {
+      "path": "integration_test/support/technical_map_journey_host.dart",
+      "before": null,
+      "initial": "4b499e3c3786f4477c020e8b4226e75fabee55ee08818d7493291edabb415bb8",
+      "after": "e6d1b8c89160c4d5eb16d703c1b94de8e1c25e76b9d1cdae4c85ac8ff65807ee",
+      "note": "Fixture parent now honors an absolute AVELUNE_QA_ROOT with a portable user-cache or temporary fallback."
+    }
+  ],
+  "nativeAttempt": {
+    "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r expanded integration_test/map_depth_native_journey_test.dart",
+    "exitCode": 1,
+    "result": "No supported devices connected for this selective QA copy, which does not include apps/avelune_studio/macos.",
+    "notes": "No macOS native integration test executed. Source review also found that flutter test forces Debug while the isolated QA engine guard requires Release, and the fixture path needs an actual sandbox grant."
+  },
+  "widgetHarness": {
+    "method": "Temporary test/* wrapper imports each integration test main; flutter_tester runs it. The wrappers were removed after execution.",
+    "pluginWarning": "integration_test plugin was not detected; results are widget harness outcomes, not macOS integration outcomes.",
+    "depth": {
+      "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r expanded test/t01_depth_harness_test.dart",
+      "exitCode": 0,
+      "passedCount": 2,
+      "result": "Overlapping decor order and eraser/undo cases passed."
+    },
+    "playerInitial": {
+      "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r expanded test/t01_player_harness_test.dart",
+      "exitCode": 1,
+      "failedCount": 1,
+      "failure": "catalog/HEAD.json was assumed present for a manifest-format fixture.",
+      "repair": "Decode the saved descriptor; require HEAD present and byte-stable for working-catalog, and absent before and after for manifest. Keep independent map and descriptor byte comparisons."
+    },
+    "playerRetest": {
+      "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r expanded test/t01_player_harness_test.dart",
+      "exitCode": 0,
+      "passedCount": 1,
+      "result": "Saved two-map viewport editing and simulated runtime round trip passed."
+    },
+    "combinedAfterPortableFixtureRoot": {
+      "command": "flutter test --no-pub --concurrency=1 --timeout=120s -r failures-only test/t01_depth_harness_test.dart test/t01_player_harness_test.dart",
+      "exitCode": 0,
+      "passedCount": 3,
+      "result": "All three widget harness cases passed with AVELUNE_QA_ROOT set; wrappers removed."
+    }
+  },
+  "linkedDependenciesFingerprint": {
+    "files": 2999,
+    "before": "9b22b813333e72ceaa9c31c3ec3d229d20fa3647b7c77cd7f56378c0d438cbaa",
+    "after": "9b22b813333e72ceaa9c31c3ec3d229d20fa3647b7c77cd7f56378c0d438cbaa"
+  },
+  "limitations": [
+    "These three passing cases use flutter_tester, not a native macOS window.",
+    "Runtime is manually stepped and does not mount a real Player GameWidget.",
+    "All cases are 2D; no 3D or reference visual acceptance is claimed.",
+    "The obsolete home-tool-map dependency is removed from these tests, but the T01 neutral host does not expose an editor route."
+  ],
+  "mcpParity": "N/A; test support and test migrations only."
+}

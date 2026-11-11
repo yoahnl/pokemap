@@ -1,0 +1,47 @@
+00:00 +0: loading test/tooling/jsonl_worker_test.dart
+00:00 +0: JsonlWorker unit export error boundary sanitizes safe text with a controlled export port
+00:00 +1: JsonlWorker unit export error boundary sanitizes a local path with a controlled export port
+00:00 +1 -1: JsonlWorker unit export error boundary sanitizes a local path with a controlled export port [E]
+  Invalid argument (message): must not contain a machine-local path: "The dialogue /Users/private/project/dialogue.json could not be compiled."
+  package:map_authoring/src/contracts/authoring_error.dart 121:5  _safeText
+  package:map_authoring/src/contracts/authoring_error.dart 37:19  new AuthoringError
+  package:map_authoring/src/tooling/jsonl_worker.dart 2260:12     _failure
+  package:map_authoring/src/tooling/jsonl_worker.dart 325:16      JsonlWorker.processLine
+  ===== asynchronous gap ===========================
+  test/tooling/jsonl_worker_test.dart 1217:5                      _request
+  ===== asynchronous gap ===========================
+  test/tooling/jsonl_worker_test.dart 180:24                      main.<fn>.<fn>
+  
+00:00 +1 -1: JsonlWorker unit export error boundary sanitizes a stack trace label with a controlled export port
+00:00 +1 -2: JsonlWorker unit export error boundary sanitizes a stack trace label with a controlled export port [E]
+  Invalid argument (message): must not contain a machine-local path: "The dialogue failed with a stack trace from /Users/private/compiler.dart."
+  package:map_authoring/src/contracts/authoring_error.dart 121:5  _safeText
+  package:map_authoring/src/contracts/authoring_error.dart 37:19  new AuthoringError
+  package:map_authoring/src/tooling/jsonl_worker.dart 2260:12     _failure
+  package:map_authoring/src/tooling/jsonl_worker.dart 325:16      JsonlWorker.processLine
+  ===== asynchronous gap ===========================
+  test/tooling/jsonl_worker_test.dart 1217:5                      _request
+  ===== asynchronous gap ===========================
+  test/tooling/jsonl_worker_test.dart 180:24                      main.<fn>.<fn>
+  
+00:00 +1 -2: JsonlWorker unit export error boundary sanitizes a stack frame with a controlled export port
+00:00 +1 -3: JsonlWorker unit export error boundary sanitizes a stack frame with a controlled export port [E]
+  Invalid argument (message): must not contain a machine-local path: "The dialogue failed.\n#0 /Users/private/compiler.dart:1"
+  package:map_authoring/src/contracts/authoring_error.dart 121:5  _safeText
+  package:map_authoring/src/contracts/authoring_error.dart 37:19  new AuthoringError
+  package:map_authoring/src/tooling/jsonl_worker.dart 2260:12     _failure
+  package:map_authoring/src/tooling/jsonl_worker.dart 325:16      JsonlWorker.processLine
+  ===== asynchronous gap ===========================
+  test/tooling/jsonl_worker_test.dart 1217:5                      _request
+  ===== asynchronous gap ===========================
+  test/tooling/jsonl_worker_test.dart 180:24                      main.<fn>.<fn>
+  
+00:00 +1 -3: Some tests failed.
+
+Failing tests:
+  test/tooling/jsonl_worker_test.dart: JsonlWorker unit export error boundary sanitizes a local path with a controlled export port
+  test/tooling/jsonl_worker_test.dart: JsonlWorker unit export error boundary sanitizes a stack frame with a controlled export port
+  test/tooling/jsonl_worker_test.dart: JsonlWorker unit export error boundary sanitizes a stack trace label with a controlled export port
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

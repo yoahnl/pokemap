@@ -1,0 +1,9 @@
++13 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/pokemon/pokemon_workspace_leave_test.dart: late external overwrite consent cannot apply a changed preview [E]
+  Expected: <0>
+    Actual: <1>
+  
+  package:matcher                                       expect
+  package:flutter_test/src/widget_tester.dart 473:18    expect
+  test/pokemon/pokemon_workspace_leave_test.dart 304:7  main.<fn>
+  
++18 -1: Some tests failed.

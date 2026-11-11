@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T09:49:01Z",
+  "scope": "T01 retirement of marker presentation, healing and interactive-encounter controls",
+  "status": "partial_not_accepted",
+  "run": {
+    "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub test/map_workspace/entity_presentation_controls_test.dart test/map_workspace/healing_display_inspector_test.dart test/map_workspace/interactive_encounter_inspector_test.dart -r failures-only",
+    "cwd": "apps/avelune_studio",
+    "exitCode": 0,
+    "output": "+15: All tests passed!",
+    "runnerPid": 52679,
+    "liveOwnedProcessesAfterRun": [],
+    "note": "Executed by the implementing agent with an owned AveluneQA temporary root, subsequently removed."
+  },
+  "sourceHashes": {
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_marker_inspector.dart": "26a4f7b96b464b4ccc2ad6500905ed932506651b52125fba36d6457d52ecba3c"
+  },
+  "removedUi": [
+    "apps/avelune_studio/lib/presentation/features/map_workspace/entity_presentation_controls.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/healing_display_controls.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/interactive_encounter_controls.dart"
+  ],
+  "independentReview": "A separate read-only reviewer matched the pre-removal parent to HEAD, verified the scoped deletion and confirmed the preserved drafts, commands and tests; the reviewer did not run tests.",
+  "limits": [
+    "The main marker inspector remains present and this does not complete the map family or G0.",
+    "Removed controls have no replacement UI until later work.",
+    "This checkpoint does not prove native Studio behavior, Player acceptance, visual fidelity or a full export."
+  ]
+}

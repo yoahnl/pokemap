@@ -1,0 +1,18 @@
+00:00 +0: loading test/tooling/jsonl_worker_test.dart
+00:00 +0: JsonlWorker golden describe and malformed input are byte-for-byte stable
+00:00 +1: JsonlWorker every described resource kind has an executable query route
+00:00 +1 -1: JsonlWorker every described resource kind has an executable query route [E]
+  Expected: AuthoringResultStatus:<AuthoringResultStatus.success>
+    Actual: AuthoringResultStatus:<AuthoringResultStatus.failure>
+  mapHealth
+  
+  package:matcher                             expect
+  test/tooling/jsonl_worker_test.dart 478:11  main.<fn>.<fn>
+  
+00:00 +1 -1: Some tests failed.
+
+Failing tests:
+  test/tooling/jsonl_worker_test.dart: JsonlWorker every described resource kind has an executable query route
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.

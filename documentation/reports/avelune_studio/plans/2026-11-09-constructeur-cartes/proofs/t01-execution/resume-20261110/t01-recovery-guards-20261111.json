@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T04:39:39.877880+00:00",
+  "scope": "T01 settings recovery and cinematic input/reload guards",
+  "status": "partial_not_accepted",
+  "runs": [
+    {
+      "command": "flutter test --no-pub test/project_settings/project_settings_session_test.dart test/map_workspace/workspace_publication_workflow_test.dart test/project_settings/project_settings_retirement_continuity_test.dart -r failures-only",
+      "exitCode": 0,
+      "output": "+31: All tests passed!",
+      "cwd": "apps/avelune_studio",
+      "environment": "TMPDIR=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109"
+    },
+    {
+      "command": "flutter test --no-pub test/project_visuals/project_visuals_controller_test.dart test/project_settings/project_settings_preview_controller_test.dart test/project_settings/project_settings_work_counts_test.dart -r failures-only",
+      "exitCode": 0,
+      "output": "+12: All tests passed!",
+      "cwd": "apps/avelune_studio",
+      "note": "Ran before a braces-only formatting fix in workspace_settings_recovery_binding.dart; counts overlap other groups."
+    },
+    {
+      "command": "flutter test --no-pub test/cinematics/cinematic_controller_ui10_test.dart test/cinematics/cinematic_inspector_ui10_test.dart test/cinematics_ui10_error_recovery_test.dart test/cinematics/cinematic_published_guard_ui10_test.dart test/cinematics/cinematic_animation_ui10_test.dart test/cinematics/cinematic_jump_ui10_test.dart test/cinematics/cinematic_preview_transport_ui10_test.dart test/cinematics/cinematic_coexistence_ui10_test.dart test/cinematics/cinematic_preview_reopen_journey_test.dart -r failures-only",
+      "exitCode": 0,
+      "output": "+34: All tests passed!",
+      "cwd": "apps/avelune_studio",
+      "environment": "TMPDIR=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109",
+      "note": "Groupe historique avant les changements ultérieurs de fermeture ; voir le groupe intégré de 58 tests."
+    },
+    {
+      "command": "flutter test --no-pub test/cinematics/cinematic_controller_ui10_test.dart -r failures-only",
+      "exitCode": 1,
+      "output": "+14 -3: Some tests failed.",
+      "cwd": "apps/avelune_studio",
+      "note": "Before the correction: the three failures reproduced orphaned input, normalization changing the revision, and a superseded reload replacing a newer session."
+    },
+    {
+      "command": "flutter analyze --no-pub",
+      "exitCode": 1,
+      "output": "6 issues found: informational lints in unchanged files.",
+      "cwd": "apps/avelune_studio"
+    },
+    {
+      "command": "flutter analyze --no-pub --no-fatal-infos",
+      "exitCode": 0,
+      "output": "6 issues found: informational lints in unchanged files.",
+      "cwd": "apps/avelune_studio"
+    },
+    {
+      "command": "flutter test --no-pub test/cinematics/cinematic_controller_ui10_test.dart test/cinematics/cinematic_inspector_ui10_test.dart test/cinematics_ui10_error_recovery_test.dart test/cinematics/cinematic_published_guard_ui10_test.dart test/cinematics/cinematic_animation_ui10_test.dart test/cinematics/cinematic_jump_ui10_test.dart test/cinematics/cinematic_preview_transport_ui10_test.dart test/cinematics/cinematic_coexistence_ui10_test.dart test/cinematics/cinematic_preview_reopen_journey_test.dart test/map_workspace/workspace_publication_workflow_test.dart test/project_settings/project_settings_retirement_continuity_test.dart -r failures-only",
+      "exitCode": 0,
+      "output": "+58: All tests passed!",
+      "cwd": "apps/avelune_studio",
+      "note": "Groupe intégré relancé après formatage et ajout d’accolades. Les groupes précédents se recoupent."
+    },
+    {
+      "command": "flutter analyze --no-pub --no-fatal-infos",
+      "exitCode": 0,
+      "output": "6 issues found: informational lints in unchanged files.",
+      "cwd": "apps/avelune_studio",
+      "note": "Relancé après les corrections de fermeture et de formatage."
+    }
+  ],
+  "sourceHashes": {
+    "apps/avelune_studio/lib/features/project_visuals/application/project_visuals_controller.dart": "8c25873f53bebaea3aea0c7a0d5a890a1d7952ca4e2b49a0ae4d88aa084a834d",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/project_settings_recovery_pane.dart": "3e82195128fe8d89c43bdaef7760be410d7f7878c0dc0697e86ea75396fece65",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_settings_recovery_binding.dart": "1940d3dbdd72f6afaf146c61010558b21e25b0c27b9c84dcb6fb08d86c391bf6",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart": "a21d145a1e8247765dbd07ba8bc916912820fce04769cdb63709886ce65a9279",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart": "edd8bdf3734d0f7b06e6c1cf8cab7ce046280ac287072fe671b474a6a027e9cb",
+    "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart": "68154018fdd5698823876fea11c0eaae0414e29cbfe304e651037b4a4a0ebceb",
+    "apps/avelune_studio/test/project_settings/project_settings_session_test.dart": "a4b5c2162ffd22d43e4fdd47d3ccebcd740e47f483c67ae9241b88be1a34a8ec",
+    "apps/avelune_studio/test/map_workspace/workspace_publication_workflow_test.dart": "c3b350b11812919ca739fefa66e258abd8fb92bbf91a0f0c4de24716d5bce999",
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart": "8c70a347daff471dfadda6c775bef845388f967d7b388668de45d36885a658a8",
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart": "e31cdcc998fddd7b191527eba19bfe461c4baa624c784661d21a346e94fefc5d",
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_publication.dart": "b320d27d9aa5ae0d0718f1b5e66b5bb35335c21029607ed407af33b7c2ad80d4",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_commit_field.dart": "34658a4e41d3601717bd532e5babf11aa7547f82c01b6c6902712e0c4ef7fd99",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_commands.dart": "64603f0e9b2886c74353ea7d16459f480f49c22ff4f01f1d4d471a30472a7afb",
+    "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart": "1e3b47b58604c308128c738771ec410d66fb26393536f0c9c908663e1ee44423",
+    "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart": "318fed0eb60feedd1ff96f605e207842b3eb91291c8e2566ba8fbee6e335a6db",
+    "apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart": "10bc8a109044ad709b92c994981d0fbf352adf7918c60ce10edb52cfc1802882",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow.dart": "b0aabe3bf3dd0b07055dbbc155ee81c5fc127bf98cd4911d2c6b9637c370141f",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow_close.dart": "8e5e4d06b494821adfb26e5f173dd0bbcab7d9d4388681d0077de8cbcdf2fe2d",
+    "apps/avelune_studio/test/cinematics/cinematic_published_guard_ui10_test.dart": "4429fd652ca781d27caa223a6f2f0ee4a4b2c5c4a4a124a5140e256a1c3ceb6a"
+  },
+  "independentReview": "Read-only cinematic reviews identified and rechecked input, reload and close-confirmation races; defects were reproduced before correction and no further manifest loss was found in the inspected scope.",
+  "limits": [
+    "Flutter tests use flutter_tester and do not prove native UI, rendered Player, full export, visual fidelity, G0, or completion of T00/T01.",
+    "The integrated group was rerun after formatting; prior groups may overlap.",
+    "The superseded recovery freeze remains a historical source snapshot: workspace_settings_recovery_binding.dart received braces after that freeze.",
+    "Closing now offers explicit discard for a known invalid cinematic draft; targeted recovery for export outside the old Cinematics page remains open before its retirement.",
+    "No matching live Studio Dart Tooling Daemon was found; no hot reload was performed."
+  ]
+}

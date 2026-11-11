@@ -1,0 +1,8 @@
+OWNED_RUNNER_PID 66396
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/resource_io/decor_retirement_continuity_test.dart
+00:00 +0: retired decor workshop keeps its owner and published use at Size(1536.0, 1024.0)
+00:02 +1: retired decor workshop keeps its owner and published use at Size(760.0, 620.0)
+00:03 +2: environment palette keeps its recipe without an entry to the retired decor workshop
+00:04 +3: imported source remains available when its retired decor route is requested
+00:05 +4: All tests passed!
+RESULT 0 SECONDS 13.7 OBSERVED_OWNED_PIDS [66396, 66454, 66486, 66532]

@@ -1,0 +1,7 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/ui11_presentation_library_test.dart
+00:00 +0: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/ui11_presentation_library_test.dart: visual layer ordering preserves tracks, remains a draft and supports undo
+00:01 +1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/ui11_presentation_library_test.dart: archive and restore preserve the real asset after independent reopening
+00:02 +2: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/ui11_presentation_library_test.dart: unknown, out-of-bounds and locked layer moves preserve the draft and publication
+00:03 +3: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/ui11_presentation_library_widget_test.dart
+00:13 +3: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/ui11_presentation_library_widget_test.dart: UI11 library visual ordering archives and restores the real asset
+00:20 +4: All tests passed!

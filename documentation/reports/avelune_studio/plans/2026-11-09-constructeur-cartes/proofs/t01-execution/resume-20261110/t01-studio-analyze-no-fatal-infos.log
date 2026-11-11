@@ -1,0 +1,11 @@
+Analyzing avelune_studio...                                     
+
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/cinematics/application/cinematic_workspace_spatial.dart:27:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/map_workspace/coordination/workspace_navigation_interactions.dart:59:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/presentations/application/presentation_workspace_editing.dart:39:9 • curly_braces_in_flow_control_structures
+   info • Use an initializing formal to assign a parameter to a field. Try using an initialing formal ('this._active') to initialize the field • lib/platform/playtest/studio_playtest_performance.dart:20:60 • prefer_initializing_formals
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/presentation/features/cinematics/cinematic_page_commands.dart:154:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/presentation/features/presentations/presentation_page_commands.dart:54:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • test/project_surf/project_surf_condition_session_test.dart:73:11 • curly_braces_in_flow_control_structures
+
+7 issues found. (ran in 8.3s)

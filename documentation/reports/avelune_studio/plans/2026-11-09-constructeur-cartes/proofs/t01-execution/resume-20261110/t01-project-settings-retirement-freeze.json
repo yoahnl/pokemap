@@ -1,0 +1,288 @@
+{
+  "scope": "T01 historical project settings route retirement",
+  "status": "implementation frozen for centralized QA; not behaviorally validated",
+  "retiredFiles": 9,
+  "retiredLines": 2127,
+  "changes": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/project_settings/project_audio_panel.dart",
+      "change": "deleted",
+      "beforeSha256": "7287ee2c47a5d4f5e3b9086441165d6139a54b5e5272b29b56d9798e8292313f",
+      "retiredLines": 468
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/project_settings/project_cs_panel.dart",
+      "change": "deleted",
+      "beforeSha256": "b05f7b1fcb88b3cc6c66f66295886c1a6768f287e2625d62837e4437824597ae",
+      "retiredLines": 219
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/project_settings/project_general_panel.dart",
+      "change": "deleted",
+      "beforeSha256": "8f979fa9a117a8f63e3ca7d508993b385e603c977592c68ba956c066f88ab414",
+      "retiredLines": 216
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/project_settings/project_settings_navigator.dart",
+      "change": "deleted",
+      "beforeSha256": "63370bf8400931703e648ae7b472b96d5e52979a2c9729875ef15b722c625e2a",
+      "retiredLines": 113
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/project_settings/project_settings_page.dart",
+      "change": "deleted",
+      "beforeSha256": "a09fe9899569616a6c5c939dde6a7420911201601f8db67bde7abd395f5f05dc",
+      "retiredLines": 465
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/project_settings/project_settings_section_footer.dart",
+      "change": "deleted",
+      "beforeSha256": "ca0ab345de45a8bac1466088e8299a08502190781006c021842a281de82a1bf0",
+      "retiredLines": 123
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/project_settings/project_surf_condition_editor.dart",
+      "change": "deleted",
+      "beforeSha256": "4c274960c90303318e9a83bbb39c52056147643293e0d12d4ee7ecbc580205fe",
+      "retiredLines": 200
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/project_settings/project_surf_panel.dart",
+      "change": "deleted",
+      "beforeSha256": "109edb7b90ec032878c9e7a3718371c88064dc45564b61f90fa317a9d91d60d0",
+      "retiredLines": 183
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/project_settings/project_verification_panel.dart",
+      "change": "deleted",
+      "beforeSha256": "690384cc512a08ae4f8a9c11fa13c706338eb9d6960d6af934821ee0a11299a5",
+      "retiredLines": 140
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "change": "modified",
+      "beforeSha256": "1d84f9d7da7eec864546888fd41404ae53329559995595d33b162a7ca7229ffe",
+      "afterSha256": "10893f934ec08fe1b801c0c6520500e3ca0aac2404b6691c51f8a3e944193994"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart",
+      "change": "modified",
+      "beforeSha256": "10ad9c99f36c2f211e2f1f7ab19eac4599b0c355f1d7b448944c6d396cde0cbc",
+      "afterSha256": "6d8ffe2a03903e50f45cf99d3ee4c70a0aa5836098e4b808d02f5f623c70ce77"
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart",
+      "change": "modified",
+      "beforeSha256": "5aff0649f0c66440a6d97d5d7081216073e1ae89b53e8faf6e10ee52ca9de0e5",
+      "afterSha256": "91df75d56e34240ef201e7a29ef4add2b8c670acf1f992d397d46a8075a4060d"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart",
+      "change": "added",
+      "afterSha256": "57a46e5e719266e0180614626e32e02d9a8dbda0be1575bc085986568447f9c9",
+      "testCasesAuthored": 5
+    }
+  ],
+  "preservedSourcesAndExistingTests": [
+    {
+      "path": "apps/avelune_studio/lib/features/project_audio/application/project_audio_controller.dart",
+      "sha256": "52cf842ecdcbfd741619f695983f87f916be7baf505124327c276b4087eadb03"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_audio/application/project_audio_editing_session.dart",
+      "sha256": "f64139ef63f11321bc09d6599ffd68e7b5c612075f97766d2bd592ac6f0e2dbe"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_cs/application/field_ability_support.dart",
+      "sha256": "a512033113c9c71a682236c757d27fb148dc9ecac939467f8ead92643944a524"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_cs/application/project_cs_controller.dart",
+      "sha256": "29d7f4fb1f137d94b9ac6603d2ff1b5d63987c1804a5801aea62b3f4330ea2f5"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_settings/application/project_identity_controller.dart",
+      "sha256": "97f2538fad28ef7999d100b1d0f15fa2731379772802e2a3b5893faaf05d6957"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_settings/application/project_settings_drafts.dart",
+      "sha256": "f26a840e41ce90ef1b3b982900ae6802a839156d42403fcaccb8e1d6b1f9d423"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_settings/application/project_settings_preview_controller.dart",
+      "sha256": "0da8e8ea6b22219a4cbfbbf6d1e14408d87451c8b3d73e81128129d59387b589"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_settings/application/project_settings_session_controller.dart",
+      "sha256": "ce4da7bd5a2033f0f18a7993ee6fe258890001a760059722e8fc17b1220f16f8"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_settings/application/project_verification_overview.dart",
+      "sha256": "09d7b9a00186e3594d8416c881c519d52a5f203ccd673b554f0bce354e40007a"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_surf/application/project_surf_condition_controller.dart",
+      "sha256": "4b3e6dedfa30bc368dac766376b131e9aee718f64e7d21026f585a8302a8c7d7"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_surf/application/project_surf_controller.dart",
+      "sha256": "d92f6ee2aa1135f9094abad642d39c770025cb12fbef58c9b0e330f9900b7dbc"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_visuals/application/project_visuals_controller.dart",
+      "sha256": "054aeaff2df1671b043f70f0b5170c4f4bff32a3c2382ca1a7f4b449cf9e2e27"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/project_visuals/application/spatial_visual_editing.dart",
+      "sha256": "96770768827859c2b0a455e9b8806c7204dea208913e6ccaff27258ef5814f92"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_settings/project_audio_binding_scope_test.dart",
+      "sha256": "bb6a3ead556ffb7dd9f2bd27a277db0e46700347a0672838e7a3fc7456b3da7c"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_settings/project_cs_audio_controller_test.dart",
+      "sha256": "7e1bd5aad077b4d6313a84514f440c2b537744ed6e70f7065c6e93dca4fcefbe"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_settings/project_field_ability_scope_test.dart",
+      "sha256": "d6da01401d1cd9a956c0b1b6e74b58169a9c62ee9fa8dc64f4814a0d37fd7b27"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_settings/project_identity_shared_export_test.dart",
+      "sha256": "4d0b5f0bfba061af1fb4470e79c2b7ad25d1dbb778dd63479234d95a50babac2"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_settings/project_settings_cost_bench_test.dart",
+      "sha256": "da4ebbe56a361281533473524516c56fde8f9d8496b04586617354281b8ee0db"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_settings/project_settings_preview_controller_test.dart",
+      "sha256": "3f549dd8cf8d0422c895203fa43814c223d77806a5c03247a4c723009ecaea95"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_settings/project_settings_session_test.dart",
+      "sha256": "9456eb8992e7ffd23a052c95b1d985508a6fad0940f708c9b6b9f60119048c8e"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_settings/project_settings_work_counts_test.dart",
+      "sha256": "9db10ca53ae00966743e05edd30fc257454ad9752f675684ccf94da184ccbfc1"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_surf/project_surf_condition_race_test.dart",
+      "sha256": "e531e21f720098dc785a74c34f2af77868183c8b0a94843598ffd6014b338fcc"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_surf/project_surf_condition_session_test.dart",
+      "sha256": "ba9e0a611ed001b3322e97ea45fa51feb50ec2311ef3f872bfb8a51de7587017"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_surf/project_surf_controller_test.dart",
+      "sha256": "5458abef15c97f6c7d1aab3ef0783ab092411dc7208d2c67cd8e4d19da930b1d"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_surf/project_surf_navigation_test.dart",
+      "sha256": "ede36c416e9f8ea921d8cbdcc32361e226f2f6558c064f920ff377e937fedf5e"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_surf/project_surf_panel_test.dart",
+      "sha256": "5c91b53ff69f94d9b3f540d288ba0ee4a1183427fb073d9b5c87b1119809233b"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_surf/project_surf_persistence_test.dart",
+      "sha256": "539229a2352964d3fdbc852ea7d79efdc38033bd6283f7008acaa570265a6a15"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_visuals/map_project_inheritance_journey_test.dart",
+      "sha256": "e0f92aab89f48ad457b1f3b7b592637c44fd8008e5dd4383cc88804c22ac6cba"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_visuals/map_weather_controls_test.dart",
+      "sha256": "66ef19a70c3670dbb5ed066d091599a3c0da86c816ce38589516c0e22af6b4bd"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_visuals/model_light_workshop_test.dart",
+      "sha256": "7aedf87afc005ec35400aa175e9d9938a9f455a0f95f44c3abc59ad445820a83"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_visuals/project_preview_scope_test.dart",
+      "sha256": "261aeb628b75c7ed6cdceab5c7bfb9b58c086e3ac01b293e47a28f0595504669"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_visuals/project_settings_navigation_test.dart",
+      "sha256": "c1954015d39fd4b0eb904ef53f85168c9bff2e1ce98b09163dd2f0ba98587ec5"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_visuals/project_visuals_controller_test.dart",
+      "sha256": "a61f474b9929bf363fc830b7797f9e664a8128270ec47ef6317c57f61f3ddaf4"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_visuals/project_weather_mode_matrix_test.dart",
+      "sha256": "585e8e975597cc6068786aae63d54a2d26d0c37d422cf9f4cf74eaf5bad7b8d1"
+    },
+    {
+      "path": "apps/avelune_studio/test/project_visuals/spatial_visual_controls_test.dart",
+      "sha256": "eb6a29e02d132ffd5a3ac31742fec2c3202fa5f8c84238c651ddd42a1429b58f"
+    }
+  ],
+  "preservedOrderedManifestSha256": "b71caf60172e46ca7857b3e911e1b19b8a7ed41861593e1e51d8033d865ae7d2",
+  "preservedOtherSources": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/project_settings/spatial_visual_controls.dart",
+      "sha256": "4e37054b0d02831a960caaf179a8bb417ceb583e5219c88a73a38310f763a61d"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/playtest/studio_playtest_builders.dart",
+      "sha256": "d7479959e6525e97eb85f2b942da9c1104efe9f9753c4c28af4d172dee98aa50"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow.dart",
+      "sha256": "4db5b8d4e71071aeac932f330467e10c738125142f9e66034901f70aca10bca5"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_workflow_close.dart",
+      "sha256": "85c404064f530a7f1da88017a063cc6e36194dbd0cc571551db23572cd866485"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_publication_workflow.dart",
+      "sha256": "e0cf527924e093c05c3c452bff96a630f27afe88bf42f58fa86c06828845bc6a"
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_session_controllers.dart",
+      "sha256": "d899354305c6223e00a049debf73ba27b66bd3513f435f661fb7d6762886b409"
+    }
+  ],
+  "preservedContracts": [
+    "ProjectSettingsSessionController and drafts",
+    "ProjectSettingsPreviewController and ProjectIdentityController",
+    "ProjectAudioController and ProjectAudioEditingSession",
+    "ProjectCsController and FieldAbilitySettingsDraft",
+    "ProjectSurfController and ProjectSurfConditionController",
+    "ProjectVisualsController and map weather ownership",
+    "WorkspaceWorkflow close/saveForExport",
+    "WorkspacePublicationWorkflow and typed failure diagnostics"
+  ],
+  "witness": {
+    "path": "apps/avelune_studio/test/project_settings/project_settings_retirement_continuity_test.dart",
+    "cases": [
+      "two screen sizes retain actual map and visual owner, invalid text, history, cancelled close, refused invalid save, failed save and retry",
+      "three actual failure owner buttons from export reopen the unavailable route, retain shared identity, refuse invalid/failed close/export preparation and retry"
+    ],
+    "limits": [
+      "in-memory storage ports; no disk durability or game package proof",
+      "actual MapWorkspaceScreen, StudioGameExportPage, StudioFailureReport, registered exit guard and publication preparation are exercised",
+      "test authored first but no RED/GREEN runner authorized in this agent"
+    ]
+  },
+  "verification": {
+    "dartFormatParse": "exit 0 for four Dart files; screen retains pre-existing formatting outside this delta",
+    "gitDiffCheck": "exit 0",
+    "retiredDartReferences": "rg no matches across apps packages examples",
+    "tests": "not run; centralized QA owner",
+    "analyzer": "not run; centralized QA owner",
+    "native": "not run"
+  },
+  "mcpParity": "N/A; no canonical authoring action or data contract changed",
+  "ownedProcesses": [],
+  "ownedDisposableArtifacts": []
+}

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-10T23:27:21.231995+00:00",
+  "baseline": "468d1d62af188568da578a020c8081fed1c82997",
+  "parentOverlay": {
+    "path": "proofs/t01-execution/resume-20261110/qa-overlay-scenes-map-20261111.json",
+    "sha256": "d77f8f64e8c17dc2d73e17c0cc309ee5a6ec0f1d361638f0b120704b1a350bad"
+  },
+  "scope": "Delta for unused Studio navigation bindings and JSONL test-only corrections; the nine baseline tool files were restored only inside QA for analyzer completeness.",
+  "currentFiles": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_scene_return_binding.dart",
+      "sha256": "0ccc525a95378bcfad37d3579a3e779ceef1eef3ac9a0e3d66f925b3989445ae",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_verification_binding.dart",
+      "sha256": "6b5e1b46d83dba781be7de8839df38deb5ecbee9e31173d3dc48e7cd8132421a",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_world_binding.dart",
+      "sha256": "641a800ffc45226a15d194424cde959162be08fa13509408ba7cd98e11e4b9d4",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "packages/map_authoring/test/tooling/jsonl_worker_test.dart",
+      "sha256": "c5317191c31e2b5265a6d12c0bcb94c89699ad6f05e5f9fa1f102da48937ee29",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "packages/map_authoring/test/tooling/goldens/describe_and_error.jsonl",
+      "sha256": "3a4ffb0814bae886e4a24a8ea1c62818119dce48d300fc3802607e67c89523ec",
+      "matchesWorkspaceAtCapture": true
+    }
+  ],
+  "baselineSupportFiles": [
+    {
+      "path": "tools/performance/benchmark_support.dart",
+      "sha256": "501731f5744f0f43d79c7582cd7cdb65a233b4ed42879c9c507df7eeb8774457"
+    },
+    {
+      "path": "tools/performance/smart_tiles_rich_map_fixture.dart",
+      "sha256": "260372de559a739f54bb0edb60b39eb679497b3f151664e44a85989c2ec167d6"
+    },
+    {
+      "path": "tools/gen5_battle_sprite/source_view.dart",
+      "sha256": "e4d71dd78c3fdf5e44b1fe76e5a0efee50624b092c4dba176c7bee897d6cfcf7"
+    },
+    {
+      "path": "tools/gen5_battle_sprite/nmcr.dart",
+      "sha256": "ae86b9357f0e577345f7183a53a30c4f596cfa48486fecfe43f46e32ed97ae67"
+    },
+    {
+      "path": "tools/gen5_battle_sprite/ncer.dart",
+      "sha256": "0a792128e0155d7fc14d7764cfc5ed17ba724509811e76103ebbc1a28d8b0fb8"
+    },
+    {
+      "path": "tools/gen5_battle_sprite/nanr.dart",
+      "sha256": "7965b4384a23ce16ef6e150c08d93543cfe99da56a498ec2c19186a265f63158"
+    },
+    {
+      "path": "tools/gen5_battle_sprite/mcss_bin.dart",
+      "sha256": "43997d34841e6b5e9aa85543e2b16ee14489d5651ee7a89624726d45c9e8b609"
+    },
+    {
+      "path": "tools/gen5_battle_sprite/lz11.dart",
+      "sha256": "193f900d6204aa4b2266b639ec9df169bd5ab4b72ff460c3e75f69240e7377b3"
+    },
+    {
+      "path": "tools/gen5_battle_sprite/indexed_atlas.dart",
+      "sha256": "0b99c667c5d38ef5eb6e381b88c2bbd27201d959148ea01c8a9777f3917dcd90"
+    }
+  ],
+  "limitations": [
+    "The Studio analyzer with default flags returned exit 1 for seven baseline informational lints; --no-fatal-infos returned exit 0.",
+    "The map_authoring analyzer returned exit 2 for two baseline warnings and 48 infos after missing QA support files were restored.",
+    "The JSONL test special-cases mapHealth because its descriptor lacks a machine-readable requiredFilters list; production metadata was not changed.",
+    "No full workspace, native visual or G0 acceptance."
+  ]
+}
+

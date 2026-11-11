@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T10:58:29Z",
+  "status": "partial_not_accepted",
+  "scope": "T01 : retrait palette Cinématiques et inspecteur de cible Passages ; clarification T00 de la matrice RUI-013.",
+  "previousCheckpoint": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-map-dialogs.json",
+  "runs": [
+    {
+      "cwd": "apps/avelune_studio",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub --concurrency=1 test/cinematics/cinematic_input_state_test.dart test/cinematics/cinematic_controller_ui10_test.dart test/cinematics/cinematic_inspector_ui10_test.dart test/cinematics/cinematic_published_guard_ui10_test.dart test/cinematics_ui10_error_recovery_test.dart test/cinematics/cinematic_animation_ui10_test.dart test/cinematics/retired_linked_dialogue_preview_test.dart test/cinematics/cinematic_timeline_gestures_ui10_test.dart test/cinematics_ui10_widget_test.dart test/cinematics_ui10_parity_viewport_test.dart test/cinematics/cinematic_projection_test.dart test/cinematics/cinematic_preview_transport_ui10_test.dart test/map_workspace/map_decor_order_context_test.dart test/map_workspace/map_decor_animation_panel_test.dart test/map_workspace/context_identity_test.dart test/map_workspace/context_menu_test.dart test/map_workspace/spatial_transport_retirement_test.dart test/map_workspace/decor_order_cross_context_repro_test.dart test/map_workspace/decor_order_e2e_test.dart test/map_workspace/context_menu_parity_test.dart test/map_workspace/moving_prop_authoring_test.dart test/map_workspace/decor_transform_host_test.dart test/map_workspace/workspace_publication_workflow_test.dart test/project_settings/project_settings_retirement_continuity_test.dart test/presentation/map_warp_door_inspector_test.dart test/presentation/map_warp_ladder_editor_test.dart test/presentation/map_warp_transition_editor_test.dart test/cinematics/cinematic_adapter_ui10_test.dart test/cinematics/cinematic_coexistence_ui10_test.dart test/cinematics/cinematic_independent_publication_ui10_test.dart test/map_workspace/entity_presentation_controls_test.dart test/map_workspace/healing_display_inspector_test.dart test/map_workspace/interactive_encounter_inspector_test.dart test/presentation/map_contextual_item_use_settings_test.dart test/presentation/map_escape_rope_settings_test.dart test/cinematics/cinematic_facing_mode_ui10_test.dart test/cinematics/cinematic_jump_ui10_test.dart test/cinematics/cinematic_completion_policy_ui10_test.dart test/map_workspace/workspace_map_catalog_operation_test.dart test/scenes/scene_condition_catalog_refresh_host_test.dart test/map_workspace/map_camera_panel_test.dart test/map_workspace/map_library_retirement_test.dart test/map_workspace/map_warp_inspector_retirement_test.dart test/map_workspace/map_rules_profile_matrix_test.dart test/map_workspace/scene_only_warp_authoring_test.dart test/map_workspace/warp_editing_test.dart test/map_workspace/inspector_fields_undo_test.dart test/map_workspace/map_catalog_async_reads_test.dart test/map_workspace/warp_disk_journey_test.dart test/map_workspace/warp_player_journey_test.dart -r failures-only",
+      "environment": "TMPDIR et AVELUNE_QA_ROOT dans un sous-répertoire QA propre à ce run",
+      "exitCode": 0,
+      "output": "+313: All tests passed!",
+      "runnerPid": 12230,
+      "note": "50 fichiers, incluant les parcours passage disque/Player ; groupes historiques recoupés, ni suite complète ni recette native. Le PID du runner a été relevé ; ses descendants n’ont pas été capturés pendant le run. Après terminaison aucun processus ne détenait de fichier sous ce dossier QA, qui a été supprimé."
+    },
+    {
+      "cwd": "apps/avelune_studio",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter analyze --no-pub",
+      "exitCode": 1,
+      "output": "Six informations, aucun avertissement ni erreur ; diagnostics hors des fichiers de ces tranches."
+    },
+    {
+      "cwd": "apps/avelune_studio",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter analyze --no-pub --no-fatal-infos",
+      "exitCode": 0,
+      "output": "Les six mêmes informations restent présentes."
+    },
+    {
+      "cwd": "apps/avelune_studio",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/dart --disable-dart-dev --packages=.dart_tool/package_config.json tools/t01_check_g0.dart --root ../.. --allowlist documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/t01-technical-exceptions.json",
+      "exitCode": 1,
+      "passed": false,
+      "counts": {
+        "inventoryEntries": 996,
+        "approvedExceptions": 12,
+        "reachableSources": 4381,
+        "studioSourcesInspected": 1967,
+        "violations": 1258
+      },
+      "violationKinds": {
+        "physical": 329,
+        "reachability": 687,
+        "historical_symbol": 242
+      },
+      "note": "Diagnostic statique ; catégories qui se recoupent, ce ne sont ni des fonctionnalités cassées ni un pourcentage."
+    },
+    {
+      "cwd": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes",
+      "command": "python3 -m unittest test_update_plan",
+      "exitCode": 0,
+      "output": "Ran 25 tests; OK"
+    },
+    {
+      "cwd": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes",
+      "command": "node --check replacement-view.js",
+      "exitCode": 0,
+      "output": "Syntaxe valide."
+    }
+  ],
+  "sourceHashes": {
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector.dart": "b6a735a382c824a5eba9316721bdf4e9b7ae2486c166cbf33249a64b158077af",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_page.dart": "e52666e779a3043817a9fd57d630808d53063a74eb767105340ce4e377d9c627",
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_commands.dart": "73f94312410b0d95a5fd21236db46d8fc41584925299d6535ba68999ee49e1bd",
+    "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_actions.dart": "fbb23adef665a9cad1d8e7dadded7a61433bee964724c11e61b116803abff00c",
+    "apps/avelune_studio/test/cinematics/cinematic_controller_ui10_test.dart": "18646a5559c1a968bb78e4e4b787f34f5c16a789e1789da04c8b781599567675",
+    "apps/avelune_studio/test/cinematics_ui10_error_recovery_test.dart": "2f1ac5005ca1f2fa30da6114e1fb4cb63be4afa1dee353344301f23cd03885a2",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_selection_inspector.dart": "fa00f80057cc280623f033851a51b2aed6e79d012bac72cb44d2f24df6cd6056",
+    "apps/avelune_studio/test/map_workspace/map_warp_inspector_retirement_test.dart": "05b0bfcb4c402dcdf454dd100b88c44ae2f4a37451f77149d47b19b016526824"
+  },
+  "removedUi": [
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_action_palette.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_warp_inspector.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_arrival_picker.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_destination_picker.dart"
+  ],
+  "independentReview": "Revues de source distinctes des deux tranches et de la matrice RUI-013 ; préimages reconstruites pour les coupes Dart. La revue du plan ne disposait pas des empreintes immédiates antérieures des scripts ; le comparateur n’a pas été inspecté dans un navigateur.",
+  "limits": [
+    "Aucun lot T00/T01 ni G0 accepté ; 329 fichiers UI historiques signalés présents par le diagnostic statique.",
+    "Les scénarios Player inclus sont des tests de fixture et ne constituent pas une recette du Player distribué ou de tous les exports.",
+    "Les appels futurs à addAction doivent demander flushInputs:true pour retrouver explicitement la garde de saisie de l’ancienne palette ; le défaut reste compatible avec les appels directs existants.",
+    "La branche passage sélectionné est neutre ; les commandes métier restent disponibles, sans interface de remplacement à ce stade.",
+    "Les états communs restent exigés en 2D et 3D ; seuls projet 2D actif en profil 3D et projet 3D actif en profil 2D sont non applicables. Aucune cible n’est approuvée.",
+    "Aucune nouvelle inspection navigateur ou capture native de l’état final de Studio n’a été réalisée.",
+    "Le seul DTD détecté appartient à un autre environnement ; aucun hot reload de celui-ci."
+  ],
+  "mcpParity": "N/A"
+}

@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-11",
+  "command": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/dart",
+    "run",
+    "tools/t01_check_g0.dart",
+    "--allowlist",
+    "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/t01-technical-exceptions.json"
+  ],
+  "cwd": "/Users/karim/Project/pokemonProject/apps/avelune_studio",
+  "exitCode": 1,
+  "gate": "G0",
+  "proofTier": "static_retirement",
+  "passed": false,
+  "counts": {
+    "inventoryEntries": 993,
+    "approvedExceptions": 12,
+    "reachableSources": 4402,
+    "studioSourcesInspected": 1986,
+    "violations": 1337
+  },
+  "violationKinds": {
+    "physical": 354,
+    "reachability": 739,
+    "historical_symbol": 244
+  },
+  "physicalByArea": {
+    "cinematics": 29,
+    "dialogues": 13,
+    "events": 19,
+    "game_export": 5,
+    "map_workspace": 80,
+    "narrative": 23,
+    "pokemon": 48,
+    "presentations": 21,
+    "project_settings": 10,
+    "regional_map": 5,
+    "rendering": 1,
+    "resources": 38,
+    "settings": 1,
+    "stories": 1,
+    "terrains": 9,
+    "verification": 2,
+    "other": 49
+  },
+  "previous": {
+    "path": "t01-g0-static-diagnostic-after-palette-packs-20261111.json",
+    "sha256": "0c6b25cb615a43754febf38408cd3f5fdd5af9d896ec7d8e6d61feba1ce23cb8",
+    "physical": 358,
+    "reachability": 747,
+    "historical_symbol": 246
+  },
+  "scopeNotes": [
+    "Live checkout diagnostic; no frozen global or native acceptance.",
+    "Four old environment presentation files were retired since the preceding diagnostic; categories overlap and are not counts of broken features.",
+    "G0 remains unaccepted."
+  ]
+}

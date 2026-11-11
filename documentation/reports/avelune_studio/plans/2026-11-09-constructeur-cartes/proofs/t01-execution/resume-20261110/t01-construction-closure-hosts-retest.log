@@ -1,0 +1,3 @@
++16: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart: canonically prepared border stays visible over opaque ground after canvas drawing and disk reopen
+UwU6 first border: 0 → 2048 blue pixels
++19: All tests passed!

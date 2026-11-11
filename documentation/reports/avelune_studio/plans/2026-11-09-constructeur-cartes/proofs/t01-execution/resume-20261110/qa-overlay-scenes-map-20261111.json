@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-10T23:11:39.180289+00:00",
+  "baseline": "468d1d62af188568da578a020c8081fed1c82997",
+  "parentSnapshot": {
+    "path": "proofs/t01-execution/resume-20261110/qa-source-snapshot.json",
+    "sha256": "eb8689c8ca865ac279873196bef0ace59c09119ef823ccf053d74c4cfe47c3e4"
+  },
+  "scope": "Delta for scene graph, map camera, map decor animation and two-map event witness; not a full workspace qualification. Earlier runs used earlier versions of some tests.",
+  "currentFiles": [
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_block_choice.dart",
+      "sha256": "3446c6d39db7486b791788c953731b127cf0ea48093139cf49170efdccfaea19",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/features/scenes/application/scene_labels.dart",
+      "sha256": "1572f8f7e4a12d58a116aa8781369aa5faf722f30c607a876c5e0d76ca96d8a1",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/narrative/scene_node_focus.dart",
+      "sha256": "7fe4e9dd4cbe1f2b7cd5ddf526e28887e5de43d3542b2f37f1434b6e1d07a247",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_block_presentation.dart",
+      "sha256": "e50615074f0b9f7ae608b0dee3fc399231927579c39a98e9428af9dcd0d59fc6",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_commands.dart",
+      "sha256": "c464acbd43b3009906949c5753a20512ef115bd495792908ed300ecc28559f9e",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_header.dart",
+      "sha256": "ceb9ab835c9a6c5cfaeef2cf24c13e95686842ead5887423edb9517672276498",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_page.dart",
+      "sha256": "fb955167ba0520cdd88034019fab7208627f9adc7077106ce7fe1c7a692663b9",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_builder_view_state.dart",
+      "sha256": "a567f571bc00c408b7896ab8f49cc912e3fa9b41c010b5ea59fe80e4766debc7",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_inspector.dart",
+      "sha256": "2ff07ed5c1cf3e5fe6cb16bbdb8c09fe8088fdee0a8347905600ec338916150c",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_library_panel.dart",
+      "sha256": "407e829d97f62e1626737b9b2366c4031dfa83cf55dae0dbae4d063608ae0463",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "sha256": "9bb451e4ee9e4110cd8496ba1f393c08fd1b4729c1f4c950f689551a97e4dd0a",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/scene_canvas_addition_test.dart",
+      "sha256": "8fa1dcce8d74a12d762be666082eae652d19f68c2fdd20f82fc15d31a76ff90e",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/ui06_scene_construction_test.dart",
+      "sha256": "38dd3cdbdb2f178a99bf9ad55427fe21c12d5780d8c8cb46a345174db45c7566",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/ui06_scene_volume_test.dart",
+      "sha256": "d1a4697d4af0abf43eefab894fa76879654d53fdc41ad5de7824e1fbc9b1f693",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui06_scene_journey_test.dart",
+      "sha256": "b6f188d5e10c2d085dc5956a525904b8f258c9391ecef13c1c6e26c69f6babba",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui08_event_journey_test.dart",
+      "sha256": "ae2a012395630c6d9be6d710a43aedc97911b4d9429d1cfed382cafb78db3725",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui11_scene_presentation_binding_test.dart",
+      "sha256": "09f293e497f44a948569bc9ec8630167c6e6a40c2963614ee7c81f1aaf1b53af",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/scenes/scene_view_reconciliation_ui07_test.dart",
+      "sha256": "8dbcb20a0c92f504ffe4580303c77738260a6b4256f42a9d53db2515b6642243",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/scenes/scene_graph_projection_contract_test.dart",
+      "sha256": "c730abaa35bc884fe5f5713af66b042a364ede16c33ef299b7e70b7de0d8c28f",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_settings_inspector.dart",
+      "sha256": "3b4b7dd6238959659286fc065a3c7797c6bc40cfd2ff18e778e20e5d120eb64c",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_camera_panel_test.dart",
+      "sha256": "d463ede1a20b97e186ed83830cff714dd1ad37168c42f907e19e3413fea49e54",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_decor_inspector_tabs.dart",
+      "sha256": "78eeff3395d8cb7a98b11ad9dd68ceb43af6256b9de834f6f7fc81183075d123",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "apps/avelune_studio/test/map_workspace/map_decor_animation_panel_test.dart",
+      "sha256": "9d8830ee3de8ba70d88f1a2cfb79683dfec2967f5d7f451b8c4345aea506610e",
+      "matchesWorkspaceAtCapture": true
+    },
+    {
+      "path": "packages/map_authoring/test/domains/narrative/event_scoped_two_map_transport_test.dart",
+      "sha256": "3d67feaa41bf9bc292705c177f8cca03c4079b868c342c5b3a52db75694d5956",
+      "matchesWorkspaceAtCapture": true
+    }
+  ],
+  "deletedInWorkspaceAndQa": [
+    "apps/avelune_studio/lib/features/scenes/coordination/scene_builder_session.dart",
+    "apps/avelune_studio/lib/features/scenes/coordination/scene_graph_viewport.dart",
+    "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_layer.dart",
+    "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_menu.dart",
+    "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_minimap.dart",
+    "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_node.dart",
+    "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_painter.dart",
+    "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_surface.dart",
+    "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_types.dart",
+    "apps/avelune_studio/lib/presentation/features/scenes/scene_graph_canvas.dart",
+    "apps/avelune_studio/test/support/scene_canvas_test_harness.dart",
+    "apps/avelune_studio/test/support/ui06_scene_construction_driver.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_camera_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/map_workspace/map_decor_animation_panel.dart"
+  ],
+  "linkedDependencies": {
+    "fileCount": 428,
+    "sha256": "94bfa916c40ca144cf3d05a091d934e22bd0a1b323bacbfc3bd7a69bf082ce2a",
+    "note": "Five roots remain linked to the live checkout; matching digests do not make the whole workspace immutable."
+  },
+  "limitations": [
+    "No native visual acceptance or G0 acceptance.",
+    "Earlier runs and their red fixtures are recorded separately; this snapshot describes the latest targeted QA copy, not those prior executions."
+  ]
+}
+

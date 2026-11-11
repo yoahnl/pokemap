@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T11:18:39Z",
+  "status": "partial_not_accepted",
+  "scope": "Reliquat Aperçu de l’inspecteur Cinématiques et verrouillage du contrat de preuves T00.",
+  "previousCheckpoint": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-313.json",
+  "runs": [
+    {
+      "cwd": "apps/avelune_studio",
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test --no-pub --concurrency=1 test/cinematics/cinematic_inspector_ui10_test.dart test/cinematics/cinematic_preview_transport_ui10_test.dart test/cinematics/cinematic_viewport_parity_ui10_test.dart test/cinematics/cinematic_preview_reopen_journey_test.dart test/cinematics_ui10_error_recovery_test.dart -r failures-only",
+      "environment": "TMPDIR et AVELUNE_QA_ROOT dans un sous-répertoire QA propre à ce run",
+      "exitCode": 0,
+      "output": "+18: All tests passed!",
+      "runnerPid": 28299,
+      "observedDescendants": [
+        28406,
+        28418
+      ],
+      "observedProcessesAfterRun": [],
+      "note": "Tests ciblés après retrait de l’onglet ; ils recoupent la passe historique de 313 tests. Dossier QA propre à ce run supprimé."
+    },
+    {
+      "cwd": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes",
+      "command": "python3 -m unittest test_update_plan",
+      "exitCode": 0,
+      "output": "Ran 26 tests; OK"
+    },
+    {
+      "cwd": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes",
+      "command": "python3 update_plan.py validate",
+      "exitCode": 0,
+      "output": "88 lots, 15 thèmes, 611 références, 0 accepté, 1 tentative."
+    },
+    {
+      "cwd": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes",
+      "command": "node --check replacement-view.js",
+      "exitCode": 0,
+      "output": "Syntaxe valide."
+    }
+  ],
+  "sourceHashes": {
+    "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector.dart": "dd95f83c8886cbfa5e73ba1d684c6295c66b1592d3f600301653477c866a03f6",
+    "apps/avelune_studio/test/cinematics/cinematic_inspector_ui10_test.dart": "e9ca240da377ce22379adece8b3c2681df94d2e554dbd3a1b9f3fe89df1558ca",
+    "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/update_plan.py": "c25104a0e9f42c17c273677f778d97c810b14c7bf6f85c5fcd9ea6f959fffc8f",
+    "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/test_update_plan.py": "62047183574612ef26110b9d24574105a3518735867acbf853769107e3369b10",
+    "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/replacement-view.js": "9b8c9e514b0aab880bee0abbd6dca85d6653bd02af12287a8f2e64230034474e"
+  },
+  "requirementsRevision": "2026-11-11-applicable-profiles-v1",
+  "requirementsSha256": "f3004b92cb42a830077047cd428a33b06d62ae6970939a61bf91b2359fbb22f7",
+  "independentReview": "Revues distinctes de l’onglet retiré et du verrou de preuves. Le réviseur du verrou a reproduit une suppression de dépendance non bloquée avant correction ; le nouveau contrôle refuse cette mutation dans validate et check_attempt. Le réviseur n’a pas relancé la suite unittest ni ouvert le navigateur.",
+  "limits": [
+    "Le test UI Cinématiques utilise les contrôles existants et conserve l’aperçu central ; il ne prouve pas la nouvelle UI.",
+    "La passe intégrée de 313 tests est antérieure à ce retrait : les 18 tests ciblés suivants ne constituent pas une nouvelle passe intégrée.",
+    "Les contrôles de données et de couverture ne remplacent pas la revue visuelle et les preuves natives par état/profil.",
+    "Les préimages immédiates des scripts du plan n’ont pas été conservées ; la revue du correctif porte sur les comportements et empreintes actuels.",
+    "T00/T01 et G0 restent ouverts ; aucune cible n’est liée et approuvée."
+  ],
+  "mcpParity": "N/A"
+}
