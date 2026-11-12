@@ -964,7 +964,7 @@ final class CatalogAuthoringSession {
           ? _planWorkshop(request) : _planProject(request);
     }
     var scopedRequest = request;
-    if ((const {'map3d.camera.configure', 'warp.create', 'connection.upsert', 'connection.create_bidirectional_apply'}.contains(request.actionId) || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) && request.expectedRevision != selection.snapshot.revision &&
+    if ((const {'map3d.camera.configure', 'warp.create', 'connection.upsert', 'connection.create_bidirectional_apply', 'connection.update_bidirectional_apply', 'connection.delete_bidirectional_apply'}.contains(request.actionId) || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) && request.expectedRevision != selection.snapshot.revision &&
         await acceptObservedCatalogRevision?.call(request.expectedRevision, current.revision,
             selection.snapshot.scopedStorageRevisions!) == true) {
       scopedRequest = AuthoringRequest(requestId: request.requestId,

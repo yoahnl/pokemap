@@ -68,42 +68,47 @@ Future<List<MapConnection>> _saved(ProjectSession session, String id) async {
 }
 
 void main() {
-  test(
-    'a catalog link reads only its two maps and writes both borders',
-    () async {
-      final session = await _catalogProject();
-      final adapter = LocalMapWorkspaceAdapter();
-      final controller = MapWorkspaceController(session, adapter);
-      addTearDown(controller.dispose);
-      await controller.initialize();
-      expect(controller.error, isNull);
-      expect(controller.active?.base.mapId, 'a');
-      final actions = MapWorkspaceConnectionActions(
-        controller: controller,
-        port: LocalMapConnectionAdapter(adapter),
-        isActive: () => true,
-        changed: () {},
-      );
+  test('catalog links read only their two maps to create, update and remove a pair', () async {
+    final session = await _catalogProject();
+    final adapter = LocalMapWorkspaceAdapter();
+    final controller = MapWorkspaceController(session, adapter);
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    expect(controller.error, isNull);
+    expect(controller.active?.base.mapId, 'a');
+    final actions = MapWorkspaceConnectionActions(
+      controller: controller,
+      port: LocalMapConnectionAdapter(adapter),
+      isActive: () => true,
+      changed: () {},
+    );
 
-      await actions.link(MapConnectionDirection.east, 'b', 2);
+    await actions.link(MapConnectionDirection.east, 'b', 0);
+    expect(actions.error, isNull);
+    await actions.link(MapConnectionDirection.east, 'b', 2);
 
-      expect(actions.error, isNull);
-      expect(await _saved(session, 'a'), [
-        const MapConnection(
-          direction: MapConnectionDirection.east,
-          targetMapId: 'b',
-          offset: 2,
-        ),
-      ]);
-      expect(await _saved(session, 'b'), [
-        const MapConnection(
-          direction: MapConnectionDirection.west,
-          targetMapId: 'a',
-          offset: -2,
-        ),
-      ]);
-      expect(controller.active!.current.connections.single.offset, 2);
-      expect(controller.active!.dirty, isFalse);
-    },
-  );
+    expect(actions.error, isNull);
+    expect(await _saved(session, 'a'), [
+      const MapConnection(
+        direction: MapConnectionDirection.east,
+        targetMapId: 'b',
+        offset: 2,
+      ),
+    ]);
+    expect(await _saved(session, 'b'), [
+      const MapConnection(
+        direction: MapConnectionDirection.west,
+        targetMapId: 'a',
+        offset: -2,
+      ),
+    ]);
+    expect(controller.active!.current.connections.single.offset, 2);
+    expect(controller.active!.dirty, isFalse);
+
+    await actions.unlink(MapConnectionDirection.east);
+    expect(actions.error, isNull);
+    expect(await _saved(session, 'a'), isEmpty);
+    expect(await _saved(session, 'b'), isEmpty);
+    expect(controller.active!.current.connections, isEmpty);
+  });
 }

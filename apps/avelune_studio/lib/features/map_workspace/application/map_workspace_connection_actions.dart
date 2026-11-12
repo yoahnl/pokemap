@@ -76,25 +76,23 @@ class MapWorkspaceConnectionActions {
     error = null;
     changed();
     try {
-      if (remove) {
-        await port.unlink(
-          session: controller.session,
-          source: source,
-          direction: direction,
-          expectedTarget: targetDocument?.current,
-        );
-      } else {
-        await port.link(
-          session: controller.session,
-          source: source,
-          direction: direction,
-          targetMapId: targetMapId,
-          offset: offset,
-          expectedTarget: targetDocument?.current,
-        );
-      }
+      final saved = remove
+          ? await port.unlink(
+              session: controller.session,
+              source: source,
+              direction: direction,
+              expectedTarget: targetDocument?.current,
+            )
+          : await port.link(
+              session: controller.session,
+              source: source,
+              direction: direction,
+              targetMapId: targetMapId,
+              offset: offset,
+              expectedTarget: targetDocument?.current,
+            );
       if (!isActive() || controller.isDisposed) return;
-      await controller.refreshSavedMaps({source.id, targetMapId});
+      controller.acceptSavedMaps(saved);
     } on Object catch (failure) {
       if (isActive() && !controller.isDisposed) {
         error = failure.toString();

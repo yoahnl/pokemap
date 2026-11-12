@@ -124,6 +124,10 @@ final class WarpConnectionActions {
       _upsertConnectionOnMap(map, MapConnection(direction: _direction(direction),
           targetMapId: targetMapId, offset: offset));
 
+  MapData previewDisconnect(MapData map, {required String direction,
+          required String targetMapId}) =>
+      _removeConnection(map, _direction(direction), targetMapId: targetMapId);
+
   MapData previewUpdate(MapData map, {required String warpId,
       required Map<String, Object?> warp}) =>
       _replaceWarp(map, warpId, _parseWarp(map, warp));
@@ -795,7 +799,9 @@ AuthoringMutationDraft _draftPair({
   required Map<String, Object?> preview,
   bool validateMaps = true,
 }) {
-  if (validateMaps) {
+  final scopedCatalog = planning.snapshot.materializedCatalogProject &&
+      planning.snapshot.scopedStorageRevisions != null;
+  if (validateMaps && !scopedCatalog) {
     _validateProjected(planning, sourceAfter);
     _validateProjected(planning, targetAfter);
   }

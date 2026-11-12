@@ -16,7 +16,7 @@ final class LocalMapConnectionAdapter
   final LocalMapWorkspaceAdapter mapAdapter;
 
   @override
-  Future<void> link({
+  Future<List<MapWorkspaceDocument>> link({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -37,7 +37,7 @@ final class LocalMapConnectionAdapter
   );
 
   @override
-  Future<void> unlink({
+  Future<List<MapWorkspaceDocument>> unlink({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -81,7 +81,7 @@ final class LocalMapConnectionAdapter
     },
   );
 
-  Future<void> _linkBorders({
+  Future<List<MapWorkspaceDocument>> _linkBorders({
     required ProjectSession session,
     required MapData source,
     required MapData? expectedTarget,
@@ -96,14 +96,19 @@ final class LocalMapConnectionAdapter
       parameters: parameters,
       scoped: true,
     );
+    final mapIds = {
+      source.id,
+      if (parameters['targetMapId'] case final String target) target,
+    };
     await mapAdapter.refreshExternalBaseline(
       session,
-      resources: {
-        (kind: 'map', id: source.id),
-        if (parameters['targetMapId'] case final String target)
-          (kind: 'map', id: target),
-      },
+      resources: {for (final id in mapIds) (kind: 'map', id: id)},
     );
+    return [
+      for (final id in mapIds)
+        if (await mapAdapter.readSavedMap(session, id) case final document?)
+          document,
+    ];
   }
 
   Future<void> _run({

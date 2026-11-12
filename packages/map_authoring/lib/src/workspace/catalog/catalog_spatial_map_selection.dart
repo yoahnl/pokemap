@@ -30,6 +30,12 @@ import 'catalog_metadata_documents.dart';
 import 'catalog_narrative_event_documents.dart';
 import 'catalog_project_reader.dart';
 
+const _connectionPairActions = {
+  'connection.create_bidirectional_apply',
+  'connection.update_bidirectional_apply',
+  'connection.delete_bidirectional_apply',
+};
+
 final class CatalogValidatedMapChange {
   CatalogValidatedMapChange._(AuthoringResourceChange change, this._before,
       this._after, this._catalogRevision, this._request)
@@ -116,6 +122,9 @@ final class CatalogSpatialMapSelection {
               (operation['parameters'] as Map)['mapId'] == parameters['mapId']));
     }
     if (TriggerZoneActions.fieldTraversalActions.contains(action)) return true;
+    if (action == 'connection.delete_bidirectional_apply') {
+      return parameters['targetMapId'] is String;
+    }
     if (action == 'map.platform.upsert') return parameters['platform'] is Map && (parameters['platform'] as Map)['kind'] == 'spatial';
     if (action == 'map.apply_operations') {
       final operations = parameters['operations'];
@@ -135,6 +144,7 @@ final class CatalogSpatialMapSelection {
       'warp.create',
       'connection.upsert',
       'connection.create_bidirectional_apply',
+      'connection.update_bidirectional_apply',
       'entity.upsert',
       'trigger.create',
       'map3d.navigation.configure',
@@ -382,7 +392,7 @@ final class CatalogSpatialMapSelection {
       return _readProperties(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
     }
     if (const {'warp.update', 'warp.create', 'connection.upsert',
-        'connection.create_bidirectional_apply'}.contains(actionId)) {
+        ..._connectionPairActions}.contains(actionId)) {
       return _readRelations(reader: reader, projectHandle: projectHandle,
           actionId: actionId, parameters: parameters);
     }
@@ -689,7 +699,11 @@ final class CatalogSpatialMapSelection {
       'mapId',
       if (isWarp) 'warp',
       if (actionId == 'warp.update') 'warpId',
-      if (!isWarp) ...{'direction', 'targetMapId', 'offset'},
+      if (!isWarp) ...{
+        'direction',
+        'targetMapId',
+        if (actionId != 'connection.delete_bidirectional_apply') 'offset'
+      },
     });
     final mapId = args.string('mapId');
     final selected = await reader.withMetadataFields({'settings'});
@@ -747,8 +761,13 @@ final class CatalogSpatialMapSelection {
         targetId = updated.targetMapId;
       } else {
         targetId = args.string('targetMapId');
-        actions.previewConnection(source, direction: args.string('direction'),
-            targetMapId: targetId, offset: args.integer('offset'));
+        if (actionId == 'connection.delete_bidirectional_apply') {
+          actions.previewDisconnect(source,
+              direction: args.string('direction'), targetMapId: targetId);
+        } else {
+          actions.previewConnection(source, direction: args.string('direction'),
+              targetMapId: targetId, offset: args.integer('offset'));
+        }
       }
       metadata = await CatalogMetadataDocuments.readDocuments(
           snapshot: catalog.snapshot, project: catalog.projectMetadata,
@@ -760,7 +779,8 @@ final class CatalogSpatialMapSelection {
           if (source.spatialScene == null)
             for (final connection in source.connections)
               if (connection.direction == direction) connection.targetMapId,
-          if (actionId == 'connection.create_bidirectional_apply' && target.spatialScene == null)
+          if (actionId != 'connection.delete_bidirectional_apply' &&
+              _connectionPairActions.contains(actionId) && target.spatialScene == null)
             for (final connection in target.connections)
               if (connection.direction == direction.opposite) connection.targetMapId,
         }..removeAll(maps.keys);
@@ -864,7 +884,7 @@ final class CatalogSpatialMapSelection {
     final changes = plan.changeSet.changes;
     final action = plan.request.actionId;
     final relation = const {'warp.update', 'warp.create', 'connection.upsert',
-        'connection.create_bidirectional_apply'}.contains(action);
+        ..._connectionPairActions}.contains(action);
     final expectedMaps = <String, MapData>{};
     if (relation) {
       const actions = WarpConnectionActions();
@@ -878,13 +898,20 @@ final class CatalogSpatialMapSelection {
       } else {
         final direction = parameters['direction'] as String;
         final targetId = parameters['targetMapId'] as String;
-        final offset = parameters['offset'] as int;
-        expectedMaps[mapId] = actions.previewConnection(source, direction: direction,
-            targetMapId: targetId, offset: offset);
-        if (action == 'connection.create_bidirectional_apply') {
-          expectedMaps[targetId] = actions.previewConnection(snapshot.mapById(targetId)!,
-              direction: MapConnectionDirection.values.byName(direction).opposite.name,
-              targetMapId: mapId, offset: -offset);
+        final opposite = MapConnectionDirection.values.byName(direction).opposite.name;
+        if (action == 'connection.delete_bidirectional_apply') {
+          expectedMaps[mapId] = actions.previewDisconnect(source,
+              direction: direction, targetMapId: targetId);
+          expectedMaps[targetId] = actions.previewDisconnect(
+              snapshot.mapById(targetId)!, direction: opposite, targetMapId: mapId);
+        } else {
+          final offset = parameters['offset'] as int;
+          expectedMaps[mapId] = actions.previewConnection(source, direction: direction,
+              targetMapId: targetId, offset: offset);
+          if (_connectionPairActions.contains(action)) {
+            expectedMaps[targetId] = actions.previewConnection(snapshot.mapById(targetId)!,
+                direction: opposite, targetMapId: mapId, offset: -offset);
+          }
         }
       }
     }
@@ -959,6 +986,10 @@ final class CatalogSpatialMapSelection {
         if (projected != expectedMaps[id]) {
           throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
               message: 'The relation changed data outside its validated update.');
+        }
+        if (action != 'connection.create_bidirectional_apply' &&
+            _connectionPairActions.contains(action)) {
+          MapValidator.validate(projected);
         }
       } else if (action == 'environment.generated_placement_move') {
         final expected = _manualEnvironmentMove(snapshot.mapById(mapId)!, plan.request.parameters);

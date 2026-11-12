@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/shell/studio_root.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,7 @@ class _RecordingConnections implements MapConnectionPort {
   final calls = <String>[];
 
   @override
-  Future<void> link({
+  Future<List<MapWorkspaceDocument>> link({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -39,10 +40,11 @@ class _RecordingConnections implements MapConnectionPort {
         ),
       ],
     );
+    return _saved(source.id);
   }
 
   @override
-  Future<void> unlink({
+  Future<List<MapWorkspaceDocument>> unlink({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -55,7 +57,16 @@ class _RecordingConnections implements MapConnectionPort {
           if (entry.direction != direction) entry,
       ],
     );
+    return _saved(source.id);
   }
+
+  List<MapWorkspaceDocument> _saved(String id) => [
+    MapWorkspaceDocument(
+      map: maps.saved[id]!,
+      revision: 'linked-${calls.length}',
+      mapId: id,
+    ),
+  ];
 }
 
 void main() {

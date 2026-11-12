@@ -187,6 +187,77 @@ void main() {
       });
     }
   }
+  for (final unrelated in [0, 80]) {
+    test(
+        'a connection pair updates, deletes and undoes with $unrelated foreign maps',
+        () async {
+      final f = await _Fixture.open(unrelated);
+      addTearDown(f.close);
+      Future<AuthoringMutationResult> run(
+          String action, Map<String, Object?> parameters, String id) async {
+        f.reader.paths.clear();
+        final plan = await f.plan(action, parameters);
+        expect(plan.plan.changeSet.changes.map((c) => c.storageKey).toSet(),
+            {'catalog/HEAD.json', 'maps/source.json', 'maps/target.json'});
+        final result = await f.api.applyMutation(f.opened.projectHandle,
+            planId: plan.planId, operationId: id);
+        expect(f.reader.paths.where(f.forbidden.contains), isEmpty);
+        expect(
+            f.reader.paths.where((p) =>
+                p.startsWith('maps/') &&
+                !{'maps/source.json', 'maps/target.json'}.contains(p)),
+            isEmpty);
+        expect(f.reader.paths.where((p) => p.endsWith('history.jsonl')),
+            isEmpty);
+        return result;
+      }
+
+      Future<List<List<MapConnection>>> saved() async => [
+            MapData.fromJson(jsonDecode(await f.source.readAsString()))
+                .connections,
+            MapData.fromJson(jsonDecode(await f.target.readAsString()))
+                .connections,
+          ];
+      const pair = {
+        'mapId': 'source',
+        'direction': 'east',
+        'targetMapId': 'target'
+      };
+      const linked = [
+        [
+          MapConnection(
+              direction: MapConnectionDirection.east,
+              targetMapId: 'target',
+              offset: 2)
+        ],
+        [
+          MapConnection(
+              direction: MapConnectionDirection.west,
+              targetMapId: 'source',
+              offset: -2)
+        ],
+      ];
+
+      await run('connection.create_bidirectional_apply', {...pair, 'offset': 1},
+          'create');
+      await run('connection.update_bidirectional_apply', {...pair, 'offset': 2},
+          'update');
+      expect(await saved(), linked);
+
+      final deleted =
+          await run('connection.delete_bidirectional_apply', pair, 'delete');
+      expect(await saved(), [<MapConnection>[], <MapConnection>[]]);
+      final after = MapData.fromJson(jsonDecode(await f.source.readAsString()));
+      expect(after.warps, f.map.warps);
+      expect(after.spatialScene, f.map.spatialScene);
+      expect(after.properties, f.map.properties);
+
+      await f.reopen();
+      await f.api.undoMutation(f.opened.projectHandle,
+          entryId: deleted.receipt.receiptId, idempotencyKey: 'undo-delete');
+      expect(await saved(), linked);
+    });
+  }
   test('warp.create validates only the selected animated door', () async {
     final f = await _Fixture.open(80);
     addTearDown(f.close);

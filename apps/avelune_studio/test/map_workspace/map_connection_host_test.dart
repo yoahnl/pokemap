@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_connection_actions.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -20,8 +21,10 @@ void main() {
       isActive: () => true,
       changed: () {},
     );
+    final document = controller.active;
     await actions.link(MapConnectionDirection.east, 'b', 0);
     expect(actions.error, isNull);
+    expect(controller.active, same(document));
     expect(links.writes, 1);
     expect(controller.active!.current.connections.single.targetMapId, 'b');
     expect(maps.saved['b']!.connections.single.targetMapId, 'a');
@@ -67,7 +70,7 @@ final class _MemoryConnections implements MapConnectionPort {
   int writes = 0;
 
   @override
-  Future<void> link({
+  Future<List<MapWorkspaceDocument>> link({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -93,10 +96,11 @@ final class _MemoryConnections implements MapConnectionPort {
         offset: -offset,
       ),
     );
+    return _saved({source.id, targetMapId});
   }
 
   @override
-  Future<void> unlink({
+  Future<List<MapWorkspaceDocument>> unlink({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -114,5 +118,15 @@ final class _MemoryConnections implements MapConnectionPort {
       maps.saved[targetId]!,
       direction: direction.opposite,
     );
+    return _saved({source.id, targetId});
   }
+
+  List<MapWorkspaceDocument> _saved(Set<String> ids) => [
+    for (final id in ids)
+      MapWorkspaceDocument(
+        map: maps.saved[id]!,
+        revision: 'linked-$writes',
+        mapId: id,
+      ),
+  ];
 }

@@ -1340,6 +1340,15 @@ class MapWorkspaceController {
     }
   }
 
+  void acceptSavedMaps(Iterable<MapWorkspaceDocument> saved) {
+    if (_disposed || project == null) return;
+    for (final value in saved) {
+      _previews.remove(value.mapId);
+      documents[value.mapId]?.acceptCatalogContent(value);
+    }
+    notify();
+  }
+
   Future<void> refreshSavedMaps(Set<String> mapIds) async {
     if (_disposed || project == null) return;
     final activeId = active?.base.mapId;

@@ -32,6 +32,7 @@ import '../../project_cs/domain/project_cs_port.dart';
 import '../../project_audio/domain/project_audio_port.dart';
 
 part 'local_map_atmosphere_adapter.dart';
+part 'local_map_saved_map_reader.dart';
 part 'local_map_exterior_decoration_adapter.dart';
 part 'local_project_visuals_adapter.dart';
 part 'local_project_surf_adapter.dart';
