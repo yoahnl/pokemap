@@ -1,5 +1,7 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_atmosphere_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/project_visuals/domain/project_visuals_port.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
@@ -17,7 +19,8 @@ import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
 
-class _VisualsPort extends WorkspaceMemoryPort implements ProjectVisualsPort {
+class _VisualsPort extends WorkspaceMemoryPort
+    implements ProjectVisualsPort, MapAtmospherePort {
   _VisualsPort() : super(manifest: _project);
 
   var project = SpatialVisualPatch.fromJson({
@@ -32,7 +35,28 @@ class _VisualsPort extends WorkspaceMemoryPort implements ProjectVisualsPort {
     'fireflies': true,
   });
   final mapPatches = <String, SpatialVisualPatch>{};
+  final atmospheres = <String, SpatialAtmosphereSettings>{};
   var revision = 0;
+
+  @override
+  Future<MapAtmosphereState> loadAtmosphere(
+    ProjectSession session,
+    String mapId,
+  ) async => MapAtmosphereState(
+    settings: atmospheres[mapId] ?? SpatialAtmosphereSettings(),
+    revision: 'a$revision',
+  );
+
+  @override
+  Future<MapAtmosphereState> saveAtmosphere(
+    ProjectSession session,
+    String mapId,
+    SpatialAtmosphereSettings settings,
+    String expectedRevision,
+  ) async {
+    atmospheres[mapId] = settings;
+    return MapAtmosphereState(settings: settings, revision: 'a${++revision}');
+  }
 
   @override
   Future<ProjectVisualsState> loadVisuals(
@@ -67,12 +91,32 @@ class _VisualsPort extends WorkspaceMemoryPort implements ProjectVisualsPort {
   }) => throw UnimplementedError();
 }
 
-const _project = ProjectManifest(
+final _project = ProjectManifest(
   name: 'Ambiance',
   version: ProjectVersion.v9,
-  settings: ProjectSettings(dimension: ProjectDimension.threeD),
+  settings: const ProjectSettings(dimension: ProjectDimension.threeD),
   maps: workspaceEntries,
-  tilesets: [],
+  tilesets: const [],
+  models3d: [
+    ProjectModel3dEntry(
+      id: 'lantern',
+      name: 'Lanterne',
+      sourceAssetId: 'lantern-source',
+      relativePath: 'assets/models3d/lantern.glb',
+      inspection: Model3dInspection(
+        bounds: Model3dBounds(
+          min: Model3dVector3(x: -.2, y: 0, z: -.2),
+          max: Model3dVector3(x: .2, y: 1.6, z: .2),
+        ),
+        meshCount: 1,
+        triangleCount: 4,
+        materials: [
+          Model3dMaterial(index: 0, name: 'verre'),
+          Model3dMaterial(index: 1, name: 'fer'),
+        ],
+      ),
+    ),
+  ],
 );
 
 MapData _spatial(String id) => MapData(
@@ -80,13 +124,24 @@ MapData _spatial(String id) => MapData(
   name: id,
   version: ProjectVersion.v9,
   size: const GridSize(width: 8, height: 6),
-  spatialScene: MapSpatialScene(width: 8, depth: 6),
+  spatialScene: MapSpatialScene(
+    width: 8,
+    depth: 6,
+    instances: [
+      SpatialModelInstance(
+        id: 'lamp-1',
+        modelId: 'lantern',
+        position: Model3dVector3(x: 2.5, y: 0, z: 2.5),
+      ),
+    ],
+  ),
 );
 
 void main() {
   late _VisualsPort port;
   late MapWorkspaceController maps;
   late MapBuilderAmbianceBinding ambiance;
+  late MapEditingViewportSession view;
 
   Future<void> open(WidgetTester tester, {required bool spatial}) async {
     tester.view.physicalSize = const Size(1920, 1080);
@@ -99,9 +154,11 @@ void main() {
     addTearDown(maps.dispose);
     final tick = ValueNotifier(0);
     addTearDown(tick.dispose);
+    view = MapEditingViewportSession();
     ambiance = MapBuilderAmbianceBinding(
       maps: maps,
       changed: () => tick.value++,
+      view: () => view,
     );
     addTearDown(ambiance.dispose);
     await maps.initialize();
@@ -368,6 +425,106 @@ void main() {
     await tester.tap(find.text('Projet'));
     await tester.pump();
     expect(patch().toJson(), isEmpty);
+  });
+
+  testWidgets('effect sources come from the canvas and share the tab history', (
+    tester,
+  ) async {
+    await open(tester, spatial: true);
+    await tester.tap(find.byKey(const ValueKey('map-space-rubric-effects')));
+    await tester.pump();
+    SpatialAtmosphereSettings sources() => maps.active!.atmosphere!.current;
+    Finder key(String value) => find.byKey(ValueKey(value));
+
+    expect(find.text('Aucun halo placé sur cette carte.'), findsOneWidget);
+    expect(key('map-ambiance-source-hint'), findsOneWidget);
+    expect(key('map-ambiance-source-add-halo'), findsNothing);
+
+    view.select(maps.active!, MapSelectionFamily.decor, 'lamp-1');
+    ambiance.changed();
+    await tester.pump();
+    expect(find.text('Lanterne'), findsOneWidget);
+
+    await tester.tap(find.text('Cette carte'));
+    await tester.pump();
+    await tester.tap(key('map-ambiance-source-add-halo'));
+    await tester.pump();
+    expect(sources().halos.single.instanceId, 'lamp-1');
+    expect(find.text('1 halo placé sur cette carte.'), findsOneWidget);
+    expect(key('map-ambiance-source-0'), findsOneWidget);
+
+    bar(tester).onUndo!();
+    await tester.pump();
+    expect(sources().halos, isEmpty);
+    expect(patch().toJson(), isNotEmpty);
+    bar(tester).onUndo!();
+    await tester.pump();
+    expect(patch().toJson(), isEmpty);
+    expect(bar(tester).onUndo, isNull);
+    bar(tester).onRedo!();
+    await tester.pump();
+    expect(patch().toJson(), isNotEmpty);
+    expect(sources().halos, isEmpty);
+    bar(tester).onRedo!();
+    await tester.pump();
+    expect(sources().halos, hasLength(1));
+
+    bar(tester).onUndo!();
+    await tester.pump();
+    expect(bar(tester).onRedo, isNotNull);
+    await tester.tap(key('map-ambiance-effect-toggle'));
+    await tester.pump();
+    expect(bar(tester).onRedo, isNull);
+    expect(sources().halos, isEmpty);
+
+    await tester.tap(key('map-ambiance-source-add-halo'));
+    await tester.pump();
+    await tester.tap(key('map-ambiance-source-remove-0'));
+    await tester.pump();
+    expect(sources().halos, isEmpty);
+    await tester.tap(key('map-ambiance-source-add-halo'));
+    await tester.pump();
+
+    await tester.tap(key('map-ambiance-effect-water'));
+    await tester.pump();
+    await tester.tap(key('map-ambiance-material-lamp-1-verre'));
+    await tester.pump();
+    expect(sources().waterTargets.single.materialName, 'verre');
+    expect(find.text('verre · Lanterne'), findsOneWidget);
+    await tester.tap(key('map-ambiance-material-lamp-1-verre'));
+    await tester.pump();
+    expect(sources().waterTargets, isEmpty);
+
+    await tester.tap(key('map-ambiance-effect-windows'));
+    await tester.pump();
+    await tester.tap(key('map-ambiance-material-lamp-1-fer'));
+    await tester.pump();
+    expect(sources().windows.single.target.materialName, 'fer');
+
+    await tester.tap(key('map-ambiance-effect-fireflies'));
+    await tester.pump();
+    expect(key('map-ambiance-source-hint'), findsNothing);
+    await tester.tap(key('map-ambiance-source-cover-map'));
+    await tester.pump();
+    expect(sources().fireflyZones, hasLength(1));
+    expect(find.text('Toute la carte'), findsOneWidget);
+    expect(key('map-ambiance-source-cover-map'), findsNothing);
+
+    expect(await maps.saveAll(), isTrue);
+    final saved = port.atmospheres['a']!;
+    expect(saved.halos.single.instanceId, 'lamp-1');
+    expect(saved.windows, hasLength(1));
+    expect(saved.waterTargets, isEmpty);
+    expect(saved.fireflyZones, hasLength(1));
+    expect(port.saved['a'], _spatial('a'));
+
+    view.clearSelection(maps.active!);
+    ambiance.changed();
+    await tester.pump();
+    await tester.tap(key('map-ambiance-source-remove-0'));
+    await tester.pump();
+    expect(sources().fireflyZones, isEmpty);
+    expect(key('map-ambiance-source-cover-map'), findsOneWidget);
   });
 
   testWidgets('a custom clock override is announced and can be replaced', (

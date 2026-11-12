@@ -92,6 +92,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   late final _ambiance = MapBuilderAmbianceBinding(
     maps: _maps,
     changed: _changed,
+    view: () => _view,
   );
   late final _opening = MapBuilderOpening(widget.progress);
   var _space = MapBuilderSpace.construction;

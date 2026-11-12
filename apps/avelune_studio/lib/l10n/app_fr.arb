@@ -472,6 +472,39 @@
       }
     }
   },
+  "effectPickModel": "Cliquez un modèle sur la carte.",
+  "effectSelectedModel": "Modèle sélectionné",
+  "effectAddHalo": "Ajouter un halo",
+  "effectHaloLimit": "{count} halos au maximum par carte.",
+  "@effectHaloLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "effectNoMaterials": "Ce modèle n’a aucun matériau.",
+  "effectGround": "Sols de la carte",
+  "effectGroundSource": "Sol · {name}",
+  "@effectGroundSource": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "effectCoverMap": "Couvrir toute la carte",
+  "effectWholeMap": "Toute la carte",
+  "effectZone": "Zone {index}",
+  "@effectZone": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "effectRemove": "Retirer",
+  "effectUnknownModel": "Modèle introuvable",
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {

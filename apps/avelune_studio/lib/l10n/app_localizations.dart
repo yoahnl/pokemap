@@ -1616,6 +1616,78 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Aucun vitrage désigné sur cette carte.} =1{1 vitrage désigné sur cette carte.} other{{count} vitrages désignés sur cette carte.}}'**
   String effectWindowSources(int count);
 
+  /// No description provided for @effectPickModel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cliquez un modèle sur la carte.'**
+  String get effectPickModel;
+
+  /// No description provided for @effectSelectedModel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modèle sélectionné'**
+  String get effectSelectedModel;
+
+  /// No description provided for @effectAddHalo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un halo'**
+  String get effectAddHalo;
+
+  /// No description provided for @effectHaloLimit.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} halos au maximum par carte.'**
+  String effectHaloLimit(int count);
+
+  /// No description provided for @effectNoMaterials.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce modèle n’a aucun matériau.'**
+  String get effectNoMaterials;
+
+  /// No description provided for @effectGround.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sols de la carte'**
+  String get effectGround;
+
+  /// No description provided for @effectGroundSource.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sol · {name}'**
+  String effectGroundSource(String name);
+
+  /// No description provided for @effectCoverMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Couvrir toute la carte'**
+  String get effectCoverMap;
+
+  /// No description provided for @effectWholeMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toute la carte'**
+  String get effectWholeMap;
+
+  /// No description provided for @effectZone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Zone {index}'**
+  String effectZone(int index);
+
+  /// No description provided for @effectRemove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer'**
+  String get effectRemove;
+
+  /// No description provided for @effectUnknownModel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modèle introuvable'**
+  String get effectUnknownModel;
+
   /// No description provided for @rubricUnavailable.
   ///
   /// In fr, this message translates to:

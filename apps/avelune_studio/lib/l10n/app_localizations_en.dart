@@ -899,6 +899,48 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get effectPickModel => 'Click a model on the map.';
+
+  @override
+  String get effectSelectedModel => 'Selected model';
+
+  @override
+  String get effectAddHalo => 'Add a halo';
+
+  @override
+  String effectHaloLimit(int count) {
+    return 'At most $count halos per map.';
+  }
+
+  @override
+  String get effectNoMaterials => 'This model has no material.';
+
+  @override
+  String get effectGround => 'Map grounds';
+
+  @override
+  String effectGroundSource(String name) {
+    return 'Ground · $name';
+  }
+
+  @override
+  String get effectCoverMap => 'Cover the whole map';
+
+  @override
+  String get effectWholeMap => 'Whole map';
+
+  @override
+  String effectZone(int index) {
+    return 'Zone $index';
+  }
+
+  @override
+  String get effectRemove => 'Remove';
+
+  @override
+  String get effectUnknownModel => 'Missing model';
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

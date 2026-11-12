@@ -6,33 +6,8 @@ import 'package:avelune_studio/features/project_visuals/application/map_effect_e
 import 'package:avelune_studio/features/project_visuals/application/spatial_visual_editing.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_effect_sources.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
-
-IconData mapBuilderEffectIcon(MapEffect effect) => switch (effect) {
-  MapEffect.halos => Icons.lightbulb_outline,
-  MapEffect.fog => Icons.blur_on,
-  MapEffect.fireflies => Icons.auto_awesome_outlined,
-  MapEffect.water => Icons.waves,
-  MapEffect.windows => Icons.window_outlined,
-};
-
-String? mapBuilderEffectSources(
-  MapEffect effect,
-  SpatialAtmosphereSettings? atmosphere,
-  AppLocalizations l10n,
-) => switch ((effect, atmosphere)) {
-  (_, null) || (MapEffect.fog, _) => null,
-  (MapEffect.halos, final value?) => l10n.effectHaloSources(value.halos.length),
-  (MapEffect.fireflies, final value?) => l10n.effectFireflySources(
-    value.fireflyZones.length,
-  ),
-  (MapEffect.water, final value?) => l10n.effectWaterSources(
-    value.waterTargets.length,
-  ),
-  (MapEffect.windows, final value?) => l10n.effectWindowSources(
-    value.windows.length,
-  ),
-};
 
 String _levelLabel(SpatialVisualParameter level, AppLocalizations l10n) =>
     switch (level) {
@@ -104,17 +79,8 @@ class _EffectDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
     final overridden = editing.overridesEffect(effect);
     final on = editing.flag(effect.toggle);
-    final sources = mapBuilderEffectSources(
-      effect,
-      binding.maps.active?.atmosphere?.current,
-      l10n,
-    );
     SpatialVisualEditing? current() => binding.editing;
     return Padding(
       key: ValueKey('map-ambiance-effect-detail-${effect.name}'),
@@ -166,12 +132,12 @@ class _EffectDetail extends StatelessWidget {
                       : null,
                 ),
           ],
-          if (sources != null) ...[
-            const SizedBox(height: StudioSpacing.s),
-            Text(
-              sources,
-              key: const ValueKey('map-ambiance-effect-sources'),
-              style: muted,
+          if (effect != MapEffect.fog) ...[
+            const SizedBox(height: StudioSpacing.l),
+            MapBuilderEffectSources(
+              binding: binding,
+              effect: effect,
+              enabled: enabled,
             ),
           ],
         ],

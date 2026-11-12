@@ -905,6 +905,48 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get effectPickModel => 'Cliquez un modèle sur la carte.';
+
+  @override
+  String get effectSelectedModel => 'Modèle sélectionné';
+
+  @override
+  String get effectAddHalo => 'Ajouter un halo';
+
+  @override
+  String effectHaloLimit(int count) {
+    return '$count halos au maximum par carte.';
+  }
+
+  @override
+  String get effectNoMaterials => 'Ce modèle n’a aucun matériau.';
+
+  @override
+  String get effectGround => 'Sols de la carte';
+
+  @override
+  String effectGroundSource(String name) {
+    return 'Sol · $name';
+  }
+
+  @override
+  String get effectCoverMap => 'Couvrir toute la carte';
+
+  @override
+  String get effectWholeMap => 'Toute la carte';
+
+  @override
+  String effectZone(int index) {
+    return 'Zone $index';
+  }
+
+  @override
+  String get effectRemove => 'Retirer';
+
+  @override
+  String get effectUnknownModel => 'Modèle introuvable';
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

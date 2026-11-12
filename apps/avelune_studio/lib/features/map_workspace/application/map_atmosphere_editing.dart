@@ -144,6 +144,39 @@ class MapAtmosphereEditing {
     return choices;
   }
 
+  ProjectModel3dEntry? modelOf(String instanceId) {
+    final instance = map.spatialScene?.instances
+        .where((item) => item.id == instanceId)
+        .firstOrNull;
+    if (instance == null) return null;
+    return project?.models3d
+        .where((model) => model.id == instance.modelId)
+        .firstOrNull;
+  }
+
+  List<SpatialAtmosphereMaterialTarget> instanceMaterials(String instanceId) =>
+      [
+        for (final material
+            in modelOf(instanceId)?.inspection.materials ??
+                const <Model3dMaterial>[])
+          SpatialAtmosphereMaterialTarget(
+            instanceId: instanceId,
+            materialName: material.name,
+          ),
+      ];
+
+  List<(String, SpatialAtmosphereMaterialTarget)> groundMaterials() {
+    final ids = {
+      for (final layer in map.layers.whereType<TileLayer>())
+        for (final entry in layer.palette) entry.tilesetId,
+    };
+    return [
+      for (final tile in project?.tilesets ?? const <ProjectTilesetEntry>[])
+        if (ids.contains(tile.id))
+          (tile.name, SpatialAtmosphereMaterialTarget.groundTileset(tile.id)),
+    ];
+  }
+
   bool number(
     String key,
     String text,
