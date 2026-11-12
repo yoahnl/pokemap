@@ -356,7 +356,7 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
   void _syncAtmosphere() {
     camera
       ..visualProfile = widget.document.visualProfile
-      ..weatherPreview = widget.view.weatherPreview;
+      ..ambiencePreview = widget.view.ambiencePreview;
     final settings = _atmosphere?.current;
     if (settings != null) camera.applyAtmosphereSettings(settings);
   }

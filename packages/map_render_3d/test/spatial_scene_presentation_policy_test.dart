@@ -72,7 +72,7 @@ void main() {
     expect(game.presentationProfile.halos.length, 1);
   });
 
-  test('a weather preview lets only the weather through a clear view', () {
+  test('an ambience preview lifts every effect but depth of field', () {
     final controller = SpatialSceneController(
       presentationEffectsEnabled: false,
     );
@@ -84,34 +84,47 @@ void main() {
     );
     controller.applyAtmosphereSettings(
       SpatialAtmosphereSettings(
+        depthOfFieldEnabled: true,
         halosEnabled: true,
         depthFogEnabled: true,
         fireflies: true,
+        haloStrength: 1.4,
+        halos: [
+          SpatialAtmosphereHalo(
+            instanceId: 'lamp',
+            localPosition: Model3dVector3.zero,
+          ),
+        ],
         weather: weather,
       ),
     );
     controller
       ..halosEnabled = true
       ..depthFogEnabled = true
-      ..fireflies = true;
+      ..fireflies = true
+      ..depthOfFieldEnabled = true;
     var sceneChanges = 0, changes = 0;
     controller.sceneChanges.addListener(() => sceneChanges++);
     controller.addListener(() => changes++);
     expect(controller.weatherSettings.enabled, isFalse);
+    expect(controller.presentationProfile.halos, isEmpty);
 
-    controller.weatherPreview = true;
-    controller.weatherPreview = true;
+    controller.ambiencePreview = true;
+    controller.ambiencePreview = true;
 
     expect(changes, 1);
     expect(sceneChanges, 0);
     expect(controller.weatherSettings, same(weather));
-    expect(controller.halosEnabled, isFalse);
-    expect(controller.depthFogEnabled, isFalse);
-    expect(controller.fireflies, isFalse);
+    expect(controller.halosEnabled, isTrue);
+    expect(controller.depthFogEnabled, isTrue);
+    expect(controller.fireflies, isTrue);
+    expect(controller.presentationProfile.halos, hasLength(1));
     expect(controller.depthOfFieldProfile.active, isFalse);
 
-    controller.weatherPreview = false;
+    controller.ambiencePreview = false;
 
     expect(controller.weatherSettings.enabled, isFalse);
+    expect(controller.halosEnabled, isFalse);
+    expect(controller.presentationProfile.halos, isEmpty);
   });
 }

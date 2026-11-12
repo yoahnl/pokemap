@@ -410,6 +410,68 @@
   "weatherIntensity": "Intensité",
   "weatherLightning": "Éclairs",
   "weatherSound": "Bruitages météo",
+  "effectName": "{effect, select, halos{Halos lumineux} fog{Brume} fireflies{Lucioles} water{Eau animée} windows{Fenêtres éclairées} other{{effect}}}",
+  "@effectName": {
+    "placeholders": {
+      "effect": {
+        "type": "String"
+      }
+    }
+  },
+  "effectOn": "Activé",
+  "effectOff": "Désactivé",
+  "effectFromProject": "comme le projet",
+  "effectFromMap": "propre à la carte",
+  "effectState": "{state} · {origin}",
+  "@effectState": {
+    "placeholders": {
+      "state": {
+        "type": "String"
+      },
+      "origin": {
+        "type": "String"
+      }
+    }
+  },
+  "effectInherit": "Projet",
+  "effectOverride": "Cette carte",
+  "effectStrength": "Intensité",
+  "effectSpread": "Diffusion",
+  "effectOpacity": "Opacité",
+  "effectDensity": "Densité",
+  "effectSpeed": "Vitesse",
+  "effectHaloSources": "{count, plural, =0{Aucun halo placé sur cette carte.} =1{1 halo placé sur cette carte.} other{{count} halos placés sur cette carte.}}",
+  "@effectHaloSources": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "effectFireflySources": "{count, plural, =0{Aucune zone de lucioles : elles n’apparaissent pas sur cette carte.} =1{1 zone de lucioles sur cette carte.} other{{count} zones de lucioles sur cette carte.}}",
+  "@effectFireflySources": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "effectWaterSources": "{count, plural, =0{Aucune surface d’eau désignée sur cette carte.} =1{1 surface d’eau désignée sur cette carte.} other{{count} surfaces d’eau désignées sur cette carte.}}",
+  "@effectWaterSources": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "effectWindowSources": "{count, plural, =0{Aucun vitrage désigné sur cette carte.} =1{1 vitrage désigné sur cette carte.} other{{count} vitrages désignés sur cette carte.}}",
+  "@effectWindowSources": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {

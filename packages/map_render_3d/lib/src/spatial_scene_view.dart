@@ -198,7 +198,7 @@ class SpatialSceneController extends ModelPreviewController {
   SpatialPresentationProfile _presentationProfile =
       SpatialPresentationProfile.disabled;
   SpatialPresentationProfile get presentationProfile =>
-      presentationEffectsEnabled ? _presentationProfile : _clearPresentation;
+      _ambienceVisible ? _presentationProfile : _clearPresentation;
   set presentationProfile(SpatialPresentationProfile value) {
     if (identical(_presentationProfile, value)) return;
     _presentationProfile = value;
@@ -206,14 +206,14 @@ class SpatialSceneController extends ModelPreviewController {
   }
 
   bool _halosEnabled = false, _depthFogEnabled = false;
-  bool get halosEnabled => presentationEffectsEnabled && _halosEnabled;
+  bool get halosEnabled => _ambienceVisible && _halosEnabled;
   set halosEnabled(bool value) {
     if (_halosEnabled == value) return;
     _halosEnabled = value;
     super.notifyListeners();
   }
 
-  bool get depthFogEnabled => presentationEffectsEnabled && _depthFogEnabled;
+  bool get depthFogEnabled => _ambienceVisible && _depthFogEnabled;
   set depthFogEnabled(bool value) {
     if (_depthFogEnabled == value) return;
     _depthFogEnabled = value;
@@ -246,16 +246,18 @@ class SpatialSceneController extends ModelPreviewController {
     super.notifyListeners();
   }
 
-  bool _weatherPreview = false;
-  bool get weatherPreview => _weatherPreview;
-  set weatherPreview(bool value) {
-    if (_weatherPreview == value) return;
-    _weatherPreview = value;
+  bool _ambiencePreview = false;
+  bool get ambiencePreview => _ambiencePreview;
+  set ambiencePreview(bool value) {
+    if (_ambiencePreview == value) return;
+    _ambiencePreview = value;
     super.notifyListeners();
   }
 
+  bool get _ambienceVisible => presentationEffectsEnabled || _ambiencePreview;
+
   SpatialWeatherSettings get weatherSettings {
-    if (!presentationEffectsEnabled && !_weatherPreview) return _clearWeather;
+    if (!_ambienceVisible) return _clearWeather;
     final base = (_authoredAtmosphere ?? _baseAtmosphere).weather;
     final environment = worldEnvironment ?? _previewEnvironment;
     final kind = environment.weatherKind;
@@ -363,7 +365,7 @@ class SpatialSceneController extends ModelPreviewController {
     super.notifyListeners();
   }
 
-  bool get fireflies => presentationEffectsEnabled && _fireflies;
+  bool get fireflies => _ambienceVisible && _fireflies;
   set fireflies(bool value) {
     if (_fireflies == value) return;
     _fireflies = value;

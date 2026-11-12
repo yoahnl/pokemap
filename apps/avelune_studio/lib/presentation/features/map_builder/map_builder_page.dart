@@ -104,7 +104,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     return _views.putIfAbsent(
       document.base.mapId,
       () => MapEditingViewportSession()
-        ..weatherPreview = _space == MapBuilderSpace.ambiance,
+        ..ambiencePreview = _space == MapBuilderSpace.ambiance,
     );
   }
 
@@ -276,7 +276,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       ..shown = space == MapBuilderSpace.ambiance
       ..reconcile();
     for (final view in _views.values) {
-      view.weatherPreview = space == MapBuilderSpace.ambiance;
+      view.ambiencePreview = space == MapBuilderSpace.ambiance;
     }
     setState(() => _space = space);
   }

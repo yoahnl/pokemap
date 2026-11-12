@@ -1514,6 +1514,108 @@ abstract class AppLocalizations {
   /// **'Bruitages météo'**
   String get weatherSound;
 
+  /// No description provided for @effectName.
+  ///
+  /// In fr, this message translates to:
+  /// **'{effect, select, halos{Halos lumineux} fog{Brume} fireflies{Lucioles} water{Eau animée} windows{Fenêtres éclairées} other{{effect}}}'**
+  String effectName(String effect);
+
+  /// No description provided for @effectOn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activé'**
+  String get effectOn;
+
+  /// No description provided for @effectOff.
+  ///
+  /// In fr, this message translates to:
+  /// **'Désactivé'**
+  String get effectOff;
+
+  /// No description provided for @effectFromProject.
+  ///
+  /// In fr, this message translates to:
+  /// **'comme le projet'**
+  String get effectFromProject;
+
+  /// No description provided for @effectFromMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'propre à la carte'**
+  String get effectFromMap;
+
+  /// No description provided for @effectState.
+  ///
+  /// In fr, this message translates to:
+  /// **'{state} · {origin}'**
+  String effectState(String state, String origin);
+
+  /// No description provided for @effectInherit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Projet'**
+  String get effectInherit;
+
+  /// No description provided for @effectOverride.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette carte'**
+  String get effectOverride;
+
+  /// No description provided for @effectStrength.
+  ///
+  /// In fr, this message translates to:
+  /// **'Intensité'**
+  String get effectStrength;
+
+  /// No description provided for @effectSpread.
+  ///
+  /// In fr, this message translates to:
+  /// **'Diffusion'**
+  String get effectSpread;
+
+  /// No description provided for @effectOpacity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Opacité'**
+  String get effectOpacity;
+
+  /// No description provided for @effectDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Densité'**
+  String get effectDensity;
+
+  /// No description provided for @effectSpeed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vitesse'**
+  String get effectSpeed;
+
+  /// No description provided for @effectHaloSources.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun halo placé sur cette carte.} =1{1 halo placé sur cette carte.} other{{count} halos placés sur cette carte.}}'**
+  String effectHaloSources(int count);
+
+  /// No description provided for @effectFireflySources.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune zone de lucioles : elles n’apparaissent pas sur cette carte.} =1{1 zone de lucioles sur cette carte.} other{{count} zones de lucioles sur cette carte.}}'**
+  String effectFireflySources(int count);
+
+  /// No description provided for @effectWaterSources.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune surface d’eau désignée sur cette carte.} =1{1 surface d’eau désignée sur cette carte.} other{{count} surfaces d’eau désignées sur cette carte.}}'**
+  String effectWaterSources(int count);
+
+  /// No description provided for @effectWindowSources.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun vitrage désigné sur cette carte.} =1{1 vitrage désigné sur cette carte.} other{{count} vitrages désignés sur cette carte.}}'**
+  String effectWindowSources(int count);
+
   /// No description provided for @rubricUnavailable.
   ///
   /// In fr, this message translates to:

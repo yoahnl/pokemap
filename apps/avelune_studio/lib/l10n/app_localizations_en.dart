@@ -800,6 +800,105 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weatherSound => 'Weather sounds';
 
   @override
+  String effectName(String effect) {
+    String _temp0 = intl.Intl.selectLogic(effect, {
+      'halos': 'Light halos',
+      'fog': 'Mist',
+      'fireflies': 'Fireflies',
+      'water': 'Animated water',
+      'windows': 'Lit windows',
+      'other': '$effect',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get effectOn => 'On';
+
+  @override
+  String get effectOff => 'Off';
+
+  @override
+  String get effectFromProject => 'same as the project';
+
+  @override
+  String get effectFromMap => 'specific to the map';
+
+  @override
+  String effectState(String state, String origin) {
+    return '$state · $origin';
+  }
+
+  @override
+  String get effectInherit => 'Project';
+
+  @override
+  String get effectOverride => 'This map';
+
+  @override
+  String get effectStrength => 'Strength';
+
+  @override
+  String get effectSpread => 'Spread';
+
+  @override
+  String get effectOpacity => 'Opacity';
+
+  @override
+  String get effectDensity => 'Density';
+
+  @override
+  String get effectSpeed => 'Speed';
+
+  @override
+  String effectHaloSources(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count halos placed on this map.',
+      one: '1 halo placed on this map.',
+      zero: 'No halo placed on this map.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String effectFireflySources(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count firefly zones on this map.',
+      one: '1 firefly zone on this map.',
+      zero: 'No firefly zone: they do not appear on this map.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String effectWaterSources(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count water surfaces set on this map.',
+      one: '1 water surface set on this map.',
+      zero: 'No water surface set on this map.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String effectWindowSources(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count windows set on this map.',
+      one: '1 window set on this map.',
+      zero: 'No window set on this map.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

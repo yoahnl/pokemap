@@ -1,10 +1,11 @@
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/project_visuals/application/map_effect_editing.dart';
 import 'package:avelune_studio/features/project_visuals/application/project_visuals_controller.dart';
 import 'package:avelune_studio/features/project_visuals/application/spatial_visual_editing.dart';
 
-const mapBuilderAmbianceRubrics = {'dayNight', 'weather'};
+const mapBuilderAmbianceRubrics = {'dayNight', 'weather', 'effects'};
 
 class MapBuilderAmbianceBinding {
   MapBuilderAmbianceBinding({required this.maps, required this.changed});
@@ -13,6 +14,7 @@ class MapBuilderAmbianceBinding {
   final void Function() changed;
   bool shown = false;
   String rubric = 'dayNight';
+  MapEffect effect = MapEffect.halos;
   ProjectVisualsController? _visuals;
 
   bool get spatial => maps.active?.current.spatialScene != null;
@@ -50,6 +52,11 @@ class MapBuilderAmbianceBinding {
   void openRubric(String id) {
     if (!mapBuilderAmbianceRubrics.contains(id)) return;
     rubric = id;
+    changed();
+  }
+
+  void openEffect(MapEffect value) {
+    effect = value;
     changed();
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_day_night_form.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_effects_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_weather_form.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
@@ -21,7 +22,6 @@ class MapBuilderAmbianceInspector extends StatelessWidget {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final editing = binding.editing;
-    final weather = binding.rubric == 'weather';
     return Column(
       key: const ValueKey('map-ambiance-inspector'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -35,7 +35,11 @@ class MapBuilderAmbianceInspector extends StatelessWidget {
         ),
         const SizedBox(height: StudioSpacing.m),
         Text(
-          weather ? l10n.ambianceWeather : l10n.ambianceDayNight,
+          switch (binding.rubric) {
+            'weather' => l10n.ambianceWeather,
+            'effects' => l10n.ambianceEffects,
+            _ => l10n.ambianceDayNight,
+          },
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w700,
           ),
@@ -52,18 +56,24 @@ class MapBuilderAmbianceInspector extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           )
-        else if (weather)
-          MapBuilderWeatherForm(
-            binding: binding,
-            editing: editing,
-            enabled: enabled,
-          )
         else
-          MapBuilderDayNightForm(
-            binding: binding,
-            editing: editing,
-            enabled: enabled,
-          ),
+          switch (binding.rubric) {
+            'weather' => MapBuilderWeatherForm(
+              binding: binding,
+              editing: editing,
+              enabled: enabled,
+            ),
+            'effects' => MapBuilderEffectsForm(
+              binding: binding,
+              editing: editing,
+              enabled: enabled,
+            ),
+            _ => MapBuilderDayNightForm(
+              binding: binding,
+              editing: editing,
+              enabled: enabled,
+            ),
+          },
       ],
     );
   }

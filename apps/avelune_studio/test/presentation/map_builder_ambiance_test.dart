@@ -27,6 +27,9 @@ class _VisualsPort extends WorkspaceMemoryPort implements ProjectVisualsPort {
     'weatherMode': 'real',
     'weatherEnabled': true,
     'weatherLightning': true,
+    'halosEnabled': true,
+    'haloStrength': 1.06,
+    'fireflies': true,
   });
   final mapPatches = <String, SpatialVisualPatch>{};
   var revision = 0;
@@ -295,6 +298,74 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey('map-ambiance-weather-inherit')),
     );
+    await tester.pump();
+    expect(patch().toJson(), isEmpty);
+  });
+
+  testWidgets('each effect follows the project or takes its own setting', (
+    tester,
+  ) async {
+    await open(tester, spatial: true);
+    await tester.tap(find.byKey(const ValueKey('map-space-rubric-effects')));
+    await tester.pump();
+
+    expect(find.text('Activé · comme le projet'), findsNWidgets(2));
+    expect(
+      find.byKey(const ValueKey('map-ambiance-effect-detail-halos')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('map-ambiance-effect-toggle')),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('Cette carte'));
+    await tester.pump();
+    expect(patch().enabled(SpatialVisualParameter.halosEnabled), isTrue);
+    expect(patch().number(SpatialVisualParameter.haloStrength), 1.06);
+    expect(
+      find.byKey(const ValueKey('map-ambiance-effect-level-haloStrength')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-ambiance-effect-toggle')));
+    await tester.pump();
+    expect(patch().enabled(SpatialVisualParameter.halosEnabled), isFalse);
+    expect(find.text('Désactivé · propre à la carte'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('map-ambiance-effect-level-haloStrength')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('map-ambiance-effect-fireflies')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('map-ambiance-effect-detail-halos')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('map-ambiance-effect-detail-fireflies')),
+      findsOneWidget,
+    );
+
+    bar(tester).onUndo!();
+    await tester.pump();
+    expect(patch().enabled(SpatialVisualParameter.halosEnabled), isTrue);
+    bar(tester).onRedo!();
+    await tester.pump();
+
+    expect(await maps.saveAll(), isTrue);
+    final saved = port.mapPatches['a']!;
+    expect(saved.enabled(SpatialVisualParameter.halosEnabled), isFalse);
+    expect(saved.number(SpatialVisualParameter.haloStrength), 1.06);
+    expect(saved.number(SpatialVisualParameter.haloSpread), isNotNull);
+    expect(saved.values.keys, hasLength(3));
+
+    await tester.tap(find.byKey(const ValueKey('map-ambiance-effect-halos')));
+    await tester.pump();
+    await tester.tap(find.text('Projet'));
     await tester.pump();
     expect(patch().toJson(), isEmpty);
   });

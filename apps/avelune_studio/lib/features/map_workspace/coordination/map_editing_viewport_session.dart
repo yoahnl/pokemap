@@ -17,7 +17,7 @@ class MapEditingViewportSession extends MapWorkspaceEditingState {
   bool dimOtherTerrains = false;
   bool lockDecorProportions = false;
   bool showDecorCollision = false;
-  bool weatherPreview = false;
+  bool ambiencePreview = false;
   final viewport = MapWorkspaceViewportState();
   bool get positioned => viewport.positioned;
   set positioned(bool value) => viewport.positioned = value;
