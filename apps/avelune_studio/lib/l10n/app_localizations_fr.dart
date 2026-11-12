@@ -1012,4 +1012,70 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get encounterKindSpecial => 'Spéciale';
+
+  @override
+  String get obstacleSection => 'Obstacles de terrain';
+
+  @override
+  String get obstacleNone => 'Aucun obstacle de terrain sur cette carte.';
+
+  @override
+  String get obstaclePlace => 'Placer un obstacle';
+
+  @override
+  String get obstacle3dHint =>
+      'Sélectionnez un décor sur la carte (arbre, rocher) pour en faire un obstacle.';
+
+  @override
+  String get obstacleEyebrow => 'OBSTACLE DE TERRAIN';
+
+  @override
+  String get obstacleNew => 'Nouvel obstacle';
+
+  @override
+  String get obstacleVisual => 'Visuel de l’obstacle';
+
+  @override
+  String get obstaclePlaceHint =>
+      'Choisissez son visuel, puis cliquez sur la case de l’obstacle.';
+
+  @override
+  String get obstaclePlaceClick => 'Cliquez sur la case de l’obstacle.';
+
+  @override
+  String get obstacleNoElement =>
+      'Ce projet n’a aucun élément visuel à utiliser comme obstacle.';
+
+  @override
+  String get obstacleKind => 'Capacité requise';
+
+  @override
+  String get obstacleKindNone => 'Aucune (décor simple)';
+
+  @override
+  String get obstacleReset => 'Après utilisation';
+
+  @override
+  String get obstacleResetMapInstance => 'Revient quand on quitte la carte';
+
+  @override
+  String get obstacleResetPersistent => 'Disparaît pour de bon';
+
+  @override
+  String get obstacleDelete => 'Supprimer cet obstacle';
+
+  @override
+  String get obstacleCutTree => 'Arbre à couper (Coupe)';
+
+  @override
+  String get obstacleStrengthBoulder => 'Rocher à pousser (Force)';
+
+  @override
+  String get obstacleRockSmashRock => 'Rocher à briser (Éclate-Roc)';
+
+  @override
+  String get obstacleIceBlock => 'Bloc de glace';
+
+  @override
+  String get decorEyebrow => 'DÉCOR';
 }

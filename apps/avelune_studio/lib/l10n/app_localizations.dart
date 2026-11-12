@@ -1956,6 +1956,132 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Spéciale'**
   String get encounterKindSpecial;
+
+  /// No description provided for @obstacleSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Obstacles de terrain'**
+  String get obstacleSection;
+
+  /// No description provided for @obstacleNone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun obstacle de terrain sur cette carte.'**
+  String get obstacleNone;
+
+  /// No description provided for @obstaclePlace.
+  ///
+  /// In fr, this message translates to:
+  /// **'Placer un obstacle'**
+  String get obstaclePlace;
+
+  /// No description provided for @obstacle3dHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sélectionnez un décor sur la carte (arbre, rocher) pour en faire un obstacle.'**
+  String get obstacle3dHint;
+
+  /// No description provided for @obstacleEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'OBSTACLE DE TERRAIN'**
+  String get obstacleEyebrow;
+
+  /// No description provided for @obstacleNew.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvel obstacle'**
+  String get obstacleNew;
+
+  /// No description provided for @obstacleVisual.
+  ///
+  /// In fr, this message translates to:
+  /// **'Visuel de l’obstacle'**
+  String get obstacleVisual;
+
+  /// No description provided for @obstaclePlaceHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez son visuel, puis cliquez sur la case de l’obstacle.'**
+  String get obstaclePlaceHint;
+
+  /// No description provided for @obstaclePlaceClick.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cliquez sur la case de l’obstacle.'**
+  String get obstaclePlaceClick;
+
+  /// No description provided for @obstacleNoElement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce projet n’a aucun élément visuel à utiliser comme obstacle.'**
+  String get obstacleNoElement;
+
+  /// No description provided for @obstacleKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'Capacité requise'**
+  String get obstacleKind;
+
+  /// No description provided for @obstacleKindNone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune (décor simple)'**
+  String get obstacleKindNone;
+
+  /// No description provided for @obstacleReset.
+  ///
+  /// In fr, this message translates to:
+  /// **'Après utilisation'**
+  String get obstacleReset;
+
+  /// No description provided for @obstacleResetMapInstance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Revient quand on quitte la carte'**
+  String get obstacleResetMapInstance;
+
+  /// No description provided for @obstacleResetPersistent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Disparaît pour de bon'**
+  String get obstacleResetPersistent;
+
+  /// No description provided for @obstacleDelete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer cet obstacle'**
+  String get obstacleDelete;
+
+  /// No description provided for @obstacleCutTree.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arbre à couper (Coupe)'**
+  String get obstacleCutTree;
+
+  /// No description provided for @obstacleStrengthBoulder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rocher à pousser (Force)'**
+  String get obstacleStrengthBoulder;
+
+  /// No description provided for @obstacleRockSmashRock.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rocher à briser (Éclate-Roc)'**
+  String get obstacleRockSmashRock;
+
+  /// No description provided for @obstacleIceBlock.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bloc de glace'**
+  String get obstacleIceBlock;
+
+  /// No description provided for @decorEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'DÉCOR'**
+  String get decorEyebrow;
 }
 
 class _AppLocalizationsDelegate

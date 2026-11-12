@@ -102,6 +102,7 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                   'spawns' => _spawns(binding, muted),
                   'movement' => _movement(binding, muted),
                   'encounters' => _encounters(binding, muted),
+                  'fieldObjects' => _fieldObjects(binding, muted),
                   _ => _connections(binding, outline, muted),
                 },
               ],
@@ -340,6 +341,53 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
           ].join(' · '),
           selected: zone.id == selected,
           onTap: () => binding.selectZone(zone.id),
+        ),
+    ];
+  }
+
+  List<Widget> _fieldObjects(
+    MapBuilderGameplayBinding binding,
+    TextStyle? muted,
+  ) {
+    final l10n = context.l10n;
+    final obstacles = binding.obstacles;
+    final instance = binding.selectedInstance?.entityId;
+    final selected = binding.selectedObstacle?.id ?? instance;
+    return [
+      if (binding.spatial)
+        Text(l10n.obstacle3dHint, style: muted)
+      else
+        MenuAnchor(
+          menuChildren: [
+            for (final kind in FieldObstacleKind.values)
+              MenuItemButton(
+                key: ValueKey('map-gameplay-add-obstacle-${kind.name}'),
+                onPressed: () => binding.draftObstacle(kind),
+                child: Text(l10n.obstacleKindName(kind)),
+              ),
+          ],
+          builder: (context, menu, _) => StudioButton(
+            key: const ValueKey('map-gameplay-add-obstacle'),
+            label: l10n.obstaclePlace,
+            icon: Icons.add,
+            onPressed: widget.enabled
+                ? () => menu.isOpen ? menu.close() : menu.open()
+                : null,
+          ),
+        ),
+      _Section(title: l10n.obstacleSection, count: obstacles.length),
+      if (obstacles.isEmpty) Text(l10n.obstacleNone, style: muted),
+      for (final obstacle in obstacles)
+        StudioChoice(
+          key: ValueKey('map-gameplay-obstacle-${obstacle.id}'),
+          leading: const Icon(Icons.park_outlined, size: 18),
+          label: obstacle.name,
+          subtitle: [
+            l10n.obstacleKindName(obstacle.fieldObstacle!.kind),
+            l10n.warpCell(obstacle.pos.x, obstacle.pos.y),
+          ].join(' · '),
+          selected: obstacle.id == selected,
+          onTap: () => binding.selectObstacle(obstacle),
         ),
     ];
   }

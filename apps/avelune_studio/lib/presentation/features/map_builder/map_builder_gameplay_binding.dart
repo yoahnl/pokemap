@@ -2,6 +2,8 @@ import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/spatial_field_obstacle_eligibility.dart';
+import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_connection_actions.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
@@ -16,6 +18,7 @@ const mapBuilderGameplayRubrics = {
   'movement',
   'encounters',
   'spawns',
+  'fieldObjects',
 };
 
 const mapBuilderMovementZoneKinds = {
@@ -55,6 +58,7 @@ class MapBuilderGameplayBinding {
   ({String mapId, Set<String> known})? _warpDraft;
   ({String mapId, Set<String> known})? _spawnDraft;
   ({String mapId, Set<String> known})? _zoneDraft;
+  ({String mapId, Set<String> known, FieldObstacleKind kind})? _obstacleDraft;
   bool shown = false;
   String rubric = 'connections';
   String query = '';
@@ -122,6 +126,55 @@ class MapBuilderGameplayBinding {
       zones?.encounterTables() ?? const [];
 
   bool get paintsEncounters => map != null && map!.spatialScene == null;
+
+  bool get spatial => map?.spatialScene != null;
+
+  List<MapEntity> get obstacles => [
+    for (final entity in map?.entities ?? const <MapEntity>[])
+      if (entity.fieldObstacle != null &&
+          studioSearchMatches(entity.name, query))
+        entity,
+  ];
+
+  FieldObstacleKind? get draftingObstacle {
+    final draft = _obstacleDraft;
+    return draft != null && draft.mapId == map?.id ? draft.kind : null;
+  }
+
+  List<ProjectElementEntry> get obstacleVisuals =>
+      maps.project?.elements ?? const [];
+
+  ProjectElementEntry? get obstacleVisual => view()?.brush;
+
+  MapEntity? get selectedObstacle {
+    final map = this.map;
+    if (map == null) return null;
+    final id = view()?.selectedFor(map.id, MapSelectionFamily.marker);
+    return map.entities
+        .where((entity) => entity.id == id && entity.fieldObstacle != null)
+        .firstOrNull;
+  }
+
+  SpatialModelInstance? get selectedInstance {
+    final map = this.map;
+    final scene = map?.spatialScene;
+    if (map == null || scene == null) return null;
+    final id = view()?.selectedFor(map.id, MapSelectionFamily.decor);
+    return scene.instances.where((instance) => instance.id == id).firstOrNull;
+  }
+
+  MapEntity? boundEntity(SpatialModelInstance instance) => map?.entities
+      .where((entity) => entity.id == instance.entityId)
+      .firstOrNull;
+
+  String? obstacleRefusal(SpatialModelInstance instance) =>
+      spatialFieldObstacleRefusal(
+        instance,
+        maps.project?.models3d
+            .where((model) => model.id == instance.modelId)
+            .firstOrNull,
+        boundEntity(instance),
+      );
 
   int get blockedCells => [
     for (final layer
@@ -192,6 +245,7 @@ class MapBuilderGameplayBinding {
     StudioMapTool.collisionErase ||
     StudioMapTool.encounterPaint ||
     StudioMapTool.encounterErase ||
+    StudioMapTool.fieldObstacle ||
     StudioMapTool.gameplayZone => true,
     _ => false,
   };
@@ -293,6 +347,66 @@ class MapBuilderGameplayBinding {
     changed();
   }
 
+  void draftObstacle(FieldObstacleKind kind) {
+    final state = view();
+    final map = this.map;
+    final document = maps.active;
+    if (state == null || map == null || document == null) return;
+    state.clearSelection(document);
+    _clearDrafts();
+    entityError = null;
+    _obstacleDraft = (
+      mapId: map.id,
+      known: {for (final entity in map.entities) entity.id},
+      kind: kind,
+    );
+    state
+      ..selectFieldObstacleKind(kind)
+      ..brush = null
+      ..tool = StudioMapTool.select;
+    changed();
+  }
+
+  void chooseObstacleVisual(ProjectElementEntry element) {
+    final state = view();
+    final kind = draftingObstacle;
+    if (state == null || kind == null) return;
+    state.brush = element;
+    state.prepareFieldObstaclePlacement(kind);
+    changed();
+  }
+
+  void selectObstacle(MapEntity entity) {
+    final document = maps.active;
+    if (document == null) return;
+    _clearDrafts();
+    entityError = null;
+    release();
+    final instance = map?.spatialScene?.instances
+        .where((instance) => instance.entityId == entity.id)
+        .firstOrNull;
+    if (instance != null) {
+      view()?.select(document, MapSelectionFamily.decor, instance.id);
+    } else {
+      view()?.select(document, MapSelectionFamily.marker, entity.id);
+    }
+    changed();
+  }
+
+  Future<void> configureInstanceObstacle(
+    String instanceId,
+    MapEntityFieldObstacleData? value,
+  ) async {
+    final document = maps.active;
+    final project = maps.project;
+    if (document == null || project == null) return;
+    await SpatialModelEditingCommands(
+      document,
+      project,
+    ).configureFieldObstacle(instanceId, value);
+    maps.notify();
+  }
+
   void armEncounterBrush({required bool erase, bool fresh = false}) {
     final state = view();
     final document = maps.active;
@@ -354,6 +468,7 @@ class MapBuilderGameplayBinding {
   }
 
   void _clearDrafts() {
+    _obstacleDraft = null;
     _connection = null;
     _warpDraft = null;
     _spawnDraft = null;
@@ -423,6 +538,7 @@ class MapBuilderGameplayBinding {
   }
 
   void leave() {
+    _obstacleDraft = null;
     _warpDraft = null;
     _spawnDraft = null;
     _zoneDraft = null;
@@ -443,6 +559,17 @@ class MapBuilderGameplayBinding {
               (zone) => !zoneDraft.known.contains(zone.id),
             ))) {
       _zoneDraft = null;
+      view()?.tool = StudioMapTool.select;
+    }
+    final obstacleDraft = _obstacleDraft;
+    final dropped = this.map;
+    if (obstacleDraft != null &&
+        dropped != null &&
+        obstacleDraft.mapId == dropped.id &&
+        dropped.entities.any(
+          (entity) => !obstacleDraft.known.contains(entity.id),
+        )) {
+      _obstacleDraft = null;
       view()?.tool = StudioMapTool.select;
     }
     final spawnDraft = _spawnDraft;
@@ -492,6 +619,10 @@ class MapBuilderGameplayBinding {
       edit(commands);
       entityError = null;
     } on StateError catch (failure) {
+      entityError = failure.message;
+    } on MapException catch (failure) {
+      entityError = failure.message;
+    } on FormatException catch (failure) {
       entityError = failure.message;
     }
     maps.notify();

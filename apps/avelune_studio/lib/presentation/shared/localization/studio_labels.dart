@@ -4,6 +4,18 @@ import 'package:avelune_studio/features/resources/application/resource_catalog.d
 import 'package:avelune_studio/l10n/app_localizations.dart';
 
 extension StudioLabels on AppLocalizations {
+  String obstacleKindName(FieldObstacleKind kind) => switch (kind) {
+    FieldObstacleKind.cutTree => obstacleCutTree,
+    FieldObstacleKind.strengthBoulder => obstacleStrengthBoulder,
+    FieldObstacleKind.rockSmashRock => obstacleRockSmashRock,
+    FieldObstacleKind.iceBlock => obstacleIceBlock,
+  };
+
+  String obstacleResetName(FieldObstacleResetPolicy policy) => switch (policy) {
+    FieldObstacleResetPolicy.mapInstance => obstacleResetMapInstance,
+    FieldObstacleResetPolicy.persistent => obstacleResetPersistent,
+  };
+
   String encounterKindName(EncounterKind kind) => switch (kind) {
     EncounterKind.walk => encounterKindWalk,
     EncounterKind.surf => encounterKindSurf,

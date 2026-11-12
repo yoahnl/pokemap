@@ -601,6 +601,71 @@ void main() {
     );
   });
 
+  testWidgets('field obstacles are placed with a visual and configured', (
+    tester,
+  ) async {
+    await openGameplay(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('map-space-rubric-fieldObjects')),
+    );
+    await settle(tester);
+    expect(find.text('Aucun obstacle de terrain sur cette carte.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-add-obstacle')));
+    await settle(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('map-gameplay-add-obstacle-cutTree')),
+    );
+    await settle(tester);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-obstacle-placement')),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('map-status-tool'))).data,
+      'Sélection',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-canvas')));
+    await settle(tester);
+    expect(active().entities, isEmpty);
+
+    await choose(tester, 'map-gameplay-obstacle-visual', workspaceElement.name);
+    await tester.tap(find.byKey(const ValueKey('map-canvas')));
+    await settle(tester);
+
+    final obstacle = active().entities.single;
+    expect(obstacle.fieldObstacle!.kind, FieldObstacleKind.cutTree);
+    expect(obstacle.editorVisual!.elementId, workspaceElement.id);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-obstacle-form')),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('map-status-tool'))).data,
+      'Sélection',
+    );
+
+    await choose(tester, 'map-gameplay-obstacle-reset', 'Disparaît pour de bon');
+    expect(
+      active().entities.single.fieldObstacle!.resetPolicy,
+      FieldObstacleResetPolicy.persistent,
+    );
+
+    await choose(tester, 'map-gameplay-obstacle-kind', 'Bloc de glace');
+    final ice = active().entities.single.fieldObstacle!;
+    expect(ice.kind, FieldObstacleKind.iceBlock);
+    expect(ice.resetPolicy, FieldObstacleResetPolicy.mapInstance);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-obstacle-reset')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-obstacle-delete')));
+    await settle(tester);
+    expect(active().entities, isEmpty);
+  });
+
   testWidgets('switching rubric clears the passage selection', (tester) async {
     await openGameplay(tester);
     await tester.tap(find.byKey(const ValueKey('map-gameplay-warp-door')));

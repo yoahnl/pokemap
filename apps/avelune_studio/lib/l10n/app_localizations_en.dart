@@ -1004,4 +1004,70 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get encounterKindSpecial => 'Special';
+
+  @override
+  String get obstacleSection => 'Field obstacles';
+
+  @override
+  String get obstacleNone => 'No field obstacle on this map.';
+
+  @override
+  String get obstaclePlace => 'Place an obstacle';
+
+  @override
+  String get obstacle3dHint =>
+      'Select a decor on the map (tree, rock) to turn it into an obstacle.';
+
+  @override
+  String get obstacleEyebrow => 'FIELD OBSTACLE';
+
+  @override
+  String get obstacleNew => 'New obstacle';
+
+  @override
+  String get obstacleVisual => 'Obstacle visual';
+
+  @override
+  String get obstaclePlaceHint =>
+      'Choose its visual, then click the obstacle cell.';
+
+  @override
+  String get obstaclePlaceClick => 'Click the obstacle cell.';
+
+  @override
+  String get obstacleNoElement =>
+      'This project has no visual element to use as an obstacle.';
+
+  @override
+  String get obstacleKind => 'Required move';
+
+  @override
+  String get obstacleKindNone => 'None (plain decor)';
+
+  @override
+  String get obstacleReset => 'After use';
+
+  @override
+  String get obstacleResetMapInstance => 'Comes back when leaving the map';
+
+  @override
+  String get obstacleResetPersistent => 'Gone for good';
+
+  @override
+  String get obstacleDelete => 'Delete this obstacle';
+
+  @override
+  String get obstacleCutTree => 'Tree to cut (Cut)';
+
+  @override
+  String get obstacleStrengthBoulder => 'Boulder to push (Strength)';
+
+  @override
+  String get obstacleRockSmashRock => 'Rock to break (Rock Smash)';
+
+  @override
+  String get obstacleIceBlock => 'Ice block';
+
+  @override
+  String get decorEyebrow => 'DECOR';
 }

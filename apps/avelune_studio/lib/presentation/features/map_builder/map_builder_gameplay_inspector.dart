@@ -7,6 +7,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_encounter_zone_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_movement_zone_form.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_obstacle_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_spawn_form.dart';
@@ -55,6 +56,24 @@ class MapBuilderGameplayInspector extends StatelessWidget {
         enabled: enabled,
       );
     }
+    final obstacle = binding.selectedObstacle;
+    if (obstacle != null) {
+      return MapBuilderObstacleForm(
+        key: ValueKey('obstacle-${map.id}-${obstacle.id}'),
+        binding: binding,
+        entity: obstacle,
+        enabled: enabled,
+      );
+    }
+    final instance = binding.selectedInstance;
+    if (instance != null && binding.rubric == 'fieldObjects') {
+      return MapBuilderInstanceObstacleForm(
+        key: ValueKey('instance-${map.id}-${instance.id}'),
+        binding: binding,
+        instance: instance,
+        enabled: enabled,
+      );
+    }
     final spawn = binding.selectedSpawn;
     if (spawn != null) {
       return MapBuilderSpawnForm(
@@ -93,6 +112,14 @@ class MapBuilderGameplayInspector extends StatelessWidget {
     }
     if (binding.draftingWarp) {
       return _WarpPlacement(binding: binding, enabled: enabled);
+    }
+    if (binding.draftingObstacle case final kind?) {
+      return MapBuilderObstaclePlacement(
+        binding: binding,
+        kind: kind,
+        enabled: enabled,
+        cancel: _CancelPlacement(binding: binding),
+      );
     }
     if (binding.draftingZone) {
       return _Placement(

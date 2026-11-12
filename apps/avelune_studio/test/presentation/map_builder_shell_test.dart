@@ -247,13 +247,28 @@ void main() {
   });
 
   testWidgets(
-    'game, story and ambiance spaces show their unavailable outline',
+    'the game space is fully available while story and ambiance wait',
     (tester) async {
       await openShell(tester);
       expect(find.byKey(const ValueKey('map-library')), findsOneWidget);
 
+      await tester.tap(find.byKey(const ValueKey('map-space-gameplay')));
+      await tester.pump();
+      for (final rubric in [
+        'connections',
+        'movement',
+        'encounters',
+        'spawns',
+        'fieldObjects',
+      ]) {
+        expect(
+          find.byKey(ValueKey('map-space-rubric-$rubric')),
+          findsOneWidget,
+        );
+      }
+      expect(find.text('Bientôt'), findsNothing);
+
       for (final (space, rubric, inspector) in [
-        ('gameplay', 'fieldObjects', 'RÈGLES DE JEU'),
         ('story', 'characters', 'ÉVÉNEMENT'),
         ('ambiance', 'music', 'AMBIANCE DE LA CARTE'),
       ]) {
