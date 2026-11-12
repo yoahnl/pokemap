@@ -4,6 +4,9 @@ import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_tool_labels.dart';
 
 class MapBuilderCanvas extends StatelessWidget {
   const MapBuilderCanvas({
@@ -70,7 +73,7 @@ class MapBuilderCanvas extends StatelessWidget {
               children: [
                 StudioTool(
                   key: const ValueKey('map-tool-select'),
-                  label: 'Sélection',
+                  label: context.l10n.toolSelect,
                   icon: Icons.near_me_outlined,
                   selected: tool == StudioMapTool.select,
                   onPressed: () => onTool(StudioMapTool.select),
@@ -78,7 +81,7 @@ class MapBuilderCanvas extends StatelessWidget {
                 const SizedBox(width: StudioSpacing.xs),
                 StudioTool(
                   key: const ValueKey('map-tool-pan'),
-                  label: 'Déplacer la vue',
+                  label: context.l10n.toolPan,
                   icon: Icons.pan_tool_outlined,
                   selected: tool == StudioMapTool.pan,
                   onPressed: () => onTool(StudioMapTool.pan),
@@ -87,8 +90,8 @@ class MapBuilderCanvas extends StatelessWidget {
                 IconButton(
                   key: const ValueKey('map-inspector-toggle'),
                   tooltip: inspectorOpen
-                      ? 'Masquer l’inspecteur'
-                      : 'Afficher l’inspecteur',
+                      ? context.l10n.inspectorHide
+                      : context.l10n.inspectorShow,
                   isSelected: inspectorOpen,
                   onPressed: onToggleInspector,
                   icon: const Icon(Icons.view_sidebar_outlined, size: 18),
@@ -117,7 +120,7 @@ class MapBuilderCanvas extends StatelessWidget {
                   const SizedBox(width: StudioSpacing.s),
                   Text(entry.name, style: theme.textTheme.bodySmall),
                   Text(
-                    '  ·  ${mapRoleLabel(entry.role)}',
+                    '  ·  ${context.l10n.mapRole(entry.role)}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -179,7 +182,7 @@ class _SpaceTab extends StatelessWidget {
             ),
           ),
           child: Text(
-            space.label,
+            context.l10n.mapBuilderSpace(space),
             style: theme.textTheme.labelLarge?.copyWith(
               color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w500,

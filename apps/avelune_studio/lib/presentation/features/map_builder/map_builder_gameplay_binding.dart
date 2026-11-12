@@ -6,14 +6,8 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
 import 'package:avelune_studio/features/resources/domain/studio_search_text.dart';
-
-String mapDirectionLabel(MapConnectionDirection direction) =>
-    switch (direction) {
-      MapConnectionDirection.north => 'Nord',
-      MapConnectionDirection.east => 'Est',
-      MapConnectionDirection.south => 'Sud',
-      MapConnectionDirection.west => 'Ouest',
-    };
+import 'package:avelune_studio/l10n/app_localizations.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 
 MapConnectionPort? configuredConnectionPort(MapConnectionPort Function() read) {
   try {
@@ -30,6 +24,7 @@ class MapBuilderGameplayBinding {
     required MapConnectionPort? port,
     required bool Function() isActive,
     required this.changed,
+    required this.labels,
   }) : links = MapWorkspaceConnectionActions(
          controller: maps,
          port: port,
@@ -40,6 +35,7 @@ class MapBuilderGameplayBinding {
   final MapWorkspaceController maps;
   final MapWorkspaceEditingState? Function() view;
   final void Function() changed;
+  final AppLocalizations Function() labels;
   final MapWorkspaceConnectionActions links;
   ({String mapId, MapConnectionDirection? direction})? _connection;
   ({String mapId, Set<String> known})? _warpDraft;
@@ -50,7 +46,7 @@ class MapBuilderGameplayBinding {
 
   String mapName(String id) =>
       maps.project?.maps.where((entry) => entry.id == id).firstOrNull?.name ??
-      'Carte introuvable';
+      labels().mapMissing;
 
   bool get draftingConnection =>
       _connection != null &&
@@ -89,7 +85,7 @@ class MapBuilderGameplayBinding {
     for (final connection in map?.connections ?? const <MapConnection>[])
       if (studioSearchMatches(
         '${mapName(connection.targetMapId)} '
-        '${mapDirectionLabel(connection.direction)}',
+        '${labels().direction(connection.direction)}',
         query,
       ))
         connection,
@@ -102,7 +98,7 @@ class MapBuilderGameplayBinding {
 
   String warpLabel(MapWarp warp) =>
       warp.triggerMode == MapWarpTriggerMode.sceneOnly
-      ? 'Point d’arrivée'
+      ? labels().arrivalPoint
       : mapName(warp.targetMapId);
 
   void search(String value) {
@@ -215,6 +211,11 @@ class MapBuilderGameplayBinding {
       _connection = null;
       changed();
     }
+  }
+
+  void rejectWarp(String message) {
+    warpError = message;
+    maps.notify();
   }
 
   void editWarp(void Function(WarpEditingCommands commands) edit) {

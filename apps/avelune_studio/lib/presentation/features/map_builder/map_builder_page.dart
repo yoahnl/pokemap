@@ -26,6 +26,8 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_sta
 import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';
 import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/presentation/shared/widgets/minimum_size_viewport.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_tool_labels.dart';
 
 const mapBuilderMinimumSize = Size(1280, 720);
 
@@ -57,8 +59,8 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     activeMap: () => _maps.active?.current,
     isActive: () => !_disposed,
     prepared: (_) {},
-    failed: (failure) => _visualsError =
-        'Les ressources de la carte ne peuvent pas être chargées : $failure',
+    failed: (failure) =>
+        _visualsError = context.l10n.mapResourcesUnavailable('$failure'),
     changed: _changed,
   );
   late final _resources = MapBuilderResourceBinding(
@@ -74,6 +76,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     port: configuredConnectionPort(_connections.read),
     isActive: () => !_disposed,
     changed: _changed,
+    labels: () => context.l10n,
   );
   var _space = MapBuilderSpace.construction;
   var _inspectorOpen = true;
@@ -125,8 +128,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     } catch (failure) {
       if (!_disposed) {
         setState(
-          () => _visualsError =
-              'Les ressources de la carte ne peuvent pas être chargées : $failure',
+          () => _visualsError = context.l10n.mapResourcesUnavailable(
+            '$failure',
+          ),
         );
       }
     }
@@ -203,6 +207,12 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
             spatial: document?.current.spatialScene != null,
             project: _resources.catalog,
           );
+    final toolLabel = view == null
+        ? null
+        : context.l10n.toolAction(
+            view,
+            spatial: document?.current.spatialScene != null,
+          );
     return Scaffold(
       key: const ValueKey('map-builder'),
       body: MinimumSizeViewport(
@@ -242,16 +252,16 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                       error:
                           _maps.error ??
                           _visualsError ??
-                          _resources.error ??
+                          _resourceProblem() ??
                           document?.error,
                       surface: _surface(),
                       statusBar: MapBuilderStatusBar(
                         toolLabel:
                             _resources.armed != null || _gameplay.placingWarp
-                            ? intent?.action ?? 'Construction'
+                            ? toolLabel ?? context.l10n.statusBuilding
                             : view?.tool == StudioMapTool.pan
-                            ? 'Déplacer la vue'
-                            : 'Sélection',
+                            ? context.l10n.toolPan
+                            : context.l10n.toolSelect,
                         view: view,
                         spatial: document?.current.spatialScene != null,
                         onChanged: _changed,
@@ -264,12 +274,19 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                       projectName: project?.name ?? widget.session.name,
                       space: _space,
                       armed: _resources.armed,
-                      intent: intent,
+                      toolLabel: toolLabel,
+                      toolHint: view == null
+                          ? null
+                          : context.l10n.toolHint(
+                              view,
+                              armed: intent?.armed ?? false,
+                            ),
                       onRelease: _resources.release,
                       onCollapse: () => setState(() => _inspectorOpen = false),
                       body: mapBuilderSpaceInspector(
                         _space,
                         _gameplay,
+                        context.l10n,
                         enabled: _editable,
                       ),
                     ),
@@ -281,6 +298,15 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       ),
     );
   }
+
+  String? _resourceProblem() => switch (_resources.problem) {
+    MapBuilderResourceProblem.loadFailed => context.l10n.resourcesUnavailable(
+      '${_resources.problemCause}',
+    ),
+    MapBuilderResourceProblem.tileUnavailable =>
+      context.l10n.tileChoiceUnavailable,
+    null => _resources.error,
+  };
 
   Widget? _surface() {
     final visuals = _visuals;

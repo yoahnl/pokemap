@@ -1,0 +1,58 @@
+import 'package:map_core/map_core.dart';
+
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/l10n/app_localizations.dart';
+
+extension StudioLabels on AppLocalizations {
+  String direction(MapConnectionDirection direction) => switch (direction) {
+    MapConnectionDirection.north => directionNorth,
+    MapConnectionDirection.east => directionEast,
+    MapConnectionDirection.south => directionSouth,
+    MapConnectionDirection.west => directionWest,
+  };
+
+  String mapRole(MapRole role) => switch (role) {
+    MapRole.exterior => roleExterior,
+    MapRole.interior => roleInterior,
+    MapRole.basement => roleBasement,
+    MapRole.upper_floor => roleUpperFloor,
+    MapRole.connector => roleConnector,
+    MapRole.gate => roleGate,
+    MapRole.room => roleRoom,
+    MapRole.section => roleSection,
+    MapRole.sub_area => roleSubArea,
+  };
+
+  String resourceCategory(ResourceUsageCategory category) => switch (category) {
+    ResourceUsageCategory.vegetation => categoryVegetation,
+    ResourceUsageCategory.ground => categoryGround,
+    ResourceUsageCategory.path => categoryPath,
+    ResourceUsageCategory.water => categoryWater,
+    ResourceUsageCategory.relief => categoryRelief,
+    ResourceUsageCategory.building => categoryBuilding,
+    ResourceUsageCategory.furniture => categoryFurniture,
+    ResourceUsageCategory.object => categoryObject,
+  };
+
+  String resourceType(ResourceItem item) => switch (item.canonicalKind) {
+    'element' => typeDecor,
+    'model3d' => typeModel,
+    'smartTilePreset' => typeSmartTile,
+    'tileset' => typeImage,
+    'borderBlueprint' => typeBorder,
+    'environmentPreset' => typeEnvironment,
+    'character' => typeCharacter,
+    _ => switch (item.kind) {
+      ResourceKind.decors => typeDecor,
+      ResourceKind.terrains => typeSmartTile,
+      ResourceKind.images => typeImage,
+    },
+  };
+
+  String resourceContext(ResourceCatalogContext context) => switch (context) {
+    ResourceCatalogContext.all => contextAll,
+    ResourceCatalogContext.interior => contextInterior,
+    ResourceCatalogContext.exterior => contextExterior,
+    ResourceCatalogContext.unspecified => contextUnspecified,
+  };
+}

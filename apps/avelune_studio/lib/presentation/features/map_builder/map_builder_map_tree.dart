@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 
 const _unfiledFolder = '';
 
@@ -91,17 +92,17 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
           child: StudioSearchField(
             key: const ValueKey('map-library-search'),
             controller: _search,
-            label: 'Rechercher une carte',
+            label: context.l10n.mapSearch,
             onChanged: (_) => setState(() {}),
           ),
         ),
         Expanded(
           child: visible.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(StudioSpacing.xl),
+              ? Padding(
+                  padding: const EdgeInsets.all(StudioSpacing.xl),
                   child: StudioEmptyState(
                     icon: Icons.map_outlined,
-                    title: 'Aucune carte trouvée',
+                    title: context.l10n.mapSearchEmpty,
                   ),
                 )
               : ListView.builder(
@@ -215,7 +216,7 @@ class _MapTile extends StatelessWidget {
       ),
       leading: const Icon(Icons.map_outlined, size: 18),
       title: Text(map.name, style: theme.textTheme.bodyMedium),
-      subtitle: Text(mapRoleLabel(map.role)),
+      subtitle: Text(context.l10n.mapRole(map.role)),
       onTap: onSelect == null || active ? null : () => onSelect(map),
     );
   }

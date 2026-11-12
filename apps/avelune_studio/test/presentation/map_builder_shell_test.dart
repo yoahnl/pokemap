@@ -253,9 +253,9 @@ void main() {
       expect(find.byKey(const ValueKey('map-library')), findsOneWidget);
 
       for (final (space, rubric, inspector) in [
-        ('gameplay', 'Déplacements', 'RÈGLES DE JEU'),
-        ('story', 'Personnages', 'ÉVÉNEMENT'),
-        ('ambiance', 'Musique', 'AMBIANCE DE LA CARTE'),
+        ('gameplay', 'movement', 'RÈGLES DE JEU'),
+        ('story', 'characters', 'ÉVÉNEMENT'),
+        ('ambiance', 'music', 'AMBIANCE DE LA CARTE'),
       ]) {
         await tester.tap(find.byKey(ValueKey('map-space-$space')));
         await tester.pump();

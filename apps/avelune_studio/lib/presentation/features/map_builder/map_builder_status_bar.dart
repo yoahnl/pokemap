@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 const _spatialZoomStep = 240.0;
 const _flatZoomStep = 1.25;
@@ -65,7 +66,7 @@ class MapBuilderStatusBar extends StatelessWidget {
           const Spacer(),
           IconButton(
             key: const ValueKey('map-status-grid'),
-            tooltip: 'Afficher la grille',
+            tooltip: context.l10n.gridToggle,
             iconSize: 18,
             isSelected: view?.grid ?? false,
             onPressed: view == null
@@ -78,27 +79,27 @@ class MapBuilderStatusBar extends StatelessWidget {
           ),
           IconButton(
             key: const ValueKey('map-status-zoom-out'),
-            tooltip: 'Réduire le zoom',
+            tooltip: context.l10n.zoomOut,
             iconSize: 18,
             onPressed: view == null ? null : () => _zoom(false),
             icon: const Icon(Icons.remove),
           ),
           if (!spatial && view != null)
             Text(
-              '${(view.scale * 100).round()} %',
+              context.l10n.zoomPercent((view.scale * 100).round()),
               key: const ValueKey('map-status-zoom'),
               style: muted,
             ),
           IconButton(
             key: const ValueKey('map-status-zoom-in'),
-            tooltip: 'Augmenter le zoom',
+            tooltip: context.l10n.zoomIn,
             iconSize: 18,
             onPressed: view == null ? null : () => _zoom(true),
             icon: const Icon(Icons.add),
           ),
           IconButton(
             key: const ValueKey('map-status-recenter'),
-            tooltip: 'Recentrer la carte',
+            tooltip: context.l10n.recenterMap,
             iconSize: 18,
             onPressed: view == null ? null : _recenter,
             icon: const Icon(Icons.center_focus_strong_outlined),

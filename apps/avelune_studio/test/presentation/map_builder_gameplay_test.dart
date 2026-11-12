@@ -4,6 +4,7 @@ import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shell/studio_root.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,7 +84,10 @@ void main() {
   MapData active() =>
       container.read(mapWorkspaceControllerProvider(exampleA)).active!.current;
 
-  Future<void> openGameplay(WidgetTester tester) async {
+  Future<void> openGameplay(
+    WidgetTester tester, {
+    Locale locale = const Locale('fr'),
+  }) async {
     tester.view.physicalSize = const Size(1920, 1080);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -125,7 +129,13 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(theme: studioTheme(), home: const StudioRoot()),
+        child: MaterialApp(
+          theme: studioTheme(),
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const StudioRoot(),
+        ),
       ),
     );
     await tester.tap(find.byKey(const ValueKey('studio-home-import')));
@@ -178,6 +188,32 @@ void main() {
     await settle(tester);
     expect(find.byKey(const ValueKey('map-gameplay-warp-door')), findsNothing);
     expect(find.text('Aucun passage sur cette carte.'), findsOneWidget);
+  });
+
+  testWidgets('the game space speaks the chosen language', (tester) async {
+    await openGameplay(tester, locale: const Locale('en'));
+
+    expect(find.text('Neighbour maps'), findsOneWidget);
+    expect(find.text('east edge · offset 1'), findsOneWidget);
+    expect(find.text('Cell 4, 5'), findsOneWidget);
+    expect(find.text('Cartes voisines'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-warp-door')));
+    await settle(tester);
+    expect(find.text('Screen transition'), findsOneWidget);
+    expect(find.text('Delete this passage'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('map-gameplay-warp-duration')),
+      '9000',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-warp-apply')));
+    await settle(tester);
+    expect(
+      find.text('The duration must be between 1 and 5000 ms.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a selected passage edits its arrival, transition and removal', (

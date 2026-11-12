@@ -5,6 +5,8 @@ import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_preview.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 
 class MapBuilderResourceCard extends StatelessWidget {
   const MapBuilderResourceCard({
@@ -77,9 +79,11 @@ class MapBuilderResourceCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            Text(item.typeLabel, style: muted, maxLines: 1),
+            Text(context.l10n.resourceType(item), style: muted, maxLines: 1),
             Text(
-              reserved ? 'Sur cette carte' : 'Commune au projet',
+              reserved
+                  ? context.l10n.resourceScopeMap
+                  : context.l10n.resourceScopeProject,
               style: muted,
               maxLines: 1,
             ),

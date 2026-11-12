@@ -6,12 +6,15 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_gam
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_warp_form.dart';
+import 'package:avelune_studio/l10n/app_localizations.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 Widget? mapBuilderSpaceInspector(
   MapBuilderSpace space,
-  MapBuilderGameplayBinding binding, {
+  MapBuilderGameplayBinding binding,
+  AppLocalizations l10n, {
   required bool enabled,
-}) => switch ((space, mapBuilderSpaceOutline(space))) {
+}) => switch ((space, mapBuilderSpaceOutline(space, l10n))) {
   (MapBuilderSpace.gameplay, final outline?) => MapBuilderGameplayInspector(
     binding: binding,
     outline: outline,
@@ -78,22 +81,20 @@ class _WarpPlacement extends StatelessWidget {
   Widget build(BuildContext context) {
     final destinations = binding.warps!.destinations();
     final chosen = binding.view()?.warpDestination?.id;
+    final l10n = context.l10n;
     return Column(
       key: const ValueKey('map-gameplay-warp-placement'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _Heading(
-          eyebrow: 'PASSAGE ENTRE CARTES',
-          title: 'Nouveau passage',
-          hint: binding.placingWarp
-              ? 'Cliquez sur la case du passage, sur la carte.'
-              : 'Choisissez la carte de destination, puis cliquez sur la '
-                    'case du passage.',
+          eyebrow: l10n.warpBetweenMaps,
+          title: l10n.warpNew,
+          hint: binding.placingWarp ? l10n.warpPlaceClick : l10n.warpPlaceChoose,
         ),
         const SizedBox(height: StudioSpacing.l),
         StudioSelect(
           key: const ValueKey('map-gameplay-warp-placement-target'),
-          label: 'Destination',
+          label: l10n.warpDestination,
           value: chosen,
           options: {for (final entry in destinations) entry.id: entry.name},
           onChanged: enabled
@@ -105,7 +106,7 @@ class _WarpPlacement extends StatelessWidget {
         const SizedBox(height: StudioSpacing.m),
         StudioButton(
           key: const ValueKey('map-gameplay-arrival-placement'),
-          label: 'Placer plutôt un point d’arrivée',
+          label: l10n.warpPlaceArrivalInstead,
           icon: Icons.place_outlined,
           variant: StudioButtonVariant.secondary,
           onPressed: enabled ? binding.armArrival : null,
@@ -113,7 +114,7 @@ class _WarpPlacement extends StatelessWidget {
         const SizedBox(height: StudioSpacing.m),
         StudioButton(
           key: const ValueKey('map-gameplay-placement-cancel'),
-          label: 'Annuler',
+          label: l10n.cancel,
           icon: Icons.close,
           variant: StudioButtonVariant.secondary,
           onPressed: () {

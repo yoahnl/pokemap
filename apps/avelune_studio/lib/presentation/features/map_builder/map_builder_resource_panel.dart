@@ -6,6 +6,8 @@ import 'package:avelune_studio/features/resources/application/resource_catalog.d
 import 'package:avelune_studio/features/resources/application/resource_usage_category.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_card.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 
 class MapBuilderResourceSelection {
   const MapBuilderResourceSelection({
@@ -153,7 +155,7 @@ class _MapBuilderResourcePanelState extends State<MapBuilderResourcePanel> {
           child: StudioSearchField(
             key: const ValueKey('map-resource-search'),
             controller: _search,
-            label: 'Rechercher une ressource',
+            label: context.l10n.resourceSearch,
             onChanged: (value) =>
                 widget.onSelection(selection.copyWith(query: value)),
           ),
@@ -165,7 +167,7 @@ class _MapBuilderResourcePanelState extends State<MapBuilderResourcePanel> {
             StudioSpacing.l,
             StudioSpacing.s,
           ),
-          child: Text('Catégories', style: caption),
+          child: Text(context.l10n.resourceCategories, style: caption),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: StudioSpacing.l),
@@ -176,7 +178,7 @@ class _MapBuilderResourcePanelState extends State<MapBuilderResourcePanel> {
               for (final category in ResourceUsageCategory.values)
                 ChoiceChip(
                   key: ValueKey('map-resource-category-${category.name}'),
-                  label: Text(category.label),
+                  label: Text(context.l10n.resourceCategory(category)),
                   selected: category == selection.category,
                   showCheckmark: false,
                   visualDensity: VisualDensity.compact,
@@ -201,7 +203,7 @@ class _MapBuilderResourcePanelState extends State<MapBuilderResourcePanel> {
                     label: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        'Sur cette carte  ${count(ResourceCatalogScope.map)}',
+                        context.l10n.resourceFilterMap(count(ResourceCatalogScope.map)),
                       ),
                     ),
                   ),
@@ -210,7 +212,9 @@ class _MapBuilderResourcePanelState extends State<MapBuilderResourcePanel> {
                     label: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        'Tout le projet  ${count(ResourceCatalogScope.all)}',
+                        context.l10n.resourceFilterProject(
+                          count(ResourceCatalogScope.all),
+                        ),
                       ),
                     ),
                   ),
@@ -229,7 +233,10 @@ class _MapBuilderResourcePanelState extends State<MapBuilderResourcePanel> {
                     ResourceCatalogContext.interior,
                     ResourceCatalogContext.exterior,
                   ])
-                    ButtonSegment(value: context, label: Text(context.label)),
+                    ButtonSegment(
+                      value: context,
+                      label: Text(this.context.l10n.resourceContext(context)),
+                    ),
                 ],
                 selected: {selection.context},
                 onSelectionChanged: (value) => widget.onSelection(
@@ -242,7 +249,10 @@ class _MapBuilderResourcePanelState extends State<MapBuilderResourcePanel> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: StudioSpacing.l),
           child: Text(
-            '${selection.category.label} · ${items.length}',
+            context.l10n.resourceListTitle(
+              context.l10n.resourceCategory(selection.category),
+              items.length,
+            ),
             key: const ValueKey('map-resource-count'),
             style: theme.textTheme.labelLarge,
           ),
@@ -262,12 +272,12 @@ class _MapBuilderResourcePanelState extends State<MapBuilderResourcePanel> {
       return const Center(child: CircularProgressIndicator());
     }
     if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(StudioSpacing.xl),
+      return Padding(
+        padding: const EdgeInsets.all(StudioSpacing.xl),
         child: StudioEmptyState(
           icon: Icons.inventory_2_outlined,
-          title: 'Aucune ressource ici',
-          description: 'Changez de catégorie, de filtre ou de recherche pour en trouver.',
+          title: context.l10n.resourceEmptyTitle,
+          description: context.l10n.resourceEmptyBody,
         ),
       );
     }

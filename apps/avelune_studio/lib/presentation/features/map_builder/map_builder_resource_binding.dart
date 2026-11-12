@@ -38,6 +38,8 @@ ProjectManifest? mapBuilderCatalog(
   );
 }
 
+enum MapBuilderResourceProblem { loadFailed, tileUnavailable }
+
 class MapBuilderResourceBinding {
   MapBuilderResourceBinding({
     required this.maps,
@@ -61,6 +63,8 @@ class MapBuilderResourceBinding {
   String? _contextMapId;
   var loading = false;
   String? error;
+  MapBuilderResourceProblem? problem;
+  Object? problemCause;
   ResourceItem? armed;
   var _request = 0;
 
@@ -109,13 +113,15 @@ class MapBuilderResourceBinding {
     final request = ++_request;
     loading = !maps.hasResourceKind(_kind, placeableOnly: true);
     error = null;
+    problem = null;
     changed();
     try {
       await maps.ensureResourceKind(_kind, placeableOnly: true);
       if (isActive()) unawaited(_prefetchOthers());
     } catch (failure) {
       if (isActive() && request == _request) {
-        error = 'Ces ressources ne peuvent pas être chargées : $failure';
+        problem = MapBuilderResourceProblem.loadFailed;
+        problemCause = failure;
       }
     } finally {
       if (isActive() && request == _request) {
@@ -141,6 +147,7 @@ class MapBuilderResourceBinding {
     final project = maps.project;
     if (state == null || document == null || project == null) return;
     error = null;
+    problem = null;
     var used = false;
     if (item.environment case final preset?) {
       try {
@@ -150,7 +157,7 @@ class MapBuilderResourceBinding {
         error = environmentEditingMessage(failure);
       }
     } else if (item.tileset != null) {
-      error = 'Le choix d’une tuile n’est pas encore disponible ici.';
+      problem = MapBuilderResourceProblem.tileUnavailable;
     } else {
       used = await useMapResource(
         workspace: maps,

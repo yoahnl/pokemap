@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_map_tree.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 const mapBuilderLibraryWidth = 304.0;
 
@@ -53,12 +54,12 @@ class _MapBuilderLibraryState extends State<MapBuilderLibrary> {
             child: Row(
               children: [
                 _LibraryTabButton(
-                  label: 'Ressources',
+                  label: context.l10n.libraryResourcesTab,
                   selected: _tab == _LibraryTab.resources,
                   onTap: () => setState(() => _tab = _LibraryTab.resources),
                 ),
                 _LibraryTabButton(
-                  label: 'Cartes',
+                  label: context.l10n.libraryMapsTab,
                   selected: _tab == _LibraryTab.maps,
                   onTap: () => setState(() => _tab = _LibraryTab.maps),
                 ),

@@ -56,5 +56,324 @@
         "type": "String"
       }
     }
+  },
+  "toolSelect": "Sélection",
+  "toolPan": "Déplacer la vue",
+  "inspectorHide": "Masquer l’inspecteur",
+  "inspectorShow": "Afficher l’inspecteur",
+  "inspectorTitle": "Propriétés",
+  "inspectorCollapse": "Replier l’inspecteur",
+  "activeMapEyebrow": "CARTE ACTIVE",
+  "activeToolEyebrow": "OUTIL ACTIF",
+  "backToSelection": "Revenir à la sélection",
+  "buildGuideTitle": "Construire la carte",
+  "buildGuideFindTitle": "Trouvez une ressource",
+  "buildGuideFindBody": "Choisissez sa catégorie et recherchez-la dans la bibliothèque.",
+  "buildGuidePreviewTitle": "Choisissez son aperçu",
+  "buildGuidePreviewBody": "Le geste adapté s’active.",
+  "buildGuideBuildTitle": "Construisez sur la carte",
+  "buildGuideBuildBody": "Échap revient à la sélection.",
+  "libraryResourcesTab": "Ressources",
+  "libraryMapsTab": "Cartes",
+  "mapSearch": "Rechercher une carte",
+  "mapSearchEmpty": "Aucune carte trouvée",
+  "tileChoiceUnavailable": "Le choix d’une tuile n’est pas encore disponible ici.",
+  "statusBuilding": "Construction",
+  "resourceScopeMap": "Sur cette carte",
+  "resourceScopeProject": "Commune au projet",
+  "gridToggle": "Afficher la grille",
+  "zoomOut": "Réduire le zoom",
+  "zoomIn": "Augmenter le zoom",
+  "recenterMap": "Recentrer la carte",
+  "resourceSearch": "Rechercher une ressource",
+  "resourceCategories": "Catégories",
+  "resourceEmptyTitle": "Aucune ressource ici",
+  "resourceEmptyBody": "Changez de catégorie, de filtre ou de recherche pour en trouver.",
+  "spaceConstruction": "Construction",
+  "spaceGameplay": "Jeu",
+  "spaceStory": "Scénario",
+  "spaceAmbiance": "Ambiance",
+  "roleExterior": "Extérieur",
+  "roleInterior": "Intérieur",
+  "roleBasement": "Sous-sol",
+  "roleUpperFloor": "Étage",
+  "roleConnector": "Liaison",
+  "roleGate": "Poste-frontière",
+  "roleRoom": "Pièce",
+  "roleSection": "Section",
+  "roleSubArea": "Sous-zone",
+  "categoryVegetation": "Végétation",
+  "categoryGround": "Sols",
+  "categoryPath": "Chemins",
+  "categoryWater": "Eau",
+  "categoryRelief": "Reliefs et parois",
+  "categoryBuilding": "Bâtiments",
+  "categoryFurniture": "Mobilier",
+  "categoryObject": "Objets",
+  "typeDecor": "Décor",
+  "typeModel": "Modèle 3D",
+  "typeSmartTile": "Terrain automatique",
+  "typeImage": "Image et tuiles",
+  "typeBorder": "Bordure",
+  "typeEnvironment": "Environnement",
+  "typeCharacter": "Personnage",
+  "contextAll": "Tous",
+  "contextInterior": "Intérieur",
+  "contextExterior": "Extérieur",
+  "contextUnspecified": "Non renseigné",
+  "mapResourcesUnavailable": "Les ressources de la carte ne peuvent pas être chargées : {error}",
+  "@mapResourcesUnavailable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "resourcesUnavailable": "Ces ressources ne peuvent pas être chargées : {error}",
+  "@resourcesUnavailable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "resourceFilterMap": "Sur cette carte  {count}",
+  "@resourceFilterMap": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourceFilterProject": "Tout le projet  {count}",
+  "@resourceFilterProject": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resourceListTitle": "{category} · {count}",
+  "@resourceListTitle": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "roleWithProject": "{role} · {project}",
+  "@roleWithProject": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      },
+      "project": {
+        "type": "String"
+      }
+    }
+  },
+  "toolWithType": "{action} · {type}",
+  "@toolWithType": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "zoomPercent": "{percent} %",
+  "@zoomPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "toolPlaceDecor": "Placement de décor",
+  "toolPaintTiles": "Peinture de tuiles",
+  "toolTerrain": "Terrain",
+  "toolRelief": "Relief",
+  "toolSlope": "Pente",
+  "toolEraseTiles": "Gomme de tuiles",
+  "toolEraseDecor": "Gomme de décors",
+  "toolBorder": "Tracé de bordure",
+  "toolEnvironment": "Zone d’environnement",
+  "toolCharacter": "Placement de personnage",
+  "toolSpawn": "Départ du joueur",
+  "toolSign": "Panneau",
+  "toolFieldObstacle": "Obstacle de terrain",
+  "toolWarp": "Passage",
+  "toolConnection": "Connexions",
+  "toolStoryZone": "Zone d’histoire",
+  "toolGameplayZone": "Zone de jeu",
+  "toolBlockCells": "Bloquer les cases",
+  "toolFreeCells": "Libérer les cases",
+  "toolHintArmed": "Cliquez sur la carte pour l’utiliser. Échap revient à la sélection.",
+  "toolHintChoose": "Choisissez d’abord ce qu’il faut poser dans la bibliothèque.",
+  "toolHintSelect": "Cliquez un élément de la carte pour le sélectionner.",
+  "toolHintPan": "Faites glisser la carte pour la déplacer.",
+  "unavailableNewStudio": "Pas encore disponible dans le nouveau Studio",
+  "soon": "Bientôt",
+  "gameplayTitle": "Rendre la carte jouable",
+  "gameplaySubtitle": "Parcours, accès et rencontres.",
+  "gameplayConnections": "Connexions et passages",
+  "gameplayConnectionsDetail": "Cartes voisines, portes et escaliers",
+  "gameplayMovement": "Déplacements",
+  "gameplayMovementDetail": "Obstacles, rebords et surf",
+  "gameplayEncounters": "Rencontres sauvages",
+  "gameplayEncountersDetail": "Herbes, grottes et eau",
+  "gameplaySpawns": "Départs et arrivées",
+  "gameplaySpawnsDetail": "Où le joueur apparaît",
+  "gameplayFieldObjects": "Objets utilitaires",
+  "gameplayFieldObjectsDetail": "Arbres à couper, rochers",
+  "gameplayAdd": "Ajouter une liaison",
+  "gameplaySearch": "Rechercher un élément…",
+  "gameplayNoteTitle": "Jeu : parcours, accès et rencontres.",
+  "gameplayNoteBody": "Les comportements narratifs restent dans Scénario.",
+  "gameplayInspectorEyebrow": "RÈGLES DE JEU",
+  "gameplayInspectorTitle": "Sélectionnez un élément",
+  "gameplayInspectorHint": "Sélectionnez-le sur la carte ou dans la liste. Vous pourrez aussi en ajouter un.",
+  "storyEyebrow": "SCÉNARIO",
+  "storyTitle": "Éléments de jeu",
+  "storySubtitle": "Ce qui se passe sur cette carte.",
+  "storyCharacters": "Personnages",
+  "storyCharactersDetail": "Habitants, dresseurs, rivaux",
+  "storyInteractive": "Objets interactifs",
+  "storyInteractiveDetail": "Panneaux, objets à ramasser",
+  "storyZones": "Zones",
+  "storyZonesDetail": "Déclencher une scène en entrant",
+  "storyMapResults": "Carte et résultats",
+  "storyMapResultsDetail": "Ce qui arrive en entrant sur la carte",
+  "storyAdd": "Ajouter un élément",
+  "storySearch": "Un personnage, une zone…",
+  "storyNoteTitle": "Scénario : personnages et événements.",
+  "storyNoteBody": "Les passages et rencontres restent dans Jeu.",
+  "storyInspectorEyebrow": "ÉVÉNEMENT",
+  "storyInspectorTitle": "Aucun élément sélectionné",
+  "storyInspectorHint": "Sélectionnez un élément sur la carte ou dans la liste pour afficher son comportement et ses propriétés.",
+  "ambianceTitle": "Ambiance du lieu",
+  "ambianceSubtitle": "Donner une atmosphère à la carte.",
+  "ambianceDayNight": "Jour et nuit",
+  "ambianceDayNightDetail": "Hérité du projet ou propre à la carte",
+  "ambianceWeather": "Météo",
+  "ambianceWeatherDetail": "Ciel, pluie et précipitations",
+  "ambianceEffects": "Effets visuels",
+  "ambianceEffectsDetail": "Lumières, brume, particules",
+  "ambianceMusic": "Musique",
+  "ambianceMusicDetail": "Choix de la carte",
+  "ambianceNoteTitle": "Réglages permanents du lieu.",
+  "ambianceNoteBody": "Les changements temporaires restent gérés par les scènes.",
+  "ambianceInspectorEyebrow": "AMBIANCE DE LA CARTE",
+  "ambianceInspectorTitle": "Choisissez une rubrique",
+  "ambianceInspectorHint": "Jour et nuit, météo, effets visuels ou musique : le réglage choisi s’affichera ici.",
+  "rubricUnavailable": "{detail} · {unavailable}",
+  "@rubricUnavailable": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      },
+      "unavailable": {
+        "type": "String"
+      }
+    }
+  },
+  "directionNorth": "Nord",
+  "directionEast": "Est",
+  "directionSouth": "Sud",
+  "directionWest": "Ouest",
+  "mapMissing": "Carte introuvable",
+  "arrivalPoint": "Point d’arrivée",
+  "gameplayLinkNeighbour": "Relier une carte voisine",
+  "gameplayPlaceWarp": "Placer un passage",
+  "gameplayAddFallback": "Ajouter",
+  "gameplayNeighbours": "Cartes voisines",
+  "gameplayNoNeighbour": "Aucune carte voisine reliée.",
+  "gameplayPassages": "Passages",
+  "gameplayNoPassage": "Aucun passage sur cette carte.",
+  "warpBetweenMaps": "PASSAGE ENTRE CARTES",
+  "warpNew": "Nouveau passage",
+  "warpPlaceClick": "Cliquez sur la case du passage, sur la carte.",
+  "warpPlaceChoose": "Choisissez la carte de destination, puis cliquez sur la case du passage.",
+  "warpDestination": "Destination",
+  "warpPlaceArrivalInstead": "Placer plutôt un point d’arrivée",
+  "cancel": "Annuler",
+  "neighbourEyebrow": "CARTE VOISINE",
+  "neighbourLinkEdges": "Relier deux bords",
+  "neighbourMap": "Carte voisine",
+  "neighbourActiveEdge": "Bord de la carte active",
+  "neighbourOffset": "Décalage entre les bords",
+  "cellsUnit": "cases",
+  "integerExpected": "Nombre entier attendu",
+  "neighbourAllLinked": "Les quatre bords de cette carte sont déjà reliés.",
+  "neighbourSaveFirst": "Enregistrez la carte avant de modifier ses liaisons : elles s’écrivent directement sur les deux cartes.",
+  "neighbourLink": "Relier les cartes",
+  "neighbourUpdate": "Mettre à jour",
+  "neighbourRemove": "Retirer cette liaison",
+  "transitionFade": "Fondu",
+  "transitionHgss": "Style HeartGold",
+  "transitionNone": "Instantanée",
+  "warpDurationRange": "La durée doit être comprise entre 1 et 5000 ms.",
+  "arrivalEyebrow": "POINT D’ARRIVÉE",
+  "warpArrivalOnDestination": "Arrivée sur la destination",
+  "warpScreenTransition": "Transition d’écran",
+  "warpTransitionDuration": "Durée de la transition",
+  "apply": "Appliquer",
+  "warpDeletePoint": "Supprimer ce point",
+  "warpDeletePassage": "Supprimer ce passage",
+  "numberExpected": "Nombre attendu",
+  "neighbourSubtitle": "Bord {edge} · décalage {offset}",
+  "@neighbourSubtitle": {
+    "placeholders": {
+      "edge": {
+        "type": "String"
+      },
+      "offset": {
+        "type": "int"
+      }
+    }
+  },
+  "warpCell": "Case {x}, {y}",
+  "@warpCell": {
+    "placeholders": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      }
+    }
+  },
+  "warpOnThisMap": "Sur cette carte : case {x}, {y}",
+  "@warpOnThisMap": {
+    "placeholders": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      }
+    }
+  },
+  "neighbourRoundTrip": "Aller-retour automatique : {edge} de {map} ↔ {otherEdge} de {otherMap}.",
+  "@neighbourRoundTrip": {
+    "placeholders": {
+      "edge": {
+        "type": "String"
+      },
+      "map": {
+        "type": "String"
+      },
+      "otherEdge": {
+        "type": "String"
+      },
+      "otherMap": {
+        "type": "String"
+      }
+    }
   }
 }

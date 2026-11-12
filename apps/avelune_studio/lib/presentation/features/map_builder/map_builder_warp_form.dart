@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_arrival_choices.dart';
+import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
-const _transitions = {
-  'fade': 'Fondu',
-  'hgss': 'Style HeartGold',
-  'none': 'Instantanée',
+Map<String, String> _transitions(AppLocalizations l10n) => {
+  'fade': l10n.transitionFade,
+  'hgss': l10n.transitionHgss,
+  'none': l10n.transitionNone,
 };
 
 class MapBuilderWarpForm extends StatefulWidget {
@@ -60,6 +62,10 @@ class _MapBuilderWarpFormState extends State<MapBuilderWarpForm> {
     final x = int.tryParse(_x.text.trim());
     final y = int.tryParse(_y.text.trim());
     final duration = int.tryParse(_duration.text.trim());
+    if (duration != null && (duration <= 0 || duration > 5000)) {
+      widget.binding.rejectWarp(context.l10n.warpDurationRange);
+      return;
+    }
     widget.binding.editWarp((commands) {
       if (x != null && y != null && GridPos(x: x, y: y) != warp.targetPos) {
         commands.retarget(
@@ -69,11 +75,6 @@ class _MapBuilderWarpFormState extends State<MapBuilderWarpForm> {
       }
       if (duration != null &&
           duration / 1000 != warp.transition.durationSeconds) {
-        if (duration <= 0 || duration > 5000) {
-          throw ArgumentError(
-            'La durée doit être comprise entre 1 et 5000 ms.',
-          );
-        }
         commands.configureTransition(
           warp.id,
           warp.transition.copyWith(durationSeconds: duration / 1000),
@@ -102,12 +103,13 @@ class _MapBuilderWarpFormState extends State<MapBuilderWarpForm> {
     final arrival = warp.triggerMode == MapWarpTriggerMode.sceneOnly;
     final commands = binding.warps!;
     final enabled = widget.enabled;
+    final l10n = context.l10n;
     return Column(
       key: const ValueKey('map-gameplay-warp-form'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          arrival ? 'POINT D’ARRIVÉE' : 'PASSAGE ENTRE CARTES',
+          arrival ? l10n.arrivalEyebrow : l10n.warpBetweenMaps,
           style: theme.textTheme.labelSmall?.copyWith(
             color: scheme.onSurfaceVariant,
             letterSpacing: 1,
@@ -120,15 +122,12 @@ class _MapBuilderWarpFormState extends State<MapBuilderWarpForm> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        Text(
-          'Sur cette carte : case ${warp.pos.x}, ${warp.pos.y}',
-          style: muted,
-        ),
+        Text(l10n.warpOnThisMap(warp.pos.x, warp.pos.y), style: muted),
         if (!arrival) ...[
           const SizedBox(height: StudioSpacing.l),
           StudioSelect(
             key: const ValueKey('map-gameplay-warp-target'),
-            label: 'Destination',
+            label: l10n.warpDestination,
             value: warp.targetMapId,
             options: {
               for (final entry in commands.destinations()) entry.id: entry.name,
@@ -141,7 +140,7 @@ class _MapBuilderWarpFormState extends State<MapBuilderWarpForm> {
                 : null,
           ),
           const SizedBox(height: StudioSpacing.l),
-          Text('Arrivée sur la destination', style: muted),
+          Text(l10n.warpArrivalOnDestination, style: muted),
           const SizedBox(height: StudioSpacing.s),
           Row(
             children: [
@@ -159,9 +158,9 @@ class _MapBuilderWarpFormState extends State<MapBuilderWarpForm> {
           const SizedBox(height: StudioSpacing.l),
           StudioSelect(
             key: const ValueKey('map-gameplay-warp-transition'),
-            label: 'Transition d’écran',
+            label: l10n.warpScreenTransition,
             value: warp.transition.type.name,
-            options: _transitions,
+            options: _transitions(l10n),
             onChanged: enabled
                 ? (value) => binding.editWarp(
                     (commands) => commands.configureTransition(
@@ -176,14 +175,14 @@ class _MapBuilderWarpFormState extends State<MapBuilderWarpForm> {
           const SizedBox(height: StudioSpacing.m),
           _number(
             'map-gameplay-warp-duration',
-            'Durée de la transition',
+            l10n.warpTransitionDuration,
             _duration,
             suffix: 'ms',
           ),
           const SizedBox(height: StudioSpacing.m),
           StudioButton(
             key: const ValueKey('map-gameplay-warp-apply'),
-            label: 'Appliquer',
+            label: l10n.apply,
             icon: Icons.check,
             onPressed: enabled && _pending ? _apply : null,
           ),
@@ -195,7 +194,7 @@ class _MapBuilderWarpFormState extends State<MapBuilderWarpForm> {
         const SizedBox(height: StudioSpacing.l),
         StudioButton(
           key: const ValueKey('map-gameplay-warp-delete'),
-          label: arrival ? 'Supprimer ce point' : 'Supprimer ce passage',
+          label: arrival ? l10n.warpDeletePoint : l10n.warpDeletePassage,
           icon: Icons.delete_outline,
           variant: StudioButtonVariant.secondary,
           onPressed: enabled
@@ -222,7 +221,7 @@ class _MapBuilderWarpFormState extends State<MapBuilderWarpForm> {
       labelText: label,
       suffixText: suffix,
       errorText: int.tryParse(controller.text.trim()) == null
-          ? 'Nombre attendu'
+          ? context.l10n.numberExpected
           : null,
     ),
   );

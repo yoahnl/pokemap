@@ -5,6 +5,8 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_gam
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_panel.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class MapBuilderGameplayPanel extends StatefulWidget {
   const MapBuilderGameplayPanel({
@@ -39,6 +41,7 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
+    final l10n = context.l10n;
     final outline = widget.outline;
     final binding = widget.binding;
     final connections = binding.connections;
@@ -95,7 +98,7 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                       key: const ValueKey('map-gameplay-add-connection'),
                       leadingIcon: const Icon(Icons.swap_horiz, size: 18),
                       onPressed: binding.draftConnection,
-                      child: const Text('Relier une carte voisine'),
+                      child: Text(l10n.gameplayLinkNeighbour),
                     ),
                     MenuItemButton(
                       key: const ValueKey('map-gameplay-add-warp'),
@@ -104,21 +107,24 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                         size: 18,
                       ),
                       onPressed: binding.draftWarp,
-                      child: const Text('Placer un passage'),
+                      child: Text(l10n.gameplayPlaceWarp),
                     ),
                   ],
                   builder: (context, menu, _) => StudioButton(
                     key: const ValueKey('map-gameplay-add'),
-                    label: outline.addLabel ?? 'Ajouter',
+                    label: outline.addLabel ?? l10n.gameplayAddFallback,
                     icon: Icons.add,
                     onPressed: widget.enabled
                         ? () => menu.isOpen ? menu.close() : menu.open()
                         : null,
                   ),
                 ),
-                _Section(title: 'Cartes voisines', count: connections.length),
+                _Section(
+                  title: l10n.gameplayNeighbours,
+                  count: connections.length,
+                ),
                 if (connections.isEmpty)
-                  Text('Aucune carte voisine reliée.', style: muted),
+                  Text(l10n.gameplayNoNeighbour, style: muted),
                 for (final connection in connections)
                   StudioChoice(
                     key: ValueKey(
@@ -126,15 +132,16 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                     ),
                     leading: const Icon(Icons.swap_horiz, size: 18),
                     label: binding.mapName(connection.targetMapId),
-                    subtitle:
-                        'Bord ${mapDirectionLabel(connection.direction).toLowerCase()}'
-                        ' · décalage ${connection.offset}',
+                    subtitle: l10n.neighbourSubtitle(
+                      l10n.direction(connection.direction).toLowerCase(),
+                      connection.offset,
+                    ),
                     selected: connection.direction == selectedConnection,
                     onTap: () => binding.selectConnection(connection.direction),
                   ),
-                _Section(title: 'Passages', count: passages.length),
+                _Section(title: l10n.gameplayPassages, count: passages.length),
                 if (passages.isEmpty)
-                  Text('Aucun passage sur cette carte.', style: muted),
+                  Text(l10n.gameplayNoPassage, style: muted),
                 for (final warp in passages)
                   StudioChoice(
                     key: ValueKey('map-gameplay-warp-${warp.id}'),
@@ -143,7 +150,7 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                       size: 18,
                     ),
                     label: binding.warpLabel(warp),
-                    subtitle: 'Case ${warp.pos.x}, ${warp.pos.y}',
+                    subtitle: l10n.warpCell(warp.pos.x, warp.pos.y),
                     selected: warp.id == selectedWarp,
                     onTap: () => binding.selectWarp(warp.id),
                   ),

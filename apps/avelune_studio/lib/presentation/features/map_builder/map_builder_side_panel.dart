@@ -12,6 +12,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_res
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_panel.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class MapBuilderSidePanel extends StatelessWidget {
   const MapBuilderSidePanel({
@@ -33,7 +34,7 @@ class MapBuilderSidePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final outline = mapBuilderSpaceOutline(space);
+    final outline = mapBuilderSpaceOutline(space, context.l10n);
     if (outline != null && space == MapBuilderSpace.gameplay) {
       return MapBuilderGameplayPanel(
         outline: outline,

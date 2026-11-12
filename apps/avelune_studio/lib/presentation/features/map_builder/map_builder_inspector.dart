@@ -2,11 +2,12 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
-import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_panel.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 
 const mapBuilderInspectorWidth = 280.0;
 
@@ -17,7 +18,8 @@ class MapBuilderInspector extends StatelessWidget {
     required this.projectName,
     this.space = MapBuilderSpace.construction,
     required this.armed,
-    required this.intent,
+    required this.toolLabel,
+    required this.toolHint,
     required this.onRelease,
     required this.onCollapse,
     this.body,
@@ -27,7 +29,8 @@ class MapBuilderInspector extends StatelessWidget {
   final String projectName;
   final MapBuilderSpace space;
   final ResourceItem? armed;
-  final MapPaletteIntent? intent;
+  final String? toolLabel;
+  final String? toolHint;
   final VoidCallback onRelease;
   final VoidCallback onCollapse;
   final Widget? body;
@@ -56,14 +59,14 @@ class MapBuilderInspector extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  'Propriétés',
+                  context.l10n.inspectorTitle,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const Spacer(),
                 IconButton(
-                  tooltip: 'Replier l’inspecteur',
+                  tooltip: context.l10n.inspectorCollapse,
                   onPressed: onCollapse,
                   icon: const Icon(Icons.last_page, size: 18),
                 ),
@@ -77,7 +80,7 @@ class MapBuilderInspector extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'CARTE ACTIVE',
+                    context.l10n.activeMapEyebrow,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                       letterSpacing: 1,
@@ -93,7 +96,10 @@ class MapBuilderInspector extends StatelessWidget {
                   ),
                   const SizedBox(height: StudioSpacing.xs),
                   Text(
-                    '${mapRoleLabel(entry.role)} · $projectName',
+                    context.l10n.roleWithProject(
+                      context.l10n.mapRole(entry.role),
+                      projectName,
+                    ),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -107,7 +113,7 @@ class MapBuilderInspector extends StatelessWidget {
               padding: const EdgeInsets.all(StudioSpacing.xl),
               child:
                   body ??
-                  switch (mapBuilderSpaceOutline(space)) {
+                  switch (mapBuilderSpaceOutline(space, context.l10n)) {
                     final outline? => MapBuilderSpaceInspectorBody(
                       outline: outline,
                     ),
@@ -116,7 +122,8 @@ class MapBuilderInspector extends StatelessWidget {
                           ? const _BuildGuide()
                           : _ActiveTool(
                               item: armed!,
-                              intent: intent,
+                              toolLabel: toolLabel,
+                              toolHint: toolHint,
                               onRelease: onRelease,
                             ),
                   },
@@ -131,25 +138,28 @@ class MapBuilderInspector extends StatelessWidget {
 class _ActiveTool extends StatelessWidget {
   const _ActiveTool({
     required this.item,
-    required this.intent,
+    required this.toolLabel,
+    required this.toolHint,
     required this.onRelease,
   });
 
   final ResourceItem item;
-  final MapPaletteIntent? intent;
+  final String? toolLabel;
+  final String? toolHint;
   final VoidCallback onRelease;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final intent = this.intent;
+    final toolLabel = this.toolLabel;
+    final toolHint = this.toolHint;
     return Column(
       key: const ValueKey('map-inspector-active-tool'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'OUTIL ACTIF',
+          context.l10n.activeToolEyebrow,
           style: theme.textTheme.labelSmall?.copyWith(
             color: scheme.onSurfaceVariant,
             letterSpacing: 1,
@@ -163,21 +173,24 @@ class _ActiveTool extends StatelessWidget {
           ),
         ),
         Text(
-          intent == null
-              ? item.typeLabel
-              : '${intent.action} · ${item.typeLabel}',
+          toolLabel == null
+              ? context.l10n.resourceType(item)
+              : context.l10n.toolWithType(
+                  toolLabel,
+                  context.l10n.resourceType(item),
+                ),
           style: theme.textTheme.bodySmall?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
         ),
-        if (intent != null) ...[
+        if (toolHint != null) ...[
           const SizedBox(height: StudioSpacing.l),
-          Text(intent.next, style: theme.textTheme.bodySmall),
+          Text(toolHint, style: theme.textTheme.bodySmall),
         ],
         const SizedBox(height: StudioSpacing.l),
         StudioButton(
           key: const ValueKey('map-inspector-release'),
-          label: 'Revenir à la sélection',
+          label: context.l10n.backToSelection,
           icon: Icons.near_me_outlined,
           variant: StudioButtonVariant.secondary,
           onPressed: onRelease,
@@ -194,19 +207,17 @@ class _BuildGuide extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    const steps = [
-      (
-        'Trouvez une ressource',
-        'Choisissez sa catégorie et recherchez-la dans la bibliothèque.',
-      ),
-      ('Choisissez son aperçu', 'Le geste adapté s’active.'),
-      ('Construisez sur la carte', 'Échap revient à la sélection.'),
+    final l10n = context.l10n;
+    final steps = [
+      (l10n.buildGuideFindTitle, l10n.buildGuideFindBody),
+      (l10n.buildGuidePreviewTitle, l10n.buildGuidePreviewBody),
+      (l10n.buildGuideBuildTitle, l10n.buildGuideBuildBody),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Construire la carte',
+          l10n.buildGuideTitle,
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w700,
           ),

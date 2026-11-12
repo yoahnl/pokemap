@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class MapBuilderSpacePanel extends StatelessWidget {
   const MapBuilderSpacePanel({super.key, required this.outline});
@@ -62,7 +63,7 @@ class MapBuilderSpacePanel extends StatelessWidget {
                 if (outline.addLabel case final label?) ...[
                   const SizedBox(height: StudioSpacing.m),
                   Tooltip(
-                    message: mapBuilderUnavailable,
+                    message: context.l10n.unavailableNewStudio,
                     child: StudioButton(
                       label: label,
                       icon: Icons.add,
@@ -114,7 +115,7 @@ class MapBuilderRubricTile extends StatelessWidget {
       return Tooltip(
         message: rubric.detail,
         child: StudioChoice(
-          key: ValueKey('map-space-rubric-${rubric.label}'),
+          key: ValueKey('map-space-rubric-${rubric.id}'),
           label: rubric.label,
           dense: true,
           leading: Icon(rubric.icon, size: 18),
@@ -125,9 +126,12 @@ class MapBuilderRubricTile extends StatelessWidget {
     }
     final faded = theme.colorScheme.onSurfaceVariant.withValues(alpha: .5);
     return Tooltip(
-      message: '${rubric.detail} · $mapBuilderUnavailable',
+      message: context.l10n.rubricUnavailable(
+        rubric.detail,
+        context.l10n.unavailableNewStudio,
+      ),
       child: ListTile(
-        key: ValueKey('map-space-rubric-${rubric.label}'),
+        key: ValueKey('map-space-rubric-${rubric.id}'),
         enabled: false,
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: StudioSpacing.s),
@@ -135,7 +139,7 @@ class MapBuilderRubricTile extends StatelessWidget {
         title: Text(rubric.label),
         visualDensity: VisualDensity.compact,
         trailing: Text(
-          'Bientôt',
+          context.l10n.soon,
           style: theme.textTheme.labelSmall?.copyWith(color: faded),
         ),
       ),
@@ -179,7 +183,7 @@ class MapBuilderSpaceInspectorBody extends StatelessWidget {
         ),
         const SizedBox(height: StudioSpacing.l),
         Text(
-          mapBuilderUnavailable,
+          context.l10n.unavailableNewStudio,
           style: theme.textTheme.labelSmall?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
