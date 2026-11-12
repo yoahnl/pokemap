@@ -146,6 +146,12 @@ void main() {
           ),
           ResourceFamily(id: 'beds', name: 'Couchages', parentId: 'furniture'),
           ResourceFamily(id: 'lab', name: 'Recherche', parentId: 'buildings'),
+          ResourceFamily(
+            id: 'stairs',
+            name: 'Escaliers',
+            parentId: 'buildings',
+            category: ResourceUsageCategory.structure,
+          ),
           ResourceFamily(id: 'loose', name: 'Divers'),
         ],
         entries: [
@@ -166,6 +172,10 @@ void main() {
     expect(
       resourceUsageCategory(item, sorted('beds')),
       ResourceUsageCategory.furniture,
+    );
+    expect(
+      resourceUsageCategory(item, sorted('stairs')),
+      ResourceUsageCategory.structure,
     );
     expect(
       resourceUsageCategory(item, sorted('loose')),

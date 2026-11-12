@@ -59,6 +59,7 @@ enum ResourceUsageCategory {
   water,
   relief,
   building,
+  structure,
   furniture,
   object,
 }
@@ -263,7 +264,7 @@ final class ResourceLibraryCatalog {
     ),
     ResourceFamily._('buildings', 'Bâtiments', ResourceUsageCategory.building),
     ResourceFamily._('props', 'Objets', ResourceUsageCategory.object),
-    ResourceFamily._('fences', 'Clôtures', ResourceUsageCategory.object),
+    ResourceFamily._('fences', 'Clôtures', ResourceUsageCategory.structure),
     ResourceFamily._('ground', 'Sols', ResourceUsageCategory.ground),
     ResourceFamily._('water', 'Eau', ResourceUsageCategory.water),
     ResourceFamily._('relief', 'Relief', ResourceUsageCategory.relief),

@@ -64,24 +64,24 @@ test("resource families and map scope persist through real MCP transactions", as
       assert.match(String(context.description), /null clears/);
       const category = record(record(schema.properties).category);
       assert.deepEqual(category.type, ["string", "null"]);
-      assert.deepEqual(category.enum, ["vegetation", "ground", "path", "water", "relief", "building", "furniture", "object", null]);
+      assert.deepEqual(category.enum, ["vegetation", "ground", "path", "water", "relief", "building", "structure", "furniture", "object", null]);
       assert.match(String(category.description), /omitted preserves/);
     }
     for (const id of ["resource.family.create", "resource.family.update"]) {
       const familyCategory = record(record(record(record(actions.get(id)!.extensions).inputSchema).properties).category);
-      assert.deepEqual(familyCategory.enum, ["vegetation", "ground", "path", "water", "relief", "building", "furniture", "object", null]);
+      assert.deepEqual(familyCategory.enum, ["vegetation", "ground", "path", "water", "relief", "building", "structure", "furniture", "object", null]);
       assert.match(String(familyCategory.description), /inherits the parent family category/);
     }
     const familyBatchItem = record(record(record(record(record(actions.get("resource.family.apply_batch")!.extensions).inputSchema).properties).families).items);
-    assert.deepEqual(record(record(familyBatchItem.properties).category).enum, ["vegetation", "ground", "path", "water", "relief", "building", "furniture", "object", null]);
+    assert.deepEqual(record(record(familyBatchItem.properties).category).enum, ["vegetation", "ground", "path", "water", "relief", "building", "structure", "furniture", "object", null]);
     const familyKind = (described.resourceKinds as JsonRecord[]).find((entry) => entry.id === "resourceFamily")!;
     assert.deepEqual(record(record(familyKind.extensions).familyCategory).predefinedDefaults, {
       trees: "vegetation", vegetation: "vegetation", buildings: "building", props: "object",
-      fences: "object", ground: "ground", water: "water", relief: "relief",
+      fences: "structure", ground: "ground", water: "water", relief: "relief",
     });
     const entryKind = (described.resourceKinds as JsonRecord[]).find((entry) => entry.id === "resourceLibraryEntry")!;
     assert.deepEqual(record(record(entryKind.extensions).placementContext).enum, ["interior", "exterior", "both", null]);
-    assert.deepEqual(record(record(entryKind.extensions).category).enum, ["vegetation", "ground", "path", "water", "relief", "building", "furniture", "object", null]);
+    assert.deepEqual(record(record(entryKind.extensions).category).enum, ["vegetation", "ground", "path", "water", "relief", "building", "structure", "furniture", "object", null]);
     const resourceKinds = new Set((described.resourceKinds as JsonRecord[]).map((entry) => entry.id));
     for (const id of ["resourceLibraryCatalog", "resourceFamily", "resourceLibraryEntry"]) {
       assert.ok(resourceKinds.has(id), id);

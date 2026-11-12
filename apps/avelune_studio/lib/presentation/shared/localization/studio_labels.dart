@@ -85,6 +85,7 @@ extension StudioLabels on AppLocalizations {
     ResourceUsageCategory.water => categoryWater,
     ResourceUsageCategory.relief => categoryRelief,
     ResourceUsageCategory.building => categoryBuilding,
+    ResourceUsageCategory.structure => categoryStructure,
     ResourceUsageCategory.furniture => categoryFurniture,
     ResourceUsageCategory.object => categoryObject,
   };

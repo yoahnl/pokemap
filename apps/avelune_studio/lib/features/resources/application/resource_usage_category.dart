@@ -10,6 +10,7 @@ extension ResourceUsageCategoryLibrary on ResourceUsageCategory {
     ResourceUsageCategory.water => 'Eau',
     ResourceUsageCategory.relief => 'Reliefs et parois',
     ResourceUsageCategory.building => 'Bâtiments',
+    ResourceUsageCategory.structure => 'Structures',
     ResourceUsageCategory.furniture => 'Mobilier',
     ResourceUsageCategory.object => 'Objets',
   };

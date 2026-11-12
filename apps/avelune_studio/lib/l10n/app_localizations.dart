@@ -674,6 +674,12 @@ abstract class AppLocalizations {
   /// **'Bâtiments'**
   String get categoryBuilding;
 
+  /// No description provided for @categoryStructure.
+  ///
+  /// In fr, this message translates to:
+  /// **'Structures'**
+  String get categoryStructure;
+
   /// No description provided for @categoryFurniture.
   ///
   /// In fr, this message translates to:

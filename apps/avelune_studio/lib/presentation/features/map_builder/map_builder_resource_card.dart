@@ -39,55 +39,59 @@ class MapBuilderResourceCard extends StatelessWidget {
       button: true,
       selected: armed,
       label: item.name,
-      child: InkWell(
-        key: ValueKey('map-resource-${item.identity}'),
-        borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
-        onTap: onUse == null ? null : () => onUse(item),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Ink(
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(
-                    StudioMetrics.panelRadius,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          key: ValueKey('map-resource-${item.identity}'),
+          borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
+          onTap: onUse == null ? null : () => onUse(item),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Ink(
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(
+                      StudioMetrics.panelRadius,
+                    ),
+                    border: Border.all(
+                      color: armed ? scheme.primary : scheme.outlineVariant,
+                      width: armed ? 2 : 1,
+                    ),
                   ),
-                  border: Border.all(
-                    color: armed ? scheme.primary : scheme.outlineVariant,
-                    width: armed ? 2 : 1,
-                  ),
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) => Center(
-                    child: MapBuilderResourcePreview(
-                      item: item,
-                      project: project,
-                      visuals: visuals,
-                      size: constraints.biggest.shortestSide - StudioSpacing.m,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Center(
+                      child: MapBuilderResourcePreview(
+                        item: item,
+                        project: project,
+                        visuals: visuals,
+                        size:
+                            constraints.biggest.shortestSide - StudioSpacing.m,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: StudioSpacing.s),
-            Text(
-              item.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: StudioSpacing.s),
+              Text(
+                item.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            Text(context.l10n.resourceType(item), style: muted, maxLines: 1),
-            Text(
-              reserved
-                  ? context.l10n.resourceScopeMap
-                  : context.l10n.resourceScopeProject,
-              style: muted,
-              maxLines: 1,
-            ),
-          ],
+              Text(context.l10n.resourceType(item), style: muted, maxLines: 1),
+              Text(
+                reserved
+                    ? context.l10n.resourceScopeMap
+                    : context.l10n.resourceScopeProject,
+                style: muted,
+                maxLines: 1,
+              ),
+            ],
+          ),
         ),
       ),
     );

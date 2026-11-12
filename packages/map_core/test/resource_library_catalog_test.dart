@@ -184,7 +184,7 @@ void main() {
     );
     expect(catalog.familyCategory('buildings'), ResourceUsageCategory.building);
     expect(catalog.familyCategory('trees'), ResourceUsageCategory.vegetation);
-    expect(catalog.familyCategory('fences'), ResourceUsageCategory.object);
+    expect(catalog.familyCategory('fences'), ResourceUsageCategory.structure);
     expect(catalog.familyCategory('loose'), isNull);
     expect(catalog.familyCategory('npc'), isNull);
     expect(catalog.familyCategory('unknown'), isNull);

@@ -28,6 +28,14 @@ void main() {
 
     expect(find.byKey(_tree), findsOneWidget);
     expect(find.text('Objets · 1'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('map-resource-category-structure')),
+    );
+    await tester.pump();
+    expect(find.byKey(_tree), findsNothing);
+    expect(find.text('Structures · 0'), findsOneWidget);
+    expect(find.byIcon(Icons.foundation_outlined), findsOneWidget);
   });
 
   testWidgets('search, scope and context filter the objects', (tester) async {

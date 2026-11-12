@@ -317,6 +317,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryBuilding => 'Buildings';
 
   @override
+  String get categoryStructure => 'Structures';
+
+  @override
   String get categoryFurniture => 'Furniture';
 
   @override
