@@ -6,6 +6,8 @@
         "/Users/karim/Project/pokemonProject/tools/pokemap_mcp/dist/src/index.js",
         "--root",
         "/Users/karim/Desktop/pokeMap Project/le_train_de_17h42",
+        "--root",
+        "/Users/karim/Project/Pokemon HeartGold/jeu",
         "--repository-root",
         "/Users/karim/Project/pokemonProject",
         "--authoring-package",
