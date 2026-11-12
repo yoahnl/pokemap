@@ -800,9 +800,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weatherSound => 'Weather sounds';
 
   @override
-  String get weatherPreviewHint => 'Weather shows in “Test the map”.';
-
-  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

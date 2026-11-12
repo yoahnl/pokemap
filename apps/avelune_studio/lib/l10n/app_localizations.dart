@@ -1514,12 +1514,6 @@ abstract class AppLocalizations {
   /// **'Bruitages météo'**
   String get weatherSound;
 
-  /// No description provided for @weatherPreviewHint.
-  ///
-  /// In fr, this message translates to:
-  /// **'La météo s’affiche dans « Tester la carte ».'**
-  String get weatherPreviewHint;
-
   /// No description provided for @rubricUnavailable.
   ///
   /// In fr, this message translates to:

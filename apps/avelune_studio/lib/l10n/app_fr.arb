@@ -410,7 +410,6 @@
   "weatherIntensity": "Intensité",
   "weatherLightning": "Éclairs",
   "weatherSound": "Bruitages météo",
-  "weatherPreviewHint": "La météo s’affiche dans « Tester la carte ».",
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {

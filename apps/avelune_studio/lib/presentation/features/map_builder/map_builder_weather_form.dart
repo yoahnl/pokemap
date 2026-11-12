@@ -179,8 +179,6 @@ class MapBuilderWeatherForm extends StatelessWidget {
                   : null,
             ),
           ],
-          const SizedBox(height: StudioSpacing.m),
-          Text(l10n.weatherPreviewHint, style: muted),
         ],
       ],
     );

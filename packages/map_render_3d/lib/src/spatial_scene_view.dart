@@ -246,8 +246,16 @@ class SpatialSceneController extends ModelPreviewController {
     super.notifyListeners();
   }
 
+  bool _weatherPreview = false;
+  bool get weatherPreview => _weatherPreview;
+  set weatherPreview(bool value) {
+    if (_weatherPreview == value) return;
+    _weatherPreview = value;
+    super.notifyListeners();
+  }
+
   SpatialWeatherSettings get weatherSettings {
-    if (!presentationEffectsEnabled) return _clearWeather;
+    if (!presentationEffectsEnabled && !_weatherPreview) return _clearWeather;
     final base = (_authoredAtmosphere ?? _baseAtmosphere).weather;
     final environment = worldEnvironment ?? _previewEnvironment;
     final kind = environment.weatherKind;

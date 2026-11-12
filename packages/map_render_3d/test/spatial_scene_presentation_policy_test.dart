@@ -71,4 +71,47 @@ void main() {
     expect(game.weatherSettings, same(settings.weather));
     expect(game.presentationProfile.halos.length, 1);
   });
+
+  test('a weather preview lets only the weather through a clear view', () {
+    final controller = SpatialSceneController(
+      presentationEffectsEnabled: false,
+    );
+    addTearDown(controller.dispose);
+    final weather = SpatialWeatherSettings(
+      enabled: true,
+      kind: SpatialWeatherKind.storm,
+      lightning: true,
+    );
+    controller.applyAtmosphereSettings(
+      SpatialAtmosphereSettings(
+        halosEnabled: true,
+        depthFogEnabled: true,
+        fireflies: true,
+        weather: weather,
+      ),
+    );
+    controller
+      ..halosEnabled = true
+      ..depthFogEnabled = true
+      ..fireflies = true;
+    var sceneChanges = 0, changes = 0;
+    controller.sceneChanges.addListener(() => sceneChanges++);
+    controller.addListener(() => changes++);
+    expect(controller.weatherSettings.enabled, isFalse);
+
+    controller.weatherPreview = true;
+    controller.weatherPreview = true;
+
+    expect(changes, 1);
+    expect(sceneChanges, 0);
+    expect(controller.weatherSettings, same(weather));
+    expect(controller.halosEnabled, isFalse);
+    expect(controller.depthFogEnabled, isFalse);
+    expect(controller.fireflies, isFalse);
+    expect(controller.depthOfFieldProfile.active, isFalse);
+
+    controller.weatherPreview = false;
+
+    expect(controller.weatherSettings.enabled, isFalse);
+  });
 }

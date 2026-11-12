@@ -805,10 +805,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get weatherSound => 'Bruitages météo';
 
   @override
-  String get weatherPreviewHint =>
-      'La météo s’affiche dans « Tester la carte ».';
-
-  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }
