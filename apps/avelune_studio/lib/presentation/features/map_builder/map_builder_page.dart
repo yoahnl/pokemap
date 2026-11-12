@@ -10,8 +10,10 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_input_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_visual_projection_queue.dart';
+import 'package:avelune_studio/features/project_session/application/project_opening_progress.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_builders.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_canvas_readiness.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
 import 'package:avelune_studio/presentation/shell/studio_rail.dart';
@@ -21,6 +23,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_gam
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_inspector.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_inspector.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_opening.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_side_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
@@ -39,10 +42,12 @@ class MapBuilderPage extends ConsumerStatefulWidget {
     super.key,
     required this.session,
     required this.onHome,
+    this.progress,
   });
 
   final ProjectSession session;
   final Future<void> Function() onHome;
+  final ProjectOpeningProgress? progress;
 
   @override
   ConsumerState<MapBuilderPage> createState() => _MapBuilderPageState();
@@ -83,6 +88,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     changed: _changed,
     labels: () => context.l10n,
   );
+  late final _opening = MapBuilderOpening(widget.progress);
   var _space = MapBuilderSpace.construction;
   var _inspectorOpen = true;
   var _disposed = false;
@@ -114,9 +120,12 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   }
 
   Future<void> _open() async {
+    _opening.loadingMap();
     await _maps.initialize();
     final project = _maps.project;
-    if (_disposed || project == null) return;
+    if (_disposed) return;
+    _opening.mapSettled(failed: _maps.error != null);
+    if (project == null) return;
     try {
       final visuals = await ref.read(workspaceVisualsLoaderProvider)(
         widget.session,
@@ -128,9 +137,19 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       }
       visuals.addListener(_changed);
       _visuals = visuals;
+      _opening.resourcesReady();
       _changed();
-      unawaited(_resources.load());
+      _opening.awaitScene(hasMap: _maps.active != null);
+      unawaited(
+        _resources.load().then((_) {
+          if (_disposed) return;
+          _opening.paletteSettled(
+            failed: _resources.problem == MapBuilderResourceProblem.loadFailed,
+          );
+        }),
+      );
     } catch (failure) {
+      _opening.resourcesFailed();
       if (!_disposed) {
         setState(
           () => _visualsError = context.l10n.mapResourcesUnavailable(
@@ -368,14 +387,17 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     final visuals = _visuals;
     final view = _view;
     if (visuals == null || view == null || _maps.active == null) return null;
-    return MapEditingSurface(
-      controller: _maps,
-      visuals: visuals,
-      view: view,
-      input: _input,
-      onChanged: _changed,
-      onSave: () => unawaited(_save()),
-      busy: !_editable,
+    return MapCanvasReadinessScope(
+      readiness: _opening.readiness,
+      child: MapEditingSurface(
+        controller: _maps,
+        visuals: visuals,
+        view: view,
+        input: _input,
+        onChanged: _changed,
+        onSave: () => unawaited(_save()),
+        busy: !_editable,
+      ),
     );
   }
 }

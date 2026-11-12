@@ -1,3 +1,4 @@
+import 'package:avelune_studio/features/project_session/application/project_opening_progress.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
@@ -51,6 +52,56 @@ void main() {
       ]);
     },
   );
+
+  test('opening reports the session phases it went through', () async {
+    final opening = controller.open('/example/requested');
+    final progress = controller.state.progress!;
+    expect(
+      progress[ProjectOpeningPhase.project].status,
+      ProjectOpeningStepStatus.running,
+    );
+
+    port.phaseReporters.single!(ProjectOpeningPhase.workshop);
+    expect(
+      progress[ProjectOpeningPhase.project].status,
+      ProjectOpeningStepStatus.done,
+    );
+    expect(
+      progress[ProjectOpeningPhase.workshop].status,
+      ProjectOpeningStepStatus.running,
+    );
+
+    port.pending.single.complete(exampleA);
+    await opening;
+
+    expect(controller.state.progress, same(progress));
+    expect(
+      progress[ProjectOpeningPhase.workshop].status,
+      ProjectOpeningStepStatus.done,
+    );
+    expect(
+      progress[ProjectOpeningPhase.map].status,
+      ProjectOpeningStepStatus.pending,
+    );
+  });
+
+  test('a superseded opening no longer moves its progress', () async {
+    final first = controller.open('/example/a');
+    final stale = controller.state.progress!;
+    final second = controller.open('/example/b');
+
+    port.phaseReporters.first!(ProjectOpeningPhase.workshop);
+    expect(
+      stale[ProjectOpeningPhase.workshop].status,
+      ProjectOpeningStepStatus.pending,
+    );
+
+    port.pending.first.complete(exampleA);
+    port.pending.last.complete(exampleB);
+    await Future.wait([first, second]);
+    expect(controller.state.project, same(exampleB));
+    expect(controller.state.progress, isNot(same(stale)));
+  });
 
   test('closes its current session exactly once and resets state', () async {
     final opening = controller.open('/example/a');

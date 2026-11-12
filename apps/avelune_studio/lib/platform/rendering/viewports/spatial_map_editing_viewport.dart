@@ -26,6 +26,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_canvas_str
 import 'package:avelune_studio/features/map_workspace/application/map_encounter_cell_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 
+import 'package:avelune_studio/platform/rendering/contracts/map_canvas_readiness.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 part 'spatial_map_editing_overlays.dart';
@@ -528,6 +529,14 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
     widget.view.spatialSurfaceId = selected?.id;
     widget.view.terrainSurfacePreview = null;
     widget.onChanged();
+  }
+
+  MapCanvasReadiness? _readiness;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _readiness = MapCanvasReadinessScope.maybeOf(context)?..claim();
   }
 
   @override
@@ -1630,8 +1639,11 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
               background: colors.surfaceContainerLowest,
               ground: colors.primaryContainer,
               edge: colors.outlineVariant,
-              errorBuilder: (_, failure) =>
-                  Center(child: Text('${error ?? failure}')),
+              onReady: _readiness?.ready,
+              errorBuilder: (_, failure) {
+                _readiness?.fail(failure);
+                return Center(child: Text('${error ?? failure}'));
+              },
             ),
           ),
         ],

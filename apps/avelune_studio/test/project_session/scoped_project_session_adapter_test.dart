@@ -37,6 +37,19 @@ void main() {
     },
   );
 
+  test('passes the opening phases of the project through', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async => true);
+    final phases = <ProjectOpeningPhase>[];
+    final adapter = ScopedProjectSessionAdapter(
+      _RecordingProjectSessionPort([]),
+    );
+
+    await adapter.open('/selected/project', onPhase: phases.add);
+
+    expect(phases, [ProjectOpeningPhase.workshop]);
+  });
+
   test('does not remember a project that fails to open', () async {
     final calls = <String>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -111,8 +124,12 @@ final class _RecordingProjectSessionPort implements ProjectSessionPort {
   final bool failOpen;
 
   @override
-  Future<ProjectSession> open(String directoryPath) async {
+  Future<ProjectSession> open(
+    String directoryPath, {
+    void Function(ProjectOpeningPhase phase)? onPhase,
+  }) async {
     calls.add('open:$directoryPath');
+    onPhase?.call(ProjectOpeningPhase.workshop);
     if (failOpen) {
       throw const ProjectOpenFailure(ProjectOpenProblem.manifestInvalid);
     }

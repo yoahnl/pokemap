@@ -126,6 +126,51 @@ class AppLocalizationsEn extends AppLocalizations {
       'The folder picker could not open. Please try again.';
 
   @override
+  String get openingTitle => 'Opening the project';
+
+  @override
+  String get openingPhaseProject => 'Reading the project';
+
+  @override
+  String get openingPhaseWorkshop => 'Preparing the workshop';
+
+  @override
+  String get openingPhaseMap => 'Starting map';
+
+  @override
+  String get openingPhaseResources => 'Visual resources';
+
+  @override
+  String get openingPhasePalette => 'Building palette';
+
+  @override
+  String get openingPhaseScene => 'Map scene';
+
+  @override
+  String openingPercent(String percent) {
+    return '$percent%';
+  }
+
+  @override
+  String openingCount(String completed, String total, String percent) {
+    return '$completed / $total · $percent%';
+  }
+
+  @override
+  String openingElapsed(String seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String get openingRunning => 'In progress…';
+
+  @override
+  String get openingSkipped => 'Not needed';
+
+  @override
+  String get openingFailed => 'Failed';
+
+  @override
   String get openProblemInvalidPath => 'This project path is not valid.';
 
   @override

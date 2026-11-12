@@ -56,8 +56,10 @@ void main() {
 
 final class _FailingPort implements ProjectSessionPort {
   @override
-  Future<ProjectSession> open(String directoryPath) async =>
-      throw StateError('original failure');
+  Future<ProjectSession> open(
+    String directoryPath, {
+    void Function(ProjectOpeningPhase phase)? onPhase,
+  }) async => throw StateError('original failure');
 
   @override
   Future<void> close(ProjectSession session) async {}

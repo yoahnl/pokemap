@@ -22,9 +22,12 @@ final class AtlasProjectSessionPort implements ProjectSessionPort {
   final File errorFile;
 
   @override
-  Future<ProjectSession> open(String directoryPath) async {
+  Future<ProjectSession> open(
+    String directoryPath, {
+    void Function(ProjectOpeningPhase phase)? onPhase,
+  }) async {
     try {
-      return await delegate.open(directoryPath);
+      return await delegate.open(directoryPath, onPhase: onPhase);
     } catch (error, stack) {
       await errorFile.writeAsString('$error\n$stack', flush: true);
       rethrow;

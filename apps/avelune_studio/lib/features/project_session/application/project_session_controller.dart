@@ -1,10 +1,13 @@
+import 'package:avelune_studio/features/project_session/application/project_opening_progress.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
 
 class ProjectSessionController {
-  ProjectSessionController(this._port);
+  ProjectSessionController(this._port, {Duration Function()? clock})
+    : _clock = clock;
 
   final ProjectSessionPort _port;
+  final Duration Function()? _clock;
   final Set<void Function()> _listeners = {};
   ProjectSessionState _state = const ProjectSessionState();
   int _generation = 0;
@@ -26,17 +29,25 @@ class ProjectSessionController {
     if (_disposed) throw StateError('Project session scope is disposed');
     final generation = ++_generation;
     final previous = _state.project;
+    final progress = ProjectOpeningProgress(clock: _clock)
+      ..start(ProjectOpeningPhase.project);
     _publish(
       ProjectSessionState(
         status: ProjectSessionStatus.opening,
         project: previous,
         requestedPath: directoryPath,
+        progress: progress,
       ),
     );
 
     ProjectSession session;
     try {
-      session = await _port.open(directoryPath);
+      session = await _port.open(
+        directoryPath,
+        onPhase: (phase) {
+          if (_isCurrent(generation)) progress.advance(phase);
+        },
+      );
     } catch (error) {
       if (_isCurrent(generation)) {
         _publish(
@@ -57,11 +68,15 @@ class ProjectSessionController {
       await _port.close(session);
       return;
     }
+    progress
+      ..finish(ProjectOpeningPhase.project)
+      ..finish(ProjectOpeningPhase.workshop);
     _publish(
       ProjectSessionState(
         status: ProjectSessionStatus.ready,
         project: session,
         requestedPath: directoryPath,
+        progress: progress,
       ),
     );
     if (previous != null) await _port.close(previous);

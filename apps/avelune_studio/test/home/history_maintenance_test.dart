@@ -178,7 +178,10 @@ final class _Sessions implements ProjectSessionPort {
   var closes = 0;
 
   @override
-  Future<ProjectSession> open(String directoryPath) async {
+  Future<ProjectSession> open(
+    String directoryPath, {
+    void Function(ProjectOpeningPhase phase)? onPhase,
+  }) async {
     opens++;
     return ProjectSession(
       sessionId: 'managed-$opens',

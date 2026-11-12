@@ -126,6 +126,51 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le sélecteur de dossier n’a pas pu s’ouvrir. Réessayez.';
 
   @override
+  String get openingTitle => 'Ouverture du projet';
+
+  @override
+  String get openingPhaseProject => 'Lecture du projet';
+
+  @override
+  String get openingPhaseWorkshop => 'Préparation de l’atelier';
+
+  @override
+  String get openingPhaseMap => 'Carte de départ';
+
+  @override
+  String get openingPhaseResources => 'Ressources visuelles';
+
+  @override
+  String get openingPhasePalette => 'Palette de construction';
+
+  @override
+  String get openingPhaseScene => 'Scène de la carte';
+
+  @override
+  String openingPercent(String percent) {
+    return '$percent %';
+  }
+
+  @override
+  String openingCount(String completed, String total, String percent) {
+    return '$completed / $total · $percent %';
+  }
+
+  @override
+  String openingElapsed(String seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String get openingRunning => 'En cours…';
+
+  @override
+  String get openingSkipped => 'Sans objet';
+
+  @override
+  String get openingFailed => 'Échec';
+
+  @override
   String get openProblemInvalidPath => 'Ce chemin de projet n’est pas valide.';
 
   @override

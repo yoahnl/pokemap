@@ -314,6 +314,84 @@ abstract class AppLocalizations {
   /// **'Le sélecteur de dossier n’a pas pu s’ouvrir. Réessayez.'**
   String get homePickerFailed;
 
+  /// No description provided for @openingTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouverture du projet'**
+  String get openingTitle;
+
+  /// No description provided for @openingPhaseProject.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture du projet'**
+  String get openingPhaseProject;
+
+  /// No description provided for @openingPhaseWorkshop.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préparation de l’atelier'**
+  String get openingPhaseWorkshop;
+
+  /// No description provided for @openingPhaseMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Carte de départ'**
+  String get openingPhaseMap;
+
+  /// No description provided for @openingPhaseResources.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ressources visuelles'**
+  String get openingPhaseResources;
+
+  /// No description provided for @openingPhasePalette.
+  ///
+  /// In fr, this message translates to:
+  /// **'Palette de construction'**
+  String get openingPhasePalette;
+
+  /// No description provided for @openingPhaseScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scène de la carte'**
+  String get openingPhaseScene;
+
+  /// Completion percentage of a project opening phase or of the whole opening.
+  ///
+  /// In fr, this message translates to:
+  /// **'{percent} %'**
+  String openingPercent(String percent);
+
+  /// Counted progress of a project opening phase.
+  ///
+  /// In fr, this message translates to:
+  /// **'{completed} / {total} · {percent} %'**
+  String openingCount(String completed, String total, String percent);
+
+  /// Time a finished project opening phase took, in seconds.
+  ///
+  /// In fr, this message translates to:
+  /// **'{seconds} s'**
+  String openingElapsed(String seconds);
+
+  /// No description provided for @openingRunning.
+  ///
+  /// In fr, this message translates to:
+  /// **'En cours…'**
+  String get openingRunning;
+
+  /// No description provided for @openingSkipped.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans objet'**
+  String get openingSkipped;
+
+  /// No description provided for @openingFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Échec'**
+  String get openingFailed;
+
   /// No description provided for @openProblemInvalidPath.
   ///
   /// In fr, this message translates to:

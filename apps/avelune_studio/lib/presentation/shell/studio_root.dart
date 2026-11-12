@@ -7,7 +7,9 @@ import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/home/project_import_page.dart';
+import 'package:avelune_studio/presentation/features/home/project_loading_screen.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_page.dart';
 
 class StudioRoot extends ConsumerStatefulWidget {
@@ -48,18 +50,35 @@ class _StudioRootState extends ConsumerState<StudioRoot> {
   Widget build(BuildContext context) {
     final state = _session.state;
     final project = state.project;
-    if (state.status == ProjectSessionStatus.ready && project != null) {
-      return MapBuilderPage(
-        key: ValueKey(project.sessionId),
-        session: project,
-        onHome: _session.close,
+    final progress = state.progress;
+    final ready = state.status == ProjectSessionStatus.ready && project != null;
+    if (ready && progress == null) return _builder(project);
+    if (!ready && state.status != ProjectSessionStatus.opening ||
+        progress == null) {
+      return ProjectImportPage(
+        state: state,
+        busy: _opening.picking,
+        pickerError: _opening.error,
+        onImport: () => unawaited(_opening.open(browse: true)),
       );
     }
-    return ProjectImportPage(
-      state: state,
-      busy: _opening.picking,
-      pickerError: _opening.error,
-      onImport: () => unawaited(_opening.open(browse: true)),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (ready) _builder(project),
+        ProjectLoadingScreen(
+          key: ObjectKey(progress),
+          progress: progress,
+          subtitle: ready ? project.name : state.requestedPath ?? '',
+        ),
+      ],
     );
   }
+
+  Widget _builder(ProjectSession project) => MapBuilderPage(
+    key: ValueKey(project.sessionId),
+    session: project,
+    onHome: _session.close,
+    progress: _session.state.progress,
+  );
 }

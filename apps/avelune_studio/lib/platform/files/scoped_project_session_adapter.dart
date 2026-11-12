@@ -13,9 +13,12 @@ final class ScopedProjectSessionAdapter implements ProjectSessionPort {
   final MethodChannel _channel;
 
   @override
-  Future<ProjectSession> open(String directoryPath) async {
+  Future<ProjectSession> open(
+    String directoryPath, {
+    void Function(ProjectOpeningPhase phase)? onPhase,
+  }) async {
     await _invoke('activateProjectDirectory', directoryPath);
-    final session = await _delegate.open(directoryPath);
+    final session = await _delegate.open(directoryPath, onPhase: onPhase);
     await _invoke('rememberProjectDirectory', session.directoryPath);
     await _invoke('activateProjectDirectory', session.directoryPath);
     return session;

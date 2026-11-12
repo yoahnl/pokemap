@@ -165,8 +165,10 @@ class _ExportSessions implements ProjectSessionPort {
   final ProjectSession second;
 
   @override
-  Future<ProjectSession> open(String directoryPath) async =>
-      directoryPath == first.directoryPath ? first : second;
+  Future<ProjectSession> open(
+    String directoryPath, {
+    void Function(ProjectOpeningPhase phase)? onPhase,
+  }) async => directoryPath == first.directoryPath ? first : second;
 
   @override
   Future<void> close(ProjectSession session) async {}

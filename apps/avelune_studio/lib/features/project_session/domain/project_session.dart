@@ -16,8 +16,13 @@ class ProjectSession {
   final List<String> recoveryOperationIds;
 }
 
+enum ProjectOpeningPhase { project, workshop, map, resources, palette, scene }
+
 abstract interface class ProjectSessionPort {
-  Future<ProjectSession> open(String directoryPath);
+  Future<ProjectSession> open(
+    String directoryPath, {
+    void Function(ProjectOpeningPhase phase)? onPhase,
+  });
   Future<void> close(ProjectSession session);
 }
 

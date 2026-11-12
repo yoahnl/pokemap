@@ -17,7 +17,10 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
   final WorkspaceHandleStore _handles;
 
   @override
-  Future<ProjectSession> open(String directoryPath) async {
+  Future<ProjectSession> open(
+    String directoryPath, {
+    void Function(ProjectOpeningPhase phase)? onPhase,
+  }) async {
     final selectedPath = directoryPath;
     _requirePreservedPath(selectedPath);
     if (!p.isAbsolute(selectedPath) ||
@@ -57,6 +60,7 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
         catalogMetadataFields: const {},
       );
       final opened = await service.openProject(canonicalPath);
+      onPhase?.call(ProjectOpeningPhase.workshop);
       final catalog = opened.recoveryRequired
           ? null
           : await service.catalogProject(opened.projectHandle);

@@ -73,6 +73,49 @@
   "railProjectSettings": "Réglages du projet",
   "homeImportProject": "Importer un projet",
   "homePickerFailed": "Le sélecteur de dossier n’a pas pu s’ouvrir. Réessayez.",
+  "openingTitle": "Ouverture du projet",
+  "openingPhaseProject": "Lecture du projet",
+  "openingPhaseWorkshop": "Préparation de l’atelier",
+  "openingPhaseMap": "Carte de départ",
+  "openingPhaseResources": "Ressources visuelles",
+  "openingPhasePalette": "Palette de construction",
+  "openingPhaseScene": "Scène de la carte",
+  "openingPercent": "{percent} %",
+  "@openingPercent": {
+    "description": "Completion percentage of a project opening phase or of the whole opening.",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "openingCount": "{completed} / {total} · {percent} %",
+  "@openingCount": {
+    "description": "Counted progress of a project opening phase.",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "openingElapsed": "{seconds} s",
+  "@openingElapsed": {
+    "description": "Time a finished project opening phase took, in seconds.",
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "openingRunning": "En cours…",
+  "openingSkipped": "Sans objet",
+  "openingFailed": "Échec",
   "openProblemInvalidPath": "Ce chemin de projet n’est pas valide.",
   "openProblemPathNotPreserved": "Le Studio ne peut pas conserver l’accès à ce dossier.",
   "openProblemDirectoryUnavailable": "Ce dossier est introuvable.",
