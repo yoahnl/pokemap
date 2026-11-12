@@ -46,14 +46,14 @@ void main() {
     );
     await harness.settle();
     expect(find.byKey(_tree), findsOneWidget);
-    expect(find.text('Sur cette carte  0'), findsOneWidget);
-    expect(find.text('Tout le projet  1'), findsOneWidget);
+    expect(find.text('Réservées  0'), findsOneWidget);
+    expect(find.text('Communes  1'), findsOneWidget);
 
-    await tester.tap(find.text('Sur cette carte  0'));
+    await tester.tap(find.text('Réservées  0'));
     await harness.settle();
     expect(find.byKey(_tree), findsNothing);
 
-    await tester.tap(find.text('Tout le projet  1'));
+    await tester.tap(find.text('Communes  1'));
     await harness.settle();
     await tester.tap(find.text('Intérieur'));
     await harness.settle();

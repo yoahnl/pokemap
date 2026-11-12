@@ -229,7 +229,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get statusBuilding => 'Construction';
 
   @override
-  String get resourceScopeMap => 'Sur cette carte';
+  String get resourceScopeMap => 'Réservée à cette carte';
 
   @override
   String get resourceScopeProject => 'Commune au projet';
@@ -367,12 +367,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String resourceFilterMap(int count) {
-    return 'Sur cette carte  $count';
+    return 'Réservées  $count';
   }
 
   @override
   String resourceFilterProject(int count) {
-    return 'Tout le projet  $count';
+    return 'Communes  $count';
   }
 
   @override

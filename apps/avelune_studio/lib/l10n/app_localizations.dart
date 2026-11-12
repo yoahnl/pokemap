@@ -503,7 +503,7 @@ abstract class AppLocalizations {
   /// No description provided for @resourceScopeMap.
   ///
   /// In fr, this message translates to:
-  /// **'Sur cette carte'**
+  /// **'Réservée à cette carte'**
   String get resourceScopeMap;
 
   /// No description provided for @resourceScopeProject.
@@ -767,13 +767,13 @@ abstract class AppLocalizations {
   /// No description provided for @resourceFilterMap.
   ///
   /// In fr, this message translates to:
-  /// **'Sur cette carte  {count}'**
+  /// **'Réservées  {count}'**
   String resourceFilterMap(int count);
 
   /// No description provided for @resourceFilterProject.
   ///
   /// In fr, this message translates to:
-  /// **'Tout le projet  {count}'**
+  /// **'Communes  {count}'**
   String resourceFilterProject(int count);
 
   /// No description provided for @resourceListTitle.

@@ -118,7 +118,7 @@
   "mapSearchEmpty": "Aucune carte trouvée",
   "tileChoiceUnavailable": "Le choix d’une tuile n’est pas encore disponible ici.",
   "statusBuilding": "Construction",
-  "resourceScopeMap": "Sur cette carte",
+  "resourceScopeMap": "Réservée à cette carte",
   "resourceScopeProject": "Commune au projet",
   "gridToggle": "Afficher la grille",
   "zoomOut": "Réduire le zoom",
@@ -176,7 +176,7 @@
       }
     }
   },
-  "resourceFilterMap": "Sur cette carte  {count}",
+  "resourceFilterMap": "Réservées  {count}",
   "@resourceFilterMap": {
     "placeholders": {
       "count": {
@@ -184,7 +184,7 @@
       }
     }
   },
-  "resourceFilterProject": "Tout le projet  {count}",
+  "resourceFilterProject": "Communes  {count}",
   "@resourceFilterProject": {
     "placeholders": {
       "count": {

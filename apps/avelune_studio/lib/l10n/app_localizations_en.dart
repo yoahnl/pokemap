@@ -229,7 +229,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusBuilding => 'Building';
 
   @override
-  String get resourceScopeMap => 'On this map';
+  String get resourceScopeMap => 'Reserved for this map';
 
   @override
   String get resourceScopeProject => 'Shared by the project';
@@ -367,12 +367,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String resourceFilterMap(int count) {
-    return 'On this map  $count';
+    return 'Reserved  $count';
   }
 
   @override
   String resourceFilterProject(int count) {
-    return 'Whole project  $count';
+    return 'Shared  $count';
   }
 
   @override
