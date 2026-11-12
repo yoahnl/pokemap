@@ -91,128 +91,6 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     return projection;
   }
 
-  Future<MapWorkspaceCatalog> _loadResourceKind(
-    ProjectSession session,
-    String canonicalKind,
-    bool placeableOnly,
-  ) async {
-    final kind = switch (canonicalKind) {
-      'tileset' => CatalogDefinitionKind.tileset,
-      'element' => CatalogDefinitionKind.element,
-      'model3d' => CatalogDefinitionKind.model3d,
-      'character' => CatalogDefinitionKind.character,
-      'environmentPreset' => CatalogDefinitionKind.environmentPreset,
-      'smartTilePreset' => CatalogDefinitionKind.smartTilePreset,
-      'borderBlueprint' => CatalogDefinitionKind.borderRecord,
-      _ => throw const FormatException('Famille de ressources inconnue.'),
-    };
-    final before = _project(session);
-    final reads = _resourceKindReads.putIfAbsent(session.sessionId, () => {});
-    final readKey = placeableOnly ? '$canonicalKind:placeable' : canonicalKind;
-    final cached = reads[readKey];
-    Future<MapWorkspaceCatalog> read() => _readScopedCatalog(
-      session,
-      (catalog, revision) async {
-        if (revision != before.revision) {
-          throw const MapWorkspaceFailure(
-            MapWorkspaceProblem.conflict,
-            'Le catalogue a changé avant le chargement de cette famille.',
-          );
-        }
-        final roots = <CatalogDefinitionKey>[];
-        String? cursor;
-        do {
-          final page = await catalog.snapshot.page(
-            kind: kind,
-            limit: catalog.snapshot.limits.indexPageSize,
-            cursor: cursor,
-          );
-          roots.addAll(page.items.map((entry) => entry.key));
-          cursor = page.nextCursor;
-        } while (cursor != null);
-        if (placeableOnly) {
-          final components = await _componentResources(catalog);
-          final resourceKind = kind == CatalogDefinitionKind.borderRecord
-              ? 'borderBlueprint'
-              : kind.name;
-          roots.removeWhere(
-            (key) => components.contains('$resourceKind:${key.id}'),
-          );
-        }
-        final manifest = await ProjectCatalogSelection(catalog).resolve(roots);
-        return MapWorkspaceCatalog(
-          metadata: manifest.copyWith(
-            models3d: ProjectModel3dEntries.prepare(manifest.models3d),
-          ),
-          revision: revision,
-        );
-      },
-      metadataFields: {
-        ..._mapCatalogMetadataFields,
-        ...MapWorkspaceWorkshop.resources.metadataFields,
-        if (canonicalKind == 'character') 'characterStudioCatalog',
-      },
-    );
-    final result = cached != null && cached.revision == before.revision
-        ? cached
-        : await read();
-    final latest = _project(session);
-    if (latest.revision != result.revision) {
-      throw const MapWorkspaceFailure(
-        MapWorkspaceProblem.conflict,
-        'Le catalogue a changé pendant le chargement de cette famille.',
-      );
-    }
-    reads
-      ..removeWhere((_, read) => read.revision != result.revision)
-      ..[readKey] = result;
-    _resourceSelections[session.sessionId] = result.metadata;
-    final selection = combineResourceVisuals(
-      _activeMapDefinitions[session.sessionId] ?? latest.manifest,
-      _workshopCharacterDefinitions[session.sessionId] == null
-          ? result.metadata
-          : combineResourceVisuals(
-              result.metadata,
-              _workshopCharacterDefinitions[session.sessionId]!,
-            ),
-    );
-    final borders = _borderSelections[session.sessionId];
-    final merged = mergeResourceSelection(
-      latest.manifest,
-      borders == null ? selection : combineResourceVisuals(selection, borders),
-      library: result.metadata.resourceLibraryCatalog,
-    );
-    _projects[session.sessionId] = _ProjectDocument(
-      latest.root,
-      merged.copyWith(models3d: ProjectModel3dEntries.prepare(merged.models3d)),
-      result.revision,
-      complete: false,
-      metadataFields: latest.metadataFields,
-    );
-    return result;
-  }
-
-  Future<Set<String>> _componentResources(
-    PortableProjectCatalog catalog,
-  ) async {
-    final components = <String>{};
-    String? cursor;
-    do {
-      final page = await catalog.snapshot.page(
-        kind: CatalogDefinitionKind.resourceLibraryEntry,
-        limit: catalog.snapshot.limits.indexPageSize,
-        cursor: cursor,
-      );
-      for (final entry in page.items) {
-        if (entry.summary.role == ResourceLibraryRole.component.name) {
-          components.add(entry.key.id);
-        }
-      }
-      cursor = page.nextCursor;
-    } while (cursor != null);
-    return components;
-  }
-
   Future<MapWorkspaceCatalog> _loadBorderSelection(
     ProjectSession session,
     String? blueprintId,
@@ -422,68 +300,81 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     Future<T> Function(PortableProjectCatalog catalog, String revision)
     action, {
     Set<String> metadataFields = _mapCatalogMetadataFields,
-  }) async {
-    final policy = await WorkspacePolicy.create(
-      allowedRootPaths: [session.directoryPath],
-      fileReader: _reader,
-    );
-    final handles = WorkspaceHandleStore();
-    final service = ProjectOpenService(
-      policy: policy,
-      fileReader: _reader,
-      handles: handles,
-      catalogMetadataFields: metadataFields,
-    );
-    final opened = await service.openProject(session.directoryPath);
-    try {
-      final source = await service.catalogProject(opened.projectHandle);
-      if (source == null) {
+  }) => _readScopedCatalogWith(
+    _reader,
+    session,
+    action,
+    metadataFields: metadataFields,
+  );
+}
+
+Future<T> _readScopedCatalogWith<T>(
+  ProjectFileReader reader,
+  ProjectSession session,
+  Future<T> Function(PortableProjectCatalog catalog, String revision)
+  action, {
+  Set<String> metadataFields = _mapCatalogMetadataFields,
+}) async {
+  final policy = await WorkspacePolicy.create(
+    allowedRootPaths: [session.directoryPath],
+    fileReader: reader,
+  );
+  final handles = WorkspaceHandleStore();
+  final service = ProjectOpenService(
+    policy: policy,
+    fileReader: reader,
+    handles: handles,
+    catalogMetadataFields: metadataFields,
+  );
+  final opened = await service.openProject(session.directoryPath);
+  try {
+    final source = await service.catalogProject(opened.projectHandle);
+    if (source == null) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.invalidDocument,
+        'Ce projet ne possède pas de catalogue partitionné.',
+      );
+    }
+    return await source.read((catalog) async {
+      final descriptor = await reader.readBytes(
+        projectRoot: session.directoryPath,
+        relativePath: 'project.json',
+      );
+      final head = session.storage == ProjectSessionStorage.workingCatalog
+          ? await reader.readBytes(
+              projectRoot: session.directoryPath,
+              relativePath: CatalogStorageStore.headStorageKey,
+            )
+          : null;
+      final revision = studioProjectDocumentRevision(
+        descriptorBytes: descriptor,
+        headBytes: head,
+      );
+      final result = await action(catalog, revision);
+      final observedDescriptor = await reader.readBytes(
+        projectRoot: session.directoryPath,
+        relativePath: 'project.json',
+      );
+      final observedHead = head == null
+          ? null
+          : await reader.readBytes(
+              projectRoot: session.directoryPath,
+              relativePath: CatalogStorageStore.headStorageKey,
+            );
+      if (studioProjectDocumentRevision(
+            descriptorBytes: observedDescriptor,
+            headBytes: observedHead,
+          ) !=
+          revision) {
         throw const MapWorkspaceFailure(
-          MapWorkspaceProblem.invalidDocument,
-          'Ce projet ne possède pas de catalogue partitionné.',
+          MapWorkspaceProblem.conflict,
+          'Le catalogue a changé pendant sa lecture.',
         );
       }
-      return await source.read((catalog) async {
-        final descriptor = await _reader.readBytes(
-          projectRoot: session.directoryPath,
-          relativePath: 'project.json',
-        );
-        final head = session.storage == ProjectSessionStorage.workingCatalog
-            ? await _reader.readBytes(
-                projectRoot: session.directoryPath,
-                relativePath: CatalogStorageStore.headStorageKey,
-              )
-            : null;
-        final revision = studioProjectDocumentRevision(
-          descriptorBytes: descriptor,
-          headBytes: head,
-        );
-        final result = await action(catalog, revision);
-        final observedDescriptor = await _reader.readBytes(
-          projectRoot: session.directoryPath,
-          relativePath: 'project.json',
-        );
-        final observedHead = head == null
-            ? null
-            : await _reader.readBytes(
-                projectRoot: session.directoryPath,
-                relativePath: CatalogStorageStore.headStorageKey,
-              );
-        if (studioProjectDocumentRevision(
-              descriptorBytes: observedDescriptor,
-              headBytes: observedHead,
-            ) !=
-            revision) {
-          throw const MapWorkspaceFailure(
-            MapWorkspaceProblem.conflict,
-            'Le catalogue a changé pendant sa lecture.',
-          );
-        }
-        return result;
-      });
-    } finally {
-      service.closeWorkspace(opened.workspaceHandle);
-    }
+      return result;
+    });
+  } finally {
+    service.closeWorkspace(opened.workspaceHandle);
   }
 }
 

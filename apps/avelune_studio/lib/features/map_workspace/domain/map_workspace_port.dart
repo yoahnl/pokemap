@@ -70,6 +70,14 @@ abstract interface class MapWorkspaceResourceKindPort {
   });
 }
 
+abstract interface class MapWorkspaceResourcePrefetchPort {
+  Future<void> prefetchResourceKind(
+    ProjectSession session,
+    String canonicalKind, {
+    bool placeableOnly = false,
+  });
+}
+
 abstract interface class MapWorkspaceBorderProfilePort {
   Future<MapWorkspaceCatalog> loadBorderProfiles(ProjectSession session);
   Future<MapWorkspaceCatalog> loadBorderBlueprint(

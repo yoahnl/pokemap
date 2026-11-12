@@ -3,6 +3,7 @@ import '../domain/spatial_model_visibility_port.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
+import 'dart:isolate';
 
 import 'package:map_authoring/map_authoring.dart'
     show AssetRecord, assetBlobStorageKey, probeProjectAudioSourceBytes;
@@ -44,6 +45,7 @@ part 'local_field_traversal_zone_adapter.dart';
 part 'local_map_workspace_catalog.dart';
 part 'local_map_workspace_working_catalog.dart';
 part 'local_map_workspace_scoped_catalog.dart';
+part 'local_map_workspace_resource_families.dart';
 
 final class LocalMapWorkspaceAdapter
     implements
@@ -52,6 +54,7 @@ final class LocalMapWorkspaceAdapter
         MapWorkspaceExternalMutationPort,
         MapWorkspaceWorkshopPort,
         MapWorkspaceResourceKindPort,
+        MapWorkspaceResourcePrefetchPort,
         MapWorkspaceBorderProfilePort,
         MapWorkspaceModelLightPort,
         MapAtmospherePort,
@@ -180,6 +183,13 @@ final class LocalMapWorkspaceAdapter
   }) => _loadResourceKind(session, canonicalKind, placeableOnly);
 
   @override
+  Future<void> prefetchResourceKind(
+    ProjectSession session,
+    String canonicalKind, {
+    bool placeableOnly = false,
+  }) => _prefetchResourceKind(session, canonicalKind, placeableOnly);
+
+  @override
   Future<MapWorkspaceCatalog> loadBorderProfiles(ProjectSession session) =>
       _loadBorderSelection(session, null);
 
@@ -238,7 +248,7 @@ final class LocalMapWorkspaceAdapter
   final AtomicMapDocumentPersistence _persistence;
   final _projects = <String, _ProjectDocument>{};
   final _resourceSelections = <String, ProjectManifest>{};
-  final _resourceKindReads = <String, Map<String, MapWorkspaceCatalog>>{};
+  final _resourceKindReads = <String, Map<String, _FamilyRead>>{};
   final _borderSelections = <String, ProjectManifest>{};
   final _activeMapDefinitions = <String, ProjectManifest>{};
   final _workshopCharacterDefinitions = <String, ProjectManifest>{};

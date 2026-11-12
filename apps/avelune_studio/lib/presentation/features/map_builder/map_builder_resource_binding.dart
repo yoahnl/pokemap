@@ -112,6 +112,7 @@ class MapBuilderResourceBinding {
     changed();
     try {
       await maps.ensureResourceKind(_kind, placeableOnly: true);
+      if (isActive()) unawaited(_prefetchOthers());
     } catch (failure) {
       if (isActive() && request == _request) {
         error = 'Ces ressources ne peuvent pas être chargées : $failure';
@@ -122,6 +123,16 @@ class MapBuilderResourceBinding {
         changed();
       }
     }
+  }
+
+  Future<void> _prefetchOthers() {
+    final dimension = maps.project?.settings.dimension ?? ProjectDimension.twoD;
+    final current = _kind;
+    return maps.prefetchResourceKinds({
+      for (final category in ResourceUsageCategory.values)
+        if (category.loadedKind(dimension) != current)
+          category.loadedKind(dimension),
+    }, placeableOnly: true);
   }
 
   Future<void> use(ResourceItem item) async {

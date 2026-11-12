@@ -474,6 +474,22 @@ class MapWorkspaceController {
     });
   }
 
+  Future<void> prefetchResourceKinds(
+    Iterable<String> kinds, {
+    bool placeableOnly = false,
+  }) async {
+    final source = port;
+    if (source is! MapWorkspaceResourcePrefetchPort) return;
+    for (final kind in kinds) {
+      if (_disposed || hasCompleteProject) return;
+      await (source as MapWorkspaceResourcePrefetchPort).prefetchResourceKind(
+        session,
+        kind,
+        placeableOnly: placeableOnly,
+      );
+    }
+  }
+
   ProjectManifest? _familyDefinitions;
   ProjectManifest? _borderDefinitions;
   bool _borderProfilesLoaded = false;

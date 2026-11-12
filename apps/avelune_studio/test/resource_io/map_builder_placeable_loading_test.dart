@@ -135,4 +135,28 @@ void main() {
       );
     },
   );
+
+  test('a prefetched family is ready before it is asked for', () async {
+    final maps = LocalMapWorkspaceAdapter();
+    await maps.loadCatalog(session);
+
+    await maps.prefetchResourceKind(session, 'model3d', placeableOnly: true);
+    final objects = Directory('${root.path}/catalog/objects');
+    final aside = await objects.rename('${root.path}/catalog/objects-aside');
+    addTearDown(() async {
+      if (await aside.exists()) await aside.rename(objects.path);
+    });
+    final loaded = await maps.loadResourceKind(
+      session,
+      'model3d',
+      placeableOnly: true,
+    );
+
+    expect(models(loaded), ['bed', 'lamp']);
+    await maps.prefetchResourceKind(session, 'smartTilePreset');
+    await expectLater(
+      maps.loadResourceKind(session, 'smartTilePreset'),
+      throwsA(anything),
+    );
+  });
 }

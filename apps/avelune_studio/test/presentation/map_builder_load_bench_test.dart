@@ -23,8 +23,18 @@ void main() {
     () => Zone.root.run(() async {
       Future<T> measure<T>(String label, Future<T> Function() body) async {
         final watch = Stopwatch()..start();
+        var last = 0;
+        var pause = 0;
+        final ticks = Timer.periodic(const Duration(milliseconds: 5), (_) {
+          final now = watch.elapsedMilliseconds;
+          if (now - last > pause) pause = now - last;
+          last = now;
+        });
         final result = await body();
-        stdout.writeln('bench $label ms=${watch.elapsedMilliseconds}');
+        ticks.cancel();
+        stdout.writeln(
+          'bench $label ms=${watch.elapsedMilliseconds} longestPauseMs=$pause',
+        );
         return result;
       }
 
