@@ -364,9 +364,10 @@ AuthoringMutationDraft buildVisualManifestDraft(
   Object? after,
   Map<String, Object?> referenceImpact = const {},
   List<int>? encodedManifest,
+  bool validateProject = true,
 }) {
   try {
-    ProjectValidator.validate(manifest);
+    if (validateProject) ProjectValidator.validate(manifest);
   } on Object catch (error) {
     throw VisualLibraryException(
       'visual.projected_state_invalid',

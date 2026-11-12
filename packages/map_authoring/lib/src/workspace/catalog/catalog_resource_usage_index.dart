@@ -77,6 +77,25 @@ abstract final class CatalogResourceUsageIndex {
         .isNotEmpty;
   }
 
+  static Future<Set<String>> consumerOwners(
+      CatalogSnapshot snapshot, String identity) async {
+    await requirePrepared(snapshot);
+    final owners = <String>{};
+    final consumers =
+        await snapshot.lookup(_key('resourceUsageConsumers', identity));
+    for (final source in _strings(consumers, identity, 'sources')) {
+      final document =
+          await snapshot.lookup(_key('resourceUsageSource', source));
+      if (document == null ||
+          document.payload['identity'] != source ||
+          !(document.payload['targets'] as List).contains(identity)) {
+        throw const FormatException('catalog.resource_usage.stale_consumer');
+      }
+      owners.add(document.payload['owner'] as String);
+    }
+    return owners;
+  }
+
   static Future<Set<String>> mapUsages(
       CatalogSnapshot snapshot, String kind, String id, Iterable<String> mapIds,
       {Future<Iterable<String>> Function()? readMapIds}) async {

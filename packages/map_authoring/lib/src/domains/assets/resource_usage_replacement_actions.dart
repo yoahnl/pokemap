@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
@@ -79,7 +81,9 @@ final class ResourceUsageReplacementActions {
         .analyze(snapshot, ResourceUsageTarget(family: family, id: resourceId));
     final loadedMaps = snapshot.maps.map((map) => map.id).toSet();
     final declaredMaps = manifest.maps.map((map) => map.id).toSet();
-    if (!report.complete ||
+    final scoped = snapshot.materializedCatalogProject &&
+        snapshot.scopedStorageRevisions != null;
+    if (!scoped && !report.complete ||
         !loadedMaps.containsAll(declaredMaps) ||
         !declaredMaps.containsAll(loadedMaps)) {
       throw VisualLibraryException('resource.usages.inventory_incomplete',
@@ -90,16 +94,32 @@ final class ResourceUsageReplacementActions {
         ? RegExp(r'^\$\.spatialScene\.instances\[(\d+)\]\.modelId$')
         : RegExp(r'^\$\.placedElements\[(\d+)\]\.elementId$');
     final occurrences = <String, List<int>>{};
+    final borderIds = <String>{};
+    final borderMaps = <String>{};
     final unsupported = <ResourceUsageEntry>[];
     for (final entry in report.entries) {
+      if (spatial && entry.ownerKind == 'border') {
+        borderIds.add(entry.ownerId);
+        continue;
+      }
       final mapId = entry.mapId;
       final prefix = 'map:$mapId:';
-      final match = mapId != null &&
+      final local = mapId != null &&
               entry.ownerKind == 'map' &&
-              entry.relation == ResourceUsageRelation.direct &&
               entry.location.startsWith(prefix)
-          ? pattern.firstMatch(entry.location.substring(prefix.length))
+          ? entry.location.substring(prefix.length)
           : null;
+      if (spatial &&
+          local != null &&
+          entry.relation != ResourceUsageRelation.direct &&
+          local.endsWith('.blueprintId')) {
+        borderMaps.add(mapId!);
+        continue;
+      }
+      final match =
+          local != null && entry.relation == ResourceUsageRelation.direct
+              ? pattern.firstMatch(local)
+              : null;
       if (match == null) {
         unsupported.add(entry);
       } else {
@@ -108,16 +128,33 @@ final class ResourceUsageReplacementActions {
     }
     if (unsupported.isNotEmpty) {
       throw VisualLibraryException('resource.usages.unsupported_usages',
-          'Some usages are not map placements and cannot be replaced here. Nothing was replaced.',
+          'Some usages are not map placements or Border pieces and cannot be replaced here. Nothing was replaced.',
           details: {
             'usages': [for (final entry in unsupported) entry.toJson()]
           });
     }
-    if (occurrences.isEmpty) {
+    if (occurrences.isEmpty && borderIds.isEmpty) {
       return AuthoringMutationDraft(
           changeSet: AuthoringChangeSet.noChanges(),
           preview: _preview(family, resourceId, replacementId, const []));
     }
+    final interchangeable = spatial && _interchangeable(models[resourceId]!, models[replacementId]!);
+    final borderCatalog = manifest.borderCatalog;
+    final project = borderIds.isEmpty
+        ? manifest
+        : manifest.copyWith(
+            borderCatalog: ProjectBorderCatalog(
+                formatVersion: borderCatalog.formatVersion,
+                records: [
+                  for (final record in borderCatalog.records)
+                    borderIds.contains(record.id)
+                        ? repointModelInBorderRecord(record,
+                            modelId: resourceId,
+                            replacementId: replacementId,
+                            formatVersion: borderCatalog.formatVersion)
+                        : record
+                ],
+                visualSnapshots: borderCatalog.visualSnapshots));
     final tileSize = PixelSize(
         width: manifest.settings.tileWidth,
         height: manifest.settings.tileHeight);
@@ -125,16 +162,30 @@ final class ResourceUsageReplacementActions {
     final diffs = <AuthoringDiffEntry>[];
     final scope = <Map<String, Object?>>[];
     for (final map in snapshot.maps) {
-      final indexes = occurrences[map.id];
-      if (indexes == null) continue;
+      if (!occurrences.containsKey(map.id) && !borderMaps.contains(map.id)) {
+        continue;
+      }
+      final owned = {
+        for (final layer in map.layers.whereType<BorderLayer>())
+          for (final feature in layer.content.features)
+            if (borderIds.contains(feature.blueprintId))
+              ...feature.generatedPlacementIds
+      };
+      final regenerates = map.layers.whereType<BorderLayer>().any((layer) =>
+          layer.content.features
+              .any((feature) => borderIds.contains(feature.blueprintId)));
       final instanceIds = [
-        for (final index in indexes)
+        for (final index in occurrences[map.id] ?? const <int>[])
           spatial
               ? map.spatialScene!.instances[index].id
               : map.placedElements[index].id
       ];
+      final direct = [
+        for (final id in instanceIds)
+          if (!owned.contains(id)) id
+      ];
       var next = map;
-      for (final instanceId in instanceIds) {
+      for (final instanceId in direct) {
         try {
           next = spatial
               ? replaceSpatialInstanceModel(next,
@@ -144,6 +195,18 @@ final class ResourceUsageReplacementActions {
                   element: elements[replacementId]!,
                   tileSize: tileSize);
         } on MapResourceReplacementException catch (refusal) {
+          if (interchangeable &&
+              refusal.reason == MapResourceReplacementRefusal.borderOwned) {
+            final scene = next.spatialScene!;
+            next = next.copyWith(
+                spatialScene: scene.copyWith(instances: [
+              for (final instance in scene.instances)
+                instance.id == instanceId
+                    ? instance.copyWith(modelId: replacementId)
+                    : instance
+            ]));
+            continue;
+          }
           throw VisualLibraryException(
               'resource.usages.replacement_incompatible',
               'An occurrence cannot use the replacement. Nothing was replaced.',
@@ -154,7 +217,37 @@ final class ResourceUsageReplacementActions {
               });
         }
       }
-      MapValidator.validate(next, projectDialogueContext: manifest);
+      if (regenerates) {
+        try {
+          next = repointModelInMap(next,
+              before: manifest,
+              after: project,
+              modelId: resourceId,
+              replacementId: replacementId,
+              blueprintIds: borderIds,
+              keepStaleBorders: interchangeable);
+        } on Model3dMergeException catch (refusal) {
+          throw VisualLibraryException(
+              'resource.usages.border_regeneration_refused',
+              'A Border using this model cannot be regenerated identically. Nothing was replaced.',
+              details: {
+                'mapId': refusal.mapId,
+                'featureId': refusal.featureId,
+                'reason': refusal.reason.name
+              });
+        }
+      }
+      if (next == map) continue;
+      MapValidator.validate(next,
+          projectDialogueContext: scoped ? null : project);
+      final repointed = [
+        ...direct,
+        for (final id in owned)
+          if (next.spatialScene?.instances
+                  .any((instance) => instance.id == id) ==
+              true)
+            id
+      ];
       final resource = AuthoringResourceRef(
           kind: 'map',
           id: map.id,
@@ -170,24 +263,50 @@ final class ResourceUsageReplacementActions {
           operation: AuthoringDiffOperation.replace,
           resource: resource,
           path: spatial ? '/spatialScene/instances' : '/placedElements',
-          before: {for (final id in instanceIds) id: resourceId},
-          after: {for (final id in instanceIds) id: replacementId}));
+          before: {for (final id in repointed) id: resourceId},
+          after: {for (final id in repointed) id: replacementId}));
       scope.add({
         'mapId': map.id,
         'mapName': map.name,
-        'instanceIds': instanceIds,
+        'instanceIds': repointed,
       });
+    }
+    final sortedBorders = borderIds.toList()..sort();
+    if (borderIds.isNotEmpty) {
+      final manifestDraft = buildVisualManifestDraft(snapshot, project,
+          operation: actionId,
+          path: '/borderCatalog/records',
+          validateProject: !scoped,
+          before: {for (final id in sortedBorders) id: resourceId},
+          after: {for (final id in sortedBorders) id: replacementId});
+      changes.addAll(manifestDraft.changeSet.changes);
+      diffs.addAll(manifestDraft.changeSet.diff.entries);
     }
     return AuthoringMutationDraft(
       changeSet:
           AuthoringChangeSet(changes: changes, diff: AuthoringDiff(diffs)),
-      preview: _preview(family, resourceId, replacementId, scope),
+      projectedProject: borderIds.isEmpty ? null : project,
+      preview: {
+        ..._preview(family, resourceId, replacementId, scope),
+        if (borderIds.isNotEmpty) 'definitionsUnchanged': false,
+        if (borderIds.isNotEmpty) 'repointedBorderIds': sortedBorders,
+      },
       referenceImpact: {
         'replacedMapIds': [for (final entry in scope) entry['mapId']],
         'occurrenceCount': _occurrenceCount(scope),
-        'definitionsUnchanged': true,
+        'definitionsUnchanged': borderIds.isEmpty,
+        if (borderIds.isNotEmpty) 'repointedBorderIds': sortedBorders,
       },
     );
+  }
+
+  bool _interchangeable(ProjectModel3dEntry model, ProjectModel3dEntry other) {
+    Map<String, Object?> settings(ProjectModel3dEntry value) => value.toJson()
+      ..remove('id')
+      ..remove('name')
+      ..remove('sourceAssetId')
+      ..remove('relativePath');
+    return jsonEncode(settings(model)) == jsonEncode(settings(other));
   }
 
   Map<String, Object?> _preview(String family, String resourceId,

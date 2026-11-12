@@ -255,6 +255,7 @@ final class SpatialModelInstance {
   }
 
   SpatialModelInstance copyWith({
+    String? modelId,
     Model3dVector3? position,
     double? rotationDegrees,
     double? scale,
@@ -273,7 +274,7 @@ final class SpatialModelInstance {
     bool clearVisibilityCondition = false,
   }) => SpatialModelInstance(
     id: id,
-    modelId: modelId,
+    modelId: modelId ?? this.modelId,
     position: position ?? this.position,
     rotationDegrees: rotationDegrees ?? this.rotationDegrees,
     scale: scale ?? this.scale,

@@ -75,6 +75,46 @@ final class CatalogScopedWorkingMutation {
     final nextShell = Map<String, Object?>.from(oldShell);
     final upserts = <CatalogDefinitionUnit>[];
     final removals = <CatalogDefinitionKey>[];
+    if (publicPlan.request.actionId == 'resource.usages.replace') {
+      final parameters = publicPlan.request.parameters;
+      final formatVersion = before.borderCatalog.formatVersion;
+      String record(BorderBlueprintRecord value) => canonicalAuthoringJson(
+          encodeBorderBlueprintRecordJson(value, formatVersion: formatVersion));
+      final previous = {
+        for (final value in before.borderCatalog.records) value.id: value
+      };
+      final next = projected.borderCatalog.records;
+      if (next.length != previous.length ||
+          projected.borderCatalog.formatVersion != formatVersion) {
+        throw const FormatException(
+            'catalog.usage_replacement: Border records added or removed');
+      }
+      for (final value in next) {
+        final original = previous[value.id];
+        if (original == null ||
+            (record(original) != record(value) &&
+                record(repointModelInBorderRecord(original,
+                        modelId: parameters['resourceId'] as String,
+                        replacementId: parameters['replacementId'] as String,
+                        formatVersion: formatVersion)) !=
+                    record(value))) {
+          throw const FormatException(
+              'catalog.usage_replacement: a Border record changed outside the model repoint');
+        }
+      }
+      for (final change in additional) {
+        if (change.resource.kind != 'map' ||
+            selection.snapshot.resourceStorageKeys['map:${change.resource.id}'] !=
+                change.storageKey ||
+            change.afterPayload == null) {
+          throw const FormatException(
+              'catalog.usage_replacement: a change outside the selected maps');
+        }
+        MapValidator.validate(MapData.fromJson(Map<String, dynamic>.from(
+            jsonDecode(utf8.decode(await change.afterPayload!.readBytes()))
+                as Map)));
+      }
+    }
     if (publicPlan.request.actionId == 'model3d.configure') {
       final previous = before.models3d.single;
       final next = projected.models3d.single;

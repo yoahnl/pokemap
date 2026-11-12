@@ -576,6 +576,12 @@ BorderDiagnosticsReport diagnoseSpatialBorderFeature({
   return BorderDiagnosticsReport(diagnostics: diagnostics);
 }
 
+bool spatialBorderMaterializationIsFresh(
+  SpatialBorderResolutionResult resolved,
+  BorderMaterialization materialization,
+  MapData map,
+) => _matchesStoredSpatialBorder(resolved, materialization, map);
+
 bool _matchesStoredSpatialBorder(
   SpatialBorderResolutionResult resolved,
   BorderMaterialization materialization,

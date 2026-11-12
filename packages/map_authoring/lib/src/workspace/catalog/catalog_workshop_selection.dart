@@ -41,6 +41,7 @@ part 'catalog_map_creation_selection.dart';
 part 'catalog_map_metadata_selection.dart';
 part 'catalog_contextual_item_scope.dart';
 part 'catalog_asset_import_selection.dart';
+part 'catalog_usage_replacement_selection.dart';
 part 'catalog_native_resource_selection.dart';
 part 'catalog_presentation_reset_selection.dart';
 part 'catalog_scene_workshop_selection.dart';
@@ -93,6 +94,8 @@ final class CatalogWorkshopSelection {
 
   static bool supports(String action, {Map<String, Object?>? parameters}) =>
       action == 'model3d.prune_unused' ||
+      (action == 'resource.usages.replace' &&
+          parameters?['family'] == 'models3d') ||
       const {'resource.classify', 'resource.classify_batch', 'resource.family.create',
         'resource.family.update', 'resource.family.delete'}.contains(action) ||
       (action == 'model3d.configure' &&
@@ -190,6 +193,11 @@ final class CatalogWorkshopSelection {
         !const {'model3d.import', 'model3d.import_batch', 'tileset.import_image'}.contains(actionId) &&
         !supports(actionId, parameters: parameters)) {
       unsupported(actionId);
+    }
+    if (actionId == 'resource.usages.replace') {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readUsageReplacementWorkshop(
+          reader: reader, projectHandle: projectHandle, parameters: parameters);
     }
     if (actionId == 'model3d.prune_unused') {
       if (readDependencies.isNotEmpty) unsupported(actionId);

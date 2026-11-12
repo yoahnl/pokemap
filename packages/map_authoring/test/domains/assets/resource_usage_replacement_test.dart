@@ -5,6 +5,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../maps/border_spatial_actions_test.dart'
+    show spatialBorderAuthoringFixture;
 import '../maps/map_catalog_fixture.dart';
 import 'element_definition_fixture.dart';
 import 'element_definition_transaction_test.dart'
@@ -177,6 +179,136 @@ void main() {
         throwsA(isA<VisualLibraryException>().having((e) => e.code, 'code',
             'resource.usages.replacement_incompatible')));
   });
+
+  test(
+      'Border pieces of a duplicate model are repointed and regenerated identically',
+      () {
+    final base = spatialBorderAuthoringFixture(published: true);
+    SpatialBorderResolutionResult resolve(
+            ProjectManifest project, MapData map) =>
+        resolveSpatialBorderFeature(
+            manifest: project, map: map, layerId: 'border', featureId: 'fence');
+    final map = applySpatialBorderFeaturePreview(base.map,
+        manifest: base.project,
+        proposedResult: resolve(base.project, base.map));
+    final tree =
+        base.project.models3d.singleWhere((model) => model.id == 'tree');
+    final copy = ProjectModel3dEntry.fromJson({
+      ...tree.toJson(),
+      'id': 'tree-copy',
+      'sourceAssetId': tree.sourceAssetId.replaceAll('tree', 'tree-copy'),
+      'relativePath': tree.relativePath.replaceAll('tree', 'tree-copy'),
+    });
+    final manifest = base.project.copyWith(
+      models3d: [...base.project.models3d, copy],
+      maps: [
+        ProjectMapEntry(
+            id: map.id, name: map.name, relativePath: 'maps/${map.id}.json')
+      ],
+    );
+    final draft = const ResourceUsageReplacementActions().build(catalogContext(
+        _withAssetCatalog(catalogSnapshot([map], project: manifest)),
+        'resource.usages.replace', {
+      'family': 'models3d',
+      'resourceId': 'tree',
+      'replacementId': 'tree-copy',
+    }));
+
+    expect(draft.preview['repointedBorderIds'], ['fence']);
+    expect(draft.referenceImpact['definitionsUnchanged'], isFalse);
+    final project = draft.projectedProject!;
+    final record = project.borderCatalog.records.single;
+    expect(
+        record.latestPublished!.revision,
+        base.project.borderCatalog.records.single.latestPublished!.revision +
+            1);
+    final change = draft.changeSet.changes
+        .singleWhere((change) => change.resource.kind == 'map');
+    final after = MapData.fromJson(
+        jsonDecode(utf8.decode(change.afterBytes!)) as Map<String, dynamic>);
+    expect(after.spatialScene!.instances.where((i) => i.modelId == 'tree'),
+        isEmpty);
+    final feature =
+        (after.layers.single as BorderLayer).content.features.single;
+    expect(
+        spatialBorderMaterializationIsFresh(
+            resolve(project, after), feature.materialization!, after),
+        isTrue);
+    expect({
+      for (final instance in after.spatialScene!.instances)
+        instance.id: instance
+    }, {
+      for (final instance in map.spatialScene!.instances)
+        instance.id: instance.modelId == 'tree'
+            ? instance.copyWith(modelId: 'tree-copy')
+            : instance
+    });
+  });
+
+  test('instances of a Border that no longer uses the model follow an identical copy only',
+      () {
+    final base = spatialBorderAuthoringFixture(published: true);
+    final map = applySpatialBorderFeaturePreview(base.map,
+        manifest: base.project,
+        proposedResult: resolveSpatialBorderFeature(
+            manifest: base.project,
+            map: base.map,
+            layerId: 'border',
+            featureId: 'fence'));
+    final tree = base.project.models3d.singleWhere((model) => model.id == 'tree');
+    ProjectModel3dEntry copyOf(String id, {Map<String, Object?> changes = const {}}) =>
+        ProjectModel3dEntry.fromJson({
+          ...tree.toJson(),
+          'id': id,
+          'sourceAssetId': tree.sourceAssetId.replaceAll('tree', id),
+          'relativePath': tree.relativePath.replaceAll('tree', id),
+          ...changes,
+        });
+    final catalog = base.project.borderCatalog;
+    final moved = base.project.copyWith(
+      models3d: [
+        ...base.project.models3d,
+        copyOf('other'),
+        copyOf('tree-copy'),
+        copyOf('tree-bigger', changes: {'scale': 2.0}),
+      ],
+      borderCatalog: ProjectBorderCatalog(
+          formatVersion: catalog.formatVersion,
+          records: [
+            for (final record in catalog.records)
+              repointModelInBorderRecord(record,
+                  modelId: 'tree',
+                  replacementId: 'other',
+                  formatVersion: catalog.formatVersion)
+          ],
+          visualSnapshots: catalog.visualSnapshots),
+      maps: [
+        ProjectMapEntry(
+            id: map.id, name: map.name, relativePath: 'maps/${map.id}.json')
+      ],
+    );
+    AuthoringMutationDraft replace(String replacement) =>
+        const ResourceUsageReplacementActions().build(catalogContext(
+            _scoped(_withAssetCatalog(catalogSnapshot([map], project: moved))),
+            'resource.usages.replace', {
+          'family': 'models3d',
+          'resourceId': 'tree',
+          'replacementId': replacement,
+        }));
+
+    final draft = replace('tree-copy');
+    final after = MapData.fromJson(jsonDecode(
+            utf8.decode(draft.changeSet.changes.single.afterBytes!))
+        as Map<String, dynamic>);
+    expect(after.spatialScene!.instances.where((i) => i.modelId == 'tree'),
+        isEmpty);
+    expect((after.layers.single as BorderLayer).content.features.single.materialization,
+        (map.layers.single as BorderLayer).content.features.single.materialization);
+    expect(
+        () => replace('tree-bigger'),
+        throwsA(isA<VisualLibraryException>().having((e) => e.code, 'code',
+            'resource.usages.replacement_incompatible')));
+  });
 }
 
 Map<String, Object?> _parameters({String replacement = 'bush'}) => {
@@ -301,3 +433,18 @@ ProjectSnapshot _withAssetCatalog(ProjectSnapshot base) {
     },
   );
 }
+
+ProjectSnapshot _scoped(ProjectSnapshot base) => ProjectSnapshot(
+      projectHandle: base.projectHandle,
+      revision: base.revision,
+      manifest: base.manifest,
+      maps: base.maps,
+      pokemonInventoryComplete: true,
+      materializedCatalogProject: true,
+      scopedStorageRevisions: const {},
+      resourceFingerprints: base.resourceFingerprints,
+      resourceBytes: {
+        for (final identity in base.resourceFingerprints.keys)
+          identity: base.resourceBytes(identity),
+      },
+    );
