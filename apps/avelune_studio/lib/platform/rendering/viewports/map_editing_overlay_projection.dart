@@ -80,7 +80,8 @@ MapEditingOverlay buildEditingOverlay({
     labelBackground: colors.surface,
     labelForeground: colors.onSurface,
     collisionColor:
-        view.tool == StudioMapTool.collisionPaint ||
+        view.revealCollisions ||
+            view.tool == StudioMapTool.collisionPaint ||
             view.tool == StudioMapTool.collisionErase
         ? colors.error
         : null,

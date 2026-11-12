@@ -834,4 +834,116 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get facingWest => 'Gauche';
+
+  @override
+  String get movementPaint => 'Bloquer des cases';
+
+  @override
+  String get movementErase => 'Débloquer des cases';
+
+  @override
+  String get movementObstacles => 'Cases bloquées';
+
+  @override
+  String get movementBrushHint =>
+      'Peignez sur la carte : les cases en rouge arrêtent le joueur.';
+
+  @override
+  String get movementZones => 'Zones de déplacement';
+
+  @override
+  String get movementNoZone => 'Aucune zone de déplacement sur cette carte.';
+
+  @override
+  String get movementAddRequired => 'Zone à mode requis';
+
+  @override
+  String get movementAddEffect => 'Zone à effet de surface';
+
+  @override
+  String get movementAddZone => 'Ajouter une zone';
+
+  @override
+  String get zoneDrawHint =>
+      'Tracez un rectangle sur la carte, ou cliquez sur une zone existante.';
+
+  @override
+  String get zoneNew => 'Nouvelle zone';
+
+  @override
+  String get movementZoneEyebrow => 'ZONE DE DÉPLACEMENT';
+
+  @override
+  String get movementRequiredMode => 'Mode de déplacement requis';
+
+  @override
+  String get movementEffectKind => 'Effet';
+
+  @override
+  String get movementCost => 'Coût par case';
+
+  @override
+  String get movementCostInvalid => 'Entier positif attendu';
+
+  @override
+  String get zoneName => 'Nom';
+
+  @override
+  String get zoneDelete => 'Supprimer cette zone';
+
+  @override
+  String get zoneKindMovement => 'Mode requis';
+
+  @override
+  String get zoneKindMovementEffect => 'Effet de surface';
+
+  @override
+  String get movementModeWalk => 'À pied';
+
+  @override
+  String get movementModeSurf => 'En surf';
+
+  @override
+  String get movementModeDive => 'Sous l’eau (Plongée)';
+
+  @override
+  String get movementModeFly => 'En vol';
+
+  @override
+  String get movementModeCut => 'Après avoir coupé';
+
+  @override
+  String get movementModeBicycle => 'À vélo';
+
+  @override
+  String get movementModeStrength => 'Avec Force';
+
+  @override
+  String get movementModeRockSmash => 'Après Éclate-Roc';
+
+  @override
+  String get effectSlide => 'Glissade (glace)';
+
+  @override
+  String get effectMovementCost => 'Coût de déplacement';
+
+  @override
+  String get effectDirectedJump => 'Saut dirigé';
+
+  @override
+  String movementBlockedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cases bloquées',
+      one: '1 case bloquée',
+      zero: 'Aucune case bloquée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String zoneArea(int x, int y, int width, int height) {
+    return 'Cases $x, $y · $width × $height';
+  }
 }

@@ -2,7 +2,9 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_connection_form.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_movement_zone_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_spawn_form.dart';
@@ -60,6 +62,15 @@ class MapBuilderGameplayInspector extends StatelessWidget {
         enabled: enabled,
       );
     }
+    final zone = binding.selectedZone;
+    if (zone != null && mapBuilderMovementZoneKinds.contains(zone.kind)) {
+      return MapBuilderMovementZoneForm(
+        key: ValueKey('zone-${map.id}-${zone.id}'),
+        binding: binding,
+        zone: zone,
+        enabled: enabled,
+      );
+    }
     final connection = binding.selectedConnection;
     if (connection != null || binding.draftingConnection) {
       return MapBuilderConnectionForm(
@@ -73,19 +84,34 @@ class MapBuilderGameplayInspector extends StatelessWidget {
     if (binding.draftingWarp) {
       return _WarpPlacement(binding: binding, enabled: enabled);
     }
+    if (binding.draftingZone) {
+      return _Placement(
+        placementKey: 'map-gameplay-zone-placement',
+        eyebrow: context.l10n.movementZoneEyebrow,
+        title: context.l10n.zoneNew,
+        hint: context.l10n.zoneDrawHint,
+        binding: binding,
+      );
+    }
+    if (binding.tool == StudioMapTool.collisionPaint ||
+        binding.tool == StudioMapTool.collisionErase) {
+      return _Placement(
+        placementKey: 'map-gameplay-collision-brush',
+        eyebrow: outline.inspectorEyebrow,
+        title: binding.tool == StudioMapTool.collisionPaint
+            ? context.l10n.movementPaint
+            : context.l10n.movementErase,
+        hint: context.l10n.movementBrushHint,
+        binding: binding,
+      );
+    }
     if (binding.draftingSpawn) {
-      return Column(
-        key: const ValueKey('map-gameplay-spawn-placement'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _Heading(
-            eyebrow: context.l10n.spawnEyebrow,
-            title: context.l10n.spawnNew,
-            hint: context.l10n.spawnPlaceHint,
-          ),
-          const SizedBox(height: StudioSpacing.l),
-          _CancelPlacement(binding: binding),
-        ],
+      return _Placement(
+        placementKey: 'map-gameplay-spawn-placement',
+        eyebrow: context.l10n.spawnEyebrow,
+        title: context.l10n.spawnNew,
+        hint: context.l10n.spawnPlaceHint,
+        binding: binding,
       );
     }
     return _Heading(
@@ -141,6 +167,33 @@ class _WarpPlacement extends StatelessWidget {
       ],
     );
   }
+}
+
+class _Placement extends StatelessWidget {
+  const _Placement({
+    required this.placementKey,
+    required this.eyebrow,
+    required this.title,
+    required this.hint,
+    required this.binding,
+  });
+
+  final String placementKey;
+  final String eyebrow;
+  final String title;
+  final String hint;
+  final MapBuilderGameplayBinding binding;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    key: ValueKey(placementKey),
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _Heading(eyebrow: eyebrow, title: title, hint: hint),
+      const SizedBox(height: StudioSpacing.l),
+      _CancelPlacement(binding: binding),
+    ],
+  );
 }
 
 class _CancelPlacement extends StatelessWidget {

@@ -398,5 +398,61 @@
   "facingNorth": "Haut",
   "facingSouth": "Bas",
   "facingEast": "Droite",
-  "facingWest": "Gauche"
+  "facingWest": "Gauche",
+  "movementPaint": "Bloquer des cases",
+  "movementErase": "Débloquer des cases",
+  "movementObstacles": "Cases bloquées",
+  "movementBrushHint": "Peignez sur la carte : les cases en rouge arrêtent le joueur.",
+  "movementZones": "Zones de déplacement",
+  "movementNoZone": "Aucune zone de déplacement sur cette carte.",
+  "movementAddRequired": "Zone à mode requis",
+  "movementAddEffect": "Zone à effet de surface",
+  "movementAddZone": "Ajouter une zone",
+  "zoneDrawHint": "Tracez un rectangle sur la carte, ou cliquez sur une zone existante.",
+  "zoneNew": "Nouvelle zone",
+  "movementZoneEyebrow": "ZONE DE DÉPLACEMENT",
+  "movementRequiredMode": "Mode de déplacement requis",
+  "movementEffectKind": "Effet",
+  "movementCost": "Coût par case",
+  "movementCostInvalid": "Entier positif attendu",
+  "zoneName": "Nom",
+  "zoneDelete": "Supprimer cette zone",
+  "zoneKindMovement": "Mode requis",
+  "zoneKindMovementEffect": "Effet de surface",
+  "movementModeWalk": "À pied",
+  "movementModeSurf": "En surf",
+  "movementModeDive": "Sous l’eau (Plongée)",
+  "movementModeFly": "En vol",
+  "movementModeCut": "Après avoir coupé",
+  "movementModeBicycle": "À vélo",
+  "movementModeStrength": "Avec Force",
+  "movementModeRockSmash": "Après Éclate-Roc",
+  "effectSlide": "Glissade (glace)",
+  "effectMovementCost": "Coût de déplacement",
+  "effectDirectedJump": "Saut dirigé",
+  "movementBlockedCount": "{count, plural, =0{Aucune case bloquée} =1{1 case bloquée} other{{count} cases bloquées}}",
+  "@movementBlockedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneArea": "Cases {x}, {y} · {width} × {height}",
+  "@zoneArea": {
+    "placeholders": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      },
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  }
 }

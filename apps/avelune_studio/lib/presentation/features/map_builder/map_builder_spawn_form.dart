@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
-class MapBuilderSpawnForm extends StatefulWidget {
+class MapBuilderSpawnForm extends StatelessWidget {
   const MapBuilderSpawnForm({
     super.key,
     required this.binding,
@@ -19,45 +20,6 @@ class MapBuilderSpawnForm extends StatefulWidget {
   final bool enabled;
 
   @override
-  State<MapBuilderSpawnForm> createState() => _MapBuilderSpawnFormState();
-}
-
-class _MapBuilderSpawnFormState extends State<MapBuilderSpawnForm> {
-  late final _name = TextEditingController(text: widget.spawn.name);
-  late final _focus = FocusNode()..addListener(_leaveName);
-
-  @override
-  void didUpdateWidget(MapBuilderSpawnForm old) {
-    super.didUpdateWidget(old);
-    if (old.spawn.name != widget.spawn.name && !_focus.hasFocus) {
-      _name.text = widget.spawn.name;
-    }
-  }
-
-  @override
-  void dispose() {
-    _focus.dispose();
-    _name.dispose();
-    super.dispose();
-  }
-
-  void _leaveName() {
-    if (!_focus.hasFocus) _rename();
-  }
-
-  void _rename() {
-    final name = _name.text.trim();
-    if (name.isEmpty) {
-      _name.text = widget.spawn.name;
-      return;
-    }
-    if (name == widget.spawn.name) return;
-    widget.binding.editEntities(
-      (commands) => commands.rename(widget.spawn.id, name),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -65,10 +27,7 @@ class _MapBuilderSpawnFormState extends State<MapBuilderSpawnForm> {
       color: scheme.onSurfaceVariant,
     );
     final l10n = context.l10n;
-    final binding = widget.binding;
-    final spawn = widget.spawn;
     final data = spawn.spawn ?? const MapEntitySpawnData();
-    final enabled = widget.enabled;
     final isDefault = binding.entities?.isDefaultSpawn(spawn.id) ?? false;
     return Column(
       key: const ValueKey('map-gameplay-spawn-form'),
@@ -90,13 +49,14 @@ class _MapBuilderSpawnFormState extends State<MapBuilderSpawnForm> {
         ),
         Text(l10n.warpOnThisMap(spawn.pos.x, spawn.pos.y), style: muted),
         const SizedBox(height: StudioSpacing.l),
-        TextField(
+        MapBuilderNameField(
           key: const ValueKey('map-gameplay-spawn-name'),
-          controller: _name,
-          focusNode: _focus,
+          value: spawn.name,
+          label: l10n.spawnName,
           enabled: enabled,
-          onSubmitted: (_) => _rename(),
-          decoration: InputDecoration(isDense: true, labelText: l10n.spawnName),
+          onCommit: (name) => binding.editEntities(
+            (commands) => commands.rename(spawn.id, name),
+          ),
         ),
         const SizedBox(height: StudioSpacing.l),
         StudioSelect(

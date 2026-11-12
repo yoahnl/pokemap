@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
@@ -99,6 +100,7 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                 const SizedBox(height: StudioSpacing.m),
                 ...switch (binding.rubric) {
                   'spawns' => _spawns(binding, muted),
+                  'movement' => _movement(binding, muted),
                   _ => _connections(binding, outline, muted),
                 },
               ],
@@ -200,6 +202,86 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                     selected: warp.id == selectedWarp,
                     onTap: () => binding.selectWarp(warp.id),
                   ),
+    ];
+  }
+
+  List<Widget> _movement(MapBuilderGameplayBinding binding, TextStyle? muted) {
+    final l10n = context.l10n;
+    final zones = binding.movementZones;
+    final selected = binding.selectedZone?.id;
+    final enabled = widget.enabled;
+    return [
+      _Section(title: l10n.movementObstacles, count: binding.blockedCells),
+      StudioChoice(
+        key: const ValueKey('map-gameplay-collision-paint'),
+        leading: const Icon(Icons.block, size: 18),
+        label: l10n.movementPaint,
+        selected: binding.tool == StudioMapTool.collisionPaint,
+        onTap: enabled ? () => binding.armCollisions(erase: false) : null,
+      ),
+      StudioChoice(
+        key: const ValueKey('map-gameplay-collision-erase'),
+        leading: const Icon(Icons.crop_square, size: 18),
+        label: l10n.movementErase,
+        selected: binding.tool == StudioMapTool.collisionErase,
+        onTap: enabled ? () => binding.armCollisions(erase: true) : null,
+      ),
+      Text(l10n.movementBlockedCount(binding.blockedCells), style: muted),
+      const SizedBox(height: StudioSpacing.l),
+      MenuAnchor(
+        menuChildren: [
+          for (final (kind, label, icon) in [
+            (
+              GameplayZoneKind.movement,
+              l10n.movementAddRequired,
+              Icons.directions_walk,
+            ),
+            (
+              GameplayZoneKind.movementEffect,
+              l10n.movementAddEffect,
+              Icons.ac_unit,
+            ),
+          ])
+            MenuItemButton(
+              key: ValueKey('map-gameplay-add-zone-${kind.name}'),
+              leadingIcon: Icon(icon, size: 18),
+              onPressed: () => binding.armZone(kind),
+              child: Text(label),
+            ),
+        ],
+        builder: (context, menu, _) => StudioButton(
+          key: const ValueKey('map-gameplay-add-zone'),
+          label: l10n.movementAddZone,
+          icon: Icons.add,
+          onPressed: enabled
+              ? () => menu.isOpen ? menu.close() : menu.open()
+              : null,
+        ),
+      ),
+      _Section(title: l10n.movementZones, count: zones.length),
+      if (zones.isEmpty) Text(l10n.movementNoZone, style: muted),
+      for (final zone in zones)
+        StudioChoice(
+          key: ValueKey('map-gameplay-zone-${zone.id}'),
+          leading: Icon(
+            zone.kind == GameplayZoneKind.movement
+                ? Icons.directions_walk
+                : Icons.ac_unit,
+            size: 18,
+          ),
+          label: zone.name,
+          subtitle: switch ((zone.movement, zone.movementEffect)) {
+            (final movement?, _) =>
+              '${l10n.zoneKindMovement} · '
+                  '${l10n.movementMode(movement.requiredMode)}',
+            (_, final effect?) =>
+              '${l10n.zoneKindMovementEffect} · '
+                  '${l10n.movementEffect(effect.effectKind)}',
+            _ => null,
+          },
+          selected: zone.id == selected,
+          onTap: () => binding.selectZone(zone.id),
+        ),
     ];
   }
 

@@ -191,6 +191,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   void _setSpace(MapBuilderSpace space) {
     if (space != MapBuilderSpace.construction) _resources.release();
     if (space != MapBuilderSpace.gameplay) _gameplay.leave();
+    _gameplay
+      ..shown = space == MapBuilderSpace.gameplay
+      ..reconcile();
     setState(() => _space = space);
   }
 

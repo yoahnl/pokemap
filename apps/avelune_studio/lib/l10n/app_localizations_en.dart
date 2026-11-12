@@ -827,4 +827,116 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get facingWest => 'Left';
+
+  @override
+  String get movementPaint => 'Block cells';
+
+  @override
+  String get movementErase => 'Unblock cells';
+
+  @override
+  String get movementObstacles => 'Blocked cells';
+
+  @override
+  String get movementBrushHint =>
+      'Paint on the map: red cells stop the player.';
+
+  @override
+  String get movementZones => 'Movement zones';
+
+  @override
+  String get movementNoZone => 'No movement zone on this map.';
+
+  @override
+  String get movementAddRequired => 'Required-mode zone';
+
+  @override
+  String get movementAddEffect => 'Surface effect zone';
+
+  @override
+  String get movementAddZone => 'Add a zone';
+
+  @override
+  String get zoneDrawHint =>
+      'Draw a rectangle on the map, or click an existing zone.';
+
+  @override
+  String get zoneNew => 'New zone';
+
+  @override
+  String get movementZoneEyebrow => 'MOVEMENT ZONE';
+
+  @override
+  String get movementRequiredMode => 'Required movement';
+
+  @override
+  String get movementEffectKind => 'Effect';
+
+  @override
+  String get movementCost => 'Cost per cell';
+
+  @override
+  String get movementCostInvalid => 'Positive whole number expected';
+
+  @override
+  String get zoneName => 'Name';
+
+  @override
+  String get zoneDelete => 'Delete this zone';
+
+  @override
+  String get zoneKindMovement => 'Required mode';
+
+  @override
+  String get zoneKindMovementEffect => 'Surface effect';
+
+  @override
+  String get movementModeWalk => 'On foot';
+
+  @override
+  String get movementModeSurf => 'Surfing';
+
+  @override
+  String get movementModeDive => 'Underwater (Dive)';
+
+  @override
+  String get movementModeFly => 'Flying';
+
+  @override
+  String get movementModeCut => 'After Cut';
+
+  @override
+  String get movementModeBicycle => 'By bicycle';
+
+  @override
+  String get movementModeStrength => 'With Strength';
+
+  @override
+  String get movementModeRockSmash => 'After Rock Smash';
+
+  @override
+  String get effectSlide => 'Slide (ice)';
+
+  @override
+  String get effectMovementCost => 'Movement cost';
+
+  @override
+  String get effectDirectedJump => 'Directed jump';
+
+  @override
+  String movementBlockedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count blocked cells',
+      one: '1 blocked cell',
+      zero: 'No blocked cell',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String zoneArea(int x, int y, int width, int height) {
+    return 'Cells $x, $y · $width × $height';
+  }
 }

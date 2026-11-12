@@ -1632,6 +1632,204 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Gauche'**
   String get facingWest;
+
+  /// No description provided for @movementPaint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bloquer des cases'**
+  String get movementPaint;
+
+  /// No description provided for @movementErase.
+  ///
+  /// In fr, this message translates to:
+  /// **'Débloquer des cases'**
+  String get movementErase;
+
+  /// No description provided for @movementObstacles.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cases bloquées'**
+  String get movementObstacles;
+
+  /// No description provided for @movementBrushHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Peignez sur la carte : les cases en rouge arrêtent le joueur.'**
+  String get movementBrushHint;
+
+  /// No description provided for @movementZones.
+  ///
+  /// In fr, this message translates to:
+  /// **'Zones de déplacement'**
+  String get movementZones;
+
+  /// No description provided for @movementNoZone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune zone de déplacement sur cette carte.'**
+  String get movementNoZone;
+
+  /// No description provided for @movementAddRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Zone à mode requis'**
+  String get movementAddRequired;
+
+  /// No description provided for @movementAddEffect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Zone à effet de surface'**
+  String get movementAddEffect;
+
+  /// No description provided for @movementAddZone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter une zone'**
+  String get movementAddZone;
+
+  /// No description provided for @zoneDrawHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tracez un rectangle sur la carte, ou cliquez sur une zone existante.'**
+  String get zoneDrawHint;
+
+  /// No description provided for @zoneNew.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle zone'**
+  String get zoneNew;
+
+  /// No description provided for @movementZoneEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'ZONE DE DÉPLACEMENT'**
+  String get movementZoneEyebrow;
+
+  /// No description provided for @movementRequiredMode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mode de déplacement requis'**
+  String get movementRequiredMode;
+
+  /// No description provided for @movementEffectKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effet'**
+  String get movementEffectKind;
+
+  /// No description provided for @movementCost.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coût par case'**
+  String get movementCost;
+
+  /// No description provided for @movementCostInvalid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Entier positif attendu'**
+  String get movementCostInvalid;
+
+  /// No description provided for @zoneName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom'**
+  String get zoneName;
+
+  /// No description provided for @zoneDelete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer cette zone'**
+  String get zoneDelete;
+
+  /// No description provided for @zoneKindMovement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mode requis'**
+  String get zoneKindMovement;
+
+  /// No description provided for @zoneKindMovementEffect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effet de surface'**
+  String get zoneKindMovementEffect;
+
+  /// No description provided for @movementModeWalk.
+  ///
+  /// In fr, this message translates to:
+  /// **'À pied'**
+  String get movementModeWalk;
+
+  /// No description provided for @movementModeSurf.
+  ///
+  /// In fr, this message translates to:
+  /// **'En surf'**
+  String get movementModeSurf;
+
+  /// No description provided for @movementModeDive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sous l’eau (Plongée)'**
+  String get movementModeDive;
+
+  /// No description provided for @movementModeFly.
+  ///
+  /// In fr, this message translates to:
+  /// **'En vol'**
+  String get movementModeFly;
+
+  /// No description provided for @movementModeCut.
+  ///
+  /// In fr, this message translates to:
+  /// **'Après avoir coupé'**
+  String get movementModeCut;
+
+  /// No description provided for @movementModeBicycle.
+  ///
+  /// In fr, this message translates to:
+  /// **'À vélo'**
+  String get movementModeBicycle;
+
+  /// No description provided for @movementModeStrength.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avec Force'**
+  String get movementModeStrength;
+
+  /// No description provided for @movementModeRockSmash.
+  ///
+  /// In fr, this message translates to:
+  /// **'Après Éclate-Roc'**
+  String get movementModeRockSmash;
+
+  /// No description provided for @effectSlide.
+  ///
+  /// In fr, this message translates to:
+  /// **'Glissade (glace)'**
+  String get effectSlide;
+
+  /// No description provided for @effectMovementCost.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coût de déplacement'**
+  String get effectMovementCost;
+
+  /// No description provided for @effectDirectedJump.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saut dirigé'**
+  String get effectDirectedJump;
+
+  /// No description provided for @movementBlockedCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune case bloquée} =1{1 case bloquée} other{{count} cases bloquées}}'**
+  String movementBlockedCount(int count);
+
+  /// No description provided for @zoneArea.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cases {x}, {y} · {width} × {height}'**
+  String zoneArea(int x, int y, int width, int height);
 }
 
 class _AppLocalizationsDelegate

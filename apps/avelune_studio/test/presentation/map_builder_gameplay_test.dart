@@ -5,6 +5,7 @@ import 'package:avelune_studio/features/map_workspace/domain/map_connection_port
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay.dart';
 import 'package:avelune_studio/presentation/shell/studio_root.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -384,6 +385,121 @@ void main() {
       find.byKey(const ValueKey('map-gameplay-spawn-form')),
       findsNothing,
     );
+  });
+
+  testWidgets('movement paints blocked cells and edits movement zones', (
+    tester,
+  ) async {
+    await openGameplay(tester);
+    Color? collisions() => tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter ?? paint.foregroundPainter)
+        .whereType<MapEditingOverlay>()
+        .single
+        .collisionColor;
+    expect(collisions(), isNull);
+
+    await tester.tap(find.byKey(const ValueKey('map-space-rubric-movement')));
+    await settle(tester);
+    expect(collisions(), isNotNull);
+    expect(find.text('Aucune case bloquée'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-collision-paint')));
+    await settle(tester);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-collision-brush')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('map-canvas')));
+    await settle(tester);
+    expect(find.text('1 case bloquée'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-collision-erase')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('map-canvas')));
+    await settle(tester);
+    expect(find.text('Aucune case bloquée'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-collision-erase')));
+    await settle(tester);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-collision-brush')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-add-zone')));
+    await settle(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('map-gameplay-add-zone-movement')),
+    );
+    await settle(tester);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-zone-placement')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('map-canvas')));
+    await settle(tester);
+
+    final zone = active().gameplayZones.single;
+    expect(zone.kind, GameplayZoneKind.movement);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-zone-form')),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('map-status-tool'))).data,
+      'Sélection',
+    );
+
+    await choose(tester, 'map-gameplay-zone-mode', 'En surf');
+    expect(active().gameplayZones.single.movement!.requiredMode, MovementMode.surf);
+    expect(
+      find.descendant(
+        of: find.byKey(ValueKey('map-gameplay-zone-${zone.id}')),
+        matching: find.text('Mode requis · En surf'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-zone-delete')));
+    await settle(tester);
+    expect(active().gameplayZones, isEmpty);
+    expect(find.text('Aucune zone de déplacement sur cette carte.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-add-zone')));
+    await settle(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('map-gameplay-add-zone-movementEffect')),
+    );
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('map-canvas')));
+    await settle(tester);
+    expect(
+      active().gameplayZones.single.movementEffect!.effectKind,
+      MovementEffectZoneKind.slide,
+    );
+
+    await choose(tester, 'map-gameplay-zone-effect', 'Coût de déplacement');
+    await tester.enterText(
+      find.byKey(const ValueKey('map-gameplay-zone-cost')),
+      '0',
+    );
+    await tester.pump();
+    expect(find.text('Entier positif attendu'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('map-gameplay-zone-cost')),
+      '3',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-zone-cost-apply')));
+    await settle(tester);
+    final effect = active().gameplayZones.single.movementEffect!;
+    expect(effect.effectKind, MovementEffectZoneKind.movementCost);
+    expect(effect.movementCost, 3);
+
+    await tester.tap(find.byKey(const ValueKey('map-space-construction')));
+    await settle(tester);
+    expect(collisions(), isNull);
   });
 
   testWidgets('switching rubric clears the passage selection', (tester) async {

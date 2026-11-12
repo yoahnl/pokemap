@@ -4,6 +4,23 @@ import 'package:avelune_studio/features/resources/application/resource_catalog.d
 import 'package:avelune_studio/l10n/app_localizations.dart';
 
 extension StudioLabels on AppLocalizations {
+  String movementMode(MovementMode mode) => switch (mode) {
+    MovementMode.walk => movementModeWalk,
+    MovementMode.surf => movementModeSurf,
+    MovementMode.dive => movementModeDive,
+    MovementMode.fly => movementModeFly,
+    MovementMode.cut => movementModeCut,
+    MovementMode.bicycle => movementModeBicycle,
+    MovementMode.strength => movementModeStrength,
+    MovementMode.rockSmash => movementModeRockSmash,
+  };
+
+  String movementEffect(MovementEffectZoneKind kind) => switch (kind) {
+    MovementEffectZoneKind.slide => effectSlide,
+    MovementEffectZoneKind.movementCost => effectMovementCost,
+    MovementEffectZoneKind.directedJump => effectDirectedJump,
+  };
+
   String spawnRoleName(EntitySpawnRole role) => switch (role) {
     EntitySpawnRole.playerStart => spawnRolePlayerStart,
     EntitySpawnRole.event => spawnRoleEvent,

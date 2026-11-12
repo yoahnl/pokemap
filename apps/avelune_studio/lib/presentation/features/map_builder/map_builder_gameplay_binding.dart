@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 
+import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_connection_actions.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -10,7 +11,12 @@ import 'package:avelune_studio/features/resources/domain/studio_search_text.dart
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 
-const mapBuilderGameplayRubrics = {'connections', 'spawns'};
+const mapBuilderGameplayRubrics = {'connections', 'movement', 'spawns'};
+
+const mapBuilderMovementZoneKinds = {
+  GameplayZoneKind.movement,
+  GameplayZoneKind.movementEffect,
+};
 
 MapConnectionPort? configuredConnectionPort(MapConnectionPort Function() read) {
   try {
@@ -43,10 +49,13 @@ class MapBuilderGameplayBinding {
   ({String mapId, MapConnectionDirection? direction})? _connection;
   ({String mapId, Set<String> known})? _warpDraft;
   ({String mapId, Set<String> known})? _spawnDraft;
+  ({String mapId, Set<String> known})? _zoneDraft;
+  bool shown = false;
   String rubric = 'connections';
   String query = '';
   String? warpError;
   String? entityError;
+  String? zoneError;
 
   MapData? get map => maps.active?.current;
 
@@ -72,6 +81,38 @@ class MapBuilderGameplayBinding {
         .where((entity) => entity.id == id && entity.kind == MapEntityKind.spawn)
         .firstOrNull;
   }
+
+  bool get draftingZone => _zoneDraft != null && _zoneDraft!.mapId == map?.id;
+
+  MapGameplayZone? get selectedZone {
+    final map = this.map;
+    if (map == null) return null;
+    final id = view()?.selectedFor(map.id, MapSelectionFamily.zone);
+    return map.gameplayZones.where((zone) => zone.id == id).firstOrNull;
+  }
+
+  GameplayZoneEditingCommands? get zones {
+    final document = maps.active;
+    final project = maps.project;
+    return document == null || project == null
+        ? null
+        : GameplayZoneEditingCommands(document, project);
+  }
+
+  List<MapGameplayZone> get movementZones => [
+    for (final zone in map?.gameplayZones ?? const <MapGameplayZone>[])
+      if (mapBuilderMovementZoneKinds.contains(zone.kind) &&
+          studioSearchMatches(zone.name, query))
+        zone,
+  ];
+
+  int get blockedCells => [
+    for (final layer
+        in map?.layers.whereType<CollisionLayer>() ??
+            const <CollisionLayer>[])
+      for (final blocked in layer.collisions)
+        if (blocked) 1,
+  ].length;
 
   MapEntityEditingCommands? get entities {
     final document = maps.active;
@@ -127,7 +168,16 @@ class MapBuilderGameplayBinding {
 
   bool get placingWarp => view()?.tool == StudioMapTool.warp;
 
-  bool get placing => placingWarp || view()?.tool == StudioMapTool.spawn;
+  bool get placing => switch (view()?.tool) {
+    StudioMapTool.warp ||
+    StudioMapTool.spawn ||
+    StudioMapTool.collisionPaint ||
+    StudioMapTool.collisionErase ||
+    StudioMapTool.gameplayZone => true,
+    _ => false,
+  };
+
+  StudioMapTool? get tool => view()?.tool;
 
   void openRubric(String id) {
     if (id == rubric) return;
@@ -136,6 +186,7 @@ class MapBuilderGameplayBinding {
     leave();
     rubric = id;
     query = '';
+    reconcile();
     changed();
   }
 
@@ -206,6 +257,72 @@ class MapBuilderGameplayBinding {
     changed();
   }
 
+  void armCollisions({required bool erase}) {
+    final state = view();
+    final document = maps.active;
+    if (state == null || document == null) return;
+    final wanted = erase
+        ? StudioMapTool.collisionErase
+        : StudioMapTool.collisionPaint;
+    if (state.tool == wanted) {
+      release();
+      return;
+    }
+    state.clearSelection(document);
+    _clearDrafts();
+    state.tool = wanted;
+    changed();
+  }
+
+  void armZone(GameplayZoneKind kind) {
+    final state = view();
+    final map = this.map;
+    final document = maps.active;
+    if (state == null || map == null || document == null) return;
+    state.clearSelection(document);
+    _clearDrafts();
+    zoneError = null;
+    _zoneDraft = (
+      mapId: map.id,
+      known: {for (final zone in map.gameplayZones) zone.id},
+    );
+    state
+      ..zoneKind = kind
+      ..tool = StudioMapTool.gameplayZone;
+    changed();
+  }
+
+  void selectZone(String id) {
+    final document = maps.active;
+    if (document == null) return;
+    _clearDrafts();
+    zoneError = null;
+    release();
+    view()?.select(document, MapSelectionFamily.zone, id);
+    changed();
+  }
+
+  void editZones(void Function(GameplayZoneEditingCommands commands) edit) {
+    final commands = zones;
+    if (commands == null) return;
+    try {
+      edit(commands);
+      zoneError = null;
+    } on MapException catch (failure) {
+      zoneError = failure.message;
+    } on StateError catch (failure) {
+      zoneError = failure.message;
+    }
+    maps.notify();
+  }
+
+  void _clearDrafts() {
+    _connection = null;
+    _warpDraft = null;
+    _spawnDraft = null;
+    _zoneDraft = null;
+  }
+
   void armSpawn() {
     final state = view();
     final map = this.map;
@@ -271,11 +388,26 @@ class MapBuilderGameplayBinding {
   void leave() {
     _warpDraft = null;
     _spawnDraft = null;
+    _zoneDraft = null;
+    view()?.revealCollisions = false;
     _connection = null;
     release();
   }
 
   void reconcile() {
+    view()?.revealCollisions = shown && rubric == 'movement';
+    final zoneDraft = _zoneDraft;
+    final drawn = this.map;
+    if (zoneDraft != null &&
+        drawn != null &&
+        zoneDraft.mapId == drawn.id &&
+        (selectedZone != null ||
+            drawn.gameplayZones.any(
+              (zone) => !zoneDraft.known.contains(zone.id),
+            ))) {
+      _zoneDraft = null;
+      view()?.tool = StudioMapTool.select;
+    }
     final spawnDraft = _spawnDraft;
     final placed = this.map;
     if (spawnDraft != null &&

@@ -51,6 +51,7 @@ enum StudioMapTool {
 
 class MapWorkspaceEditingState {
   bool highlightTerrain = true;
+  bool revealCollisions = false;
   StudioMapTool tool = StudioMapTool.select;
 
   SpatialTerrainMode spatialTerrainMode = SpatialTerrainMode.ground;
