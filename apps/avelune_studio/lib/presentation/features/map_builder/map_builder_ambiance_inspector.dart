@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_day_night_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_effects_form.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_music_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_weather_form.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
@@ -38,6 +39,7 @@ class MapBuilderAmbianceInspector extends StatelessWidget {
           switch (binding.rubric) {
             'weather' => l10n.ambianceWeather,
             'effects' => l10n.ambianceEffects,
+            'music' => l10n.ambianceMusic,
             _ => l10n.ambianceDayNight,
           },
           style: theme.textTheme.titleSmall?.copyWith(
@@ -45,7 +47,9 @@ class MapBuilderAmbianceInspector extends StatelessWidget {
           ),
         ),
         const SizedBox(height: StudioSpacing.l),
-        if (!binding.spatial)
+        if (binding.rubric == 'music')
+          MapBuilderMusicForm(binding: binding, enabled: enabled)
+        else if (!binding.spatial)
           StudioNotice(l10n.ambiance2dOnly)
         else if (binding.error case final error?)
           StudioNotice(error, isError: true)

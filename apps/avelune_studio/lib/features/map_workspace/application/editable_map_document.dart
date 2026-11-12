@@ -188,7 +188,13 @@ class EditableMapDocument {
         ? snapshot
         : snapshot.copyWith(
             name: catalogName ?? snapshot.name,
-            mapMetadata: catalogMetadata ?? snapshot.mapMetadata,
+            mapMetadata:
+                catalogMetadata?.copyWith(
+                  musicPath: snapshot.mapMetadata.musicPath,
+                  musicVolume: snapshot.mapMetadata.musicVolume,
+                  battleMusicPath: snapshot.mapMetadata.battleMusicPath,
+                ) ??
+                snapshot.mapMetadata,
           );
     if (canRestore != null && !canRestore(restored)) return;
     current = restored;

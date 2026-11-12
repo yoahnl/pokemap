@@ -81,6 +81,7 @@ extension _LocalProjectAudioAdapter on LocalMapWorkspaceAdapter {
           ProjectAudioEntry(
             id: item['id'] as String,
             label: p.basename(item['name'] as String),
+            path: item['name'] as String,
           ),
       ],
       nextCursor: page.nextCursor,

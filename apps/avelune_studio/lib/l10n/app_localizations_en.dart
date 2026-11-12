@@ -941,6 +941,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get effectUnknownModel => 'Missing model';
 
   @override
+  String get musicExploration => 'Exploration';
+
+  @override
+  String get musicBattle => 'Battle';
+
+  @override
+  String get musicNone => 'No music';
+
+  @override
+  String get musicBattleProject => 'Same as the project';
+
+  @override
+  String get musicVolume => 'Volume';
+
+  @override
+  String get musicChooseExploration => 'Exploration music';
+
+  @override
+  String get musicChooseBattle => 'Battle music';
+
+  @override
+  String get musicSearch => 'Search a sound';
+
+  @override
+  String get musicLoading => 'Loading sounds…';
+
+  @override
+  String get musicLibraryEmpty => 'No sound imported in this project.';
+
+  @override
+  String get musicNoMatch => 'No sound matches.';
+
+  @override
+  String get musicMore => 'Show more';
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

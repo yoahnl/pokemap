@@ -505,6 +505,18 @@
   },
   "effectRemove": "Retirer",
   "effectUnknownModel": "Modèle introuvable",
+  "musicExploration": "Exploration",
+  "musicBattle": "Combat",
+  "musicNone": "Aucune musique",
+  "musicBattleProject": "Comme le projet",
+  "musicVolume": "Volume",
+  "musicChooseExploration": "Musique d’exploration",
+  "musicChooseBattle": "Musique de combat",
+  "musicSearch": "Rechercher un son",
+  "musicLoading": "Chargement des sons…",
+  "musicLibraryEmpty": "Aucun son importé dans ce projet.",
+  "musicNoMatch": "Aucun son ne correspond.",
+  "musicMore": "Afficher plus",
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {

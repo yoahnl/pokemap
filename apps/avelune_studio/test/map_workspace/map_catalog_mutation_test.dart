@@ -127,6 +127,36 @@ void main() {
     },
   );
 
+  test('published catalogue metadata keeps map music in the draft history', () {
+    final document = fixture.controller.active!;
+    final saved = document.saved;
+    document.acceptCatalogMetadata(
+      MapWorkspaceDocument(
+        map: saved.copyWith(
+          mapMetadata: saved.mapMetadata.copyWith(allowEscapeRope: false),
+        ),
+        revision: 'published',
+        mapId: document.base.mapId,
+      ),
+    );
+    final before = document.current;
+    document.commit(
+      before.copyWith(
+        mapMetadata: before.mapMetadata.copyWith(
+          musicPath: 'assets/audio/theme.wav',
+          musicVolume: .5,
+        ),
+      ),
+    );
+    document.restore(redo: false);
+    expect(document.current.mapMetadata.musicPath, isNull);
+    expect(document.current.mapMetadata.allowEscapeRope, isFalse);
+    document.restore(redo: true);
+    expect(document.current.mapMetadata.musicPath, 'assets/audio/theme.wav');
+    expect(document.current.mapMetadata.musicVolume, .5);
+    expect(document.current.mapMetadata.allowEscapeRope, isFalse);
+  });
+
   test(
     'catalogue metadata acceptance refuses other map content and keeps history',
     () async {

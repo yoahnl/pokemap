@@ -1688,6 +1688,78 @@ abstract class AppLocalizations {
   /// **'Modèle introuvable'**
   String get effectUnknownModel;
 
+  /// No description provided for @musicExploration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Exploration'**
+  String get musicExploration;
+
+  /// No description provided for @musicBattle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Combat'**
+  String get musicBattle;
+
+  /// No description provided for @musicNone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune musique'**
+  String get musicNone;
+
+  /// No description provided for @musicBattleProject.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comme le projet'**
+  String get musicBattleProject;
+
+  /// No description provided for @musicVolume.
+  ///
+  /// In fr, this message translates to:
+  /// **'Volume'**
+  String get musicVolume;
+
+  /// No description provided for @musicChooseExploration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Musique d’exploration'**
+  String get musicChooseExploration;
+
+  /// No description provided for @musicChooseBattle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Musique de combat'**
+  String get musicChooseBattle;
+
+  /// No description provided for @musicSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un son'**
+  String get musicSearch;
+
+  /// No description provided for @musicLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement des sons…'**
+  String get musicLoading;
+
+  /// No description provided for @musicLibraryEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun son importé dans ce projet.'**
+  String get musicLibraryEmpty;
+
+  /// No description provided for @musicNoMatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun son ne correspond.'**
+  String get musicNoMatch;
+
+  /// No description provided for @musicMore.
+  ///
+  /// In fr, this message translates to:
+  /// **'Afficher plus'**
+  String get musicMore;
+
   /// No description provided for @rubricUnavailable.
   ///
   /// In fr, this message translates to:

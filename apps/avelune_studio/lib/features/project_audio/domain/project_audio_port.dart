@@ -13,8 +13,9 @@ final class ProjectAudioState {
 }
 
 final class ProjectAudioEntry {
-  const ProjectAudioEntry({required this.id, required this.label});
+  const ProjectAudioEntry({required this.id, required this.label, this.path});
   final String id, label;
+  final String? path;
 }
 
 final class ProjectAudioPage {

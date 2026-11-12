@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_atmosphere_port.dart';
+import 'package:avelune_studio/features/project_audio/domain/project_audio_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/project_visuals/domain/project_visuals_port.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
@@ -20,7 +21,7 @@ import 'package:map_core/map_core.dart';
 import '../support/map_workspace_fixture.dart';
 
 class _VisualsPort extends WorkspaceMemoryPort
-    implements ProjectVisualsPort, MapAtmospherePort {
+    implements ProjectVisualsPort, MapAtmospherePort, ProjectAudioPort {
   _VisualsPort() : super(manifest: _project);
 
   var project = SpatialVisualPatch.fromJson({
@@ -36,6 +37,33 @@ class _VisualsPort extends WorkspaceMemoryPort
   });
   final mapPatches = <String, SpatialVisualPatch>{};
   final atmospheres = <String, SpatialAtmosphereSettings>{};
+  final sounds = const [
+    ProjectAudioEntry(
+      id: 'town',
+      label: 'theme.wav',
+      path: 'assets/audio/johto/bourg/theme.wav',
+    ),
+    ProjectAudioEntry(
+      id: 'battle',
+      label: 'combat.wav',
+      path: 'assets/audio/johto/arene/combat.wav',
+    ),
+  ];
+
+  @override
+  Future<ProjectAudioPage> queryLegacyAudio(
+    ProjectSession session, {
+    String query = '',
+    String? cursor,
+  }) async => ProjectAudioPage(
+    entries: [
+      for (final entry in sounds)
+        if (entry.path!.contains(query.trim())) entry,
+    ],
+  );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
   var revision = 0;
 
   @override
@@ -527,6 +555,85 @@ void main() {
     expect(key('map-ambiance-source-cover-map'), findsOneWidget);
   });
 
+  testWidgets('a map picks its music from the imported sounds', (tester) async {
+    await open(tester, spatial: true);
+    await tester.tap(find.byKey(const ValueKey('map-space-rubric-music')));
+    for (var frame = 0; frame < 3; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    MapMetadata metadata() => maps.active!.current.mapMetadata;
+    Finder key(String value) => find.byKey(ValueKey(value));
+
+    expect(find.text('Aucune musique'), findsNWidgets(2));
+    expect(find.text('arene · combat'), findsOneWidget);
+    expect(key('map-ambiance-music-volume'), findsNothing);
+
+    await tester.tap(key('map-ambiance-music-track-town'));
+    await tester.pump();
+    expect(metadata().musicPath, 'assets/audio/johto/bourg/theme.wav');
+    expect(find.text('bourg · theme'), findsNWidgets(2));
+    tester.widget<StudioSlider>(key('map-ambiance-music-volume')).onChangeEnd!(
+      .5,
+    );
+    await tester.pump();
+    expect(metadata().musicVolume, .5);
+
+    await tester.tap(key('map-ambiance-music-slot-battle'));
+    await tester.pump();
+    expect(find.text('Comme le projet'), findsNWidgets(2));
+    await tester.enterText(key('map-ambiance-music-search'), 'aren');
+    await tester.enterText(key('map-ambiance-music-search'), 'arene');
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(key('map-ambiance-music-track-town'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(key('map-ambiance-music-track-town'), findsNothing);
+    await tester.tap(key('map-ambiance-music-track-battle'));
+    await tester.pump();
+    expect(metadata().battleMusicPath, 'assets/audio/johto/arene/combat.wav');
+    expect(metadata().musicPath, 'assets/audio/johto/bourg/theme.wav');
+
+    await tester.tap(key('map-space-rubric-dayNight'));
+    await tester.pump();
+    await tester.tap(key('map-ambiance-time-fixed'));
+    await tester.pump();
+    expect(patch().choice(SpatialVisualParameter.timeMode), 'fixed');
+
+    bar(tester).onUndo!();
+    await tester.pump();
+    expect(patch().toJson(), isEmpty);
+    bar(tester).onUndo!();
+    await tester.pump();
+    expect(metadata().battleMusicPath, isNull);
+    bar(tester).onUndo!();
+    await tester.pump();
+    expect(metadata().musicVolume, isNull);
+    bar(tester).onUndo!();
+    await tester.pump();
+    expect(metadata().musicPath, isNull);
+    expect(bar(tester).onUndo, isNull);
+    bar(tester).onRedo!();
+    await tester.pump();
+    expect(metadata().musicPath, 'assets/audio/johto/bourg/theme.wav');
+
+    await tester.tap(key('map-space-rubric-music'));
+    await tester.pump();
+    await tester.tap(key('map-ambiance-music-slot-exploration'));
+    await tester.pump();
+    await tester.tap(key('map-ambiance-music-track-none'));
+    await tester.pump();
+    expect(metadata().musicPath, isNull);
+    await tester.tap(key('map-ambiance-music-track-battle'));
+    await tester.pump();
+
+    expect(await maps.saveAll(), isTrue);
+    expect(
+      port.saved['a']!.mapMetadata.musicPath,
+      'assets/audio/johto/arene/combat.wav',
+    );
+    expect(port.saved['a']!.mapMetadata.battleMusicPath, isNull);
+  });
+
   testWidgets('a custom clock override is announced and can be replaced', (
     tester,
   ) async {
@@ -554,6 +661,11 @@ void main() {
 
     expect(find.text('L’ambiance se règle sur les cartes 3D.'), findsOneWidget);
     expect(ambiance.visuals, isNull);
+    await tester.tap(find.byKey(const ValueKey('map-space-rubric-music')));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('map-ambiance-music')), findsOneWidget);
+    expect(find.text('L’ambiance se règle sur les cartes 3D.'), findsNothing);
     expect(bar(tester).onUndo, isNull);
   });
 }

@@ -246,56 +246,61 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets(
-    'the game space is fully available while story and ambiance wait',
-    (tester) async {
-      await openShell(tester);
-      expect(find.byKey(const ValueKey('map-library')), findsOneWidget);
+  testWidgets('the game and ambiance spaces are available while story waits', (
+    tester,
+  ) async {
+    await openShell(tester);
+    expect(find.byKey(const ValueKey('map-library')), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('map-space-gameplay')));
+    await tester.tap(find.byKey(const ValueKey('map-space-gameplay')));
+    await tester.pump();
+    for (final rubric in [
+      'connections',
+      'movement',
+      'encounters',
+      'spawns',
+      'fieldObjects',
+    ]) {
+      expect(find.byKey(ValueKey('map-space-rubric-$rubric')), findsOneWidget);
+    }
+    expect(find.text('Bientôt'), findsNothing);
+
+    for (final (space, rubric, panel, inspector, live) in [
+      ('story', 'characters', 'map-space-inspector', 'ÉVÉNEMENT', false),
+      (
+        'ambiance',
+        'music',
+        'map-ambiance-inspector',
+        'AMBIANCE DE LA CARTE',
+        true,
+      ),
+    ]) {
+      await tester.tap(find.byKey(ValueKey('map-space-$space')));
       await tester.pump();
-      for (final rubric in [
-        'connections',
-        'movement',
-        'encounters',
-        'spawns',
-        'fieldObjects',
-      ]) {
-        expect(
-          find.byKey(ValueKey('map-space-rubric-$rubric')),
-          findsOneWidget,
-        );
-      }
-      expect(find.text('Bientôt'), findsNothing);
 
-      for (final (space, rubric, panel, inspector) in [
-        ('story', 'characters', 'map-space-inspector', 'ÉVÉNEMENT'),
-        ('ambiance', 'music', 'map-ambiance-inspector', 'AMBIANCE DE LA CARTE'),
-      ]) {
-        await tester.tap(find.byKey(ValueKey('map-space-$space')));
-        await tester.pump();
+      expect(find.byKey(const ValueKey('map-library')), findsNothing);
+      expect(find.byKey(const ValueKey('map-space-panel')), findsOneWidget);
+      final tile = tester.widget(
+        find.byKey(ValueKey('map-space-rubric-$rubric')),
+      );
+      expect(
+        tile is StudioChoice ? tile.onTap != null : (tile as ListTile).enabled,
+        live,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey(panel)),
+          matching: find.text(inspector),
+        ),
+        findsOneWidget,
+      );
+    }
 
-        expect(find.byKey(const ValueKey('map-library')), findsNothing);
-        expect(find.byKey(const ValueKey('map-space-panel')), findsOneWidget);
-        final tile = tester.widget<ListTile>(
-          find.byKey(ValueKey('map-space-rubric-$rubric')),
-        );
-        expect(tile.enabled, isFalse);
-        expect(
-          find.descendant(
-            of: find.byKey(ValueKey(panel)),
-            matching: find.text(inspector),
-          ),
-          findsOneWidget,
-        );
-      }
-
-      await tester.tap(find.byKey(const ValueKey('map-space-construction')));
-      await tester.pump();
-      expect(find.byKey(const ValueKey('map-library')), findsOneWidget);
-      expect(find.byKey(const ValueKey('map-space-inspector')), findsNothing);
-    },
-  );
+    await tester.tap(find.byKey(const ValueKey('map-space-construction')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('map-library')), findsOneWidget);
+    expect(find.byKey(const ValueKey('map-space-inspector')), findsNothing);
+  });
 
   testWidgets('the home rail entry closes the project and frees its visuals', (
     tester,
