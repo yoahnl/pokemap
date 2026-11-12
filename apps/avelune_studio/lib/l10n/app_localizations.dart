@@ -1494,6 +1494,144 @@ abstract class AppLocalizations {
     String otherEdge,
     String otherMap,
   );
+
+  /// No description provided for @spawnPlace.
+  ///
+  /// In fr, this message translates to:
+  /// **'Placer un point de départ'**
+  String get spawnPlace;
+
+  /// No description provided for @spawnSection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Points de départ'**
+  String get spawnSection;
+
+  /// No description provided for @spawnNone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun point de départ sur cette carte.'**
+  String get spawnNone;
+
+  /// No description provided for @spawnMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun départ du joueur : cette carte ne peut pas démarrer seule.'**
+  String get spawnMissing;
+
+  /// No description provided for @spawnEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'POINT DE DÉPART'**
+  String get spawnEyebrow;
+
+  /// No description provided for @spawnNew.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau point de départ'**
+  String get spawnNew;
+
+  /// No description provided for @spawnPlaceHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cliquez sur la case où le joueur doit apparaître.'**
+  String get spawnPlaceHint;
+
+  /// No description provided for @spawnName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom'**
+  String get spawnName;
+
+  /// No description provided for @spawnRole.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rôle'**
+  String get spawnRole;
+
+  /// No description provided for @spawnFacing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Orientation du joueur'**
+  String get spawnFacing;
+
+  /// No description provided for @spawnDefault.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ par défaut de cette carte'**
+  String get spawnDefault;
+
+  /// No description provided for @spawnDefaultDetail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le joueur apparaît ici quand la carte démarre sans passage.'**
+  String get spawnDefaultDetail;
+
+  /// No description provided for @spawnDefaultBadge.
+  ///
+  /// In fr, this message translates to:
+  /// **'par défaut'**
+  String get spawnDefaultBadge;
+
+  /// No description provided for @spawnDelete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer ce point'**
+  String get spawnDelete;
+
+  /// No description provided for @spawnRolePlayerStart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ du joueur'**
+  String get spawnRolePlayerStart;
+
+  /// No description provided for @spawnRoleEvent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Événement'**
+  String get spawnRoleEvent;
+
+  /// No description provided for @spawnRoleNpcSpawn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Apparition de personnage'**
+  String get spawnRoleNpcSpawn;
+
+  /// No description provided for @spawnRoleDebug.
+  ///
+  /// In fr, this message translates to:
+  /// **'Test'**
+  String get spawnRoleDebug;
+
+  /// No description provided for @spawnRoleOther.
+  ///
+  /// In fr, this message translates to:
+  /// **'Autre'**
+  String get spawnRoleOther;
+
+  /// No description provided for @facingNorth.
+  ///
+  /// In fr, this message translates to:
+  /// **'Haut'**
+  String get facingNorth;
+
+  /// No description provided for @facingSouth.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bas'**
+  String get facingSouth;
+
+  /// No description provided for @facingEast.
+  ///
+  /// In fr, this message translates to:
+  /// **'Droite'**
+  String get facingEast;
+
+  /// No description provided for @facingWest.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gauche'**
+  String get facingWest;
 }
 
 class _AppLocalizationsDelegate

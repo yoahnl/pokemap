@@ -162,8 +162,26 @@ class MapEntityEditingCommands {
   void delete(String id) {
     final problem = deletionProblem(id);
     if (problem != null) throw StateError(problem);
-    document.commit(removeEntityFromMap(document.current, entityId: id));
+    final removed = removeEntityFromMap(document.current, entityId: id);
+    document.commit(
+      isDefaultSpawn(id) ? _withDefaultSpawn(removed, null) : removed,
+    );
   }
+
+  bool isDefaultSpawn(String id) =>
+      document.current.mapMetadata.defaultSpawnId?.trim() == id;
+
+  void setDefaultSpawn(String? id) {
+    if (id != null && selected(id)?.kind != MapEntityKind.spawn) {
+      throw StateError('Seul un point de départ peut servir de départ.');
+    }
+    if (document.current.mapMetadata.defaultSpawnId == id) return;
+    document.commit(_withDefaultSpawn(document.current, id));
+  }
+
+  MapData _withDefaultSpawn(MapData map, String? id) => map.copyWith(
+    mapMetadata: map.mapMetadata.copyWith(defaultSpawnId: id),
+  );
 
   void rename(String id, String name) => document.commit(
     updateEntityOnMap(document.current, entityId: id, name: name),

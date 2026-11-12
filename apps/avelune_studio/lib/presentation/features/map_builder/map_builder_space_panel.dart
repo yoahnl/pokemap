@@ -103,15 +103,17 @@ class MapBuilderRubricTile extends StatelessWidget {
     super.key,
     required this.rubric,
     this.selected = false,
+    this.onTap,
   });
 
   final MapBuilderRubric rubric;
   final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (selected) {
+    if (selected || onTap != null) {
       return Tooltip(
         message: rubric.detail,
         child: StudioChoice(
@@ -119,8 +121,8 @@ class MapBuilderRubricTile extends StatelessWidget {
           label: rubric.label,
           dense: true,
           leading: Icon(rubric.icon, size: 18),
-          selected: true,
-          onTap: () {},
+          selected: selected,
+          onTap: onTap ?? () {},
         ),
       );
     }

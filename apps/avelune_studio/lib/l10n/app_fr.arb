@@ -375,5 +375,28 @@
         "type": "String"
       }
     }
-  }
+  },
+  "spawnPlace": "Placer un point de départ",
+  "spawnSection": "Points de départ",
+  "spawnNone": "Aucun point de départ sur cette carte.",
+  "spawnMissing": "Aucun départ du joueur : cette carte ne peut pas démarrer seule.",
+  "spawnEyebrow": "POINT DE DÉPART",
+  "spawnNew": "Nouveau point de départ",
+  "spawnPlaceHint": "Cliquez sur la case où le joueur doit apparaître.",
+  "spawnName": "Nom",
+  "spawnRole": "Rôle",
+  "spawnFacing": "Orientation du joueur",
+  "spawnDefault": "Départ par défaut de cette carte",
+  "spawnDefaultDetail": "Le joueur apparaît ici quand la carte démarre sans passage.",
+  "spawnDefaultBadge": "par défaut",
+  "spawnDelete": "Supprimer ce point",
+  "spawnRolePlayerStart": "Départ du joueur",
+  "spawnRoleEvent": "Événement",
+  "spawnRoleNpcSpawn": "Apparition de personnage",
+  "spawnRoleDebug": "Test",
+  "spawnRoleOther": "Autre",
+  "facingNorth": "Haut",
+  "facingSouth": "Bas",
+  "facingEast": "Droite",
+  "facingWest": "Gauche"
 }

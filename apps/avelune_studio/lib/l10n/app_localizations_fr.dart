@@ -762,4 +762,76 @@ class AppLocalizationsFr extends AppLocalizations {
   ) {
     return 'Aller-retour automatique : $edge de $map ↔ $otherEdge de $otherMap.';
   }
+
+  @override
+  String get spawnPlace => 'Placer un point de départ';
+
+  @override
+  String get spawnSection => 'Points de départ';
+
+  @override
+  String get spawnNone => 'Aucun point de départ sur cette carte.';
+
+  @override
+  String get spawnMissing =>
+      'Aucun départ du joueur : cette carte ne peut pas démarrer seule.';
+
+  @override
+  String get spawnEyebrow => 'POINT DE DÉPART';
+
+  @override
+  String get spawnNew => 'Nouveau point de départ';
+
+  @override
+  String get spawnPlaceHint =>
+      'Cliquez sur la case où le joueur doit apparaître.';
+
+  @override
+  String get spawnName => 'Nom';
+
+  @override
+  String get spawnRole => 'Rôle';
+
+  @override
+  String get spawnFacing => 'Orientation du joueur';
+
+  @override
+  String get spawnDefault => 'Départ par défaut de cette carte';
+
+  @override
+  String get spawnDefaultDetail =>
+      'Le joueur apparaît ici quand la carte démarre sans passage.';
+
+  @override
+  String get spawnDefaultBadge => 'par défaut';
+
+  @override
+  String get spawnDelete => 'Supprimer ce point';
+
+  @override
+  String get spawnRolePlayerStart => 'Départ du joueur';
+
+  @override
+  String get spawnRoleEvent => 'Événement';
+
+  @override
+  String get spawnRoleNpcSpawn => 'Apparition de personnage';
+
+  @override
+  String get spawnRoleDebug => 'Test';
+
+  @override
+  String get spawnRoleOther => 'Autre';
+
+  @override
+  String get facingNorth => 'Haut';
+
+  @override
+  String get facingSouth => 'Bas';
+
+  @override
+  String get facingEast => 'Droite';
+
+  @override
+  String get facingWest => 'Gauche';
 }

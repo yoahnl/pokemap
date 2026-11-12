@@ -5,6 +5,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_con
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_spawn_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_warp_form.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
@@ -50,6 +51,15 @@ class MapBuilderGameplayInspector extends StatelessWidget {
         enabled: enabled,
       );
     }
+    final spawn = binding.selectedSpawn;
+    if (spawn != null) {
+      return MapBuilderSpawnForm(
+        key: ValueKey('spawn-${map.id}-${spawn.id}'),
+        binding: binding,
+        spawn: spawn,
+        enabled: enabled,
+      );
+    }
     final connection = binding.selectedConnection;
     if (connection != null || binding.draftingConnection) {
       return MapBuilderConnectionForm(
@@ -62,6 +72,21 @@ class MapBuilderGameplayInspector extends StatelessWidget {
     }
     if (binding.draftingWarp) {
       return _WarpPlacement(binding: binding, enabled: enabled);
+    }
+    if (binding.draftingSpawn) {
+      return Column(
+        key: const ValueKey('map-gameplay-spawn-placement'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Heading(
+            eyebrow: context.l10n.spawnEyebrow,
+            title: context.l10n.spawnNew,
+            hint: context.l10n.spawnPlaceHint,
+          ),
+          const SizedBox(height: StudioSpacing.l),
+          _CancelPlacement(binding: binding),
+        ],
+      );
     }
     return _Heading(
       eyebrow: outline.inspectorEyebrow,
@@ -112,19 +137,28 @@ class _WarpPlacement extends StatelessWidget {
           onPressed: enabled ? binding.armArrival : null,
         ),
         const SizedBox(height: StudioSpacing.m),
-        StudioButton(
-          key: const ValueKey('map-gameplay-placement-cancel'),
-          label: l10n.cancel,
-          icon: Icons.close,
-          variant: StudioButtonVariant.secondary,
-          onPressed: () {
-            binding.leave();
-            binding.changed();
-          },
-        ),
+        _CancelPlacement(binding: binding),
       ],
     );
   }
+}
+
+class _CancelPlacement extends StatelessWidget {
+  const _CancelPlacement({required this.binding});
+
+  final MapBuilderGameplayBinding binding;
+
+  @override
+  Widget build(BuildContext context) => StudioButton(
+    key: const ValueKey('map-gameplay-placement-cancel'),
+    label: context.l10n.cancel,
+    icon: Icons.close,
+    variant: StudioButtonVariant.secondary,
+    onPressed: () {
+      binding.leave();
+      binding.changed();
+    },
+  );
 }
 
 class _Heading extends StatelessWidget {

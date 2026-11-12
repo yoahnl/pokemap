@@ -301,6 +301,115 @@ void main() {
     expect(find.byKey(const ValueKey('map-library')), findsOneWidget);
   });
 
+  testWidgets('starting points are placed, edited and removed from their rubric', (
+    tester,
+  ) async {
+    await openGameplay(tester);
+    await tester.tap(find.byKey(const ValueKey('map-space-rubric-spawns')));
+    await settle(tester);
+
+    expect(find.byKey(const ValueKey('map-gameplay-add')), findsNothing);
+    expect(find.text('Aucun point de départ sur cette carte.'), findsOneWidget);
+    expect(
+      find.text(
+        'Aucun départ du joueur : cette carte ne peut pas démarrer seule.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-add-spawn')));
+    await settle(tester);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-spawn-placement')),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('map-status-tool'))).data,
+      isNot('Sélection'),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-canvas')));
+    await settle(tester);
+
+    final spawn = active().entities.single;
+    expect(spawn.kind, MapEntityKind.spawn);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-spawn-form')),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('map-status-tool'))).data,
+      'Sélection',
+    );
+    expect(
+      find.byKey(ValueKey('map-gameplay-spawn-${spawn.id}')),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Aucun départ du joueur : cette carte ne peut pas démarrer seule.',
+      ),
+      findsNothing,
+    );
+
+    await choose(tester, 'map-gameplay-spawn-facing', 'Gauche');
+    expect(active().entities.single.spawn!.facing, EntityFacing.west);
+
+    await choose(tester, 'map-gameplay-spawn-role', 'Événement');
+    expect(active().entities.single.spawn!.role, EntitySpawnRole.event);
+    expect(
+      find.text(
+        'Aucun départ du joueur : cette carte ne peut pas démarrer seule.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-spawn-default')));
+    await settle(tester);
+    expect(active().mapMetadata.defaultSpawnId, spawn.id);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('map-gameplay-spawn-name')),
+      'Sortie du labo',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await settle(tester);
+    expect(active().entities.single.name, 'Sortie du labo');
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-spawn-delete')));
+    await settle(tester);
+    expect(active().entities, isEmpty);
+    expect(active().mapMetadata.defaultSpawnId, isNull);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-spawn-form')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('switching rubric clears the passage selection', (tester) async {
+    await openGameplay(tester);
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-warp-door')));
+    await settle(tester);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-warp-form')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-space-rubric-spawns')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('map-gameplay-warp-form')), findsNothing);
+    expect(find.byKey(const ValueKey('map-gameplay-warp-door')), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('map-space-rubric-connections')),
+    );
+    await settle(tester);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-warp-door')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('neighbour links go through the connection port', (tester) async {
     await openGameplay(tester);
     await tester.tap(

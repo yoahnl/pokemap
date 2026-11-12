@@ -4,6 +4,21 @@ import 'package:avelune_studio/features/resources/application/resource_catalog.d
 import 'package:avelune_studio/l10n/app_localizations.dart';
 
 extension StudioLabels on AppLocalizations {
+  String spawnRoleName(EntitySpawnRole role) => switch (role) {
+    EntitySpawnRole.playerStart => spawnRolePlayerStart,
+    EntitySpawnRole.event => spawnRoleEvent,
+    EntitySpawnRole.npcSpawn => spawnRoleNpcSpawn,
+    EntitySpawnRole.debug => spawnRoleDebug,
+    EntitySpawnRole.other => spawnRoleOther,
+  };
+
+  String facing(EntityFacing facing) => switch (facing) {
+    EntityFacing.north => facingNorth,
+    EntityFacing.south => facingSouth,
+    EntityFacing.east => facingEast,
+    EntityFacing.west => facingWest,
+  };
+
   String direction(MapConnectionDirection direction) => switch (direction) {
     MapConnectionDirection.north => directionNorth,
     MapConnectionDirection.east => directionEast,

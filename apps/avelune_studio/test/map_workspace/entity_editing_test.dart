@@ -47,6 +47,55 @@ void main() {
     expect(commands.playerStart()!.id, spawn.id);
   });
 
+  test('the default start decides where the player appears', () {
+    commands.place(MapEntityKind.spawn, const GridPos(x: 2, y: 2));
+    final chosen = commands.place(
+      MapEntityKind.spawn,
+      const GridPos(x: 7, y: 4),
+    );
+
+    commands.setDefaultSpawn(chosen.id);
+
+    expect(commands.isDefaultSpawn(chosen.id), isTrue);
+    expect(
+      GameplayWorldState.fromMap(
+        document.current,
+        project: workspaceProject,
+      ).player.pos,
+      const GridPos(x: 7, y: 4),
+    );
+
+    commands.setDefaultSpawn(null);
+    expect(document.current.mapMetadata.defaultSpawnId, isNull);
+  });
+
+  test('only a spawn can become the default start', () {
+    final sign = commands.place(MapEntityKind.sign, const GridPos(x: 1, y: 1));
+
+    expect(() => commands.setDefaultSpawn(sign.id), throwsStateError);
+    expect(document.current.mapMetadata.defaultSpawnId, isNull);
+  });
+
+  test('deleting the default start keeps the map playable', () {
+    commands.place(MapEntityKind.spawn, const GridPos(x: 2, y: 2));
+    final chosen = commands.place(
+      MapEntityKind.spawn,
+      const GridPos(x: 7, y: 4),
+    );
+    commands.setDefaultSpawn(chosen.id);
+
+    commands.delete(chosen.id);
+
+    expect(document.current.mapMetadata.defaultSpawnId, isNull);
+    expect(
+      GameplayWorldState.fromMap(
+        document.current,
+        project: workspaceProject,
+      ).player.pos,
+      const GridPos(x: 2, y: 2),
+    );
+  });
+
   test('the player start follows the author when it is moved', () {
     commands.place(MapEntityKind.spawn, const GridPos(x: 2, y: 2));
     commands.move(commands.playerStart()!.id, const GridPos(x: 9, y: 3));

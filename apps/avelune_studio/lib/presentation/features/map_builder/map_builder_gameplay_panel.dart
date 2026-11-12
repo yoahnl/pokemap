@@ -1,5 +1,6 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
@@ -41,13 +42,8 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
-    final l10n = context.l10n;
     final outline = widget.outline;
     final binding = widget.binding;
-    final connections = binding.connections;
-    final passages = binding.passages;
-    final selectedWarp = binding.selectedWarp?.id;
-    final selectedConnection = binding.selectedConnection?.direction;
     return Ink(
       key: const ValueKey('map-space-panel'),
       width: mapBuilderLibraryWidth,
@@ -78,8 +74,17 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                 ),
                 Text(outline.subtitle, style: muted),
                 const SizedBox(height: StudioSpacing.l),
-                for (final (index, rubric) in outline.rubrics.indexed)
-                  MapBuilderRubricTile(rubric: rubric, selected: index == 0),
+                for (final rubric in outline.rubrics)
+                  MapBuilderRubricTile(
+                    rubric: rubric,
+                    selected: rubric.id == binding.rubric,
+                    onTap: mapBuilderGameplayRubrics.contains(rubric.id)
+                        ? () {
+                            _search.clear();
+                            binding.openRubric(rubric.id);
+                          }
+                        : null,
+                  ),
                 const SizedBox(height: StudioSpacing.l),
                 TextField(
                   key: const ValueKey('map-gameplay-search'),
@@ -92,6 +97,47 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                   ),
                 ),
                 const SizedBox(height: StudioSpacing.m),
+                ...switch (binding.rubric) {
+                  'spawns' => _spawns(binding, muted),
+                  _ => _connections(binding, outline, muted),
+                },
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(StudioSpacing.l),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: scheme.outlineVariant)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  outline.note.$1,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(outline.note.$2, style: muted),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _connections(
+    MapBuilderGameplayBinding binding,
+    MapBuilderSpaceOutline outline,
+    TextStyle? muted,
+  ) {
+    final l10n = context.l10n;
+    final connections = binding.connections;
+    final passages = binding.passages;
+    final selectedWarp = binding.selectedWarp?.id;
+    final selectedConnection = binding.selectedConnection?.direction;
+    return [
                 MenuAnchor(
                   menuChildren: [
                     MenuItemButton(
@@ -154,30 +200,42 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                     selected: warp.id == selectedWarp,
                     onTap: () => binding.selectWarp(warp.id),
                   ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(StudioSpacing.l),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: scheme.outlineVariant)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  outline.note.$1,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(outline.note.$2, style: muted),
-              ],
-            ),
-          ),
-        ],
+    ];
+  }
+
+  List<Widget> _spawns(MapBuilderGameplayBinding binding, TextStyle? muted) {
+    final l10n = context.l10n;
+    final spawns = binding.spawns;
+    final selected = binding.selectedSpawn?.id;
+    final commands = binding.entities;
+    return [
+      StudioButton(
+        key: const ValueKey('map-gameplay-add-spawn'),
+        label: l10n.spawnPlace,
+        icon: Icons.add,
+        onPressed: widget.enabled ? binding.armSpawn : null,
       ),
-    );
+      if (binding.startsNowhere) ...[
+        const SizedBox(height: StudioSpacing.m),
+        StudioNotice(l10n.spawnMissing),
+      ],
+      _Section(title: l10n.spawnSection, count: spawns.length),
+      if (spawns.isEmpty) Text(l10n.spawnNone, style: muted),
+      for (final spawn in spawns)
+        StudioChoice(
+          key: ValueKey('map-gameplay-spawn-${spawn.id}'),
+          leading: const Icon(Icons.flag_outlined, size: 18),
+          label: spawn.name,
+          subtitle: [
+            l10n.spawnRoleName(spawn.spawn?.role ?? EntitySpawnRole.other),
+            l10n.warpCell(spawn.pos.x, spawn.pos.y),
+            if (commands?.isDefaultSpawn(spawn.id) ?? false)
+              l10n.spawnDefaultBadge,
+          ].join(' · '),
+          selected: spawn.id == selected,
+          onTap: () => binding.selectSpawn(spawn.id),
+        ),
+    ];
   }
 }
 

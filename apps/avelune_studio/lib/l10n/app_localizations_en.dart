@@ -756,4 +756,75 @@ class AppLocalizationsEn extends AppLocalizations {
   ) {
     return 'Automatic round trip: $edge of $map ↔ $otherEdge of $otherMap.';
   }
+
+  @override
+  String get spawnPlace => 'Place a starting point';
+
+  @override
+  String get spawnSection => 'Starting points';
+
+  @override
+  String get spawnNone => 'No starting point on this map.';
+
+  @override
+  String get spawnMissing =>
+      'No player start: this map cannot start on its own.';
+
+  @override
+  String get spawnEyebrow => 'STARTING POINT';
+
+  @override
+  String get spawnNew => 'New starting point';
+
+  @override
+  String get spawnPlaceHint => 'Click the cell where the player should appear.';
+
+  @override
+  String get spawnName => 'Name';
+
+  @override
+  String get spawnRole => 'Role';
+
+  @override
+  String get spawnFacing => 'Player facing';
+
+  @override
+  String get spawnDefault => 'Default start of this map';
+
+  @override
+  String get spawnDefaultDetail =>
+      'The player appears here when the map starts without a passage.';
+
+  @override
+  String get spawnDefaultBadge => 'default';
+
+  @override
+  String get spawnDelete => 'Delete this point';
+
+  @override
+  String get spawnRolePlayerStart => 'Player start';
+
+  @override
+  String get spawnRoleEvent => 'Event';
+
+  @override
+  String get spawnRoleNpcSpawn => 'Character spawn';
+
+  @override
+  String get spawnRoleDebug => 'Test';
+
+  @override
+  String get spawnRoleOther => 'Other';
+
+  @override
+  String get facingNorth => 'Up';
+
+  @override
+  String get facingSouth => 'Down';
+
+  @override
+  String get facingEast => 'Right';
+
+  @override
+  String get facingWest => 'Left';
 }

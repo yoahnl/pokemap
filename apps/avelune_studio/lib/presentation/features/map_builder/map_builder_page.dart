@@ -257,7 +257,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                       surface: _surface(),
                       statusBar: MapBuilderStatusBar(
                         toolLabel:
-                            _resources.armed != null || _gameplay.placingWarp
+                            _resources.armed != null || _gameplay.placing
                             ? toolLabel ?? context.l10n.statusBuilding
                             : view?.tool == StudioMapTool.pan
                             ? context.l10n.toolPan

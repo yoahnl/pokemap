@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 
+import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_connection_actions.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
@@ -8,6 +9,8 @@ import 'package:avelune_studio/features/map_workspace/domain/map_connection_port
 import 'package:avelune_studio/features/resources/domain/studio_search_text.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
+
+const mapBuilderGameplayRubrics = {'connections', 'spawns'};
 
 MapConnectionPort? configuredConnectionPort(MapConnectionPort Function() read) {
   try {
@@ -39,8 +42,11 @@ class MapBuilderGameplayBinding {
   final MapWorkspaceConnectionActions links;
   ({String mapId, MapConnectionDirection? direction})? _connection;
   ({String mapId, Set<String> known})? _warpDraft;
+  ({String mapId, Set<String> known})? _spawnDraft;
+  String rubric = 'connections';
   String query = '';
   String? warpError;
+  String? entityError;
 
   MapData? get map => maps.active?.current;
 
@@ -54,6 +60,46 @@ class MapBuilderGameplayBinding {
       _connection!.direction == null;
 
   bool get draftingWarp => _warpDraft != null && _warpDraft!.mapId == map?.id;
+
+  bool get draftingSpawn =>
+      _spawnDraft != null && _spawnDraft!.mapId == map?.id;
+
+  MapEntity? get selectedSpawn {
+    final map = this.map;
+    if (map == null) return null;
+    final id = view()?.selectedFor(map.id, MapSelectionFamily.marker);
+    return map.entities
+        .where((entity) => entity.id == id && entity.kind == MapEntityKind.spawn)
+        .firstOrNull;
+  }
+
+  MapEntityEditingCommands? get entities {
+    final document = maps.active;
+    final project = maps.project;
+    return document == null || project == null
+        ? null
+        : MapEntityEditingCommands(document, project);
+  }
+
+  List<MapEntity> get spawns => [
+    for (final entity in map?.entities ?? const <MapEntity>[])
+      if (entity.kind == MapEntityKind.spawn &&
+          studioSearchMatches(entity.name, query))
+        entity,
+  ];
+
+  bool get startsNowhere {
+    final map = this.map;
+    if (map == null) return false;
+    final preferred = map.mapMetadata.defaultSpawnId?.trim() ?? '';
+    return !map.entities.any(
+      (entity) =>
+          entity.kind == MapEntityKind.spawn &&
+          (preferred.isEmpty
+              ? entity.spawn?.role == EntitySpawnRole.playerStart
+              : entity.id == preferred),
+    );
+  }
 
   MapConnection? get selectedConnection {
     final focus = _connection;
@@ -80,6 +126,18 @@ class MapBuilderGameplayBinding {
   }
 
   bool get placingWarp => view()?.tool == StudioMapTool.warp;
+
+  bool get placing => placingWarp || view()?.tool == StudioMapTool.spawn;
+
+  void openRubric(String id) {
+    if (id == rubric) return;
+    final document = maps.active;
+    if (document != null) view()?.clearSelection(document);
+    leave();
+    rubric = id;
+    query = '';
+    changed();
+  }
 
   List<MapConnection> get connections => [
     for (final connection in map?.connections ?? const <MapConnection>[])
@@ -118,6 +176,7 @@ class MapBuilderGameplayBinding {
     view()?.clearSelection(document);
     release();
     _warpDraft = null;
+    _spawnDraft = null;
     _connection = (mapId: map.id, direction: direction);
     links.error = null;
     changed();
@@ -128,9 +187,39 @@ class MapBuilderGameplayBinding {
     if (document == null) return;
     _connection = null;
     _warpDraft = null;
+    _spawnDraft = null;
     warpError = null;
     release();
     view()?.select(document, MapSelectionFamily.warp, id);
+    changed();
+  }
+
+  void selectSpawn(String id) {
+    final document = maps.active;
+    if (document == null) return;
+    _connection = null;
+    _warpDraft = null;
+    _spawnDraft = null;
+    entityError = null;
+    release();
+    view()?.select(document, MapSelectionFamily.marker, id);
+    changed();
+  }
+
+  void armSpawn() {
+    final state = view();
+    final map = this.map;
+    final document = maps.active;
+    if (state == null || map == null || document == null) return;
+    state.clearSelection(document);
+    _connection = null;
+    _warpDraft = null;
+    entityError = null;
+    _spawnDraft = (
+      mapId: map.id,
+      known: {for (final entity in map.entities) entity.id},
+    );
+    state.tool = StudioMapTool.spawn;
     changed();
   }
 
@@ -140,6 +229,7 @@ class MapBuilderGameplayBinding {
     if (map == null || document == null) return;
     view()?.clearSelection(document);
     _connection = null;
+    _spawnDraft = null;
     _warpDraft = (
       mapId: map.id,
       known: {for (final warp in map.warps) warp.id},
@@ -161,6 +251,7 @@ class MapBuilderGameplayBinding {
     final map = this.map;
     if (state == null || map == null) return;
     _connection = null;
+    _spawnDraft = null;
     _warpDraft = (
       mapId: map.id,
       known: {for (final warp in map.warps) warp.id},
@@ -172,18 +263,30 @@ class MapBuilderGameplayBinding {
 
   void release() {
     final state = view();
-    if (state == null || state.tool != StudioMapTool.warp) return;
+    if (state == null || !placing) return;
     state.tool = StudioMapTool.select;
     changed();
   }
 
   void leave() {
     _warpDraft = null;
+    _spawnDraft = null;
     _connection = null;
     release();
   }
 
   void reconcile() {
+    final spawnDraft = _spawnDraft;
+    final placed = this.map;
+    if (spawnDraft != null &&
+        placed != null &&
+        spawnDraft.mapId == placed.id &&
+        placed.entities.any(
+          (entity) => !spawnDraft.known.contains(entity.id),
+        )) {
+      _spawnDraft = null;
+      view()?.tool = StudioMapTool.select;
+    }
     final draft = _warpDraft;
     final map = this.map;
     if (draft == null || map == null || draft.mapId != map.id) return;
@@ -211,6 +314,18 @@ class MapBuilderGameplayBinding {
       _connection = null;
       changed();
     }
+  }
+
+  void editEntities(void Function(MapEntityEditingCommands commands) edit) {
+    final commands = entities;
+    if (commands == null) return;
+    try {
+      edit(commands);
+      entityError = null;
+    } on StateError catch (failure) {
+      entityError = failure.message;
+    }
+    maps.notify();
   }
 
   void rejectWarp(String message) {
