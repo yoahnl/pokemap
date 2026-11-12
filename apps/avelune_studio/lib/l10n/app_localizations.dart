@@ -1391,7 +1391,7 @@ abstract class AppLocalizations {
   /// No description provided for @dayNightFixed.
   ///
   /// In fr, this message translates to:
-  /// **'Heure fixe pour cette carte'**
+  /// **'Heure fixe pour la carte'**
   String get dayNightFixed;
 
   /// No description provided for @dayNightFixedHint.
@@ -1435,6 +1435,90 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Nuit'**
   String get dayNightNight;
+
+  /// No description provided for @weatherKindName.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, clear{Dégagé} cloudy{Nuageux} partlyCloudy{Éclaircies} windy{Venteux} mist{Brume} fog{Brouillard} drizzle{Bruine} rain{Pluie} downpour{Averse} storm{Orage} tempest{Tempête} snow{Neige} heavySnow{Neige forte} sleet{Grésil} blizzard{Blizzard} hail{Grêle} dust{Poussière} sandstorm{Tempête de sable} petals{Pétales} leaves{Feuilles} other{{kind}}}'**
+  String weatherKindName(String kind);
+
+  /// No description provided for @weatherProjectReal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet suit la météo réelle.'**
+  String get weatherProjectReal;
+
+  /// No description provided for @weatherProjectAutomatic.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet enchaîne automatiquement plusieurs temps.'**
+  String get weatherProjectAutomatic;
+
+  /// No description provided for @weatherProjectOccasional.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet déclenche des épisodes de pluie de temps en temps.'**
+  String get weatherProjectOccasional;
+
+  /// No description provided for @weatherProjectFixed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet garde le temps « {kind} ».'**
+  String weatherProjectFixed(String kind);
+
+  /// No description provided for @weatherProjectClear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet garde un ciel dégagé.'**
+  String get weatherProjectClear;
+
+  /// No description provided for @weatherInherit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comme le projet'**
+  String get weatherInherit;
+
+  /// No description provided for @weatherFixed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps fixe pour la carte'**
+  String get weatherFixed;
+
+  /// No description provided for @weatherFixedHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un temps qui ne change jamais ici.'**
+  String get weatherFixedHint;
+
+  /// No description provided for @weatherCustom.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette carte a un réglage météo personnalisé. Choisissez une option pour le remplacer.'**
+  String get weatherCustom;
+
+  /// No description provided for @weatherIntensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Intensité'**
+  String get weatherIntensity;
+
+  /// No description provided for @weatherLightning.
+  ///
+  /// In fr, this message translates to:
+  /// **'Éclairs'**
+  String get weatherLightning;
+
+  /// No description provided for @weatherSound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bruitages météo'**
+  String get weatherSound;
+
+  /// No description provided for @weatherPreviewHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'La météo s’affiche dans « Tester la carte ».'**
+  String get weatherPreviewHint;
 
   /// No description provided for @rubricUnavailable.
   ///

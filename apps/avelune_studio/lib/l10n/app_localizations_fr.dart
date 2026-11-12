@@ -711,7 +711,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get dayNightInherit => 'Comme le projet';
 
   @override
-  String get dayNightFixed => 'Heure fixe pour cette carte';
+  String get dayNightFixed => 'Heure fixe pour la carte';
 
   @override
   String get dayNightFixedHint => 'Idéal pour une grotte ou un intérieur.';
@@ -734,6 +734,79 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get dayNightNight => 'Nuit';
+
+  @override
+  String weatherKindName(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'clear': 'Dégagé',
+      'cloudy': 'Nuageux',
+      'partlyCloudy': 'Éclaircies',
+      'windy': 'Venteux',
+      'mist': 'Brume',
+      'fog': 'Brouillard',
+      'drizzle': 'Bruine',
+      'rain': 'Pluie',
+      'downpour': 'Averse',
+      'storm': 'Orage',
+      'tempest': 'Tempête',
+      'snow': 'Neige',
+      'heavySnow': 'Neige forte',
+      'sleet': 'Grésil',
+      'blizzard': 'Blizzard',
+      'hail': 'Grêle',
+      'dust': 'Poussière',
+      'sandstorm': 'Tempête de sable',
+      'petals': 'Pétales',
+      'leaves': 'Feuilles',
+      'other': '$kind',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get weatherProjectReal => 'Le projet suit la météo réelle.';
+
+  @override
+  String get weatherProjectAutomatic =>
+      'Le projet enchaîne automatiquement plusieurs temps.';
+
+  @override
+  String get weatherProjectOccasional =>
+      'Le projet déclenche des épisodes de pluie de temps en temps.';
+
+  @override
+  String weatherProjectFixed(String kind) {
+    return 'Le projet garde le temps « $kind ».';
+  }
+
+  @override
+  String get weatherProjectClear => 'Le projet garde un ciel dégagé.';
+
+  @override
+  String get weatherInherit => 'Comme le projet';
+
+  @override
+  String get weatherFixed => 'Temps fixe pour la carte';
+
+  @override
+  String get weatherFixedHint => 'Un temps qui ne change jamais ici.';
+
+  @override
+  String get weatherCustom =>
+      'Cette carte a un réglage météo personnalisé. Choisissez une option pour le remplacer.';
+
+  @override
+  String get weatherIntensity => 'Intensité';
+
+  @override
+  String get weatherLightning => 'Éclairs';
+
+  @override
+  String get weatherSound => 'Bruitages météo';
+
+  @override
+  String get weatherPreviewHint =>
+      'La météo s’affiche dans « Tester la carte ».';
 
   @override
   String rubricUnavailable(String detail, String unavailable) {

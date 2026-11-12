@@ -24,6 +24,9 @@ class _VisualsPort extends WorkspaceMemoryPort implements ProjectVisualsPort {
     'timeMode': 'real',
     'dayNightEnabled': true,
     'minuteOfDay': 720,
+    'weatherMode': 'real',
+    'weatherEnabled': true,
+    'weatherLightning': true,
   });
   final mapPatches = <String, SpatialVisualPatch>{};
   var revision = 0;
@@ -91,7 +94,12 @@ void main() {
     port.saved['a'] = spatial ? _spatial('a') : workspaceMap('a');
     maps = MapWorkspaceController(workspaceSession, port);
     addTearDown(maps.dispose);
-    ambiance = MapBuilderAmbianceBinding(maps: maps, changed: () {});
+    final tick = ValueNotifier(0);
+    addTearDown(tick.dispose);
+    ambiance = MapBuilderAmbianceBinding(
+      maps: maps,
+      changed: () => tick.value++,
+    );
     addTearDown(ambiance.dispose);
     await maps.initialize();
     ambiance
@@ -106,7 +114,7 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: ListenableBuilder(
-              listenable: ambiance.visuals ?? ValueNotifier(0),
+              listenable: Listenable.merge([tick, ?ambiance.visuals]),
               builder: (context, _) => Column(
                 children: [
                   MapBuilderHeader(
@@ -221,6 +229,74 @@ void main() {
     await tester.pump();
     expect(patch().toJson(), isEmpty);
     expect(find.byKey(const ValueKey('map-ambiance-time-hour')), findsNothing);
+  });
+
+  testWidgets('a map keeps the project weather or fixes its own sky', (
+    tester,
+  ) async {
+    await open(tester, spatial: true);
+    await tester.tap(find.byKey(const ValueKey('map-space-rubric-weather')));
+    await tester.pump();
+
+    expect(find.text('Le projet suit la météo réelle.'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('map-ambiance-weather-kind-rain')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-ambiance-weather-fixed')));
+    await tester.pump();
+    expect(patch().choice(SpatialVisualParameter.weatherMode), 'fixed');
+    expect(patch().choice(SpatialVisualParameter.weatherKind), 'rain');
+    expect(
+      find.byKey(const ValueKey('map-ambiance-weather-kind-rain')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-ambiance-weather-fixed')));
+    await tester.pump();
+    expect(patch().choice(SpatialVisualParameter.weatherKind), 'rain');
+
+    await tester.tap(
+      find.byKey(const ValueKey('map-ambiance-weather-kind-storm')),
+    );
+    await tester.pump();
+    expect(patch().choice(SpatialVisualParameter.weatherKind), 'storm');
+    expect(
+      find.byKey(const ValueKey('map-ambiance-weather-lightning')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('map-ambiance-weather-sound')));
+    await tester.pump();
+    expect(patch().enabled(SpatialVisualParameter.weatherSoundEnabled), isTrue);
+
+    await tester.tap(
+      find.byKey(const ValueKey('map-ambiance-weather-kind-clear')),
+    );
+    await tester.pump();
+    expect(patch().choice(SpatialVisualParameter.weatherKind), 'clear');
+    expect(patch().enabled(SpatialVisualParameter.weatherEnabled), isFalse);
+    expect(
+      find.byKey(const ValueKey('map-ambiance-weather-intensity')),
+      findsNothing,
+    );
+
+    bar(tester).onUndo!();
+    await tester.pump();
+    expect(patch().choice(SpatialVisualParameter.weatherKind), 'storm');
+    expect(patch().enabled(SpatialVisualParameter.weatherSoundEnabled), isTrue);
+
+    expect(await maps.saveAll(), isTrue);
+    expect(
+      port.mapPatches['a']!.choice(SpatialVisualParameter.weatherKind),
+      'storm',
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('map-ambiance-weather-inherit')),
+    );
+    await tester.pump();
+    expect(patch().toJson(), isEmpty);
   });
 
   testWidgets('a custom clock override is announced and can be replaced', (

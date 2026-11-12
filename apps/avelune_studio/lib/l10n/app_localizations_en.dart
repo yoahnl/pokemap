@@ -731,6 +731,78 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dayNightNight => 'Night';
 
   @override
+  String weatherKindName(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'clear': 'Clear',
+      'cloudy': 'Cloudy',
+      'partlyCloudy': 'Sunny spells',
+      'windy': 'Windy',
+      'mist': 'Mist',
+      'fog': 'Fog',
+      'drizzle': 'Drizzle',
+      'rain': 'Rain',
+      'downpour': 'Downpour',
+      'storm': 'Storm',
+      'tempest': 'Tempest',
+      'snow': 'Snow',
+      'heavySnow': 'Heavy snow',
+      'sleet': 'Sleet',
+      'blizzard': 'Blizzard',
+      'hail': 'Hail',
+      'dust': 'Dust',
+      'sandstorm': 'Sandstorm',
+      'petals': 'Petals',
+      'leaves': 'Leaves',
+      'other': '$kind',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get weatherProjectReal => 'The project follows the real weather.';
+
+  @override
+  String get weatherProjectAutomatic =>
+      'The project cycles through several weathers automatically.';
+
+  @override
+  String get weatherProjectOccasional =>
+      'The project brings rain spells from time to time.';
+
+  @override
+  String weatherProjectFixed(String kind) {
+    return 'The project keeps the “$kind” weather.';
+  }
+
+  @override
+  String get weatherProjectClear => 'The project keeps a clear sky.';
+
+  @override
+  String get weatherInherit => 'Same as the project';
+
+  @override
+  String get weatherFixed => 'Fixed weather for this map';
+
+  @override
+  String get weatherFixedHint => 'Weather that never changes here.';
+
+  @override
+  String get weatherCustom =>
+      'This map has a custom weather setting. Pick an option to replace it.';
+
+  @override
+  String get weatherIntensity => 'Intensity';
+
+  @override
+  String get weatherLightning => 'Lightning';
+
+  @override
+  String get weatherSound => 'Weather sounds';
+
+  @override
+  String get weatherPreviewHint => 'Weather shows in “Test the map”.';
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

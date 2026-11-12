@@ -4,7 +4,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/project_visuals/application/project_visuals_controller.dart';
 import 'package:avelune_studio/features/project_visuals/application/spatial_visual_editing.dart';
 
-const mapBuilderAmbianceRubrics = {'dayNight'};
+const mapBuilderAmbianceRubrics = {'dayNight', 'weather'};
 
 class MapBuilderAmbianceBinding {
   MapBuilderAmbianceBinding({required this.maps, required this.changed});

@@ -375,7 +375,7 @@
   },
   "dayNightProjectOff": "Le projet n’a pas de jour et de nuit.",
   "dayNightInherit": "Comme le projet",
-  "dayNightFixed": "Heure fixe pour cette carte",
+  "dayNightFixed": "Heure fixe pour la carte",
   "dayNightFixedHint": "Idéal pour une grotte ou un intérieur.",
   "dayNightCustom": "Cette carte a un réglage d’horloge personnalisé. Choisissez une option pour le remplacer.",
   "dayNightHour": "Heure",
@@ -383,6 +383,34 @@
   "dayNightNoon": "Midi",
   "dayNightDusk": "Crépuscule",
   "dayNightNight": "Nuit",
+  "weatherKindName": "{kind, select, clear{Dégagé} cloudy{Nuageux} partlyCloudy{Éclaircies} windy{Venteux} mist{Brume} fog{Brouillard} drizzle{Bruine} rain{Pluie} downpour{Averse} storm{Orage} tempest{Tempête} snow{Neige} heavySnow{Neige forte} sleet{Grésil} blizzard{Blizzard} hail{Grêle} dust{Poussière} sandstorm{Tempête de sable} petals{Pétales} leaves{Feuilles} other{{kind}}}",
+  "@weatherKindName": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherProjectReal": "Le projet suit la météo réelle.",
+  "weatherProjectAutomatic": "Le projet enchaîne automatiquement plusieurs temps.",
+  "weatherProjectOccasional": "Le projet déclenche des épisodes de pluie de temps en temps.",
+  "weatherProjectFixed": "Le projet garde le temps « {kind} ».",
+  "@weatherProjectFixed": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherProjectClear": "Le projet garde un ciel dégagé.",
+  "weatherInherit": "Comme le projet",
+  "weatherFixed": "Temps fixe pour la carte",
+  "weatherFixedHint": "Un temps qui ne change jamais ici.",
+  "weatherCustom": "Cette carte a un réglage météo personnalisé. Choisissez une option pour le remplacer.",
+  "weatherIntensity": "Intensité",
+  "weatherLightning": "Éclairs",
+  "weatherSound": "Bruitages météo",
+  "weatherPreviewHint": "La météo s’affiche dans « Tester la carte ».",
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {
