@@ -58,9 +58,10 @@ test("MCP updates map title and indoor role without changing identity or path", 
     const schema = (descriptor?.extensions as JsonRecord).inputSchema as JsonRecord;
     assert.deepEqual(schema.required, ["mapId"]);
     assert.deepEqual(schema.anyOf, [
-      { required: ["name"] }, { required: ["role"] }, { required: ["isIndoor"] }, { required: ["allowBicycle"] }, { required: ["allowEscapeRope"] }, { required: ["escapeRopeDungeonId"] }, { required: ["contextualItemUses"] },
+      { required: ["name"] }, { required: ["role"] }, { required: ["isIndoor"] }, { required: ["allowBicycle"] }, { required: ["allowEscapeRope"] }, { required: ["escapeRopeDungeonId"] }, { required: ["contextualItemUses"] }, { required: ["defaultSpawnId"] },
     ]);
     const properties = schema.properties as JsonRecord;
+    assert.deepEqual((properties.defaultSpawnId as JsonRecord).type, ["string", "null"]);
     assert.equal((properties.isIndoor as JsonRecord).type, "boolean");
     assert.ok(((properties.role as JsonRecord).enum as string[]).includes("interior"));
     assert.equal(schema.additionalProperties, false);

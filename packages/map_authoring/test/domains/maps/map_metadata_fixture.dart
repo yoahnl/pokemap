@@ -18,6 +18,7 @@ final class MapMetadataFixture {
   static Future<MapMetadataFixture> create({
     AuthoringTransactionFaultInjector? faultInjector,
     ProjectDimension dimension = ProjectDimension.twoD,
+    List<MapEntity> entities = const [],
   }) async {
     final root = await Directory.systemTemp.createTemp('map-metadata-');
     final spatial = dimension == ProjectDimension.threeD;
@@ -30,6 +31,7 @@ final class MapMetadataFixture {
       spatialScene: spatial ? MapSpatialScene(width: 5, depth: 4) : null,
       tilesetId: '',
       layers: const [],
+      entities: entities,
       warps: const [
         MapWarp(
             id: 'return',

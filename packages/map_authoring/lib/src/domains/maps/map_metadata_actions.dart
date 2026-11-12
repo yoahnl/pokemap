@@ -19,6 +19,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
     'allowBicycle',
     'escapeRopeDungeonId',
     'contextualItemUses',
+    'defaultSpawnId',
   });
   final mapId = parameters.string('mapId');
   final values = context.request.parameters;
@@ -34,7 +35,18 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
   }
   final hasDungeon = values.containsKey('escapeRopeDungeonId');
   final hasRules = values.containsKey('contextualItemUses');
-  if (!hasName && !hasRole && !hasIndoor && !hasEscapeAllowed && !hasBicycle && !hasDungeon && !hasRules) {
+  final hasDefaultSpawn = values.containsKey('defaultSpawnId');
+  final rawDefaultSpawn = values['defaultSpawnId'];
+  if (hasDefaultSpawn &&
+      rawDefaultSpawn != null &&
+      (rawDefaultSpawn is! String ||
+          rawDefaultSpawn.trim().isEmpty ||
+          rawDefaultSpawn != rawDefaultSpawn.trim())) {
+    throw MapAuthoringException(
+        code: 'map.default_spawn_invalid',
+        message: 'The default start must be a canonical spawn ID or null.');
+  }
+  if (!hasName && !hasRole && !hasIndoor && !hasEscapeAllowed && !hasBicycle && !hasDungeon && !hasRules && !hasDefaultSpawn) {
     throw MapAuthoringException(
         code: 'map.metadata_empty',
         message: 'At least one map metadata field is required.');
@@ -100,6 +112,17 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
         message:
             'The requested map document is unavailable or has another identity.');
   }
+  final defaultSpawnId = hasDefaultSpawn
+      ? rawDefaultSpawn as String?
+      : before.mapMetadata.defaultSpawnId;
+  if (hasDefaultSpawn &&
+      defaultSpawnId != null &&
+      !before.entities.any((entity) =>
+          entity.id == defaultSpawnId && entity.kind == MapEntityKind.spawn)) {
+    throw MapAuthoringException(
+        code: 'map.default_spawn_missing',
+        message: 'Choose a starting point placed on this map.');
+  }
   var role = requestedRole ?? entry.role;
   var isIndoor = hasIndoor ? rawIndoor! as bool : before.mapMetadata.isIndoor;
   if (hasRole && !hasIndoor) {
@@ -142,6 +165,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
       before.mapMetadata.allowBicycle == allowBicycle &&
       before.mapMetadata.allowEscapeRope == allowEscapeRope &&
       !rulesChanged &&
+      before.mapMetadata.defaultSpawnId == defaultSpawnId &&
       before.mapMetadata.escapeRopeDungeonId == dungeonId) {
     throw MapAuthoringException(
         code: 'map.no_change',
@@ -155,6 +179,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
       allowBicycle: allowBicycle,
       escapeRopeDungeonId: dungeonId,
       contextualItemUses: rules,
+      defaultSpawnId: defaultSpawnId,
     ),
   );
   final manifest = snapshot.manifest.copyWith(
@@ -213,6 +238,14 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
         if (rulesChanged) AuthoringDiffEntry(operation: AuthoringDiffOperation.replace, resource: map,
           path: '/mapMetadata/contextualItemUses', before: before.contextualItemUses.map((rule) => rule.toJson()).toList(),
           after: rules.map((rule) => rule.toJson()).toList()),
+        if (before.mapMetadata.defaultSpawnId != defaultSpawnId)
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: map,
+            path: '/mapMetadata/defaultSpawnId',
+            before: before.mapMetadata.defaultSpawnId,
+            after: defaultSpawnId,
+          ),
         if (before.name != updated.name)
           AuthoringDiffEntry(
             operation: AuthoringDiffOperation.replace,

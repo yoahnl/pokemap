@@ -184,6 +184,7 @@ AuthoringActionDescriptor _descriptor(
               'required': ['escapeRopeDungeonId'],
             },
             {'required': ['contextualItemUses']},
+            {'required': ['defaultSpawnId']},
           ],
           'properties': {
             'mapId': {'type': 'string', 'minLength': 1},
@@ -225,6 +226,11 @@ AuthoringActionDescriptor _descriptor(
               'type': ['string', 'null'],
               'referenceKind': 'map_group',
               'selection': 'explicit',
+            },
+            'defaultSpawnId': {
+              'type': ['string', 'null'],
+              'minLength': 1,
+              'referenceKind': 'map_spawn',
             },
           },
           'normalizedTitleMaximumLength': 160,
