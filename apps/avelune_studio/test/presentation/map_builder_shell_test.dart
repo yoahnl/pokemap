@@ -268,9 +268,9 @@ void main() {
       }
       expect(find.text('Bientôt'), findsNothing);
 
-      for (final (space, rubric, inspector) in [
-        ('story', 'characters', 'ÉVÉNEMENT'),
-        ('ambiance', 'music', 'AMBIANCE DE LA CARTE'),
+      for (final (space, rubric, panel, inspector) in [
+        ('story', 'characters', 'map-space-inspector', 'ÉVÉNEMENT'),
+        ('ambiance', 'music', 'map-ambiance-inspector', 'AMBIANCE DE LA CARTE'),
       ]) {
         await tester.tap(find.byKey(ValueKey('map-space-$space')));
         await tester.pump();
@@ -283,7 +283,7 @@ void main() {
         expect(tile.enabled, isFalse);
         expect(
           find.descendant(
-            of: find.byKey(const ValueKey('map-space-inspector')),
+            of: find.byKey(ValueKey(panel)),
             matching: find.text(inspector),
           ),
           findsOneWidget,

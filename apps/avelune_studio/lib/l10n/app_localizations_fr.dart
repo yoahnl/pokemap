@@ -685,6 +685,57 @@ class AppLocalizationsFr extends AppLocalizations {
       'Jour et nuit, météo, effets visuels ou musique : le réglage choisi s’affichera ici.';
 
   @override
+  String get ambiance2dOnly => 'L’ambiance se règle sur les cartes 3D.';
+
+  @override
+  String get ambianceLoading => 'Chargement des réglages de la carte…';
+
+  @override
+  String get dayNightProjectReal =>
+      'Le projet suit l’heure réelle de l’appareil.';
+
+  @override
+  String dayNightProjectCycle(String minutes) {
+    return 'Le projet suit un cycle jour et nuit de $minutes min.';
+  }
+
+  @override
+  String dayNightProjectFixed(String time) {
+    return 'Le projet garde l’heure fixe $time.';
+  }
+
+  @override
+  String get dayNightProjectOff => 'Le projet n’a pas de jour et de nuit.';
+
+  @override
+  String get dayNightInherit => 'Comme le projet';
+
+  @override
+  String get dayNightFixed => 'Heure fixe pour cette carte';
+
+  @override
+  String get dayNightFixedHint => 'Idéal pour une grotte ou un intérieur.';
+
+  @override
+  String get dayNightCustom =>
+      'Cette carte a un réglage d’horloge personnalisé. Choisissez une option pour le remplacer.';
+
+  @override
+  String get dayNightHour => 'Heure';
+
+  @override
+  String get dayNightDawn => 'Aube';
+
+  @override
+  String get dayNightNoon => 'Midi';
+
+  @override
+  String get dayNightDusk => 'Crépuscule';
+
+  @override
+  String get dayNightNight => 'Nuit';
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

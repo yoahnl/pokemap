@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
@@ -19,6 +20,7 @@ class MapBuilderSidePanel extends StatelessWidget {
     super.key,
     required this.space,
     required this.gameplay,
+    required this.ambiance,
     required this.resources,
     required this.maps,
     required this.visuals,
@@ -27,6 +29,7 @@ class MapBuilderSidePanel extends StatelessWidget {
 
   final MapBuilderSpace space;
   final MapBuilderGameplayBinding gameplay;
+  final MapBuilderAmbianceBinding ambiance;
   final MapBuilderResourceBinding resources;
   final MapWorkspaceController maps;
   final MapWorkspaceVisuals? visuals;
@@ -40,6 +43,14 @@ class MapBuilderSidePanel extends StatelessWidget {
         outline: outline,
         binding: gameplay,
         enabled: enabled,
+      );
+    }
+    if (outline != null && space == MapBuilderSpace.ambiance) {
+      return MapBuilderSpacePanel(
+        outline: outline,
+        liveRubrics: mapBuilderAmbianceRubrics,
+        selectedRubric: ambiance.rubric,
+        onRubric: ambiance.openRubric,
       );
     }
     if (outline != null) return MapBuilderSpacePanel(outline: outline);

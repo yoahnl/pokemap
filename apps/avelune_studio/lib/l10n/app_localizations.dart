@@ -1346,6 +1346,96 @@ abstract class AppLocalizations {
   /// **'Jour et nuit, météo, effets visuels ou musique : le réglage choisi s’affichera ici.'**
   String get ambianceInspectorHint;
 
+  /// No description provided for @ambiance2dOnly.
+  ///
+  /// In fr, this message translates to:
+  /// **'L’ambiance se règle sur les cartes 3D.'**
+  String get ambiance2dOnly;
+
+  /// No description provided for @ambianceLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement des réglages de la carte…'**
+  String get ambianceLoading;
+
+  /// No description provided for @dayNightProjectReal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet suit l’heure réelle de l’appareil.'**
+  String get dayNightProjectReal;
+
+  /// No description provided for @dayNightProjectCycle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet suit un cycle jour et nuit de {minutes} min.'**
+  String dayNightProjectCycle(String minutes);
+
+  /// No description provided for @dayNightProjectFixed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet garde l’heure fixe {time}.'**
+  String dayNightProjectFixed(String time);
+
+  /// No description provided for @dayNightProjectOff.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet n’a pas de jour et de nuit.'**
+  String get dayNightProjectOff;
+
+  /// No description provided for @dayNightInherit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comme le projet'**
+  String get dayNightInherit;
+
+  /// No description provided for @dayNightFixed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure fixe pour cette carte'**
+  String get dayNightFixed;
+
+  /// No description provided for @dayNightFixedHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Idéal pour une grotte ou un intérieur.'**
+  String get dayNightFixedHint;
+
+  /// No description provided for @dayNightCustom.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette carte a un réglage d’horloge personnalisé. Choisissez une option pour le remplacer.'**
+  String get dayNightCustom;
+
+  /// No description provided for @dayNightHour.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure'**
+  String get dayNightHour;
+
+  /// No description provided for @dayNightDawn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aube'**
+  String get dayNightDawn;
+
+  /// No description provided for @dayNightNoon.
+  ///
+  /// In fr, this message translates to:
+  /// **'Midi'**
+  String get dayNightNoon;
+
+  /// No description provided for @dayNightDusk.
+  ///
+  /// In fr, this message translates to:
+  /// **'Crépuscule'**
+  String get dayNightDusk;
+
+  /// No description provided for @dayNightNight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nuit'**
+  String get dayNightNight;
+
   /// No description provided for @rubricUnavailable.
   ///
   /// In fr, this message translates to:

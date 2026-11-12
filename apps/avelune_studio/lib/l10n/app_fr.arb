@@ -354,6 +354,35 @@
   "ambianceInspectorEyebrow": "AMBIANCE DE LA CARTE",
   "ambianceInspectorTitle": "Choisissez une rubrique",
   "ambianceInspectorHint": "Jour et nuit, météo, effets visuels ou musique : le réglage choisi s’affichera ici.",
+  "ambiance2dOnly": "L’ambiance se règle sur les cartes 3D.",
+  "ambianceLoading": "Chargement des réglages de la carte…",
+  "dayNightProjectReal": "Le projet suit l’heure réelle de l’appareil.",
+  "dayNightProjectCycle": "Le projet suit un cycle jour et nuit de {minutes} min.",
+  "@dayNightProjectCycle": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "dayNightProjectFixed": "Le projet garde l’heure fixe {time}.",
+  "@dayNightProjectFixed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "dayNightProjectOff": "Le projet n’a pas de jour et de nuit.",
+  "dayNightInherit": "Comme le projet",
+  "dayNightFixed": "Heure fixe pour cette carte",
+  "dayNightFixedHint": "Idéal pour une grotte ou un intérieur.",
+  "dayNightCustom": "Cette carte a un réglage d’horloge personnalisé. Choisissez une option pour le remplacer.",
+  "dayNightHour": "Heure",
+  "dayNightDawn": "Aube",
+  "dayNightNoon": "Midi",
+  "dayNightDusk": "Crépuscule",
+  "dayNightNight": "Nuit",
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {

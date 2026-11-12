@@ -19,6 +19,7 @@ import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.
 import 'package:avelune_studio/presentation/shell/studio_rail.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_canvas.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_inspector.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
@@ -87,6 +88,10 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     isActive: () => !_disposed,
     changed: _changed,
     labels: () => context.l10n,
+  );
+  late final _ambiance = MapBuilderAmbianceBinding(
+    maps: _maps,
+    changed: _changed,
   );
   late final _opening = MapBuilderOpening(widget.progress);
   var _space = MapBuilderSpace.construction;
@@ -167,6 +172,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     _resources.follow(_activeEntry);
     _resources.reconcileTool();
     _gameplay.reconcile();
+    _ambiance.reconcile();
     if (mounted) setState(() {});
   }
 
@@ -224,6 +230,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   @override
   void dispose() {
     _disposed = true;
+    _ambiance.dispose();
     _maps.removeListener(_changed);
     _input.dispose();
     for (final view in _views.values) {
@@ -264,6 +271,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     _gameplay
       ..shown = space == MapBuilderSpace.gameplay
       ..reconcile();
+    _ambiance
+      ..shown = space == MapBuilderSpace.ambiance
+      ..reconcile();
     setState(() => _space = space);
   }
 
@@ -300,6 +310,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
               onSave: () => unawaited(_save()),
               onTestMap: () => unawaited(_testMap()),
               testing: _testing,
+              ambiance: _space == MapBuilderSpace.ambiance ? _ambiance : null,
             ),
             Expanded(
               child: Row(
@@ -309,6 +320,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                   MapBuilderSidePanel(
                     space: _space,
                     gameplay: _gameplay,
+                    ambiance: _ambiance,
                     resources: _resources,
                     maps: _maps,
                     visuals: _visuals,
@@ -361,6 +373,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                       body: mapBuilderSpaceInspector(
                         _space,
                         _gameplay,
+                        _ambiance,
                         context.l10n,
                         enabled: _editable,
                       ),

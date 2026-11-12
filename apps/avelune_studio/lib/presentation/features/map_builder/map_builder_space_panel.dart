@@ -6,9 +6,18 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_spa
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class MapBuilderSpacePanel extends StatelessWidget {
-  const MapBuilderSpacePanel({super.key, required this.outline});
+  const MapBuilderSpacePanel({
+    super.key,
+    required this.outline,
+    this.liveRubrics = const {},
+    this.selectedRubric,
+    this.onRubric,
+  });
 
   final MapBuilderSpaceOutline outline;
+  final Set<String> liveRubrics;
+  final String? selectedRubric;
+  final ValueChanged<String>? onRubric;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +57,16 @@ class MapBuilderSpacePanel extends StatelessWidget {
                 Text(outline.subtitle, style: muted),
                 const SizedBox(height: StudioSpacing.l),
                 for (final rubric in outline.rubrics)
-                  MapBuilderRubricTile(rubric: rubric),
+                  if (liveRubrics.contains(rubric.id))
+                    MapBuilderRubricTile(
+                      rubric: rubric,
+                      selected: rubric.id == selectedRubric,
+                      onTap: onRubric == null
+                          ? null
+                          : () => onRubric!(rubric.id),
+                    )
+                  else
+                    MapBuilderRubricTile(rubric: rubric),
                 if (outline.searchHint case final hint?) ...[
                   const SizedBox(height: StudioSpacing.l),
                   TextField(

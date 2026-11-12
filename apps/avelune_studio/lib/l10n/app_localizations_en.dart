@@ -680,6 +680,57 @@ class AppLocalizationsEn extends AppLocalizations {
       'Day and night, weather, visual effects or music: the chosen setting will show here.';
 
   @override
+  String get ambiance2dOnly => 'Ambience is set on 3D maps.';
+
+  @override
+  String get ambianceLoading => 'Loading the map settings…';
+
+  @override
+  String get dayNightProjectReal =>
+      'The project follows the device’s real time.';
+
+  @override
+  String dayNightProjectCycle(String minutes) {
+    return 'The project follows a $minutes min day and night cycle.';
+  }
+
+  @override
+  String dayNightProjectFixed(String time) {
+    return 'The project keeps the fixed time $time.';
+  }
+
+  @override
+  String get dayNightProjectOff => 'The project has no day and night.';
+
+  @override
+  String get dayNightInherit => 'Same as the project';
+
+  @override
+  String get dayNightFixed => 'Fixed time for this map';
+
+  @override
+  String get dayNightFixedHint => 'Ideal for a cave or an interior.';
+
+  @override
+  String get dayNightCustom =>
+      'This map has a custom clock setting. Pick an option to replace it.';
+
+  @override
+  String get dayNightHour => 'Time';
+
+  @override
+  String get dayNightDawn => 'Dawn';
+
+  @override
+  String get dayNightNoon => 'Noon';
+
+  @override
+  String get dayNightDusk => 'Dusk';
+
+  @override
+  String get dayNightNight => 'Night';
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

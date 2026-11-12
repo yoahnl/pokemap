@@ -2,6 +2,8 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_inspector.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_connection_form.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
@@ -18,6 +20,7 @@ import 'package:avelune_studio/presentation/shared/localization/studio_locale.da
 Widget? mapBuilderSpaceInspector(
   MapBuilderSpace space,
   MapBuilderGameplayBinding binding,
+  MapBuilderAmbianceBinding ambiance,
   AppLocalizations l10n, {
   required bool enabled,
 }) => switch ((space, mapBuilderSpaceOutline(space, l10n))) {
@@ -26,6 +29,8 @@ Widget? mapBuilderSpaceInspector(
     outline: outline,
     enabled: enabled,
   ),
+  (MapBuilderSpace.ambiance, _) when ambiance.maps.active != null =>
+    MapBuilderAmbianceInspector(binding: ambiance, enabled: enabled),
   _ => null,
 };
 

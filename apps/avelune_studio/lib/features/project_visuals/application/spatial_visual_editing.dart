@@ -7,6 +7,8 @@ double? parseSpatialVisualNumber(String text) {
   return value != null && value.isFinite ? value : null;
 }
 
+enum MapTimeSource { inherit, fixed, custom }
+
 class SpatialVisualEditing {
   const SpatialVisualEditing({
     required this.patch,
@@ -45,6 +47,41 @@ class SpatialVisualEditing {
       : patch.values.keys.any((p) => p.isWeather)
       ? 'custom'
       : 'inherit';
+
+  MapTimeSource get mapTimeSource {
+    if (!patch.values.keys.any((p) => p.isClock)) return MapTimeSource.inherit;
+    return patch.choice(SpatialVisualParameter.timeMode) ==
+                WorldTimeMode.fixed.name &&
+            patch.number(SpatialVisualParameter.minuteOfDay) != null
+        ? MapTimeSource.fixed
+        : MapTimeSource.custom;
+  }
+
+  int get mapMinuteOfDay =>
+      number(SpatialVisualParameter.minuteOfDay).round() % 1440;
+
+  void setMapTimeSource(MapTimeSource value) {
+    var next = SpatialVisualPatch({
+      for (final entry in patch.values.entries)
+        if (!entry.key.isClock) entry.key: entry.value,
+    });
+    if (value != MapTimeSource.inherit) {
+      next = next
+          .set(SpatialVisualParameter.timeMode, WorldTimeMode.fixed.name)
+          .set(SpatialVisualParameter.minuteOfDay, mapMinuteOfDay);
+    }
+    onChanged?.call(next);
+  }
+
+  bool setMapMinuteOfDay(int minute) {
+    if (minute < 0 || minute > 1439) return false;
+    onChanged?.call(
+      patch
+          .set(SpatialVisualParameter.timeMode, WorldTimeMode.fixed.name)
+          .set(SpatialVisualParameter.minuteOfDay, minute),
+    );
+    return true;
+  }
 
   void setMapWeatherSource(String value) {
     var next = SpatialVisualPatch({
