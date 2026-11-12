@@ -97,6 +97,37 @@ void main() {
     expect(resourceAwaitsUsageCategory(item, project), isTrue);
   });
 
+  test('a stored category wins over the derived one', () {
+    const item = ResourceItem(
+      id: 'tree',
+      name: 'Arbre',
+      kind: ResourceKind.decors,
+      element: workspaceElement,
+    );
+    final sorted = project.copyWith(
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        entries: [
+          ResourceLibraryEntry(
+            resourceKind: 'element',
+            resourceId: 'tree',
+            category: ResourceUsageCategory.vegetation,
+          ),
+        ],
+      ),
+    );
+
+    expect(
+      resourceUsageCategory(item, sorted),
+      ResourceUsageCategory.vegetation,
+    );
+    expect(resourceAwaitsUsageCategory(item, sorted), isFalse);
+    expect(
+      ResourceUsageCategory.vegetation.loadedKind(ProjectDimension.threeD),
+      'model3d',
+    );
+    expect(ResourceUsageCategory.vegetation.label, 'Végétation');
+  });
+
   test('characters and images belong to no construction category', () {
     const image = ResourceItem(
       id: 'atlas',

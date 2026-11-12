@@ -345,6 +345,7 @@ final class CatalogProjectReader {
           'tags',
           'familyId',
           'placementContext',
+          'category',
           'mapId',
           'role',
           'resourceKind',
@@ -519,7 +520,8 @@ Map<String, Object?> _classifiedSummary(CatalogIndexEntry entry,
       'familyId': classification.familyId,
       'mapId': classification.mapId,
       'role': classification.role ?? 'standard',
-      'placementContext': classification.placementContext
+      'placementContext': classification.placementContext,
+      'category': classification.category
     });
   }
   return row;

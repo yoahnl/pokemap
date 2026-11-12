@@ -164,6 +164,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         if (mapId == null && field('familyId') == null &&
             field('description') == null &&
             field('placementContext') == null &&
+            field('category') == null &&
             (field('role') ?? 'standard') == 'standard') {
           final position = existing.payload['position'];
           if (position is! int || position < 0 || position >= count) {

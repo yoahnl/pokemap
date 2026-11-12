@@ -50,6 +50,15 @@ final class ResourceLibraryActions {
         'description':
             'Optional authoring classification: omitted preserves the previous value; null clears it. Does not restrict map availability or placement.',
       },
+      'category': {
+        'type': ['string', 'null'],
+        'enum': [
+          ...ResourceUsageCategory.values.map((category) => category.name),
+          null,
+        ],
+        'description':
+            'Optional usage category shown by the map builder library: omitted preserves the previous value; null clears it.',
+      },
     },
   };
 
@@ -325,6 +334,7 @@ ResourceLibraryEntry _classificationEntry(ProjectManifest project,
     'mapId',
     'role',
     'placementContext',
+    'category',
     'description',
   });
   final kind = parameters.string('resourceKind');
@@ -356,6 +366,9 @@ ResourceLibraryEntry _classificationEntry(ProjectManifest project,
             : ResourcePlacementContext.values
                 .byName(parameters.string('placementContext'))
         : previous?.placementContext,
+    category: values.containsKey('category')
+        ? resourceUsageCategoryFromJson(values['category'])
+        : previous?.category,
   );
 }
 
@@ -364,6 +377,7 @@ bool _hasClassification(ResourceLibraryEntry entry) =>
     entry.mapId != null ||
     entry.role != ResourceLibraryRole.standard ||
     entry.placementContext != null ||
+    entry.category != null ||
     entry.description != null;
 
 String? _nullableIdentifier(Object? value) {

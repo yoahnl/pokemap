@@ -1384,6 +1384,8 @@ List<Map<String, Object?>> _rootRows(dynamic source) {
           'placementContext': metadata['${group.key}:${item.id as String}']
               ?.placementContext
               ?.name,
+          'category':
+              metadata['${group.key}:${item.id as String}']?.category?.name,
         },
   ]..sort((a, b) => _rowKey(a).compareTo(_rowKey(b)));
 }

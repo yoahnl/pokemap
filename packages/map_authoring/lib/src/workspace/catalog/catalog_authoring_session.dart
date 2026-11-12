@@ -270,7 +270,8 @@ final class CatalogAuthoringSession {
       'name',
       'description',
       'tags',
-      'placementContext'
+      'placementContext',
+      'category'
     });
     final resourceKind =
         requireContractString(args['resourceKind'], 'resourceKind');
@@ -294,6 +295,13 @@ final class CatalogAuthoringSession {
             .contains(args['placementContext'])) {
       throw const FormatException(
           'catalog.definition: invalid placement context');
+    }
+    if (args.containsKey('category')) {
+      if (!ResourceLibraryCatalog.resourceKinds.contains(resourceKind)) {
+        throw const FormatException(
+            'catalog.definition: category requires a library resource');
+      }
+      resourceUsageCategoryFromJson(args['category']);
     }
     final current = await CatalogProjectReader.open(
         store: reader.store, descriptor: reader.descriptor, metadataFields: {});
@@ -334,7 +342,8 @@ final class CatalogAuthoringSession {
       }
       if (classified &&
           (args.containsKey('description') ||
-              args.containsKey('placementContext'))) {
+              args.containsKey('placementContext') ||
+              args.containsKey('category'))) {
         final classificationKey = CatalogDefinitionKey(
             CatalogDefinitionKind.resourceLibraryEntry,
             '$resourceKind:${key.id}');
@@ -345,7 +354,7 @@ final class CatalogAuthoringSession {
                 'resourceId': key.id
               }
             : Map<String, Object?>.from(classification.payload['value'] as Map);
-        for (final field in ['description', 'placementContext']) {
+        for (final field in ['description', 'placementContext', 'category']) {
           if (!args.containsKey(field)) continue;
           if (args[field] == null) {
             metadata.remove(field);
@@ -358,7 +367,8 @@ final class CatalogAuthoringSession {
           changes.add(
               catalog.replaceDefinitionValue(classification, entry.toJson()));
         } else if (entry.description != null ||
-            entry.placementContext != null) {
+            entry.placementContext != null ||
+            entry.category != null) {
           var position = 0;
           String? cursor;
           do {

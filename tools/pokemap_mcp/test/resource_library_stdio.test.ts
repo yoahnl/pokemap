@@ -62,9 +62,14 @@ test("resource families and map scope persist through real MCP transactions", as
       assert.deepEqual(context.enum, ["interior", "exterior", "both", null]);
       assert.match(String(context.description), /omitted preserves/);
       assert.match(String(context.description), /null clears/);
+      const category = record(record(schema.properties).category);
+      assert.deepEqual(category.type, ["string", "null"]);
+      assert.deepEqual(category.enum, ["vegetation", "ground", "path", "water", "relief", "building", "furniture", "object", null]);
+      assert.match(String(category.description), /omitted preserves/);
     }
     const entryKind = (described.resourceKinds as JsonRecord[]).find((entry) => entry.id === "resourceLibraryEntry")!;
     assert.deepEqual(record(record(entryKind.extensions).placementContext).enum, ["interior", "exterior", "both", null]);
+    assert.deepEqual(record(record(entryKind.extensions).category).enum, ["vegetation", "ground", "path", "water", "relief", "building", "furniture", "object", null]);
     const resourceKinds = new Set((described.resourceKinds as JsonRecord[]).map((entry) => entry.id));
     for (const id of ["resourceLibraryCatalog", "resourceFamily", "resourceLibraryEntry"]) {
       assert.ok(resourceKinds.has(id), id);

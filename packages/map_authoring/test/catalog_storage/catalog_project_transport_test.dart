@@ -270,7 +270,8 @@ void main() {
               'id': 'tile-259',
               'name': 'Renamed object',
               'description': 'A quiet tree',
-              'placementContext': 'exterior'
+              'placementContext': 'exterior',
+              'category': 'vegetation'
             }));
     final applied = await mutations.applyMutation(opened.projectHandle,
         planId: planned.planId, operationId: 'catalog-edit');
@@ -293,8 +294,12 @@ void main() {
             resourceKind: 'tileset',
             operation: AuthoringQueryOperation.search,
             searchTerm: 'quiet tree',
-            filters: const {'placementContext': 'exterior'}));
+            filters: const {
+              'placementContext': 'exterior',
+              'category': 'vegetation'
+            }));
     expect(found.items.single['name'], 'Renamed object');
+    expect(found.items.single['category'], 'vegetation');
     expect(found.items.single['description'], 'A quiet tree');
     expect(found.items.single['placementContext'], 'exterior');
     expect(found.totalAvailable, 1);
@@ -308,6 +313,8 @@ void main() {
         'Renamed object');
     expect(exported.resourceLibraryCatalog.entries.single.description,
         'A quiet tree');
+    expect(exported.resourceLibraryCatalog.entries.single.category,
+        ResourceUsageCategory.vegetation);
     await mutations.detachWorkspace(opened.workspaceHandle);
     await api.closeWorkspace(opened.workspaceHandle);
   });

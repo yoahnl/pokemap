@@ -253,6 +253,51 @@ void main() {
     expect(draft.changeSet.changes, isNotEmpty);
   });
 
+  test('a usage category is set, preserved, cleared and validated', () async {
+    var project = await _apply(informationFixture(), 'resource.classify', {
+      'resourceKind': 'element',
+      'resourceId': 'decor',
+      'category': 'vegetation',
+    });
+    expect(project.resourceLibraryCatalog.entries.single.category,
+        ResourceUsageCategory.vegetation);
+    project = await _apply(project, 'resource.classify_batch', {
+      'entries': [
+        {
+          'resourceKind': 'element',
+          'resourceId': 'decor',
+          'placementContext': 'exterior'
+        }
+      ],
+    });
+    final entry = project.resourceLibraryCatalog.entries.single;
+    expect(entry.category, ResourceUsageCategory.vegetation);
+    expect(entry.placementContext, ResourcePlacementContext.exterior);
+    project = await _apply(project, 'resource.classify', {
+      'resourceKind': 'element',
+      'resourceId': 'decor',
+      'placementContext': null,
+    });
+    expect(project.resourceLibraryCatalog.entries.single.category,
+        ResourceUsageCategory.vegetation);
+    project = await _apply(project, 'resource.classify', {
+      'resourceKind': 'element',
+      'resourceId': 'decor',
+      'category': null,
+    });
+    expect(project.resourceLibraryCatalog.isEmpty, isTrue);
+    for (final category in ['Vegetation', 'decor', 2]) {
+      await expectLater(
+          () => _apply(project, 'resource.classify', {
+                'resourceKind': 'element',
+                'resourceId': 'decor',
+                'category': category,
+              }),
+          throwsA(isA<VisualLibraryException>()),
+          reason: '$category');
+    }
+  });
+
   test('role-only classification persists and omission preserves all metadata',
       () async {
     var project = await _apply(informationFixture(), 'resource.classify', {

@@ -186,8 +186,16 @@ final class CatalogDefinitionSummary {
     this.mapId,
     this.role,
     this.placementContext,
+    this.category,
   }) : tags = List.unmodifiable(tags) {
-    for (final value in [name, familyId, mapId, role, placementContext]) {
+    for (final value in [
+      name,
+      familyId,
+      mapId,
+      role,
+      placementContext,
+      category,
+    ]) {
       if (value != null && (value.isEmpty || value.length > 512)) {
         throw const FormatException('catalog.summary: invalid string');
       }
@@ -233,20 +241,26 @@ final class CatalogDefinitionSummary {
               ? 'standard'
               : null),
       placementContext: string('placementContext'),
+      category: string('category'),
     );
   }
 
   factory CatalogDefinitionSummary.fromJson(Map<String, Object?> json) {
-    _keys(json, {
-      'name',
-      'description',
-      'tags',
-      'familyId',
-      'mapId',
-      'role',
-      'placementContext',
-    });
+    _keys(
+      json,
+      {
+        'name',
+        'description',
+        'tags',
+        'familyId',
+        'mapId',
+        'role',
+        'placementContext',
+      },
+      optional: const {'category'},
+    );
     for (final field in [
+      'category',
       'name',
       'description',
       'familyId',
@@ -271,6 +285,7 @@ final class CatalogDefinitionSummary {
       mapId: json['mapId'] as String?,
       role: json['role'] as String?,
       placementContext: json['placementContext'] as String?,
+      category: json['category'] as String?,
     );
   }
 
@@ -281,6 +296,7 @@ final class CatalogDefinitionSummary {
   final String? mapId;
   final String? role;
   final String? placementContext;
+  final String? category;
 
   Map<String, Object?> toJson() => {
     'name': name,
@@ -290,6 +306,7 @@ final class CatalogDefinitionSummary {
     'mapId': mapId,
     'role': role,
     'placementContext': placementContext,
+    if (category != null) 'category': category,
   };
 
   bool matches(String text) => [
@@ -2000,9 +2017,14 @@ List<Object?> _list(Object? value, int max) {
   return value;
 }
 
-void _keys(Map<String, Object?> json, Set<String> expected) {
-  if (json.length != expected.length ||
-      json.keys.any((k) => !expected.contains(k))) {
+void _keys(
+  Map<String, Object?> json,
+  Set<String> expected, {
+  Set<String> optional = const {},
+}) {
+  final present = json.keys.where(optional.contains).length;
+  if (json.length != expected.length + present ||
+      json.keys.any((k) => !expected.contains(k) && !optional.contains(k))) {
     throw const FormatException('catalog: unknown or missing field');
   }
 }

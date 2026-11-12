@@ -5,6 +5,48 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('summaries carry a usage category only when an entry has one', () {
+    CatalogDefinitionSummary summaryOf(Map<String, Object?> value) =>
+        CatalogDefinitionSummary.fromUnit(
+          CatalogDefinitionUnit(
+            key: CatalogDefinitionKey(
+              CatalogDefinitionKind.resourceLibraryEntry,
+              'model3d:bed',
+            ),
+            payload: {'value': value},
+          ),
+        );
+    final plain = summaryOf({'resourceKind': 'model3d', 'resourceId': 'bed'});
+    final sorted = summaryOf({
+      'resourceKind': 'model3d',
+      'resourceId': 'bed',
+      'category': 'furniture',
+    });
+
+    expect(plain.toJson().containsKey('category'), isFalse);
+    expect(
+      jsonEncode(CatalogDefinitionSummary.fromJson(plain.toJson()).toJson()),
+      jsonEncode(plain.toJson()),
+    );
+    expect(sorted.toJson()['category'], 'furniture');
+    expect(
+      CatalogDefinitionSummary.fromJson(sorted.toJson()).category,
+      'furniture',
+    );
+    expect(
+      () => CatalogDefinitionSummary.fromJson({
+        ...plain.toJson(),
+        'unknown': 'value',
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () =>
+          CatalogDefinitionSummary.fromJson({...plain.toJson(), 'category': 4}),
+      throwsFormatException,
+    );
+  });
+
   CatalogDefinitionUnit unit(
     String id, {
     List<CatalogDefinitionKey> refs = const [],

@@ -3,7 +3,7 @@ import type { AuthoringGateway, JsonRecord } from "./authoring_client.js";
 import { PokeMapToolError } from "./tool_error.js";
 
 const modelFields = ["id", "name", "definition", "sourceAssetId", "relativePath",
-  "familyId", "role", "placementContext", "mapId", "tags", "description"];
+  "familyId", "role", "placementContext", "category", "mapId", "tags", "description"];
 const assetFields = ["id", "artifact", "logicalPath", "tags", "usages"];
 const maximumModels = 50_000;
 
@@ -156,7 +156,8 @@ export async function auditDuplicateModels(authoring: AuthoringGateway,
       delete normalizedDefinition.relativePath;
       const settings = JSON.stringify(canonical({ definition: normalizedDefinition,
         familyId: model.familyId ?? null, role: model.role ?? null,
-        placementContext: model.placementContext ?? null, mapId: model.mapId ?? null,
+        placementContext: model.placementContext ?? null, category: model.category ?? null,
+        mapId: model.mapId ?? null,
         tags: model.tags ?? [], description: model.description ?? null,
         assetTags: asset.tags ?? [], assetUsages: asset.usages ?? [] }));
       const groupKey = JSON.stringify([digest, byteLength, mediaType]);

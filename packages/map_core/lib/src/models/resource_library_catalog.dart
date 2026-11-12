@@ -40,6 +40,17 @@ enum ResourceLibraryRole { standard, component }
 
 enum ResourcePlacementContext { interior, exterior, both }
 
+enum ResourceUsageCategory {
+  vegetation,
+  ground,
+  path,
+  water,
+  relief,
+  building,
+  furniture,
+  object,
+}
+
 final class ResourceLibraryEntry {
   ResourceLibraryEntry({
     required String resourceKind,
@@ -49,6 +60,7 @@ final class ResourceLibraryEntry {
     String? description,
     this.role = ResourceLibraryRole.standard,
     this.placementContext,
+    this.category,
   }) : resourceKind = _identifier(resourceKind, 'entry.resourceKind'),
        resourceId = _identifier(resourceId, 'entry.resourceId'),
        familyId = _optionalIdentifier(familyId, 'entry.familyId'),
@@ -71,6 +83,7 @@ final class ResourceLibraryEntry {
       'mapId',
       'role',
       'placementContext',
+      'category',
       'description',
     });
     return ResourceLibraryEntry(
@@ -93,6 +106,7 @@ final class ResourceLibraryEntry {
           'entry.placementContext: expected interior, exterior, both or null',
         ),
       },
+      category: resourceUsageCategoryFromJson(json['category']),
     );
   }
 
@@ -105,6 +119,7 @@ final class ResourceLibraryEntry {
   final String? mapId;
   final ResourceLibraryRole role;
   final ResourcePlacementContext? placementContext;
+  final ResourceUsageCategory? category;
   String get identity => '$resourceKind:$resourceId';
 
   Map<String, Object?> toJson() => {
@@ -115,6 +130,7 @@ final class ResourceLibraryEntry {
     if (mapId != null) 'mapId': mapId,
     if (role != ResourceLibraryRole.standard) 'role': role.name,
     if (placementContext != null) 'placementContext': placementContext!.name,
+    if (category != null) 'category': category!.name,
   };
 
   @override
@@ -126,7 +142,8 @@ final class ResourceLibraryEntry {
       mapId == other.mapId &&
       description == other.description &&
       role == other.role &&
-      placementContext == other.placementContext;
+      placementContext == other.placementContext &&
+      category == other.category;
 
   @override
   int get hashCode => Object.hash(
@@ -137,6 +154,7 @@ final class ResourceLibraryEntry {
     role,
     placementContext,
     description,
+    category,
   );
 }
 
@@ -337,4 +355,16 @@ String? _description(String? value) {
     );
   }
   return value;
+}
+
+ResourceUsageCategory? resourceUsageCategoryFromJson(Object? value) {
+  if (value == null) return null;
+  for (final category in ResourceUsageCategory.values) {
+    if (category.name == value) return category;
+  }
+  throw FormatException(
+    'entry.category: expected one of '
+    '${ResourceUsageCategory.values.map((value) => value.name).join(', ')} '
+    'or null',
+  );
 }

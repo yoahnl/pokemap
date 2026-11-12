@@ -2,25 +2,25 @@ import 'package:map_core/map_core.dart';
 
 import 'resource_catalog.dart';
 
-enum ResourceUsageCategory {
-  vegetation('Végétation', 'environmentPreset'),
-  ground('Sols', 'smartTilePreset'),
-  path('Chemins', 'smartTilePreset'),
-  water('Eau', 'smartTilePreset'),
-  relief('Reliefs et parois', 'borderBlueprint'),
-  building('Bâtiments', 'model3d'),
-  furniture('Mobilier', 'model3d'),
-  object('Objets', 'model3d');
+extension ResourceUsageCategoryLibrary on ResourceUsageCategory {
+  String get label => switch (this) {
+    ResourceUsageCategory.vegetation => 'Végétation',
+    ResourceUsageCategory.ground => 'Sols',
+    ResourceUsageCategory.path => 'Chemins',
+    ResourceUsageCategory.water => 'Eau',
+    ResourceUsageCategory.relief => 'Reliefs et parois',
+    ResourceUsageCategory.building => 'Bâtiments',
+    ResourceUsageCategory.furniture => 'Mobilier',
+    ResourceUsageCategory.object => 'Objets',
+  };
 
-  const ResourceUsageCategory(this.label, this.spatialKind);
-
-  final String label;
-  final String spatialKind;
-
-  String loadedKind(ProjectDimension dimension) =>
-      dimension == ProjectDimension.twoD && spatialKind == 'model3d'
-      ? 'element'
-      : spatialKind;
+  String loadedKind(ProjectDimension dimension) => switch (this) {
+    ResourceUsageCategory.ground ||
+    ResourceUsageCategory.path ||
+    ResourceUsageCategory.water => 'smartTilePreset',
+    ResourceUsageCategory.relief => 'borderBlueprint',
+    _ => dimension == ProjectDimension.twoD ? 'element' : 'model3d',
+  };
 }
 
 ResourceUsageCategory? derivedResourceUsageCategory(
@@ -53,6 +53,7 @@ ResourceUsageCategory? resourceUsageCategory(
   ResourceItem item,
   ProjectManifest project,
 ) =>
+    item.metadata(project)?.category ??
     derivedResourceUsageCategory(item, project) ??
     switch (item.canonicalKind) {
       'model3d' || 'element' => ResourceUsageCategory.object,
@@ -60,5 +61,6 @@ ResourceUsageCategory? resourceUsageCategory(
     };
 
 bool resourceAwaitsUsageCategory(ResourceItem item, ProjectManifest project) =>
+    item.metadata(project)?.category == null &&
     derivedResourceUsageCategory(item, project) == null &&
     resourceUsageCategory(item, project) != null;

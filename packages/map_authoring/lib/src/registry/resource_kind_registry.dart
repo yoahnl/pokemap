@@ -168,6 +168,19 @@ final class AuthoringResourceKindRegistry {
                   'affectsMapAvailability': false,
                   'affectsPlacement': false,
                 },
+                'category': {
+                  'type': ['string', 'null'],
+                  'enum': [
+                    ...ResourceUsageCategory.values
+                        .map((category) => category.name),
+                    null,
+                  ],
+                  'catalogAbsentOrNull': 'unclassified',
+                  'classificationOmitted': 'preserve',
+                  'classificationNull': 'clear',
+                  'affectsMapAvailability': false,
+                  'affectsPlacement': false,
+                },
               },
             }),
       AuthoringResourceKindDescriptor(
@@ -1315,5 +1328,5 @@ AuthoringResourceKindDescriptor _catalogStorageDescriptor(AuthoringResourceKindD
 
   const kinds={'project','tileset','element','model3d','character','environmentPreset','smartTileAtlas','smartTileMaterial','smartTilePattern','smartTileAnimation','smartTilePreset','borderBlueprint','borderSnapshot','resourceFamily','resourceLibraryEntry','elementCategory','tilesetFolder'};
   if(!kinds.contains(descriptor.id)) return descriptor;
-  return AuthoringResourceKindDescriptor(id:descriptor.id,version:descriptor.version,displayName:descriptor.displayName,summary:descriptor.summary,extensions:{...descriptor.extensions,'partitionedStorage':{'formats':['avelune.working-catalog.v1','avelune.portable-catalog.v2'],'summary':'indexOnly','detail':'selectedDefinition','search':'boundedMemoryIndexScan','sort':['id:ascending'],'filters':['id','name','description','tags','familyId','placementContext','mapId','role','resourceKind','revision'],'placementContextFilterIncludesBoth':true,'publicPageSize':200,'internalIndexPageSize':128,'mutationAction':descriptor.id=='project'?null:'catalog.definition.update','portableReadOnly':true,'fullProjectRead':'explicitMaterializationRequired','fullProjectReadExtension':'materializeProject',if(descriptor.id=='project') 'partitionAction':'project.catalog.partition'}});
+  return AuthoringResourceKindDescriptor(id:descriptor.id,version:descriptor.version,displayName:descriptor.displayName,summary:descriptor.summary,extensions:{...descriptor.extensions,'partitionedStorage':{'formats':['avelune.working-catalog.v1','avelune.portable-catalog.v2'],'summary':'indexOnly','detail':'selectedDefinition','search':'boundedMemoryIndexScan','sort':['id:ascending'],'filters':['id','name','description','tags','familyId','placementContext','category','mapId','role','resourceKind','revision'],'placementContextFilterIncludesBoth':true,'publicPageSize':200,'internalIndexPageSize':128,'mutationAction':descriptor.id=='project'?null:'catalog.definition.update','portableReadOnly':true,'fullProjectRead':'explicitMaterializationRequired','fullProjectReadExtension':'materializeProject',if(descriptor.id=='project') 'partitionAction':'project.catalog.partition'}});
 }

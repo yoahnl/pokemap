@@ -26,7 +26,9 @@ final catalogDefinitionUpdateDescriptor = AuthoringActionDescriptor(
       'name': 'optional string',
       'description': 'optional string or null',
       'tags': 'optional string array',
-      'placementContext': 'optional interior, exterior, both or null'
+      'placementContext': 'optional interior, exterior, both or null',
+      'category':
+          'optional vegetation, ground, path, water, relief, building, furniture, object or null'
     },
     'storageFormat': 'avelune.working-catalog',
     'metadataOnly': true

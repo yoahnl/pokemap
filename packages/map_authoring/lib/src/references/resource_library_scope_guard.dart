@@ -230,7 +230,8 @@ AuthoringMutationDraft guardResourceLibraryMutation(
           familyId: source.familyId,
           mapId: source.mapId,
           role: source.role,
-          placementContext: source.placementContext));
+          placementContext: source.placementContext,
+          category: source.category));
     }
   }
   if (staleEntries.isNotEmpty || inheritedEntries.isNotEmpty) {

@@ -88,6 +88,43 @@ void main() {
     }
   });
 
+  test('a usage category roundtrips and stays absent when unset', () {
+    final entry = ResourceLibraryEntry(
+      resourceKind: 'model3d',
+      resourceId: 'bed',
+      category: ResourceUsageCategory.furniture,
+    );
+    expect(entry.toJson()['category'], 'furniture');
+    expect(ResourceLibraryEntry.fromJson(entry.toJson()), entry);
+    final plain = ResourceLibraryEntry(
+      resourceKind: 'model3d',
+      resourceId: 'bed',
+    );
+    expect(plain.toJson().containsKey('category'), isFalse);
+    expect(
+      ResourceLibraryEntry.fromJson({
+        'resourceKind': 'model3d',
+        'resourceId': 'bed',
+      }).category,
+      isNull,
+    );
+    expect(plain, isNot(entry));
+  });
+
+  test('an unknown usage category is rejected', () {
+    for (final value in ['Furniture', 'decor', 3]) {
+      expect(
+        () => ResourceLibraryEntry.fromJson({
+          'resourceKind': 'model3d',
+          'resourceId': 'bed',
+          'category': value,
+        }),
+        throwsFormatException,
+        reason: '$value',
+      );
+    }
+  });
+
   test('context-only entry roundtrips independently from scope', () {
     final entry = ResourceLibraryEntry(
       resourceKind: 'element',
