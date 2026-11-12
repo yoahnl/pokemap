@@ -128,6 +128,57 @@ void main() {
     expect(ResourceUsageCategory.vegetation.label, 'Végétation');
   });
 
+  test('the family category wins over the category stored on the resource', () {
+    const item = ResourceItem(
+      id: 'tree',
+      name: 'Laboratoire',
+      kind: ResourceKind.decors,
+      element: workspaceElement,
+    );
+    ProjectManifest sorted(String? familyId) => project.copyWith(
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        families: [
+          ResourceFamily(
+            id: 'furniture',
+            name: 'Mobilier',
+            parentId: 'props',
+            category: ResourceUsageCategory.furniture,
+          ),
+          ResourceFamily(id: 'beds', name: 'Couchages', parentId: 'furniture'),
+          ResourceFamily(id: 'lab', name: 'Recherche', parentId: 'buildings'),
+          ResourceFamily(id: 'loose', name: 'Divers'),
+        ],
+        entries: [
+          ResourceLibraryEntry(
+            resourceKind: 'element',
+            resourceId: 'tree',
+            familyId: familyId,
+            category: ResourceUsageCategory.object,
+          ),
+        ],
+      ),
+    );
+
+    expect(
+      resourceUsageCategory(item, sorted('lab')),
+      ResourceUsageCategory.building,
+    );
+    expect(
+      resourceUsageCategory(item, sorted('beds')),
+      ResourceUsageCategory.furniture,
+    );
+    expect(
+      resourceUsageCategory(item, sorted('loose')),
+      ResourceUsageCategory.object,
+    );
+    expect(
+      resourceUsageCategory(item, sorted('trees')),
+      ResourceUsageCategory.vegetation,
+    );
+    expect(resourceAwaitsUsageCategory(item, sorted('lab')), isFalse);
+    expect(resourceAwaitsUsageCategory(item, sorted('loose')), isFalse);
+  });
+
   test('characters and images belong to no construction category', () {
     const image = ResourceItem(
       id: 'atlas',

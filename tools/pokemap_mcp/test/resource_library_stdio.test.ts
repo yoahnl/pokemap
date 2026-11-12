@@ -67,6 +67,18 @@ test("resource families and map scope persist through real MCP transactions", as
       assert.deepEqual(category.enum, ["vegetation", "ground", "path", "water", "relief", "building", "furniture", "object", null]);
       assert.match(String(category.description), /omitted preserves/);
     }
+    for (const id of ["resource.family.create", "resource.family.update"]) {
+      const familyCategory = record(record(record(record(actions.get(id)!.extensions).inputSchema).properties).category);
+      assert.deepEqual(familyCategory.enum, ["vegetation", "ground", "path", "water", "relief", "building", "furniture", "object", null]);
+      assert.match(String(familyCategory.description), /inherits the parent family category/);
+    }
+    const familyBatchItem = record(record(record(record(record(actions.get("resource.family.apply_batch")!.extensions).inputSchema).properties).families).items);
+    assert.deepEqual(record(record(familyBatchItem.properties).category).enum, ["vegetation", "ground", "path", "water", "relief", "building", "furniture", "object", null]);
+    const familyKind = (described.resourceKinds as JsonRecord[]).find((entry) => entry.id === "resourceFamily")!;
+    assert.deepEqual(record(record(familyKind.extensions).familyCategory).predefinedDefaults, {
+      trees: "vegetation", vegetation: "vegetation", buildings: "building", props: "object",
+      fences: "object", ground: "ground", water: "water", relief: "relief",
+    });
     const entryKind = (described.resourceKinds as JsonRecord[]).find((entry) => entry.id === "resourceLibraryEntry")!;
     assert.deepEqual(record(record(entryKind.extensions).placementContext).enum, ["interior", "exterior", "both", null]);
     assert.deepEqual(record(record(entryKind.extensions).category).enum, ["vegetation", "ground", "path", "water", "relief", "building", "furniture", "object", null]);
@@ -164,7 +176,11 @@ test("resource families and map scope persist through real MCP transactions", as
     await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", role: "unknown" }, true);
     await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", role: null }, true);
     await mutate("resource.family.delete", { familyId: "forest-detail" }, true);
-    await mutate("resource.family.create", { familyId: "temporary", name: "Temporaire" });
+    await mutate("resource.family.create", { familyId: "temporary", name: "Temporaire", parentId: "props", category: "furniture" });
+    const withCategory = record(JSON.parse(await readFile(manifestPath, "utf8")));
+    assert.deepEqual((record(withCategory.resourceLibraryCatalog).families as JsonRecord[]).find((family) => family.id === "temporary"), {
+      id: "temporary", name: "Temporaire", parentId: "props", category: "furniture",
+    });
     await mutate("resource.family.delete", { familyId: "temporary" });
     await mutate("resource.classify", { resourceKind: "element", resourceId: "decor", role: "standard" });
     await mutate("resource.classify_batch", { entries: [{ resourceKind: "element", resourceId: "decor", role: "component" }] });

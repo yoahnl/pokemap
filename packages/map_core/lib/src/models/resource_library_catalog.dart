@@ -1,28 +1,39 @@
 final class ResourceFamily {
-  ResourceFamily({required String id, required String name, String? parentId})
-    : id = _identifier(id, 'family.id'),
-      name = _identifier(name, 'family.name'),
-      parentId = _optionalIdentifier(parentId, 'family.parentId');
+  ResourceFamily({
+    required String id,
+    required String name,
+    String? parentId,
+    this.category,
+  }) : id = _identifier(id, 'family.id'),
+       name = _identifier(name, 'family.name'),
+       parentId = _optionalIdentifier(parentId, 'family.parentId');
 
-  const ResourceFamily._(this.id, this.name) : parentId = null;
+  const ResourceFamily._(this.id, this.name, [this.category])
+    : parentId = null;
 
   factory ResourceFamily.fromJson(Map<String, Object?> json) {
-    _keys(json, const {'id', 'name', 'parentId'});
+    _keys(json, const {'id', 'name', 'parentId', 'category'});
     return ResourceFamily(
       id: _string(json['id'], 'family.id'),
       name: _string(json['name'], 'family.name'),
       parentId: _optionalString(json['parentId'], 'family.parentId'),
+      category: resourceUsageCategoryFromJson(
+        json['category'],
+        field: 'family.category',
+      ),
     );
   }
 
   final String id;
   final String name;
   final String? parentId;
+  final ResourceUsageCategory? category;
 
   Map<String, Object?> toJson() => {
     'id': id,
     'name': name,
     if (parentId != null) 'parentId': parentId,
+    if (category != null) 'category': category!.name,
   };
 
   @override
@@ -30,10 +41,11 @@ final class ResourceFamily {
       other is ResourceFamily &&
       id == other.id &&
       name == other.name &&
-      parentId == other.parentId;
+      parentId == other.parentId &&
+      category == other.category;
 
   @override
-  int get hashCode => Object.hash(id, name, parentId);
+  int get hashCode => Object.hash(id, name, parentId, category);
 }
 
 enum ResourceLibraryRole { standard, component }
@@ -243,14 +255,18 @@ final class ResourceLibraryCatalog {
     'character',
   };
   static const predefinedFamilies = <ResourceFamily>[
-    ResourceFamily._('trees', 'Arbres'),
-    ResourceFamily._('vegetation', 'Végétation'),
-    ResourceFamily._('buildings', 'Bâtiments'),
-    ResourceFamily._('props', 'Objets'),
-    ResourceFamily._('fences', 'Clôtures'),
-    ResourceFamily._('ground', 'Sols'),
-    ResourceFamily._('water', 'Eau'),
-    ResourceFamily._('relief', 'Relief'),
+    ResourceFamily._('trees', 'Arbres', ResourceUsageCategory.vegetation),
+    ResourceFamily._(
+      'vegetation',
+      'Végétation',
+      ResourceUsageCategory.vegetation,
+    ),
+    ResourceFamily._('buildings', 'Bâtiments', ResourceUsageCategory.building),
+    ResourceFamily._('props', 'Objets', ResourceUsageCategory.object),
+    ResourceFamily._('fences', 'Clôtures', ResourceUsageCategory.object),
+    ResourceFamily._('ground', 'Sols', ResourceUsageCategory.ground),
+    ResourceFamily._('water', 'Eau', ResourceUsageCategory.water),
+    ResourceFamily._('relief', 'Relief', ResourceUsageCategory.relief),
     ResourceFamily._('characters', 'Personnages'),
   ];
 
@@ -275,6 +291,31 @@ final class ResourceLibraryCatalog {
     final ownerMapId = entryFor(resourceKind, resourceId)?.mapId;
     return ownerMapId == null || ownerMapId == mapId;
   }
+
+  ResourceUsageCategory? familyCategory(String? familyId) {
+    final categories = _familyCategories[this] ??= _resolveFamilyCategories();
+    return familyId == null ? null : categories[familyId];
+  }
+
+  Map<String, ResourceUsageCategory?> _resolveFamilyCategories() {
+    final byId = {for (final family in effectiveFamilies) family.id: family};
+    final resolved = <String, ResourceUsageCategory?>{};
+    ResourceUsageCategory? resolve(String id) {
+      if (resolved.containsKey(id)) return resolved[id];
+      final family = byId[id]!;
+      final parentId = family.parentId;
+      return resolved[id] =
+          family.category ?? (parentId == null ? null : resolve(parentId));
+    }
+
+    for (final id in byId.keys) {
+      resolve(id);
+    }
+    return Map.unmodifiable(resolved);
+  }
+
+  static final _familyCategories =
+      Expando<Map<String, ResourceUsageCategory?>>();
 
   Set<String> descendantFamilyIds(String familyId) {
     if (!effectiveFamilies.any((family) => family.id == familyId)) {
@@ -357,13 +398,16 @@ String? _description(String? value) {
   return value;
 }
 
-ResourceUsageCategory? resourceUsageCategoryFromJson(Object? value) {
+ResourceUsageCategory? resourceUsageCategoryFromJson(
+  Object? value, {
+  String field = 'entry.category',
+}) {
   if (value == null) return null;
   for (final category in ResourceUsageCategory.values) {
     if (category.name == value) return category;
   }
   throw FormatException(
-    'entry.category: expected one of '
+    '$field: expected one of '
     '${ResourceUsageCategory.values.map((value) => value.name).join(', ')} '
     'or null',
   );

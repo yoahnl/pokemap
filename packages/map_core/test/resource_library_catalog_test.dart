@@ -125,6 +125,76 @@ void main() {
     }
   });
 
+  test('a family category roundtrips and stays absent when unset', () {
+    final family = ResourceFamily(
+      id: 'furniture',
+      name: 'Mobilier',
+      parentId: 'props',
+      category: ResourceUsageCategory.furniture,
+    );
+    expect(family.toJson()['category'], 'furniture');
+    expect(ResourceFamily.fromJson(family.toJson()), family);
+    final plain = ResourceFamily(id: 'furniture', name: 'Mobilier');
+    expect(plain.toJson().containsKey('category'), isFalse);
+    expect(
+      ResourceFamily.fromJson({'id': 'furniture', 'name': 'Mobilier'}).category,
+      isNull,
+    );
+    expect(plain, isNot(family));
+    for (final value in ['Furniture', 3]) {
+      expect(
+        () => ResourceFamily.fromJson({
+          'id': 'furniture',
+          'name': 'Mobilier',
+          'category': value,
+        }),
+        throwsFormatException,
+        reason: '$value',
+      );
+    }
+  });
+
+  test('a family inherits the closest category up its tree', () {
+    final catalog = ResourceLibraryCatalog(
+      families: [
+        ResourceFamily(
+          id: 'furniture',
+          name: 'Mobilier',
+          parentId: 'props',
+          category: ResourceUsageCategory.furniture,
+        ),
+        ResourceFamily(id: 'beds', name: 'Couchages', parentId: 'furniture'),
+        ResourceFamily(id: 'posters', name: 'Affiches', parentId: 'props'),
+        ResourceFamily(
+          id: 'wall-profiles',
+          name: 'Profils de parois',
+          parentId: 'buildings',
+          category: ResourceUsageCategory.relief,
+        ),
+        ResourceFamily(id: 'loose', name: 'Divers'),
+        ResourceFamily(id: 'npc', name: 'PNJ', parentId: 'characters'),
+      ],
+    );
+
+    expect(catalog.familyCategory('beds'), ResourceUsageCategory.furniture);
+    expect(catalog.familyCategory('posters'), ResourceUsageCategory.object);
+    expect(
+      catalog.familyCategory('wall-profiles'),
+      ResourceUsageCategory.relief,
+    );
+    expect(catalog.familyCategory('buildings'), ResourceUsageCategory.building);
+    expect(catalog.familyCategory('trees'), ResourceUsageCategory.vegetation);
+    expect(catalog.familyCategory('fences'), ResourceUsageCategory.object);
+    expect(catalog.familyCategory('loose'), isNull);
+    expect(catalog.familyCategory('npc'), isNull);
+    expect(catalog.familyCategory('unknown'), isNull);
+    expect(catalog.familyCategory(null), isNull);
+    expect(
+      const ResourceLibraryCatalog.empty().familyCategory('props'),
+      ResourceUsageCategory.object,
+    );
+  });
+
   test('context-only entry roundtrips independently from scope', () {
     final entry = ResourceLibraryEntry(
       resourceKind: 'element',

@@ -52,15 +52,25 @@ ResourceUsageCategory _terrainCategory(
 ResourceUsageCategory? resourceUsageCategory(
   ResourceItem item,
   ProjectManifest project,
-) =>
+) => switch (item.canonicalKind) {
+  'model3d' || 'element' =>
+    _classifiedCategory(item, project) ?? ResourceUsageCategory.object,
+  _ =>
     item.metadata(project)?.category ??
-    derivedResourceUsageCategory(item, project) ??
-    switch (item.canonicalKind) {
-      'model3d' || 'element' => ResourceUsageCategory.object,
-      _ => null,
-    };
+        derivedResourceUsageCategory(item, project),
+};
+
+ResourceUsageCategory? _classifiedCategory(
+  ResourceItem item,
+  ProjectManifest project,
+) {
+  final entry = item.metadata(project);
+  return project.resourceLibraryCatalog.familyCategory(entry?.familyId) ??
+      entry?.category;
+}
 
 bool resourceAwaitsUsageCategory(ResourceItem item, ProjectManifest project) =>
-    item.metadata(project)?.category == null &&
-    derivedResourceUsageCategory(item, project) == null &&
-    resourceUsageCategory(item, project) != null;
+    switch (item.canonicalKind) {
+      'model3d' || 'element' => _classifiedCategory(item, project) == null,
+      _ => false,
+    };

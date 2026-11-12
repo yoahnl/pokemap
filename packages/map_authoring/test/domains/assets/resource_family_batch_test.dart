@@ -169,6 +169,58 @@ void main() {
             .parentId,
         isNull);
   });
+
+  test('a family category is set, kept when omitted and cleared by null',
+      () async {
+    final snapshot = _snapshot();
+    final created = _project(await _build(snapshot, [
+      {
+        'operation': 'create',
+        'familyId': 'furniture',
+        'name': 'Mobilier',
+        'parentId': 'props',
+        'category': 'furniture'
+      },
+      {
+        'operation': 'create',
+        'familyId': 'beds',
+        'name': 'Couchages',
+        'parentId': 'furniture'
+      },
+    ]));
+    final catalog = created.resourceLibraryCatalog;
+    expect(catalog.familyCategory('beds'), ResourceUsageCategory.furniture);
+    expect(catalog.familyCategory('existing'), ResourceUsageCategory.object);
+
+    final kept = _project(await _build(_snapshotOf(created), [
+      {'operation': 'update', 'familyId': 'furniture', 'name': 'Meubles'},
+    ]));
+    expect(kept.resourceLibraryCatalog.familyCategory('beds'),
+        ResourceUsageCategory.furniture);
+
+    final cleared = _project(await _build(_snapshotOf(kept), [
+      {
+        'operation': 'update',
+        'familyId': 'furniture',
+        'name': 'Meubles',
+        'category': null
+      },
+    ]));
+    expect(cleared.resourceLibraryCatalog.familyCategory('beds'),
+        ResourceUsageCategory.object);
+
+    await expectLater(
+        _build(snapshot, [
+          {
+            'operation': 'create',
+            'familyId': 'odd',
+            'name': 'Odd',
+            'category': 'decor'
+          },
+        ]),
+        throwsA(isA<VisualLibraryException>().having(
+            (e) => e.code, 'code', 'resource_library.invalid')));
+  });
 }
 
 Future<AuthoringMutationDraft> _build(
@@ -193,8 +245,7 @@ ProjectManifest _project(AuthoringMutationDraft draft) =>
           as Map<String, dynamic>,
     );
 
-ProjectSnapshot _snapshot() {
-  final manifest = ProjectManifest(
+ProjectSnapshot _snapshot() => _snapshotOf(ProjectManifest(
     name: 'Families batch',
     tilesets: const [],
     maps: const [
@@ -204,7 +255,9 @@ ProjectSnapshot _snapshot() {
       ResourceFamily(id: 'existing', name: 'Existing', parentId: 'props'),
       ResourceFamily(id: 'keep', name: 'Keep'),
     ]),
-  );
+  ));
+
+ProjectSnapshot _snapshotOf(ProjectManifest manifest) {
   final bytes = utf8.encode(jsonEncode(manifest.toJson()));
   final revision = computeNarrativeProjectFingerprint([
     NarrativeProjectFingerprintEntry(

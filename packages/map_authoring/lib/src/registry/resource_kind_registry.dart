@@ -180,8 +180,27 @@ final class AuthoringResourceKindRegistry {
                   'classificationNull': 'clear',
                   'affectsMapAvailability': false,
                   'affectsPlacement': false,
+                  'overriddenByFamilyCategory': true,
                 },
               },
+              if (kind == 'resourceLibraryCatalog' ||
+                  kind == 'resourceFamily')
+                'familyCategory': {
+                  'type': ['string', 'null'],
+                  'enum': [
+                    ...ResourceUsageCategory.values
+                        .map((category) => category.name),
+                    null,
+                  ],
+                  'absentOrNull': 'inheritFromParent',
+                  'predefinedDefaults': {
+                    for (final family
+                        in ResourceLibraryCatalog.predefinedFamilies)
+                      if (family.category != null)
+                        family.id: family.category!.name,
+                  },
+                  'winsOverEntryCategory': true,
+                },
             }),
       AuthoringResourceKindDescriptor(
         id: 'project',

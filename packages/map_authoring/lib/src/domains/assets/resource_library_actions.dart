@@ -57,10 +57,13 @@ final class ResourceLibraryActions {
           null,
         ],
         'description':
-            'Optional usage category shown by the map builder library: omitted preserves the previous value; null clears it.',
+            'Optional usage category of a resource whose family sets none, since the family category inherited from parent families wins: omitted preserves the previous value; null clears it.',
       },
     },
   };
+
+  static const _familyCategoryDescription =
+      'Optional map builder category of the resources in this family and its child families: omitted preserves the previous value; null inherits the parent family category.';
 
   static final descriptors = [
     visualLibraryDescriptor('resource.family.apply_batch',
@@ -69,7 +72,7 @@ final class ResourceLibraryActions {
           'project',
           'resourceFamily'
         ],
-        inputSchema: const {
+        inputSchema: {
           'type': 'object',
           'additionalProperties': false,
           'required': ['families'],
@@ -92,6 +95,15 @@ final class ResourceLibraryActions {
                   'parentId': {
                     'type': ['string', 'null'],
                     'minLength': 1
+                  },
+                  'category': {
+                    'type': ['string', 'null'],
+                    'enum': [
+                      ...ResourceUsageCategory.values
+                          .map((category) => category.name),
+                      null,
+                    ],
+                    'description': _familyCategoryDescription,
                   },
                 },
               },
@@ -117,6 +129,16 @@ final class ResourceLibraryActions {
                 'parentId': {
                   'type': ['string', 'null'],
                   'minLength': 1
+                },
+              if (operation != 'delete')
+                'category': {
+                  'type': ['string', 'null'],
+                  'enum': [
+                    ...ResourceUsageCategory.values
+                        .map((category) => category.name),
+                    null,
+                  ],
+                  'description': _familyCategoryDescription,
                 },
             },
           }),
@@ -174,7 +196,13 @@ final class ResourceLibraryActions {
           }
           final entry = Map<String, Object?>.from(value);
           final fields = VisualLibraryParameters(entry)
-            ..allow(const {'operation', 'familyId', 'name', 'parentId'});
+            ..allow(const {
+              'operation',
+              'familyId',
+              'name',
+              'parentId',
+              'category'
+            });
           final operation = fields.string('operation');
           if (operation != 'create' && operation != 'update') {
             throw VisualLibraryException(
@@ -205,7 +233,11 @@ final class ResourceLibraryActions {
               name: fields.string('name'),
               parentId: entry.containsKey('parentId')
                   ? _nullableIdentifier(entry['parentId'])
-                  : previous?.parentId);
+                  : previous?.parentId,
+              category: entry.containsKey('category')
+                  ? resourceUsageCategoryFromJson(entry['category'],
+                      field: 'family.category')
+                  : previous?.category);
         }
         next = ResourceLibraryCatalog(
             families: families.values, entries: catalog.entries);
@@ -250,7 +282,7 @@ final class ResourceLibraryActions {
       } else {
         parameters.allow(action == 'resource.family.delete'
             ? const {'familyId'}
-            : const {'familyId', 'name', 'parentId'});
+            : const {'familyId', 'name', 'parentId', 'category'});
         final id = parameters.string('familyId');
         if (ResourceLibraryCatalog.predefinedFamilies
             .any((family) => family.id == id)) {
@@ -288,7 +320,11 @@ final class ResourceLibraryActions {
                 name: parameters.string('name'),
                 parentId: values.containsKey('parentId')
                     ? _nullableIdentifier(values['parentId'])
-                    : previous?.parentId),
+                    : previous?.parentId,
+                category: values.containsKey('category')
+                    ? resourceUsageCategoryFromJson(values['category'],
+                        field: 'family.category')
+                    : previous?.category),
         ], entries: catalog.entries);
       }
       final updated = project.copyWith(resourceLibraryCatalog: next);
