@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart'
+    show AveluneRuntimeCompatibility;
 import 'package:map_player_ui/presentation_renderer.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
@@ -389,6 +391,7 @@ final class _StudioGameSource implements RuntimeGameSource {
       saveReadHandle: saveReadHandle,
       runtimeApiVersion: '1.0.0',
       grantedCapabilities: {
+        ...AveluneRuntimeCompatibility.host().capabilities,
         GameCompletionPartyCapabilities.capabilityId,
         'battle.v1',
         'party.v1',

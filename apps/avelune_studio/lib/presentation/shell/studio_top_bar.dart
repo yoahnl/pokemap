@@ -22,14 +22,17 @@ class StudioTopBar extends StatelessWidget {
     required this.onRedo,
     required this.saveState,
     required this.onSave,
+    required this.onTestMap,
+    this.testing = false,
   });
 
   final String projectName;
   final List<ProjectMapEntry> maps;
   final String? activeMapId;
   final ValueChanged<ProjectMapEntry>? onSelectMap;
-  final VoidCallback? onUndo, onRedo, onSave;
+  final VoidCallback? onUndo, onRedo, onSave, onTestMap;
   final StudioSaveState saveState;
+  final bool testing;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -110,15 +113,13 @@ class StudioTopBar extends StatelessWidget {
             onPressed: onSave,
           ),
           const SizedBox(width: StudioSpacing.m),
-          Tooltip(
-            message: context.l10n.topBarTestMapLater,
-            child: StudioButton(
-              key: const ValueKey('studio-test-map'),
-              label: context.l10n.topBarTestMap,
-              icon: Icons.play_arrow_rounded,
-              variant: StudioButtonVariant.primary,
-              onPressed: null,
-            ),
+          StudioButton(
+            key: const ValueKey('studio-test-map'),
+            label: context.l10n.topBarTestMap,
+            icon: Icons.play_arrow_rounded,
+            variant: StudioButtonVariant.primary,
+            loading: testing,
+            onPressed: onTestMap,
           ),
         ],
       ),

@@ -95,7 +95,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final sessions = ControlledProjectSessionPort();
-    maps = WorkspaceMemoryPort(project: project);
+    maps = WorkspaceMemoryPort(manifest: project);
     maps.saved['a'] = workspaceMap('a').copyWith(
       warps: const [
         MapWarp(

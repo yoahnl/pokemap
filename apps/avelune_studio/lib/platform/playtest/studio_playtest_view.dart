@@ -104,6 +104,8 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
         busy: _busy,
         hasSave: _saves.hasSave,
         paused: _spatialPaused,
+        spatial: _spatialPlaytest != null,
+        diagonal: _spatial?.movement.allowDiagonalMovement ?? false,
         message: _message,
       ),
       requestClose: () => widget.onClose(),
@@ -127,6 +129,12 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
         );
       },
     );
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _controls.statusChanged();
   }
 
   Future<Object> _load({bool restoreSpatialSave = false}) async {

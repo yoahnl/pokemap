@@ -152,11 +152,77 @@ abstract class AppLocalizations {
   /// **'Tester la carte'**
   String get topBarTestMap;
 
-  /// No description provided for @topBarTestMapLater.
+  /// No description provided for @testMapChangedAgain.
   ///
   /// In fr, this message translates to:
-  /// **'Le test de la carte sera branché à une prochaine étape'**
-  String get topBarTestMapLater;
+  /// **'La carte a encore changé. Enregistrez-la avant de tester.'**
+  String get testMapChangedAgain;
+
+  /// No description provided for @playtestTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Test de {map}'**
+  String playtestTitle(String map);
+
+  /// No description provided for @playtestBack.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour à la carte'**
+  String get playtestBack;
+
+  /// No description provided for @playtestNewGame.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle partie'**
+  String get playtestNewGame;
+
+  /// No description provided for @playtestSave.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer le test'**
+  String get playtestSave;
+
+  /// No description provided for @playtestResume.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprendre le test'**
+  String get playtestResume;
+
+  /// No description provided for @playtestPause.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause'**
+  String get playtestPause;
+
+  /// No description provided for @playtestContinue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer'**
+  String get playtestContinue;
+
+  /// No description provided for @playtestDiagonalOn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activer les diagonales'**
+  String get playtestDiagonalOn;
+
+  /// No description provided for @playtestDiagonalOff.
+  ///
+  /// In fr, this message translates to:
+  /// **'Couper les diagonales'**
+  String get playtestDiagonalOff;
+
+  /// No description provided for @playtestSpeed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vitesse ×{multiplier}'**
+  String playtestSpeed(int multiplier);
+
+  /// Live frame rate and average UI and raster frame times shown in the map test bar.
+  ///
+  /// In fr, this message translates to:
+  /// **'{fps} FPS · UI {build} ms · rendu {raster} ms'**
+  String playtestPerformance(String fps, String build, String raster);
 
   /// No description provided for @topBarChangeMap.
   ///

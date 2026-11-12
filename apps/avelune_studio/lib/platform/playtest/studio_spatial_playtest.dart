@@ -1,4 +1,6 @@
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart'
+    show AveluneRuntimeCompatibility;
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -175,7 +177,8 @@ final class StudioSpatialPlaytest {
         installedVersionHandle: '$launchId-project',
         saveReadHandle: initialSave == null ? null : '$launchId-save',
         runtimeApiVersion: '1',
-        grantedCapabilities: const {
+        grantedCapabilities: {
+          ...AveluneRuntimeCompatibility.host().capabilities,
           GameCompletionPartyCapabilities.capabilityId,
           'map3d@1',
           SpatialGameplayCapabilities.capabilityId,

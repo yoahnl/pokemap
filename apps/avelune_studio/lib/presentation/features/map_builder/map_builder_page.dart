@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
+import 'package:avelune_studio/app/di/narrative_providers.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_selection_context.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_input_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_visual_projection_queue.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/platform/playtest/studio_playtest_builders.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
 import 'package:avelune_studio/presentation/shell/studio_rail.dart';
@@ -23,6 +25,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_spa
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_side_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_status_bar.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_playtest_page.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';
 import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/presentation/shared/widgets/minimum_size_viewport.dart';
@@ -48,12 +51,14 @@ class MapBuilderPage extends ConsumerStatefulWidget {
 class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   late final ProviderSubscription<MapWorkspaceController> _subscription;
   late final ProviderSubscription<MapConnectionPort> _connections;
+  ProviderSubscription<StudioRuntimeBuilder>? _runtime;
   late final MapWorkspaceController _maps;
   late final MapEditingInputSession _input;
   final _views = <String, MapEditingViewportSession>{};
   MapWorkspaceVisuals? _visuals;
   String? _visualsError;
   var _saveFailed = false;
+  var _testing = false;
   late final _projection = WorkspaceVisualProjectionQueue(
     currentVisuals: () => _visuals,
     activeMap: () => _maps.active?.current,
@@ -152,6 +157,51 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     if (!_disposed) setState(() => _saveFailed = !saved);
   }
 
+  Future<void> _testMap() async {
+    final document = _maps.active;
+    final entry = _activeEntry;
+    if (document == null || entry == null || _testing) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _testing = true;
+      _saveFailed = false;
+    });
+    try {
+      if (_maps.dirty) {
+        final saved = await _maps.saveAll();
+        if (!mounted) return;
+        if (!saved) {
+          setState(() => _saveFailed = true);
+          return;
+        }
+      }
+      if (!mounted || !identical(_maps.active, document) || _maps.loading) {
+        return;
+      }
+      if (_maps.dirty) {
+        document.error = context.l10n.testMapChangedAgain;
+        _changed();
+        return;
+      }
+      final runtime = (_runtime ??= ref.listenManual(
+        sessionRuntimeBuilderProvider(widget.session),
+        (_, _) {},
+      )).read();
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (route) => MapBuilderPlaytestPage(
+            entry: entry,
+            revision: document.base.revision,
+            runtime: runtime,
+            onClose: () => Navigator.of(route).pop(),
+          ),
+        ),
+      );
+    } finally {
+      if (!_disposed) setState(() => _testing = false);
+    }
+  }
+
   @override
   void dispose() {
     _disposed = true;
@@ -165,6 +215,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       visuals.removeListener(_changed);
       unawaited(visuals.dispose());
     }
+    _runtime?.close();
     _connections.close();
     _subscription.close();
     super.dispose();
@@ -228,6 +279,8 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
               editable: _editable,
               saveFailed: _saveFailed,
               onSave: () => unawaited(_save()),
+              onTestMap: () => unawaited(_testMap()),
+              testing: _testing,
             ),
             Expanded(
               child: Row(

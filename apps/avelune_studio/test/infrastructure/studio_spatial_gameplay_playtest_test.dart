@@ -11,6 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart'
+    show AveluneRuntimeCompatibility;
 import 'package:map_runtime/map_runtime.dart';
 
 import '../../../../packages/map_runtime/test/session/spatial_exploration_game_session_runtime_test.dart'
@@ -129,6 +131,10 @@ void main() {
     hosts.add(host);
     expect(host.runtime.descriptor.grantedCapabilities,
         contains(SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId));
+    expect(
+      host.runtime.descriptor.grantedCapabilities,
+      containsAll(AveluneRuntimeCompatibility.host().capabilities),
+    );
     expect(
       host.runtime.descriptor.grantedCapabilities,
       containsAll([

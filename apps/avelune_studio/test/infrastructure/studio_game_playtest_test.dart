@@ -10,6 +10,8 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:avelune_studio/platform/playtest/studio_game_playtest_view.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart'
+    show AveluneRuntimeCompatibility;
 import 'package:map_story/map_story.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -286,6 +288,10 @@ void main() {
               contains(SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId));
           expect(runtime.descriptor.grantedCapabilities,
               contains(SpatialActorOcclusionCapabilities.capabilityId));
+          expect(
+            runtime.descriptor.grantedCapabilities,
+            containsAll(AveluneRuntimeCompatibility.host().capabilities),
+          );
           expect(
             runtime.descriptor.grantedCapabilities,
             containsAll([

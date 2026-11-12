@@ -63,6 +63,7 @@ import 'package:avelune_studio/platform/files/native_project_directory_picker.da
 import 'package:avelune_studio/platform/files/native_resource_image_picker.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
+import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
 
 class StudioBootstrap extends StatelessWidget {
   const StudioBootstrap({
@@ -248,6 +249,20 @@ class StudioBootstrap extends StatelessWidget {
         ),
       ),
       workspaceVisualsLoaderProvider.overrideWithValue(StudioMapResources.load),
+      workspaceRuntimeBuilderProvider.overrideWithValue(
+        (session, port) {
+          final saves = StudioPlaytestSession();
+          return (entry, revision, controls, close) => StudioPlaytestView(
+            session: session,
+            entry: entry,
+            expectedRevision: revision,
+            port: port,
+            onClose: close,
+            controls: controls,
+            testSession: saves,
+          );
+        },
+      ),
       scenePortProvider.overrideWith(
         (ref, session) => LocalSceneAdapter(
           session: session,

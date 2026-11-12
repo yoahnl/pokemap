@@ -37,8 +37,47 @@ class AppLocalizationsFr extends AppLocalizations {
   String get topBarTestMap => 'Tester la carte';
 
   @override
-  String get topBarTestMapLater =>
-      'Le test de la carte sera branché à une prochaine étape';
+  String get testMapChangedAgain =>
+      'La carte a encore changé. Enregistrez-la avant de tester.';
+
+  @override
+  String playtestTitle(String map) {
+    return 'Test de $map';
+  }
+
+  @override
+  String get playtestBack => 'Retour à la carte';
+
+  @override
+  String get playtestNewGame => 'Nouvelle partie';
+
+  @override
+  String get playtestSave => 'Enregistrer le test';
+
+  @override
+  String get playtestResume => 'Reprendre le test';
+
+  @override
+  String get playtestPause => 'Pause';
+
+  @override
+  String get playtestContinue => 'Continuer';
+
+  @override
+  String get playtestDiagonalOn => 'Activer les diagonales';
+
+  @override
+  String get playtestDiagonalOff => 'Couper les diagonales';
+
+  @override
+  String playtestSpeed(int multiplier) {
+    return 'Vitesse ×$multiplier';
+  }
+
+  @override
+  String playtestPerformance(String fps, String build, String raster) {
+    return '$fps FPS · UI $build ms · rendu $raster ms';
+  }
 
   @override
   String get topBarChangeMap => 'Changer de carte';

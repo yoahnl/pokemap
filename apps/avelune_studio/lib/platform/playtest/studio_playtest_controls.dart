@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -7,6 +8,8 @@ class StudioPlaytestStatus {
     this.busy = false,
     this.hasSave = false,
     this.paused = false,
+    this.spatial = false,
+    this.diagonal = false,
     this.message,
   });
 
@@ -14,10 +17,12 @@ class StudioPlaytestStatus {
   final bool busy;
   final bool hasSave;
   final bool paused;
+  final bool spatial;
+  final bool diagonal;
   final String? message;
 }
 
-class StudioPlaytestControls {
+class StudioPlaytestControls extends ChangeNotifier {
   Object? _owner;
   StudioPlaytestStatus Function()? _status;
   Future<void> Function()? _save;
@@ -71,6 +76,8 @@ class StudioPlaytestControls {
     _toggleDiagonal = null;
     _requestClose = null;
   }
+
+  void statusChanged() => notifyListeners();
 
   void requestClose() => _requestClose?.call();
 

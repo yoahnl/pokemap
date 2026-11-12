@@ -23,7 +23,7 @@ void main() {
     final session = container.read(projectSessionControllerProvider);
     expect(session.state.status, ProjectSessionStatus.idle);
     expect(find.byKey(const ValueKey('studio-home')), findsOneWidget);
-    expect(find.text('Importer un projet'), findsOneWidget);
+    expect(find.byKey(const ValueKey('studio-home-import')), findsOneWidget);
 
     await tester.pumpWidget(StudioBootstrap(mcpService: mcp));
     expect(container.read(projectSessionControllerProvider), same(session));

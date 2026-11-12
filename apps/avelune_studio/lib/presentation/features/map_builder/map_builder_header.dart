@@ -13,6 +13,8 @@ class MapBuilderHeader extends StatelessWidget {
     required this.editable,
     required this.saveFailed,
     required this.onSave,
+    required this.onTestMap,
+    required this.testing,
   });
 
   final MapWorkspaceController maps;
@@ -20,6 +22,8 @@ class MapBuilderHeader extends StatelessWidget {
   final bool editable;
   final bool saveFailed;
   final VoidCallback onSave;
+  final VoidCallback onTestMap;
+  final bool testing;
 
   StudioSaveState get _saveState {
     if (maps.saving) return StudioSaveState.saving;
@@ -43,6 +47,8 @@ class MapBuilderHeader extends StatelessWidget {
           : null,
       saveState: _saveState,
       onSave: editable && maps.dirty ? onSave : null,
+      onTestMap: editable && document != null && !testing ? onTestMap : null,
+      testing: testing,
     );
   }
 }

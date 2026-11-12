@@ -18,7 +18,46 @@
   "topBarMapSettings": "Réglages de carte",
   "topBarSave": "Enregistrer",
   "topBarTestMap": "Tester la carte",
-  "topBarTestMapLater": "Le test de la carte sera branché à une prochaine étape",
+  "testMapChangedAgain": "La carte a encore changé. Enregistrez-la avant de tester.",
+  "playtestTitle": "Test de {map}",
+  "@playtestTitle": {
+    "placeholders": {
+      "map": {
+        "type": "String"
+      }
+    }
+  },
+  "playtestBack": "Retour à la carte",
+  "playtestNewGame": "Nouvelle partie",
+  "playtestSave": "Enregistrer le test",
+  "playtestResume": "Reprendre le test",
+  "playtestPause": "Pause",
+  "playtestContinue": "Continuer",
+  "playtestDiagonalOn": "Activer les diagonales",
+  "playtestDiagonalOff": "Couper les diagonales",
+  "playtestSpeed": "Vitesse ×{multiplier}",
+  "@playtestSpeed": {
+    "placeholders": {
+      "multiplier": {
+        "type": "int"
+      }
+    }
+  },
+  "playtestPerformance": "{fps} FPS · UI {build} ms · rendu {raster} ms",
+  "@playtestPerformance": {
+    "description": "Live frame rate and average UI and raster frame times shown in the map test bar.",
+    "placeholders": {
+      "fps": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      },
+      "raster": {
+        "type": "String"
+      }
+    }
+  },
   "topBarChangeMap": "Changer de carte",
   "topBarNoMap": "Aucune carte",
   "saveStateSaved": "Enregistré",
