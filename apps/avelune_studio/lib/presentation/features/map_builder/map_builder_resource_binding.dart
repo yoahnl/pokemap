@@ -22,6 +22,22 @@ ResourceCatalogContext mapBuilderDefaultContext(MapRole? role) =>
       _ => ResourceCatalogContext.all,
     };
 
+ProjectManifest? mapBuilderCatalog(
+  ProjectManifest? visual,
+  ProjectManifest? project,
+) {
+  if (visual == null || project == null) return visual ?? project;
+  if (identical(
+    visual.resourceLibraryCatalog,
+    project.resourceLibraryCatalog,
+  )) {
+    return visual;
+  }
+  return visual.copyWith(
+    resourceLibraryCatalog: project.resourceLibraryCatalog,
+  );
+}
+
 class MapBuilderResourceBinding {
   MapBuilderResourceBinding({
     required this.maps,
@@ -48,7 +64,19 @@ class MapBuilderResourceBinding {
   ResourceItem? armed;
   var _request = 0;
 
-  ProjectManifest? get catalog => maps.visualProject ?? maps.project;
+  ProjectManifest? _visualSource, _librarySource, _catalog;
+
+  ProjectManifest? get catalog {
+    final visual = maps.visualProject;
+    final project = maps.project;
+    if (!identical(visual, _visualSource) ||
+        !identical(project, _librarySource)) {
+      _visualSource = visual;
+      _librarySource = project;
+      _catalog = mapBuilderCatalog(visual, project);
+    }
+    return _catalog;
+  }
 
   void follow(ProjectMapEntry? entry) {
     if (entry == null || entry.id == _contextMapId) return;
