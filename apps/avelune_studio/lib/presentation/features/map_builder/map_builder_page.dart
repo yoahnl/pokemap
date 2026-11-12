@@ -18,6 +18,8 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_can
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_inspector.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_status_bar.dart';
@@ -174,12 +176,18 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     _changed();
   }
 
+  void _setSpace(MapBuilderSpace space) {
+    if (space != MapBuilderSpace.construction) _resources.release();
+    setState(() => _space = space);
+  }
+
   @override
   Widget build(BuildContext context) {
     final project = _maps.project;
     final document = _maps.active;
     final entry = _activeEntry;
     final view = _view;
+    final outline = mapBuilderSpaceOutline(_space);
     final intent = view == null
         ? null
         : mapPaletteIntent(
@@ -216,31 +224,34 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   StudioRail(onHome: () => unawaited(widget.onHome())),
-                  MapBuilderLibrary(
-                    groups: project?.groups ?? const [],
-                    maps: project?.maps ?? const [],
-                    activeMapId: document?.base.mapId,
-                    onSelectMap: _editable
-                        ? (entry) => unawaited(_maps.activate(entry))
-                        : null,
-                    resources: MapBuilderResourcePanel(
-                      project: _resources.catalog,
-                      mapId: document?.base.mapId,
-                      visuals: _visuals,
-                      selection: _resources.selection,
-                      onSelection: (value) =>
-                          unawaited(_resources.select(value)),
-                      loading: _resources.loading,
-                      armed: _resources.armed?.identity,
-                      onUse: _editable
-                          ? (item) => unawaited(_resources.use(item))
+                  if (outline != null)
+                    MapBuilderSpacePanel(outline: outline)
+                  else
+                    MapBuilderLibrary(
+                      groups: project?.groups ?? const [],
+                      maps: project?.maps ?? const [],
+                      activeMapId: document?.base.mapId,
+                      onSelectMap: _editable
+                          ? (entry) => unawaited(_maps.activate(entry))
                           : null,
+                      resources: MapBuilderResourcePanel(
+                        project: _resources.catalog,
+                        mapId: document?.base.mapId,
+                        visuals: _visuals,
+                        selection: _resources.selection,
+                        onSelection: (value) =>
+                            unawaited(_resources.select(value)),
+                        loading: _resources.loading,
+                        armed: _resources.armed?.identity,
+                        onUse: _editable
+                            ? (item) => unawaited(_resources.use(item))
+                            : null,
+                      ),
                     ),
-                  ),
                   Expanded(
                     child: MapBuilderCanvas(
                       space: _space,
-                      onSpace: (space) => setState(() => _space = space),
+                      onSpace: _setSpace,
                       entry: entry,
                       tool: view?.tool ?? StudioMapTool.select,
                       onTool: _setTool,
@@ -269,6 +280,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                     MapBuilderInspector(
                       entry: entry,
                       projectName: project?.name ?? widget.session.name,
+                      space: _space,
                       armed: _resources.armed,
                       intent: intent,
                       onRelease: _resources.release,

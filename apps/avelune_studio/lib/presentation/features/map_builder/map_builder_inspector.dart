@@ -5,6 +5,8 @@ import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_panel.dart';
 
 const mapBuilderInspectorWidth = 280.0;
 
@@ -13,6 +15,7 @@ class MapBuilderInspector extends StatelessWidget {
     super.key,
     required this.entry,
     required this.projectName,
+    this.space = MapBuilderSpace.construction,
     required this.armed,
     required this.intent,
     required this.onRelease,
@@ -21,6 +24,7 @@ class MapBuilderInspector extends StatelessWidget {
 
   final ProjectMapEntry? entry;
   final String projectName;
+  final MapBuilderSpace space;
   final ResourceItem? armed;
   final MapPaletteIntent? intent;
   final VoidCallback onRelease;
@@ -98,13 +102,17 @@ class MapBuilderInspector extends StatelessWidget {
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.all(StudioSpacing.xl),
-            child: armed == null
-                ? const _BuildGuide()
-                : _ActiveTool(
-                    item: armed!,
-                    intent: intent,
-                    onRelease: onRelease,
-                  ),
+            child: switch (mapBuilderSpaceOutline(space)) {
+              final outline? => MapBuilderSpaceInspectorBody(outline: outline),
+              null =>
+                armed == null
+                    ? const _BuildGuide()
+                    : _ActiveTool(
+                        item: armed!,
+                        intent: intent,
+                        onRelease: onRelease,
+                      ),
+            },
           ),
         ],
       ),

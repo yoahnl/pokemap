@@ -246,6 +246,42 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets(
+    'game, story and ambiance spaces show their unavailable outline',
+    (tester) async {
+      await openShell(tester);
+      expect(find.byKey(const ValueKey('map-library')), findsOneWidget);
+
+      for (final (space, rubric, inspector) in [
+        ('gameplay', 'Connexions et passages', 'RÈGLES DE JEU'),
+        ('story', 'Personnages', 'ÉVÉNEMENT'),
+        ('ambiance', 'Musique', 'AMBIANCE DE LA CARTE'),
+      ]) {
+        await tester.tap(find.byKey(ValueKey('map-space-$space')));
+        await tester.pump();
+
+        expect(find.byKey(const ValueKey('map-library')), findsNothing);
+        expect(find.byKey(const ValueKey('map-space-panel')), findsOneWidget);
+        final tile = tester.widget<ListTile>(
+          find.byKey(ValueKey('map-space-rubric-$rubric')),
+        );
+        expect(tile.enabled, isFalse);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('map-space-inspector')),
+            matching: find.text(inspector),
+          ),
+          findsOneWidget,
+        );
+      }
+
+      await tester.tap(find.byKey(const ValueKey('map-space-construction')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('map-library')), findsOneWidget);
+      expect(find.byKey(const ValueKey('map-space-inspector')), findsNothing);
+    },
+  );
+
   testWidgets('the home rail entry closes the project and frees its visuals', (
     tester,
   ) async {
