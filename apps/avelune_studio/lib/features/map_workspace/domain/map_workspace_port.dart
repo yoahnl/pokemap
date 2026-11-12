@@ -78,7 +78,7 @@ abstract interface class MapWorkspaceResourcePrefetchPort {
   });
 }
 
-const paletteListedResourceKinds = {'smartTilePreset'};
+const paletteListedResourceKinds = {'smartTilePreset', 'borderBlueprint'};
 
 abstract interface class MapWorkspaceResourceClosurePort {
   Future<MapWorkspaceCatalog> loadResourceClosure(

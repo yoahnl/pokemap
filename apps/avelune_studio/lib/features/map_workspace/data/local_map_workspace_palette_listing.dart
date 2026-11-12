@@ -26,8 +26,11 @@ final class _PaletteListing {
       _units[root] = unit;
       if (classification != null) _units[classification.key] = classification;
       await _family(entry?.familyId);
-      if (catalog.definitionValue(unit) case final ProjectSmartTilePreset p) {
-        await _terrain(p);
+      switch (catalog.definitionValue(unit)) {
+        case final ProjectSmartTilePreset preset:
+          await _terrain(preset);
+        case final BorderBlueprintRecord record:
+          await _relief(record);
       }
     }
     return catalog.projectWithDefinitions(_units.values);
@@ -83,6 +86,31 @@ final class _PaletteListing {
           if (await _preview(part.source)) return;
         }
       }
+    }
+  }
+
+  Future<void> _relief(BorderBlueprintRecord record) async {
+    final primitive = record.draft.definition.primitives.firstOrNull;
+    if (primitive == null) return;
+    if (primitive.sourceModelId case final modelId?) {
+      await _add(CatalogDefinitionKey(CatalogDefinitionKind.model3d, modelId));
+      return;
+    }
+    final elementId = primitive.sourceElementId;
+    if (elementId == null) return;
+    final element = await _add(
+      CatalogDefinitionKey(CatalogDefinitionKind.element, elementId),
+    );
+    if (element == null) return;
+    final value = catalog.definitionValue(element) as ProjectElementEntry;
+    for (final tilesetId in {
+      value.tilesetId,
+      for (final frame in value.frames) frame.tilesetId,
+    }) {
+      if (tilesetId.isEmpty) continue;
+      await _add(
+        CatalogDefinitionKey(CatalogDefinitionKind.tileset, tilesetId),
+      );
     }
   }
 
