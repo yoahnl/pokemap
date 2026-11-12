@@ -20,6 +20,7 @@ class MapBuilderInspector extends StatelessWidget {
     required this.intent,
     required this.onRelease,
     required this.onCollapse,
+    this.body,
   });
 
   final ProjectMapEntry? entry;
@@ -29,6 +30,7 @@ class MapBuilderInspector extends StatelessWidget {
   final MapPaletteIntent? intent;
   final VoidCallback onRelease;
   final VoidCallback onCollapse;
+  final Widget? body;
 
   @override
   Widget build(BuildContext context) {
@@ -100,19 +102,25 @@ class MapBuilderInspector extends StatelessWidget {
               ),
             ),
           const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(StudioSpacing.xl),
-            child: switch (mapBuilderSpaceOutline(space)) {
-              final outline? => MapBuilderSpaceInspectorBody(outline: outline),
-              null =>
-                armed == null
-                    ? const _BuildGuide()
-                    : _ActiveTool(
-                        item: armed!,
-                        intent: intent,
-                        onRelease: onRelease,
-                      ),
-            },
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(StudioSpacing.xl),
+              child:
+                  body ??
+                  switch (mapBuilderSpaceOutline(space)) {
+                    final outline? => MapBuilderSpaceInspectorBody(
+                      outline: outline,
+                    ),
+                    null =>
+                      armed == null
+                          ? const _BuildGuide()
+                          : _ActiveTool(
+                              item: armed!,
+                              intent: intent,
+                              onRelease: onRelease,
+                            ),
+                  },
+            ),
           ),
         ],
       ),

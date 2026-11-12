@@ -13,15 +13,15 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
 import 'package:avelune_studio/presentation/shell/studio_rail.dart';
-import 'package:avelune_studio/presentation/shell/studio_top_bar.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_canvas.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_inspector.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_panel.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_side_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_status_bar.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';
 import 'package:map_core/map_core.dart';
@@ -45,6 +45,7 @@ class MapBuilderPage extends ConsumerStatefulWidget {
 
 class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   late final ProviderSubscription<MapWorkspaceController> _subscription;
+  late final ProviderSubscription<MapConnectionPort> _connections;
   late final MapWorkspaceController _maps;
   late final MapEditingInputSession _input;
   final _views = <String, MapEditingViewportSession>{};
@@ -64,6 +65,13 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     maps: _maps,
     view: () => _view,
     visuals: () => _visuals,
+    isActive: () => !_disposed,
+    changed: _changed,
+  );
+  late final _gameplay = MapBuilderGameplayBinding(
+    maps: _maps,
+    view: () => _view,
+    port: configuredConnectionPort(_connections.read),
     isActive: () => !_disposed,
     changed: _changed,
   );
@@ -88,6 +96,10 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       (_, _) {},
     );
     _maps = _subscription.read();
+    _connections = ref.listenManual(
+      mapConnectionPortProvider(widget.session),
+      (_, _) {},
+    );
     _input = MapEditingInputSession(controller: _maps, view: () => _view);
     _maps.addListener(_changed);
     unawaited(_open());
@@ -126,6 +138,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     _projection.synchronize(_maps.visualProject);
     _resources.follow(_activeEntry);
     _resources.reconcileTool();
+    _gameplay.reconcile();
     if (mounted) setState(() {});
   }
 
@@ -148,14 +161,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       visuals.removeListener(_changed);
       unawaited(visuals.dispose());
     }
+    _connections.close();
     _subscription.close();
     super.dispose();
-  }
-
-  StudioSaveState get _saveState {
-    if (_maps.saving) return StudioSaveState.saving;
-    if (_saveFailed) return StudioSaveState.failed;
-    return _maps.dirty ? StudioSaveState.unsaved : StudioSaveState.saved;
   }
 
   bool get _editable => !_maps.loading && !_maps.catalogBusy && !_maps.saving;
@@ -178,6 +186,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
 
   void _setSpace(MapBuilderSpace space) {
     if (space != MapBuilderSpace.construction) _resources.release();
+    if (space != MapBuilderSpace.gameplay) _gameplay.leave();
     setState(() => _space = space);
   }
 
@@ -187,7 +196,6 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     final document = _maps.active;
     final entry = _activeEntry;
     final view = _view;
-    final outline = mapBuilderSpaceOutline(_space);
     final intent = view == null
         ? null
         : mapPaletteIntent(
@@ -201,53 +209,26 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
         minimum: mapBuilderMinimumSize,
         child: Column(
           children: [
-            StudioTopBar(
+            MapBuilderHeader(
+              maps: _maps,
               projectName: project?.name ?? widget.session.name,
-              maps: project?.maps ?? const [],
-              activeMapId: document?.base.mapId,
-              onSelectMap: _editable
-                  ? (entry) => unawaited(_maps.activate(entry))
-                  : null,
-              onUndo: _editable && document?.canUndo == true
-                  ? () => _maps.restore(redo: false)
-                  : null,
-              onRedo: _editable && document?.canRedo == true
-                  ? () => _maps.restore(redo: true)
-                  : null,
-              saveState: _saveState,
-              onSave: _editable && _maps.dirty
-                  ? () => unawaited(_save())
-                  : null,
+              editable: _editable,
+              saveFailed: _saveFailed,
+              onSave: () => unawaited(_save()),
             ),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   StudioRail(onHome: () => unawaited(widget.onHome())),
-                  if (outline != null)
-                    MapBuilderSpacePanel(outline: outline)
-                  else
-                    MapBuilderLibrary(
-                      groups: project?.groups ?? const [],
-                      maps: project?.maps ?? const [],
-                      activeMapId: document?.base.mapId,
-                      onSelectMap: _editable
-                          ? (entry) => unawaited(_maps.activate(entry))
-                          : null,
-                      resources: MapBuilderResourcePanel(
-                        project: _resources.catalog,
-                        mapId: document?.base.mapId,
-                        visuals: _visuals,
-                        selection: _resources.selection,
-                        onSelection: (value) =>
-                            unawaited(_resources.select(value)),
-                        loading: _resources.loading,
-                        armed: _resources.armed?.identity,
-                        onUse: _editable
-                            ? (item) => unawaited(_resources.use(item))
-                            : null,
-                      ),
-                    ),
+                  MapBuilderSidePanel(
+                    space: _space,
+                    gameplay: _gameplay,
+                    resources: _resources,
+                    maps: _maps,
+                    visuals: _visuals,
+                    enabled: _editable,
+                  ),
                   Expanded(
                     child: MapBuilderCanvas(
                       space: _space,
@@ -265,7 +246,8 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                           document?.error,
                       surface: _surface(),
                       statusBar: MapBuilderStatusBar(
-                        toolLabel: _resources.armed != null
+                        toolLabel:
+                            _resources.armed != null || _gameplay.placingWarp
                             ? intent?.action ?? 'Construction'
                             : view?.tool == StudioMapTool.pan
                             ? 'Déplacer la vue'
@@ -285,6 +267,11 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                       intent: intent,
                       onRelease: _resources.release,
                       onCollapse: () => setState(() => _inspectorOpen = false),
+                      body: mapBuilderSpaceInspector(
+                        _space,
+                        _gameplay,
+                        enabled: _editable,
+                      ),
                     ),
                 ],
               ),

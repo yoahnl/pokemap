@@ -1,0 +1,64 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_panel.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_panel.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_panel.dart';
+
+class MapBuilderSidePanel extends StatelessWidget {
+  const MapBuilderSidePanel({
+    super.key,
+    required this.space,
+    required this.gameplay,
+    required this.resources,
+    required this.maps,
+    required this.visuals,
+    required this.enabled,
+  });
+
+  final MapBuilderSpace space;
+  final MapBuilderGameplayBinding gameplay;
+  final MapBuilderResourceBinding resources;
+  final MapWorkspaceController maps;
+  final MapWorkspaceVisuals? visuals;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final outline = mapBuilderSpaceOutline(space);
+    if (outline != null && space == MapBuilderSpace.gameplay) {
+      return MapBuilderGameplayPanel(
+        outline: outline,
+        binding: gameplay,
+        enabled: enabled,
+      );
+    }
+    if (outline != null) return MapBuilderSpacePanel(outline: outline);
+    final project = maps.project;
+    final mapId = maps.active?.base.mapId;
+    return MapBuilderLibrary(
+      groups: project?.groups ?? const [],
+      maps: project?.maps ?? const [],
+      activeMapId: mapId,
+      onSelectMap: enabled ? (entry) => unawaited(maps.activate(entry)) : null,
+      resources: MapBuilderResourcePanel(
+        project: resources.catalog,
+        mapId: mapId,
+        visuals: visuals,
+        selection: resources.selection,
+        onSelection: (value) => unawaited(resources.select(value)),
+        loading: resources.loading,
+        armed: resources.armed?.identity,
+        onUse: enabled ? (item) => unawaited(resources.use(item)) : null,
+      ),
+    );
+  }
+}

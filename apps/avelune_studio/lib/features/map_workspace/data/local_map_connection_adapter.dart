@@ -23,7 +23,7 @@ final class LocalMapConnectionAdapter
     required String targetMapId,
     required int offset,
     MapData? expectedTarget,
-  }) => _run(
+  }) => _linkBorders(
     session: session,
     source: source,
     expectedTarget: expectedTarget,
@@ -42,12 +42,20 @@ final class LocalMapConnectionAdapter
     required MapData source,
     required MapConnectionDirection direction,
     MapData? expectedTarget,
-  }) => _run(
+  }) => _linkBorders(
     session: session,
     source: source,
     expectedTarget: expectedTarget,
     action: 'connection.delete_bidirectional_apply',
-    parameters: {'mapId': source.id, 'direction': direction.name},
+    parameters: {
+      'mapId': source.id,
+      'direction': direction.name,
+      if (source.connections
+              .where((entry) => entry.direction == direction)
+              .firstOrNull
+          case final existing?)
+        'targetMapId': existing.targetMapId,
+    },
   );
 
   @override
@@ -73,12 +81,38 @@ final class LocalMapConnectionAdapter
     },
   );
 
+  Future<void> _linkBorders({
+    required ProjectSession session,
+    required MapData source,
+    required MapData? expectedTarget,
+    required String action,
+    required Map<String, Object?> parameters,
+  }) async {
+    await _run(
+      session: session,
+      source: source,
+      expectedTarget: expectedTarget,
+      action: action,
+      parameters: parameters,
+      scoped: true,
+    );
+    await mapAdapter.refreshExternalBaseline(
+      session,
+      resources: {
+        (kind: 'map', id: source.id),
+        if (parameters['targetMapId'] case final String target)
+          (kind: 'map', id: target),
+      },
+    );
+  }
+
   Future<void> _run({
     required ProjectSession session,
     required MapData source,
     required MapData? expectedTarget,
     required String action,
     required Map<String, Object?> parameters,
+    bool scoped = false,
   }) => mapAdapter.withResourceMutation(() async {
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
@@ -90,11 +124,14 @@ final class LocalMapConnectionAdapter
       policy: policy,
       fileReader: reader,
       handles: handles,
+      catalogMetadataFields: scoped ? const {} : null,
+      workshopScope: scoped,
     ).openProject(session.directoryPath);
     final loader = ProjectSnapshotLoader(handles: handles);
     final api = LocalMapAuthoringMutationApi(
       policy: policy,
       snapshotLoader: loader,
+      catalogFileReader: reader,
     );
     var attached = false;
     try {
@@ -104,7 +141,13 @@ final class LocalMapConnectionAdapter
         projectHandle: opened.projectHandle,
       );
       attached = true;
-      final snapshot = await loader.load(opened.projectHandle);
+      final snapshot = scoped && api.isCatalogProject(opened.projectHandle)
+          ? await api.readWorkshopSnapshot(
+              opened.projectHandle,
+              actionId: action,
+              parameters: parameters,
+            )
+          : await loader.load(opened.projectHandle);
       final currentSource = snapshot.maps
           .where((map) => map.id == source.id)
           .firstOrNull;
@@ -121,6 +164,30 @@ final class LocalMapConnectionAdapter
         );
       }
       var effectiveAction = action;
+      if (action == 'connection.create_bidirectional_apply') {
+        final existing = source.connections
+            .where(
+              (entry) =>
+                  entry.direction.name == parameters['direction'] &&
+                  entry.targetMapId == parameters['targetMapId'],
+            )
+            .firstOrNull;
+        if (existing != null) {
+          final target = snapshot.maps
+              .where((map) => map.id == existing.targetMapId)
+              .firstOrNull;
+          final paired =
+              target?.connections.any(
+                (entry) =>
+                    entry.direction == existing.direction.opposite &&
+                    entry.targetMapId == source.id,
+              ) ??
+              false;
+          effectiveAction = paired
+              ? 'connection.update_bidirectional_apply'
+              : 'connection.upsert';
+        }
+      }
       if (action == 'connection.delete_bidirectional_apply') {
         final existing = source.connections
             .where((entry) => entry.direction.name == parameters['direction'])

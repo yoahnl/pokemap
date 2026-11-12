@@ -253,7 +253,7 @@ void main() {
       expect(find.byKey(const ValueKey('map-library')), findsOneWidget);
 
       for (final (space, rubric, inspector) in [
-        ('gameplay', 'Connexions et passages', 'RÈGLES DE JEU'),
+        ('gameplay', 'Déplacements', 'RÈGLES DE JEU'),
         ('story', 'Personnages', 'ÉVÉNEMENT'),
         ('ambiance', 'Musique', 'AMBIANCE DE LA CARTE'),
       ]) {

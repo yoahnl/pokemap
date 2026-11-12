@@ -47,7 +47,7 @@ class MapBuilderSpacePanel extends StatelessWidget {
                 Text(outline.subtitle, style: muted),
                 const SizedBox(height: StudioSpacing.l),
                 for (final rubric in outline.rubrics)
-                  _RubricTile(rubric: rubric),
+                  MapBuilderRubricTile(rubric: rubric),
                 if (outline.searchHint case final hint?) ...[
                   const SizedBox(height: StudioSpacing.l),
                   TextField(
@@ -97,17 +97,35 @@ class MapBuilderSpacePanel extends StatelessWidget {
   }
 }
 
-class _RubricTile extends StatelessWidget {
-  const _RubricTile({required this.rubric});
+class MapBuilderRubricTile extends StatelessWidget {
+  const MapBuilderRubricTile({
+    super.key,
+    required this.rubric,
+    this.selected = false,
+  });
 
   final MapBuilderRubric rubric;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    if (selected) {
+      return Tooltip(
+        message: rubric.detail,
+        child: StudioChoice(
+          key: ValueKey('map-space-rubric-${rubric.label}'),
+          label: rubric.label,
+          dense: true,
+          leading: Icon(rubric.icon, size: 18),
+          selected: true,
+          onTap: () {},
+        ),
+      );
+    }
     final faded = theme.colorScheme.onSurfaceVariant.withValues(alpha: .5);
     return Tooltip(
-      message: mapBuilderUnavailable,
+      message: '${rubric.detail} · $mapBuilderUnavailable',
       child: ListTile(
         key: ValueKey('map-space-rubric-${rubric.label}'),
         enabled: false,
@@ -115,7 +133,7 @@ class _RubricTile extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: StudioSpacing.s),
         leading: Icon(rubric.icon, size: 20, color: faded),
         title: Text(rubric.label),
-        subtitle: Text(rubric.detail),
+        visualDensity: VisualDensity.compact,
         trailing: Text(
           'Bientôt',
           style: theme.textTheme.labelSmall?.copyWith(color: faded),
