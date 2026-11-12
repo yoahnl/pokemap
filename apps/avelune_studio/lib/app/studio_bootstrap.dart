@@ -1,3 +1,6 @@
+import 'package:avelune_studio/app/di/language_providers.dart';
+import 'package:avelune_studio/features/language/application/studio_language_preferences.dart';
+import 'package:avelune_studio/platform/files/local_language_preferences_store.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -96,6 +99,12 @@ class StudioBootstrap extends StatelessWidget {
         final preferences = MapLayoutPreferences(
           studioMapLayoutPreferencesStore(),
         );
+        unawaited(preferences.load());
+        ref.onDispose(preferences.dispose);
+        return preferences;
+      }),
+      studioLanguagePreferencesProvider.overrideWith((ref) {
+        final preferences = StudioLanguagePreferences(studioLanguageStore());
         unawaited(preferences.load());
         ref.onDispose(preferences.dispose);
         return preferences;

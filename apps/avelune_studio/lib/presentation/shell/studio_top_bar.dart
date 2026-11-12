@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/presentation/shared/widgets/avelune_wordmark.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+import 'package:avelune_studio/presentation/shared/widgets/studio_language_menu.dart';
 
 const studioTopBarHeight = 64.0;
 const studioTopBarWideWidth = 1440.0;
@@ -75,42 +77,44 @@ class StudioTopBar extends StatelessWidget {
           ),
           const Spacer(),
           _BarIcon(
-            label: 'Annuler la modification',
+            label: context.l10n.topBarUndo,
             icon: Icons.undo,
             onPressed: onUndo,
           ),
           _BarIcon(
-            label: 'Rétablir la modification',
+            label: context.l10n.topBarRedo,
             icon: Icons.redo,
             onPressed: onRedo,
           ),
           const _BarDivider(),
           _BarAction(
-            label: 'Contenu',
+            label: context.l10n.topBarContent,
             icon: Icons.layers_outlined,
             compact: compact,
           ),
           _BarAction(
-            label: 'Réglages de carte',
+            label: context.l10n.topBarMapSettings,
             icon: Icons.tune,
             compact: compact,
           ),
           const SizedBox(width: StudioSpacing.l),
+          const StudioLanguageMenu(),
+          const SizedBox(width: StudioSpacing.s),
           _SaveStatus(saveState),
           const SizedBox(width: StudioSpacing.l),
           StudioButton(
             key: const ValueKey('studio-save'),
-            label: 'Enregistrer',
+            label: context.l10n.topBarSave,
             variant: StudioButtonVariant.secondary,
             loading: saveState == StudioSaveState.saving,
             onPressed: onSave,
           ),
           const SizedBox(width: StudioSpacing.m),
-          const Tooltip(
-            message: 'Le test de la carte sera branché à une prochaine étape',
+          Tooltip(
+            message: context.l10n.topBarTestMapLater,
             child: StudioButton(
-              key: ValueKey('studio-test-map'),
-              label: 'Tester la carte',
+              key: const ValueKey('studio-test-map'),
+              label: context.l10n.topBarTestMap,
               icon: Icons.play_arrow_rounded,
               variant: StudioButtonVariant.primary,
               onPressed: null,
@@ -139,7 +143,7 @@ class _MapSelector extends StatelessWidget {
     final active = maps.where((entry) => entry.id == activeMapId).firstOrNull;
     return PopupMenuButton<ProjectMapEntry>(
       key: const ValueKey('studio-map-selector'),
-      tooltip: 'Changer de carte',
+      tooltip: context.l10n.topBarChangeMap,
       enabled: onSelect != null && maps.isNotEmpty,
       onSelected: onSelect,
       itemBuilder: (_) => [
@@ -150,7 +154,7 @@ class _MapSelector extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            active?.name ?? 'Aucune carte',
+            active?.name ?? context.l10n.topBarNoMap,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -196,7 +200,7 @@ class _BarAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Tooltip(
-    message: '$label — pas encore disponible',
+    message: context.l10n.notAvailableYet(label),
     child: compact
         ? IconButton(
             onPressed: null,
@@ -233,11 +237,17 @@ class _SaveStatus extends StatelessWidget {
     final theme = Theme.of(context);
     final studio = StudioColors.of(context);
     final (label, color) = switch (state) {
-      StudioSaveState.saved => ('Enregistré', studio.success),
-      StudioSaveState.unsaved => ('Non enregistré', studio.warning),
-      StudioSaveState.saving => ('Enregistrement…', theme.colorScheme.primary),
+      StudioSaveState.saved => (context.l10n.saveStateSaved, studio.success),
+      StudioSaveState.unsaved => (
+        context.l10n.saveStateUnsaved,
+        studio.warning,
+      ),
+      StudioSaveState.saving => (
+        context.l10n.saveStateSaving,
+        theme.colorScheme.primary,
+      ),
       StudioSaveState.failed => (
-        'Échec de l’enregistrement',
+        context.l10n.saveStateFailed,
         theme.colorScheme.error,
       ),
     };

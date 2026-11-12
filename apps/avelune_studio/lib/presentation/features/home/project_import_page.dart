@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/l10n/app_localizations.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 import 'package:avelune_studio/presentation/shared/widgets/avelune_wordmark.dart';
+import 'package:avelune_studio/presentation/shared/widgets/studio_language_menu.dart';
 
 class ProjectImportPage extends StatelessWidget {
   const ProjectImportPage({
@@ -28,8 +31,8 @@ class ProjectImportPage extends StatelessWidget {
     final message = problem == null
         ? pickerError == null
               ? null
-              : 'Le sélecteur de dossier n’a pas pu s’ouvrir. Réessayez.'
-        : projectOpenProblemMessage(problem);
+              : context.l10n.homePickerFailed
+        : projectOpenProblemMessage(context.l10n, problem);
     return Scaffold(
       key: const ValueKey('studio-home'),
       body: Center(
@@ -38,11 +41,15 @@ class ProjectImportPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const Align(
+                alignment: Alignment.centerRight,
+                child: StudioLanguageMenu(),
+              ),
               const AveluneWordmark(height: 56),
               const SizedBox(height: StudioSpacing.xxl * 2),
               StudioButton(
                 key: const ValueKey('studio-home-import'),
-                label: 'Importer un projet',
+                label: context.l10n.homeImportProject,
                 icon: Icons.folder_open_outlined,
                 loading: opening,
                 onPressed: opening ? null : onImport,
@@ -59,17 +66,16 @@ class ProjectImportPage extends StatelessWidget {
   }
 }
 
-String projectOpenProblemMessage(ProjectOpenProblem problem) =>
-    switch (problem) {
-      ProjectOpenProblem.invalidPath => 'Ce chemin de projet n’est pas valide.',
-      ProjectOpenProblem.pathNotPreserved =>
-        'Le Studio ne peut pas conserver l’accès à ce dossier.',
-      ProjectOpenProblem.directoryUnavailable => 'Ce dossier est introuvable.',
-      ProjectOpenProblem.manifestMissing =>
-        'Ce dossier ne contient pas de projet Avelune.',
-      ProjectOpenProblem.manifestInvalid =>
-        'Le fichier du projet est illisible ou incompatible.',
-      ProjectOpenProblem.accessDenied =>
-        'Le Studio n’a pas l’autorisation d’ouvrir ce dossier.',
-      ProjectOpenProblem.readFailed => 'Le projet n’a pas pu être lu.',
-    };
+String projectOpenProblemMessage(
+  AppLocalizations l10n,
+  ProjectOpenProblem problem,
+) => switch (problem) {
+  ProjectOpenProblem.invalidPath => l10n.openProblemInvalidPath,
+  ProjectOpenProblem.pathNotPreserved => l10n.openProblemPathNotPreserved,
+  ProjectOpenProblem.directoryUnavailable =>
+    l10n.openProblemDirectoryUnavailable,
+  ProjectOpenProblem.manifestMissing => l10n.openProblemManifestMissing,
+  ProjectOpenProblem.manifestInvalid => l10n.openProblemManifestInvalid,
+  ProjectOpenProblem.accessDenied => l10n.openProblemAccessDenied,
+  ProjectOpenProblem.readFailed => l10n.openProblemReadFailed,
+};

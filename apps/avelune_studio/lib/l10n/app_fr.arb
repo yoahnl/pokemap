@@ -1,0 +1,60 @@
+{
+  "@@locale": "fr",
+  "languageMenu": "Langue",
+  "@languageMenu": {
+    "description": "Tooltip of the button that opens the language menu."
+  },
+  "languageSystem": "Langue du système",
+  "@languageSystem": {
+    "description": "Language menu entry that follows the operating system language."
+  },
+  "languageName": "Français",
+  "@languageName": {
+    "description": "Native name of this language, shown in the language menu."
+  },
+  "topBarUndo": "Annuler la modification",
+  "topBarRedo": "Rétablir la modification",
+  "topBarContent": "Contenu",
+  "topBarMapSettings": "Réglages de carte",
+  "topBarSave": "Enregistrer",
+  "topBarTestMap": "Tester la carte",
+  "topBarTestMapLater": "Le test de la carte sera branché à une prochaine étape",
+  "topBarChangeMap": "Changer de carte",
+  "topBarNoMap": "Aucune carte",
+  "saveStateSaved": "Enregistré",
+  "saveStateUnsaved": "Non enregistré",
+  "saveStateSaving": "Enregistrement…",
+  "saveStateFailed": "Échec de l’enregistrement",
+  "railHome": "Accueil du projet",
+  "railMapBuilder": "Constructeur de carte",
+  "railRegionalMap": "Carte régionale",
+  "railResources": "Gérer les ressources",
+  "railStory": "Histoire",
+  "railHelp": "Raccourcis et aide",
+  "railProjectSettings": "Réglages du projet",
+  "homeImportProject": "Importer un projet",
+  "homePickerFailed": "Le sélecteur de dossier n’a pas pu s’ouvrir. Réessayez.",
+  "openProblemInvalidPath": "Ce chemin de projet n’est pas valide.",
+  "openProblemPathNotPreserved": "Le Studio ne peut pas conserver l’accès à ce dossier.",
+  "openProblemDirectoryUnavailable": "Ce dossier est introuvable.",
+  "openProblemManifestMissing": "Ce dossier ne contient pas de projet Avelune.",
+  "openProblemManifestInvalid": "Le fichier du projet est illisible ou incompatible.",
+  "openProblemAccessDenied": "Le Studio n’a pas l’autorisation d’ouvrir ce dossier.",
+  "openProblemReadFailed": "Le projet n’a pas pu être lu.",
+  "notAvailableYet": "{label} — pas encore disponible",
+  "@notAvailableYet": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "notAvailableInNewStudio": "{label} — pas encore disponible dans le nouveau Studio",
+  "@notAvailableInNewStudio": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  }
+}

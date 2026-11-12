@@ -1,8 +1,9 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+
 const studioRailWidth = 64.0;
-const _unavailable = 'Pas encore disponible dans le nouveau Studio';
 
 class StudioRail extends StatelessWidget {
   const StudioRail({super.key, required this.onHome});
@@ -12,6 +13,7 @@ class StudioRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Ink(
       key: const ValueKey('studio-rail'),
       width: studioRailWidth,
@@ -23,30 +25,24 @@ class StudioRail extends StatelessWidget {
       child: Column(
         children: [
           _RailEntry(
-            label: 'Accueil du projet',
+            label: l10n.railHome,
             icon: Icons.home_outlined,
             onPressed: onHome,
           ),
-          const _RailEntry(
-            label: 'Constructeur de carte',
+          _RailEntry(
+            label: l10n.railMapBuilder,
             icon: Icons.map_outlined,
             selected: true,
           ),
-          const _RailEntry(
-            label: 'Carte régionale',
-            icon: Icons.explore_outlined,
-          ),
-          const _RailEntry(
-            label: 'Gérer les ressources',
+          _RailEntry(label: l10n.railRegionalMap, icon: Icons.explore_outlined),
+          _RailEntry(
+            label: l10n.railResources,
             icon: Icons.view_in_ar_outlined,
           ),
-          const _RailEntry(label: 'Histoire', icon: Icons.menu_book_outlined),
+          _RailEntry(label: l10n.railStory, icon: Icons.menu_book_outlined),
           const Spacer(),
-          const _RailEntry(
-            label: 'Raccourcis et aide',
-            icon: Icons.help_outline,
-          ),
-          const _RailEntry(label: 'Réglages du projet', icon: Icons.tune),
+          _RailEntry(label: l10n.railHelp, icon: Icons.help_outline),
+          _RailEntry(label: l10n.railProjectSettings, icon: Icons.tune),
         ],
       ),
     );
@@ -73,7 +69,9 @@ class _RailEntry extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: StudioSpacing.xs),
       child: Tooltip(
-        message: available ? label : '$label — $_unavailable',
+        message: available
+            ? label
+            : context.l10n.notAvailableInNewStudio(label),
         child: Semantics(
           button: true,
           selected: selected,
