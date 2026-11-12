@@ -4,6 +4,17 @@ import 'package:avelune_studio/features/resources/application/resource_catalog.d
 import 'package:avelune_studio/l10n/app_localizations.dart';
 
 extension StudioLabels on AppLocalizations {
+  String encounterKindName(EncounterKind kind) => switch (kind) {
+    EncounterKind.walk => encounterKindWalk,
+    EncounterKind.surf => encounterKindSurf,
+    EncounterKind.headbutt => encounterKindHeadbutt,
+    EncounterKind.oldRod => encounterKindOldRod,
+    EncounterKind.goodRod => encounterKindGoodRod,
+    EncounterKind.superRod => encounterKindSuperRod,
+    EncounterKind.gift => encounterKindGift,
+    EncounterKind.special => encounterKindSpecial,
+  };
+
   String movementMode(MovementMode mode) => switch (mode) {
     MovementMode.walk => movementModeWalk,
     MovementMode.surf => movementModeSurf,

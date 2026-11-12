@@ -11,7 +11,12 @@ import 'package:avelune_studio/features/resources/domain/studio_search_text.dart
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 
-const mapBuilderGameplayRubrics = {'connections', 'movement', 'spawns'};
+const mapBuilderGameplayRubrics = {
+  'connections',
+  'movement',
+  'encounters',
+  'spawns',
+};
 
 const mapBuilderMovementZoneKinds = {
   GameplayZoneKind.movement,
@@ -106,6 +111,18 @@ class MapBuilderGameplayBinding {
         zone,
   ];
 
+  List<MapGameplayZone> get encounterZones => [
+    for (final zone in map?.gameplayZones ?? const <MapGameplayZone>[])
+      if (zone.kind == GameplayZoneKind.encounter &&
+          studioSearchMatches(zone.name, query))
+        zone,
+  ];
+
+  List<ProjectEncounterTable> get encounterTables =>
+      zones?.encounterTables() ?? const [];
+
+  bool get paintsEncounters => map != null && map!.spatialScene == null;
+
   int get blockedCells => [
     for (final layer
         in map?.layers.whereType<CollisionLayer>() ??
@@ -173,6 +190,8 @@ class MapBuilderGameplayBinding {
     StudioMapTool.spawn ||
     StudioMapTool.collisionPaint ||
     StudioMapTool.collisionErase ||
+    StudioMapTool.encounterPaint ||
+    StudioMapTool.encounterErase ||
     StudioMapTool.gameplayZone => true,
     _ => false,
   };
@@ -270,6 +289,24 @@ class MapBuilderGameplayBinding {
     }
     state.clearSelection(document);
     _clearDrafts();
+    state.tool = wanted;
+    changed();
+  }
+
+  void armEncounterBrush({required bool erase, bool fresh = false}) {
+    final state = view();
+    final document = maps.active;
+    if (state == null || document == null || !paintsEncounters) return;
+    final wanted = erase
+        ? StudioMapTool.encounterErase
+        : StudioMapTool.encounterPaint;
+    if (state.tool == wanted && !fresh) {
+      release();
+      return;
+    }
+    if (fresh) state.clearSelection(document);
+    _clearDrafts();
+    zoneError = null;
     state.tool = wanted;
     changed();
   }

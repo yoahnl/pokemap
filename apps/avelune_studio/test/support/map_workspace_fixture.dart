@@ -57,6 +57,9 @@ MapData workspaceMap(String id) => MapData(
 );
 
 class WorkspaceMemoryPort implements MapWorkspacePort {
+  WorkspaceMemoryPort({this.project = workspaceProject});
+
+  final ProjectManifest project;
   final saved = <String, MapData>{};
   int reads = 0;
   int writes = 0;
@@ -67,7 +70,7 @@ class WorkspaceMemoryPort implements MapWorkspacePort {
   @override
   Future<ProjectManifest> loadProject(ProjectSession session) async {
     catalogs++;
-    return workspaceProject;
+    return project;
   }
 
   @override

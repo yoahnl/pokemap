@@ -939,4 +939,69 @@ class AppLocalizationsEn extends AppLocalizations {
   String zoneArea(int x, int y, int width, int height) {
     return 'Cells $x, $y · $width × $height';
   }
+
+  @override
+  String get encounterPaintNew => 'Paint a new zone';
+
+  @override
+  String get encounterDrawRect => 'Draw a rectangular zone';
+
+  @override
+  String get encounterPaintInto => 'Paint into this zone';
+
+  @override
+  String get encounterEraseFrom => 'Erase from this zone';
+
+  @override
+  String get encounterBrushHint => 'Paint the cells where wild Pokémon appear.';
+
+  @override
+  String get encounterPaint2dOnly =>
+      'The encounter brush only exists on 2D maps; draw rectangles on a 3D map.';
+
+  @override
+  String get encounterZones => 'Encounter zones';
+
+  @override
+  String get encounterNoZone => 'No encounter zone on this map.';
+
+  @override
+  String get encounterNoTable =>
+      'This project has no encounter table: a zone triggers nothing until it has one.';
+
+  @override
+  String get encounterZoneEyebrow => 'ENCOUNTER ZONE';
+
+  @override
+  String get encounterTable => 'Encounter table';
+
+  @override
+  String get encounterKind => 'Encounter type';
+
+  @override
+  String get encounterNoTableChosen => 'no table';
+
+  @override
+  String get encounterKindWalk => 'Walking (grass, caves)';
+
+  @override
+  String get encounterKindSurf => 'Surfing';
+
+  @override
+  String get encounterKindHeadbutt => 'Headbutt';
+
+  @override
+  String get encounterKindOldRod => 'Old Rod';
+
+  @override
+  String get encounterKindGoodRod => 'Good Rod';
+
+  @override
+  String get encounterKindSuperRod => 'Super Rod';
+
+  @override
+  String get encounterKindGift => 'Gift';
+
+  @override
+  String get encounterKindSpecial => 'Special';
 }

@@ -88,13 +88,14 @@ void main() {
   Future<void> openGameplay(
     WidgetTester tester, {
     Locale locale = const Locale('fr'),
+    ProjectManifest project = workspaceProject,
   }) async {
     tester.view.physicalSize = const Size(1920, 1080);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final sessions = ControlledProjectSessionPort();
-    maps = WorkspaceMemoryPort();
+    maps = WorkspaceMemoryPort(project: project);
     maps.saved['a'] = workspaceMap('a').copyWith(
       warps: const [
         MapWarp(
@@ -500,6 +501,104 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('map-space-construction')));
     await settle(tester);
     expect(collisions(), isNull);
+  });
+
+  testWidgets('encounter zones are painted, bound to a table and erased', (
+    tester,
+  ) async {
+    await openGameplay(
+      tester,
+      project: workspaceProject.copyWith(
+        encounterTables: const [
+          ProjectEncounterTable(
+            id: 'route-grass',
+            name: 'Herbes de la route',
+            encounterKind: EncounterKind.walk,
+          ),
+          ProjectEncounterTable(
+            id: 'route-surf',
+            name: 'Surf de la route',
+            encounterKind: EncounterKind.surf,
+          ),
+        ],
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('map-space-rubric-encounters')));
+    await settle(tester);
+    expect(find.text('Aucune zone de rencontres sur cette carte.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-encounter-paint')));
+    await settle(tester);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-encounter-brush')),
+      findsOneWidget,
+    );
+    final canvas = tester.getRect(find.byKey(const ValueKey('map-canvas')));
+    await tester.dragFrom(canvas.center, const Offset(48, 0));
+    await settle(tester);
+
+    final painted = active().gameplayZones.single;
+    expect(painted.kind, GameplayZoneKind.encounter);
+    expect(painted.cellMask, isNotNull);
+    final cells = painted.cellMask!.length;
+    expect(cells, greaterThan(1));
+    expect(
+      find.byKey(const ValueKey('map-gameplay-encounter-form')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Sans table de rencontres, cette zone ne déclenche rien.'),
+      findsOneWidget,
+    );
+
+    await choose(tester, 'map-gameplay-encounter-table', 'Surf de la route');
+    final bound = active().gameplayZones.single.encounter!;
+    expect(bound.encounterTableId, 'route-surf');
+    expect(bound.encounterKind, EncounterKind.surf);
+    expect(
+      find.text('Sans table de rencontres, cette zone ne déclenche rien.'),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(ValueKey('map-gameplay-zone-${painted.id}')),
+        matching: find.text('Surf · Surf de la route'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('map-gameplay-encounter-erase-from')),
+    );
+    await settle(tester);
+    await tester.tapAt(canvas.center);
+    await settle(tester);
+    expect(
+      active().gameplayZones.single.cellMask!.length,
+      cells - 1,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('map-gameplay-encounter-rectangle')));
+    await settle(tester);
+    expect(
+      find.byKey(const ValueKey('map-gameplay-zone-placement')),
+      findsOneWidget,
+    );
+    expect(find.text('ZONE DE RENCONTRES'), findsOneWidget);
+    await tester.tapAt(canvas.topLeft + const Offset(24, 24));
+    await settle(tester);
+    expect(active().gameplayZones, hasLength(2));
+    expect(active().gameplayZones.last.cellMask, isNull);
+  });
+
+  testWidgets('a project without encounter tables says so', (tester) async {
+    await openGameplay(tester);
+    await tester.tap(find.byKey(const ValueKey('map-space-rubric-encounters')));
+    await settle(tester);
+    expect(
+      find.textContaining('aucune table de rencontres'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('switching rubric clears the passage selection', (tester) async {

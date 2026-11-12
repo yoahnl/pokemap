@@ -101,6 +101,7 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                 ...switch (binding.rubric) {
                   'spawns' => _spawns(binding, muted),
                   'movement' => _movement(binding, muted),
+                  'encounters' => _encounters(binding, muted),
                   _ => _connections(binding, outline, muted),
                 },
               ],
@@ -279,6 +280,64 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                   '${l10n.movementEffect(effect.effectKind)}',
             _ => null,
           },
+          selected: zone.id == selected,
+          onTap: () => binding.selectZone(zone.id),
+        ),
+    ];
+  }
+
+  List<Widget> _encounters(
+    MapBuilderGameplayBinding binding,
+    TextStyle? muted,
+  ) {
+    final l10n = context.l10n;
+    final zones = binding.encounterZones;
+    final selected = binding.selectedZone?.id;
+    final enabled = widget.enabled;
+    final tables = {
+      for (final table in binding.encounterTables) table.id: table.name,
+    };
+    return [
+      if (binding.paintsEncounters)
+        StudioChoice(
+          key: const ValueKey('map-gameplay-encounter-paint'),
+          leading: const Icon(Icons.brush_outlined, size: 18),
+          label: l10n.encounterPaintNew,
+          selected:
+              binding.tool == StudioMapTool.encounterPaint && selected == null,
+          onTap: enabled
+              ? () => binding.armEncounterBrush(erase: false, fresh: true)
+              : null,
+        )
+      else
+        Text(l10n.encounterPaint2dOnly, style: muted),
+      StudioChoice(
+        key: const ValueKey('map-gameplay-encounter-rectangle'),
+        leading: const Icon(Icons.crop_free, size: 18),
+        label: l10n.encounterDrawRect,
+        selected: binding.draftingZone,
+        onTap: enabled
+            ? () => binding.armZone(GameplayZoneKind.encounter)
+            : null,
+      ),
+      if (tables.isEmpty) ...[
+        const SizedBox(height: StudioSpacing.m),
+        StudioNotice(l10n.encounterNoTable),
+      ],
+      _Section(title: l10n.encounterZones, count: zones.length),
+      if (zones.isEmpty) Text(l10n.encounterNoZone, style: muted),
+      for (final zone in zones)
+        StudioChoice(
+          key: ValueKey('map-gameplay-zone-${zone.id}'),
+          leading: const Icon(Icons.grass, size: 18),
+          label: zone.name,
+          subtitle: [
+            l10n.encounterKindName(
+              zone.encounter?.encounterKind ?? EncounterKind.walk,
+            ),
+            tables[zone.encounter?.encounterTableId] ??
+                l10n.encounterNoTableChosen,
+          ].join(' · '),
           selected: zone.id == selected,
           onTap: () => binding.selectZone(zone.id),
         ),

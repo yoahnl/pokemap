@@ -946,4 +946,70 @@ class AppLocalizationsFr extends AppLocalizations {
   String zoneArea(int x, int y, int width, int height) {
     return 'Cases $x, $y · $width × $height';
   }
+
+  @override
+  String get encounterPaintNew => 'Peindre une nouvelle zone';
+
+  @override
+  String get encounterDrawRect => 'Tracer une zone rectangulaire';
+
+  @override
+  String get encounterPaintInto => 'Peindre dans cette zone';
+
+  @override
+  String get encounterEraseFrom => 'Gommer dans cette zone';
+
+  @override
+  String get encounterBrushHint =>
+      'Peignez les cases où les Pokémon sauvages apparaissent.';
+
+  @override
+  String get encounterPaint2dOnly =>
+      'Le pinceau de rencontres n’existe que sur les cartes 2D ; tracez des rectangles sur une carte 3D.';
+
+  @override
+  String get encounterZones => 'Zones de rencontres';
+
+  @override
+  String get encounterNoZone => 'Aucune zone de rencontres sur cette carte.';
+
+  @override
+  String get encounterNoTable =>
+      'Ce projet n’a aucune table de rencontres : une zone ne déclenchera rien tant qu’elle n’en a pas.';
+
+  @override
+  String get encounterZoneEyebrow => 'ZONE DE RENCONTRES';
+
+  @override
+  String get encounterTable => 'Table de rencontres';
+
+  @override
+  String get encounterKind => 'Type de rencontre';
+
+  @override
+  String get encounterNoTableChosen => 'sans table';
+
+  @override
+  String get encounterKindWalk => 'Marche (herbes, grottes)';
+
+  @override
+  String get encounterKindSurf => 'Surf';
+
+  @override
+  String get encounterKindHeadbutt => 'Coup d’Boule';
+
+  @override
+  String get encounterKindOldRod => 'Canne';
+
+  @override
+  String get encounterKindGoodRod => 'Super Canne';
+
+  @override
+  String get encounterKindSuperRod => 'Méga Canne';
+
+  @override
+  String get encounterKindGift => 'Don';
+
+  @override
+  String get encounterKindSpecial => 'Spéciale';
 }

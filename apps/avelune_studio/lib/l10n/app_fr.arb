@@ -454,5 +454,26 @@
         "type": "int"
       }
     }
-  }
+  },
+  "encounterPaintNew": "Peindre une nouvelle zone",
+  "encounterDrawRect": "Tracer une zone rectangulaire",
+  "encounterPaintInto": "Peindre dans cette zone",
+  "encounterEraseFrom": "Gommer dans cette zone",
+  "encounterBrushHint": "Peignez les cases où les Pokémon sauvages apparaissent.",
+  "encounterPaint2dOnly": "Le pinceau de rencontres n’existe que sur les cartes 2D ; tracez des rectangles sur une carte 3D.",
+  "encounterZones": "Zones de rencontres",
+  "encounterNoZone": "Aucune zone de rencontres sur cette carte.",
+  "encounterNoTable": "Ce projet n’a aucune table de rencontres : une zone ne déclenchera rien tant qu’elle n’en a pas.",
+  "encounterZoneEyebrow": "ZONE DE RENCONTRES",
+  "encounterTable": "Table de rencontres",
+  "encounterKind": "Type de rencontre",
+  "encounterNoTableChosen": "sans table",
+  "encounterKindWalk": "Marche (herbes, grottes)",
+  "encounterKindSurf": "Surf",
+  "encounterKindHeadbutt": "Coup d’Boule",
+  "encounterKindOldRod": "Canne",
+  "encounterKindGoodRod": "Super Canne",
+  "encounterKindSuperRod": "Méga Canne",
+  "encounterKindGift": "Don",
+  "encounterKindSpecial": "Spéciale"
 }

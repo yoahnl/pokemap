@@ -1,9 +1,11 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_connection_form.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_encounter_zone_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_movement_zone_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
@@ -71,6 +73,14 @@ class MapBuilderGameplayInspector extends StatelessWidget {
         enabled: enabled,
       );
     }
+    if (zone != null && zone.kind == GameplayZoneKind.encounter) {
+      return MapBuilderEncounterZoneForm(
+        key: ValueKey('zone-${map.id}-${zone.id}'),
+        binding: binding,
+        zone: zone,
+        enabled: enabled,
+      );
+    }
     final connection = binding.selectedConnection;
     if (connection != null || binding.draftingConnection) {
       return MapBuilderConnectionForm(
@@ -87,9 +97,20 @@ class MapBuilderGameplayInspector extends StatelessWidget {
     if (binding.draftingZone) {
       return _Placement(
         placementKey: 'map-gameplay-zone-placement',
-        eyebrow: context.l10n.movementZoneEyebrow,
+        eyebrow: binding.view()?.zoneKind == GameplayZoneKind.encounter
+            ? context.l10n.encounterZoneEyebrow
+            : context.l10n.movementZoneEyebrow,
         title: context.l10n.zoneNew,
         hint: context.l10n.zoneDrawHint,
+        binding: binding,
+      );
+    }
+    if (binding.tool == StudioMapTool.encounterPaint) {
+      return _Placement(
+        placementKey: 'map-gameplay-encounter-brush',
+        eyebrow: context.l10n.encounterZoneEyebrow,
+        title: context.l10n.encounterPaintNew,
+        hint: context.l10n.encounterBrushHint,
         binding: binding,
       );
     }

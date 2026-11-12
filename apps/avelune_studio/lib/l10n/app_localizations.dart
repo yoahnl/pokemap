@@ -1830,6 +1830,132 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Cases {x}, {y} · {width} × {height}'**
   String zoneArea(int x, int y, int width, int height);
+
+  /// No description provided for @encounterPaintNew.
+  ///
+  /// In fr, this message translates to:
+  /// **'Peindre une nouvelle zone'**
+  String get encounterPaintNew;
+
+  /// No description provided for @encounterDrawRect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tracer une zone rectangulaire'**
+  String get encounterDrawRect;
+
+  /// No description provided for @encounterPaintInto.
+  ///
+  /// In fr, this message translates to:
+  /// **'Peindre dans cette zone'**
+  String get encounterPaintInto;
+
+  /// No description provided for @encounterEraseFrom.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gommer dans cette zone'**
+  String get encounterEraseFrom;
+
+  /// No description provided for @encounterBrushHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Peignez les cases où les Pokémon sauvages apparaissent.'**
+  String get encounterBrushHint;
+
+  /// No description provided for @encounterPaint2dOnly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le pinceau de rencontres n’existe que sur les cartes 2D ; tracez des rectangles sur une carte 3D.'**
+  String get encounterPaint2dOnly;
+
+  /// No description provided for @encounterZones.
+  ///
+  /// In fr, this message translates to:
+  /// **'Zones de rencontres'**
+  String get encounterZones;
+
+  /// No description provided for @encounterNoZone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune zone de rencontres sur cette carte.'**
+  String get encounterNoZone;
+
+  /// No description provided for @encounterNoTable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce projet n’a aucune table de rencontres : une zone ne déclenchera rien tant qu’elle n’en a pas.'**
+  String get encounterNoTable;
+
+  /// No description provided for @encounterZoneEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'ZONE DE RENCONTRES'**
+  String get encounterZoneEyebrow;
+
+  /// No description provided for @encounterTable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Table de rencontres'**
+  String get encounterTable;
+
+  /// No description provided for @encounterKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type de rencontre'**
+  String get encounterKind;
+
+  /// No description provided for @encounterNoTableChosen.
+  ///
+  /// In fr, this message translates to:
+  /// **'sans table'**
+  String get encounterNoTableChosen;
+
+  /// No description provided for @encounterKindWalk.
+  ///
+  /// In fr, this message translates to:
+  /// **'Marche (herbes, grottes)'**
+  String get encounterKindWalk;
+
+  /// No description provided for @encounterKindSurf.
+  ///
+  /// In fr, this message translates to:
+  /// **'Surf'**
+  String get encounterKindSurf;
+
+  /// No description provided for @encounterKindHeadbutt.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coup d’Boule'**
+  String get encounterKindHeadbutt;
+
+  /// No description provided for @encounterKindOldRod.
+  ///
+  /// In fr, this message translates to:
+  /// **'Canne'**
+  String get encounterKindOldRod;
+
+  /// No description provided for @encounterKindGoodRod.
+  ///
+  /// In fr, this message translates to:
+  /// **'Super Canne'**
+  String get encounterKindGoodRod;
+
+  /// No description provided for @encounterKindSuperRod.
+  ///
+  /// In fr, this message translates to:
+  /// **'Méga Canne'**
+  String get encounterKindSuperRod;
+
+  /// No description provided for @encounterKindGift.
+  ///
+  /// In fr, this message translates to:
+  /// **'Don'**
+  String get encounterKindGift;
+
+  /// No description provided for @encounterKindSpecial.
+  ///
+  /// In fr, this message translates to:
+  /// **'Spéciale'**
+  String get encounterKindSpecial;
 }
 
 class _AppLocalizationsDelegate
