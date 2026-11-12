@@ -65,8 +65,9 @@ class ScopedTestMapPort
   @override
   Future<MapWorkspaceCatalog> loadResourceKind(
     ProjectSession session,
-    String canonicalKind,
-  ) async {
+    String canonicalKind, {
+    bool placeableOnly = false,
+  }) async {
     resourceKinds.add(canonicalKind);
     await beforeResourceRead?.call(canonicalKind);
     return MapWorkspaceCatalog(

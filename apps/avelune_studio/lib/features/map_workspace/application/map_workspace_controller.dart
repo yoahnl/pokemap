@@ -419,12 +419,17 @@ class MapWorkspaceController {
   int _resourceKindRequest = 0;
   int _resourceKindPending = 0;
   Future<void> _resourceKindQueue = Future.value();
-  bool hasResourceKind(String kind) =>
-      hasCompleteProject || _resourceKind == kind;
+  bool hasResourceKind(String kind, {bool placeableOnly = false}) =>
+      hasCompleteProject ||
+      _resourceKind == kind ||
+      (placeableOnly && _resourceKind == _placeableKey(kind));
 
-  Future<void> ensureResourceKind(String kind) {
+  static String _placeableKey(String kind) => '$kind:placeable';
+
+  Future<void> ensureResourceKind(String kind, {bool placeableOnly = false}) {
     if (_disposed || hasCompleteProject) return Future.value();
-    if (hasResourceKind(kind) && _resourceKindPending == 0) {
+    if (hasResourceKind(kind, placeableOnly: placeableOnly) &&
+        _resourceKindPending == 0) {
       return Future.value();
     }
     final request = ++_resourceKindRequest;
@@ -441,7 +446,7 @@ class MapWorkspaceController {
       }
       final sourceEpoch = _modelSourceEpoch;
       final loaded = await (source as MapWorkspaceResourceKindPort)
-          .loadResourceKind(session, kind);
+          .loadResourceKind(session, kind, placeableOnly: placeableOnly);
       if (_disposed || request != _resourceKindRequest) return;
       final map = _selections[active?.base.mapId]?.definitions ?? project!;
       _familyDefinitions = _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch,
@@ -455,7 +460,7 @@ class MapWorkspaceController {
         library: loaded.metadata.resourceLibraryCatalog,
         ),
       );
-      _resourceKind = kind;
+      _resourceKind = placeableOnly ? _placeableKey(kind) : kind;
       _resourceVisualDefinitions = family;
       _cacheVisualComposition(map, _resourceVisualDefinitions!);
       notify();

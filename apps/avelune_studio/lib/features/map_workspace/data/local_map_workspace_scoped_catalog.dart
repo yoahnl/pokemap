@@ -4,6 +4,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
   Future<MapWorkspaceCatalog> _loadScopedCatalog(ProjectSession session) async {
     await _requireRoot(session);
     _resourceSelections.remove(session.sessionId);
+    _resourceKindReads.remove(session.sessionId);
     _borderSelections.remove(session.sessionId);
     _workshopCharacterDefinitions.remove(session.sessionId);
     final result = await _readScopedCatalog(session, (catalog, revision) async {
@@ -93,6 +94,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
   Future<MapWorkspaceCatalog> _loadResourceKind(
     ProjectSession session,
     String canonicalKind,
+    bool placeableOnly,
   ) async {
     final kind = switch (canonicalKind) {
       'tileset' => CatalogDefinitionKind.tileset,
@@ -105,7 +107,10 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       _ => throw const FormatException('Famille de ressources inconnue.'),
     };
     final before = _project(session);
-    final result = await _readScopedCatalog(
+    final reads = _resourceKindReads.putIfAbsent(session.sessionId, () => {});
+    final readKey = placeableOnly ? '$canonicalKind:placeable' : canonicalKind;
+    final cached = reads[readKey];
+    Future<MapWorkspaceCatalog> read() => _readScopedCatalog(
       session,
       (catalog, revision) async {
         if (revision != before.revision) {
@@ -125,6 +130,15 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
           roots.addAll(page.items.map((entry) => entry.key));
           cursor = page.nextCursor;
         } while (cursor != null);
+        if (placeableOnly) {
+          final components = await _componentResources(catalog);
+          final resourceKind = kind == CatalogDefinitionKind.borderRecord
+              ? 'borderBlueprint'
+              : kind.name;
+          roots.removeWhere(
+            (key) => components.contains('$resourceKind:${key.id}'),
+          );
+        }
         final manifest = await ProjectCatalogSelection(catalog).resolve(roots);
         return MapWorkspaceCatalog(
           metadata: manifest.copyWith(
@@ -139,6 +153,9 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
         if (canonicalKind == 'character') 'characterStudioCatalog',
       },
     );
+    final result = cached != null && cached.revision == before.revision
+        ? cached
+        : await read();
     final latest = _project(session);
     if (latest.revision != result.revision) {
       throw const MapWorkspaceFailure(
@@ -146,6 +163,9 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
         'Le catalogue a changé pendant le chargement de cette famille.',
       );
     }
+    reads
+      ..removeWhere((_, read) => read.revision != result.revision)
+      ..[readKey] = result;
     _resourceSelections[session.sessionId] = result.metadata;
     final selection = combineResourceVisuals(
       _activeMapDefinitions[session.sessionId] ?? latest.manifest,
@@ -170,6 +190,27 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       metadataFields: latest.metadataFields,
     );
     return result;
+  }
+
+  Future<Set<String>> _componentResources(
+    PortableProjectCatalog catalog,
+  ) async {
+    final components = <String>{};
+    String? cursor;
+    do {
+      final page = await catalog.snapshot.page(
+        kind: CatalogDefinitionKind.resourceLibraryEntry,
+        limit: catalog.snapshot.limits.indexPageSize,
+        cursor: cursor,
+      );
+      for (final entry in page.items) {
+        if (entry.summary.role == ResourceLibraryRole.component.name) {
+          components.add(entry.key.id);
+        }
+      }
+      cursor = page.nextCursor;
+    } while (cursor != null);
+    return components;
   }
 
   Future<MapWorkspaceCatalog> _loadBorderSelection(

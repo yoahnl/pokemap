@@ -65,8 +65,9 @@ abstract interface class MapWorkspaceWorkshopPort
 abstract interface class MapWorkspaceResourceKindPort {
   Future<MapWorkspaceCatalog> loadResourceKind(
     ProjectSession session,
-    String canonicalKind,
-  );
+    String canonicalKind, {
+    bool placeableOnly = false,
+  });
 }
 
 abstract interface class MapWorkspaceBorderProfilePort {

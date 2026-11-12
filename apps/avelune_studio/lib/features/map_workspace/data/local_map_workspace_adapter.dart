@@ -175,8 +175,9 @@ final class LocalMapWorkspaceAdapter
   @override
   Future<MapWorkspaceCatalog> loadResourceKind(
     ProjectSession session,
-    String canonicalKind,
-  ) => _loadResourceKind(session, canonicalKind);
+    String canonicalKind, {
+    bool placeableOnly = false,
+  }) => _loadResourceKind(session, canonicalKind, placeableOnly);
 
   @override
   Future<MapWorkspaceCatalog> loadBorderProfiles(ProjectSession session) =>
@@ -237,6 +238,7 @@ final class LocalMapWorkspaceAdapter
   final AtomicMapDocumentPersistence _persistence;
   final _projects = <String, _ProjectDocument>{};
   final _resourceSelections = <String, ProjectManifest>{};
+  final _resourceKindReads = <String, Map<String, MapWorkspaceCatalog>>{};
   final _borderSelections = <String, ProjectManifest>{};
   final _activeMapDefinitions = <String, ProjectManifest>{};
   final _workshopCharacterDefinitions = <String, ProjectManifest>{};

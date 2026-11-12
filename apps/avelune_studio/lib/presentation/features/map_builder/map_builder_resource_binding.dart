@@ -96,7 +96,9 @@ class MapBuilderResourceBinding {
     final kindChanged = value.category != selection.category;
     selection = value;
     changed();
-    if (kindChanged || !maps.hasResourceKind(_kind)) await load();
+    if (kindChanged || !maps.hasResourceKind(_kind, placeableOnly: true)) {
+      await load();
+    }
   }
 
   String get _kind => selection.category.loadedKind(
@@ -105,11 +107,11 @@ class MapBuilderResourceBinding {
 
   Future<void> load() async {
     final request = ++_request;
-    loading = !maps.hasResourceKind(_kind);
+    loading = !maps.hasResourceKind(_kind, placeableOnly: true);
     error = null;
     changed();
     try {
-      await maps.ensureResourceKind(_kind);
+      await maps.ensureResourceKind(_kind, placeableOnly: true);
     } catch (failure) {
       if (isActive() && request == _request) {
         error = 'Ces ressources ne peuvent pas être chargées : $failure';

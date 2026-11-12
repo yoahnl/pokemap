@@ -523,8 +523,9 @@ final class _SourcePort extends ScopedTestMapPort
   @override
   Future<MapWorkspaceCatalog> loadResourceKind(
     ProjectSession session,
-    String canonicalKind,
-  ) async => MapWorkspaceCatalog(
+    String canonicalKind, {
+    bool placeableOnly = false,
+  }) async => MapWorkspaceCatalog(
     metadata: metadata.copyWith(
       models3d: [
         tree,
