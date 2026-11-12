@@ -47,6 +47,7 @@ part 'local_map_workspace_catalog.dart';
 part 'local_map_workspace_working_catalog.dart';
 part 'local_map_workspace_scoped_catalog.dart';
 part 'local_map_workspace_resource_families.dart';
+part 'local_map_workspace_palette_listing.dart';
 
 final class LocalMapWorkspaceAdapter
     implements
@@ -57,6 +58,7 @@ final class LocalMapWorkspaceAdapter
         MapWorkspaceResourceKindPort,
         MapWorkspaceResourcePrefetchPort,
         MapWorkspaceBorderProfilePort,
+        MapWorkspaceResourceClosurePort,
         MapWorkspaceModelLightPort,
         MapAtmospherePort,
         MapExteriorDecorationPort,
@@ -192,13 +194,26 @@ final class LocalMapWorkspaceAdapter
 
   @override
   Future<MapWorkspaceCatalog> loadBorderProfiles(ProjectSession session) =>
-      _loadBorderSelection(session, null);
+      _loadOnDemandSelection(session, null);
 
   @override
   Future<MapWorkspaceCatalog> loadBorderBlueprint(
     ProjectSession session,
     String blueprintId,
-  ) => _loadBorderSelection(session, blueprintId);
+  ) => _loadOnDemandSelection(
+    session,
+    CatalogDefinitionKey(CatalogDefinitionKind.borderRecord, blueprintId),
+  );
+
+  @override
+  Future<MapWorkspaceCatalog> loadResourceClosure(
+    ProjectSession session,
+    String canonicalKind,
+    String id,
+  ) => _loadOnDemandSelection(
+    session,
+    CatalogDefinitionKey(_catalogFamily(canonicalKind), id),
+  );
 
   @override
   Future<void> acceptModelLight(ProjectSession session, ProjectModel3dEntry model,
@@ -229,7 +244,7 @@ final class LocalMapWorkspaceAdapter
     }
     final manifest = update(current.manifest);
     final projections = [
-      for (final cache in [_resourceSelections, _borderSelections, _activeMapDefinitions, _workshopCharacterDefinitions,
+      for (final cache in [_resourceSelections, _onDemandSelections, _activeMapDefinitions, _workshopCharacterDefinitions,
       ])
         if (cache[session.sessionId] case final value?)
           (cache: cache, manifest: update(value)),
@@ -250,7 +265,7 @@ final class LocalMapWorkspaceAdapter
   final _projects = <String, _ProjectDocument>{};
   final _resourceSelections = <String, ProjectManifest>{};
   final _resourceKindReads = <String, Map<String, _FamilyRead>>{};
-  final _borderSelections = <String, ProjectManifest>{};
+  final _onDemandSelections = <String, ProjectManifest>{};
   final _activeMapDefinitions = <String, ProjectManifest>{};
   final _workshopCharacterDefinitions = <String, ProjectManifest>{};
   final _loadedPaths = <(String, String), String>{};
@@ -439,7 +454,7 @@ final class LocalMapWorkspaceAdapter
       }.contains(resource.kind),
     )) {
       _resourceSelections.remove(session.sessionId);
-      _borderSelections.remove(session.sessionId);
+      _onDemandSelections.remove(session.sessionId);
     }
     if (resources.any((resource) => resource.kind == 'character')) {
       _workshopCharacterDefinitions.remove(session.sessionId);

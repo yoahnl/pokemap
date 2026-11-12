@@ -170,7 +170,7 @@ extension _LocalProjectSurfAdapter on LocalMapWorkspaceAdapter {
       );
       for (final cache in [
         _resourceSelections,
-        _borderSelections,
+        _onDemandSelections,
         _activeMapDefinitions,
         _workshopCharacterDefinitions,
       ]) {

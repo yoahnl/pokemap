@@ -32,7 +32,7 @@ extension _LocalResourceFamilies on LocalMapWorkspaceAdapter {
               _workshopCharacterDefinitions[session.sessionId]!,
             ),
     );
-    final borders = _borderSelections[session.sessionId];
+    final borders = _onDemandSelections[session.sessionId];
     final merged = mergeResourceSelection(
       latest.manifest,
       borders == null ? selection : combineResourceVisuals(selection, borders),
@@ -165,16 +165,20 @@ Future<MapWorkspaceCatalog> _readFamily(
       roots.addAll(page.items.map((entry) => entry.key));
       cursor = page.nextCursor;
     } while (cursor != null);
-    if (placeableOnly) {
+    final resourceKind = kind == CatalogDefinitionKind.borderRecord
+        ? 'borderBlueprint'
+        : kind.name;
+    final listed =
+        placeableOnly && paletteListedResourceKinds.contains(canonicalKind);
+    if (placeableOnly && !listed) {
       final components = await _componentResources(catalog);
-      final resourceKind = kind == CatalogDefinitionKind.borderRecord
-          ? 'borderBlueprint'
-          : kind.name;
       roots.removeWhere(
         (key) => components.contains('$resourceKind:${key.id}'),
       );
     }
-    final manifest = await ProjectCatalogSelection(catalog).resolve(roots);
+    final manifest = listed
+        ? await _PaletteListing(catalog, resourceKind).read(roots)
+        : await ProjectCatalogSelection(catalog).resolve(roots);
     return MapWorkspaceCatalog(
       metadata: manifest.copyWith(
         models3d: ProjectModel3dEntries.prepare(manifest.models3d),
@@ -182,11 +186,14 @@ Future<MapWorkspaceCatalog> _readFamily(
       revision: revision,
     );
   },
-  metadataFields: {
-    ..._mapCatalogMetadataFields,
-    ...MapWorkspaceWorkshop.resources.metadataFields,
-    if (canonicalKind == 'character') 'characterStudioCatalog',
-  },
+  metadataFields:
+      placeableOnly && paletteListedResourceKinds.contains(canonicalKind)
+      ? const {'settings', 'globalProperties'}
+      : {
+          ..._mapCatalogMetadataFields,
+          ...MapWorkspaceWorkshop.resources.metadataFields,
+          if (canonicalKind == 'character') 'characterStudioCatalog',
+        },
 );
 
 Future<Set<String>> _componentResources(PortableProjectCatalog catalog) async {

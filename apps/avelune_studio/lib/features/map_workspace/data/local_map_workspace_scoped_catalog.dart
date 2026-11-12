@@ -5,7 +5,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     await _requireRoot(session);
     _resourceSelections.remove(session.sessionId);
     _resourceKindReads.remove(session.sessionId);
-    _borderSelections.remove(session.sessionId);
+    _onDemandSelections.remove(session.sessionId);
     _workshopCharacterDefinitions.remove(session.sessionId);
     final result = await _readScopedCatalog(session, (catalog, revision) async {
       return MapWorkspaceCatalog(
@@ -58,10 +58,9 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
         }
         return MapWorkspaceCatalog(metadata: manifest, revision: revision);
       },
-      metadataFields: {
-        ..._mapCatalogMetadataFields,
-        ...workshop.metadataFields,
-      },
+      metadataFields: workshop == MapWorkspaceWorkshop.resources
+          ? {'settings', ...workshop.metadataFields}
+          : {..._mapCatalogMetadataFields, ...workshop.metadataFields},
     );
     if (workshop == MapWorkspaceWorkshop.dialogue ||
         workshop == MapWorkspaceWorkshop.cinematic) {
@@ -91,9 +90,9 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     return projection;
   }
 
-  Future<MapWorkspaceCatalog> _loadBorderSelection(
+  Future<MapWorkspaceCatalog> _loadOnDemandSelection(
     ProjectSession session,
-    String? blueprintId,
+    CatalogDefinitionKey? root,
   ) async {
     final before = _project(session);
     final result = await _readScopedCatalog(
@@ -102,14 +101,12 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
         if (revision != before.revision) {
           throw const MapWorkspaceFailure(
             MapWorkspaceProblem.conflict,
-            'Le catalogue a changé avant le chargement des bordures.',
+            'Le catalogue a changé avant le chargement de ces ressources.',
           );
         }
         final ProjectManifest manifest;
-        if (blueprintId != null) {
-          manifest = await ProjectCatalogSelection(catalog).resolve([
-            CatalogDefinitionKey(CatalogDefinitionKind.borderRecord, blueprintId),
-          ]);
+        if (root != null) {
+          manifest = await ProjectCatalogSelection(catalog).resolve([root]);
         } else {
           final units = <CatalogDefinitionUnit>[];
           for (final kind in const [
@@ -152,11 +149,11 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     if (latest.revision != result.revision) {
       throw const MapWorkspaceFailure(
         MapWorkspaceProblem.conflict,
-        'Le catalogue a changé pendant le chargement des bordures.',
+        'Le catalogue a changé pendant le chargement de ces ressources.',
       );
     }
-    final previous = _borderSelections[session.sessionId];
-    _borderSelections[session.sessionId] = previous == null
+    final previous = _onDemandSelections[session.sessionId];
+    _onDemandSelections[session.sessionId] = previous == null
         ? result.metadata
         : combineResourceVisuals(previous, result.metadata);
     final merged = mergeBorderSelection(latest.manifest, result.metadata);
@@ -231,7 +228,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     if (resources != null) {
       definitions = combineResourceVisuals(definitions, resources);
     }
-    final borders = _borderSelections[session.sessionId];
+    final borders = _onDemandSelections[session.sessionId];
     if (borders != null) {
       definitions = combineResourceVisuals(definitions, borders);
     }

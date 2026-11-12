@@ -158,7 +158,7 @@ class MapBuilderResourceBinding {
       }
     } else if (item.tileset != null) {
       problem = MapBuilderResourceProblem.tileUnavailable;
-    } else {
+    } else if (await _resolve(item)) {
       used = await useMapResource(
         workspace: maps,
         item: item,
@@ -174,6 +174,19 @@ class MapBuilderResourceBinding {
       retainWorkspaceBrush(visuals(), state);
     }
     changed();
+  }
+
+  Future<bool> _resolve(ResourceItem item) async {
+    final kind = item.canonicalKind;
+    if (maps.hasResourceClosure(kind, item.id)) return true;
+    try {
+      await maps.ensureResourceClosure(kind, item.id);
+      return true;
+    } catch (failure) {
+      problem = MapBuilderResourceProblem.loadFailed;
+      problemCause = failure;
+      return false;
+    }
   }
 
   void release() {

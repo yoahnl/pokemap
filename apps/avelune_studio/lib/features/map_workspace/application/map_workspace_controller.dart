@@ -491,50 +491,81 @@ class MapWorkspaceController {
   }
 
   ProjectManifest? _familyDefinitions;
-  ProjectManifest? _borderDefinitions;
+  ProjectManifest? _onDemandDefinitions;
   bool _borderProfilesLoaded = false;
   final _borderBlueprints = <String>{};
+
+  final _resourceClosures = <String>{};
 
   bool get hasBorderProfiles =>
       hasResourceKind('borderBlueprint') || _borderProfilesLoaded;
   bool hasBorderBlueprint(String id) =>
       hasResourceKind('borderBlueprint') || _borderBlueprints.contains(id);
 
-  Future<void> ensureBorderProfiles() => _ensureBorderSelection(null);
+  bool hasResourceClosure(String kind, String id) =>
+      hasResourceKind(kind) ||
+      (_resourceKind == _placeableKey(kind) &&
+          !paletteListedResourceKinds.contains(kind)) ||
+      _resourceClosures.contains('$kind:$id') ||
+      (kind == 'borderBlueprint' && _borderBlueprints.contains(id));
 
-  Future<void> ensureBorderBlueprint(String id) => _ensureBorderSelection(id);
+  Future<void> ensureBorderProfiles() => _ensureOnDemandSelection(
+    () => hasBorderProfiles,
+    (source) => _borderPort(source).loadBorderProfiles(session),
+    () => _borderProfilesLoaded = true,
+  );
 
-  bool _hasBorderSelection(String? blueprintId) => blueprintId == null
-      ? hasBorderProfiles
-      : hasBorderBlueprint(blueprintId);
+  Future<void> ensureBorderBlueprint(String id) => _ensureOnDemandSelection(
+    () => hasBorderBlueprint(id),
+    (source) => _borderPort(source).loadBorderBlueprint(session, id),
+    () => _borderBlueprints.add(id),
+  );
 
-  Future<void> _ensureBorderSelection(String? blueprintId) {
-    if (_disposed || _hasBorderSelection(blueprintId)) return Future.value();
+  Future<void> ensureResourceClosure(String kind, String id) {
+    if (kind == 'borderBlueprint') return ensureBorderBlueprint(id);
+    return _ensureOnDemandSelection(
+      () => hasResourceClosure(kind, id),
+      (source) {
+        if (source is! MapWorkspaceResourceClosurePort) {
+          throw const MapWorkspaceFailure(
+            MapWorkspaceProblem.unavailable,
+            'Cette ressource ne dispose pas de lecteur ciblé.',
+          );
+        }
+        return (source as MapWorkspaceResourceClosurePort)
+            .loadResourceClosure(session, kind, id);
+      },
+      () => _resourceClosures.add('$kind:$id'),
+    );
+  }
+
+  MapWorkspaceBorderProfilePort _borderPort(MapWorkspacePort source) {
+    if (source is! MapWorkspaceBorderProfilePort) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.unavailable,
+        'Les bordures ne disposent pas de lecteur ciblé.',
+      );
+    }
+    return source as MapWorkspaceBorderProfilePort;
+  }
+
+  Future<void> _ensureOnDemandSelection(
+    bool Function() loaded,
+    Future<MapWorkspaceCatalog> Function(MapWorkspacePort source) load,
+    void Function() remember,
+  ) {
+    if (_disposed || loaded()) return Future.value();
     final operation = _resourceKindQueue.then((_) async {
-      if (_disposed || _hasBorderSelection(blueprintId)) return;
-      final source = port;
-      if (source is! MapWorkspaceBorderProfilePort) {
-        throw const MapWorkspaceFailure(
-          MapWorkspaceProblem.unavailable,
-          'Les bordures ne disposent pas de lecteur ciblé.',
-        );
-      }
+      if (_disposed || loaded()) return;
       final sourceEpoch = _modelSourceEpoch;
-      final borders = source as MapWorkspaceBorderProfilePort;
-      final loaded = blueprintId == null
-          ? await borders.loadBorderProfiles(session)
-          : await borders.loadBorderBlueprint(session, blueprintId);
-      if (_disposed || _hasBorderSelection(blueprintId)) return;
-      final prepared = _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch);
-      final previous = _borderDefinitions;
-      _borderDefinitions = previous == null
+      final selection = await load(port);
+      if (_disposed || loaded()) return;
+      final prepared = _prepareModelProjection(selection.metadata, sourceEpoch: sourceEpoch);
+      final previous = _onDemandDefinitions;
+      _onDemandDefinitions = previous == null
           ? prepared
           : _prepareModelProjection(combineResourceVisuals(previous, prepared));
-      if (blueprintId == null) {
-        _borderProfilesLoaded = true;
-      } else {
-        _borderBlueprints.add(blueprintId);
-      }
+      remember();
       _composeResourceVisuals();
       project = _prepareModelProjection(mergeBorderSelection(project!, prepared));
       final map = _selections[active?.base.mapId]?.definitions ?? project!;
@@ -550,7 +581,7 @@ class MapWorkspaceController {
 
   void _composeResourceVisuals() {
     final family = _familyDefinitions;
-    final borders = _borderDefinitions;
+    final borders = _onDemandDefinitions;
     _resourceVisualDefinitions = family == null
         ? borders
         : borders == null
@@ -558,10 +589,11 @@ class MapWorkspaceController {
         : _prepareModelProjection(combineResourceVisuals(family, borders));
   }
 
-  void _resetBorderSelection() {
-    _borderDefinitions = null;
+  void _resetOnDemandSelections() {
+    _onDemandDefinitions = null;
     _borderProfilesLoaded = false;
     _borderBlueprints.clear();
+    _resourceClosures.clear();
   }
 
   ProjectManifest _withWorkshops(ProjectManifest selection) {
@@ -606,7 +638,7 @@ class MapWorkspaceController {
     _resourceKind = null;
     _resourceVisualDefinitions = null;
     _familyDefinitions = null;
-    _resetBorderSelection();
+    _resetOnDemandSelections();
     for (final workshop in _workshops.toList()) {
       if (source is MapWorkspaceWorkshopPort) {
         final sourceEpoch = _modelSourceEpoch;
@@ -1228,12 +1260,12 @@ class MapWorkspaceController {
         _resourceKind = null;
         _familyDefinitions = null;
       }
-      final borders = _borderDefinitions;
+      final borders = _onDemandDefinitions;
       if (borders != null &&
           resources.any(
             (resource) => _usesExternalResource(borders, resource),
           )) {
-        _resetBorderSelection();
+        _resetOnDemandSelections();
       }
       _composeResourceVisuals();
       for (final id in changed) {
@@ -1642,19 +1674,19 @@ class MapWorkspaceController {
       }
       if (_resourceVisualDefinitions case final definitions?) {
         final family = identical(definitions, _familyDefinitions);
-        final borders = identical(definitions, _borderDefinitions);
+        final borders = identical(definitions, _onDemandDefinitions);
         _resourceVisualDefinitions = _replaceModelProjection(definitions, changedModels,
         );
         if (family) _familyDefinitions = _resourceVisualDefinitions;
-        if (borders) _borderDefinitions = _resourceVisualDefinitions;
+        if (borders) _onDemandDefinitions = _resourceVisualDefinitions;
       }
       if (_familyDefinitions case final definitions?
           when !identical(definitions, _resourceVisualDefinitions)) {
         _familyDefinitions = _replaceModelProjection(definitions, changedModels);
       }
-      if (_borderDefinitions case final definitions?
+      if (_onDemandDefinitions case final definitions?
           when !identical(definitions, _resourceVisualDefinitions)) {
-        _borderDefinitions = _replaceModelProjection(definitions, changedModels);
+        _onDemandDefinitions = _replaceModelProjection(definitions, changedModels);
       }
       if (_combinedVisuals case final definitions?) {
         _combinedVisuals = _replaceModelProjection(definitions, changedModels);

@@ -73,6 +73,20 @@ void main() {
           'library=${project.resourceLibraryCatalog.entries.length}',
         );
       }
+      final presets = workspace.project!.smartTileCatalog.presets;
+      if (presets.isNotEmpty) {
+        await measure(
+          'resourceClosure.smartTilePreset',
+          () => workspace.ensureResourceClosure(
+            'smartTilePreset',
+            presets.first.id,
+          ),
+        );
+        stdout.writeln(
+          'bench closure materials='
+          '${workspace.project!.smartTileCatalog.materials.length}',
+        );
+      }
     }),
     skip: root == null ? 'Set AVELUNE_MAP_BUILDER_BENCH_ROOT.' : false,
     timeout: const Timeout(Duration(minutes: 40)),

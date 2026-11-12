@@ -77,7 +77,7 @@ extension _LocalProjectSettingsMutation on LocalMapWorkspaceAdapter {
       );
       for (final cache in [
         _resourceSelections,
-        _borderSelections,
+        _onDemandSelections,
         _activeMapDefinitions,
         _workshopCharacterDefinitions,
       ]) {
