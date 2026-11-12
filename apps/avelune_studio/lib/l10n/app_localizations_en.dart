@@ -1070,4 +1070,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get decorEyebrow => 'DECOR';
+
+  @override
+  String get encounterTablesLoading => 'Loading encounter tables…';
+
+  @override
+  String get movementDecorBlocks =>
+      'On a 3D map, blocking decors stop the player too.';
 }

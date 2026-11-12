@@ -1669,6 +1669,39 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
         }
       }
     }
+    final selectedZone = widget.view.selectedFor(
+      map.id,
+      MapSelectionFamily.zone,
+    );
+    for (final zone in map.gameplayZones) {
+      if (zone.kind == GameplayZoneKind.fieldAction ||
+          editingDocument.isElementHidden('zone', zone.id) ||
+          zone.id != selectedZone &&
+              !widget.view.revealedZones.contains(zone.kind)) {
+        continue;
+      }
+      final origin = zone.area.pos;
+      final covered = switch (zone.cellMask) {
+        final mask? => [
+          for (final cell in mask) (origin.x + cell.x, origin.y + cell.y),
+        ],
+        null => [
+          for (var z = origin.y; z < origin.y + zone.area.size.height; z++)
+            for (var x = origin.x; x < origin.x + zone.area.size.width; x++)
+              (x, z),
+        ],
+      };
+      for (final (x, z) in covered) {
+        cells.add(
+          SpatialCellOverlay(
+            id: 'zone:${zone.id}:$x:$z',
+            cell: (x, z),
+            kind: SpatialCellOverlayKind.preview,
+            color: zone.id == selectedZone ? colors.primary : colors.secondary,
+          ),
+        );
+      }
+    }
     for (final zone in map.gameplayZones) {
       if (zone.kind != GameplayZoneKind.fieldAction ||
           editingDocument.isElementHidden('zone', zone.id)) {

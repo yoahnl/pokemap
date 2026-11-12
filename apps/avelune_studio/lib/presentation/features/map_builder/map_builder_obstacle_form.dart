@@ -107,7 +107,7 @@ class MapBuilderInstanceObstacleForm extends StatelessWidget {
         instance.position.x.floor(),
         instance.position.z.floor(),
       ),
-      error: binding.maps.active?.error,
+      error: binding.entityError,
       children: [
         if (refusal != null) StudioNotice(refusal),
         if (refusal == null)

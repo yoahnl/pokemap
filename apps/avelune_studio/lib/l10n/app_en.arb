@@ -329,5 +329,7 @@
   "obstacleStrengthBoulder": "Boulder to push (Strength)",
   "obstacleRockSmashRock": "Rock to break (Rock Smash)",
   "obstacleIceBlock": "Ice block",
-  "decorEyebrow": "DECOR"
+  "decorEyebrow": "DECOR",
+  "encounterTablesLoading": "Loading encounter tables…",
+  "movementDecorBlocks": "On a 3D map, blocking decors stop the player too."
 }

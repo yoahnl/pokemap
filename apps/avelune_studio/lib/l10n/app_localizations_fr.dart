@@ -1078,4 +1078,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get decorEyebrow => 'DÉCOR';
+
+  @override
+  String get encounterTablesLoading => 'Chargement des tables de rencontres…';
+
+  @override
+  String get movementDecorBlocks =>
+      'Sur une carte 3D, les décors bloquants arrêtent aussi le joueur.';
 }

@@ -2082,6 +2082,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'DÉCOR'**
   String get decorEyebrow;
+
+  /// No description provided for @encounterTablesLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement des tables de rencontres…'**
+  String get encounterTablesLoading;
+
+  /// No description provided for @movementDecorBlocks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sur une carte 3D, les décors bloquants arrêtent aussi le joueur.'**
+  String get movementDecorBlocks;
 }
 
 class _AppLocalizationsDelegate

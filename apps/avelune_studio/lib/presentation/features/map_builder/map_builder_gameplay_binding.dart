@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:map_core/map_core.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
@@ -9,6 +11,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/resources/domain/studio_search_text.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
@@ -65,6 +68,7 @@ class MapBuilderGameplayBinding {
   String? warpError;
   String? entityError;
   String? zoneError;
+  String? encounterTablesError;
 
   MapData? get map => maps.active?.current;
 
@@ -121,6 +125,22 @@ class MapBuilderGameplayBinding {
           studioSearchMatches(zone.name, query))
         zone,
   ];
+
+  bool get encounterTablesReady =>
+      maps.hasWorkshop(MapWorkspaceWorkshop.pokemon);
+
+  Future<void> _loadEncounterTables() async {
+    if (encounterTablesReady) return;
+    try {
+      await maps.ensureWorkshop(MapWorkspaceWorkshop.pokemon);
+      encounterTablesError = null;
+    } on MapWorkspaceFailure catch (failure) {
+      encounterTablesError = failure.message;
+    } on Object catch (failure) {
+      encounterTablesError = '$failure';
+    }
+    changed();
+  }
 
   List<ProjectEncounterTable> get encounterTables =>
       zones?.encounterTables() ?? const [];
@@ -261,6 +281,7 @@ class MapBuilderGameplayBinding {
     query = '';
     reconcile();
     changed();
+    if (id == 'encounters') unawaited(_loadEncounterTables());
   }
 
   List<MapConnection> get connections => [
@@ -400,10 +421,11 @@ class MapBuilderGameplayBinding {
     final document = maps.active;
     final project = maps.project;
     if (document == null || project == null) return;
-    await SpatialModelEditingCommands(
+    final configured = await SpatialModelEditingCommands(
       document,
       project,
     ).configureFieldObstacle(instanceId, value);
+    entityError = configured ? null : document.error;
     maps.notify();
   }
 
@@ -542,13 +564,23 @@ class MapBuilderGameplayBinding {
     _warpDraft = null;
     _spawnDraft = null;
     _zoneDraft = null;
-    view()?.revealCollisions = false;
+    view()
+      ?..revealCollisions = false
+      ..revealedZones = const {};
     _connection = null;
     release();
   }
 
   void reconcile() {
-    view()?.revealCollisions = shown && rubric == 'movement';
+    view()
+      ?..revealCollisions = shown && rubric == 'movement'
+      ..revealedZones = !shown
+          ? const {}
+          : switch (rubric) {
+              'movement' => mapBuilderMovementZoneKinds,
+              'encounters' => const {GameplayZoneKind.encounter},
+              _ => const {},
+            };
     final zoneDraft = _zoneDraft;
     final drawn = this.map;
     if (zoneDraft != null &&

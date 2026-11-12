@@ -229,6 +229,7 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
         onTap: enabled ? () => binding.armCollisions(erase: true) : null,
       ),
       Text(l10n.movementBlockedCount(binding.blockedCells), style: muted),
+      if (binding.spatial) Text(l10n.movementDecorBlocks, style: muted),
       const SizedBox(height: StudioSpacing.l),
       MenuAnchor(
         menuChildren: [
@@ -321,7 +322,13 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
             ? () => binding.armZone(GameplayZoneKind.encounter)
             : null,
       ),
-      if (tables.isEmpty) ...[
+      if (binding.encounterTablesError case final error?) ...[
+        const SizedBox(height: StudioSpacing.m),
+        StudioNotice(error, isError: true),
+      ] else if (!binding.encounterTablesReady) ...[
+        const SizedBox(height: StudioSpacing.m),
+        Text(l10n.encounterTablesLoading, style: muted),
+      ] else if (tables.isEmpty) ...[
         const SizedBox(height: StudioSpacing.m),
         StudioNotice(l10n.encounterNoTable),
       ],

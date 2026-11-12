@@ -496,5 +496,7 @@
   "obstacleStrengthBoulder": "Rocher à pousser (Force)",
   "obstacleRockSmashRock": "Rocher à briser (Éclate-Roc)",
   "obstacleIceBlock": "Bloc de glace",
-  "decorEyebrow": "DÉCOR"
+  "decorEyebrow": "DÉCOR",
+  "encounterTablesLoading": "Chargement des tables de rencontres…",
+  "movementDecorBlocks": "Sur une carte 3D, les décors bloquants arrêtent aussi le joueur."
 }

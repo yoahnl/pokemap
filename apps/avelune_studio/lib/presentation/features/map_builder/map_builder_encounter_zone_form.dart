@@ -29,7 +29,8 @@ class MapBuilderEncounterZoneForm extends StatelessWidget {
     );
     final l10n = context.l10n;
     final encounter = zone.encounter ?? const EncounterZonePayload();
-    final problem = binding.zones?.coverageProblem(zone);
+    final ready = binding.encounterTablesReady;
+    final problem = ready ? binding.zones?.coverageProblem(zone) : null;
     return Column(
       key: const ValueKey('map-gameplay-encounter-form'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -74,12 +75,13 @@ class MapBuilderEncounterZoneForm extends StatelessWidget {
           options: {
             for (final table in binding.encounterTables) table.id: table.name,
           },
-          onChanged: enabled
+          onChanged: enabled && ready
               ? (value) => binding.editZones(
                   (commands) => commands.updateEncounter(zone.id, tableId: value),
                 )
               : null,
         ),
+        if (!ready) Text(l10n.encounterTablesLoading, style: muted),
         const SizedBox(height: StudioSpacing.m),
         StudioSelect(
           key: const ValueKey('map-gameplay-encounter-kind'),
