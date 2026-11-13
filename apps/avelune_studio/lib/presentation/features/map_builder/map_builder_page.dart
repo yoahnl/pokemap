@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:avelune_studio/app/di/event_providers.dart';
+import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/narrative_providers.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_selection_context.dart';
@@ -97,6 +98,12 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     view: () => _view,
     zoneName: () => context.l10n.storyNewZone,
     behaviourName: (index) => context.l10n.storyBehaviourName(index),
+    loadMedia: (project) async =>
+        switch (ref.read(eventPortProvider(widget.session))) {
+          final EventPresentationCatalogPort port =>
+            await port.loadPresentationMediaCatalog(project),
+          _ => null,
+        },
   );
   late final _ambiance = MapBuilderAmbianceBinding(
     maps: _maps,

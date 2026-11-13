@@ -263,6 +263,60 @@ void main() {
     expect(catalog.hasBlockingDiagnostics, isTrue);
   });
 
+  test('scenes acting on an unloaded map do not block authoring', () {
+    final project = _project(
+      NarrativeEventSourceRef.mapEnter('local'),
+      scenes: [sceneEntry().scene, _remoteScene()],
+    );
+    final catalog = _catalog(project);
+    final outcome = NarrativeEventSourceRef.outcomeReceived(
+      NarrativeOutcomeRef(
+        producerKind: NarrativeOutcomeProducerKind.scene,
+        producerId: 'remote_scene',
+        outcomeId: 'done',
+      ),
+    );
+
+    expect(catalog.hasBlockingDiagnostics, isFalse);
+    expect(
+      catalog.scenes
+          .singleWhere((entry) => entry.scene.id == 'remote_scene')
+          .buildable,
+      isTrue,
+    );
+    expect(
+      catalog.resolveSource(outcome).status,
+      NarrativeEventProjectResolutionStatus.found,
+    );
+    expect(
+      _create(project, catalog).status,
+      NarrativeEventAuthoringStatus.applied,
+    );
+  });
+
+  test('scenes acting on a loaded map stay strictly checked', () {
+    final project = _project(
+      NarrativeEventSourceRef.mapEnter('local'),
+      scenes: [sceneEntry().scene, _remoteScene()],
+    );
+    for (final complete in [false, true]) {
+      final catalog = _catalog(
+        project,
+        complete: complete,
+        maps: [_map('local'), _map('remote')],
+      );
+
+      expect(
+        catalog.scenes
+            .singleWhere((entry) => entry.scene.id == 'remote_scene')
+            .buildable,
+        isFalse,
+      );
+      expect(catalog.hasBlockingDiagnostics, isTrue);
+      expect(_create(project, catalog).rejectionCode, 'catalogBlocked');
+    }
+  });
+
   test('loading the source map restores contextual validity', () {
     final source = NarrativeEventSourceRef.mapEnter('remote');
     final project = _project(source);
@@ -285,6 +339,7 @@ ProjectManifest _project(
   NarrativeEventSourceRef source, {
   List<NarrativeEventRecord> additionalRecords = const [],
   ProjectDimension dimension = ProjectDimension.twoD,
+  List<SceneAsset>? scenes,
 }) => ProjectManifest(
   name: 'Partial narrative catalog',
   settings: ProjectSettings(dimension: dimension),
@@ -301,11 +356,69 @@ ProjectManifest _project(
       relativePath: 'maps/remote.json',
     ),
   ],
-  scenes: [sceneEntry().scene],
+  scenes: scenes ?? [sceneEntry().scene],
   eventRegistry: registryWithRecords([
     configuredRecord(source: source),
     ...additionalRecords,
   ]),
+);
+
+SceneAsset _remoteScene() => SceneAsset(
+  id: 'remote_scene',
+  name: 'Remote scene',
+  graph: SceneGraph(
+    startNodeId: 'start',
+    nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'presence',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload.consequence(
+          SceneConsequence.setNpcPresence(
+            mapId: 'remote',
+            entityId: 'npc',
+            present: false,
+          ),
+        ),
+      ),
+      SceneNode(
+        id: 'consumed',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload.consequence(
+          SceneConsequence.markEventConsumed(mapId: 'remote', eventId: 'gate'),
+        ),
+      ),
+      SceneNode(
+        id: 'end',
+        kind: SceneNodeKind.end,
+        payload: SceneEndPayload(sceneOutcomeId: 'done'),
+      ),
+    ],
+    edges: [
+      SceneEdge(
+        id: 'edge_start',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'presence',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneEdge(
+        id: 'edge_presence',
+        fromNodeId: 'presence',
+        fromPortId: 'completed',
+        toNodeId: 'consumed',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneEdge(
+        id: 'edge_consumed',
+        fromNodeId: 'consumed',
+        fromPortId: 'completed',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
+  ),
+  declaredOutcomes: [SceneOutcome(id: 'done', label: 'Done')],
 );
 
 MapData _map(String id) => MapData(

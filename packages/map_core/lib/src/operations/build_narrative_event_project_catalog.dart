@@ -32,6 +32,14 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
   PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   maps = List.unmodifiable(maps);
+  final mapsById = {for (final map in maps) map.id: map};
+  final unloadedMapIds = mapInventoryComplete
+      ? const <String>{}
+      : {
+          for (final entry in _groupBy(project.maps, (entry) => entry.id).entries)
+            if (entry.value.length == 1 && !mapsById.containsKey(entry.key))
+              entry.key,
+        };
   final spatialSources = buildNarrativeSpatialEventSourceCatalog(
     project: project,
     maps: maps,
@@ -42,6 +50,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     maps: maps,
     presentationMediaCatalog: presentationMediaCatalog,
     referencedOutcomes: referencedOutcomes,
+    unloadedMapIds: unloadedMapIds,
   );
   final diagnostics = <NarrativeEventProjectDiagnostic>[];
   _appendSourceCatalogDiagnostics(
@@ -50,17 +59,10 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     diagnostics: diagnostics,
     mapInventoryComplete: mapInventoryComplete,
   );
-  final mapsById = {for (final map in maps) map.id: map};
-  final unloadedMapIds = mapInventoryComplete
-      ? const <String>{}
-      : {
-          for (final entry in _groupBy(project.maps, (entry) => entry.id).entries)
-            if (entry.value.length == 1 && !mapsById.containsKey(entry.key))
-              entry.key,
-        };
   final sceneDiagnostics = SceneProjectDiagnosticsContext(
     project,
     mapsById: mapsById,
+    unloadedMapIds: unloadedMapIds,
     presentationMediaCatalog: presentationMediaCatalog,
     lookupRewardScenes: lookupRewardScenes,
   );

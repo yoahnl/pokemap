@@ -489,8 +489,10 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   Set<String>? availableItemIds,
   ProjectMediaCatalog? presentationMediaCatalog,
   PeriodicRewardSceneLookup? lookupRewardScenes,
+  Set<String> unloadedMapIds = const {},
 }) => SceneProjectDiagnosticsContext(project,
     mapsById: mapsById,
+    unloadedMapIds: unloadedMapIds,
     availableMoveIds: availableMoveIds,
     availableItemIds: availableItemIds,
     presentationMediaCatalog: presentationMediaCatalog, lookupRewardScenes: lookupRewardScenes).diagnose(scene);
@@ -502,8 +504,10 @@ final class SceneProjectDiagnosticsContext {
     Set<String>? availableItemIds,
     ProjectMediaCatalog? presentationMediaCatalog,
   PeriodicRewardSceneLookup? lookupRewardScenes,
+    Set<String> unloadedMapIds = const {},
   }) {
     mapsById = Map.unmodifiable(mapsById);
+    unloadedMapIds = Set.unmodifiable(unloadedMapIds);
     availableMoveIds = availableMoveIds == null ? null : Set.unmodifiable(availableMoveIds);
     availableItemIds = availableItemIds == null ? null : Set.unmodifiable(availableItemIds);
     final modelsById = {for (final model in project.models3d) model.id: model};
@@ -561,6 +565,7 @@ final class SceneProjectDiagnosticsContext {
     return SceneProjectDiagnosticsContext._((scene) => _diagnoseSceneAgainstContext(
       scene, project,
       mapsById: mapsById,
+      unloadedMapIds: unloadedMapIds,
       availableMoveIds: availableMoveIds,
       availableItemIds: availableItemIds,
       modelsById: modelsById,
@@ -591,6 +596,7 @@ final class SceneProjectDiagnosticsContext {
 SceneDiagnosticsReport _diagnoseSceneAgainstContext(
   SceneAsset scene, ProjectManifest project, {
   required Map<String, NarrativeMapView> mapsById,
+  required Set<String> unloadedMapIds,
   required Set<String>? availableMoveIds,
   required Set<String>? availableItemIds,
   required Map<String, ProjectModel3dEntry> modelsById,
@@ -834,6 +840,7 @@ SceneDiagnosticsReport _diagnoseSceneAgainstContext(
         }
         if ((source.sourceKind == SceneConditionSourceKind.playerAtEntityAnchor ||
             source.sourceKind == SceneConditionSourceKind.mapEventInstanceBoolean) &&
+            !unloadedMapIds.contains(source.mapId) &&
             !_nativeEntityReferenceValid(source.mapId!, source.sourceId,
                 projectMapCounts: projectMapCounts, mapsById: mapsById,
                 requireAnchor: source.sourceKind == SceneConditionSourceKind.playerAtEntityAnchor)) {
@@ -917,6 +924,7 @@ SceneDiagnosticsReport _diagnoseSceneAgainstContext(
           badgeIds: badgeIds,
           railJourneyIds: railJourneyIds,
           mapsById: mapsById,
+          unloadedMapIds: unloadedMapIds,
           modelsById: modelsById,
           availableMoveIds: availableMoveIds,
           availableItemIds: availableItemIds,
@@ -1335,6 +1343,7 @@ void _diagnoseActionConsequenceAgainstProject(
   required Set<String> badgeIds,
   required Set<String> railJourneyIds,
   required Map<String, NarrativeMapView> mapsById,
+  required Set<String> unloadedMapIds,
   required Map<String, ProjectModel3dEntry> modelsById,
   required Set<String>? availableMoveIds,
   required Set<String>? availableItemIds,
@@ -1439,8 +1448,11 @@ void _diagnoseActionConsequenceAgainstProject(
         .where((entry) => entry.key == entry.value.id &&
             resolveHealingDisplayEntity(entry.value, id) != null)
         .map((entry) => entry.value).toList();
-    if (project.settings.dimension != ProjectDimension.twoD || matches.length != 1 ||
-        projectMapCounts[matches.singleOrNull?.id] != 1) {
+    final onUnloadedMap = matches.isEmpty && unloadedMapIds.isNotEmpty &&
+        project.settings.dimension == ProjectDimension.twoD;
+    if (!onUnloadedMap &&
+        (project.settings.dimension != ProjectDimension.twoD || matches.length != 1 ||
+        projectMapCounts[matches.singleOrNull?.id] != 1)) {
       diagnostics.add(SceneDiagnostic(
         code: SceneDiagnosticCode.commandInvalidHealingDisplay,
         severity: SceneDiagnosticSeverity.error,
@@ -1448,7 +1460,7 @@ void _diagnoseActionConsequenceAgainstProject(
         sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node,
         suggestedFixLabel: 'Choisir un affichage de soin disponible.',
       ));
-    } else {
+    } else if (!onUnloadedMap) {
       final entity = resolveHealingDisplayEntity(matches.single, id)!;
       try {
         assertHealingDisplayVisualsAgainstProject(entity, project);
@@ -1517,8 +1529,9 @@ void _diagnoseActionConsequenceAgainstProject(
       ));
     }
     final map = mapsById[interactiveCommand.mapId];
-    if (projectMapCounts[interactiveCommand.mapId] != 1 || map == null ||
-        map.id != interactiveCommand.mapId || map.spatialScene != null || map.version == ProjectVersion.v9) {
+    if (!unloadedMapIds.contains(interactiveCommand.mapId) &&
+        (projectMapCounts[interactiveCommand.mapId] != 1 || map == null ||
+        map.id != interactiveCommand.mapId || map.spatialScene != null || map.version == ProjectVersion.v9)) {
       diagnostics.add(SceneDiagnostic(
         code: SceneDiagnosticCode.commandUnknownMap,
         severity: SceneDiagnosticSeverity.error,
@@ -1533,7 +1546,7 @@ void _diagnoseActionConsequenceAgainstProject(
     SceneActorVisibilityInteractiveCommand(:final target) => target,
     _ => null,
   };
-  if (actorTarget != null) {
+  if (actorTarget != null && !unloadedMapIds.contains(actorTarget.mapId)) {
     final map = mapsById[actorTarget.mapId];
     final entities =
         map?.entities
@@ -1579,7 +1592,8 @@ void _diagnoseActionConsequenceAgainstProject(
         ));
       }
       if (step is! SceneActorMoveStep ||
-          step.initialCollisionOwnerEntityId == null) {
+          step.initialCollisionOwnerEntityId == null ||
+          unloadedMapIds.contains(interactiveCommand.target.mapId)) {
         continue;
       }
       final owners = map?.entities
@@ -1676,7 +1690,8 @@ void _diagnoseActionConsequenceAgainstProject(
     }
   }
   if (interactiveCommand is SceneWarpInteractiveCommand &&
-      interactiveCommand.arrivalCollisionOwnerEntityId != null) {
+      interactiveCommand.arrivalCollisionOwnerEntityId != null &&
+      !unloadedMapIds.contains(interactiveCommand.destinationMapId)) {
     final map = mapsById[interactiveCommand.destinationMapId];
     final owners = map?.entities.where((entity) => entity.id ==
         interactiveCommand.arrivalCollisionOwnerEntityId).toList() ?? const <MapEntity>[];
@@ -1695,7 +1710,8 @@ void _diagnoseActionConsequenceAgainstProject(
         suggestedFixLabel: 'Choisir le PNJ qui possède cette arrivée.'));
     }
   }
-  if (interactiveCommand is ScenePlayModelAnimationInteractiveCommand) {
+  if (interactiveCommand is ScenePlayModelAnimationInteractiveCommand &&
+      !unloadedMapIds.contains(interactiveCommand.mapId)) {
     final map = mapsById[interactiveCommand.mapId];
     final instance = map?.spatialScene?.instances
         .where((instance) => instance.id == interactiveCommand.instanceId)
@@ -1746,8 +1762,9 @@ void _diagnoseActionConsequenceAgainstProject(
           message: 'Les décors mobiles nécessitent une carte 2D.',
           sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node));
     }
-    if (map == null || interactiveCommand.propIds.any((id) =>
-        map.movingProps.where((value) => value.id == id).length != 1)) {
+    if (!unloadedMapIds.contains(interactiveCommand.mapId) &&
+        (map == null || interactiveCommand.propIds.any((id) =>
+        map.movingProps.where((value) => value.id == id).length != 1))) {
       diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnknownProp,
           severity: SceneDiagnosticSeverity.error,
           message: 'Un décor mobile sélectionné est absent ou ambigu sur cette carte.',
@@ -1755,7 +1772,8 @@ void _diagnoseActionConsequenceAgainstProject(
           suggestedFixLabel: 'Choisir des décors mobiles de la carte.'));
     }
   }
-  if (interactiveCommand is SceneMovePlatformInteractiveCommand) {
+  if (interactiveCommand is SceneMovePlatformInteractiveCommand &&
+      !unloadedMapIds.contains(interactiveCommand.mapId)) {
     final map = mapsById[interactiveCommand.mapId];
     if (map == null || !(map.movingPlatforms.any((value) => value.id == interactiveCommand.platformId) || (map.spatialScene?.lifts.any((value) => value.id == interactiveCommand.platformId) ?? false) || (map.spatialScene?.platforms.any((value) => value.id == interactiveCommand.platformId) ?? false))) {
       diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnknownPlatform,
@@ -1765,7 +1783,8 @@ void _diagnoseActionConsequenceAgainstProject(
           suggestedFixLabel: 'Choisir une plateforme de la carte.'));
     }
   }
-  if (interactiveCommand is SceneMoveNpcInteractiveCommand) {
+  if (interactiveCommand is SceneMoveNpcInteractiveCommand &&
+      !unloadedMapIds.contains(interactiveCommand.mapId)) {
     final mapData = mapsById[interactiveCommand.mapId];
     final npcExists =
         mapData?.entities.any(
@@ -1845,7 +1864,8 @@ void _diagnoseActionConsequenceAgainstProject(
         );
       }
     case SceneSetMapEventInstanceBooleanConsequence():
-      if (!_nativeEntityReferenceValid(consequence.mapId, consequence.eventId,
+      if (!unloadedMapIds.contains(consequence.mapId) &&
+          !_nativeEntityReferenceValid(consequence.mapId, consequence.eventId,
           projectMapCounts: projectMapCounts, mapsById: mapsById)) {
         diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.consequenceUnknownMapEventOwner,
           severity: SceneDiagnosticSeverity.error,
@@ -1993,6 +2013,7 @@ void _diagnoseActionConsequenceAgainstProject(
         );
       }
     case SceneSetNpcPoseConsequence():
+      if (unloadedMapIds.contains(consequence.mapId)) return;
       final targetMap = mapsById[consequence.mapId];
       final x = consequence.x, y = consequence.y;
       final owners = targetMap?.entities.where((entity) => entity.id == consequence.entityId).toList() ?? const <MapEntity>[];
@@ -2012,7 +2033,8 @@ void _diagnoseActionConsequenceAgainstProject(
       }
     case SceneSetNpcPresenceConsequence():
       if (consequence.mapId.trim().isEmpty ||
-          consequence.entityId.trim().isEmpty) {
+          consequence.entityId.trim().isEmpty ||
+          unloadedMapIds.contains(consequence.mapId)) {
         return;
       }
       final mapData = mapsById[consequence.mapId];

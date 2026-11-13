@@ -82,6 +82,51 @@ void main() {
     );
   });
 
+  test('unloaded declared maps defer only their map checks', () {
+    final scene = _remoteMapScene();
+    final project = ProjectManifest(
+      name: 'Partial maps',
+      tilesets: const [],
+      maps: const [
+        ProjectMapEntry(
+          id: 'remote',
+          name: 'Remote',
+          relativePath: 'maps/remote.json',
+        ),
+      ],
+      scenes: [scene],
+    );
+    int count(SceneDiagnosticsReport report, SceneDiagnosticCode code) =>
+        report.byCode(code).length;
+
+    final strict = SceneProjectDiagnosticsContext(project).diagnose(scene);
+    expect(count(strict, SceneDiagnosticCode.consequenceUnknownNpc), 2);
+    expect(count(strict, SceneDiagnosticCode.commandUnknownPlatform), 1);
+    expect(count(strict, SceneDiagnosticCode.commandUnknownMap), 1);
+    expect(count(strict, SceneDiagnosticCode.commandUnknownNpc), 1);
+    expect(count(strict, SceneDiagnosticCode.commandInvalidActorTarget), 1);
+    expect(count(strict, SceneDiagnosticCode.consequenceUnknownFact), 1);
+
+    final partial = SceneProjectDiagnosticsContext(
+      project,
+      unloadedMapIds: {'remote'},
+    ).diagnose(scene);
+    expect(count(partial, SceneDiagnosticCode.consequenceUnknownNpc), 1);
+    expect(count(partial, SceneDiagnosticCode.commandUnknownPlatform), 0);
+    expect(count(partial, SceneDiagnosticCode.commandUnknownMap), 0);
+    expect(count(partial, SceneDiagnosticCode.commandUnknownNpc), 0);
+    expect(count(partial, SceneDiagnosticCode.commandInvalidActorTarget), 0);
+    expect(count(partial, SceneDiagnosticCode.consequenceUnknownFact), 1);
+    expect(
+      partial.diagnostics,
+      diagnoseSceneAgainstProject(
+        scene,
+        project,
+        unloadedMapIds: {'remote'},
+      ).diagnostics,
+    );
+  });
+
   test('contexts are isolated between changed project snapshots', () {
     final scene = _scene('scene', 'known');
     final project = _project([scene]);
@@ -132,6 +177,84 @@ SceneAsset _itemScene() => SceneAsset(
     ],
   ),
 );
+
+SceneAsset _remoteMapScene() {
+  SceneNode action(String id, SceneActionPayload payload) =>
+      SceneNode(id: id, kind: SceneNodeKind.action, payload: payload);
+  return SceneAsset(
+    id: 'remote_map',
+    name: 'Remote map',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        action(
+          'presence',
+          SceneActionPayload.consequence(
+            SceneConsequence.setNpcPresence(
+              mapId: 'remote',
+              entityId: 'npc',
+              present: false,
+            ),
+          ),
+        ),
+        action(
+          'undeclared_presence',
+          SceneActionPayload.consequence(
+            SceneConsequence.setNpcPresence(
+              mapId: 'undeclared',
+              entityId: 'npc',
+              present: false,
+            ),
+          ),
+        ),
+        action(
+          'platform',
+          SceneActionPayload.interactive(
+            SceneMovePlatformInteractiveCommand(
+              mapId: 'remote',
+              platformId: 'lift',
+              motion: MovingPlatformMotion.forward,
+            ),
+          ),
+        ),
+        action(
+          'wait',
+          SceneActionPayload.interactive(
+            SceneWaitForActorRoutesInteractiveCommand(mapId: 'remote'),
+          ),
+        ),
+        action(
+          'move_npc',
+          SceneActionPayload.interactive(
+            SceneMoveNpcInteractiveCommand(
+              mapId: 'remote',
+              entityId: 'npc',
+              warpId: 'door',
+            ),
+          ),
+        ),
+        action(
+          'route',
+          SceneActionPayload.interactive(
+            SceneActorRouteInteractiveCommand(
+              target: SceneActorTarget.player(mapId: 'remote'),
+              steps: [SceneActorRouteStep.wait(durationMs: 100)],
+            ),
+          ),
+        ),
+        action(
+          'fact',
+          SceneActionPayload.consequence(
+            SceneConsequence.setFact(factId: 'missing_fact', value: true),
+          ),
+        ),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ],
+      edges: const [],
+    ),
+  );
+}
 
 ProjectManifest _project(List<SceneAsset> scenes) => ProjectManifest(
   name: 'Context qualification',

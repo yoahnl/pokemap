@@ -24,6 +24,7 @@ NarrativeOutcomeEventSourceCatalog buildNarrativeOutcomeEventSourceCatalog({
   ProjectMediaCatalog? presentationMediaCatalog,
   List<NarrativeMapView> maps = const [],
   List<NarrativeOutcomeRef> referencedOutcomes = const [],
+  Set<String> unloadedMapIds = const {},
 }) {
   final options = <NarrativeOutcomeEventSourceOption>[];
   final diagnostics = <NarrativeOutcomeEventSourceDiagnostic>[];
@@ -34,6 +35,7 @@ NarrativeOutcomeEventSourceCatalog buildNarrativeOutcomeEventSourceCatalog({
     project.scenes,
     project: project,
     mapsById: mapsById,
+    unloadedMapIds: unloadedMapIds,
     presentationMediaCatalog: presentationMediaCatalog,
     options: options,
     diagnostics: diagnostics,
@@ -68,6 +70,7 @@ void _appendSceneOutcomes(
   List<SceneAsset> scenes, {
   required ProjectManifest project,
   required Map<String, NarrativeMapView> mapsById,
+  required Set<String> unloadedMapIds,
   required ProjectMediaCatalog? presentationMediaCatalog,
   required List<NarrativeOutcomeEventSourceOption> options,
   required List<NarrativeOutcomeEventSourceDiagnostic> diagnostics,
@@ -80,6 +83,7 @@ void _appendSceneOutcomes(
   final sceneDiagnostics = SceneProjectDiagnosticsContext(
     project,
     mapsById: mapsById,
+    unloadedMapIds: unloadedMapIds,
     presentationMediaCatalog: presentationMediaCatalog,
   );
   for (final id in ids) {
@@ -98,6 +102,7 @@ void _appendSceneOutcomes(
         scene,
         sceneDiagnostics: sceneDiagnostics,
         mapsById: mapsById,
+        unloadedMapIds: unloadedMapIds,
         duplicate: duplicate,
         options: options,
         diagnostics: diagnostics,
@@ -110,6 +115,7 @@ void _appendSingleSceneOutcomes(
   SceneAsset scene, {
   required SceneProjectDiagnosticsContext sceneDiagnostics,
   required Map<String, NarrativeMapView> mapsById,
+  required Set<String> unloadedMapIds,
   required bool duplicate,
   required List<NarrativeOutcomeEventSourceOption> options,
   required List<NarrativeOutcomeEventSourceDiagnostic> diagnostics,
@@ -144,7 +150,7 @@ void _appendSingleSceneOutcomes(
   final sceneProjectReferencesValid =
       sceneDiagnostics.diagnose(scene).errorCount == 0;
   final sceneMapReferencesVerifiable =
-      _sceneMapReferencesVerifiable(scene, mapsById);
+      _sceneMapReferencesVerifiable(scene, mapsById, unloadedMapIds);
   final sceneBuildable = sceneRuntimeBuildable &&
       sceneProjectReferencesValid &&
       sceneMapReferencesVerifiable;
@@ -347,13 +353,15 @@ Map<String, NarrativeMapView> _uniqueMapsById(List<NarrativeMapView> maps) {
 bool _sceneMapReferencesVerifiable(
   SceneAsset scene,
   Map<String, NarrativeMapView> mapsById,
+  Set<String> unloadedMapIds,
 ) {
   for (final node in scene.graph.nodes) {
     final payload = node.payload;
     if (payload is! SceneActionPayload) continue;
     final consequence = payload.consequence;
     if (consequence is SceneMarkEventConsumedConsequence &&
-        !mapsById.containsKey(consequence.mapId)) {
+        !mapsById.containsKey(consequence.mapId) &&
+        !unloadedMapIds.contains(consequence.mapId)) {
       return false;
     }
   }

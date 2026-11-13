@@ -11,6 +11,7 @@ typedef MapStoryBehaviourChange = ({
 });
 
 final class MapStoryBehaviours {
+  ProjectMediaCatalog? media;
   NarrativeEventRegistry? _working;
   bool _touched = false;
   final _undo = <(bool, NarrativeEventRegistry?)>[];
@@ -54,10 +55,16 @@ final class MapStoryBehaviours {
     MapData map,
   ) {
     final registry = current.eventRegistry;
+    final scenes = <String, List<SceneAsset>>{};
+    for (final scene in current.scenes) {
+      scenes.putIfAbsent(scene.id, () => []).add(scene);
+    }
     final catalog = buildNarrativeEventProjectCatalog(
       project: current,
       maps: [map],
       mapInventoryComplete: false,
+      presentationMediaCatalog: media,
+      lookupRewardScenes: (id) => scenes[id] ?? const [],
     );
     return NarrativeEventAuthoringContext(
       registryState: registry == null

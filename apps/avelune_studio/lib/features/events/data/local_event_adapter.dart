@@ -3,7 +3,9 @@ import 'package:map_authoring/map_authoring.dart'
         AuthoringTransactionFaultInjector,
         StandardEventTemplateSpec,
         decodeProjectMediaCatalogBytes,
-        projectMediaCatalogResourceIdentity;
+        projectMediaCatalogResourceIdentity,
+        projectMediaCatalogStorageKey,
+        WorkspaceAccessException;
 import 'package:map_authoring/map_authoring_local.dart'
     show
         ProjectFileReader,
@@ -47,7 +49,19 @@ class LocalEventAdapter
     ProjectManifest project,
   ) async {
     if (project.settings.dimension != ProjectDimension.twoD) {
-      return ProjectMediaCatalog();
+      try {
+        return decodeProjectMediaCatalogBytes(
+          await reader.readBytes(
+            projectRoot: session.directoryPath,
+            relativePath: projectMediaCatalogStorageKey,
+          ),
+        );
+      } on WorkspaceAccessException catch (failure) {
+        if (failure.code == 'workspace.file_unavailable') {
+          return ProjectMediaCatalog();
+        }
+        rethrow;
+      }
     }
     return (await LocalPresentationAdapter(
       session: session,

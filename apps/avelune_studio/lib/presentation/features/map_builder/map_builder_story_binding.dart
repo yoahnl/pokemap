@@ -27,6 +27,7 @@ class MapBuilderStoryBinding {
     required this.view,
     String Function()? zoneName,
     String Function(int index)? behaviourName,
+    this.loadMedia,
   }) : _zoneName = zoneName ?? (() => 'Zone'),
        _behaviourName = behaviourName ?? ((index) => 'Comportement $index');
 
@@ -35,14 +36,19 @@ class MapBuilderStoryBinding {
   final MapEditingViewportSession? Function() view;
   final String Function() _zoneName;
   final String Function(int index) _behaviourName;
+  final Future<ProjectMediaCatalog?> Function(ProjectManifest project)?
+  loadMedia;
   final behaviours = MapStoryBehaviours();
+  bool _mediaLoaded = false;
   final _done = <(_StorySide, Object?)>[];
   final _undone = <(_StorySide, Object?)>[];
   bool publishing = false;
   int attempts = 0;
   bool preparing = false;
 
-  bool get ready => maps.hasWorkshop(MapWorkspaceWorkshop.events);
+  bool get ready =>
+      maps.hasWorkshop(MapWorkspaceWorkshop.events) &&
+      (loadMedia == null || _mediaLoaded);
 
   Future<void> prepare() async {
     if (ready || preparing) return;
@@ -50,11 +56,23 @@ class MapBuilderStoryBinding {
     changed();
     try {
       await maps.ensureWorkshop(MapWorkspaceWorkshop.events);
+      await _prepareMedia();
     } on Object catch (failure) {
       error = '$failure';
     } finally {
       preparing = false;
       changed();
+    }
+  }
+
+  Future<void> _prepareMedia() async {
+    final load = loadMedia;
+    final project = maps.project;
+    if (load == null || project == null || _mediaLoaded) return;
+    try {
+      behaviours.media = await load(project);
+    } finally {
+      _mediaLoaded = true;
     }
   }
 
