@@ -3204,6 +3204,222 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Sur une carte 3D, les décors bloquants arrêtent aussi le joueur.'**
   String get movementDecorBlocks;
+
+  /// No description provided for @storyStepFamily.
+  ///
+  /// In fr, this message translates to:
+  /// **'{family, select, rememberFact{Retenir un fait} talk{Parler} showOrHide{Faire apparaître ou disparaître} musicAndSound{Musique et son} battle{Combat} giveItem{Donner un objet} conditions{Conditions} other{Autres}}'**
+  String storyStepFamily(String family);
+
+  /// No description provided for @storyStepsTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'ÉTAPES'**
+  String get storyStepsTitle;
+
+  /// No description provided for @storyStepAdd.
+  ///
+  /// In fr, this message translates to:
+  /// **'Étape'**
+  String get storyStepAdd;
+
+  /// No description provided for @storyStepAdvanced.
+  ///
+  /// In fr, this message translates to:
+  /// **'Étape avancée'**
+  String get storyStepAdvanced;
+
+  /// No description provided for @storyStepAdvancedHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Elle se règle ailleurs et reste conservée telle quelle.'**
+  String get storyStepAdvancedHint;
+
+  /// No description provided for @storyStepTrueGraph.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette scène a des chemins qui se croisent : elle se lit ici sans pouvoir être modifiée en liste.'**
+  String get storyStepTrueGraph;
+
+  /// No description provided for @storyStepLoop.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette scène revient en arrière en boucle : elle se lit ici sans pouvoir être modifiée en liste.'**
+  String get storyStepLoop;
+
+  /// No description provided for @storyStepEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune étape.'**
+  String get storyStepEmpty;
+
+  /// No description provided for @storyStepIf.
+  ///
+  /// In fr, this message translates to:
+  /// **'Si'**
+  String get storyStepIf;
+
+  /// No description provided for @storyStepThen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Alors'**
+  String get storyStepThen;
+
+  /// No description provided for @storyStepElse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sinon'**
+  String get storyStepElse;
+
+  /// No description provided for @storyStepMain.
+  ///
+  /// In fr, this message translates to:
+  /// **'Si tout se passe bien'**
+  String get storyStepMain;
+
+  /// No description provided for @storyStepRemove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer l’étape'**
+  String get storyStepRemove;
+
+  /// No description provided for @storyStepWrap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mettre dans un « si »'**
+  String get storyStepWrap;
+
+  /// No description provided for @storyStepActions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actions de l’étape'**
+  String get storyStepActions;
+
+  /// No description provided for @storyStepDrag.
+  ///
+  /// In fr, this message translates to:
+  /// **'Glisser pour déplacer'**
+  String get storyStepDrag;
+
+  /// No description provided for @storyStepRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette modification n’est pas possible ici.'**
+  String get storyStepRefused;
+
+  /// No description provided for @storyStepFactField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fait'**
+  String get storyStepFactField;
+
+  /// No description provided for @storyStepValueField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur'**
+  String get storyStepValueField;
+
+  /// No description provided for @storyStepYes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Oui'**
+  String get storyStepYes;
+
+  /// No description provided for @storyStepNo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non'**
+  String get storyStepNo;
+
+  /// No description provided for @storyStepDialogue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dialogue'**
+  String get storyStepDialogue;
+
+  /// No description provided for @storyStepSpeaker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qui parle'**
+  String get storyStepSpeaker;
+
+  /// No description provided for @storyStepCharacterField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnage'**
+  String get storyStepCharacterField;
+
+  /// No description provided for @storyStepPresenceField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effet'**
+  String get storyStepPresenceField;
+
+  /// No description provided for @storyStepAppear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Apparaît'**
+  String get storyStepAppear;
+
+  /// No description provided for @storyStepDisappear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Disparaît'**
+  String get storyStepDisappear;
+
+  /// No description provided for @storyStepTrainerField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dresseur'**
+  String get storyStepTrainerField;
+
+  /// No description provided for @storyStepConditionField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Doit être'**
+  String get storyStepConditionField;
+
+  /// No description provided for @storyStepConditionTrue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vrai'**
+  String get storyStepConditionTrue;
+
+  /// No description provided for @storyStepConditionFalse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Faux'**
+  String get storyStepConditionFalse;
+
+  /// No description provided for @storyStepAdvancedCondition.
+  ///
+  /// In fr, this message translates to:
+  /// **'Condition avancée'**
+  String get storyStepAdvancedCondition;
+
+  /// No description provided for @storyStepOtherMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sur une autre carte : {map}'**
+  String storyStepOtherMap(String map);
+
+  /// No description provided for @storyStepOnFailure.
+  ///
+  /// In fr, this message translates to:
+  /// **'En cas d’échec · {reason}'**
+  String storyStepOnFailure(String reason);
+
+  /// No description provided for @storyStepOutcome.
+  ///
+  /// In fr, this message translates to:
+  /// **'Si « {outcome} »'**
+  String storyStepOutcome(String outcome);
+
+  /// No description provided for @storyStepFailureReason.
+  ///
+  /// In fr, this message translates to:
+  /// **'{port, select, bagFull{sac plein} soundBlocked{son coupé} blocked{bloqué} cancelled{annulé} noCapacity{plus de place} quit{abandon} failed{échec} interrupted{interrompu} other{{port}}}'**
+  String storyStepFailureReason(String port);
 }
 
 class _AppLocalizationsDelegate

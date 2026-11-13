@@ -1851,4 +1851,146 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get movementDecorBlocks =>
       'Sur une carte 3D, les décors bloquants arrêtent aussi le joueur.';
+
+  @override
+  String storyStepFamily(String family) {
+    String _temp0 = intl.Intl.selectLogic(family, {
+      'rememberFact': 'Retenir un fait',
+      'talk': 'Parler',
+      'showOrHide': 'Faire apparaître ou disparaître',
+      'musicAndSound': 'Musique et son',
+      'battle': 'Combat',
+      'giveItem': 'Donner un objet',
+      'conditions': 'Conditions',
+      'other': 'Autres',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyStepsTitle => 'ÉTAPES';
+
+  @override
+  String get storyStepAdd => 'Étape';
+
+  @override
+  String get storyStepAdvanced => 'Étape avancée';
+
+  @override
+  String get storyStepAdvancedHint =>
+      'Elle se règle ailleurs et reste conservée telle quelle.';
+
+  @override
+  String get storyStepTrueGraph =>
+      'Cette scène a des chemins qui se croisent : elle se lit ici sans pouvoir être modifiée en liste.';
+
+  @override
+  String get storyStepLoop =>
+      'Cette scène revient en arrière en boucle : elle se lit ici sans pouvoir être modifiée en liste.';
+
+  @override
+  String get storyStepEmpty => 'Aucune étape.';
+
+  @override
+  String get storyStepIf => 'Si';
+
+  @override
+  String get storyStepThen => 'Alors';
+
+  @override
+  String get storyStepElse => 'Sinon';
+
+  @override
+  String get storyStepMain => 'Si tout se passe bien';
+
+  @override
+  String get storyStepRemove => 'Retirer l’étape';
+
+  @override
+  String get storyStepWrap => 'Mettre dans un « si »';
+
+  @override
+  String get storyStepActions => 'Actions de l’étape';
+
+  @override
+  String get storyStepDrag => 'Glisser pour déplacer';
+
+  @override
+  String get storyStepRefused => 'Cette modification n’est pas possible ici.';
+
+  @override
+  String get storyStepFactField => 'Fait';
+
+  @override
+  String get storyStepValueField => 'Valeur';
+
+  @override
+  String get storyStepYes => 'Oui';
+
+  @override
+  String get storyStepNo => 'Non';
+
+  @override
+  String get storyStepDialogue => 'Dialogue';
+
+  @override
+  String get storyStepSpeaker => 'Qui parle';
+
+  @override
+  String get storyStepCharacterField => 'Personnage';
+
+  @override
+  String get storyStepPresenceField => 'Effet';
+
+  @override
+  String get storyStepAppear => 'Apparaît';
+
+  @override
+  String get storyStepDisappear => 'Disparaît';
+
+  @override
+  String get storyStepTrainerField => 'Dresseur';
+
+  @override
+  String get storyStepConditionField => 'Doit être';
+
+  @override
+  String get storyStepConditionTrue => 'Vrai';
+
+  @override
+  String get storyStepConditionFalse => 'Faux';
+
+  @override
+  String get storyStepAdvancedCondition => 'Condition avancée';
+
+  @override
+  String storyStepOtherMap(String map) {
+    return 'Sur une autre carte : $map';
+  }
+
+  @override
+  String storyStepOnFailure(String reason) {
+    return 'En cas d’échec · $reason';
+  }
+
+  @override
+  String storyStepOutcome(String outcome) {
+    return 'Si « $outcome »';
+  }
+
+  @override
+  String storyStepFailureReason(String port) {
+    String _temp0 = intl.Intl.selectLogic(port, {
+      'bagFull': 'sac plein',
+      'soundBlocked': 'son coupé',
+      'blocked': 'bloqué',
+      'cancelled': 'annulé',
+      'noCapacity': 'plus de place',
+      'quit': 'abandon',
+      'failed': 'échec',
+      'interrupted': 'interrompu',
+      'other': '$port',
+    });
+    return '$_temp0';
+  }
 }

@@ -87,6 +87,56 @@ void main() {
       expect(updated.graph.nodes.first, scene.graph.nodes.first);
       expect(updated.graph.edges, scene.graph.edges);
       expect(updated.layout, scene.layout);
+      final placing = await mutations.plan(
+        canonicalRoot,
+        actionId: 'scene.graph.patch',
+        parameters: {
+          'sceneId': 'test',
+          'upsertNodes': [
+            SceneNode(
+              id: 'heal',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.healParty(),
+              ),
+            ).toJson(),
+          ],
+          'upsertEdges': [
+            SceneEdge(
+              id: 'finish',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'heal',
+              kind: SceneEdgeKind.defaultFlow,
+            ).toJson(),
+            SceneEdge(
+              id: 'healed',
+              fromNodeId: 'heal',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.actionCompleted,
+            ).toJson(),
+          ],
+          'nodeLayouts': [
+            SceneNodeLayout(nodeId: 'heal', x: 320, y: 40).toJson(),
+          ],
+        },
+        idempotencyKey: 'editor-scene-place',
+        expectedRevision: await mutations.readRevision(canonicalRoot),
+      );
+      await mutations.apply(placing, operationId: 'editor-scene-place-apply');
+      final placed = ProjectManifest.fromJson(
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+      ).scenes.single;
+      expect(placed.graph.nodes.map((node) => node.id), [
+        'start',
+        'end',
+        'heal',
+      ]);
+      expect(placed.layout.nodeLayouts, [
+        ...scene.layout.nodeLayouts,
+        SceneNodeLayout(nodeId: 'heal', x: 320, y: 40),
+      ]);
     },
   );
 }

@@ -1842,4 +1842,145 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get movementDecorBlocks =>
       'On a 3D map, blocking decors stop the player too.';
+
+  @override
+  String storyStepFamily(String family) {
+    String _temp0 = intl.Intl.selectLogic(family, {
+      'rememberFact': 'Remember a fact',
+      'talk': 'Talk',
+      'showOrHide': 'Show or hide',
+      'musicAndSound': 'Music and sound',
+      'battle': 'Battle',
+      'giveItem': 'Give an item',
+      'conditions': 'Conditions',
+      'other': 'Other',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyStepsTitle => 'STEPS';
+
+  @override
+  String get storyStepAdd => 'Step';
+
+  @override
+  String get storyStepAdvanced => 'Advanced step';
+
+  @override
+  String get storyStepAdvancedHint => 'It is set up elsewhere and kept as is.';
+
+  @override
+  String get storyStepTrueGraph =>
+      'This scene has crossing paths: it can be read here but not edited as a list.';
+
+  @override
+  String get storyStepLoop =>
+      'This scene loops back: it can be read here but not edited as a list.';
+
+  @override
+  String get storyStepEmpty => 'No step.';
+
+  @override
+  String get storyStepIf => 'If';
+
+  @override
+  String get storyStepThen => 'Then';
+
+  @override
+  String get storyStepElse => 'Otherwise';
+
+  @override
+  String get storyStepMain => 'When it succeeds';
+
+  @override
+  String get storyStepRemove => 'Remove step';
+
+  @override
+  String get storyStepWrap => 'Put inside an “if”';
+
+  @override
+  String get storyStepActions => 'Step actions';
+
+  @override
+  String get storyStepDrag => 'Drag to move';
+
+  @override
+  String get storyStepRefused => 'This change is not possible here.';
+
+  @override
+  String get storyStepFactField => 'Fact';
+
+  @override
+  String get storyStepValueField => 'Value';
+
+  @override
+  String get storyStepYes => 'Yes';
+
+  @override
+  String get storyStepNo => 'No';
+
+  @override
+  String get storyStepDialogue => 'Dialogue';
+
+  @override
+  String get storyStepSpeaker => 'Speaker';
+
+  @override
+  String get storyStepCharacterField => 'Character';
+
+  @override
+  String get storyStepPresenceField => 'Effect';
+
+  @override
+  String get storyStepAppear => 'Appears';
+
+  @override
+  String get storyStepDisappear => 'Disappears';
+
+  @override
+  String get storyStepTrainerField => 'Trainer';
+
+  @override
+  String get storyStepConditionField => 'Must be';
+
+  @override
+  String get storyStepConditionTrue => 'True';
+
+  @override
+  String get storyStepConditionFalse => 'False';
+
+  @override
+  String get storyStepAdvancedCondition => 'Advanced condition';
+
+  @override
+  String storyStepOtherMap(String map) {
+    return 'On another map: $map';
+  }
+
+  @override
+  String storyStepOnFailure(String reason) {
+    return 'On failure · $reason';
+  }
+
+  @override
+  String storyStepOutcome(String outcome) {
+    return 'If “$outcome”';
+  }
+
+  @override
+  String storyStepFailureReason(String port) {
+    String _temp0 = intl.Intl.selectLogic(port, {
+      'bagFull': 'bag full',
+      'soundBlocked': 'sound off',
+      'blocked': 'blocked',
+      'cancelled': 'cancelled',
+      'noCapacity': 'no room left',
+      'quit': 'gave up',
+      'failed': 'failed',
+      'interrupted': 'interrupted',
+      'other': '$port',
+    });
+    return '$_temp0';
+  }
 }

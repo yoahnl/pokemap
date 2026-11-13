@@ -530,5 +530,76 @@
   "obstacleIceBlock": "Ice block",
   "decorEyebrow": "DECOR",
   "encounterTablesLoading": "Loading encounter tables…",
-  "movementDecorBlocks": "On a 3D map, blocking decors stop the player too."
+  "movementDecorBlocks": "On a 3D map, blocking decors stop the player too.",
+  "storyStepFamily": "{family, select, rememberFact{Remember a fact} talk{Talk} showOrHide{Show or hide} musicAndSound{Music and sound} battle{Battle} giveItem{Give an item} conditions{Conditions} other{Other}}",
+  "@storyStepFamily": {
+    "placeholders": {
+      "family": {
+        "type": "String"
+      }
+    }
+  },
+  "storyStepsTitle": "STEPS",
+  "storyStepAdd": "Step",
+  "storyStepAdvanced": "Advanced step",
+  "storyStepAdvancedHint": "It is set up elsewhere and kept as is.",
+  "storyStepTrueGraph": "This scene has crossing paths: it can be read here but not edited as a list.",
+  "storyStepLoop": "This scene loops back: it can be read here but not edited as a list.",
+  "storyStepEmpty": "No step.",
+  "storyStepIf": "If",
+  "storyStepThen": "Then",
+  "storyStepElse": "Otherwise",
+  "storyStepMain": "When it succeeds",
+  "storyStepRemove": "Remove step",
+  "storyStepWrap": "Put inside an “if”",
+  "storyStepActions": "Step actions",
+  "storyStepDrag": "Drag to move",
+  "storyStepRefused": "This change is not possible here.",
+  "storyStepFactField": "Fact",
+  "storyStepValueField": "Value",
+  "storyStepYes": "Yes",
+  "storyStepNo": "No",
+  "storyStepDialogue": "Dialogue",
+  "storyStepSpeaker": "Speaker",
+  "storyStepCharacterField": "Character",
+  "storyStepPresenceField": "Effect",
+  "storyStepAppear": "Appears",
+  "storyStepDisappear": "Disappears",
+  "storyStepTrainerField": "Trainer",
+  "storyStepConditionField": "Must be",
+  "storyStepConditionTrue": "True",
+  "storyStepConditionFalse": "False",
+  "storyStepAdvancedCondition": "Advanced condition",
+  "storyStepOtherMap": "On another map: {map}",
+  "@storyStepOtherMap": {
+    "placeholders": {
+      "map": {
+        "type": "String"
+      }
+    }
+  },
+  "storyStepOnFailure": "On failure · {reason}",
+  "@storyStepOnFailure": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "storyStepOutcome": "If “{outcome}”",
+  "@storyStepOutcome": {
+    "placeholders": {
+      "outcome": {
+        "type": "String"
+      }
+    }
+  },
+  "storyStepFailureReason": "{port, select, bagFull{bag full} soundBlocked{sound off} blocked{blocked} cancelled{cancelled} noCapacity{no room left} quit{gave up} failed{failed} interrupted{interrupted} other{{port}}}",
+  "@storyStepFailureReason": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      }
+    }
+  }
 }

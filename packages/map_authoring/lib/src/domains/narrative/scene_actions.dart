@@ -646,7 +646,13 @@ final class SceneActions {
       'Atomically edit selected Scene nodes and links while preserving layout',
       resourceKinds: const ['project', 'scene'],
       extensions: const {
-        'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
+        'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds', 'nodeLayouts'],
+        'nodeLayouts': {
+          'optional': true,
+          'appliesTo': 'nodesCreatedByThisPatch',
+          'fields': ['nodeId', 'x', 'y'],
+          'whenAbsent': 'createdNodesHaveNoLayout',
+        },
         'finishGame': _finishGameContract,
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
         'periodicEncounter': _periodicEncounterContract,
@@ -1636,6 +1642,7 @@ final class SceneActions {
         'removeNodeIds',
         'upsertEdges',
         'removeEdgeIds',
+        'nodeLayouts',
       });
       List<T> objects<T>(String key, T Function(Map<String, dynamic>) decode) {
         final value = parameters[key] ?? const <Object?>[];
@@ -1680,6 +1687,7 @@ final class SceneActions {
           upsertEdges: objects('upsertEdges', SceneEdge.fromJson),
           removeNodeIds: ids('removeNodeIds'),
           removeEdgeIds: ids('removeEdgeIds'),
+          nodeLayouts: objects('nodeLayouts', SceneNodeLayout.fromJson),
         );
       } on FormatException {
         throw NarrativeAuthoringException(
@@ -1889,6 +1897,7 @@ final class SceneActions {
     List<String> removeNodeIds = const [],
     List<SceneEdge> upsertEdges = const [],
     List<String> removeEdgeIds = const [],
+    List<SceneNodeLayout> nodeLayouts = const [],
   }) {
     final scene = _requireDialoguePolicyScene(project, sceneId);
     void validateIds(
@@ -1922,6 +1931,20 @@ final class SceneActions {
       removeEdgeIds,
       scene.graph.edges.map((edge) => edge.id).toSet(),
     );
+    final existingNodeIds = {for (final node in scene.graph.nodes) node.id};
+    final createdNodeIds = {
+      for (final node in upsertNodes)
+        if (!existingNodeIds.contains(node.id)) node.id,
+    };
+    final placedNodeIds = nodeLayouts.map((layout) => layout.nodeId).toList();
+    if (placedNodeIds.toSet().length != placedNodeIds.length ||
+        placedNodeIds.any((id) => !createdNodeIds.contains(id))) {
+      throw NarrativeAuthoringException(
+        'scene.graph.invalid_patch',
+        'Node layouts may only place nodes created by this patch.',
+        details: {'sceneId': sceneId, 'field': 'nodeLayouts'},
+      );
+    }
     final nodeUpdates = {for (final node in upsertNodes) node.id: node};
     final edgeUpdates = {for (final edge in upsertEdges) edge.id: edge};
     final nodes = [
@@ -1948,7 +1971,10 @@ final class SceneActions {
         'layout': SceneGraphLayout(
           nodeLayouts: [
             for (final item in scene.layout.nodeLayouts)
-              if (!removeNodeIds.contains(item.nodeId)) item,
+              if (!removeNodeIds.contains(item.nodeId) &&
+                  !placedNodeIds.contains(item.nodeId))
+                item,
+            ...nodeLayouts,
           ],
           edgeLayouts: [
             for (final item in scene.layout.edgeLayouts)

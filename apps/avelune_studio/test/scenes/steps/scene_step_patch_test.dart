@@ -62,6 +62,10 @@ SceneAsset applyThroughAuthoring(SceneAsset before, SceneGraphPatch patch) {
         SceneEdge.fromJson(json as Map<String, dynamic>),
     ],
     removeEdgeIds: parameters['removeEdgeIds']! as List<String>,
+    nodeLayouts: [
+      for (final json in parameters['nodeLayouts']! as List)
+        SceneNodeLayout.fromJson(json as Map<String, dynamic>),
+    ],
   );
   return applied.scenes.single;
 }
@@ -72,13 +76,24 @@ void expectPatchMatchesReplacement(
 ) {
   expect(edit, isA<SceneStepEdited>());
   final edited = edit as SceneStepEdited;
-  final patched = applyThroughAuthoring(before, patchOf(before, edited.scene));
-  expect(patched.graph, edited.scene.graph);
-  expect(patched.layout.edgeLayouts, edited.scene.layout.edgeLayouts);
-  expect(patched.layout.nodeLayouts, [
+  final graphOnly = applyThroughAuthoring(
+    before,
+    patchOf(before, edited.scene),
+  );
+  expect(graphOnly.graph, edited.scene.graph);
+  expect(graphOnly.layout.edgeLayouts, edited.scene.layout.edgeLayouts);
+  expect(graphOnly.layout.nodeLayouts, [
     for (final layout in edited.scene.layout.nodeLayouts)
       if (!edited.createdNodeIds.contains(layout.nodeId)) layout,
   ]);
+  final result = sceneGraphPatchForScenes(base: before, current: edited.scene);
+  expect(result, isA<SceneGraphPatchReady>());
+  final patch = (result as SceneGraphPatchReady).patch;
+  expect(
+    patch.nodeLayouts.map((layout) => layout.nodeId),
+    edited.createdNodeIds,
+  );
+  expect(applyThroughAuthoring(before, patch), edited.scene);
 }
 
 void main() {
@@ -158,6 +173,34 @@ void main() {
         ids: countingIds(),
       ),
     );
+  });
+
+  test('a scene whose other fields or kept layouts changed is not a patch', () {
+    final before = baseScene();
+    final renamed = SceneAsset.fromJson({
+      ...before.toJson(),
+      'name': 'Renamed',
+    });
+    final moved = SceneAsset.fromJson({
+      ...before.toJson(),
+      'layout': SceneGraphLayout(
+        nodeLayouts: [
+          for (final layout in before.layout.nodeLayouts)
+            layout.nodeId == 'a'
+                ? SceneNodeLayout(nodeId: 'a', x: 999, y: 999)
+                : layout,
+        ],
+        edgeLayouts: before.layout.edgeLayouts,
+      ).toJson(),
+    });
+    for (final (current, reason) in [
+      (renamed, SceneGraphPatchUnsupportedReason.sceneChanged),
+      (moved, SceneGraphPatchUnsupportedReason.layoutChanged),
+    ]) {
+      final result = sceneGraphPatchForScenes(base: before, current: current);
+      expect(result, isA<SceneGraphPatchUnsupported>());
+      expect((result as SceneGraphPatchUnsupported).reason, reason);
+    }
   });
 
   test('a reordered graph cannot be expressed as a patch', () {

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
-import 'scene_graph_patch_test.dart' show fixture;
+import 'scene_graph_patch_test.dart' show edge, fixture;
 
 void main() {
   for (final jsonl in [false, true]) {
@@ -109,6 +109,53 @@ void main() {
           ProjectManifest.fromJson(
               jsonDecode(await file.readAsString()) as Map<String, dynamic>),
           updated);
+      final placing = AuthoringRequest(
+          requestId: 'graph-place',
+          actionId: 'scene.graph.patch',
+          actionVersion: 1,
+          workspaceHandle: workspaceHandle,
+          expectedRevision:
+              (await snapshots.load(ProjectHandle(projectHandle))).revision,
+          idempotencyKey: 'graph-place',
+          parameters: {
+            'sceneId': 'test',
+            'upsertNodes': [
+              SceneNode(
+                      id: 'heal',
+                      kind: SceneNodeKind.action,
+                      payload: SceneActionPayload.consequence(
+                          SceneConsequence.healParty()))
+                  .toJson()
+            ],
+            'upsertEdges': [
+              edge('leave', 'action', 'heal').toJson(),
+              edge('rest', 'heal', 'end').toJson()
+            ],
+            'nodeLayouts': [
+              SceneNodeLayout(nodeId: 'heal', x: 360, y: 20).toJson()
+            ]
+          });
+      final placed = jsonl
+          ? await wire('plan',
+              {'projectHandle': projectHandle, 'request': placing.toJson()})
+          : await mutations.plan(ProjectHandle(projectHandle), placing);
+      if (jsonl) {
+        await wire('apply', {
+          'projectHandle': projectHandle,
+          'planId': placed['planId'],
+          'operationId': 'apply-place'
+        });
+      } else {
+        await mutations.apply(ProjectHandle(projectHandle),
+            planId: placed['planId']! as String, operationId: 'apply-place');
+      }
+      final reopened = ProjectManifest.fromJson(
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+      expect(reopened.scenes.first.layout.nodeLayouts, [
+        ...initial.scenes.first.layout.nodeLayouts,
+        SceneNodeLayout(nodeId: 'heal', x: 360, y: 20)
+      ]);
+      expect(reopened.scenes.last, initial.scenes.last);
       await api.closeWorkspace(WorkspaceHandle(workspaceHandle));
     });
   }

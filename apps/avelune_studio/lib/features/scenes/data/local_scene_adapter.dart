@@ -7,6 +7,7 @@ import '../../narrative/data/local_narrative_catalog_transaction.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/scene_port.dart';
 import '../../resources/domain/resource_port.dart';
+import '../application/steps/scene_step_patch.dart';
 
 class LocalSceneAdapter implements ScenePort {
   const LocalSceneAdapter({
@@ -116,6 +117,10 @@ class LocalSceneAdapter implements ScenePort {
           );
         }
       }
+      if (sceneGraphPatchForScenes(base: base, current: current)
+          case SceneGraphPatchReady(:final patch) when !patch.isEmpty) {
+        return _publishPatch(base, patch);
+      }
     }
     try {
       final receipt =
@@ -143,6 +148,45 @@ class LocalSceneAdapter implements ScenePort {
       return ScenePublicationReceipt(
         catalog: receipt,
         scene: receipt.manifest.scenes.singleWhere((s) => s.id == current.id),
+      );
+    } on SceneFailure {
+      rethrow;
+    } on Object catch (failure) {
+      throw SceneFailure(
+        'La scène n’a pas été enregistrée. Le brouillon reste ouvert. Vérifiez ses connexions et références : $failure',
+      );
+    }
+  }
+
+  Future<ScenePublicationReceipt> _publishPatch(
+    SceneAsset base,
+    SceneGraphPatch patch,
+  ) async {
+    try {
+      final receipt =
+          await LocalNarrativeCatalogTransaction(
+            session: session,
+            mapAdapter: mapAdapter,
+            faultInjector: faultInjector,
+          ).run(
+            actionId: sceneGraphPatchActionId,
+            parameters: (manifest) {
+              if (manifest.scenes
+                      .where((scene) => scene.id == base.id)
+                      .firstOrNull !=
+                  base) {
+                throw const SceneFailure(
+                  'Cette scène a changé depuis son ouverture. Votre brouillon est conservé ; rouvrez sa version enregistrée avant de réappliquer vos changements.',
+                );
+              }
+              return patch.toParameters();
+            },
+          );
+      return ScenePublicationReceipt(
+        catalog: receipt,
+        scene: receipt.manifest.scenes.singleWhere(
+          (scene) => scene.id == base.id,
+        ),
       );
     } on SceneFailure {
       rethrow;

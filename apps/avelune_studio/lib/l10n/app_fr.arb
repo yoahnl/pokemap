@@ -984,5 +984,76 @@
   "obstacleIceBlock": "Bloc de glace",
   "decorEyebrow": "DÉCOR",
   "encounterTablesLoading": "Chargement des tables de rencontres…",
-  "movementDecorBlocks": "Sur une carte 3D, les décors bloquants arrêtent aussi le joueur."
+  "movementDecorBlocks": "Sur une carte 3D, les décors bloquants arrêtent aussi le joueur.",
+  "storyStepFamily": "{family, select, rememberFact{Retenir un fait} talk{Parler} showOrHide{Faire apparaître ou disparaître} musicAndSound{Musique et son} battle{Combat} giveItem{Donner un objet} conditions{Conditions} other{Autres}}",
+  "@storyStepFamily": {
+    "placeholders": {
+      "family": {
+        "type": "String"
+      }
+    }
+  },
+  "storyStepsTitle": "ÉTAPES",
+  "storyStepAdd": "Étape",
+  "storyStepAdvanced": "Étape avancée",
+  "storyStepAdvancedHint": "Elle se règle ailleurs et reste conservée telle quelle.",
+  "storyStepTrueGraph": "Cette scène a des chemins qui se croisent : elle se lit ici sans pouvoir être modifiée en liste.",
+  "storyStepLoop": "Cette scène revient en arrière en boucle : elle se lit ici sans pouvoir être modifiée en liste.",
+  "storyStepEmpty": "Aucune étape.",
+  "storyStepIf": "Si",
+  "storyStepThen": "Alors",
+  "storyStepElse": "Sinon",
+  "storyStepMain": "Si tout se passe bien",
+  "storyStepRemove": "Retirer l’étape",
+  "storyStepWrap": "Mettre dans un « si »",
+  "storyStepActions": "Actions de l’étape",
+  "storyStepDrag": "Glisser pour déplacer",
+  "storyStepRefused": "Cette modification n’est pas possible ici.",
+  "storyStepFactField": "Fait",
+  "storyStepValueField": "Valeur",
+  "storyStepYes": "Oui",
+  "storyStepNo": "Non",
+  "storyStepDialogue": "Dialogue",
+  "storyStepSpeaker": "Qui parle",
+  "storyStepCharacterField": "Personnage",
+  "storyStepPresenceField": "Effet",
+  "storyStepAppear": "Apparaît",
+  "storyStepDisappear": "Disparaît",
+  "storyStepTrainerField": "Dresseur",
+  "storyStepConditionField": "Doit être",
+  "storyStepConditionTrue": "Vrai",
+  "storyStepConditionFalse": "Faux",
+  "storyStepAdvancedCondition": "Condition avancée",
+  "storyStepOtherMap": "Sur une autre carte : {map}",
+  "@storyStepOtherMap": {
+    "placeholders": {
+      "map": {
+        "type": "String"
+      }
+    }
+  },
+  "storyStepOnFailure": "En cas d’échec · {reason}",
+  "@storyStepOnFailure": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "storyStepOutcome": "Si « {outcome} »",
+  "@storyStepOutcome": {
+    "placeholders": {
+      "outcome": {
+        "type": "String"
+      }
+    }
+  },
+  "storyStepFailureReason": "{port, select, bagFull{sac plein} soundBlocked{son coupé} blocked{bloqué} cancelled{annulé} noCapacity{plus de place} quit{abandon} failed{échec} interrupted{interrompu} other{{port}}}",
+  "@storyStepFailureReason": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      }
+    }
+  }
 }

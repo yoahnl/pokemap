@@ -57,6 +57,11 @@ test("MCP edits selected graph nodes and conditions without replacing unrelated 
     assert.ok(JSON.stringify(conditionAction).includes('"playerFacing"'));
     assert.ok(JSON.stringify(conditionAction).includes('"pokedexCaughtCount"'));
     assert.equal(record(record(conditionAction.extensions).pokedexCaughtCount).projectDimension, "twoD");
+    const patchAction = (description.mutationActions as JsonRecord[])
+      .find(action => action.id === "scene.graph.patch")!;
+    const patchExtensions = record(patchAction.extensions);
+    assert.ok((patchExtensions.parameters as string[]).includes("nodeLayouts"));
+    assert.equal(record(patchExtensions.nodeLayouts).appliesTo, "nodesCreatedByThisPatch");
     const workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const beforeOther = await call("pokemap_query", { projectHandle: workspace.projectHandle,
       resourceKind: "scene", operation: "get", ids: ["other"], view: "detail" });
@@ -123,6 +128,19 @@ test("MCP edits selected graph nodes and conditions without replacing unrelated 
     assert.equal(record(record(gift.payload).interactiveCommand).quantity, 2);
     assert.equal(gift.title, "Cadeau");
     assert.equal(record(record(scenes[0]?.graph).nodes instanceof Array ? (record(scenes[0]?.graph).nodes as JsonRecord[])[2] : undefined).title, "Fin");
+    const misplaced = await plan("scene.graph.patch", { sceneId: "scene",
+      upsertNodes: [{ id: "end", kind: "end", title: "Fin" }], nodeLayouts: [{ nodeId: "end", x: 1, y: 2 }] }, true);
+    assert.equal(misplaced.domainCode, "scene.graph.invalid_patch");
+    const placed = await plan("scene.graph.patch", { sceneId: "scene", upsertNodes: [
+      { id: "heal", kind: "action", payload: { consequence: { kind: "healParty" } } },
+    ], upsertEdges: [edge("received", "gift", "received", "heal"), edge("healed", "heal", "completed", "end", "actionCompleted")],
+    nodeLayouts: [{ nodeId: "heal", x: 312, y: 24 }] });
+    await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
+      planId: placed.planId, operationId: `apply-${sequence}` });
+    const placedScene = record((record(JSON.parse(await readFile(file, "utf8"))).scenes as JsonRecord[])[0]);
+    assert.deepEqual(record(placedScene.layout).nodeLayouts, [
+      ...scene.layout.nodeLayouts, { nodeId: "heal", x: 312, y: 24 },
+    ]);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
   } finally {
     await client.close();
