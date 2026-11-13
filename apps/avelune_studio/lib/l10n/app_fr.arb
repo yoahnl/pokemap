@@ -64,6 +64,26 @@
   "saveStateUnsaved": "Non enregistré",
   "saveStateSaving": "Enregistrement…",
   "saveStateFailed": "Échec de l’enregistrement",
+  "leaveGuardTitle": "Enregistrer les modifications ?",
+  "leaveGuardMessage": "« {project} » contient des modifications non enregistrées. Si vous ne les enregistrez pas, elles seront perdues.",
+  "@leaveGuardMessage": {
+    "placeholders": {
+      "project": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveGuardSave": "Enregistrer",
+  "leaveGuardDiscard": "Ne pas enregistrer",
+  "leaveGuardCancel": "Annuler",
+  "leaveGuardStoryConflict": "Ces comportements ont aussi été modifiés ailleurs : {names}. Votre version est conservée mais n’a pas été enregistrée.",
+  "@leaveGuardStoryConflict": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "railHome": "Accueil du projet",
   "railMapBuilder": "Constructeur de carte",
   "railRegionalMap": "Carte régionale",
@@ -661,6 +681,47 @@
   },
   "storyAddBehaviour": "Ajouter un comportement",
   "storyDeleteBehaviour": "Supprimer le comportement",
+  "storyDeleteInUse": "Suppression refusée : ce comportement est encore utilisé par {users}. Retirez ces usages, puis réessayez.",
+  "@storyDeleteInUse": {
+    "placeholders": {
+      "users": {
+        "type": "String"
+      }
+    }
+  },
+  "storyDeleteUserEvent": "le comportement « {name} »",
+  "@storyDeleteUserEvent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storyDeleteUserWorldRule": "la règle « {name} »",
+  "@storyDeleteUserWorldRule": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storyDeleteUserMap": "la carte « {name} »",
+  "@storyDeleteUserMap": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storyDeleteUserOther": "« {name} »",
+  "@storyDeleteUserOther": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storyDeleteCoverageUnknown": "Suppression refusée : les usages des comportements de ce projet ne sont pas encore recensés, Avelune ne peut donc pas prouver que celui-ci est inutilisé. Rien n’a été modifié.",
   "storyBehaviourNameField": "Nom du comportement",
   "storyBehaviourActive": "Comportement actif",
   "storyWhenField": "Quand",

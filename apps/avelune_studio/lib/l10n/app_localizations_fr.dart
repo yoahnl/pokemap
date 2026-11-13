@@ -98,6 +98,28 @@ class AppLocalizationsFr extends AppLocalizations {
   String get saveStateFailed => 'Échec de l’enregistrement';
 
   @override
+  String get leaveGuardTitle => 'Enregistrer les modifications ?';
+
+  @override
+  String leaveGuardMessage(String project) {
+    return '« $project » contient des modifications non enregistrées. Si vous ne les enregistrez pas, elles seront perdues.';
+  }
+
+  @override
+  String get leaveGuardSave => 'Enregistrer';
+
+  @override
+  String get leaveGuardDiscard => 'Ne pas enregistrer';
+
+  @override
+  String get leaveGuardCancel => 'Annuler';
+
+  @override
+  String leaveGuardStoryConflict(String names) {
+    return 'Ces comportements ont aussi été modifiés ailleurs : $names. Votre version est conservée mais n’a pas été enregistrée.';
+  }
+
+  @override
   String get railHome => 'Accueil du projet';
 
   @override
@@ -1253,6 +1275,35 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storyDeleteBehaviour => 'Supprimer le comportement';
+
+  @override
+  String storyDeleteInUse(String users) {
+    return 'Suppression refusée : ce comportement est encore utilisé par $users. Retirez ces usages, puis réessayez.';
+  }
+
+  @override
+  String storyDeleteUserEvent(String name) {
+    return 'le comportement « $name »';
+  }
+
+  @override
+  String storyDeleteUserWorldRule(String name) {
+    return 'la règle « $name »';
+  }
+
+  @override
+  String storyDeleteUserMap(String name) {
+    return 'la carte « $name »';
+  }
+
+  @override
+  String storyDeleteUserOther(String name) {
+    return '« $name »';
+  }
+
+  @override
+  String get storyDeleteCoverageUnknown =>
+      'Suppression refusée : les usages des comportements de ce projet ne sont pas encore recensés, Avelune ne peut donc pas prouver que celui-ci est inutilisé. Rien n’a été modifié.';
 
   @override
   String get storyBehaviourNameField => 'Nom du comportement';

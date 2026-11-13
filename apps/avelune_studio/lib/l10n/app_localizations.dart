@@ -260,6 +260,42 @@ abstract class AppLocalizations {
   /// **'Échec de l’enregistrement'**
   String get saveStateFailed;
 
+  /// No description provided for @leaveGuardTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer les modifications ?'**
+  String get leaveGuardTitle;
+
+  /// No description provided for @leaveGuardMessage.
+  ///
+  /// In fr, this message translates to:
+  /// **'« {project} » contient des modifications non enregistrées. Si vous ne les enregistrez pas, elles seront perdues.'**
+  String leaveGuardMessage(String project);
+
+  /// No description provided for @leaveGuardSave.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer'**
+  String get leaveGuardSave;
+
+  /// No description provided for @leaveGuardDiscard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ne pas enregistrer'**
+  String get leaveGuardDiscard;
+
+  /// No description provided for @leaveGuardCancel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler'**
+  String get leaveGuardCancel;
+
+  /// No description provided for @leaveGuardStoryConflict.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ces comportements ont aussi été modifiés ailleurs : {names}. Votre version est conservée mais n’a pas été enregistrée.'**
+  String leaveGuardStoryConflict(String names);
+
   /// No description provided for @railHome.
   ///
   /// In fr, this message translates to:
@@ -2143,6 +2179,42 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Supprimer le comportement'**
   String get storyDeleteBehaviour;
+
+  /// No description provided for @storyDeleteInUse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suppression refusée : ce comportement est encore utilisé par {users}. Retirez ces usages, puis réessayez.'**
+  String storyDeleteInUse(String users);
+
+  /// No description provided for @storyDeleteUserEvent.
+  ///
+  /// In fr, this message translates to:
+  /// **'le comportement « {name} »'**
+  String storyDeleteUserEvent(String name);
+
+  /// No description provided for @storyDeleteUserWorldRule.
+  ///
+  /// In fr, this message translates to:
+  /// **'la règle « {name} »'**
+  String storyDeleteUserWorldRule(String name);
+
+  /// No description provided for @storyDeleteUserMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'la carte « {name} »'**
+  String storyDeleteUserMap(String name);
+
+  /// No description provided for @storyDeleteUserOther.
+  ///
+  /// In fr, this message translates to:
+  /// **'« {name} »'**
+  String storyDeleteUserOther(String name);
+
+  /// No description provided for @storyDeleteCoverageUnknown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suppression refusée : les usages des comportements de ce projet ne sont pas encore recensés, Avelune ne peut donc pas prouver que celui-ci est inutilisé. Rien n’a été modifié.'**
+  String get storyDeleteCoverageUnknown;
 
   /// No description provided for @storyBehaviourNameField.
   ///

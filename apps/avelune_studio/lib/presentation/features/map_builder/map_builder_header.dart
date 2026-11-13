@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/project_session/application/project_draft.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:avelune_studio/presentation/shell/studio_top_bar.dart';
@@ -35,6 +36,7 @@ class MapBuilderHeader extends StatelessWidget {
   const MapBuilderHeader({
     super.key,
     required this.maps,
+    required this.draft,
     required this.projectName,
     required this.editable,
     required this.saveFailed,
@@ -46,6 +48,7 @@ class MapBuilderHeader extends StatelessWidget {
   });
 
   final MapWorkspaceController maps;
+  final ProjectDraftPart draft;
   final String projectName;
   final bool editable;
   final bool saveFailed;
@@ -55,14 +58,10 @@ class MapBuilderHeader extends StatelessWidget {
   final MapBuilderAmbianceBinding? ambiance;
   final MapBuilderStoryBinding? story;
 
-  bool get _dirty => maps.dirty || (story?.dirty ?? false);
-
   StudioSaveState get _saveState {
-    if (maps.saving || (story?.publishing ?? false)) {
-      return StudioSaveState.saving;
-    }
+    if (draft.saving) return StudioSaveState.saving;
     if (saveFailed) return StudioSaveState.failed;
-    return _dirty ? StudioSaveState.unsaved : StudioSaveState.saved;
+    return draft.unsaved ? StudioSaveState.unsaved : StudioSaveState.saved;
   }
 
   @override
@@ -88,7 +87,7 @@ class MapBuilderHeader extends StatelessWidget {
         story: story,
       ),
       saveState: _saveState,
-      onSave: editable && _dirty ? onSave : null,
+      onSave: editable && draft.unsaved ? onSave : null,
       onTestMap: editable && document != null && !testing ? onTestMap : null,
       testing: testing,
     );

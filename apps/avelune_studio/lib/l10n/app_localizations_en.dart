@@ -98,6 +98,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveStateFailed => 'Save failed';
 
   @override
+  String get leaveGuardTitle => 'Save your changes?';
+
+  @override
+  String leaveGuardMessage(String project) {
+    return '“$project” has unsaved changes. If you don’t save them, they will be lost.';
+  }
+
+  @override
+  String get leaveGuardSave => 'Save';
+
+  @override
+  String get leaveGuardDiscard => 'Don’t save';
+
+  @override
+  String get leaveGuardCancel => 'Cancel';
+
+  @override
+  String leaveGuardStoryConflict(String names) {
+    return 'These behaviours were also changed elsewhere: $names. Your version is kept but was not saved.';
+  }
+
+  @override
   String get railHome => 'Project home';
 
   @override
@@ -1247,6 +1269,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storyDeleteBehaviour => 'Delete the behaviour';
+
+  @override
+  String storyDeleteInUse(String users) {
+    return 'Deletion refused: this behaviour is still used by $users. Remove these uses, then try again.';
+  }
+
+  @override
+  String storyDeleteUserEvent(String name) {
+    return 'the behaviour “$name”';
+  }
+
+  @override
+  String storyDeleteUserWorldRule(String name) {
+    return 'the rule “$name”';
+  }
+
+  @override
+  String storyDeleteUserMap(String name) {
+    return 'the map “$name”';
+  }
+
+  @override
+  String storyDeleteUserOther(String name) {
+    return '“$name”';
+  }
+
+  @override
+  String get storyDeleteCoverageUnknown =>
+      'Deletion refused: the behaviour uses of this project are not indexed yet, so Avelune cannot prove this one is unused. Nothing was changed.';
 
   @override
   String get storyBehaviourNameField => 'Behaviour name';

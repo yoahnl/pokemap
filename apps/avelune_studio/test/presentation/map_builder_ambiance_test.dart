@@ -1,5 +1,6 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_draft.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_atmosphere_port.dart';
 import 'package:avelune_studio/features/project_audio/domain/project_audio_port.dart';
@@ -212,6 +213,7 @@ void main() {
                 children: [
                   MapBuilderHeader(
                     maps: maps,
+                    draft: MapWorkspaceDraft(maps),
                     projectName: 'Ambiance',
                     editable: true,
                     saveFailed: false,

@@ -14,6 +14,7 @@ import 'package:avelune_studio/features/map_workspace/application/trigger_editin
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:avelune_studio/features/project_session/application/project_draft.dart';
 
 enum MapStoryTab { behaviour, properties }
 
@@ -23,24 +24,30 @@ enum MapStoryAfter { once, eachTime, oncePerVisit }
 
 enum _StorySide { map, behaviours }
 
-class MapBuilderStoryBinding {
+class MapBuilderStoryBinding implements ProjectDraftPart {
   MapBuilderStoryBinding({
     required this.maps,
     required this.changed,
     required this.view,
     String Function()? zoneName,
     String Function(int index)? behaviourName,
+    String Function(List<String> names)? conflictMessage,
     this.loadMedia,
+    this.port,
   }) : _zoneName = zoneName ?? (() => 'Zone'),
-       _behaviourName = behaviourName ?? ((index) => 'Comportement $index');
+       _behaviourName = behaviourName ?? ((index) => 'Comportement $index'),
+       _conflictMessage =
+           conflictMessage ?? ((names) => '$conflict${names.join(', ')}');
 
   final MapWorkspaceController maps;
   final void Function() changed;
   final MapEditingViewportSession? Function() view;
   final String Function() _zoneName;
   final String Function(int index) _behaviourName;
+  final String Function(List<String> names) _conflictMessage;
   final Future<ProjectMediaCatalog?> Function(ProjectManifest project)?
   loadMedia;
+  final EventPort? Function()? port;
   final behaviours = MapStoryBehaviours();
   bool _mediaLoaded = false;
   final _done = <(_StorySide, Object?)>[];
@@ -322,6 +329,15 @@ class MapBuilderStoryBinding {
     final project = maps.project;
     return project != null && behaviours.dirty(project);
   }
+
+  @override
+  bool get unsaved => dirty;
+
+  @override
+  bool get saving => publishing;
+
+  @override
+  Future<bool> save() => publish(port?.call());
 
   bool get canUndo =>
       _done.any((step) => _matches(step, undo: true)) ||
@@ -648,12 +664,19 @@ class MapBuilderStoryBinding {
     publishing = true;
     changed();
     try {
-      Future<void> accept(Future<ResourceMutationReceipt> publication) async {
+      Future<void> accept(
+        Future<ResourceMutationReceipt> publication,
+        Iterable<EventRecordChange> published,
+      ) async {
         final before = maps.project!;
         final receipt = await publication;
         maps.acceptResources(
           maps.project == receipt.before ? receipt.before : before,
           receipt.manifest,
+        );
+        behaviours.settle(
+          receipt.manifest,
+          only: {for (final change in published) change.id},
         );
       }
 
@@ -672,14 +695,11 @@ class MapBuilderStoryBinding {
         start < batched.length;
         start += EventBatchPort.maxRecords
       ) {
-        await accept(
-          batch!.publishEvents(
-            batched.sublist(
-              start,
-              math.min(start + EventBatchPort.maxRecords, batched.length),
-            ),
-          ),
+        final slice = batched.sublist(
+          start,
+          math.min(start + EventBatchPort.maxRecords, batched.length),
         );
+        await accept(batch!.publishEvents(slice), slice);
       }
       final batchedIds = {for (final change in batched) change.id};
       for (final change in changes) {
@@ -690,9 +710,23 @@ class MapBuilderStoryBinding {
             base: change.base,
             current: change.current,
           ),
+          [change],
         );
       }
-      behaviours.settle(maps.project!);
+      final saved = maps.project!;
+      behaviours.settle(saved);
+      final conflicts = behaviours.conflicts(saved);
+      if (conflicts.isNotEmpty) {
+        final records = saved.eventRegistry?.records ?? const [];
+        error = _conflictMessage([
+          for (final id in conflicts)
+            (behaviours.draftOf(id) ??
+                        records.where((record) => record.id == id).firstOrNull)
+                    ?.name ??
+                id,
+        ]);
+        return false;
+      }
       error = null;
       return true;
     } on Object catch (failure) {
@@ -706,6 +740,7 @@ class MapBuilderStoryBinding {
 
   static const outOfMap = 'out-of-map';
   static const deactivated = 'deactivated:';
+  static const conflict = 'conflict:';
 
   bool _fits(MapData map, GridPos position, GridSize size) =>
       position.x >= 0 &&

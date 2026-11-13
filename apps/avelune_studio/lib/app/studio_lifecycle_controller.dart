@@ -51,9 +51,14 @@ class StudioLifecycleController {
 
   void setHistoryMaintenanceBusy(bool busy) => _historyMaintenanceBusy = busy;
 
+  Future<bool> confirmLeave() async {
+    final guard = _exitGuard;
+    return guard == null || await guard();
+  }
+
   Future<bool> _canRestart() async {
     if (_creatorVisible || _historyMaintenanceBusy) return false;
-    return _exitGuard == null || await _exitGuard!();
+    return confirmLeave();
   }
 
   Future<bool> prepareForUpdate() async {

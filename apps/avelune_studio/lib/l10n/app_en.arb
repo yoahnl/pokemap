@@ -27,6 +27,26 @@
   "saveStateUnsaved": "Unsaved",
   "saveStateSaving": "Saving…",
   "saveStateFailed": "Save failed",
+  "leaveGuardTitle": "Save your changes?",
+  "leaveGuardMessage": "“{project}” has unsaved changes. If you don’t save them, they will be lost.",
+  "@leaveGuardMessage": {
+    "placeholders": {
+      "project": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveGuardSave": "Save",
+  "leaveGuardDiscard": "Don’t save",
+  "leaveGuardCancel": "Cancel",
+  "leaveGuardStoryConflict": "These behaviours were also changed elsewhere: {names}. Your version is kept but was not saved.",
+  "@leaveGuardStoryConflict": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "railHome": "Project home",
   "railMapBuilder": "Map builder",
   "railRegionalMap": "Regional map",
@@ -341,6 +361,12 @@
   "storyPlaceCharacter": "Click on the map to place {name}.",
   "storyAddBehaviour": "Add a behaviour",
   "storyDeleteBehaviour": "Delete the behaviour",
+  "storyDeleteInUse": "Deletion refused: this behaviour is still used by {users}. Remove these uses, then try again.",
+  "storyDeleteUserEvent": "the behaviour “{name}”",
+  "storyDeleteUserWorldRule": "the rule “{name}”",
+  "storyDeleteUserMap": "the map “{name}”",
+  "storyDeleteUserOther": "“{name}”",
+  "storyDeleteCoverageUnknown": "Deletion refused: the behaviour uses of this project are not indexed yet, so Avelune cannot prove this one is unused. Nothing was changed.",
   "storyBehaviourNameField": "Behaviour name",
   "storyBehaviourActive": "Behaviour enabled",
   "storyWhenField": "When",

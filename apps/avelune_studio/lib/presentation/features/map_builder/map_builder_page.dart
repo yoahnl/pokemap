@@ -1,12 +1,19 @@
 import 'dart:async';
 
+import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:avelune_studio/app/di/event_providers.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/narrative_providers.dart';
+import 'package:avelune_studio/app/di/studio_lifecycle_providers.dart';
+import 'package:avelune_studio/app/studio_lifecycle_controller.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_draft.dart';
+import 'package:avelune_studio/features/project_session/application/project_draft.dart';
+import 'package:avelune_studio/platform/input/editor_shortcuts.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_selection_context.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_input_session.dart';
@@ -63,6 +70,11 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   ProviderSubscription<StudioRuntimeBuilder>? _runtime;
   late final MapWorkspaceController _maps;
   late final MapEditingInputSession _input;
+  late final StudioLifecycleController _lifecycle;
+  late final _draft = ProjectDraft([MapWorkspaceDraft(_maps), _story]);
+  final _pageFocus = FocusNode(debugLabel: 'map-builder', skipTraversal: true);
+  var _guarded = false;
+  Future<bool>? _leaving;
   final _views = <String, MapEditingViewportSession>{};
   MapWorkspaceVisuals? _visuals;
   String? _visualsError;
@@ -98,6 +110,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     view: () => _view,
     zoneName: () => context.l10n.storyNewZone,
     behaviourName: (index) => context.l10n.storyBehaviourName(index),
+    conflictMessage: (names) =>
+        context.l10n.leaveGuardStoryConflict(names.join(', ')),
+    port: () => ref.read(eventPortProvider(widget.session)),
     loadMedia: (project) async =>
         switch (ref.read(eventPortProvider(widget.session))) {
           final EventPresentationCatalogPort port =>
@@ -138,7 +153,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       (_, _) {},
     );
     _input = MapEditingInputSession(controller: _maps, view: () => _view);
+    _lifecycle = ref.read(studioLifecycleControllerProvider);
     _maps.addListener(_changed);
+    FocusManager.instance.addListener(_focusChanged);
     unawaited(_open());
   }
 
@@ -192,33 +209,81 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     _gameplay.reconcile();
     _ambiance.reconcile();
     _story.reconcile();
+    _protect();
     if (mounted) setState(() {});
   }
 
-  Future<void> _save() async {
-    setState(() => _saveFailed = false);
-    final saved = await _saveEverything();
-    if (!_disposed) setState(() => _saveFailed = !saved);
+  void _focusChanged() {
+    if (_typing) _protect();
   }
 
-  Future<bool> _saveEverything() async {
-    if (_maps.dirty && !await _maps.saveAll()) return false;
+  void _protect() {
+    if (_guarded || _disposed || !(_draft.unsaved || _typing)) return;
+    _guarded = true;
+    _lifecycle.registerExitGuard(widget.session.sessionId, _confirmLeave);
+  }
+
+  bool get _typing {
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (_disposed || focused == null || !focused.mounted) return false;
+    return (focused.widget is EditableText ||
+            focused.findAncestorWidgetOfExactType<EditableText>() != null) &&
+        identical(focused.findAncestorStateOfType<_MapBuilderPageState>(), this);
+  }
+
+  void _commitTyping() {
+    if (!_typing) return;
+    _pageFocus.requestFocus();
+    FocusManager.instance.applyFocusChangesIfNeeded();
+  }
+
+  Future<bool> _save() async {
+    _commitTyping();
     if (_disposed) return false;
-    return _story.publish(ref.read(eventPortProvider(widget.session)));
+    setState(() => _saveFailed = false);
+    final saved = await _draft.save();
+    if (!_disposed) setState(() => _saveFailed = !saved);
+    return saved;
+  }
+
+  Future<bool> _confirmLeave() =>
+      _leaving ??= _askToLeave().whenComplete(() => _leaving = null);
+
+  Future<bool> _askToLeave() async {
+    _commitTyping();
+    if (_disposed || !_draft.unsaved) return true;
+    final l10n = context.l10n;
+    final choice = await showStudioSaveChoiceDialog(
+      context,
+      title: l10n.leaveGuardTitle,
+      message: l10n.leaveGuardMessage(
+        _maps.project?.name ?? widget.session.name,
+      ),
+      saveLabel: l10n.leaveGuardSave,
+      discardLabel: l10n.leaveGuardDiscard,
+      cancelLabel: l10n.leaveGuardCancel,
+    );
+    if (_disposed) return choice == StudioSaveChoice.discard;
+    return switch (choice) {
+      StudioSaveChoice.save => _save(),
+      StudioSaveChoice.discard => true,
+      StudioSaveChoice.cancel => false,
+    };
   }
 
   Future<void> _testMap() async {
     final document = _maps.active;
     final entry = _activeEntry;
     if (document == null || entry == null || _testing) return;
+    _commitTyping();
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _testing = true;
       _saveFailed = false;
     });
     try {
-      if (_maps.dirty || _story.dirty) {
-        final saved = await _saveEverything();
+      if (_draft.unsaved) {
+        final saved = await _draft.save();
         if (!mounted) return;
         if (!saved) {
           setState(() => _saveFailed = true);
@@ -255,6 +320,11 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   @override
   void dispose() {
     _disposed = true;
+    FocusManager.instance.removeListener(_focusChanged);
+    if (_guarded) {
+      _lifecycle.registerExitGuard(widget.session.sessionId, null);
+    }
+    _pageFocus.dispose();
     _ambiance.dispose();
     _maps.removeListener(_changed);
     _input.dispose();
@@ -333,12 +403,13 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
           );
     return Scaffold(
       key: const ValueKey('map-builder'),
-      body: MinimumSizeViewport(
+      body: _keyboard(MinimumSizeViewport(
         minimum: mapBuilderMinimumSize,
         child: Column(
           children: [
             MapBuilderHeader(
               maps: _maps,
+              draft: _draft,
               projectName: project?.name ?? widget.session.name,
               editable: _editable,
               saveFailed: _saveFailed,
@@ -421,8 +492,36 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
             ),
           ],
         ),
-      ),
+      )),
     );
+  }
+
+  Widget _keyboard(Widget child) => CallbackShortcuts(
+    bindings: textAwareEditorShortcuts({
+      for (final meta in [true, false]) ...{
+        SingleActivator(LogicalKeyboardKey.keyS, meta: meta, control: !meta):
+            () {
+              if (_editable) unawaited(_save());
+            },
+        SingleActivator(LogicalKeyboardKey.keyZ, meta: meta, control: !meta):
+            () => _stepHistory(redo: false),
+        SingleActivator(
+          LogicalKeyboardKey.keyZ,
+          meta: meta,
+          control: !meta,
+          shift: true,
+        ): () =>
+            _stepHistory(redo: true),
+      },
+    }),
+    child: Focus(focusNode: _pageFocus, child: child),
+  );
+
+  void _stepHistory({required bool redo}) {
+    final step = _historyStep(redo: redo);
+    if (step == null) return;
+    step();
+    _changed();
   }
 
   String? _resourceProblem() => switch (_resources.problem) {

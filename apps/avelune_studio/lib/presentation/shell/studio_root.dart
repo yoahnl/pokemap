@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:avelune_studio/app/di/project_session_providers.dart';
+import 'package:avelune_studio/app/di/studio_lifecycle_providers.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
@@ -26,6 +27,7 @@ class _StudioRootState extends ConsumerState<StudioRoot> {
   late final _opening = ProjectSessionOpenController(
     session: _session,
     chooseDirectory: () => ref.read(projectDirectoryPickerProvider)(),
+    allowSwitch: ref.read(studioLifecycleControllerProvider).confirmLeave,
   );
 
   @override
@@ -78,7 +80,7 @@ class _StudioRootState extends ConsumerState<StudioRoot> {
   Widget _builder(ProjectSession project) => MapBuilderPage(
     key: ValueKey(project.sessionId),
     session: project,
-    onHome: _session.close,
+    onHome: _opening.close,
     progress: _session.state.progress,
   );
 }

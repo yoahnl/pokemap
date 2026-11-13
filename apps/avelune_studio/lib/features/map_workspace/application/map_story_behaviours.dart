@@ -12,12 +12,19 @@ typedef MapStoryBehaviourChange = ({
 
 const _workingRevision = 'map-story-working-copy';
 
+typedef _Edit = ({NarrativeEventRecord? base, NarrativeEventRecord? current});
+
+typedef _Step = Map<String, ({_Edit before, _Edit after})>;
+
 final class MapStoryBehaviours {
   ProjectMediaCatalog? media;
-  NarrativeEventRegistry? _working;
-  bool _touched = false;
-  final _undo = <(bool, NarrativeEventRegistry?)>[];
-  final _redo = <(bool, NarrativeEventRegistry?)>[];
+  final _edits = <String, _Edit>{};
+  final _undo = <_Step>[];
+  final _redo = <_Step>[];
+  NarrativeEventRegistry? _shell;
+  var _version = 0;
+  (NarrativeEventRegistry?, int, NarrativeEventRegistry?)? _overlay;
+  (NarrativeEventRegistry?, Map<String, NarrativeEventRecord>)? _index;
   (
     ProjectManifest,
     MapData,
@@ -29,29 +36,82 @@ final class MapStoryBehaviours {
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
 
-  NarrativeEventRegistry? registry(ProjectManifest project) =>
-      _touched ? _working : project.eventRegistry;
+  NarrativeEventRegistry? registry(ProjectManifest project) {
+    final saved = project.eventRegistry;
+    if (_edits.isEmpty) return saved;
+    final cached = _overlay;
+    if (cached != null &&
+        identical(cached.$1, saved) &&
+        cached.$2 == _version) {
+      return cached.$3;
+    }
+    final shell = saved ?? _shell;
+    final savedIds = <String>{};
+    final records = <NarrativeEventRecord>[];
+    for (final record in saved?.records ?? const <NarrativeEventRecord>[]) {
+      savedIds.add(record.id);
+      final edit = _edits[record.id];
+      if (edit == null) {
+        records.add(record);
+      } else if (edit.current case final current?) {
+        records.add(current);
+      }
+    }
+    for (final MapEntry(:key, :value) in _edits.entries) {
+      if (!savedIds.contains(key) && value.current != null) {
+        records.add(value.current!);
+      }
+    }
+    final registry = shell == null
+        ? null
+        : NarrativeEventRegistry(
+            schemaVersion: shell.schemaVersion,
+            mode: shell.mode,
+            records: records,
+            legacyClaims: shell.legacyClaims,
+          );
+    _overlay = (saved, _version, registry);
+    return registry;
+  }
 
-  ProjectManifest project(ProjectManifest project) =>
-      _touched ? project.copyWith(eventRegistry: _working) : project;
+  ProjectManifest project(ProjectManifest project) => _edits.isEmpty
+      ? project
+      : project.copyWith(eventRegistry: registry(project));
 
-  bool dirty(ProjectManifest project) => changes(project).isNotEmpty;
+  bool dirty(ProjectManifest project) {
+    final saved = _savedRecords(project);
+    return _edits.entries.any((edit) => saved[edit.key] != edit.value.current);
+  }
 
   List<MapStoryBehaviourChange> changes(ProjectManifest project) {
-    if (!_touched) return const [];
-    final saved = {
-      for (final record in project.eventRegistry?.records ?? const [])
-        record.id: record,
-    };
-    final working = {
-      for (final record in _working?.records ?? const <NarrativeEventRecord>[])
-        record.id: record,
-    };
+    final saved = _savedRecords(project);
     return [
-      for (final id in {...saved.keys, ...working.keys})
-        if (saved[id] != working[id])
-          (id: id, base: saved[id], current: working[id]),
+      for (final MapEntry(:key, :value) in _edits.entries)
+        if (saved[key] != value.current && saved[key] == value.base)
+          (id: key, base: value.base, current: value.current),
     ];
+  }
+
+  List<String> conflicts(ProjectManifest project) {
+    final saved = _savedRecords(project);
+    return [
+      for (final MapEntry(:key, :value) in _edits.entries)
+        if (saved[key] != value.current && saved[key] != value.base) key,
+    ];
+  }
+
+  NarrativeEventRecord? draftOf(String id) => _edits[id]?.current;
+
+  Map<String, NarrativeEventRecord> _savedRecords(ProjectManifest project) {
+    final registry = project.eventRegistry;
+    final cached = _index;
+    if (cached != null && identical(cached.$1, registry)) return cached.$2;
+    final index = {
+      for (final record in registry?.records ?? const <NarrativeEventRecord>[])
+        record.id: record,
+    };
+    _index = (registry, index);
+    return index;
   }
 
   void prepare(ProjectManifest project, MapData map) =>
@@ -115,8 +175,8 @@ final class MapStoryBehaviours {
     MapData map,
     List<MapStoryBehaviourOperation> operations,
   ) {
-    final before = (_touched, _working);
-    var registry = this.registry(project);
+    final start = this.registry(project);
+    var registry = start;
     String? eventId;
     for (final operation in operations) {
       final context = _context(project, registry, map);
@@ -141,37 +201,88 @@ final class MapStoryBehaviours {
       registry = result.nextRegistry;
       eventId = result.eventId ?? eventId;
     }
-    if (registry == this.registry(project)) {
+    if (identical(registry, start) || registry == start) {
       return (eventId: eventId, problem: null);
     }
-    _undo.add(before);
+    final saved = _savedRecords(project);
+    final before = {
+      for (final record in start?.records ?? const <NarrativeEventRecord>[])
+        record.id: record,
+    };
+    final after = {
+      for (final record in registry?.records ?? const <NarrativeEventRecord>[])
+        record.id: record,
+    };
+    final step = <String, ({_Edit before, _Edit after})>{};
+    for (final id in {...before.keys, ...after.keys}) {
+      if (identical(before[id], after[id]) || before[id] == after[id]) continue;
+      final previous = _edits[id] ?? (base: saved[id], current: saved[id]);
+      step[id] = (
+        before: previous,
+        after: (base: previous.base, current: after[id]),
+      );
+    }
+    _shell = registry;
+    if (step.isEmpty) return (eventId: eventId, problem: null);
+    _play(step, forward: true);
+    _undo.add(step);
     if (_undo.length > 80) _undo.removeAt(0);
     _redo.clear();
-    _touched = true;
-    _working = registry;
     return (eventId: eventId, problem: null);
   }
 
   void undo() {
     if (_undo.isEmpty) return;
-    _redo.add((_touched, _working));
-    final (touched, working) = _undo.removeLast();
-    _touched = touched;
-    _working = working;
+    final step = _undo.removeLast();
+    _play(step, forward: false);
+    _redo.add(step);
   }
 
   void redo() {
     if (_redo.isEmpty) return;
-    _undo.add((_touched, _working));
-    final (touched, working) = _redo.removeLast();
-    _touched = touched;
-    _working = working;
+    final step = _redo.removeLast();
+    _play(step, forward: true);
+    _undo.add(step);
   }
 
-  void settle(ProjectManifest saved) {
-    if (_touched && changes(saved).isEmpty) {
-      _touched = false;
-      _working = null;
+  void _play(_Step step, {required bool forward}) {
+    for (final MapEntry(:key, :value) in step.entries) {
+      final edit = forward ? value.after : value.before;
+      if (edit.base == edit.current) {
+        _edits.remove(key);
+      } else {
+        _edits[key] = edit;
+      }
     }
+    _version++;
   }
+
+  void settle(ProjectManifest saved, {Set<String>? only}) {
+    final records = _savedRecords(saved);
+    final settled = [
+      for (final MapEntry(:key, :value) in _edits.entries)
+        if ((only == null || only.contains(key)) &&
+            records[key] == value.current)
+          (key, value),
+    ];
+    if (settled.isEmpty) return;
+    for (final (id, edit) in settled) {
+      _edits.remove(id);
+      for (final step in [..._undo, ..._redo]) {
+        final entry = step[id];
+        if (entry == null) continue;
+        step[id] = (
+          before: _rebased(entry.before, edit.base, edit.current),
+          after: _rebased(entry.after, edit.base, edit.current),
+        );
+      }
+    }
+    _version++;
+  }
+
+  _Edit _rebased(
+    _Edit edit,
+    NarrativeEventRecord? from,
+    NarrativeEventRecord? to,
+  ) => edit.base == from ? (base: to, current: edit.current) : edit;
 }
