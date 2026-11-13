@@ -14,6 +14,7 @@ class StudioChoice extends StatefulWidget {
     this.subtitle,
     this.tone,
     this.dense = false,
+    this.maxLines,
   });
   final String label;
   final VoidCallback? onTap;
@@ -23,6 +24,7 @@ class StudioChoice extends StatefulWidget {
   final String? subtitle;
   final StudioTone? tone;
   final bool dense;
+  final int? maxLines;
   @override
   State<StudioChoice> createState() => _StudioChoiceState();
 }
@@ -88,7 +90,7 @@ class _StudioChoiceState extends State<StudioChoice> {
                         children: [
                           Text(
                             widget.label,
-                            maxLines: widget.dense ? 1 : 2,
+                            maxLines: widget.maxLines ?? (widget.dense ? 1 : 2),
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: widget.selected

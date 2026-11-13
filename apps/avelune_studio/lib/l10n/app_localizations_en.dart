@@ -977,6 +977,228 @@ class AppLocalizationsEn extends AppLocalizations {
   String get musicMore => 'Show more';
 
   @override
+  String get storyShow => 'Show';
+
+  @override
+  String get storyShowAll => 'All';
+
+  @override
+  String get storyEmpty => 'No element on this map.';
+
+  @override
+  String get storyNoMatch => 'No element matches.';
+
+  @override
+  String storyBehaviours(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count behaviours',
+      one: '1 behaviour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storyConfigured => 'Configured';
+
+  @override
+  String get storyToConfigure => 'To configure';
+
+  @override
+  String storyPending(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count elements to configure on this map',
+      one: '1 element to configure on this map',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String storyMapArrival(String name) {
+    return 'Arrival at $name';
+  }
+
+  @override
+  String storyKindEyebrow(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'character': 'CHARACTER',
+      'interactive': 'INTERACTIVE OBJECT',
+      'zone': 'ZONE',
+      'map': 'MAP',
+      'other': 'ELEMENT',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String storyPosition(int x, int y) {
+    return 'X $x · Y $y';
+  }
+
+  @override
+  String get storyTabBehaviour => 'Behaviour';
+
+  @override
+  String get storyTabProperties => 'Properties';
+
+  @override
+  String storyBehavioursTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'BEHAVIOURS · $count',
+      zero: 'BEHAVIOURS',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storyNoBehaviour => 'No behaviour yet.';
+
+  @override
+  String get storyWhen => 'WHEN';
+
+  @override
+  String get storyIf => 'IF';
+
+  @override
+  String get storyThen => 'THEN';
+
+  @override
+  String get storyAfter => 'AFTER IT RUNS';
+
+  @override
+  String storyTrigger(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'entityInteract': 'The player interacts',
+      'modelInteract': 'The player interacts',
+      'entityBump': 'The player touches the element',
+      'entityAutorun': 'Automatically',
+      'triggerEnter': 'The player enters the zone',
+      'triggerBump': 'The player touches the zone',
+      'mapEnter': 'On arriving on the map',
+      'outcomeReceived': 'When a result is received',
+      'other': 'Trigger to choose',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyAlways => 'Always';
+
+  @override
+  String storyConditions(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conditions',
+      one: '1 condition',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storySceneMissing => 'No scene chosen';
+
+  @override
+  String get storyOnce => 'Only once';
+
+  @override
+  String get storyEachTime => 'Every time';
+
+  @override
+  String get storyOncePerVisit => 'Once per visit';
+
+  @override
+  String get storyOnceUntilOutcome => 'Once, then after a result';
+
+  @override
+  String get storyReuseUnset => 'To define';
+
+  @override
+  String get storyActive => 'Enabled';
+
+  @override
+  String get storyDisabled => 'Disabled';
+
+  @override
+  String get storyDraft => 'Draft';
+
+  @override
+  String get storyName => 'NAME';
+
+  @override
+  String get storyPositionLabel => 'POSITION';
+
+  @override
+  String get storyAreaLabel => 'SIZE';
+
+  @override
+  String storyAreaSize(int width, int height) {
+    return '$width × $height cells';
+  }
+
+  @override
+  String get storyAppearance => 'APPEARANCE';
+
+  @override
+  String get storyFacing => 'FACING';
+
+  @override
+  String storyFacingName(String facing) {
+    String _temp0 = intl.Intl.selectLogic(facing, {
+      'north': 'North',
+      'south': 'South',
+      'east': 'East',
+      'west': 'West',
+      'other': '$facing',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyCollision => 'BLOCKS THE WAY';
+
+  @override
+  String get storyMovement => 'MOVEMENT';
+
+  @override
+  String storyMovementName(String mode) {
+    String _temp0 = intl.Intl.selectLogic(mode, {
+      'idle': 'Still',
+      'patrol': 'Patrol',
+      'scriptedOnly': 'Scenes only',
+      'fixedRoute': 'Fixed route',
+      'other': '$mode',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyTrainer => 'TRAINER';
+
+  @override
+  String get storyNoTrainer => 'None · ordinary character';
+
+  @override
+  String get storyNone => 'None';
+
+  @override
+  String get storySignText => 'TEXT';
+
+  @override
+  String get storyYes => 'Yes';
+
+  @override
+  String get storyNo => 'No';
+
+  @override
+  String get storyMapProperties => 'Map properties are set in Map settings.';
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

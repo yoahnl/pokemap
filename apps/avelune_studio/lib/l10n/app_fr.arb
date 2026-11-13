@@ -517,6 +517,137 @@
   "musicLibraryEmpty": "Aucun son importé dans ce projet.",
   "musicNoMatch": "Aucun son ne correspond.",
   "musicMore": "Afficher plus",
+  "storyShow": "Afficher",
+  "storyShowAll": "Tous",
+  "storyEmpty": "Aucun élément sur cette carte.",
+  "storyNoMatch": "Aucun élément ne correspond.",
+  "storyBehaviours": "{count, plural, =1{1 comportement} other{{count} comportements}}",
+  "@storyBehaviours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "storyConfigured": "Configuré",
+  "storyToConfigure": "À configurer",
+  "storyPending": "{count, plural, =1{1 élément à configurer sur cette carte} other{{count} éléments à configurer sur cette carte}}",
+  "@storyPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "storyMapArrival": "Arrivée à {name}",
+  "@storyMapArrival": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storyKindEyebrow": "{kind, select, character{PERSONNAGE} interactive{OBJET INTERACTIF} zone{ZONE} map{CARTE} other{ÉLÉMENT}}",
+  "@storyKindEyebrow": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "storyPosition": "X {x} · Y {y}",
+  "@storyPosition": {
+    "placeholders": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      }
+    }
+  },
+  "storyTabBehaviour": "Comportement",
+  "storyTabProperties": "Propriétés",
+  "storyBehavioursTitle": "{count, plural, =0{COMPORTEMENTS} other{COMPORTEMENTS · {count}}}",
+  "@storyBehavioursTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "storyNoBehaviour": "Aucun comportement pour l’instant.",
+  "storyWhen": "QUAND",
+  "storyIf": "SI",
+  "storyThen": "ALORS",
+  "storyAfter": "APRÈS LE DÉCLENCHEMENT",
+  "storyTrigger": "{kind, select, entityInteract{Le joueur interagit} modelInteract{Le joueur interagit} entityBump{Le joueur touche l’élément} entityAutorun{Automatiquement} triggerEnter{Le joueur entre dans la zone} triggerBump{Le joueur touche la zone} mapEnter{En arrivant sur la carte} outcomeReceived{À la réception d’un résultat} other{Déclencheur à choisir}}",
+  "@storyTrigger": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "storyAlways": "Toujours",
+  "storyConditions": "{count, plural, =1{1 condition} other{{count} conditions}}",
+  "@storyConditions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "storySceneMissing": "Aucune scène choisie",
+  "storyOnce": "Une seule fois",
+  "storyEachTime": "À chaque fois",
+  "storyOncePerVisit": "Une fois par visite",
+  "storyOnceUntilOutcome": "Une fois, puis après un résultat",
+  "storyReuseUnset": "À définir",
+  "storyActive": "Activé",
+  "storyDisabled": "Désactivé",
+  "storyDraft": "Brouillon",
+  "storyName": "NOM",
+  "storyPositionLabel": "POSITION",
+  "storyAreaLabel": "TAILLE",
+  "storyAreaSize": "{width} × {height} cases",
+  "@storyAreaSize": {
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "storyAppearance": "APPARENCE",
+  "storyFacing": "ORIENTATION",
+  "storyFacingName": "{facing, select, north{Nord} south{Sud} east{Est} west{Ouest} other{{facing}}}",
+  "@storyFacingName": {
+    "placeholders": {
+      "facing": {
+        "type": "String"
+      }
+    }
+  },
+  "storyCollision": "BLOQUE LE PASSAGE",
+  "storyMovement": "DÉPLACEMENT",
+  "storyMovementName": "{mode, select, idle{Immobile} patrol{Patrouille} scriptedOnly{Seulement en scène} fixedRoute{Parcours fixe} other{{mode}}}",
+  "@storyMovementName": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "storyTrainer": "DRESSEUR",
+  "storyNoTrainer": "Aucun · personnage ordinaire",
+  "storyNone": "Aucune",
+  "storySignText": "TEXTE",
+  "storyYes": "Oui",
+  "storyNo": "Non",
+  "storyMapProperties": "Les propriétés de la carte se règlent dans Réglages de carte.",
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {

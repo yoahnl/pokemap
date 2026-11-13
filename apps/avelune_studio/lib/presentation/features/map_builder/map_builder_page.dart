@@ -19,6 +19,7 @@ import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.
 import 'package:avelune_studio/presentation/shell/studio_rail.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_canvas.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_inspector.dart';
@@ -88,6 +89,11 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     isActive: () => !_disposed,
     changed: _changed,
     labels: () => context.l10n,
+  );
+  late final _story = MapBuilderStoryBinding(
+    maps: _maps,
+    changed: _changed,
+    view: () => _view,
   );
   late final _ambiance = MapBuilderAmbianceBinding(
     maps: _maps,
@@ -324,6 +330,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                   StudioRail(onHome: () => unawaited(widget.onHome())),
                   MapBuilderSidePanel(
                     space: _space,
+                    story: _story,
                     gameplay: _gameplay,
                     ambiance: _ambiance,
                     resources: _resources,
@@ -381,6 +388,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                         _ambiance,
                         context.l10n,
                         enabled: _editable,
+                        story: _story,
                       ),
                     ),
                 ],

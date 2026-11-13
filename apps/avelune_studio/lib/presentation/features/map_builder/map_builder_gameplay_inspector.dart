@@ -11,6 +11,9 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_enc
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_movement_zone_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_obstacle_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_panel.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_inspector.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_spawn_form.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_warp_form.dart';
@@ -23,12 +26,21 @@ Widget? mapBuilderSpaceInspector(
   MapBuilderAmbianceBinding ambiance,
   AppLocalizations l10n, {
   required bool enabled,
+  MapBuilderStoryBinding? story,
 }) => switch ((space, mapBuilderSpaceOutline(space, l10n))) {
   (MapBuilderSpace.gameplay, final outline?) => MapBuilderGameplayInspector(
     binding: binding,
     outline: outline,
     enabled: enabled,
   ),
+  (MapBuilderSpace.story, final outline?) when story != null =>
+    switch (story.selected) {
+      final element? => MapBuilderStoryInspector(
+        binding: story,
+        element: element,
+      ),
+      null => MapBuilderSpaceInspectorBody(outline: outline, live: true),
+    },
   (MapBuilderSpace.ambiance, _) when ambiance.maps.active != null =>
     MapBuilderAmbianceInspector(binding: ambiance, enabled: enabled),
   _ => null,

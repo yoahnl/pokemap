@@ -246,7 +246,7 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('the game and ambiance spaces are available while story waits', (
+  testWidgets('the game, story and ambiance spaces open their own panels', (
     tester,
   ) async {
     await openShell(tester);
@@ -265,36 +265,40 @@ void main() {
     }
     expect(find.text('Bientôt'), findsNothing);
 
-    for (final (space, rubric, panel, inspector, live) in [
-      ('story', 'characters', 'map-space-inspector', 'ÉVÉNEMENT', false),
-      (
-        'ambiance',
-        'music',
-        'map-ambiance-inspector',
-        'AMBIANCE DE LA CARTE',
-        true,
+    await tester.tap(find.byKey(const ValueKey('map-space-story')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('map-library')), findsNothing);
+    expect(find.byKey(const ValueKey('map-story-search')), findsOneWidget);
+    expect(
+      find.text('Pas encore disponible dans le nouveau Studio'),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('map-space-inspector')),
+        matching: find.text('ÉVÉNEMENT'),
       ),
-    ]) {
-      await tester.tap(find.byKey(ValueKey('map-space-$space')));
-      await tester.pump();
+      findsOneWidget,
+    );
 
-      expect(find.byKey(const ValueKey('map-library')), findsNothing);
-      expect(find.byKey(const ValueKey('map-space-panel')), findsOneWidget);
-      final tile = tester.widget(
-        find.byKey(ValueKey('map-space-rubric-$rubric')),
-      );
-      expect(
-        tile is StudioChoice ? tile.onTap != null : (tile as ListTile).enabled,
-        live,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(ValueKey(panel)),
-          matching: find.text(inspector),
-        ),
-        findsOneWidget,
-      );
-    }
+    await tester.tap(find.byKey(const ValueKey('map-space-ambiance')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('map-space-panel')), findsOneWidget);
+    expect(
+      tester
+          .widget<StudioChoice>(
+            find.byKey(const ValueKey('map-space-rubric-music')),
+          )
+          .onTap,
+      isNotNull,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('map-ambiance-inspector')),
+        matching: find.text('AMBIANCE DE LA CARTE'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('map-space-construction')));
     await tester.pump();

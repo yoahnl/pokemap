@@ -1760,6 +1760,294 @@ abstract class AppLocalizations {
   /// **'Afficher plus'**
   String get musicMore;
 
+  /// No description provided for @storyShow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Afficher'**
+  String get storyShow;
+
+  /// No description provided for @storyShowAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous'**
+  String get storyShowAll;
+
+  /// No description provided for @storyEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun élément sur cette carte.'**
+  String get storyEmpty;
+
+  /// No description provided for @storyNoMatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun élément ne correspond.'**
+  String get storyNoMatch;
+
+  /// No description provided for @storyBehaviours.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 comportement} other{{count} comportements}}'**
+  String storyBehaviours(int count);
+
+  /// No description provided for @storyConfigured.
+  ///
+  /// In fr, this message translates to:
+  /// **'Configuré'**
+  String get storyConfigured;
+
+  /// No description provided for @storyToConfigure.
+  ///
+  /// In fr, this message translates to:
+  /// **'À configurer'**
+  String get storyToConfigure;
+
+  /// No description provided for @storyPending.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 élément à configurer sur cette carte} other{{count} éléments à configurer sur cette carte}}'**
+  String storyPending(int count);
+
+  /// No description provided for @storyMapArrival.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrivée à {name}'**
+  String storyMapArrival(String name);
+
+  /// No description provided for @storyKindEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, character{PERSONNAGE} interactive{OBJET INTERACTIF} zone{ZONE} map{CARTE} other{ÉLÉMENT}}'**
+  String storyKindEyebrow(String kind);
+
+  /// No description provided for @storyPosition.
+  ///
+  /// In fr, this message translates to:
+  /// **'X {x} · Y {y}'**
+  String storyPosition(int x, int y);
+
+  /// No description provided for @storyTabBehaviour.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comportement'**
+  String get storyTabBehaviour;
+
+  /// No description provided for @storyTabProperties.
+  ///
+  /// In fr, this message translates to:
+  /// **'Propriétés'**
+  String get storyTabProperties;
+
+  /// No description provided for @storyBehavioursTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{COMPORTEMENTS} other{COMPORTEMENTS · {count}}}'**
+  String storyBehavioursTitle(int count);
+
+  /// No description provided for @storyNoBehaviour.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun comportement pour l’instant.'**
+  String get storyNoBehaviour;
+
+  /// No description provided for @storyWhen.
+  ///
+  /// In fr, this message translates to:
+  /// **'QUAND'**
+  String get storyWhen;
+
+  /// No description provided for @storyIf.
+  ///
+  /// In fr, this message translates to:
+  /// **'SI'**
+  String get storyIf;
+
+  /// No description provided for @storyThen.
+  ///
+  /// In fr, this message translates to:
+  /// **'ALORS'**
+  String get storyThen;
+
+  /// No description provided for @storyAfter.
+  ///
+  /// In fr, this message translates to:
+  /// **'APRÈS LE DÉCLENCHEMENT'**
+  String get storyAfter;
+
+  /// No description provided for @storyTrigger.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, entityInteract{Le joueur interagit} modelInteract{Le joueur interagit} entityBump{Le joueur touche l’élément} entityAutorun{Automatiquement} triggerEnter{Le joueur entre dans la zone} triggerBump{Le joueur touche la zone} mapEnter{En arrivant sur la carte} outcomeReceived{À la réception d’un résultat} other{Déclencheur à choisir}}'**
+  String storyTrigger(String kind);
+
+  /// No description provided for @storyAlways.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toujours'**
+  String get storyAlways;
+
+  /// No description provided for @storyConditions.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 condition} other{{count} conditions}}'**
+  String storyConditions(int count);
+
+  /// No description provided for @storySceneMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune scène choisie'**
+  String get storySceneMissing;
+
+  /// No description provided for @storyOnce.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une seule fois'**
+  String get storyOnce;
+
+  /// No description provided for @storyEachTime.
+  ///
+  /// In fr, this message translates to:
+  /// **'À chaque fois'**
+  String get storyEachTime;
+
+  /// No description provided for @storyOncePerVisit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une fois par visite'**
+  String get storyOncePerVisit;
+
+  /// No description provided for @storyOnceUntilOutcome.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une fois, puis après un résultat'**
+  String get storyOnceUntilOutcome;
+
+  /// No description provided for @storyReuseUnset.
+  ///
+  /// In fr, this message translates to:
+  /// **'À définir'**
+  String get storyReuseUnset;
+
+  /// No description provided for @storyActive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activé'**
+  String get storyActive;
+
+  /// No description provided for @storyDisabled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Désactivé'**
+  String get storyDisabled;
+
+  /// No description provided for @storyDraft.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillon'**
+  String get storyDraft;
+
+  /// No description provided for @storyName.
+  ///
+  /// In fr, this message translates to:
+  /// **'NOM'**
+  String get storyName;
+
+  /// No description provided for @storyPositionLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'POSITION'**
+  String get storyPositionLabel;
+
+  /// No description provided for @storyAreaLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'TAILLE'**
+  String get storyAreaLabel;
+
+  /// No description provided for @storyAreaSize.
+  ///
+  /// In fr, this message translates to:
+  /// **'{width} × {height} cases'**
+  String storyAreaSize(int width, int height);
+
+  /// No description provided for @storyAppearance.
+  ///
+  /// In fr, this message translates to:
+  /// **'APPARENCE'**
+  String get storyAppearance;
+
+  /// No description provided for @storyFacing.
+  ///
+  /// In fr, this message translates to:
+  /// **'ORIENTATION'**
+  String get storyFacing;
+
+  /// No description provided for @storyFacingName.
+  ///
+  /// In fr, this message translates to:
+  /// **'{facing, select, north{Nord} south{Sud} east{Est} west{Ouest} other{{facing}}}'**
+  String storyFacingName(String facing);
+
+  /// No description provided for @storyCollision.
+  ///
+  /// In fr, this message translates to:
+  /// **'BLOQUE LE PASSAGE'**
+  String get storyCollision;
+
+  /// No description provided for @storyMovement.
+  ///
+  /// In fr, this message translates to:
+  /// **'DÉPLACEMENT'**
+  String get storyMovement;
+
+  /// No description provided for @storyMovementName.
+  ///
+  /// In fr, this message translates to:
+  /// **'{mode, select, idle{Immobile} patrol{Patrouille} scriptedOnly{Seulement en scène} fixedRoute{Parcours fixe} other{{mode}}}'**
+  String storyMovementName(String mode);
+
+  /// No description provided for @storyTrainer.
+  ///
+  /// In fr, this message translates to:
+  /// **'DRESSEUR'**
+  String get storyTrainer;
+
+  /// No description provided for @storyNoTrainer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun · personnage ordinaire'**
+  String get storyNoTrainer;
+
+  /// No description provided for @storyNone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune'**
+  String get storyNone;
+
+  /// No description provided for @storySignText.
+  ///
+  /// In fr, this message translates to:
+  /// **'TEXTE'**
+  String get storySignText;
+
+  /// No description provided for @storyYes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Oui'**
+  String get storyYes;
+
+  /// No description provided for @storyNo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non'**
+  String get storyNo;
+
+  /// No description provided for @storyMapProperties.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les propriétés de la carte se règlent dans Réglages de carte.'**
+  String get storyMapProperties;
+
   /// No description provided for @rubricUnavailable.
   ///
   /// In fr, this message translates to:

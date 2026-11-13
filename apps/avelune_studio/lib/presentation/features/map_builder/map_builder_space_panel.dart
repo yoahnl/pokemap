@@ -168,9 +168,14 @@ class MapBuilderRubricTile extends StatelessWidget {
 }
 
 class MapBuilderSpaceInspectorBody extends StatelessWidget {
-  const MapBuilderSpaceInspectorBody({super.key, required this.outline});
+  const MapBuilderSpaceInspectorBody({
+    super.key,
+    required this.outline,
+    this.live = false,
+  });
 
   final MapBuilderSpaceOutline outline;
+  final bool live;
 
   @override
   Widget build(BuildContext context) {
@@ -201,13 +206,15 @@ class MapBuilderSpaceInspectorBody extends StatelessWidget {
             color: scheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: StudioSpacing.l),
-        Text(
-          context.l10n.unavailableNewStudio,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: scheme.onSurfaceVariant,
+        if (!live) ...[
+          const SizedBox(height: StudioSpacing.l),
+          Text(
+            context.l10n.unavailableNewStudio,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

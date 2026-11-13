@@ -13,12 +13,15 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_res
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_panel.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_panel.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class MapBuilderSidePanel extends StatelessWidget {
   const MapBuilderSidePanel({
     super.key,
     required this.space,
+    required this.story,
     required this.gameplay,
     required this.ambiance,
     required this.resources,
@@ -28,6 +31,7 @@ class MapBuilderSidePanel extends StatelessWidget {
   });
 
   final MapBuilderSpace space;
+  final MapBuilderStoryBinding story;
   final MapBuilderGameplayBinding gameplay;
   final MapBuilderAmbianceBinding ambiance;
   final MapBuilderResourceBinding resources;
@@ -44,6 +48,9 @@ class MapBuilderSidePanel extends StatelessWidget {
         binding: gameplay,
         enabled: enabled,
       );
+    }
+    if (outline != null && space == MapBuilderSpace.story) {
+      return MapBuilderStoryPanel(outline: outline, binding: story);
     }
     if (outline != null && space == MapBuilderSpace.ambiance) {
       return MapBuilderSpacePanel(
