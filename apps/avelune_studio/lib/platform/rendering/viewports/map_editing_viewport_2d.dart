@@ -10,7 +10,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_border_dra
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay_projection.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_encounter_cell_stroke.dart';

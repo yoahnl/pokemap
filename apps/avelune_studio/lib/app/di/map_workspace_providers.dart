@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'studio_mcp_providers.dart';
-import '../../features/project_audio/domain/project_audio_port.dart';
-import '../../platform/playtest/studio_playtest_builders.dart';
+import '../../features/playtest/contracts/studio_playtest_builders.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,7 +10,7 @@ import 'package:avelune_studio/features/map_workspace/domain/map_connection_port
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 
 final mapWorkspacePortProvider = Provider.autoDispose
     .family<MapWorkspacePort, ProjectSession>(
@@ -29,6 +27,14 @@ final mapConnectionPortProvider = Provider.autoDispose
           throw StateError('Map connection port must be configured'),
     );
 
+typedef ExternalProjectMutation = ({
+  String projectRoot,
+  Set<({String kind, String id})> resources,
+});
+
+final externalProjectMutationsProvider =
+    Provider<Stream<ExternalProjectMutation>>((ref) => const Stream.empty());
+
 final mapWorkspaceControllerProvider = Provider.autoDispose
     .family<MapWorkspaceController, ProjectSession>((ref, session) {
       final controller = MapWorkspaceController(
@@ -36,16 +42,11 @@ final mapWorkspaceControllerProvider = Provider.autoDispose
         ref.watch(mapWorkspacePortProvider(session)),
         catalogPort: ref.watch(mapCatalogPortProvider(session)),
       );
-      final changes = ref.watch(studioMcpServiceProvider).mutations.listen((
+      final changes = ref.watch(externalProjectMutationsProvider).listen((
         mutation,
       ) {
         if (mutation.projectRoot != session.directoryPath) return;
-        unawaited(
-          controller.acceptExternalMutation({
-            for (final resource in mutation.resources)
-              (kind: resource.kind, id: resource.id),
-          }),
-        );
+        unawaited(controller.acceptExternalMutation(mutation.resources));
       });
       ref.onDispose(() {
         unawaited(changes.cancel());
@@ -65,11 +66,3 @@ final workspaceRuntimeBuilderProvider =
 
 final projectRuntimeBuilderProvider =
     Provider<Widget Function(ProjectSession, VoidCallback)?>((ref) => null);
-
-final workspaceVisualTestBuilderProvider =
-    Provider<
-      StudioVisualTestBuilder Function(ProjectSession, MapWorkspacePort)?
-    >((ref) => null);
-
-final projectAudioPreviewProvider = Provider.autoDispose
-    .family<ProjectAudioPreviewPort?, ProjectSession>((ref, session) => null);

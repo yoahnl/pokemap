@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_panel.dart';

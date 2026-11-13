@@ -1,6 +1,5 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -151,34 +150,5 @@ void main() {
       reason: 'the guard reads the dependencies when it acts, not once at open',
     );
     expect(() => guarded.delete(sign.id), throwsStateError);
-  });
-
-  test('an unsaved draft target blocks deletion until released', () {
-    final document = documentFor('a');
-    final sign = MapEntityEditingCommands(
-      document,
-      workspaceProject,
-    ).place(MapEntityKind.sign, const GridPos(x: 4, y: 4));
-    var sources = MapDraftReferenceSources(
-      ruleTargets: [
-        (mapId: 'a', kind: MapDraftReferenceKind.entity, id: sign.id),
-      ],
-    );
-    final index = MapDraftReferenceIndex(() => sources);
-    final commands = MapEntityEditingCommands(
-      document,
-      workspaceProject,
-      draftGuard: index.guard,
-    );
-    final before = document.current;
-    final steps = document.undoCount;
-    expect(commands.deletionProblem(sign.id), contains('brouillon'));
-    expect(() => commands.delete(sign.id), throwsStateError);
-    expect(document.current, same(before));
-    expect(document.undoCount, steps);
-    sources = const MapDraftReferenceSources();
-    expect(commands.deletionProblem(sign.id), isNull);
-    commands.delete(sign.id);
-    expect(document.current.entities, isEmpty);
   });
 }

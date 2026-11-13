@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import '../../features/language/application/studio_language_preferences.dart';
+import '../../features/language/coordination/studio_language_preferences.dart';
 
 StudioLanguageStore studioLanguageStore() {
   final home = Platform.environment['HOME'];

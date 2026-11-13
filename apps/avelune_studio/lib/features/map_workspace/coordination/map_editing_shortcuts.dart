@@ -1,4 +1,4 @@
-import 'package:avelune_studio/platform/input/editor_shortcuts.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/editor_shortcuts.dart';
 
 import 'dart:async';
 

@@ -3,7 +3,7 @@ import 'package:avelune_studio/features/map_workspace/coordination/map_editing_i
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_shortcuts.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
-import 'package:avelune_studio/platform/input/editor_shortcuts.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/editor_shortcuts.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';

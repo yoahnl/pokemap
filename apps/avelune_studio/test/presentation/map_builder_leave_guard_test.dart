@@ -4,7 +4,6 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/app/di/event_providers.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
-import 'package:avelune_studio/app/di/studio_lifecycle_providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
@@ -385,9 +384,7 @@ void main() {
     final switching = ProjectSessionOpenController(
       session: container.read(projectSessionControllerProvider),
       chooseDirectory: () async => exampleB.directoryPath,
-      allowSwitch: container
-          .read(studioLifecycleControllerProvider)
-          .confirmLeave,
+      allowSwitch: container.read(studioExitGuardProvider).confirmLeave,
     );
     addTearDown(switching.dispose);
 

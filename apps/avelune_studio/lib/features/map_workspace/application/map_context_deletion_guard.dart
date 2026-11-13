@@ -8,7 +8,6 @@ class MapGuardedContextActionContext extends MapContextActionContext {
     required super.document,
     required super.project,
     required super.position,
-    super.referenceGuard,
     required this.deletionGuard,
   });
 

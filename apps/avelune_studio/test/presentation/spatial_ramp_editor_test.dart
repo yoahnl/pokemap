@@ -4,7 +4,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/application/spatial_ramp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;

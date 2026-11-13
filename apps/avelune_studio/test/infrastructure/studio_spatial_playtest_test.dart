@@ -7,36 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_gameplay/map_gameplay.dart';
 
 void main() {
   late StudioPlaytestControls controls;
   setUp(() => controls = StudioPlaytestControls());
-  test('reset resumes paused exploration without Studio controls', () {
-    final movement = SpatialMovementController(
-      scene: MapSpatialScene(
-        width: 8,
-        depth: 8,
-        navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 4, z: 4)),
-      ),
-      models: [],
-    );
-    final commands = StudioSpatialExplorationCommands(movement: movement);
-    movement.setInput(x: 1, z: 0);
-    movement.update(.05);
-    expect(movement.x, greaterThan(4));
-    commands.togglePause();
-    expect(movement.paused, isTrue);
-    commands.resetPosition();
-    expect(movement.paused, isFalse);
-    expect(movement.x, 4);
-    movement.update(.05);
-    expect(movement.x, 4);
-    final diagonal = movement.allowDiagonalMovement;
-    commands.toggleDiagonal();
-    expect(movement.allowDiagonalMovement, !diagonal);
-  });
-
   testWidgets(
     'saved spatial map enters the 3D loader and reports missing hero before GPU',
     (tester) async {

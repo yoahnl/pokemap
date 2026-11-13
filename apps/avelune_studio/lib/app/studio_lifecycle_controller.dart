@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import '../features/project_session/application/project_session_controller.dart';
-import '../features/rendering/application/studio_rendering_preferences.dart';
+import '../features/project_session/application/studio_exit_guard.dart';
+import '../features/rendering/coordination/studio_rendering_preferences.dart';
 import '../platform/mcp/studio_mcp_service.dart';
 
 class StudioLifecycleController {
@@ -9,15 +10,15 @@ class StudioLifecycleController {
     required this.session,
     required this.mcp,
     required this.renderingPreferences,
+    required this.exitGuard,
   });
 
   final ProjectSessionController session;
   final StudioMcpService mcp;
   final StudioRenderingPreferences renderingPreferences;
+  final StudioExitGuard exitGuard;
   Future<void>? _starting;
   Future<void>? _closing;
-  Future<bool> Function()? _exitGuard;
-  String? _guardSession;
   bool _creatorVisible = false;
   bool _historyMaintenanceBusy = false;
   bool _updatePrepared = false;
@@ -37,28 +38,13 @@ class StudioLifecycleController {
     unawaited(mcp.setProjectRoot(session.state.project?.directoryPath));
   }
 
-  void registerExitGuard(String sessionId, Future<bool> Function()? guard) {
-    if (guard != null) {
-      _exitGuard = guard;
-      _guardSession = sessionId;
-    } else if (_guardSession == sessionId) {
-      _exitGuard = null;
-      _guardSession = null;
-    }
-  }
-
   void setCreatorVisible(bool visible) => _creatorVisible = visible;
 
   void setHistoryMaintenanceBusy(bool busy) => _historyMaintenanceBusy = busy;
 
-  Future<bool> confirmLeave() async {
-    final guard = _exitGuard;
-    return guard == null || await guard();
-  }
-
   Future<bool> _canRestart() async {
     if (_creatorVisible || _historyMaintenanceBusy) return false;
-    return confirmLeave();
+    return exitGuard.confirmLeave();
   }
 
   Future<bool> prepareForUpdate() async {

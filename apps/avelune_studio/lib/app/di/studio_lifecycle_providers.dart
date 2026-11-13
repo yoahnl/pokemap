@@ -16,6 +16,7 @@ final studioLifecycleControllerProvider = Provider<StudioLifecycleController>((
     session: ref.watch(projectSessionControllerProvider),
     mcp: ref.watch(studioMcpServiceProvider),
     renderingPreferences: ref.watch(studioRenderingPreferencesProvider),
+    exitGuard: ref.watch(studioExitGuardProvider),
   );
   ref.onDispose(() => unawaited(controller.close()));
   return controller;

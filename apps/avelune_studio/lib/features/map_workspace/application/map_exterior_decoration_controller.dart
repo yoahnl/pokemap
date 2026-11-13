@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 import 'package:map_authoring/map_authoring_editing.dart'
     show ExteriorDecorationNativeEditing;
 
@@ -10,7 +9,7 @@ import '../domain/map_exterior_decoration_port.dart';
 import '../domain/map_workspace_port.dart';
 import 'editable_map_document.dart';
 
-final class MapExteriorDecorationController extends ChangeNotifier {
+final class MapExteriorDecorationController {
   MapExteriorDecorationController._(
     this.session,
     this.map,
@@ -55,6 +54,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
   bool editingExterior = false;
   bool saving = false;
   bool _disposed = false;
+  final Set<void Function()> _listeners = {};
   bool _externalConflict = false;
   String? error;
   String? lastReceiptId;
@@ -105,7 +105,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
     if (value && _definition == null) {
       configureMargins(west: 16, east: 16, north: 16, south: 16);
     }
-    notifyListeners();
+    _notify();
   }
 
   bool configureMargins({
@@ -139,11 +139,11 @@ final class MapExteriorDecorationController extends ChangeNotifier {
         _editingDocument = null;
       }
       error = null;
-      notifyListeners();
+      _notify();
       return true;
     } on FormatException {
       error = 'La marge doit rester entre 0 et 64 cases et contenir le décor existant. Retirez le contenu concerné avant de la réduire.';
-      notifyListeners();
+      _notify();
       return false;
     }
   }
@@ -206,7 +206,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
     }
     _select(sector);
     _projection = null;
-    notifyListeners();
+    _notify();
     return true;
   }
 
@@ -252,7 +252,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
     _selected = sector;
     _projection = null;
     error = null;
-    notifyListeners();
+    _notify();
     return sector.asVisualMap().copyWith(id: map.id, name: map.name);
   }
 
@@ -340,7 +340,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
     _trackBorder(border.id);
     _projection = null;
     error = null;
-    notifyListeners();
+    _notify();
   }
 
   void removeBorder(String id) {
@@ -351,7 +351,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
     _borders.remove(id);
     _trackBorder(id);
     _projection = null;
-    notifyListeners();
+    _notify();
   }
 
   void _trackBorder(String id) {
@@ -374,7 +374,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
       _selected = null;
       _editingDocument = null;
     }
-    notifyListeners();
+    _notify();
   }
 
   void _track(String id) {
@@ -396,7 +396,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
     if (changes != null && changes.isNotEmpty) {
       _redo = [];
       _undo.add(_ExteriorEdit.group(changes));
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -410,7 +410,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
     _projection = null;
     _selected = null;
     _editingDocument = null;
-    notifyListeners();
+    _notify();
   }
 
   void _clearRedo() {
@@ -446,7 +446,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
       }
     }
     error = null;
-    notifyListeners();
+    _notify();
   }
 
   void _applyChange(_ExteriorEdit change, bool redo) {
@@ -482,7 +482,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
     if (_disposed) return;
     _externalConflict = true;
     error = 'Une modification externe concerne ce décor extérieur. Votre brouillon et son historique sont conservés. Rouvrez la carte avant de publier.';
-    notifyListeners();
+    _notify();
   }
 
   Future<bool> save() async {
@@ -497,7 +497,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
     final borderChanges = {for (final id in _pendingBorders) id: _borders[id]};
     saving = true;
     error = null;
-    notifyListeners();
+    _notify();
     try {
       if (definition != null && definition != _savedDefinition) {
         final result = await port.configureExteriorDecoration(
@@ -574,14 +574,24 @@ final class MapExteriorDecorationController extends ChangeNotifier {
       return false;
     } finally {
       saving = false;
-      if (!_disposed) notifyListeners();
+      if (!_disposed) _notify();
     }
   }
 
-  @override
+
+  void addListener(void Function() listener) => _listeners.add(listener);
+
+  void removeListener(void Function() listener) => _listeners.remove(listener);
+
+  void _notify() {
+    for (final listener in List.of(_listeners)) {
+      if (_listeners.contains(listener)) listener();
+    }
+  }
+
   void dispose() {
     _disposed = true;
-    super.dispose();
+    _listeners.clear();
   }
 }
 

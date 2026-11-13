@@ -6,7 +6,7 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_visual_widgets.dart';
 import 'package:avelune_studio/platform/rendering/studio_resource_decoder.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -3,7 +3,7 @@ import 'package:avelune_studio/features/map_workspace/coordination/map_editing_i
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/spatial_map_neighbor_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_visual_projection_queue.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
 import 'package:flutter/widgets.dart';
 

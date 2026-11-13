@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:map_gameplay/map_gameplay.dart';
-import 'package:map_runtime/map_runtime.dart';
+import 'package:map_core/map_core.dart' show PlaytestSpeed;
 
 class StudioPlaytestStatus {
   const StudioPlaytestStatus({
@@ -104,40 +103,4 @@ class StudioPlaytestControls extends ChangeNotifier {
   void toggleDiagonal() {
     if (available) _toggleDiagonal?.call();
   }
-}
-
-class StudioSpatialExplorationCommands {
-  const StudioSpatialExplorationCommands({
-    required this.movement,
-    this.session,
-  });
-
-  final SpatialMovementController movement;
-  final SpatialExplorationSession? session;
-
-  SpatialMovementController get _movement => session?.movement ?? movement;
-
-  void resetPosition() {
-    if (session?.transitioning.value ?? false) return;
-    session?.closeDialogue();
-    session?.dialoguePaused = false;
-    if (session case final session?) {
-      session.resetPosition();
-    } else {
-      _movement.reset();
-    }
-  }
-
-  void togglePause() {
-    final paused = !(session?.dialoguePaused ?? _movement.paused);
-    session?.dialoguePaused = paused;
-    _movement.setPaused(
-      (session?.presentationPaused ?? paused) ||
-          (session?.interactionActive.value ?? false) ||
-          (session?.transitioning.value ?? false),
-    );
-  }
-
-  void toggleDiagonal() =>
-      _movement.setDiagonalMovement(!_movement.allowDiagonalMovement);
 }

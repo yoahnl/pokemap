@@ -1,4 +1,4 @@
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';

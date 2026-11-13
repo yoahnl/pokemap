@@ -13,12 +13,10 @@ class MapContextActionContext {
     required this.document,
     required this.project,
     required this.position,
-    this.referenceGuard,
   });
   final EditableMapDocument document;
   final ProjectManifest project;
   final GridPos position;
-  final MapReferenceGuard? referenceGuard;
 }
 
 /// The actions a family really supports. An unsupported capability is absent,
@@ -137,7 +135,6 @@ List<MapContextAction> _characterActions(
   final blocked = CharacterEditingCommands(
     context.document,
     context.project,
-    draftGuard: context.referenceGuard,
   ).deletionProblem(target.id);
   return [
     const MapContextAction(MapContextCommand.properties, 'Propriétés'),
@@ -161,7 +158,6 @@ List<MapContextAction> _markerActions(
   final blocked = MapEntityEditingCommands(
     context.document,
     context.project,
-    draftGuard: context.referenceGuard,
   ).deletionProblem(target.id);
   return [
     const MapContextAction(MapContextCommand.properties, 'Propriétés'),
@@ -206,7 +202,6 @@ List<MapContextAction> _triggerActions(
   final blocked = TriggerEditingCommands(
     context.document,
     context.project,
-    draftGuard: context.referenceGuard,
   ).deletionProblem(target.id);
   return [
     const MapContextAction(MapContextCommand.properties, 'Propriétés'),

@@ -1,7 +1,6 @@
 import 'dart:ui' show AppExitResponse;
 
 import 'package:avelune_studio/app/di/providers.dart';
-import 'package:avelune_studio/app/di/studio_lifecycle_providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:flutter/material.dart';
@@ -32,19 +31,19 @@ void main() {
         child: const StudioApp(),
       ),
     );
-    final lifecycle = ProviderScope.containerOf(
+    final exitGuard = ProviderScope.containerOf(
       tester.element(find.byType(StudioApp)),
       listen: false,
-    ).read(studioLifecycleControllerProvider);
-    lifecycle.registerExitGuard(exampleA.sessionId, () async => true);
+    ).read(studioExitGuardProvider);
+    exitGuard.register(exampleA.sessionId, () async => true);
     final replacement = session.open(exampleB.directoryPath);
     port.pending.last.complete(exampleB);
     await replacement;
-    lifecycle.registerExitGuard(exampleB.sessionId, () async {
+    exitGuard.register(exampleB.sessionId, () async {
       guardCalls++;
       return allowExit;
     });
-    lifecycle.registerExitGuard(exampleA.sessionId, null);
+    exitGuard.register(exampleA.sessionId, null);
     await tester.pumpAndSettle();
     expect(await tester.binding.handleRequestAppExit(), AppExitResponse.cancel);
     expect(guardCalls, 1);

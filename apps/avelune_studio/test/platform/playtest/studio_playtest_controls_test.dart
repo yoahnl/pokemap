@@ -1,4 +1,4 @@
-import 'package:avelune_studio/platform/playtest/studio_playtest_controls.dart';
+import 'package:avelune_studio/features/playtest/contracts/studio_playtest_controls.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
 

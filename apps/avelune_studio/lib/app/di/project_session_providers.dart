@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
+import 'package:avelune_studio/features/project_session/application/studio_exit_guard.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
 final projectSessionPortProvider = Provider<ProjectSessionPort>(
@@ -18,6 +19,10 @@ final projectSessionControllerProvider = Provider<ProjectSessionController>((
   ref.onDispose(() => unawaited(controller.dispose()));
   return controller;
 });
+
+final studioExitGuardProvider = Provider<StudioExitGuard>(
+  (ref) => StudioExitGuard(),
+);
 
 final projectDirectoryPickerProvider = Provider<Future<String?> Function()>(
   (ref) => throw StateError('Project directory picker must be configured'),

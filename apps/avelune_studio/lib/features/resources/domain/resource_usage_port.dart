@@ -1,11 +1,11 @@
-export 'package:map_authoring/map_authoring_resources.dart'
+export 'package:map_authoring/map_authoring_resource_usage.dart'
     show
         ResourceUsageTarget,
         ResourceUsageEntry,
         ResourceUsageRelation,
         ResourceUsageReport;
 
-import 'package:map_authoring/map_authoring_resources.dart';
+import 'package:map_authoring/map_authoring_resource_usage.dart';
 
 abstract interface class ResourceUsagePort {
   Future<ResourceUsageReport> analyze(

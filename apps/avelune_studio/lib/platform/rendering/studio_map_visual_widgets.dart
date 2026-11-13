@@ -9,7 +9,7 @@ import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 
 import 'studio_border_preview.dart';
 

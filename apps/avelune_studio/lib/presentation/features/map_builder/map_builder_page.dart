@@ -10,11 +10,11 @@ import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/narrative_providers.dart';
 import 'package:avelune_studio/app/di/story_draft_providers.dart';
-import 'package:avelune_studio/app/di/studio_lifecycle_providers.dart';
-import 'package:avelune_studio/app/studio_lifecycle_controller.dart';
+import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_draft.dart';
 import 'package:avelune_studio/features/project_session/application/project_draft.dart';
-import 'package:avelune_studio/platform/input/editor_shortcuts.dart';
+import 'package:avelune_studio/features/project_session/application/studio_exit_guard.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/editor_shortcuts.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_selection_context.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -23,9 +23,9 @@ import 'package:avelune_studio/features/map_workspace/coordination/map_editing_v
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_visual_projection_queue.dart';
 import 'package:avelune_studio/features/project_session/application/project_opening_progress.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/platform/playtest/studio_playtest_builders.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_canvas_readiness.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/playtest/contracts/studio_playtest_builders.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_canvas_readiness.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
 import 'package:avelune_studio/presentation/shell/studio_rail.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
@@ -43,7 +43,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_res
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_status_bar.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_playtest_page.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/minimum_size_viewport.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_tool_labels.dart';
@@ -72,7 +72,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   ProviderSubscription<StudioRuntimeBuilder>? _runtime;
   late final MapWorkspaceController _maps;
   late final MapEditingInputSession _input;
-  late final StudioLifecycleController _lifecycle;
+  late final StudioExitGuard _exitGuard;
   late final _draft = ProjectDraft([MapWorkspaceDraft(_maps), _story]);
   final _pageFocus = FocusNode(debugLabel: 'map-builder', skipTraversal: true);
   var _guarded = false;
@@ -170,7 +170,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       view: () => _view,
       story: _story,
     );
-    _lifecycle = ref.read(studioLifecycleControllerProvider);
+    _exitGuard = ref.read(studioExitGuardProvider);
     _maps.addListener(_changed);
     FocusManager.instance.addListener(_focusChanged);
     unawaited(_open());
@@ -237,7 +237,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   void _protect() {
     if (_guarded || _disposed || !(_draft.unsaved || _typing)) return;
     _guarded = true;
-    _lifecycle.registerExitGuard(widget.session.sessionId, _confirmLeave);
+    _exitGuard.register(widget.session.sessionId, _confirmLeave);
   }
 
   bool get _typing {
@@ -339,7 +339,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     _disposed = true;
     FocusManager.instance.removeListener(_focusChanged);
     if (_guarded) {
-      _lifecycle.registerExitGuard(widget.session.sessionId, null);
+      _exitGuard.register(widget.session.sessionId, null);
     }
     _pageFocus.dispose();
     _ambiance.dispose();

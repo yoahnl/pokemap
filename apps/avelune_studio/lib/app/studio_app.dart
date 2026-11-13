@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
-import '../platform/rendering/contracts/studio_rendering_preferences_scope.dart';
+import '../features/rendering/contracts/studio_rendering_preferences_scope.dart';
 import '../presentation/shared/localization/studio_locale.dart';
 import 'di/language_providers.dart';
 import '../presentation/shell/studio_root.dart';

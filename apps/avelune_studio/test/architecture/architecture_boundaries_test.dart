@@ -178,13 +178,46 @@ void main() {
     expect(violations, isEmpty);
   });
 
+  final l10n = {
+    for (final line in File('${appRoot.path}/l10n.yaml').readAsLinesSync())
+      if (line.indexOf(':') case final index when index > 0)
+        line.substring(0, index).trim(): line.substring(index + 1).trim(),
+  };
+  final generatedOutput = File(
+    '${appRoot.path}/${l10n['output-dir'] ?? l10n['arb-dir']}/'
+    '${l10n['output-localization-file']}',
+  );
+  final generatedLocalizations = {
+    generatedOutput.path,
+    for (final specifier in graph.specifiers(generatedOutput.uri))
+      if (Uri.parse(specifier).scheme.isEmpty)
+        File.fromUri(graph.resolve(generatedOutput.uri, specifier)).path,
+  };
+
+  test('fichiers generes par gen-l10n reconnus', () {
+    final arbFiles = Directory('${appRoot.path}/${l10n['arb-dir']}')
+        .listSync()
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.arb'));
+    expect(generatedLocalizations, hasLength(arbFiles.length + 1));
+    for (final path in generatedLocalizations) {
+      expect(
+        File(path).readAsStringSync(),
+        contains('ignore_for_file: type=lint'),
+      );
+    }
+  });
+
   test('fichiers Dart manuels limites a 300 lignes', () {
     final testSources = Directory('${appRoot.path}/test')
         .listSync(recursive: true)
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'));
     final oversized = <String>[];
-    for (final source in [...sources, ...testSources]) {
+    for (final source in [
+      ...sources.where((file) => !generatedLocalizations.contains(file.path)),
+      ...testSources,
+    ]) {
       final count = source.readAsLinesSync().length;
       if (count > 300) oversized.add('${source.path}: $count lignes');
     }

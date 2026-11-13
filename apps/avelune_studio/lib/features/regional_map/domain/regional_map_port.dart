@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 final class RegionalMapSource {
   RegionalMapSource({

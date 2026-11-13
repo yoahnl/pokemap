@@ -1,6 +1,6 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_arrival_choices.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:avelune_studio/app/di/language_providers.dart';
 import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
-import 'package:avelune_studio/features/language/application/studio_language_preferences.dart';
+import 'package:avelune_studio/features/language/coordination/studio_language_preferences.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/platform/files/local_language_preferences_store.dart';
 import 'package:flutter/material.dart';

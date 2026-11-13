@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_tile_grid.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';

@@ -6,7 +6,7 @@ import 'package:avelune_studio/features/map_workspace/coordination/workspace_vis
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_workshop_routes.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';

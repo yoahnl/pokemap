@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
+import 'package:avelune_studio/features/rendering/contracts/workspace_resource_diagnostic.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';

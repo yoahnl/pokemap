@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:avelune_studio/features/project_session/application/project_opening_progress.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_canvas_readiness.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_canvas_readiness.dart';
 
 class MapBuilderOpening {
   MapBuilderOpening(this.progress);

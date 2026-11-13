@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../features/rendering/application/studio_rendering_preferences.dart';
+import '../coordination/studio_rendering_preferences.dart';
 
 class StudioRenderingPreferencesScope extends InheritedWidget {
   const StudioRenderingPreferencesScope({

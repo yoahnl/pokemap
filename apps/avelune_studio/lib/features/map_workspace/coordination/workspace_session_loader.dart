@@ -14,10 +14,10 @@ import 'package:avelune_studio/features/resources/coordination/resource_navigati
 
 import '../../map_workspace/application/map_workspace_controller.dart';
 
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 
 import '../application/map_workspace_editing_state.dart';
-import '../../../platform/rendering/contracts/character_workspace_visuals.dart';
+import '../../rendering/contracts/character_workspace_visuals.dart';
 import '../../resources/domain/resource_usage_port.dart';
 
 void retainWorkspaceBrush(

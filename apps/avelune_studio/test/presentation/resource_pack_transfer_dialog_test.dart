@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:avelune_studio/features/resources/application/resource_pack_transfer_controller.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_pack_transfer_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../application/resource_pack_transfer_controller_test.dart'

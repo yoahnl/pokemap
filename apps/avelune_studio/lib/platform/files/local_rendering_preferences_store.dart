@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:avelune_rendering/avelune_rendering.dart';
 
-import '../../features/rendering/application/studio_rendering_preferences.dart';
+import '../../features/rendering/coordination/studio_rendering_preferences.dart';
 
 StudioRenderingPreferencesStore studioRenderingPreferencesStore() {
   final home = Platform.environment['HOME'];

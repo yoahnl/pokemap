@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import '../../features/map_workspace/application/map_layout_preferences.dart';
+import '../../features/map_workspace/coordination/map_layout_preferences.dart';
 
 MapLayoutPreferencesStore studioMapLayoutPreferencesStore() {
   final home = Platform.environment['HOME'];

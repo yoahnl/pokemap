@@ -1,4 +1,4 @@
-import 'package:avelune_studio/platform/input/editor_shortcuts.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/editor_shortcuts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

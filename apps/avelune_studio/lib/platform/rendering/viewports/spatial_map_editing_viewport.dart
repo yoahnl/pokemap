@@ -26,8 +26,8 @@ import 'package:avelune_studio/features/map_workspace/application/map_canvas_str
 import 'package:avelune_studio/features/map_workspace/application/map_encounter_cell_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 
-import 'package:avelune_studio/platform/rendering/contracts/map_canvas_readiness.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_canvas_readiness.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 
 part 'spatial_map_editing_overlays.dart';
 part 'spatial_map_editing_environment.dart';
@@ -71,7 +71,7 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
   EditableMapDocument get editingDocument => editingExterior
       ? exterior?.editingDocument ?? widget.document
       : widget.document;
-  ChangeNotifier? _exteriorNotifier;
+  MapExteriorDecorationController? _exteriorNotifier;
 
   void _bindExterior() {
     final next = exterior;

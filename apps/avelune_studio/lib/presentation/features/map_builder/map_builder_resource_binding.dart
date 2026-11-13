@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -9,7 +9,7 @@ import 'package:avelune_studio/features/map_workspace/coordination/map_resource_
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_loader.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/features/resources/application/resource_usage_category.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_panel.dart';
 
 ResourceCatalogContext mapBuilderDefaultContext(MapRole? role) =>

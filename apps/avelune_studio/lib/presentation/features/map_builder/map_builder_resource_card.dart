@@ -1,9 +1,9 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_preview.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';

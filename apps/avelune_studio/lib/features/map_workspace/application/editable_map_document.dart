@@ -3,7 +3,7 @@ import 'map_atmosphere_controller.dart';
 import 'map_exterior_decoration_controller.dart';
 import 'map_editor_controller.dart';
 
-import 'package:map_authoring/map_authoring_editing.dart';
+import 'package:map_authoring/map_authoring_editing_core.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';

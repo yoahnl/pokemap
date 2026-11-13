@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:avelune_studio/app/di/project_session_providers.dart';
-import 'package:avelune_studio/app/di/studio_lifecycle_providers.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
@@ -27,7 +26,7 @@ class _StudioRootState extends ConsumerState<StudioRoot> {
   late final _opening = ProjectSessionOpenController(
     session: _session,
     chooseDirectory: () => ref.read(projectDirectoryPickerProvider)(),
-    allowSwitch: ref.read(studioLifecycleControllerProvider).confirmLeave,
+    allowSwitch: ref.read(studioExitGuardProvider).confirmLeave,
   );
 
   @override

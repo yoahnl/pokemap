@@ -208,7 +208,7 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: ListenableBuilder(
-              listenable: Listenable.merge([tick, ?ambiance.visuals]),
+              listenable: tick,
               builder: (context, _) => Column(
                 children: [
                   MapBuilderHeader(

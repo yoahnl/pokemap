@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:avelune_studio/features/map_workspace/application/map_layout_preferences.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_layout_preferences.dart';
 import 'package:avelune_studio/platform/files/local_map_layout_preferences_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 

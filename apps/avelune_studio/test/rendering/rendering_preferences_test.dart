@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:avelune_rendering/avelune_rendering.dart';
-import 'package:avelune_studio/features/rendering/application/studio_rendering_preferences.dart';
+import 'package:avelune_studio/features/rendering/coordination/studio_rendering_preferences.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

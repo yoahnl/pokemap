@@ -5,7 +5,7 @@ import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/home/project_loading_screen.dart';
 import 'package:avelune_studio/presentation/shell/studio_root.dart';
 import 'package:flutter/material.dart';

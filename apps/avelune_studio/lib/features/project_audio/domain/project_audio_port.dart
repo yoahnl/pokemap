@@ -1,5 +1,4 @@
 import 'package:map_core/map_core_domain.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../project_session/domain/project_session.dart';
 
@@ -71,11 +70,4 @@ abstract interface class ProjectAudioPort {
     String expectedRevision,
   );
   Future<ProjectAudioFile> resolveAudio(ProjectSession session, String mediaId);
-}
-
-abstract interface class ProjectAudioPreviewPort {
-  ValueListenable<String?> get playing;
-  Future<void> play(String mediaId);
-  Future<void> stop();
-  Future<void> close();
 }

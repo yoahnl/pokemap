@@ -1,6 +1,7 @@
 import 'package:avelune_studio/app/studio_lifecycle_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
-import 'package:avelune_studio/features/rendering/application/studio_rendering_preferences.dart';
+import 'package:avelune_studio/features/project_session/application/studio_exit_guard.dart';
+import 'package:avelune_studio/features/rendering/coordination/studio_rendering_preferences.dart';
 import 'package:avelune_studio/platform/mcp/studio_mcp_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -25,6 +26,7 @@ void main() {
       session: session,
       mcp: mcp,
       renderingPreferences: preferences,
+      exitGuard: StudioExitGuard(),
     );
   });
 

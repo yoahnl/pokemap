@@ -12,7 +12,7 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_terrain_patterns.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

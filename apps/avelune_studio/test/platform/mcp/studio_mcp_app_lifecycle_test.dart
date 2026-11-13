@@ -48,11 +48,11 @@ void main() {
         child: const StudioApp(),
       );
       await tester.pumpWidget(app());
-      final lifecycle = ProviderScope.containerOf(
+      final exitGuard = ProviderScope.containerOf(
         tester.element(find.byType(StudioApp)),
         listen: false,
-      ).read(studioLifecycleControllerProvider);
-      lifecycle.registerExitGuard(exampleA.sessionId, () async => allowExit);
+      ).read(studioExitGuardProvider);
+      exitGuard.register(exampleA.sessionId, () async => allowExit);
       expect(find.byKey(const ValueKey('studio-home')), findsOneWidget);
       expect(service.state, StudioMcpState.starting);
       process.ready();

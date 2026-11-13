@@ -178,13 +178,11 @@ class MapContextCommandRunner {
         CharacterEditingCommands(
           document,
           project,
-          draftGuard: context.referenceGuard,
         ).delete(target.id);
       case MapContextFamily.marker:
         MapEntityEditingCommands(
           document,
           project,
-          draftGuard: context.referenceGuard,
         ).delete(target.id);
       case MapContextFamily.warp:
         WarpEditingCommands(document, project).delete(target.id);
@@ -194,7 +192,6 @@ class MapContextCommandRunner {
         TriggerEditingCommands(
           document,
           project,
-          draftGuard: context.referenceGuard,
         ).delete(target.id);
       case MapContextFamily.cell:
         return;

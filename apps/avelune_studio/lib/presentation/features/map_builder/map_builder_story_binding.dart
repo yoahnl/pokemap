@@ -998,7 +998,6 @@ class MapBuilderInputSession extends MapEditingInputSession {
             document: context.document,
             project: story.behaviours.project(context.project),
             position: position,
-            referenceGuard: context.referenceGuard,
             deletionGuard: story.contextDeletionProblem,
           );
   }

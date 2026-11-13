@@ -1,10 +1,10 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/presentation/shared/widgets/avelune_wordmark.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
-import 'package:avelune_studio/presentation/shared/widgets/studio_language_menu.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_language_menu.dart';
 
 const studioTopBarHeight = 64.0;
 const studioTopBarWideWidth = 1440.0;

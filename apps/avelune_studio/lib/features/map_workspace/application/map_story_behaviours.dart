@@ -1,4 +1,4 @@
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../story_draft/application/story_draft.dart';
 import '../../story_draft/application/story_draft_manifest_reader.dart';

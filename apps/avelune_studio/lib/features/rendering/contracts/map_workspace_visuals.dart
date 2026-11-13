@@ -10,7 +10,7 @@ import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
 
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
-import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
+import 'package:avelune_studio/features/rendering/contracts/workspace_resource_diagnostic.dart';
 
 class MapEditorVisibilityScope extends InheritedWidget {
   const MapEditorVisibilityScope({

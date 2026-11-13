@@ -6,7 +6,7 @@ import 'package:map_render_3d/map_render_3d.dart';
 
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/features/resources/application/resource_preview_source.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 
 class MapBuilderResourcePreview extends StatelessWidget {
   const MapBuilderResourcePreview({

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../project_session/domain/project_session.dart';
@@ -9,7 +8,16 @@ typedef SpatialVisualScope = bool Function(SpatialVisualParameter parameter);
 bool _everyVisualParameter(SpatialVisualParameter _) => true;
 
 bool _sameVisualValue(Object? a, Object? b) =>
-    a is List && b is List ? listEquals(a, b) : a == b;
+    a is List && b is List ? _sameList(a, b) : a == b;
+
+bool _sameList(List<Object?> a, List<Object?> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var index = 0; index < a.length; index++) {
+    if (a[index] != b[index]) return false;
+  }
+  return true;
+}
 
 Set<SpatialVisualParameter> _changedVisualParameters(
   SpatialVisualPatch before,
@@ -46,11 +54,15 @@ final class _VisualStep {
   bool touches(SpatialVisualScope scope) => changed.any(scope);
 }
 
-final class ProjectVisualsController extends ChangeNotifier {
+final class ProjectVisualPreview {
+  SpatialVisualPatch value = SpatialVisualPatch();
+}
+
+final class ProjectVisualsController {
   ProjectVisualsController({required this.session, required this.port});
   final ProjectSession session;
   final ProjectVisualsPort port;
-  final preview = ValueNotifier(SpatialVisualPatch());
+  final preview = ProjectVisualPreview();
   ProjectVisualsState? saved;
   ProjectMapEntry? scope;
   bool loading = false, saving = false;
@@ -61,6 +73,7 @@ final class ProjectVisualsController extends ChangeNotifier {
   final _redo = <_VisualStep>[];
   int _generation = 0;
   bool _disposed = false;
+  final Set<void Function()> _listeners = {};
   bool _externalConflict = false;
   SpatialVisualPatch? _gestureStart;
   void beginGesture() {
@@ -72,7 +85,7 @@ final class ProjectVisualsController extends ChangeNotifier {
     _gestureStart = null;
     if (start != null && start != preview.value) {
       _record(_VisualStep(start, preview.value));
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -98,12 +111,12 @@ final class ProjectVisualsController extends ChangeNotifier {
   void reportInvalid(SpatialVisualParameter parameter, String text) {
     if (_disposed || invalidInputs[parameter] == text) return;
     invalidInputs[parameter] = text;
-    notifyListeners();
+    _notify();
   }
 
   void clearInvalid(SpatialVisualParameter parameter) {
     if (_disposed || invalidInputs.remove(parameter) == null) return;
-    notifyListeners();
+    _notify();
   }
 
   bool canUndoWhere(SpatialVisualScope scope) =>
@@ -115,7 +128,7 @@ final class ProjectVisualsController extends ChangeNotifier {
     if (_disposed) return;
     _externalConflict = true;
     error = 'Une modification externe concerne ces réglages visuels. Votre brouillon et son historique sont conservés. Rechargez ces réglages avant de publier.';
-    notifyListeners();
+    _notify();
   }
 
   bool acceptExternalState(ProjectVisualsState state) {
@@ -129,7 +142,7 @@ final class ProjectVisualsController extends ChangeNotifier {
     preview.value = state.profile;
     _externalConflict = false;
     error = null;
-    notifyListeners();
+    _notify();
     return true;
   }
 
@@ -138,7 +151,7 @@ final class ProjectVisualsController extends ChangeNotifier {
     _gestureStart = null;
     loading = true;
     error = null;
-    notifyListeners();
+    _notify();
     try {
       final value = await port.loadVisuals(session, map: map);
       if (_disposed || generation != _generation) return;
@@ -153,7 +166,7 @@ final class ProjectVisualsController extends ChangeNotifier {
     } finally {
       if (!_disposed && generation == _generation) {
         loading = false;
-        notifyListeners();
+        _notify();
       }
     }
   }
@@ -164,7 +177,7 @@ final class ProjectVisualsController extends ChangeNotifier {
     _redo.clear();
     preview.value = profile;
     error = null;
-    notifyListeners();
+    _notify();
   }
 
   void undo() => undoWhere(_everyVisualParameter);
@@ -182,7 +195,7 @@ final class ProjectVisualsController extends ChangeNotifier {
       step.before,
       step.changed,
     );
-    notifyListeners();
+    _notify();
   }
 
   void redoWhere(SpatialVisualScope scope) {
@@ -196,7 +209,7 @@ final class ProjectVisualsController extends ChangeNotifier {
       step.after,
       step.changed,
     );
-    notifyListeners();
+    _notify();
   }
 
   void discard() => discardWhere(_everyVisualParameter);
@@ -212,7 +225,7 @@ final class ProjectVisualsController extends ChangeNotifier {
     _redo.removeWhere((step) => step.touches(scope));
     invalidInputs.removeWhere((parameter, _) => scope(parameter));
     error = null;
-    notifyListeners();
+    _notify();
   }
 
   Future<bool> save() => saveWhere(_everyVisualParameter);
@@ -223,7 +236,7 @@ final class ProjectVisualsController extends ChangeNotifier {
       error =
           'Corrigez les valeurs invalides avant d’enregistrer : '
           'rien n’a été publié.';
-      notifyListeners();
+      _notify();
       return false;
     }
     if (!dirtyWhere(owned)) return true;
@@ -233,7 +246,7 @@ final class ProjectVisualsController extends ChangeNotifier {
     }
     saving = true;
     error = null;
-    notifyListeners();
+    _notify();
     final watch = Stopwatch()..start();
     try {
       final draft = preview.value;
@@ -264,16 +277,24 @@ final class ProjectVisualsController extends ChangeNotifier {
     } finally {
       if (!_disposed) {
         saving = false;
-        notifyListeners();
+        _notify();
       }
     }
   }
 
-  @override
+  void addListener(void Function() listener) => _listeners.add(listener);
+
+  void removeListener(void Function() listener) => _listeners.remove(listener);
+
+  void _notify() {
+    for (final listener in List.of(_listeners)) {
+      if (_listeners.contains(listener)) listener();
+    }
+  }
+
   void dispose() {
     _disposed = true;
     _generation++;
-    preview.dispose();
-    super.dispose();
+    _listeners.clear();
   }
 }

@@ -1,12 +1,11 @@
 import 'package:avelune_studio/app/di/language_providers.dart';
-import 'package:avelune_studio/features/language/application/studio_language_preferences.dart';
+import 'package:avelune_studio/features/language/coordination/studio_language_preferences.dart';
 import 'package:avelune_studio/platform/files/local_language_preferences_store.dart';
 import 'dart:async';
 import 'dart:io';
 
 import '../platform/mcp/studio_mcp_project_access.dart';
 
-import '../platform/rendering/studio_project_audio_preview.dart';
 
 import '../features/resources/data/local_resource_pack_adapter.dart';
 import '../platform/files/native_resource_pack_picker.dart';
@@ -43,10 +42,10 @@ import 'di/rendering_providers.dart';
 import 'di/studio_mcp_providers.dart';
 import '../platform/mcp/studio_mcp_process.dart';
 import '../platform/mcp/studio_mcp_service.dart';
-import '../features/rendering/application/studio_rendering_preferences.dart';
+import '../features/rendering/coordination/studio_rendering_preferences.dart';
 import '../platform/files/local_rendering_preferences_store.dart';
 import '../platform/files/local_map_layout_preferences_store.dart';
-import '../features/map_workspace/application/map_layout_preferences.dart';
+import '../features/map_workspace/coordination/map_layout_preferences.dart';
 import '../features/scenes/data/local_scene_adapter.dart';
 import '../features/stories/data/local_story_adapter.dart';
 import '../platform/files/studio_preferences.dart';
@@ -84,6 +83,7 @@ class StudioBootstrap extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ProviderScope(
     overrides: [
+      studioMcpExternalMutations,
       studioMcpServiceProvider.overrideWith((ref) {
         final service =
             mcpService ??
@@ -295,16 +295,6 @@ class StudioBootstrap extends StatelessWidget {
           ) as LocalMapWorkspaceAdapter,
         ),
       ),
-      projectAudioPreviewProvider.overrideWith((ref, session) {
-        final preview = StudioProjectAudioPreview(
-          session: session,
-          port: ref.watch(
-            mapWorkspacePortProvider(session),
-          ) as LocalMapWorkspaceAdapter,
-        );
-        ref.onDispose(() => unawaited(preview.close()));
-        return preview;
-      }),
       presentationMediaPickerProvider.overrideWithValue(
         const NativePresentationMediaPicker().choose,
       ),

@@ -1,4 +1,4 @@
-import 'package:map_authoring/map_authoring_editing.dart';
+import 'package:map_authoring/map_authoring_editing_core.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';

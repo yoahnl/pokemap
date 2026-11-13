@@ -1,10 +1,9 @@
-import 'package:flutter/foundation.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../project_session/domain/project_session.dart';
 import '../domain/map_atmosphere_port.dart';
 
-final class MapAtmosphereController extends ChangeNotifier {
+final class MapAtmosphereController {
   MapAtmosphereController._(
     this.session,
     this.mapId,
@@ -23,6 +22,7 @@ final class MapAtmosphereController extends ChangeNotifier {
   final _redo = <SpatialAtmosphereSettings>[];
   bool saving = false;
   bool _disposed = false;
+  final Set<void Function()> _listeners = {};
   bool _externalConflict = false;
   String? error;
   SpatialAtmosphereSettings get saved => _saved;
@@ -48,7 +48,7 @@ final class MapAtmosphereController extends ChangeNotifier {
     _redo.clear();
     current = next;
     error = null;
-    notifyListeners();
+    _notify();
   }
 
   void undo() {
@@ -56,7 +56,7 @@ final class MapAtmosphereController extends ChangeNotifier {
     _redo.add(current);
     current = _undo.removeLast();
     error = null;
-    notifyListeners();
+    _notify();
   }
 
   void redo() {
@@ -64,20 +64,20 @@ final class MapAtmosphereController extends ChangeNotifier {
     _undo.add(current);
     current = _redo.removeLast();
     error = null;
-    notifyListeners();
+    _notify();
   }
 
   void reject(String message) {
     if (_disposed) return;
     error = message;
-    notifyListeners();
+    _notify();
   }
 
   void rejectExternalChange() {
     if (_disposed) return;
     _externalConflict = true;
     error = 'Une modification externe concerne cette ambiance. Votre brouillon et son historique sont conservés. Rouvrez la carte avant de publier.';
-    notifyListeners();
+    _notify();
   }
 
   Future<bool> save() async {
@@ -90,7 +90,7 @@ final class MapAtmosphereController extends ChangeNotifier {
     final snapshot = current;
     saving = true;
     error = null;
-    notifyListeners();
+    _notify();
     try {
       final result = await port.saveAtmosphere(
         session,
@@ -107,13 +107,22 @@ final class MapAtmosphereController extends ChangeNotifier {
       return false;
     } finally {
       saving = false;
-      if (!_disposed) notifyListeners();
+      if (!_disposed) _notify();
     }
   }
 
-  @override
+  void addListener(void Function() listener) => _listeners.add(listener);
+
+  void removeListener(void Function() listener) => _listeners.remove(listener);
+
+  void _notify() {
+    for (final listener in List.of(_listeners)) {
+      if (_listeners.contains(listener)) listener();
+    }
+  }
+
   void dispose() {
     _disposed = true;
-    super.dispose();
+    _listeners.clear();
   }
 }

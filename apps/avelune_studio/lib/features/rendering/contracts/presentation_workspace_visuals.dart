@@ -4,8 +4,8 @@ import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_player_ui/presentation_frame_geometry.dart';
 
-import '../../../features/presentations/domain/presentation_port.dart';
-import '../../../features/presentations/application/presentation_preview_transport.dart';
+import '../../presentations/domain/presentation_port.dart';
+import '../../presentations/application/presentation_preview_transport.dart';
 
 abstract interface class PresentationWorkspaceVisuals implements Listenable {
   Future<void> prepare(

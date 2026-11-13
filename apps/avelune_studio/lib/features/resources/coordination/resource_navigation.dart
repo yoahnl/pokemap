@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:avelune_studio/features/resources/application/resource_pack_transfer_controller.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_pack_transfer_controller.dart';
 import 'package:avelune_studio/features/resources/domain/resource_pack_port.dart';
 
 import 'package:map_core/map_core_domain.dart';
@@ -17,7 +17,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 
 import 'package:avelune_studio/features/characters/coordination/character_studio_controller.dart';
 
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 

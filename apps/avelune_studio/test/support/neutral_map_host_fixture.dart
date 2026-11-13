@@ -10,7 +10,7 @@ import 'package:avelune_studio/features/map_workspace/coordination/workspace_ses
 import 'package:avelune_studio/features/narrative/application/narrative_navigation.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

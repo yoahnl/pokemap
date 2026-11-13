@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/map_workspace/application/map_layout_preferences.dart';
-import '../../features/rendering/application/studio_rendering_preferences.dart';
+import '../../features/map_workspace/coordination/map_layout_preferences.dart';
+import '../../features/rendering/coordination/studio_rendering_preferences.dart';
 
 final studioRenderingPreferencesProvider = Provider<StudioRenderingPreferences>(
   (ref) {

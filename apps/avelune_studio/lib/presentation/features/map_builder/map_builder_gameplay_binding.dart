@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';

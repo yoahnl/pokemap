@@ -7,7 +7,7 @@ import 'package:map_render_3d/map_render_3d.dart';
 
 import '../application/map_workspace_controller.dart';
 import '../domain/map_exterior_decoration_port.dart';
-import '../../../platform/rendering/contracts/map_workspace_visuals.dart';
+import '../../rendering/contracts/map_workspace_visuals.dart';
 
 final class _NeighborAssetSource {
   _NeighborAssetSource(this.project, this.visuals);

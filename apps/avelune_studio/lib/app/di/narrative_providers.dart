@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/platform/playtest/studio_playtest_builders.dart';
+import 'package:avelune_studio/features/playtest/contracts/studio_playtest_builders.dart';
 
 import 'map_workspace_providers.dart';
 

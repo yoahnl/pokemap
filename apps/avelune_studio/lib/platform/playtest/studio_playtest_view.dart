@@ -11,7 +11,7 @@ import 'package:path/path.dart' as p;
 
 import 'studio_playtest_session.dart';
 import 'studio_playtest_start.dart';
-import 'studio_playtest_controls.dart';
+import '../../features/playtest/contracts/studio_playtest_controls.dart';
 import 'studio_playtest_player_view.dart';
 import 'studio_spatial_playtest.dart';
 import 'studio_spatial_playtest_view.dart';
@@ -19,7 +19,7 @@ import '../../features/pokemon/data/studio_project_item_icons.dart';
 import '../../features/verification/application/studio_failure_diagnosis.dart';
 
 export 'studio_playtest_session.dart';
-export 'studio_playtest_controls.dart';
+export '../../features/playtest/contracts/studio_playtest_controls.dart';
 
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';

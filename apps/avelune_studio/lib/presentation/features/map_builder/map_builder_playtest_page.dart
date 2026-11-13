@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:map_core/map_core.dart';
 
-import 'package:avelune_studio/platform/playtest/studio_playtest_builders.dart';
-import 'package:avelune_studio/platform/playtest/studio_playtest_controls.dart';
-import 'package:avelune_studio/platform/playtest/studio_playtest_performance.dart';
+import 'package:avelune_studio/features/playtest/contracts/studio_playtest_builders.dart';
+import 'package:avelune_studio/features/playtest/contracts/studio_playtest_controls.dart';
+import 'package:avelune_studio/presentation/features/map_builder/studio_playtest_performance.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class MapBuilderPlaytestPage extends StatefulWidget {

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:avelune_studio/features/resources/application/resource_pack_transfer_controller.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_pack_transfer_controller.dart';
 import 'package:avelune_studio/features/resources/domain/resource_pack_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';

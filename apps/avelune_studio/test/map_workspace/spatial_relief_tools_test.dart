@@ -5,7 +5,7 @@ import 'package:avelune_studio/features/map_workspace/application/spatial_terrai
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:flutter/services.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 import 'package:flutter/material.dart';

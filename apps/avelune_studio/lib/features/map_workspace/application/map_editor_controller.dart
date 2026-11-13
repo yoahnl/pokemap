@@ -1,12 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../project_session/domain/project_session.dart';
 import '../domain/map_editor_port.dart';
 
-final class MapEditorController extends ChangeNotifier {
+final class MapEditorController {
   MapEditorController({
     required this.session,
     required this.mapId,
@@ -26,6 +25,7 @@ final class MapEditorController extends ChangeNotifier {
   final _redo = <MapEditorState>[];
   Future<bool>? _pending;
   bool _disposed = false;
+  final Set<void Function()> _listeners = {};
   bool _externalConflict = false;
   String? error;
   String get revision => _revision;
@@ -74,7 +74,7 @@ final class MapEditorController extends ChangeNotifier {
       _redo.clear();
       current = next;
       error = null;
-      notifyListeners();
+      _notify();
     }
     return save();
   }
@@ -87,7 +87,7 @@ final class MapEditorController extends ChangeNotifier {
       _redo.clear();
       current = next;
       error = null;
-      notifyListeners();
+      _notify();
     }
     return save();
   }
@@ -120,7 +120,7 @@ final class MapEditorController extends ChangeNotifier {
       _redo.clear();
       current = next;
       error = null;
-      notifyListeners();
+      _notify();
     }
     return save();
   }
@@ -133,7 +133,7 @@ final class MapEditorController extends ChangeNotifier {
       _redo.clear();
       current = next;
       error = null;
-      notifyListeners();
+      _notify();
     }
     return save();
   }
@@ -143,7 +143,7 @@ final class MapEditorController extends ChangeNotifier {
     _redo.add(current);
     current = _undo.removeLast();
     error = null;
-    notifyListeners();
+    _notify();
     return save();
   }
 
@@ -152,7 +152,7 @@ final class MapEditorController extends ChangeNotifier {
     _undo.add(current);
     current = _redo.removeLast();
     error = null;
-    notifyListeners();
+    _notify();
     return save();
   }
 
@@ -160,7 +160,7 @@ final class MapEditorController extends ChangeNotifier {
     if (_disposed) return;
     _externalConflict = true;
     error = 'Une modification externe concerne cet état de l’éditeur. Votre brouillon et son historique sont conservés. Rouvrez la carte avant de publier.';
-    notifyListeners();
+    _notify();
   }
 
   Future<bool> save() {
@@ -174,7 +174,7 @@ final class MapEditorController extends ChangeNotifier {
     }
     final operation = Future<bool>.microtask(_persist);
     _pending = operation;
-    notifyListeners();
+    _notify();
     return operation;
   }
 
@@ -199,13 +199,22 @@ final class MapEditorController extends ChangeNotifier {
       return false;
     } finally {
       _pending = null;
-      if (!_disposed) notifyListeners();
+      if (!_disposed) _notify();
     }
   }
 
-  @override
+  void addListener(void Function() listener) => _listeners.add(listener);
+
+  void removeListener(void Function() listener) => _listeners.remove(listener);
+
+  void _notify() {
+    for (final listener in List.of(_listeners)) {
+      if (_listeners.contains(listener)) listener();
+    }
+  }
+
   void dispose() {
     _disposed = true;
-    super.dispose();
+    _listeners.clear();
   }
 }

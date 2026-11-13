@@ -7,7 +7,7 @@ import '../../../features/map_workspace/coordination/map_editing_input_session.d
 import '../../../features/map_workspace/coordination/map_editing_shortcuts.dart';
 import '../../../features/map_workspace/coordination/map_editing_viewport_session.dart';
 import '../../../features/map_workspace/coordination/spatial_map_neighbor_session.dart';
-import '../contracts/map_workspace_visuals.dart';
+import '../../../features/rendering/contracts/map_workspace_visuals.dart';
 import 'map_editing_viewport_2d.dart';
 import 'spatial_map_editing_viewport.dart';
 

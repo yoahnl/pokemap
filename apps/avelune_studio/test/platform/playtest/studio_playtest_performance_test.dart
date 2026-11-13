@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:avelune_studio/platform/playtest/studio_playtest_performance.dart';
+import 'package:avelune_studio/presentation/features/map_builder/studio_playtest_performance.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 FrameTiming frame(int timestamp) => FrameTiming(

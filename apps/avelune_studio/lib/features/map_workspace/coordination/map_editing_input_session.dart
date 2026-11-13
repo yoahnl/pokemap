@@ -5,7 +5,6 @@ import '../application/editable_map_document.dart';
 import '../application/map_context_command_runner.dart';
 import '../application/map_context_menu_actions.dart';
 import '../application/map_context_menu_model.dart';
-import '../application/map_entity_editing_commands.dart';
 import '../application/map_selection_context.dart';
 import '../application/map_workspace_controller.dart';
 import '../application/map_workspace_editing_state.dart';
@@ -14,13 +13,11 @@ class MapEditingInputSession extends ChangeNotifier {
   MapEditingInputSession({
     required this.controller,
     required this.view,
-    this.referenceGuard,
     this.navigation,
   });
 
   final MapWorkspaceController controller;
   final MapWorkspaceEditingState? Function() view;
-  final MapReferenceGuard? referenceGuard;
   final MapContextNavigation? navigation;
   GridPos? cell;
   String? mapId;
@@ -44,7 +41,6 @@ class MapEditingInputSession extends ChangeNotifier {
       document: document,
       project: project,
       position: position,
-      referenceGuard: referenceGuard,
     );
   }
 

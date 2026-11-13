@@ -6,7 +6,7 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 import 'package:avelune_studio/presentation/shared/widgets/avelune_wordmark.dart';
-import 'package:avelune_studio/presentation/shared/widgets/studio_language_menu.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_language_menu.dart';
 
 class ProjectImportPage extends StatelessWidget {
   const ProjectImportPage({
