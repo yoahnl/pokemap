@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:avelune_studio/presentation/shell/studio_top_bar.dart';
 
 class MapBuilderHeader extends StatelessWidget {
@@ -17,6 +18,7 @@ class MapBuilderHeader extends StatelessWidget {
     required this.onTestMap,
     required this.testing,
     this.ambiance,
+    this.story,
   });
 
   final MapWorkspaceController maps;
@@ -27,11 +29,16 @@ class MapBuilderHeader extends StatelessWidget {
   final VoidCallback onTestMap;
   final bool testing;
   final MapBuilderAmbianceBinding? ambiance;
+  final MapBuilderStoryBinding? story;
+
+  bool get _dirty => maps.dirty || (story?.dirty ?? false);
 
   StudioSaveState get _saveState {
-    if (maps.saving) return StudioSaveState.saving;
+    if (maps.saving || (story?.publishing ?? false)) {
+      return StudioSaveState.saving;
+    }
     if (saveFailed) return StudioSaveState.failed;
-    return maps.dirty ? StudioSaveState.unsaved : StudioSaveState.saved;
+    return _dirty ? StudioSaveState.unsaved : StudioSaveState.saved;
   }
 
   @override
@@ -42,22 +49,26 @@ class MapBuilderHeader extends StatelessWidget {
       maps: maps.project?.maps ?? const [],
       activeMapId: document?.base.mapId,
       onSelectMap: editable ? (entry) => unawaited(maps.activate(entry)) : null,
-      onUndo: switch (ambiance) {
-        final ambiance? => editable && ambiance.canUndo ? ambiance.undo : null,
-        null =>
+      onUndo: switch ((ambiance, story)) {
+        (final ambiance?, _) =>
+          editable && ambiance.canUndo ? ambiance.undo : null,
+        (_, final story?) => editable && story.canUndo ? story.undo : null,
+        (null, null) =>
           editable && document?.canUndo == true
               ? () => maps.restore(redo: false)
               : null,
       },
-      onRedo: switch (ambiance) {
-        final ambiance? => editable && ambiance.canRedo ? ambiance.redo : null,
-        null =>
+      onRedo: switch ((ambiance, story)) {
+        (final ambiance?, _) =>
+          editable && ambiance.canRedo ? ambiance.redo : null,
+        (_, final story?) => editable && story.canRedo ? story.redo : null,
+        (null, null) =>
           editable && document?.canRedo == true
               ? () => maps.restore(redo: true)
               : null,
       },
       saveState: _saveState,
-      onSave: editable && maps.dirty ? onSave : null,
+      onSave: editable && _dirty ? onSave : null,
       onTestMap: editable && document != null && !testing ? onTestMap : null,
       testing: testing,
     );

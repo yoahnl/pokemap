@@ -1249,6 +1249,47 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get storyAddBehaviour => 'Ajouter un comportement';
+
+  @override
+  String get storyDeleteBehaviour => 'Supprimer le comportement';
+
+  @override
+  String get storyBehaviourNameField => 'Nom du comportement';
+
+  @override
+  String get storyBehaviourActive => 'Comportement actif';
+
+  @override
+  String get storyWhenField => 'Quand';
+
+  @override
+  String get storyThenField => 'Alors · scène à déclencher';
+
+  @override
+  String get storyAfterField => 'Après le déclenchement';
+
+  @override
+  String get storyPublishUnavailable =>
+      'Les comportements ne peuvent pas être enregistrés dans ce projet.';
+
+  @override
+  String storyBehaviourName(int index) {
+    return 'Comportement $index';
+  }
+
+  @override
+  String get storyPreparing => 'Chargement de l’histoire du projet…';
+
+  @override
+  String get storyNotPrepared =>
+      'L’histoire du projet n’est pas chargée : les comportements restent en lecture.';
+
+  @override
+  String get storyDeactivated =>
+      'Ce comportement a été désactivé : réactivez-le une fois sa configuration complète.';
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

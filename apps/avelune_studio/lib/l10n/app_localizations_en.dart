@@ -1242,6 +1242,47 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get storyAddBehaviour => 'Add a behaviour';
+
+  @override
+  String get storyDeleteBehaviour => 'Delete the behaviour';
+
+  @override
+  String get storyBehaviourNameField => 'Behaviour name';
+
+  @override
+  String get storyBehaviourActive => 'Behaviour enabled';
+
+  @override
+  String get storyWhenField => 'When';
+
+  @override
+  String get storyThenField => 'Then · scene to run';
+
+  @override
+  String get storyAfterField => 'After it runs';
+
+  @override
+  String get storyPublishUnavailable =>
+      'Behaviours cannot be saved in this project.';
+
+  @override
+  String storyBehaviourName(int index) {
+    return 'Behaviour $index';
+  }
+
+  @override
+  String get storyPreparing => 'Loading the project story…';
+
+  @override
+  String get storyNotPrepared =>
+      'The project story is not loaded: behaviours stay read-only.';
+
+  @override
+  String get storyDeactivated =>
+      'This behaviour was disabled: enable it again once its setup is complete.';
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

@@ -1,5 +1,8 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
+import 'package:avelune_studio/features/events/domain/event_port.dart';
+import 'package:avelune_studio/features/events/domain/event_record_view.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
@@ -16,11 +19,74 @@ import '../support/map_workspace_fixture.dart';
 
 var _events = 0;
 
+SceneAsset _scene(String id) => SceneAsset(
+  id: id,
+  name: 'Scène $id',
+  graph: SceneGraph(
+    startNodeId: 'start',
+    nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'end',
+        kind: SceneNodeKind.end,
+        payload: SceneEndPayload(outcomePolicy: SceneOutcomePolicy.progression),
+      ),
+    ],
+    edges: [
+      SceneEdge(
+        id: 'start-end',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
+  ),
+);
+
+class _EventPort implements EventPort {
+  _EventPort(this.maps);
+
+  final MapWorkspaceController maps;
+  final published = <String>[];
+
+  @override
+  Future<ResourceMutationReceipt> publishEvent({
+    required String id,
+    required NarrativeEventRecord? base,
+    required NarrativeEventRecord? current,
+  }) async {
+    published.add(id);
+    final before = maps.project!;
+    final registry = before.eventRegistry!;
+    final records = [
+      for (final record in registry.records)
+        if (record.id != id) record,
+      ?current,
+    ];
+    return ResourceMutationReceipt(
+      before: before,
+      manifest: before.copyWith(
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: registry.schemaVersion,
+          mode: registry.mode,
+          records: records,
+          legacyClaims: registry.legacyClaims,
+        ),
+      ),
+      beforeRevision: 'r${published.length - 1}',
+      revision: 'r${published.length}',
+      changedPaths: const ['project.json'],
+    );
+  }
+}
+
 NarrativeEventRecord _event(
   String name,
   NarrativeEventSourceRef source, {
   NarrativeEventReusePolicy reuse = NarrativeEventReusePolicy.oneShot,
   NarrativeEventResetPolicy reset = const NarrativeEventResetPolicy.never(),
+  int order = 0,
 }) => NarrativeEventRecord.configuredStructurallyUnchecked(
   NarrativeEventDefinition(
     id: 'evt_00000000-0000-7000-8000-${(++_events).toString().padLeft(12, '0')}',
@@ -31,12 +97,23 @@ NarrativeEventRecord _event(
     reusePolicy: reuse,
     resetPolicy: reset,
     priority: 0,
-    order: 0,
+    order: order,
   ),
   enabled: true,
 );
 
 final _project = workspaceProject.copyWith(
+  scenes: [
+    for (final id in [
+      'meeting',
+      'after-starter',
+      'leaving',
+      'arrival',
+      'elsewhere',
+      'greeting',
+    ])
+      _scene('scene-$id'),
+  ],
   characters: const [
     ProjectCharacterEntry(id: 'rival', name: 'Silver', tilesetId: 'atlas'),
     ProjectCharacterEntry(
@@ -54,6 +131,7 @@ final _project = workspaceProject.copyWith(
         'after-starter',
         NarrativeEventSourceRef.entityInteract('a', 'luth'),
         reuse: NarrativeEventReusePolicy.reusable,
+        order: 1,
       ),
       _event(
         'leaving',
@@ -117,12 +195,12 @@ void main() {
   late MapEditingViewportSession view;
   late MapBuilderStoryBinding story;
 
-  Future<void> open(WidgetTester tester) async {
+  Future<void> open(WidgetTester tester, {ProjectManifest? project}) async {
     tester.view.physicalSize = const Size(1400, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final port = WorkspaceMemoryPort(manifest: _project);
+    final port = WorkspaceMemoryPort(manifest: project ?? _project);
     port.saved['a'] = _map();
     maps = MapWorkspaceController(workspaceSession, port);
     addTearDown(maps.dispose);
@@ -232,7 +310,7 @@ void main() {
     expect(find.text('COMPORTEMENTS · 2'), findsOneWidget);
     expect(find.text('Le joueur interagit'), findsOneWidget);
     expect(find.text('Une seule fois'), findsOneWidget);
-    expect(find.text('scene-meeting'), findsOneWidget);
+    expect(find.text('Scène scene-meeting'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('map-story-behaviour-1')));
     await tester.pump();
@@ -426,6 +504,111 @@ void main() {
           .npc!
           .characterId,
       'elm',
+    );
+  });
+
+  testWidgets('behaviours are edited as a draft and published on save', (
+    tester,
+  ) async {
+    await open(tester);
+    Finder key(String value) => find.byKey(ValueKey(value));
+    NarrativeEventRecord recordOf(String name) => story.behaviours
+        .registry(maps.project!)!
+        .records
+        .singleWhere((record) => record.name == name);
+    StudioSelect select(String value) =>
+        tester.widget<StudioSelect>(key(value));
+
+    await tester.tap(key('map-story-element-entity:luth'));
+    await tester.pump();
+    select('map-story-after').onChanged!('eachTime');
+    await tester.pump();
+    expect(recordOf('meeting').reusePolicy, NarrativeEventReusePolicy.reusable);
+    expect(recordOf('meeting').enabledOrNull, isTrue);
+    expect(story.dirty, isTrue);
+    expect(
+      maps.project!.eventRegistry!.records.first.reusePolicy,
+      NarrativeEventReusePolicy.oneShot,
+    );
+
+    select('map-story-then').onChanged!('scene-greeting');
+    await tester.pump();
+    expect(recordOf('meeting').sceneId, 'scene-greeting');
+
+    await tester.tap(key('map-story-behaviour-add'));
+    await tester.pump();
+    expect(find.text('3 · Comportement 3'), findsOneWidget);
+    expect(recordOf('Comportement 3').draftOrNull, isNotNull);
+    await tester.tap(key('map-story-behaviour-active'));
+    await tester.pump();
+    expect(story.error, isNotNull);
+    expect(recordOf('Comportement 3').enabledOrNull, isNot(isTrue));
+    select('map-story-then').onChanged!('scene-greeting');
+    await tester.pump();
+    await tester.tap(key('map-story-behaviour-active'));
+    await tester.pump();
+    expect(recordOf('Comportement 3').enabledOrNull, isTrue);
+
+    await tester.tap(key('map-story-behaviour-delete'));
+    await tester.pump();
+    expect(find.text('3 · Comportement 3'), findsNothing);
+    story.undo();
+    await tester.pump();
+    expect(find.text('3 · Comportement 3'), findsOneWidget);
+    story.redo();
+    await tester.pump();
+    expect(find.text('3 · Comportement 3'), findsNothing);
+
+    final port = _EventPort(maps);
+    expect(await story.publish(port), isTrue);
+    expect(port.published, hasLength(1));
+    expect(story.dirty, isFalse);
+    final saved = maps.project!.eventRegistry!.records.singleWhere(
+      (record) => record.name == 'meeting',
+    );
+    expect(saved.sceneId, 'scene-greeting');
+    expect(saved.reusePolicy, NarrativeEventReusePolicy.reusable);
+    expect(await story.publish(null), isTrue);
+  });
+
+  testWidgets('an edit that cannot re-enable a behaviour says so', (
+    tester,
+  ) async {
+    final registry = _project.eventRegistry!;
+    await open(
+      tester,
+      project: _project.copyWith(
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: registry.schemaVersion,
+          mode: registry.mode,
+          records: [
+            for (final record in registry.records)
+              if (record.name == 'after-starter')
+                _event(
+                  'after-starter',
+                  NarrativeEventSourceRef.entityInteract('a', 'luth'),
+                  reuse: NarrativeEventReusePolicy.reusable,
+                )
+              else
+                record,
+          ],
+          legacyClaims: registry.legacyClaims,
+        ),
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('map-story-element-entity:luth')),
+    );
+    await tester.pump();
+    tester
+        .widget<StudioSelect>(find.byKey(const ValueKey('map-story-after')))
+        .onChanged!('eachTime');
+    await tester.pump();
+
+    expect(story.selectedBehaviour!.enabledOrNull, isFalse);
+    expect(
+      find.textContaining('Ce comportement a été désactivé'),
+      findsOneWidget,
     );
   });
 }

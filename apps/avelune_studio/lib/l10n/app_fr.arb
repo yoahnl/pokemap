@@ -659,6 +659,25 @@
       }
     }
   },
+  "storyAddBehaviour": "Ajouter un comportement",
+  "storyDeleteBehaviour": "Supprimer le comportement",
+  "storyBehaviourNameField": "Nom du comportement",
+  "storyBehaviourActive": "Comportement actif",
+  "storyWhenField": "Quand",
+  "storyThenField": "Alors · scène à déclencher",
+  "storyAfterField": "Après le déclenchement",
+  "storyPublishUnavailable": "Les comportements ne peuvent pas être enregistrés dans ce projet.",
+  "storyBehaviourName": "Comportement {index}",
+  "@storyBehaviourName": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "storyPreparing": "Chargement de l’histoire du projet…",
+  "storyNotPrepared": "L’histoire du projet n’est pas chargée : les comportements restent en lecture.",
+  "storyDeactivated": "Ce comportement a été désactivé : réactivez-le une fois sa configuration complète.",
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {

@@ -99,80 +99,194 @@ class MapBuilderStoryInspector extends StatelessWidget {
           onSelectionChanged: (value) => binding.openTab(value.single),
         ),
         const SizedBox(height: StudioSpacing.l),
-        if (binding.tab == MapStoryTab.behaviour)
-          _Behaviours(binding: binding, element: element)
-        else
-          _Properties(binding: binding, element: element, enabled: enabled),
+        KeyedSubtree(
+          key: ValueKey('map-story-attempt-${binding.attempts}'),
+          child: binding.tab == MapStoryTab.behaviour
+              ? _Behaviours(
+                  binding: binding,
+                  element: element,
+                  enabled: enabled,
+                )
+              : _Properties(
+                  binding: binding,
+                  element: element,
+                  enabled: enabled,
+                ),
+        ),
       ],
     );
   }
 }
 
 class _Behaviours extends StatelessWidget {
-  const _Behaviours({required this.binding, required this.element});
+  const _Behaviours({
+    required this.binding,
+    required this.element,
+    required this.enabled,
+  });
 
   final MapBuilderStoryBinding binding;
   final MapStoryElement element;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final behaviours = element.behaviours;
     final current = binding.selectedBehaviour;
-    final scenes = binding.maps.project?.scenes ?? const <SceneAsset>[];
+    final editable = enabled && !binding.publishing && binding.ready;
+    final scenes = [...?binding.maps.project?.scenes]
+      ..sort((a, b) => a.name.compareTo(b.name));
     return Column(
       key: const ValueKey('map-story-behaviours'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (binding.error case final error?) ...[
+          StudioNotice(_storyError(error, l10n), isError: true),
+          const SizedBox(height: StudioSpacing.m),
+        ],
+        if (!binding.ready) ...[
+          _Caption(
+            binding.preparing ? l10n.storyPreparing : l10n.storyNotPrepared,
+          ),
+          const SizedBox(height: StudioSpacing.m),
+        ],
         _Eyebrow(l10n.storyBehavioursTitle(behaviours.length)),
         const SizedBox(height: StudioSpacing.s),
-        if (behaviours.isEmpty)
-          _Caption(l10n.storyNoBehaviour)
-        else ...[
-          for (final (index, record) in behaviours.indexed)
-            StudioChoice(
-              key: ValueKey('map-story-behaviour-$index'),
-              dense: true,
-              label: '${index + 1} · ${record.name}',
-              subtitle: mapBuilderBehaviourState(record, l10n),
-              selected: identical(record, current),
-              onTap: () => binding.openBehaviour(index),
+        if (behaviours.isEmpty) _Caption(l10n.storyNoBehaviour),
+        for (final (index, record) in behaviours.indexed)
+          StudioChoice(
+            key: ValueKey('map-story-behaviour-$index'),
+            dense: true,
+            label: '${index + 1} · ${record.name}',
+            subtitle: mapBuilderBehaviourState(record, l10n),
+            selected: identical(record, current),
+            onTap: () => binding.openBehaviour(index),
+          ),
+        const SizedBox(height: StudioSpacing.s),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: StudioButton(
+            key: const ValueKey('map-story-behaviour-add'),
+            variant: StudioButtonVariant.quiet,
+            icon: Icons.add,
+            label: l10n.storyAddBehaviour,
+            onPressed: editable ? () => binding.addBehaviour(element) : null,
+          ),
+        ),
+        if (current != null) ...[
+          const SizedBox(height: StudioSpacing.l),
+          MapBuilderNameField(
+            key: ValueKey('map-story-behaviour-name-${current.id}'),
+            value: current.name,
+            label: l10n.storyBehaviourNameField,
+            enabled: editable,
+            onCommit: (name) => binding.renameBehaviour(current, name),
+          ),
+          StudioToggleRow(
+            key: const ValueKey('map-story-behaviour-active'),
+            label: l10n.storyBehaviourActive,
+            value: current.enabledOrNull == true,
+            onChanged: editable
+                ? (value) => binding.setActive(current, value)
+                : null,
+          ),
+          const SizedBox(height: StudioSpacing.s),
+          StudioSelect(
+            key: const ValueKey('map-story-when'),
+            label: l10n.storyWhenField,
+            value: current.source?.kind.name ?? '',
+            options: {
+              if (current.source == null) '': l10n.storyTrigger('none'),
+              for (final kind in binding.triggerKinds(element))
+                kind.name: l10n.storyTrigger(kind.name),
+            },
+            onChanged: editable
+                ? (value) => binding.setTrigger(
+                    element,
+                    current,
+                    NarrativeEventSourceKind.values.byName(value),
+                  )
+                : null,
+          ),
+          const SizedBox(height: StudioSpacing.m),
+          _Fact(
+            l10n.storyIf,
+            current.expression.leaves.isEmpty
+                ? l10n.storyAlways
+                : l10n.storyConditions(current.expression.leaves.length),
+            key: const ValueKey('map-story-if'),
+          ),
+          StudioSelect(
+            key: const ValueKey('map-story-then'),
+            label: l10n.storyThenField,
+            value: current.sceneId ?? '',
+            options: {
+              '': l10n.storySceneMissing,
+              if (current.sceneId != null &&
+                  !scenes.any((scene) => scene.id == current.sceneId))
+                current.sceneId!: current.sceneId!,
+              for (final scene in scenes) scene.id: scene.name,
+            },
+            onChanged: editable
+                ? (value) =>
+                      binding.setScene(current, value.isEmpty ? null : value)
+                : null,
+          ),
+          const SizedBox(height: StudioSpacing.m),
+          StudioSelect(
+            key: const ValueKey('map-story-after'),
+            label: l10n.storyAfterField,
+            value: _after(current)?.name ?? '',
+            options: {
+              if (_after(current) == null) '': l10n.storyReuseUnset,
+              MapStoryAfter.once.name: l10n.storyOnce,
+              MapStoryAfter.eachTime.name: l10n.storyEachTime,
+              MapStoryAfter.oncePerVisit.name: l10n.storyOncePerVisit,
+            },
+            onChanged: editable
+                ? (value) => binding.setAfter(
+                    current,
+                    MapStoryAfter.values.byName(value),
+                  )
+                : null,
+          ),
+          const SizedBox(height: StudioSpacing.l),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: StudioButton(
+              key: const ValueKey('map-story-behaviour-delete'),
+              variant: StudioButtonVariant.destructive,
+              icon: Icons.delete_outline,
+              label: l10n.storyDeleteBehaviour,
+              onPressed: editable
+                  ? () => binding.deleteBehaviour(current)
+                  : null,
             ),
-          if (current != null) ...[
-            const SizedBox(height: StudioSpacing.l),
-            _Fact(
-              l10n.storyWhen,
-              l10n.storyTrigger(current.source?.kind.name ?? 'none'),
-              key: const ValueKey('map-story-when'),
-            ),
-            _Fact(
-              l10n.storyIf,
-              current.expression.leaves.isEmpty
-                  ? l10n.storyAlways
-                  : l10n.storyConditions(current.expression.leaves.length),
-              key: const ValueKey('map-story-if'),
-            ),
-            _Fact(
-              l10n.storyThen,
-              scenes
-                      .where((scene) => scene.id == current.sceneId)
-                      .firstOrNull
-                      ?.name ??
-                  current.sceneId ??
-                  l10n.storySceneMissing,
-              key: const ValueKey('map-story-then'),
-            ),
-            _Fact(
-              l10n.storyAfter,
-              mapBuilderBehaviourAfter(current, l10n),
-              key: const ValueKey('map-story-after'),
-            ),
-          ],
+          ),
         ],
       ],
     );
   }
+
+  MapStoryAfter? _after(NarrativeEventRecord record) =>
+      switch ((record.reusePolicy, record.resetPolicy)) {
+        (null, _) => null,
+        (NarrativeEventReusePolicy.reusable, _) => MapStoryAfter.eachTime,
+        (_, NarrativeEventResetOnMapReentry()) => MapStoryAfter.oncePerVisit,
+        (_, NarrativeEventResetNever()) => MapStoryAfter.once,
+        _ => null,
+      };
 }
+
+String _storyError(String error, AppLocalizations l10n) => switch (error) {
+  MapBuilderStoryBinding.outOfMap => l10n.storyOutOfMap,
+  'publish-unavailable' => l10n.storyPublishUnavailable,
+  _ when error.startsWith(MapBuilderStoryBinding.deactivated) =>
+    '${l10n.storyDeactivated} ${error.substring(MapBuilderStoryBinding.deactivated.length)}'
+        .trim(),
+  _ => error,
+};
 
 class _Properties extends StatelessWidget {
   const _Properties({
@@ -216,12 +330,7 @@ class _Properties extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (binding.error case final error?) ...[
-          StudioNotice(
-            error == MapBuilderStoryBinding.outOfMap
-                ? l10n.storyOutOfMap
-                : error,
-            isError: true,
-          ),
+          StudioNotice(_storyError(error, l10n), isError: true),
           const SizedBox(height: StudioSpacing.m),
         ],
         if (editable)

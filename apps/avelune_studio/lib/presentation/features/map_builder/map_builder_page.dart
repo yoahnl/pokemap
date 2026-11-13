@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:avelune_studio/app/di/event_providers.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/narrative_providers.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_selection_context.dart';
@@ -95,6 +96,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     changed: _changed,
     view: () => _view,
     zoneName: () => context.l10n.storyNewZone,
+    behaviourName: (index) => context.l10n.storyBehaviourName(index),
   );
   late final _ambiance = MapBuilderAmbianceBinding(
     maps: _maps,
@@ -188,8 +190,14 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
 
   Future<void> _save() async {
     setState(() => _saveFailed = false);
-    final saved = await _maps.saveAll();
+    final saved = await _saveEverything();
     if (!_disposed) setState(() => _saveFailed = !saved);
+  }
+
+  Future<bool> _saveEverything() async {
+    if (_maps.dirty && !await _maps.saveAll()) return false;
+    if (_disposed) return false;
+    return _story.publish(ref.read(eventPortProvider(widget.session)));
   }
 
   Future<void> _testMap() async {
@@ -202,8 +210,8 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       _saveFailed = false;
     });
     try {
-      if (_maps.dirty) {
-        final saved = await _maps.saveAll();
+      if (_maps.dirty || _story.dirty) {
+        final saved = await _saveEverything();
         if (!mounted) return;
         if (!saved) {
           setState(() => _saveFailed = true);
@@ -282,6 +290,8 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       _story
         ..cancelAdding()
         ..choosing = false;
+    } else {
+      unawaited(_story.prepare());
     }
     _gameplay
       ..shown = space == MapBuilderSpace.gameplay
@@ -329,6 +339,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
               onTestMap: () => unawaited(_testMap()),
               testing: _testing,
               ambiance: _space == MapBuilderSpace.ambiance ? _ambiance : null,
+              story: _space == MapBuilderSpace.story ? _story : null,
             ),
             Expanded(
               child: Row(

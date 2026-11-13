@@ -2132,6 +2132,78 @@ abstract class AppLocalizations {
   /// **'Cliquez sur la carte pour poser {name}.'**
   String storyPlaceCharacter(String name);
 
+  /// No description provided for @storyAddBehaviour.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un comportement'**
+  String get storyAddBehaviour;
+
+  /// No description provided for @storyDeleteBehaviour.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer le comportement'**
+  String get storyDeleteBehaviour;
+
+  /// No description provided for @storyBehaviourNameField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom du comportement'**
+  String get storyBehaviourNameField;
+
+  /// No description provided for @storyBehaviourActive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comportement actif'**
+  String get storyBehaviourActive;
+
+  /// No description provided for @storyWhenField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quand'**
+  String get storyWhenField;
+
+  /// No description provided for @storyThenField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Alors · scène à déclencher'**
+  String get storyThenField;
+
+  /// No description provided for @storyAfterField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Après le déclenchement'**
+  String get storyAfterField;
+
+  /// No description provided for @storyPublishUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les comportements ne peuvent pas être enregistrés dans ce projet.'**
+  String get storyPublishUnavailable;
+
+  /// No description provided for @storyBehaviourName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comportement {index}'**
+  String storyBehaviourName(int index);
+
+  /// No description provided for @storyPreparing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement de l’histoire du projet…'**
+  String get storyPreparing;
+
+  /// No description provided for @storyNotPrepared.
+  ///
+  /// In fr, this message translates to:
+  /// **'L’histoire du projet n’est pas chargée : les comportements restent en lecture.'**
+  String get storyNotPrepared;
+
+  /// No description provided for @storyDeactivated.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce comportement a été désactivé : réactivez-le une fois sa configuration complète.'**
+  String get storyDeactivated;
+
   /// No description provided for @rubricUnavailable.
   ///
   /// In fr, this message translates to:
