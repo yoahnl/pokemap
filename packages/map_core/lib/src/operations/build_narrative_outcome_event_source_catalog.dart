@@ -778,14 +778,13 @@ int _compareOptions(
       left.debugTechnicalLabel,
       right.debugTechnicalLabel,
     ),
-    compareNarrativeEventUtf16(
-      _safeOptionSortKey(left),
-      _safeOptionSortKey(right),
-    ),
   ]) {
     if (comparison != 0) return comparison;
   }
-  return 0;
+  return compareNarrativeEventUtf16(
+    _safeOptionSortKey(left),
+    _safeOptionSortKey(right),
+  );
 }
 
 String _safeOptionSortKey(NarrativeOutcomeEventSourceOption option) {

@@ -10,12 +10,21 @@ typedef MapStoryBehaviourChange = ({
   NarrativeEventRecord? current,
 });
 
+const _workingRevision = 'map-story-working-copy';
+
 final class MapStoryBehaviours {
   ProjectMediaCatalog? media;
   NarrativeEventRegistry? _working;
   bool _touched = false;
   final _undo = <(bool, NarrativeEventRegistry?)>[];
   final _redo = <(bool, NarrativeEventRegistry?)>[];
+  (
+    ProjectManifest,
+    MapData,
+    ProjectMediaCatalog?,
+    NarrativeEventProjectCatalogBasis,
+  )?
+  _basis;
 
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
@@ -45,39 +54,60 @@ final class MapStoryBehaviours {
     ];
   }
 
+  void prepare(ProjectManifest project, MapData map) =>
+      _basisFor(project, map, registry(project));
+
   NarrativeEventAuthoringContext context(
     ProjectManifest project,
     MapData map,
-  ) => _context(this.project(project), map);
+  ) => _context(project, registry(project), map);
 
   NarrativeEventAuthoringContext _context(
-    ProjectManifest current,
+    ProjectManifest project,
+    NarrativeEventRegistry? registry,
     MapData map,
+  ) => NarrativeEventAuthoringContext.ofCatalog(
+    registryState: registry == null
+        ? EventRegistryDecodeResult.absent()
+        : EventRegistryDecodeResult.decoded(registry),
+    revision: _workingRevision,
+    catalog: _basisFor(
+      project,
+      map,
+      registry,
+    ).catalog(registry, deferFingerprints: true),
+    sourceIndex: buildNarrativeEventSourceIndex(registry?.records ?? const []),
+  );
+
+  NarrativeEventProjectCatalogBasis _basisFor(
+    ProjectManifest project,
+    MapData map,
+    NarrativeEventRegistry? registry,
   ) {
-    final registry = current.eventRegistry;
+    final cached = _basis;
+    if (cached != null &&
+        identical(cached.$1, project) &&
+        identical(cached.$2, map) &&
+        identical(cached.$3, media) &&
+        cached.$4.fits(registry)) {
+      return cached.$4;
+    }
+    final current = identical(registry, project.eventRegistry)
+        ? project
+        : project.copyWith(eventRegistry: registry);
     final scenes = <String, List<SceneAsset>>{};
     for (final scene in current.scenes) {
       scenes.putIfAbsent(scene.id, () => []).add(scene);
     }
-    final catalog = buildNarrativeEventProjectCatalog(
+    final basis = prepareNarrativeEventProjectCatalog(
       project: current,
       maps: [map],
       mapInventoryComplete: false,
       presentationMediaCatalog: media,
       lookupRewardScenes: (id) => scenes[id] ?? const [],
     );
-    return NarrativeEventAuthoringContext(
-      registryState: registry == null
-          ? EventRegistryDecodeResult.absent()
-          : EventRegistryDecodeResult.decoded(registry),
-      revision: catalog.manifestHash,
-      catalog: catalog,
-      sourceIndex: buildNarrativeEventSourceIndex(
-        registry?.records ?? const [],
-      ),
-      manifestHash: catalog.manifestHash,
-      mapHashes: catalog.mapHashes,
-    );
+    _basis = (project, map, media, basis);
+    return basis;
   }
 
   ({String? eventId, String? problem}) apply(
@@ -89,7 +119,7 @@ final class MapStoryBehaviours {
     var registry = this.registry(project);
     String? eventId;
     for (final operation in operations) {
-      final context = _context(project.copyWith(eventRegistry: registry), map);
+      final context = _context(project, registry, map);
       final result = operation(context);
       if (result.status == NarrativeEventAuthoringStatus.noOp) continue;
       if (result.status != NarrativeEventAuthoringStatus.applied) {

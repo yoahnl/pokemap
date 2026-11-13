@@ -108,20 +108,32 @@ final class NarrativeEventAuthoringContext {
     required String manifestHash,
     required Map<String, String> mapHashes,
   })  : revision = _identity(revision, 'revision'),
-        manifestHash = _identity(manifestHash, 'manifestHash'),
-        mapHashes = Map.unmodifiable(mapHashes.map(
+        _manifestHash = _identity(manifestHash, 'manifestHash'),
+        _mapHashes = Map.unmodifiable(mapHashes.map(
           (key, value) => MapEntry(
             _identity(key, 'mapHashes key'),
             _identity(value, 'mapHashes value'),
           ),
         ));
 
+  NarrativeEventAuthoringContext.ofCatalog({
+    required this.registryState,
+    required String revision,
+    required this.catalog,
+    required this.sourceIndex,
+  })  : revision = _identity(revision, 'revision'),
+        _manifestHash = null,
+        _mapHashes = null;
+
   final EventRegistryDecodeResult registryState;
   final String revision;
   final NarrativeEventProjectCatalog catalog;
   final NarrativeEventSourceIndexBuildResult sourceIndex;
-  final String manifestHash;
-  final Map<String, String> mapHashes;
+  final String? _manifestHash;
+  final Map<String, String>? _mapHashes;
+
+  String get manifestHash => _manifestHash ?? catalog.manifestHash;
+  Map<String, String> get mapHashes => _mapHashes ?? catalog.mapHashes;
 
   NarrativeEventRegistry? get registryOrNull => registryState.registryOrNull;
 
@@ -162,8 +174,10 @@ final class NarrativeEventAuthoringContext {
         message: 'Le projet a changé depuis le début de cette opération.',
       );
     }
-    if (catalog.manifestHash != manifestHash ||
-        !_stringMapEquals(catalog.mapHashes, mapHashes) ||
+    final manifestHash = _manifestHash;
+    if ((manifestHash != null &&
+            (catalog.manifestHash != manifestHash ||
+                !_stringMapEquals(catalog.mapHashes, _mapHashes!))) ||
         !_catalogMatchesRegistry() ||
         !_sourceIndexMatchesRegistry()) {
       return NarrativeEventAuthoringContextIssue(
@@ -425,8 +439,11 @@ final class NarrativeEventAuthoringResult {
   String? get eventId => nextRecord?.id ?? previousRecord?.id;
 }
 
+final _registryFingerprints = Expando<String>();
+
 String narrativeEventRegistryFingerprint(NarrativeEventRegistry registry) {
-  return 'sha256:${narrativeEventCanonicalSha256(registry.toJson())}';
+  return _registryFingerprints[registry] ??=
+      'sha256:${narrativeEventCanonicalSha256(registry.toJson())}';
 }
 
 NarrativeEventAuthoringResult? rejectNarrativeEventAuthoringContextIssue({

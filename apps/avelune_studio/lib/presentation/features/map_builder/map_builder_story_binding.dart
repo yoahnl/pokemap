@@ -57,6 +57,9 @@ class MapBuilderStoryBinding {
     try {
       await maps.ensureWorkshop(MapWorkspaceWorkshop.events);
       await _prepareMedia();
+      final project = maps.project;
+      final map = this.map;
+      if (project != null && map != null) behaviours.prepare(project, map);
     } on Object catch (failure) {
       error = '$failure';
     } finally {

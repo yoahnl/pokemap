@@ -10,9 +10,11 @@ import '../catalogs/narrative_spatial_event_source_catalog.dart';
 import '../compatibility/legacy_map_event_projection.dart';
 import '../diagnostics/scene_diagnostics.dart';
 import '../models/map_data.dart';
+import '../models/map_entity_presentation.dart';
 import '../models/narrative_map_view.dart';
 import '../models/narrative_map_projection.dart';
 import '../models/narrative_event_definition.dart';
+import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/project_manifest.dart';
 import 'scene_runtime_compilation_check.dart';
@@ -28,6 +30,30 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
   List<NarrativeOutcomeRef> referencedOutcomes = const [],
   List<NarrativeEventRecord> proposedRecords = const [],
   bool deferFingerprints = false,
+  bool mapInventoryComplete = true,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
+}) {
+  return prepareNarrativeEventProjectCatalog(
+    project: project,
+    maps: maps,
+    presentationMediaCatalog: presentationMediaCatalog,
+    legacyProjections: legacyProjections,
+    referencedOutcomes: referencedOutcomes,
+    mapInventoryComplete: mapInventoryComplete,
+    lookupRewardScenes: lookupRewardScenes,
+  ).catalog(
+    project.eventRegistry,
+    proposedRecords: proposedRecords,
+    deferFingerprints: deferFingerprints,
+  );
+}
+
+NarrativeEventProjectCatalogBasis prepareNarrativeEventProjectCatalog({
+  required ProjectManifest project,
+  required List<NarrativeMapView> maps,
+  ProjectMediaCatalog? presentationMediaCatalog,
+  List<LegacyMapEventProjection> legacyProjections = const [],
+  List<NarrativeOutcomeRef> referencedOutcomes = const [],
   bool mapInventoryComplete = true,
   PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
@@ -106,7 +132,154 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     path: 'facts',
     diagnostics: diagnostics,
   );
+  return NarrativeEventProjectCatalogBasis._(
+    project: project,
+    maps: maps,
+    mapsById: mapsById,
+    variantEventIds: {
+      for (final map in maps)
+        for (final entity in map.entities)
+          for (final variant in entity.presentation?.variants ??
+              const <MapEntityPresentationVariant>[])
+            for (final leaf in variant.condition.leaves)
+              ...leaf.whenTyped(
+                civilWeekday: (_, _) => const <String>[],
+                periodicRewardAvailable: (_, _) => const <String>[],
+                fact: (_, _, _) => const <String>[],
+                narrativeEventConsumed: (eventId, _) => [eventId],
+                mapEventInstanceBoolean: (_, _, _, _) => const <String>[],
+              ),
+    },
+    unloadedMapIds: unloadedMapIds,
+    lookupRewardScenes: lookupRewardScenes,
+    spatialSources: spatialSources,
+    outcomeSources: outcomeSources,
+    scenes: scenes,
+    facts: facts,
+    diagnostics: diagnostics,
+  );
+}
 
+final class NarrativeEventProjectCatalogBasis {
+  NarrativeEventProjectCatalogBasis._({
+    required ProjectManifest project,
+    required List<NarrativeMapView> maps,
+    required Map<String, NarrativeMapView> mapsById,
+    required Set<String> variantEventIds,
+    required Set<String> unloadedMapIds,
+    required PeriodicRewardSceneLookup? lookupRewardScenes,
+    required NarrativeSpatialEventSourceCatalog spatialSources,
+    required NarrativeOutcomeEventSourceCatalog outcomeSources,
+    required List<NarrativeEventProjectSceneEntry> scenes,
+    required List<NarrativeEventProjectFactEntry> facts,
+    required List<NarrativeEventProjectDiagnostic> diagnostics,
+  })  : _project = project,
+        _maps = maps,
+        _mapsById = mapsById,
+        _variantEventIds = variantEventIds.toList()
+          ..sort(compareNarrativeEventUtf16),
+        _unloadedMapIds = unloadedMapIds,
+        _lookupRewardScenes = lookupRewardScenes,
+        _spatialSources = spatialSources,
+        _outcomeSources = outcomeSources,
+        _scenes = List.unmodifiable(scenes),
+        _facts = List.unmodifiable(facts),
+        _diagnostics = List.unmodifiable(diagnostics);
+
+  final ProjectManifest _project;
+  final List<NarrativeMapView> _maps;
+  final Map<String, NarrativeMapView> _mapsById;
+  final List<String> _variantEventIds;
+  final Set<String> _unloadedMapIds;
+  final PeriodicRewardSceneLookup? _lookupRewardScenes;
+  final NarrativeSpatialEventSourceCatalog _spatialSources;
+  final NarrativeOutcomeEventSourceCatalog _outcomeSources;
+  final List<NarrativeEventProjectSceneEntry> _scenes;
+  final List<NarrativeEventProjectFactEntry> _facts;
+  final List<NarrativeEventProjectDiagnostic> _diagnostics;
+  late final String _registryReads =
+      _basisRegistryReads(_project.eventRegistry, _variantEventIds);
+
+  bool fits(NarrativeEventRegistry? registry) =>
+      identical(registry, _project.eventRegistry) ||
+      _basisRegistryReads(registry, _variantEventIds) == _registryReads;
+
+  NarrativeEventProjectCatalog catalog(
+    NarrativeEventRegistry? registry, {
+    List<NarrativeEventRecord> proposedRecords = const [],
+    bool deferFingerprints = false,
+  }) {
+    if (!fits(registry)) {
+      throw StateError(
+        'This catalog basis was prepared for other Event sources, '
+        'parallel owners or identifiers.',
+      );
+    }
+    return _assembleCatalog(
+      this,
+      identical(registry, _project.eventRegistry)
+          ? _project
+          : _project.copyWith(eventRegistry: registry),
+      proposedRecords: proposedRecords,
+      deferFingerprints: deferFingerprints,
+    );
+  }
+}
+
+String _basisRegistryReads(
+  NarrativeEventRegistry? registry,
+  List<String> variantEventIds,
+) {
+  final records = registry?.records ?? const <NarrativeEventRecord>[];
+  final outcomes = <String>{};
+  final parallelOwners = <Object?>[];
+  final idCounts = <String, int>{};
+  for (final record in records) {
+    idCounts.update(record.id, (count) => count + 1, ifAbsent: () => 1);
+    final source =
+        record.definitionOrNull?.source ?? record.draftOrNull?.source;
+    final outcome = source?.when<NarrativeOutcomeRef?>(
+      entityInteract: (_, _) => null,
+      entityBump: (_, _) => null,
+      entityAutorun: (_, _) => null,
+      modelInteract: (_, _) => null,
+      triggerBump: (_, _) => null,
+      triggerEnter: (_, _) => null,
+      mapEnter: (_) => null,
+      outcomeReceived: (outcome) => outcome,
+    );
+    if (outcome != null) outcomes.add(jsonEncode(outcome.toJson()));
+    if ((record.definitionOrNull?.parallelPolicy ??
+            record.draftOrNull?.parallelPolicy) !=
+        null) {
+      parallelOwners.add([
+        record.definitionOrNull?.sceneId ?? record.draftOrNull?.sceneId,
+        source?.toJson()['mapId'],
+      ]);
+    }
+  }
+  return jsonEncode([
+    [for (final id in variantEventIds) idCounts[id] ?? 0],
+    outcomes.toList()..sort(compareNarrativeEventUtf16),
+    parallelOwners,
+  ]);
+}
+
+NarrativeEventProjectCatalog _assembleCatalog(
+  NarrativeEventProjectCatalogBasis basis,
+  ProjectManifest project, {
+  required List<NarrativeEventRecord> proposedRecords,
+  required bool deferFingerprints,
+}) {
+  final maps = basis._maps;
+  final mapsById = basis._mapsById;
+  final unloadedMapIds = basis._unloadedMapIds;
+  final lookupRewardScenes = basis._lookupRewardScenes;
+  final spatialSources = basis._spatialSources;
+  final outcomeSources = basis._outcomeSources;
+  final scenes = basis._scenes;
+  final facts = basis._facts;
+  final diagnostics = [...basis._diagnostics];
   final existingRecords = project.eventRegistry?.records ?? const [];
   final allRecords = <_ProjectRecordInput>[
     for (final record in existingRecords)
@@ -674,8 +847,8 @@ int _compareScenes(
       compareNarrativeEventUtf16(left.scene.id, right.scene.id),
       compareNarrativeEventUtf16(left.scene.name, right.scene.name),
     ],
-    left.scene.toJson(),
-    right.scene.toJson(),
+    () => left.scene.toJson(),
+    () => right.scene.toJson(),
   );
 }
 
@@ -688,8 +861,8 @@ int _compareFacts(
       compareNarrativeEventUtf16(left.fact.id, right.fact.id),
       compareNarrativeEventUtf16(left.fact.label, right.fact.label),
     ],
-    left.fact.toJson(),
-    right.fact.toJson(),
+    () => left.fact.toJson(),
+    () => right.fact.toJson(),
   );
 }
 
@@ -702,20 +875,20 @@ int _compareEvents(
       compareNarrativeEventUtf16(left.record.id, right.record.id),
       left.proposed == right.proposed ? 0 : (left.proposed ? 1 : -1),
     ],
-    left.record.toJson(),
-    right.record.toJson(),
+    () => left.record.toJson(),
+    () => right.record.toJson(),
   );
 }
 
 int _compareWithFallback(
   List<int> comparisons,
-  Object? left,
-  Object? right,
+  Object? Function() left,
+  Object? Function() right,
 ) {
   for (final comparison in comparisons) {
     if (comparison != 0) return comparison;
   }
-  return _safeSortKey(left).compareTo(_safeSortKey(right));
+  return _safeSortKey(left()).compareTo(_safeSortKey(right()));
 }
 
 String _safeSortKey(Object? value) {
