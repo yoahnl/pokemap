@@ -1,10 +1,7 @@
-import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
-import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_warp_target_session.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
@@ -123,80 +120,6 @@ void main() {
       document.restore(redo: true);
       expect(document.current.warps.single, moved);
       expect(tester.takeException(), isNull);
-    },
-  );
-
-  test('passive mode retains identity and canonical local target without outgoing data', () {
-    project = workspaceProject;
-    final commands = WarpEditingCommands(document, project);
-    final warp = commands.place(
-      workspaceEntries.last,
-      const GridPos(x: 2, y: 3),
-    );
-    final form = MapWarpTargetSession(document, project, warp);
-    addTearDown(form.dispose);
-    expect(form.selectMode('sceneOnly'), isTrue);
-    final passive = commands.selected(warp.id)!;
-    expect(passive.triggerMode, MapWarpTriggerMode.sceneOnly);
-    expect(passive.targetMapId, 'a');
-    expect(passive.targetPos, passive.pos);
-    expect(passive.id, warp.id);
-  });
-
-  test('passive activation requires explicit destination and both valid coordinates', () {
-    project = workspaceProject;
-    final commands = WarpEditingCommands(document, project);
-    final point = commands.placeArrival(const GridPos(x: 2, y: 3));
-    final before = document.current;
-    final history = document.undoCount;
-    final form = MapWarpTargetSession(document, project, point);
-    addTearDown(form.dispose);
-    expect(form.selectMode('onEnter'), isTrue);
-    expect(document.current, same(before));
-    expect(form.canApply, isFalse);
-    expect(form.selectDestination('b'), isTrue);
-    expect(form.canApply, isFalse);
-    expect(form.commitTarget('5', horizontal: true), isTrue);
-    expect(form.canApply, isFalse);
-    expect(form.commitTarget('7', horizontal: false), isTrue);
-    expect(form.canApply, isTrue);
-    expect(form.commitTarget('-1', horizontal: true), isFalse);
-    expect(form.canApply, isFalse);
-    expect(form.apply(), isFalse);
-    expect(document.current, same(before));
-    expect(form.commitTarget('5', horizontal: true), isTrue);
-    expect(form.apply(), isTrue);
-    final active = commands.selected(point.id)!;
-    expect(active.triggerMode, MapWarpTriggerMode.onEnter);
-    expect(active.targetMapId, 'b');
-    expect(active.targetPos, const GridPos(x: 5, y: 7));
-    expect(active.pos, point.pos);
-    expect(document.undoCount, history + 1);
-    document.restore(redo: false);
-    expect(document.current, before);
-  });
-
-  test(
-    'late arrival choice cannot retarget another selection or disposed form',
-    () async {
-      project = workspaceProject;
-      final commands = WarpEditingCommands(document, project);
-      final first = commands.placeArrival(const GridPos(x: 2, y: 3));
-      final second = commands.placeArrival(const GridPos(x: 4, y: 3));
-      final form = MapWarpTargetSession(document, project, first);
-      final before = document.current;
-      final choice = Completer<GridPos?>();
-      final pending = form.pickArrival((_) => choice.future);
-      form.update(project, second);
-      choice.complete(const GridPos(x: 5, y: 6));
-      expect(await pending, isFalse);
-      expect(document.current, same(before));
-      final disposedChoice = Completer<GridPos?>();
-      final afterDispose = form.pickArrival((_) => disposedChoice.future);
-      form.dispose();
-      disposedChoice.complete(const GridPos(x: 7, y: 8));
-      expect(await afterDispose, isFalse);
-      expect(document.current, same(before));
     },
   );
 

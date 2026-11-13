@@ -7,19 +7,15 @@ import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visual
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
 import 'package:flutter/widgets.dart';
 
-import 'neutral_map_elements_panel.dart';
-
 class NeutralMapEditingHost extends StatefulWidget {
   const NeutralMapEditingHost({
     super.key,
     required this.controller,
     required this.visuals,
-    this.elements = false,
   });
 
   final MapWorkspaceController controller;
   final MapWorkspaceVisuals visuals;
-  final bool elements;
 
   @override
   State<NeutralMapEditingHost> createState() => _NeutralMapEditingHostState();
@@ -100,23 +96,6 @@ class _NeutralMapEditingHostState extends State<NeutralMapEditingHost> {
       onChanged: _changed,
       busy: _projection.loading,
     );
-    if (!widget.elements) return surface;
-    return Row(
-      children: [
-        Expanded(child: surface),
-        SizedBox(
-          width: 360,
-          child: NeutralMapElementsPanel(
-            document: document,
-            project: project,
-            view: _view,
-            onChanged: _changed,
-            onReorder: controller.canReorderElements
-                ? controller.reorderElements
-                : null,
-          ),
-        ),
-      ],
-    );
+    return surface;
   }
 }

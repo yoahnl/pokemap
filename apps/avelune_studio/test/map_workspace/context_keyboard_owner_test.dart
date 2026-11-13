@@ -35,44 +35,11 @@ void main() {
     final first = commands.place(MapEntityKind.sign, const GridPos(x: 4, y: 4));
     await h.pump(tester);
     await h.rightClick(tester, 4, 4);
-    expect(h.request!.selected!.id, first.id);
+    expect(h.request!.target!.id, first.id);
     await h.rightClick(tester, 18, 1);
-    expect(h.request!.selected, isNull);
+    expect(h.request!.target, isNull);
     expect(h.request!.targets, isEmpty);
     expect(commands.selected(first.id), isNotNull);
   });
 
-  testWidgets(
-    'changing maps or entering exterior editing closes the pending request',
-    (tester) async {
-      await h.pump(tester);
-      await h.rightClick(tester, 4, 4);
-      h.session.releaseIfStale('other');
-      expect(h.request, isNull);
-      await h.rightClick(tester, 4, 4);
-      h.session.releaseIfStale(h.document.current.id, exterior: true);
-      expect(h.request, isNull);
-    },
-  );
-
-  testWidgets(
-    'disposing a context session prevents new requests and commands',
-    (tester) async {
-      MapEntityEditingCommands(
-        h.document,
-        h.project,
-      ).place(MapEntityKind.sign, const GridPos(x: 4, y: 4));
-      await h.pump(tester);
-      await h.rightClick(tester, 4, 4);
-      final before = h.document.current;
-      final target = h.request!.selected!;
-      h.session.dispose();
-      expect(h.request, isNull);
-      expect(h.session.run(MapContextCommand.delete), isFalse);
-      expect(h.session.select(target), isFalse);
-      await h.rightClick(tester, 4, 4);
-      expect(h.request, isNull);
-      expect(h.document.current, same(before));
-    },
-  );
 }

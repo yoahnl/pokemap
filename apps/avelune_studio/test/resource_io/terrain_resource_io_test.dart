@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/features/terrains/application/terrain_brush.dart';
+import 'package:map_authoring/map_authoring_editing.dart' show applyTerrainStroke;
 import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_connections.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';

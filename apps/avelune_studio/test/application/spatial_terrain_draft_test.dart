@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
-import 'package:avelune_studio/features/terrains/domain/terrain_spatial_preview_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -112,7 +111,7 @@ void main() {
     );
   });
 
-  test('unit models compile without an atlas and painted cells produce native instances', () {
+  test('unit models compile without an atlas and keep their draft through JSON', () {
     final model = spatialPathDraft();
     expect(model.uniform, isTrue);
     expect(model.draft.atlases, isEmpty);
@@ -134,44 +133,6 @@ void main() {
         jsonDecode(jsonEncode(model.draft.toJson())) as Map<String, dynamic>,
       ),
       model.draft,
-    );
-    model.clearScratch();
-    model.paintLine(const GridPos(x: 2, y: 3), const GridPos(x: 5, y: 3));
-    model.paint(const GridPos(x: 3, y: 3), erase: true);
-    model.assignModel(
-      model.manifest.models3d.single,
-      scale: 1.5,
-      offsetX: .125,
-      offsetY: .2,
-      offsetZ: -.375,
-      quarterTurns: 1,
-    );
-    final preview = terrainSpatialPreviewMap(
-      project: model.manifest,
-      preset: model.previewPreset,
-      size: 17,
-      cells: model.scratch,
-      materials: model.draft.materials,
-    );
-    expect(
-      preview.map.spatialScene!.instances
-          .map((instance) => (instance.position.x, instance.position.z))
-          .toSet(),
-      {(2.875, 3.625), (4.875, 3.625), (5.875, 3.625)},
-    );
-    for (final instance in preview.map.spatialScene!.instances) {
-      expect(instance.modelId, 'oak');
-      expect(instance.scale, 1.5);
-      expect(instance.rotationDegrees, -90);
-      expect(instance.position.y, .2 + spatialSmartTileLayerPaintStep);
-      expect(instance.blocksMovement, isFalse);
-    }
-    expect(model.manifest.smartTileCatalog.presets, isEmpty);
-    expect(
-      (preview.map.layers.single as SmartTileLayer).field.semanticCells
-          .where((cell) => cell == 1)
-          .length,
-      3,
     );
   });
 

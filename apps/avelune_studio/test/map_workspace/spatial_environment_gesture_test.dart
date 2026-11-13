@@ -1,4 +1,3 @@
-import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
 
 import 'dart:typed_data';
 
@@ -18,24 +17,6 @@ import '../support/map_workspace_fixture.dart';
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
-  test('spatial terrain and environment commands select their intended resource family', () {
-    final view = MapEditingViewportSession();
-    addTearDown(view.dispose);
-    var selected = '';
-    final runner = MapToolCommandRunner(
-      view: view,
-      paletteTab: () => selected,
-      selectPalette: (value) => selected = value,
-      spatial: true,
-      paletteVisible: true,
-      onChanged: () {},
-      onMoreTools: () {},
-      onResources: () {},
-    );
-    runner.runFamily('Environnements');
-    expect(view.tool, StudioMapTool.environment);
-    expect(selected, 'Environnements');
-  });
 
   testWidgets(
     'spatial strokes preview exact cells, commit once and render generation',

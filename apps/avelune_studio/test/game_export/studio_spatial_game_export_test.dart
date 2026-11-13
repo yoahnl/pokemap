@@ -2,40 +2,12 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
-import 'package:avelune_studio/features/game_export/application/studio_game_export_mode.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
-import 'package:map_core/map_core.dart';
 
 import '../support/m3_story_fixture.dart';
 
 void main() {
-  test('3D export defaults to local testing and refuses publication selection', () {
-    expect(studioPublicationAvailable(ProjectDimension.threeD), isFalse);
-    final mode = StudioGameExportModeSelection(
-      publicationAvailable: studioPublicationAvailable(ProjectDimension.threeD),
-    );
-    expect(mode.publication, isFalse);
-    expect(mode.selectPublication(true, operationActive: false), isFalse);
-    expect(mode.publication, isFalse);
-    expect(mode.selectPublication(false, operationActive: false), isTrue);
-    expect(studioPublicationAvailable(null), isFalse);
-  });
-
-  test('2D export defaults to publication and locks mode during an operation', () {
-    final mode = StudioGameExportModeSelection(
-      publicationAvailable: studioPublicationAvailable(ProjectDimension.twoD),
-    );
-    expect(mode.publication, isTrue);
-    expect(mode.selectPublication(false, operationActive: true), isFalse);
-    expect(mode.publication, isTrue);
-    expect(mode.selectPublication(false, operationActive: false), isTrue);
-    expect(mode.publication, isFalse);
-    expect(mode.selectPublication(true, operationActive: true), isFalse);
-    expect(mode.publication, isFalse);
-    expect(mode.selectPublication(true, operationActive: false), isTrue);
-    expect(mode.publication, isTrue);
-  });
 
   test('canonical 3D publication refusal is explained in French', () async {
     final source = await M3StoryFixture.create();

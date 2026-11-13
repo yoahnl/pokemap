@@ -1,5 +1,4 @@
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -64,64 +63,6 @@ void main() {
       ).single.id,
       'shared',
     );
-  });
-
-  test('placement context matrix distinguishes both from unspecified', () {
-    final project = workspaceProject.copyWith(
-      elements: [
-        for (final id in ['interior', 'exterior', 'both', 'unspecified'])
-          workspaceElement.copyWith(id: id),
-      ],
-      tilesets: [],
-      resourceLibraryCatalog: ResourceLibraryCatalog(
-        entries: [
-          for (final value in ResourcePlacementContext.values)
-            ResourceLibraryEntry(
-              resourceKind: 'element',
-              resourceId: value.name,
-              placementContext: value,
-            ),
-        ],
-      ),
-    );
-    final expected = {
-      ResourceCatalogContext.all: [
-        'interior',
-        'exterior',
-        'both',
-        'unspecified',
-      ],
-      ResourceCatalogContext.interior: ['interior', 'both'],
-      ResourceCatalogContext.exterior: ['exterior', 'both'],
-      ResourceCatalogContext.unspecified: ['unspecified'],
-    };
-    for (final entry in expected.entries) {
-      final filters = ResourceCatalogFilterState(context: entry.key);
-      expect(
-        filterResourceCatalog(
-          project,
-          resourceCatalog(project),
-          filters,
-        ).map((item) => item.id),
-        entry.value,
-      );
-      expect(
-        ResourceFamilyTree(
-          project,
-          resourceCatalog(project),
-          context: entry.key,
-        ).total,
-        entry.value.length,
-      );
-      expect(filters.copy().context, entry.key);
-      final copy = ResourceCatalogFilterState()..copyFrom(filters);
-      expect(copy.context, entry.key);
-      copy.reset();
-      expect(copy.context, ResourceCatalogContext.all);
-      final state = ResourceLibraryState()..filters.context = entry.key;
-      state.reveal(resourceCatalog(project).first);
-      expect(state.filters.context, ResourceCatalogContext.all);
-    }
   });
 
   test(
@@ -309,80 +250,6 @@ void main() {
       );
     },
   );
-  test(
-    'component role hides choices without changing availability or dimensions',
-    () {
-      final base = _project();
-      final project = base.copyWith(
-        resourceLibraryCatalog: ResourceLibraryCatalog(
-          families: base.resourceLibraryCatalog.families,
-          entries: [
-            for (final entry in base.resourceLibraryCatalog.entries)
-              ResourceLibraryEntry(
-                resourceKind: entry.resourceKind,
-                resourceId: entry.resourceId,
-                familyId: entry.familyId,
-                mapId: entry.mapId,
-                role: entry.resourceId == 'map-a'
-                    ? ResourceLibraryRole.component
-                    : ResourceLibraryRole.standard,
-              ),
-          ],
-        ),
-      );
-      final items = resourceCatalog(project);
-      final filters = ResourceCatalogFilterState(familyId: 'trees');
-      expect(
-        filterResourceCatalog(project, items, filters).map((item) => item.id),
-        ['shared', 'map-b'],
-      );
-      expect(
-        ResourceFamilyTree(
-          project,
-          items,
-        ).nodes.singleWhere((node) => node.id == 'trees').count,
-        2,
-      );
-      expect(
-        project.resourceLibraryCatalog.availableForMap('element', 'map-a', 'a'),
-        isTrue,
-      );
-      filters.showComponents = true;
-      expect(
-        filterResourceCatalog(
-          project,
-          items,
-          filters,
-          forMapPicker: true,
-          activeMapId: 'a',
-        ).map((item) => item.id),
-        ['shared', 'map-a'],
-      );
-      expect(
-        filterResourceCatalog(
-          project,
-          items,
-          filters,
-          forMapPicker: true,
-          activeMapId: 'b',
-        ).map((item) => item.id),
-        ['shared', 'map-b'],
-      );
-      expect(
-        ResourceFamilyTree(
-          project,
-          items,
-          showComponents: true,
-        ).nodes.singleWhere((node) => node.id == 'trees').count,
-        3,
-      );
-      expect(filters.copy().showComponents, isTrue);
-      final copied = ResourceCatalogFilterState()..copyFrom(filters);
-      expect(copied.showComponents, isTrue);
-      filters.reset();
-      expect(filters.showComponents, isFalse);
-    },
-  );
   test('nature family descendants intersect usage search and availability', () {
     final project = _project();
     final items = resourceCatalog(project);
@@ -456,31 +323,6 @@ void main() {
         ).single.id,
         'shared',
       );
-    },
-  );
-
-  test(
-    'family tree preserves empty custom nodes and counts descendants once',
-    () {
-      final project = _project();
-      final tree = ResourceFamilyTree(project, resourceCatalog(project));
-      expect(tree.total, 5);
-      expect(tree.unclassified, 2);
-      expect(tree.nodes.singleWhere((node) => node.id == 'trees').count, 3);
-      expect(tree.nodes.singleWhere((node) => node.id == 'conifers').count, 2);
-      final cedar = tree.nodes.singleWhere((node) => node.id == 'cedars');
-      expect(
-        (cedar.parentId, cedar.depth, cedar.count, cedar.custom),
-        ('conifers', 2, 1, true),
-      );
-      expect(tree.nodes.singleWhere((node) => node.id == 'empty').count, 0);
-      final mapTree = ResourceFamilyTree(
-        project,
-        resourceCatalog(project),
-        activeMapId: 'a',
-        forMapPicker: true,
-      );
-      expect(mapTree.nodes.singleWhere((node) => node.id == 'trees').count, 2);
     },
   );
 

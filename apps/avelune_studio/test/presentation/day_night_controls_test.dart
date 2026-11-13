@@ -2,9 +2,7 @@ import 'dart:io';
 import 'dart:ui' show Rect;
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_spatial_settings_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/features/resources/application/model_light_draft.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
@@ -144,49 +142,4 @@ void main() {
     },
   );
 
-  test('a light draft saves and removes a local emitter', () async {
-    Model3dPointLight? saved;
-    var saves = 0;
-    final draft = ModelLightDraft(spatialEnvironmentProject().models3d.single);
-    addTearDown(draft.dispose);
-    expect(draft.enabled, isFalse);
-    draft.enabled = true;
-    draft.values[3] = '5.5';
-    Future<void> publish(Model3dPointLight? value) async {
-      saved = value;
-      saves++;
-    }
-
-    expect(await draft.save(publish, canSave: () => true), isTrue);
-    expect(saves, 1);
-    expect(saved!.radius, 5.5);
-    expect(saved!.nightOnly, isTrue);
-    expect(saved!.colorRgb, 0xffd59a);
-    draft.enabled = false;
-    expect(await draft.save(publish, canSave: () => true), isTrue);
-    expect(saves, 2);
-    expect(saved, isNull);
-  });
-
-  test('cycle editing is undoable while preview leaves the map unchanged', () {
-    final map = spatialEnvironmentMap();
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(map: map, mapId: map.id, revision: 'cycle'),
-    );
-    final preview = SpatialSceneController();
-    addTearDown(preview.dispose);
-    final commands = MapSpatialSettingsCommands(document);
-    expect(document.current.spatialScene!.dayNightCycle, isNull);
-    expect(commands.dayNight(SpatialDayNightCycle()), isTrue);
-    expect(document.undoCount, 1);
-    final saved = document.current;
-    preview.previewMinuteOfDay = 1320;
-    expect(preview.previewMinuteOfDay, 1320);
-    expect(document.current, same(saved));
-    expect(document.undoCount, 1);
-    document.restore(redo: false);
-    expect(document.current.spatialScene!.dayNightCycle, isNull);
-    document.restore(redo: true);
-    expect(document.current.spatialScene!.dayNightCycle, isNotNull);
-  });
 }

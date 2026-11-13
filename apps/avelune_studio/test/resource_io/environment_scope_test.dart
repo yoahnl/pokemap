@@ -5,7 +5,6 @@ import 'package:avelune_studio/features/map_workspace/application/environment_ed
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/features/resources/application/resource_open_map_usage.dart';
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_documents.dart';
@@ -28,9 +27,8 @@ void main() {
             doc.current.id: doc.current,
         };
         final beforeFiles = await host.files();
-        final item = host.item;
         expect(
-          resourceOpenMapUsage(item, beforeMaps.values),
+          _environmentZones(beforeMaps.values, host.item.id),
           withZones ? 3 : 0,
         );
         if (withZones) {
@@ -58,7 +56,7 @@ void main() {
           final file = File('${host.fixture.root.path}/${entry.relativePath}');
           expect(await file.readAsBytes(), beforeFiles[file.path]);
         }
-        expect(resourceOpenMapUsage(item, diskMaps), withZones ? 3 : 0);
+        expect(_environmentZones(diskMaps, host.item.id), withZones ? 3 : 0);
         for (final entry in reopened.tilesets) {
           final file = File('${host.fixture.root.path}/${entry.relativePath}');
           expect(await file.readAsBytes(), beforeFiles[file.path]);
@@ -67,6 +65,12 @@ void main() {
     );
   }
 }
+
+int _environmentZones(Iterable<MapData> maps, String presetId) => maps
+    .expand((map) => map.layers.whereType<EnvironmentLayer>())
+    .expand((layer) => layer.content.areas)
+    .where((area) => area.presetId == presetId)
+    .length;
 
 final class EnvironmentScopeFixture {
   EnvironmentScopeFixture(

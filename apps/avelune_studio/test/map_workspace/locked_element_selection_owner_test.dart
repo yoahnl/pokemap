@@ -1,5 +1,3 @@
-import 'package:avelune_studio/features/map_workspace/application/map_element_catalog.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_element_visibility_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
@@ -254,47 +252,6 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-
-  testWidgets('family lock allows clicking behind all its effects', (
-    tester,
-  ) async {
-    final effect = workspaceElement.copyWith(
-      id: 'mist',
-      name: 'Brume',
-      categoryId: 'effects',
-    );
-    h.project = h.project.copyWith(
-      elements: [workspaceElement, effect],
-      elementCategories: const [
-        ProjectElementCategory(id: 'effects', name: 'Effets'),
-      ],
-    );
-    final commands = MapEditingCommands(h.document, h.project);
-    final back = commands.place(workspaceElement, const GridPos(x: 4, y: 4))!;
-    final front = commands.place(effect, const GridPos(x: 4, y: 4))!;
-    final other = commands.place(effect, const GridPos(x: 7, y: 7))!;
-    await h.pump(tester);
-    await h.tapCell(tester, 4, 4);
-    expect(h.document.selectedId, front);
-    final before = h.document.current;
-    final catalog = MapElementCatalog(h.document.current, h.project);
-    await MapElementVisibilityCommands(
-      h.document,
-      h.view,
-      catalog: () => catalog,
-    ).setLocked(catalog.families['Décors · Effets']!, true);
-    h.redraw();
-    await tester.pumpAndSettle();
-    expect(h.document.current, same(before));
-    expect(h.document.isElementLocked('decor', front), isTrue);
-    expect(h.document.isElementLocked('decor', other), isTrue);
-    expect(h.document.selectedId, isNull);
-    await h.tapCell(tester, 4, 4);
-    expect(h.document.selectedId, back);
-    commands.move(front, const GridPos(x: 9, y: 9));
-    expect(h.document.current, same(before));
-    expect(tester.takeException(), isNull);
-  });
 
   testWidgets('locking an effects layer makes its decor click through', (
     tester,

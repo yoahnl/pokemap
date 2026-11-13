@@ -1,15 +1,9 @@
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
-import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
-import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
-import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
-import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -161,131 +155,6 @@ void main() {
     expect(await n.saveDrafts(), isFalse);
     expect(n.environments[draft.id], same(draft));
     expect(scope.workspace.project!.toJson(), beforeProject);
-    expect(await scope.files(), beforeFiles);
-  });
-
-  test('invalid environment close refuses save retains cancel and only explicit discard permits a clean disk reopen', () async {
-    final scope = await EnvironmentScopeFixture.create(withZones: false);
-    addTearDown(scope.dispose);
-    final sessions = ProjectSessionController(LocalProjectSessionAdapter());
-    addTearDown(sessions.dispose);
-    final root = scope.fixture.root.path;
-    await sessions.open(root);
-    final session = sessions.state.project!;
-    final adapter = LocalMapWorkspaceAdapter();
-    final workspace = MapWorkspaceController(session, adapter);
-    addTearDown(() {
-      if (!workspace.isDisposed) workspace.dispose();
-    });
-    await workspace.initialize();
-    await workspace.materializeProject();
-    final port = LocalResourceAdapter(session: session, mapAdapter: adapter);
-    addTearDown(port.dispose);
-    final navigation = ResourceNavigation(
-      workspace: workspace,
-      port: port,
-      visuals: scope.visuals,
-      onUse: (_) {},
-    );
-    addTearDown(() {
-      if (!navigation.isDisposed) navigation.dispose();
-    });
-    var choice = WorkspaceCloseChoice.save;
-    final decisions = <WorkspaceCloseChoice>[];
-    final workflow = WorkspaceWorkflow(
-      controller: workspace,
-      isActive: () => !workspace.isDisposed,
-      changed: () {},
-      resources: () => navigation,
-      narrative: () => null,
-      confirmClose: () async {
-        decisions.add(choice);
-        return choice;
-      },
-      flushFocus: () {},
-      launchMap: (_, _) async => fail('Closing must not launch the Player'),
-    );
-    final opening = ProjectSessionOpenController(
-      session: sessions,
-      chooseDirectory: () async => root,
-      allowSwitch: () async =>
-          sessions.state.project == null || await workflow.allowClose(),
-    );
-    addTearDown(opening.dispose);
-    final beforeFiles = await scope.files();
-    final beforeProject = workspace.project!.toJson();
-    final beforeMap = workspace.active!.current;
-    navigation.openEnvironment(scope.preset);
-    final draft = navigation.environment!..name = 'Ne jamais publier';
-    draft.setWeightInput('tree', 'invalide');
-    expect(draft.build, throwsFormatException);
-    expect(workflow.hasPendingChanges, isTrue);
-
-    expect(await opening.close(), isFalse);
-    expect(decisions, [WorkspaceCloseChoice.save]);
-    expect(sessions.state.project, same(session));
-    expect(navigation.environment, same(draft));
-    expect(navigation.environments[draft.id], same(draft));
-    expect(draft.weightInput('tree'), 'invalide');
-    expect(navigation.dirty, isTrue);
-    expect(navigation.busy, isFalse);
-    final error = navigation.error;
-    expect(error, isNotNull);
-    expect(workspace.project!.toJson(), beforeProject);
-    expect(workspace.active!.current, beforeMap);
-    expect(await scope.files(), beforeFiles);
-
-    choice = WorkspaceCloseChoice.cancel;
-    expect(await opening.close(), isFalse);
-    expect(sessions.state.project, same(session));
-    expect(navigation.environment, same(draft));
-    expect(draft.name, 'Ne jamais publier');
-    expect(draft.weightInput('tree'), 'invalide');
-    expect(navigation.error, error);
-    expect(navigation.dirty, isTrue);
-    expect(await scope.files(), beforeFiles);
-
-    choice = WorkspaceCloseChoice.discard;
-    expect(await opening.close(), isTrue);
-    expect(decisions, [
-      WorkspaceCloseChoice.save,
-      WorkspaceCloseChoice.cancel,
-      WorkspaceCloseChoice.discard,
-    ]);
-    expect(sessions.state.project, isNull);
-    expect(navigation.environments[draft.id], same(draft));
-    expect(await scope.files(), beforeFiles);
-    navigation.dispose();
-    workspace.dispose();
-    await port.dispose();
-
-    expect(await opening.open(directoryPath: root), isTrue);
-    final reopenedSession = sessions.state.project!;
-    expect(reopenedSession.sessionId, isNot(session.sessionId));
-    final reopenedAdapter = LocalMapWorkspaceAdapter();
-    final reopened = MapWorkspaceController(reopenedSession, reopenedAdapter);
-    addTearDown(reopened.dispose);
-    await reopened.initialize();
-    await reopened.materializeProject();
-    final reopenedPort = LocalResourceAdapter(
-      session: reopenedSession,
-      mapAdapter: reopenedAdapter,
-    );
-    addTearDown(reopenedPort.dispose);
-    final reopenedNavigation = ResourceNavigation(
-      workspace: reopened,
-      port: reopenedPort,
-      visuals: scope.visuals,
-      onUse: (_) {},
-    );
-    addTearDown(reopenedNavigation.dispose);
-    expect(reopenedNavigation.environment, isNull);
-    expect(reopenedNavigation.environments, isEmpty);
-    expect(reopenedNavigation.dirty, isFalse);
-    expect(reopenedNavigation.error, isNull);
-    expect(reopened.project!.environmentPresets, [scope.preset]);
-    expect(reopened.project!.toJson(), beforeProject);
-    expect(reopened.active!.current, beforeMap);
     expect(await scope.files(), beforeFiles);
   });
 

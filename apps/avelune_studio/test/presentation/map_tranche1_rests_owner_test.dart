@@ -1,47 +1,16 @@
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_element_catalog.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_element_list_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_decor_group_editing.dart';
-import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_editor_controller.dart';
-import 'package:avelune_studio/features/map_workspace/domain/map_editor_port.dart';
-import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
 import '../support/map_selection_e_shell_owner_fixture.dart';
 import '../support/spatial_border_fixture.dart';
-import '../support/spatial_environment_fixture.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-  test('choosing an element in map content centers the view on it', () {
-    final h = MapSelectionEShellOwnerFixture.of(workspaceProject);
-    addTearDown(h.dispose);
-    final id = MapEditingCommands(
-      h.document,
-      h.project,
-    ).place(workspaceElement, const GridPos(x: 5, y: 3))!;
-    h.document.selectedId = null;
-    final centered = <GridPos>[];
-    final selection = MapElementSelectionCommands(
-      h.document,
-      h.view,
-      centerOn: centered.add,
-    );
-    final entry = MapElementCatalog(
-      h.document.current,
-      h.project,
-    ).entries.singleWhere((entry) => entry.kind == 'decor' && entry.id == id);
-    expect(selection.select(entry), isTrue);
-    expect(centered, [const GridPos(x: 5, y: 3)]);
-  });
 
   testWidgets(
     'Shift-click on the map adds and removes decors from the selection',
@@ -74,95 +43,6 @@ void main() {
     },
   );
 
-  test('a group duplicates in one undo step and keeps locked decors out', () {
-    final h = MapSelectionEShellOwnerFixture.of(workspaceProject);
-    addTearDown(h.dispose);
-    final commands = MapEditingCommands(h.document, h.project);
-    final first = commands.place(workspaceElement, const GridPos(x: 1, y: 1))!;
-    final second = commands.place(workspaceElement, const GridPos(x: 4, y: 4))!;
-    final undo = h.document.undoCount;
-    final copies = MapDecorGroupEditing(
-      h.document,
-      h.project,
-    ).duplicate([first, second])!;
-    expect(copies, hasLength(2));
-    expect(copies.toSet().intersection({first, second}), isEmpty);
-    expect(h.document.current.placedElements, hasLength(4));
-    expect(h.document.undoCount, undo + 1);
-    expect(
-      {
-        for (final id in copies)
-          h.document.current.placedElements
-              .singleWhere((element) => element.id == id)
-              .pos,
-      },
-      {const GridPos(x: 1, y: 1), const GridPos(x: 4, y: 4)},
-    );
-  });
-
-  test('a group duplicate leaves its locked decors out', () async {
-    final h = MapSelectionEShellOwnerFixture.of(workspaceProject);
-    addTearDown(h.dispose);
-    final editor = MapEditorController(
-      session: workspaceSession,
-      mapId: h.document.current.id,
-      port: _MemoryEditorPort(),
-      state: MapEditorWorkspaceState(
-        state: MapEditorState(),
-        revision: 'initial',
-      ),
-    );
-    addTearDown(editor.dispose);
-    h.document.editor = editor;
-    final commands = MapEditingCommands(h.document, h.project);
-    final first = commands.place(workspaceElement, const GridPos(x: 1, y: 1))!;
-    final second = commands.place(workspaceElement, const GridPos(x: 4, y: 4))!;
-    expect(await editor.setLocked('decor', second, true), isTrue);
-    final undo = h.document.undoCount;
-    final copies = MapDecorGroupEditing(
-      h.document,
-      h.project,
-    ).duplicate([first, second])!;
-    expect(copies, hasLength(1));
-    expect(h.document.current.placedElements, hasLength(3));
-    expect(h.document.undoCount, undo + 1);
-    final copy = h.document.current.placedElements.singleWhere(
-      (element) => element.id == copies.single,
-    );
-    expect(copy.pos, const GridPos(x: 1, y: 1));
-    expect(
-      MapDecorGroupEditing(h.document, h.project).duplicate([second]),
-      isNull,
-    );
-    expect(h.document.current.placedElements, hasLength(3));
-  });
-
-  test('a 3D group turns by a quarter in one undo step', () {
-    final project = spatialEnvironmentProject();
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(
-        map: spatialEnvironmentMap(),
-        revision: 'base',
-        mapId: spatialEnvironmentMap().id,
-      ),
-    );
-    final models = SpatialModelEditingCommands(document, project);
-    final model = project.models3d.first;
-    final a = models.place(model, const GridPos(x: 2, y: 2)).id;
-    final b = models.place(model, const GridPos(x: 5, y: 5)).id;
-    final undo = document.undoCount;
-    final group = MapDecorGroupEditing(document, project);
-    expect(group.canRotate, isTrue);
-    expect(group.rotate([a, b], 90), isTrue);
-    expect(document.undoCount, undo + 1);
-    expect(
-      document.current.spatialScene!.instances
-          .where((instance) => {a, b}.contains(instance.id))
-          .map((instance) => instance.rotationDegrees % 360),
-      everyElement(90),
-    );
-  });
-
   test('border pieces stay in the library but leave the decor palette', () {
     final base = spatialBorderProject();
     final project = base.copyWith(
@@ -188,23 +68,4 @@ void main() {
       containsAll(['oak', 'lamp']),
     );
   });
-}
-
-final class _MemoryEditorPort implements MapEditorPort {
-  var state = MapEditorState();
-  @override
-  Future<MapEditorWorkspaceState> loadEditorState(
-    ProjectSession session,
-    String mapId,
-  ) async => MapEditorWorkspaceState(state: state, revision: 'initial');
-  @override
-  Future<MapEditorWorkspaceState> saveEditorState(
-    ProjectSession session,
-    String mapId,
-    MapEditorState state,
-    String expectedRevision,
-  ) async {
-    this.state = state;
-    return MapEditorWorkspaceState(state: state, revision: 'saved');
-  }
 }

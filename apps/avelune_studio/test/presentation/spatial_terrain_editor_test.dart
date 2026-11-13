@@ -1,14 +1,9 @@
 import 'dart:typed_data';
 
-import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
-import 'package:avelune_studio/features/terrains/application/terrain_scratch_editing_session.dart';
-import 'package:avelune_studio/platform/rendering/terrain_spatial_render_surface.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/features/terrains/domain/terrain_spatial_preview_map.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
@@ -213,110 +208,6 @@ void main() {
       },
     );
   }
-  testWidgets(
-    'scratch gestures and model preview retain the exact semantic paint mask',
-    (tester) async {
-      final model = spatialPathDraft()..clearScratch();
-      final visuals = _SpatialVisuals();
-      final editing = TerrainScratchEditingSession(() => model);
-      final controls = SpatialSceneController();
-      addTearDown(controls.dispose);
-      Widget trial(String tool) {
-        final preview = terrainSpatialPreviewMap(
-          project: model.manifest,
-          preset: model.previewPreset,
-          size: TerrainDraftController.scratchSize,
-          cells: model.scratch,
-          materials: model.draft.materials,
-        );
-        final selectedTool = switch (tool) {
-          'Gommer' => TerrainScratchTool.erase,
-          'Examiner' => TerrainScratchTool.inspect,
-          _ => TerrainScratchTool.paint,
-        };
-        return MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 500,
-              child: TerrainSpatialRenderSurface(
-                map: preview.map,
-                project: preview.project,
-                sources: visuals,
-                controls: controls,
-                errorBuilder: (_, _) => const SizedBox(),
-                onCell: (x, z) =>
-                    editing.cell(GridPos(x: x, y: z), selectedTool),
-                onDragStart: (x, z, _) {
-                  editing.begin(GridPos(x: x, y: z), selectedTool);
-                  return true;
-                },
-                onDragUpdate: (cell) => editing.update(
-                  GridPos(x: cell.$1, y: cell.$2),
-                  selectedTool,
-                ),
-                onDragEnd: editing.end,
-                onDragCancel: editing.end,
-              ),
-            ),
-          ),
-        );
-      }
-
-      await tester.pumpWidget(trial('Peindre'));
-      SpatialSceneView scene() =>
-          tester.widget<SpatialSceneView>(find.byType(SpatialSceneView));
-      expect(scene().scene.instances, isEmpty);
-      expect(scene().onDragStart!(2, 4, null), isTrue);
-      scene().onDragUpdate!((5, 4));
-      scene().onDragEnd!();
-      await tester.pumpWidget(trial('Peindre'));
-      expect(scene().scene.instances.length, 4);
-      expect(
-        scene().scene.instances
-            .map((instance) => (instance.position.x, instance.position.z))
-            .toSet(),
-        {(2.5, 4.5), (3.5, 4.5), (4.5, 4.5), (5.5, 4.5)},
-      );
-      await tester.pumpWidget(trial('Gommer'));
-      scene().onCell(3, 4);
-      await tester.pumpWidget(trial('Examiner'));
-      expect(scene().scene.instances.length, 3);
-      scene().onCell(2, 4);
-      expect(model.selectedRule, 0);
-      final preview = terrainSpatialPreviewMap(
-        project: model.manifest,
-        preset: model.previewPreset,
-        size: 3,
-        cells: {
-          for (var index = 0; index < 9; index++)
-            GridPos(x: index % 3, y: index ~/ 3),
-        },
-      );
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox.square(
-              dimension: 200,
-              child: TerrainSpatialRenderSurface(
-                map: preview.map,
-                project: preview.project,
-                sources: visuals,
-                controls: controls,
-                errorBuilder: (_, _) => const SizedBox(),
-              ),
-            ),
-          ),
-        ),
-      );
-      expect(scene().scene.instances.length, 9);
-      expect(
-        scene().scene.instances.every((instance) => instance.modelId == 'oak'),
-        isTrue,
-      );
-      await tester.pumpWidget(const SizedBox());
-      expect(tester.takeException(), isNull);
-    },
-  );
 
   test(
     'model paths preserve dimensions and expose paint in the shared catalogue',
@@ -339,69 +230,6 @@ void main() {
     },
   );
 
-  testWidgets(
-    'painted model pieces guide selection back to terrain without storing objects',
-    (tester) async {
-      final model = spatialPathDraft()..clearScratch();
-      model.paint(const GridPos(x: 2, y: 3));
-      final preview = terrainSpatialPreviewMap(
-        project: model.manifest,
-        preset: model.previewPreset,
-        size: 17,
-        cells: model.scratch,
-        materials: model.draft.materials,
-      );
-      final derived = preview.map.spatialScene!.instances.single;
-      final map = preview.map.copyWith(
-        spatialScene: preview.map.spatialScene!.copyWith(instances: []),
-      );
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
-      );
-      final commands = SpatialModelEditingCommands(document, preview.project);
-      final view = MapEditingViewportSession()..tool = StudioMapTool.select;
-      final controller = MapWorkspaceController(
-        workspaceSession,
-        WorkspaceMemoryPort(),
-      );
-      addTearDown(view.dispose);
-      addTearDown(controller.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SpatialMapEditingViewport(
-              document: document,
-              controller: controller,
-              project: preview.project,
-              visuals: _SpatialVisuals(),
-              view: view,
-              onChanged: () {},
-            ),
-          ),
-        ),
-      );
-      final scene = tester.widget<SpatialSceneView>(
-        find.byType(SpatialSceneView),
-      );
-      final hit = SpatialSceneContentHit(
-        kind: SpatialSceneContentKind.model,
-        id: derived.id,
-        cell: (2, 3),
-      );
-      expect(scene.onDragStart!(2, 3, hit), isFalse);
-      expect(document.error, contains('Terrains et son calque'));
-      scene.onContent!(hit);
-      expect(document.current, same(map));
-      expect(document.undoCount, 0);
-      expect(document.current.spatialScene!.instances, isEmpty);
-      expect(commands.selected(derived.id), isNull);
-      expect(() => commands.update(derived.id, x: 5), throwsStateError);
-      expect(() => commands.delete(derived.id), throwsStateError);
-      expect(() => commands.duplicate(derived.id), throwsStateError);
-      await tester.pumpWidget(const SizedBox());
-      expect(tester.takeException(), isNull);
-    },
-  );
 }
 
 class _SpatialVisuals extends WorkspaceTestVisuals

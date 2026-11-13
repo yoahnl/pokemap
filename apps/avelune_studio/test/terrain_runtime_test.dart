@@ -5,7 +5,8 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
-import 'package:avelune_studio/features/terrains/application/terrain_brush.dart';
+import 'package:map_authoring/map_authoring_editing.dart'
+    show applyTerrainStroke;
 import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_connections.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';

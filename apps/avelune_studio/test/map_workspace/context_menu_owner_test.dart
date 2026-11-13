@@ -38,7 +38,7 @@ void main() {
       h.document.selectedId = null;
       await h.pump(tester);
       await h.rightClick(tester, 4, 4);
-      expect(h.request!.selected!.label, 'Arbre');
+      expect(h.request!.target!.label, 'Arbre');
       expect(
         h.request!.actions.map((action) => action.command),
         containsAll([
@@ -170,7 +170,7 @@ void main() {
     await tester.pumpAndSettle();
     await h.rightClick(tester, 7, 5);
     expect(h.selected(MapSelectionFamily.marker), sign.id);
-    expect(h.request!.selected!.kindLabel, 'Panneau');
+    expect(h.request!.target!.kindLabel, 'Panneau');
   });
 
   testWidgets('context deletion uses the shared command and undo', (
@@ -211,7 +211,7 @@ void main() {
   ) async {
     await h.pump(tester);
     await h.rightClick(tester, 12, 9);
-    expect(h.request!.selected, isNull);
+    expect(h.request!.target, isNull);
     expect(h.request!.targets, isEmpty);
     expect(
       h.request!.actions.map((action) => action.command),

@@ -1,9 +1,6 @@
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/features/resources/application/resource_category_tree.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core_domain.dart';
 
-import '../support/map_workspace_fixture.dart';
 
 const _items = [
   ResourceItem(
@@ -102,88 +99,4 @@ void main() {
     expect(state.reconcileSelection(state.visibleItems(_items)), _items.first);
   });
 
-  test(
-    'category options preserve empty canonical containers for management',
-    () {
-      final manifest = workspaceProject.copyWith(
-        elementCategories: [
-          const ProjectElementCategory(id: 'nature', name: 'Nature'),
-          const ProjectElementCategory(id: 'unused', name: 'Inoccupée'),
-        ],
-        elements: [
-          workspaceElement.copyWith(categoryId: 'nature'),
-          workspaceElement.copyWith(id: 'unclassified', categoryId: ''),
-        ],
-        tilesetFolders: [
-          const ProjectTilesetFolder(id: 'source', name: 'Images importées'),
-        ],
-        tilesets: [
-          workspaceProject.tilesets.single.copyWith(folderId: 'source'),
-        ],
-      );
-      expect(resourceCategories(manifest, ResourceKind.decors), {
-        '': 'Toutes',
-        'unused': 'Inoccupée',
-        'nature': 'Nature',
-        uncategorizedResourceCategory: 'Sans catégorie',
-      });
-      expect(resourceCategories(manifest, ResourceKind.images), {
-        '': 'Toutes',
-        'source': 'Images importées',
-      });
-      final tree = ResourceCategoryTree(
-        manifest,
-        ResourceKind.decors,
-        resourceCatalog(manifest),
-      );
-      expect(tree.nodes.singleWhere((node) => node.id == 'unused').count, 0);
-      expect(tree.idsFor('unused'), {'unused'});
-      expect(
-        resourceCategories(
-          manifest,
-          ResourceKind.decors,
-          items: resourceCatalog(manifest),
-        ),
-        resourceCategories(manifest, ResourceKind.decors),
-      );
-      expect(resourceCategories(manifest, ResourceKind.terrains), isEmpty);
-      expect(
-        resourceCategories(workspaceProject, ResourceKind.images),
-        isEmpty,
-      );
-    },
-  );
-
-  test('parent category includes descendants without inventing new groups', () {
-    final manifest = workspaceProject.copyWith(
-      elementCategories: const [
-        ProjectElementCategory(id: 'buildings', name: 'Bâtiments'),
-        ProjectElementCategory(
-          id: 'houses',
-          name: 'Maisons',
-          parentCategoryId: 'buildings',
-        ),
-        ProjectElementCategory(id: 'nature', name: 'Nature'),
-      ],
-      elements: [
-        workspaceElement.copyWith(id: 'house', categoryId: 'houses'),
-        workspaceElement.copyWith(id: 'tree', categoryId: 'nature'),
-      ],
-    );
-    final items = resourceCatalog(manifest);
-    final tree = ResourceCategoryTree(manifest, ResourceKind.decors, items);
-    expect(tree.nodes.map((node) => (node.id, node.depth, node.count)), [
-      ('buildings', 0, 1),
-      ('houses', 1, 1),
-      ('nature', 0, 1),
-    ]);
-    final state = ResourceLibraryState()..category = 'buildings';
-    expect(
-      state
-          .visibleItems(items, acceptedCategories: tree.idsFor('buildings'))
-          .map((item) => item.id),
-      ['house'],
-    );
-    expect(tree.idsFor('nature'), {'nature'});
-  });
 }

@@ -1,20 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:avelune_studio/features/events/application/event_workspace_controller.dart';
-import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_input_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
-import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_controllers.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_loader.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_navigation.dart';
-import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
-import 'package:avelune_studio/features/world/application/world_workspace_controller.dart';
-import 'package:avelune_studio/features/world/data/local_world_adapter.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:flutter/gestures.dart';
@@ -32,7 +26,7 @@ class NeutralMapHostFixture {
   final M3StoryFixture? _source;
   M3StoryFixture get source => _source!;
   final MapWorkspaceController maps;
-  late final WorkspaceSessionControllers sessions;
+  LoadedWorkspaceSession? _loaded;
   late final MapEditingInputSession input;
   final _views = <String, MapEditingViewportSession>{};
   StateSetter? _render;
@@ -100,23 +94,9 @@ class NeutralMapHostFixture {
     final fixture = this;
     _ownsMaps = ownsMaps;
     final visuals = providedVisuals ?? WorkspaceTestVisuals();
-    final sessions = WorkspaceSessionControllers(
-      controller: maps,
-      changed: fixture._changed,
-      visualCatalogChanged: (_) {},
-      flushEditors: () async => true,
-      eventPort: !withNarrative || mapAdapter == null
-          ? null
-          : LocalEventAdapter(session: maps.session, mapAdapter: mapAdapter),
-      worldPort: !withNarrative || mapAdapter == null
-          ? null
-          : LocalWorldAdapter(session: maps.session, mapAdapter: mapAdapter),
-    );
-    fixture.sessions = sessions;
     fixture.input = MapEditingInputSession(
       controller: maps,
       view: () => fixture.nativeView,
-      referenceGuard: sessions.draftReferences.guard,
     );
     maps.addListener(fixture._changed);
     addTearDown(fixture.dispose);
@@ -145,7 +125,8 @@ class NeutralMapHostFixture {
             ),
           );
     expect(loaded, isNotNull);
-    sessions.initializeLoaded(loaded!);
+    fixture._loaded = loaded;
+    final narrative = loaded!.narrative;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -160,11 +141,11 @@ class NeutralMapHostFixture {
                 view: fixture.nativeView,
                 input: fixture.input,
                 onChanged: fixture._changed,
-                onZoneDrawn: sessions.narrative == null
+                onZoneDrawn: narrative == null
                     ? null
                     : (area) {
                         fixture._pendingIo = tester.runAsync(
-                          () => openNarrativeZone(sessions.narrative!, area),
+                          () => openNarrativeZone(narrative, area),
                         );
                       },
               );
@@ -212,7 +193,9 @@ class NeutralMapHostFixture {
     Object? failure;
     StackTrace? failureStack;
     final elapsed = Stopwatch()..start();
-    sessions.dispose().then(
+    final loaded = _loaded;
+    if (loaded == null) return;
+    loaded.dispose().then(
       (_) {
         finished = true;
       },
@@ -305,21 +288,4 @@ class NeutralMapHostFixture {
             .readAsBytes(),
     },
   ))!;
-
-  Future<NarrativeWorkspaceController> narrativeOwner() async =>
-      sessions.narrative!;
-
-  Future<WorldWorkspaceController> worldOwner() async {
-    final owner = sessions.world!;
-    if (!owner.initialized) await tester.runAsync(owner.initialize);
-    await pump();
-    return owner;
-  }
-
-  Future<EventWorkspaceController> eventOwner() async {
-    final owner = sessions.events!;
-    expect(await tester.runAsync(owner.prepare), isTrue, reason: owner.error);
-    await pump();
-    return owner;
-  }
 }

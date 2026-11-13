@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -56,16 +55,6 @@ void main() {
       final view = host.nativeView;
       view.transform.value = Matrix4.identity()..scaleByDouble(1.5, 1.5, 1, 1);
       final transform = view.transform.value.clone();
-      final workflow = WorkspaceWorkflow(
-        controller: maps,
-        isActive: () => !maps.isDisposed,
-        changed: maps.notify,
-        resources: () => null,
-        narrative: () => null,
-        confirmClose: () async => WorkspaceCloseChoice.cancel,
-        flushFocus: () {},
-        launchMap: (_, _) async {},
-      );
       await RealTestIo.run(tester, export.load);
       expect(export.operationActive, isFalse);
       expect(export.canStart, isTrue);
@@ -83,9 +72,8 @@ void main() {
           outputPath: destination.path,
           overwriteConfirmed: false,
           publication: true,
-          prepare: workflow.saveForExport,
-          preparationFailure: () => workflow.exportPreparationFailure,
-          hasPendingChanges: () => workflow.hasPendingChanges,
+          prepare: () async => !maps.dirty,
+          hasPendingChanges: () => maps.dirty,
           isCurrentProject: () =>
               identical(session.state.project, source.session),
         ),
@@ -126,20 +114,10 @@ void main() {
         projectRoot: first.directory,
         projectName: first.session.name,
       );
-      final workflow = WorkspaceWorkflow(
-        controller: maps,
-        isActive: () => !maps.isDisposed,
-        changed: maps.notify,
-        resources: () => null,
-        narrative: () => null,
-        confirmClose: () async => WorkspaceCloseChoice.cancel,
-        flushFocus: () {},
-        launchMap: (_, _) async {},
-      );
       final opening = ProjectSessionOpenController(
         session: sessions,
         chooseDirectory: () async => second.directory.path,
-        allowSwitch: workflow.allowClose,
+        allowSwitch: () async => !maps.dirty,
       );
       addTearDown(() async {
         opening.dispose();

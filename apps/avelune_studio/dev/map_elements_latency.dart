@@ -25,7 +25,6 @@ import 'package:map_authoring/map_authoring_local.dart'
 
 import 'marionette_main.dart' as studio;
 import 'neutral_map_editing_host.dart';
-import 'neutral_map_elements_panel.dart';
 import 'save_disk_trace.dart';
 
 ({
@@ -37,7 +36,6 @@ import 'save_disk_trace.dart';
 })
 readMapElementsState() {
   NeutralMapEditingHost? workspace;
-  NeutralMapElementsPanel? panel;
   SpatialMapEditingViewport? spatial;
   MapEditingViewport2D? flat;
   SpatialSceneController? renderer;
@@ -50,8 +48,6 @@ readMapElementsState() {
     switch (element.widget) {
       case NeutralMapEditingHost():
         workspace = element.widget as NeutralMapEditingHost;
-      case NeutralMapElementsPanel():
-        panel = element.widget as NeutralMapElementsPanel;
       case SpatialMapEditingViewport():
         spatial = element.widget as SpatialMapEditingViewport;
       case MapEditingViewport2D():
@@ -77,10 +73,7 @@ readMapElementsState() {
 
   WidgetsBinding.instance.rootElement?.visitChildren(visit);
   final document =
-      panel?.document ??
-      workspace?.controller.active ??
-      spatial?.document ??
-      flat?.document;
+      workspace?.controller.active ?? spatial?.document ?? flat?.document;
   final editor = document?.editor;
   final visibility3d = sceneGame == null
       ? null
@@ -97,15 +90,11 @@ readMapElementsState() {
       'projectPath': editor?.session.directoryPath,
       'mapId': editor?.mapId,
       'mapName': document?.current.name,
-      'panelMounted': panel != null,
       'spatial': document?.current.spatialScene != null,
       'mapDirty': document?.dirty,
       'mapSaving': document?.saving,
       'mapRevision': document?.base.revision,
-      'selectedId':
-          spatial?.view.target?.id ??
-          flat?.view.target?.id ??
-          panel?.view.target?.id,
+      'selectedId': spatial?.view.target?.id ?? flat?.view.target?.id,
       'mapIdentity': document == null
           ? null
           : identityHashCode(document.current),
@@ -226,7 +215,6 @@ Future<void> main() async {
         body: NeutralMapEditingHost(
           controller: workspaceOwner,
           visuals: visualsOwner,
-          elements: true,
         ),
       ),
     ),

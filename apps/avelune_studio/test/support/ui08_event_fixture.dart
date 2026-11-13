@@ -1,8 +1,4 @@
-import 'package:avelune_studio/features/events/application/event_workspace_controller.dart';
 import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
-import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:map_core/map_core.dart';
 import 'ui06_scene_fixture.dart';
 import 'ui07_story_fixture.dart';
@@ -42,49 +38,68 @@ Future<Ui07StoryFixture> createUi08Fixture() async {
     ],
   );
   await source.maps.saveMap(source.session, base, map);
-  final maps = MapWorkspaceController(source.session, source.maps);
-  await maps.initialize();
-  final narrative = NarrativeWorkspaceController(
-    maps,
-    LocalNarrativeAdapter(session: source.session, mapAdapter: source.maps),
-    () {},
-    (_, _) async {},
+  final events = LocalEventAdapter(
+    session: source.session,
+    mapAdapter: source.maps,
   );
-  final events = EventWorkspaceController(
-    narrative,
-    LocalEventAdapter(session: source.session, mapAdapter: source.maps),
-    changed: () {},
+  final existing = manifest.eventRegistry!.records.singleWhere(
+    (record) => record.id == Ui06SceneFixture.eventId,
   );
-  try {
-    if (!await events.prepare()) throw StateError(events.error!);
-    events.rename(Ui06SceneFixture.eventId, 'PNJ Chef de gare');
-    events.setSource(
-      Ui06SceneFixture.eventId,
-      NarrativeEventSourceRef.entityInteract(map.id, 'chief'),
-    );
-    events.setEnabled(Ui06SceneFixture.eventId, true);
-    final alternatives = <(String, NarrativeEventSourceRef)>[
-      (
-        'Entrée du quai',
-        NarrativeEventSourceRef.triggerEnter(map.id, 'platform'),
+  final definition = existing.definitionOrNull!;
+  final alternatives = <(String, String, NarrativeEventSourceRef)>[
+    (
+      'evt_019abcde-9000-7000-8000-000000000801',
+      'Entrée du quai',
+      NarrativeEventSourceRef.triggerEnter(map.id, 'platform'),
+    ),
+    (
+      'evt_019abcde-9000-7000-8000-000000000802',
+      'Arrivée en gare',
+      NarrativeEventSourceRef.mapEnter(map.id),
+    ),
+    (
+      'evt_019abcde-9000-7000-8000-000000000803',
+      'Voyageuse',
+      NarrativeEventSourceRef.entityInteract(map.id, 'traveller'),
+    ),
+  ];
+  await events.publishEvents([
+    (
+      id: existing.id,
+      base: existing,
+      current: NarrativeEventRecord.configuredStructurallyUnchecked(
+        NarrativeEventDefinition(
+          id: definition.id,
+          name: 'PNJ Chef de gare',
+          source: NarrativeEventSourceRef.entityInteract(map.id, 'chief'),
+          conditions: definition.conditions,
+          sceneId: definition.sceneId,
+          reusePolicy: definition.reusePolicy,
+          priority: definition.priority,
+          order: definition.order,
+        ),
+        enabled: true,
+        activeInLegacyMode: true,
       ),
-      ('Arrivée en gare', NarrativeEventSourceRef.mapEnter(map.id)),
+    ),
+    for (final (index, entry) in alternatives.indexed)
       (
-        'Voyageuse',
-        NarrativeEventSourceRef.entityInteract(map.id, 'traveller'),
+        id: entry.$1,
+        base: null,
+        current: NarrativeEventRecord.configuredStructurallyUnchecked(
+          NarrativeEventDefinition(
+            id: entry.$1,
+            name: entry.$2,
+            source: entry.$3,
+            conditions: const [],
+            sceneId: Ui06SceneFixture.sceneId,
+            reusePolicy: NarrativeEventReusePolicy.reusable,
+            priority: 0,
+            order: index + 1,
+          ),
+          enabled: true,
+        ),
       ),
-    ];
-    for (final entry in alternatives) {
-      final record = events.create(entry.$1, source: entry.$2)!;
-      events.setScene(record.id, Ui06SceneFixture.sceneId);
-      events.setReuse(record.id, NarrativeEventReusePolicy.reusable);
-      events.configure(record.id);
-    }
-    if (!await events.save()) throw StateError(events.error!);
-  } finally {
-    events.dispose();
-    narrative.dispose();
-    maps.dispose();
-  }
+  ]);
   return source;
 }

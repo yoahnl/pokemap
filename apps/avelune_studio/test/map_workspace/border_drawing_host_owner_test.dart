@@ -2,6 +2,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_border_dra
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -16,7 +17,7 @@ void main() {
         nativeOrientations: true,
       );
       final undoBefore = fixture.document.undoCount;
-      await fixture.runFamily('Bordures');
+      await fixture.selectTool(StudioMapTool.border);
       await fixture.chooseBorder('muret');
       await fixture.tapCell(10, 8);
       await fixture.tapCell(13, 8);
@@ -96,7 +97,7 @@ void main() {
     'an empty border catalogue refuses canvas tracing without changing the document',
     (tester) async {
       final fixture = await MapDiskOwnerFixture.open(tester);
-      await fixture.runFamily('Bordures');
+      await fixture.selectTool(StudioMapTool.border);
 
       final before = fixture.document.current;
       final history = fixture.document.undoCount;
@@ -124,7 +125,7 @@ void main() {
       final initial = fixture.document.current;
       final undoBefore = fixture.document.undoCount;
 
-      await fixture.runFamily('Bordures');
+      await fixture.selectTool(StudioMapTool.border);
       await fixture.chooseBorder('muret');
       await fixture.tapCell(10, 8);
       final pointer = TestPointer(42, PointerDeviceKind.mouse);
@@ -173,7 +174,7 @@ void main() {
       final fixture = await MapDiskOwnerFixture.withBorder(tester);
       final initial = fixture.document.current;
       final undoBefore = fixture.document.undoCount;
-      await fixture.runFamily('Bordures');
+      await fixture.selectTool(StudioMapTool.border);
       await fixture.chooseBorder('muret');
       await fixture.tapCell(10, 8);
       await fixture.tapCell(13, 8);
@@ -202,16 +203,16 @@ void main() {
     tester,
   ) async {
     final fixture = await MapDiskOwnerFixture.withBorder(tester);
-    await fixture.runFamily('Bordures');
+    await fixture.selectTool(StudioMapTool.border);
     await fixture.chooseBorder('muret');
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
     final view = fixture.view;
     final draft = view.borderDraft;
-    await fixture.runFamily('Sélection');
+    await fixture.selectTool(StudioMapTool.select);
     expect(view.tool.name, 'select');
     expect(view.borderDraft?.anchors, draft?.anchors);
-    await fixture.runFamily('Bordures');
+    await fixture.selectTool(StudioMapTool.border);
     expect(view.tool.name, 'border');
     expect(view.borderDraft?.anchors, draft?.anchors);
     expect(fixture.document.dirty, isFalse);
@@ -271,7 +272,7 @@ void main() {
         tester,
         template: BorderBlueprintTemplate.horizontalFacade,
       );
-      await fixture.runFamily('Bordures');
+      await fixture.selectTool(StudioMapTool.border);
       await fixture.chooseBorder('muret');
       await fixture.tapCell(10, 8);
       await fixture.tapCell(13, 8);
@@ -310,7 +311,7 @@ void main() {
       tester,
       template: BorderBlueprintTemplate.stoneChainLine,
     );
-    await fixture.runFamily('Bordures');
+    await fixture.selectTool(StudioMapTool.border);
     await fixture.chooseBorder('muret');
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);

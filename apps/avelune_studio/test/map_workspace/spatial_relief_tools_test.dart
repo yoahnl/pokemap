@@ -1,6 +1,4 @@
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_spatial_settings_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
@@ -252,25 +250,6 @@ void main() {
       expect(document.undoCount, 1);
     },
   );
-
-  test('3D terrain command activates relief construction before choosing its ground resource', () {
-    final view = MapEditingViewportSession();
-    addTearDown(view.dispose);
-    var tab = '';
-    MapToolCommandRunner(
-      view: view,
-      paletteTab: () => tab,
-      selectPalette: (value) => tab = value,
-      spatial: true,
-      paletteVisible: true,
-      onChanged: () {},
-      onMoreTools: () {},
-      onResources: () {},
-    ).runFamily('Terrains');
-    expect(view.tool, StudioMapTool.terrain);
-    expect(view.terrain, isNull);
-    expect(tab, 'Terrains');
-  });
 
   test('slope eraser removes a narrow ramp intersecting the painted cell', () {
     final map = reliefMap(raised: true);
@@ -731,31 +710,6 @@ void main() {
     expect(document.current, same(changed));
   });
 
-  test(
-    'cliff texture commands remain undoable and can clear their reference',
-    () {
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(map: reliefMap(), mapId: 'a', revision: 'r'),
-      );
-      final commands = MapSpatialSettingsCommands(document);
-      expect(
-        commands.terrainAppearance(
-          cliffFrame: const SmartTileFrameRef(
-            atlasId: 'wall',
-            column: 0,
-            row: 0,
-          ),
-        ),
-        isTrue,
-      );
-      expect(document.current.spatialScene!.cliffFrame!.atlasId, 'wall');
-      expect(document.undoCount, 1);
-      expect(commands.terrainAppearance(cliffFrame: null), isTrue);
-      expect(document.current.spatialScene!.cliffFrame, isNull);
-      document.restore(redo: false);
-      expect(document.current.spatialScene!.cliffFrame!.atlasId, 'wall');
-    },
-  );
 }
 
 MapData reliefMap({bool raised = false}) => MapData(

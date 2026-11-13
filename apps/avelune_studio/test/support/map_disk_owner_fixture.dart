@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
@@ -84,19 +83,9 @@ class MapDiskOwnerFixture {
     },
   );
 
-  MapToolCommandRunner tools({bool spatial = false}) => MapToolCommandRunner(
-    view: view,
-    paletteTab: () => '',
-    selectPalette: (_) {},
-    spatial: spatial,
-    paletteVisible: true,
-    onChanged: maps.notify,
-    onMoreTools: () {},
-    onResources: () {},
-  );
-
-  Future<void> runFamily(String label) async {
-    tools().runFamily(label);
+  Future<void> selectTool(StudioMapTool tool) async {
+    view.tool = tool;
+    maps.notify();
     await pump();
   }
 

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/map_context_command_runner.dart';
@@ -6,7 +5,6 @@ import 'package:avelune_studio/features/map_workspace/application/map_context_me
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
-import 'package:avelune_studio/features/map_workspace/coordination/workspace_navigation_session.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -53,7 +51,11 @@ void main() {
         controller.project!,
       ).place(MapEntityKind.sign, const GridPos(x: 5, y: 5));
     }))!;
-    harness = MapContextOwnerHarness(controller.active!, controller.project!);
+    harness = MapContextOwnerHarness(
+      controller.active!,
+      controller.project!,
+      controller: controller,
+    );
     await harness!.pump(tester);
     return sign;
   }
@@ -63,7 +65,7 @@ void main() {
     (tester) async {
       final sign = await open(tester);
       await harness!.rightClick(tester, 5, 5);
-      expect(harness!.request!.selected!.id, sign.id);
+      expect(harness!.request!.target!.id, sign.id);
       harness!.run(MapContextCommand.delete);
       expect(harness!.request, isNull);
       expect(
@@ -123,52 +125,4 @@ void main() {
     expect(harness!.request, isNull);
   });
 
-  testWidgets(
-    'opening an unbound story zone explains the missing interaction and preserves it',
-    (tester) async {
-      await open(tester);
-      final document = controller.active!;
-      const trigger = MapTrigger(
-        id: 'quai',
-        name: 'Quai',
-        type: TriggerType.event,
-        area: MapRect(
-          pos: GridPos(x: 8, y: 3),
-          size: GridSize(width: 3, height: 3),
-        ),
-      );
-      document.commit(
-        document.current.copyWith(
-          triggers: [...document.current.triggers, trigger],
-        ),
-      );
-      final navigation = WorkspaceNavigationSession(
-        controller: controller,
-        isActive: () => true,
-        changed: () {},
-      );
-      harness!.navigation = MapContextNavigation(
-        openStoryZone: (target) {
-          unawaited(
-            navigation.openExistingStoryZone(
-              document,
-              target,
-              choose: (_) async => null,
-            ),
-          );
-        },
-      );
-      await harness!.rightClick(tester, 9, 4);
-      final target = harness!.request!.targets.singleWhere(
-        (target) => target.family == MapContextFamily.trigger,
-      );
-      harness!.select(target);
-      harness!.run(MapContextCommand.openNarrativeDocument);
-      expect(document.error, contains('Tracez-la depuis'));
-      expect(
-        document.current.triggers.where((value) => value.id == trigger.id),
-        isNotEmpty,
-      );
-    },
-  );
 }

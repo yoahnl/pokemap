@@ -81,7 +81,7 @@ void main() {
           host.maps.project!,
         ).stack(const GridPos(x: 8, y: 7)).first;
 
-        await host.tool('Gomme de décors');
+        await host.tool(StudioMapTool.eraseDecor);
         expect(host.viewport.nativeView.tool, StudioMapTool.eraseDecor);
         await host.viewport.tapCell(8, 7);
         expect(stack(), hasLength(1));

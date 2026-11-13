@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
-import 'package:avelune_studio/features/project_session/application/project_open_message.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/controlled_project_session_port.dart';
@@ -65,7 +64,7 @@ void main() {
         const ProjectOpenFailure(ProjectOpenProblem.pathNotPreserved),
       );
       expect(await pending, isFalse);
-      expect(projectOpenMessage(session.state.problem), _refusalMessage);
+      expect(session.state.problem, ProjectOpenProblem.pathNotPreserved);
       expect(opening.path, '/projets/MonJeu ');
       expect(session.state.project, isNull);
     },
@@ -117,7 +116,7 @@ void main() {
       expect(port.requests, ['/refus ']);
       expect(port.released, isEmpty);
       expect(opening.path, ' /brouillon ');
-      expect(projectOpenMessage(session.state.problem), _refusalMessage);
+      expect(session.state.problem, ProjectOpenProblem.pathNotPreserved);
     },
   );
 
@@ -145,7 +144,6 @@ void main() {
       expect(await refused, isFalse);
       expect(session.state.project, isNull);
       expect(session.state.problem, ProjectOpenProblem.pathNotPreserved);
-      expect(projectOpenMessage(session.state.problem), _refusalMessage);
       expect(opening.path, '/projets/MonJeu ');
       expect(port.released, isEmpty);
       final corrected = opening.open(directoryPath: exampleA.directoryPath);
@@ -178,8 +176,3 @@ void main() {
     expect(port.released, isEmpty);
   });
 }
-
-const _refusalMessage =
-    'Ce chemin ne peut pas être ouvert sans modifier le dossier visé. '
-    'Aucun projet n’a été ouvert. Vérifiez les espaces en bordure du chemin '
-    'ou choisissez un autre dossier.';

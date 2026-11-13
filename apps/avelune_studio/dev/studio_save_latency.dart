@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:avelune_studio/features/characters/coordination/character_studio_controller.dart';
-import 'package:avelune_studio/features/resources/application/working_catalog_controller.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
@@ -37,26 +36,6 @@ final class _SaveView {
               'savedValue': controller.selectedDraft?.saved.contactShadow,
               'projectDefault': controller
                   .project()
-                  .settings
-                  .actorContactShadowsByDefault,
-            },
-          );
-        case final WorkingCatalogController controller:
-          result = _SaveView(
-            controller,
-            () => controller.saving,
-            () => {
-              'storage': 'workingCatalog',
-              'selectedId': controller.selected?.id,
-              'saving': controller.saving,
-              'opening': controller.opening,
-              'error': controller.error,
-              'dirty': controller.dirty,
-              'draftValue': controller.draft?.contactShadow,
-              'savedValue': controller.detail?.entry.contactShadow,
-              'projectDefault': controller
-                  .detail
-                  ?.definitions
                   .settings
                   .actorContactShadowsByDefault,
             },

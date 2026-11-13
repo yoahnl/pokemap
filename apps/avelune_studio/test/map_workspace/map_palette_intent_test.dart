@@ -1,7 +1,6 @@
 import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_workspace_commands.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -151,23 +150,4 @@ void main() {
     expect(slope.usesPalette, isFalse);
   });
 
-  test('commands are grouped to build, populate, rule and set the mood', () {
-    final groups = mapWorkspaceCommands.map((command) => command.group).toSet();
-    expect(
-      groups,
-      containsAll(['Construire', 'Peupler', 'Règles', 'Ambiance']),
-    );
-    expect(mapWorkspaceCommand('map.ambiance').group, 'Ambiance');
-    expect(
-      mapCommandUnavailable('map.ambiance', const MapCommandContext()),
-      'L’ambiance se règle sur les cartes 3D.',
-    );
-    expect(
-      mapCommandUnavailable(
-        'map.ambiance',
-        const MapCommandContext(spatial: true),
-      ),
-      isNull,
-    );
-  });
 }

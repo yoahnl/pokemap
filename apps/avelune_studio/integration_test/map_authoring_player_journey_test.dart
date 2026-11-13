@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_connection_actions.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_connection_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
@@ -174,7 +175,7 @@ void main() {
 
 Future<void> _freeEdge(TechnicalMapJourneyHost host, int x, int y) async {
   final before = await host.savedMapBytes();
-  await host.tool('Effacer les collisions');
+  await host.tool(StudioMapTool.collisionErase);
   await host.viewport.tapCell(x, y);
   expect(host.document.dirty, isTrue);
   expect(await host.savedMapBytes(), before);

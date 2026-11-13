@@ -1,14 +1,8 @@
-import 'dart:io';
 
 import 'package:avelune_studio/features/pokemon/data/pokemon_moves_projection.dart';
-import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_authoring/map_authoring.dart'
-    show GamePackageExportProfile, GamePackageExportProfileStore;
 import 'package:map_core/map_core.dart';
 
-import '../support/m3_story_fixture.dart';
-import '../support/pokemon_authoring_fixture.dart';
 
 void main() {
   const catalog = PokemonCatalogFile(
@@ -52,40 +46,4 @@ void main() {
     },
   );
 
-  test('the real Pokémon workspace uses the game export locale', () async {
-    final fixture = await PokemonAuthoringFixture.create(
-      prepareSource: _prepareFrenchMoves,
-    );
-    addTearDown(fixture.dispose);
-    expect(await fixture.view(PokemonWorkspaceView.moves), isTrue);
-    final names = {
-      for (final move in fixture.pokemon.index!.moves.entries)
-        move.id: move.name,
-    };
-    expect(names['growl'], 'Rugissement');
-    expect(names['leech-seed'], 'Vampigraine');
-    expect(names['protect'], 'Abri');
-    expect(names['tackle'], 'Charge');
-    expect(names.values, isNot(contains('Growl')));
-  });
-}
-
-Future<void> _prepareFrenchMoves(M3StoryFixture source) async {
-  final moves = File(
-    '${source.directory.path}/data/pokemon/catalogs/moves.json',
-  );
-  await moves.parent.create(recursive: true);
-  await File(
-    '../../examples/playable_runtime_host/golden_item_system/data/pokemon/catalogs/moves.json',
-  ).copy(moves.path);
-  await GamePackageExportProfileStore(projectRoot: source.directory).save(
-    GamePackageExportProfile(
-      gameId: 'pokemon.move.locale.test',
-      gameVersion: '1.0.0',
-      title: 'Test des attaques',
-      authorName: 'Test',
-      defaultLocale: 'fr',
-      supportedLocales: ['fr', 'en'],
-    ),
-  );
 }

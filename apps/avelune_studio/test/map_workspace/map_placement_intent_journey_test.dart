@@ -1,7 +1,6 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_generated_owner.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
@@ -30,32 +29,6 @@ class _PlacementFixture {
   void dispose() => view.dispose();
 }
 
-MapData _withForest(MapData map, List<String> generated) => map.copyWith(
-  layers: [
-    ...map.layers,
-    MapLayer.environment(
-      id: 'forest',
-      name: 'Forêt',
-      content: EnvironmentLayerContent(
-        areas: [
-          EnvironmentArea(
-            id: 'north',
-            name: 'Bois du nord',
-            presetId: 'woodland',
-            mask: EnvironmentAreaMask(
-              width: map.size.width,
-              height: map.size.height,
-              cells: List.filled(map.size.width * map.size.height, true),
-            ),
-            seed: 7,
-            generatedPlacementIds: generated,
-          ),
-        ],
-      ),
-    ),
-  ],
-);
-
 void main() {
   test('two placements keep two identities and the first survives', () {
     final h = _PlacementFixture.of(workspaceProject);
@@ -75,26 +48,6 @@ void main() {
           .single
           .elementId,
       workspaceElement.id,
-    );
-  });
-
-  test('generated decor ownership resolves its native zone without changing placements', () {
-    final h = _PlacementFixture.of(workspaceProject);
-    addTearDown(h.dispose);
-    final commands = MapEditingCommands(h.document, h.project);
-    final tree = commands.place(workspaceElement, const GridPos(x: 2, y: 2))!;
-    final manual = commands.place(workspaceElement, const GridPos(x: 4, y: 2))!;
-    h.document.commit(_withForest(h.document.current, [tree]));
-    final before = h.document.current;
-    expect(mapGeneratedOwner(h.document.current, h.project, manual), isNull);
-    final owner = mapGeneratedOwner(h.document.current, h.project, tree)!;
-    expect(owner.areaName, 'Bois du nord');
-    expect(owner.areaId, 'north');
-    expect(owner.layerId, 'forest');
-    expect(h.document.current, same(before));
-    expect(
-      h.document.current.placedElements.map((entry) => entry.id),
-      containsAll([tree, manual]),
     );
   });
 

@@ -1,9 +1,10 @@
-import 'package:avelune_studio/features/map_workspace/application/map_context_interaction_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_command_runner.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_selection_context.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_input_session.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:flutter/gestures.dart';
@@ -14,49 +15,58 @@ import 'package:map_core/map_core.dart';
 import 'map_workspace_fixture.dart';
 
 class MapContextOwnerHarness {
-  MapContextOwnerHarness(this.document, this.project);
-  final EditableMapDocument document;
-  ProjectManifest project;
+  MapContextOwnerHarness(
+    EditableMapDocument document,
+    ProjectManifest project, {
+    MapWorkspaceController? controller,
+  }) : maps =
+           controller ??
+           MapWorkspaceController(
+             workspaceSession,
+             WorkspaceMemoryPort(manifest: project),
+           ),
+       _ownsMaps = controller == null {
+    if (_ownsMaps) {
+      maps
+        ..project = project
+        ..documents[document.base.mapId] = document
+        ..active = document;
+    }
+  }
+
+  final bool _ownsMaps;
+  final MapWorkspaceController maps;
+  EditableMapDocument get document => maps.active!;
+  ProjectManifest get project => maps.project!;
+  set project(ProjectManifest value) => maps.project = value;
   final view = MapEditingViewportSession();
-  late final session = MapContextInteractionSession(
-    contextAt: (cell) => MapContextActionContext(
-      document: document,
-      project: project,
-      position: cell,
-    ),
+  GridPos? _anchor;
+  late final session = MapEditingInputSession(
+    controller: maps,
     view: () => view,
-    navigation: (_) => _navigation,
-    changed: () => _redraw(() {}),
-  );
-  MapContextMenuRequest? get request => session.request;
+    navigation: MapContextNavigation(
+      openResource: (entry) => navigation?.openResource?.call(entry),
+      editResource: (entry) => navigation?.editResource?.call(entry),
+      openInteraction: (entity) => navigation?.openInteraction?.call(entity),
+      openDestination: (entry) => navigation?.openDestination?.call(entry),
+      openStoryZone: (trigger) => navigation?.openStoryZone?.call(trigger),
+      copyCoordinates: (text) => navigation?.copyCoordinates?.call(text),
+      showProperties: () => navigation?.showProperties?.call(),
+      startMove: (target) {
+        final startMove = navigation?.startMove;
+        if (startMove != null) return startMove(target);
+        armMapContextMove(
+          document: document,
+          view: view,
+          target: target,
+          anchor: _anchor!,
+        );
+      },
+    ),
+  )..addListener(() => _redraw(() {}));
+  MapEditingInputSession? get request => session.contextOpen ? session : null;
   MapContextNavigation? navigation;
 
-  MapContextNavigation get _navigation =>
-      navigation ??
-      MapContextNavigation(
-        startMove: (target) {
-          final family = _selectionFamily(target.family);
-          view
-            ..tool = StudioMapTool.select
-            ..select(document, family, target.id)
-            ..pendingMove = MapSelectionTarget(
-              mapId: document.current.id,
-              family: family,
-              id: target.id,
-            );
-        },
-      );
-
-  MapSelectionFamily _selectionFamily(MapContextFamily family) =>
-      switch (family) {
-        MapContextFamily.decor => MapSelectionFamily.decor,
-        MapContextFamily.character => MapSelectionFamily.character,
-        MapContextFamily.marker => MapSelectionFamily.marker,
-        MapContextFamily.warp => MapSelectionFamily.warp,
-        MapContextFamily.zone => MapSelectionFamily.zone,
-        MapContextFamily.trigger => MapSelectionFamily.trigger,
-        MapContextFamily.cell => MapSelectionFamily.decor,
-      };
   late StateSetter _redraw;
 
   static MapContextOwnerHarness of(
@@ -76,9 +86,12 @@ class MapContextOwnerHarness {
   String? selected(MapSelectionFamily family) =>
       view.selectedFor(document.current.id, family);
 
-  void _open(GridPos cell, Offset anchor) => session.open(cell, anchor);
+  void _open(GridPos cell, Offset anchor) {
+    _anchor = cell;
+    session.open(cell);
+  }
 
-  void close() => session.close();
+  void close() => session.dismiss();
 
   void run(MapContextCommand command) => session.run(command);
 
@@ -159,5 +172,6 @@ class MapContextOwnerHarness {
   void dispose() {
     session.dispose();
     view.dispose();
+    if (_ownsMaps) maps.dispose();
   }
 }

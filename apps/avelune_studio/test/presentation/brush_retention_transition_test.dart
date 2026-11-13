@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_loader.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
@@ -92,18 +91,12 @@ void main() {
       });
       await tester.runAsync(() async {
         final view = MapWorkspaceEditingState();
-        var palette = 'Décors';
         void retain() => retainWorkspaceBrush(resources, view);
-        final tools = MapToolCommandRunner(
-          view: view,
-          paletteTab: () => palette,
-          selectPalette: (value) => palette = value,
-          spatial: false,
-          paletteVisible: false,
-          onChanged: retain,
-          onMoreTools: () {},
-          onResources: () {},
-        );
+        void useTool(StudioMapTool tool) {
+          view.tool = tool;
+          retain();
+        }
+
         Future<void> settle() async {
           await resources.settled;
           expect(tester.takeException(), isNull);
@@ -132,25 +125,20 @@ void main() {
         await settle();
         await choose('element:${decor.id}');
         expect(resources.store.priority, contains(stressAtlasId(1)));
-        tools.runExtra('Déplacer la vue');
-        expect(view.tool, StudioMapTool.pan);
+        useTool(StudioMapTool.pan);
         resources.store.request(stressAtlasId(0));
         await settle();
         expect(resources.images.containsKey(stressAtlasId(1)), isTrue);
-        tools.runExtra('Peindre');
-        expect(view.tool, StudioMapTool.place);
+        useTool(StudioMapTool.place);
         expect(resources.store.priority, contains(stressAtlasId(1)));
         await choose('tileset:${stressAtlasId(2)}');
         expect(view.tool, StudioMapTool.paint);
         expect(resources.store.priority, contains(stressAtlasId(2)));
         expect(resources.store.priority, isNot(contains(stressAtlasId(1))));
-        palette = 'Terrains';
         await choose('smartTilePreset:${terrain.previewPreset.id}');
-        tools.runExtra('Déplacer la vue');
-        expect(view.tool, StudioMapTool.pan);
+        useTool(StudioMapTool.pan);
         expect(resources.store.priority, contains(stressAtlasId(2)));
-        tools.runExtra('Peindre');
-        expect(view.tool, StudioMapTool.terrain);
+        useTool(StudioMapTool.terrain);
         await settle();
         expect(resources.store.priority, contains(stressAtlasId(2)));
         expect(
@@ -160,10 +148,11 @@ void main() {
         await choose('character:${character.id}');
         expect(resources.store.priority, contains(stressAtlasId(1)));
         expect(resources.store.priority, isNot(contains(stressAtlasId(2))));
-        tools.runExtra('Déplacer la vue');
+        useTool(StudioMapTool.pan);
         resources.store.request(stressAtlasId(0));
         await settle();
-        tools.runExtra('Placer un personnage');
+        view.prepareCharacterPlacement();
+        retain();
         await settle();
         expect(view.tool, StudioMapTool.character);
         expect(resources.images.containsKey(stressAtlasId(1)), isTrue);

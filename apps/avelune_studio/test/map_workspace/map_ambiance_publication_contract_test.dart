@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avelune_studio/features/map_workspace/application/map_spatial_settings_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -14,7 +13,7 @@ import 'package:map_core/map_core.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('map ambiance publishes cycle atmosphere and weather without an inspector and preserves another map draft', () async {
+  test('map ambiance publishes atmosphere and weather without an inspector and preserves another map draft', () async {
     final qa = Directory(
       '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-ambiance',
     );
@@ -75,16 +74,6 @@ void main() {
     expect(workspace.active, same(first));
     final weather = workspace.weatherDraftFor(first)!;
     await _waitForWeather(weather);
-    final commands = MapSpatialSettingsCommands(first);
-    expect(commands.dayNight(SpatialDayNightCycle()), isTrue);
-    expect(
-      commands.dayDuration('2,5', first.current.spatialScene!.dayNightCycle!),
-      isTrue,
-    );
-    expect(
-      commands.dayStart('21:30', first.current.spatialScene!.dayNightCycle!),
-      isTrue,
-    );
     firstAtmosphere.edit(
       firstAtmosphere.current.copyWith(
         depthOfFieldEnabled: true,
@@ -106,7 +95,7 @@ void main() {
     final expectedMap = first.current;
     final expectedAtmosphere = firstAtmosphere.current;
     final expectedWeather = weather.preview.value;
-    expect(first.dirty, isTrue);
+    expect(first.dirty, isFalse);
     expect(firstAtmosphere.dirty, isTrue);
     expect(weather.dirty, isTrue);
     expect(await workspace.save(first), isTrue, reason: first.error);
@@ -124,11 +113,6 @@ void main() {
     final firstEntry = reopened.maps.singleWhere((map) => map.id == 'a');
     final persistedMap = await cold.loadMap(session, firstEntry);
     expect(persistedMap.map, expectedMap);
-    expect(persistedMap.map.spatialScene!.dayNightCycle!.durationSeconds, 150);
-    expect(
-      persistedMap.map.spatialScene!.dayNightCycle!.startMinuteOfDay,
-      1290,
-    );
     expect(
       (await cold.loadAtmosphere(session, 'a')).settings,
       expectedAtmosphere,

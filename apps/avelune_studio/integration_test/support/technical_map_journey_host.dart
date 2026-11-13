@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_loader.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
@@ -146,17 +146,9 @@ class TechnicalMapJourneyHost {
     await viewport.pump();
   }
 
-  Future<void> tool(String label) async {
-    MapToolCommandRunner(
-      view: viewport.nativeView,
-      paletteTab: () => 'Décors',
-      selectPalette: (_) {},
-      spatial: false,
-      paletteVisible: true,
-      onChanged: maps.notify,
-      onMoreTools: () {},
-      onResources: () {},
-    ).runExtra(label);
+  Future<void> tool(StudioMapTool tool) async {
+    viewport.nativeView.tool = tool;
+    maps.notify();
     await viewport.pump();
   }
 

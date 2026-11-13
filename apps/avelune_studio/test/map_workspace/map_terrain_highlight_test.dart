@@ -1,7 +1,8 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/features/terrains/application/terrain_brush.dart';
+import 'package:map_authoring/map_authoring_editing.dart'
+    show applyTerrainStroke;
 import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_terrain_highlight.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';

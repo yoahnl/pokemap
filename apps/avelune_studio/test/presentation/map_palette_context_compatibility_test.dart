@@ -1,6 +1,4 @@
-import 'package:avelune_studio/features/map_workspace/application/map_palette_queries.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/map_workspace_fixture.dart';
@@ -14,21 +12,6 @@ final _project = workspaceProject.copyWith(
 );
 
 void main() {
-  test('query and family choices remain scoped to their intent', () {
-    final filters = ResourceCatalogFilterState()
-      ..query = 'lit'
-      ..familyId = 'furniture';
-    final queries = MapPaletteQueries(filters);
-    queries.select('Terrains');
-    expect(filters.query, isEmpty);
-    expect(filters.familyId, isEmpty);
-    filters.query = 'chemin';
-    queries.select('Décors');
-    expect(filters.query, 'lit');
-    expect(filters.familyId, 'furniture');
-    queries.select('Terrains');
-    expect(filters.query, 'chemin');
-  });
 
   test('a model released by a 2D catalogue disarms placement', () {
     final view = MapWorkspaceEditingState()

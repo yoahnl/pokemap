@@ -2,12 +2,13 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
+import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
-import '../../../../avelune_studio/test/support/project_creation_workspace_fixture.dart';
 import '../../../../avelune_studio/test/support/synthetic_template_fixture.dart';
 import 'as_project_creation_player_support.dart';
 
@@ -20,16 +21,27 @@ void main() {
       ))!;
       addTearDown(() => root.delete(recursive: true));
       final package = File(p.join(root.path, 'synthetic-32.avelunegame'));
-      final fixture = ProjectCreationWorkspaceFixture(tester, root, package);
-      addTearDown(fixture.dispose);
-      await fixture.mount(creationPort: workspaceProjectCreation);
-      await fixture.create(
-        32,
-        name: 'Mon projet catalogue',
-        templateId: 'workspace',
+      final template = workspaceTemplate.catalog.templates.single;
+      final receipt = (await tester.runAsync(
+        () => workspaceProjectCreation.create(
+          ProjectCreationRequest(
+            name: 'Mon projet catalogue',
+            folderName: 'Mon projet catalogue',
+            parentPath: root.path,
+            template: ProjectCreationTemplate.catalogue,
+            templateId: template.id,
+            tileSize: template.tileSize,
+            mapWidth: template.mapWidth,
+            mapHeight: template.mapHeight,
+          ),
+        ),
+      ))!;
+      final source = Directory(receipt.projectPath);
+      final gameExport = StudioGameExportController(
+        projectRoot: source,
+        projectName: 'Mon projet catalogue',
       );
-      final source = Directory(fixture.session.state.project!.directoryPath);
-      final before = (await tester.runAsync(() => _authorFiles(source)))!;
+      addTearDown(gameExport.dispose);
       final expectedMaps = <String, MapData>{};
       final manifest = (await tester.runAsync(() async {
         final adapter = LocalProjectSessionAdapter();
@@ -60,27 +72,33 @@ void main() {
           await adapter.close(reopened);
         }
       }))!;
+      final before = (await tester.runAsync(() => _authorFiles(source)))!;
       final exporting = Stopwatch()..start();
+      await tester.runAsync(gameExport.load);
       expect(
-        await fixture.exportPackage(
-          metadata: const StudioGameExportMetadata(
-            gameId: 'games.avelune.synthetic-template',
-            title: 'Mon projet catalogue',
-            version: '0.1.0',
-            author: 'Recette locale',
-            locale: 'fr',
-            locales: 'fr',
+        await tester.runAsync(
+          () => gameExport.export(
+            metadata: const StudioGameExportMetadata(
+              gameId: 'games.avelune.synthetic-template',
+              title: 'Mon projet catalogue',
+              version: '0.1.0',
+              author: 'Recette locale',
+              locale: 'fr',
+              locales: 'fr',
+            ),
+            outputPath: package.path,
+            overwriteConfirmed: false,
+            publication: false,
+            prepare: () async => true,
+            hasPendingChanges: () => false,
+            isCurrentProject: () => true,
           ),
         ),
         isTrue,
-        reason: fixture.gameExport!.error,
+        reason: gameExport.error,
       );
       print('TEMPLATE_EXPORT_COMPLETED_MS=${exporting.elapsedMilliseconds}');
-      expect(
-        fixture.gameExport!.outputPath,
-        package.path,
-        reason: fixture.gameExport!.error,
-      );
+      expect(gameExport.outputPath, package.path, reason: gameExport.error);
       expect(await tester.runAsync(package.exists), isTrue);
       expect(await tester.runAsync(() => _authorFiles(source)), before);
       final evidence = Platform.environment['AVELUNE_CREATION_PACKAGE_DIR'];
@@ -90,8 +108,6 @@ void main() {
           await package.copy(p.join(evidence, 'synthetic-32.avelunegame'));
         });
       }
-      await fixture.dispose();
-      expect(fixture.session.state.project, isNull);
       await tester.runAsync(() async {
         expect(
           p.isWithin(

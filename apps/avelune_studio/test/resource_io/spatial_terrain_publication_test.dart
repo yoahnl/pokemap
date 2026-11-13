@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/features/terrains/application/terrain_numeric_input.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -51,10 +50,10 @@ void main() {
     expect(model.draft, original);
     model.assignModel(
       item.model3d!,
-      scale: terrainFiniteNumber('1,5')!,
-      offsetX: terrainFiniteNumber('0,125')!,
-      offsetY: terrainFiniteNumber('0,2')!,
-      offsetZ: terrainFiniteNumber('-0,375')!,
+      scale: 1.5,
+      offsetX: .125,
+      offsetY: .2,
+      offsetZ: -.375,
       quarterTurns: 1,
     );
     final part = model.partFor(0)!;

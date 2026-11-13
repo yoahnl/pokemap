@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/features/project_creation/application/project_creation_controller.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
@@ -21,20 +20,19 @@ void main() {
     () async {
       final parent = await Directory.systemTemp.createTemp('studio-spatial-');
       addTearDown(() => parent.delete(recursive: true));
-      final creation = ProjectCreationController(
-        const LocalProjectCreationService(),
+      final receipt = await const LocalProjectCreationService().create(
+        ProjectCreationRequest(
+          name: 'Atelier 3D',
+          folderName: 'Atelier 3D',
+          parentPath: parent.path,
+          template: ProjectCreationTemplate.empty,
+          dimension: ProjectDimension.threeD,
+          spatialCamera: SpatialCameraProfile(pitchDegrees: 55),
+          mapWidth: 12,
+          mapHeight: 10,
+        ),
       );
-      addTearDown(creation.dispose);
-      creation.setName('Atelier 3D');
-      creation.setDimension(ProjectDimension.threeD);
-      creation.parentPath = parent.path;
-      creation.width = '12';
-      creation.height = '10';
-      creation.cameraPitch = '55';
-      await creation.checkDestination();
-      final receipt = await creation.create();
-      expect(receipt, isNotNull, reason: creation.error);
-      final root = receipt!.projectPath;
+      final root = receipt.projectPath;
       final sessions = LocalProjectSessionAdapter();
       final session = await sessions.open(root);
       addTearDown(() => sessions.close(session));

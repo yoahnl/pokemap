@@ -4,10 +4,7 @@ import 'dart:typed_data';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
-import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_external_import_models.dart';
-import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_port.dart';
-import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -67,55 +64,7 @@ final class _Gen5Transport implements PokemonBoundedExternalHttpTransport {
   }
 }
 
-final class _UncertainPort implements PokemonWorkspacePort {
-  int reads = 0;
-
-  @override
-  Future<PokemonExternalImportResult> applyExternal(
-    PokemonExternalImportPreview preview,
-    PokemonExternalConflictPolicy policy,
-  ) async => const PokemonExternalImportResult(
-    speciesId: 'bulbasaur',
-    created: 1,
-    overwritten: 0,
-    skipped: 0,
-    warnings: ['Animation : état incertain.'],
-    requiresReopen: true,
-  );
-
-  @override
-  Future<PokemonWorkspaceIndex> loadIndex() async {
-    reads++;
-    throw StateError('catalogue indisponible');
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 void main() {
-  test('controller preserves a partial result and asks to reopen', () async {
-    final port = _UncertainPort();
-    final controller = PokemonWorkspaceController(port, changed: () {});
-    controller.externalPreview = const PokemonExternalImportPreview(
-      speciesId: 'bulbasaur',
-      name: 'Bulbizarre',
-      projectRevision: 'r',
-      inventorySignature: '',
-      documents: [],
-      warnings: [],
-    );
-    expect(
-      await controller.applyExternal(
-        PokemonExternalConflictPolicy.failOnConflict,
-      ),
-      isTrue,
-    );
-    expect(port.reads, 0);
-    expect(controller.externalResult?.created, 1);
-    expect(controller.error, contains('rouvrez'));
-    controller.dispose();
-  });
 
   late Directory root;
   late LocalPokemonWorkspaceAdapter adapter;

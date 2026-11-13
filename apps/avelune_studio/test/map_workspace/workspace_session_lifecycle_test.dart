@@ -2,19 +2,10 @@ import 'dart:async';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_loader.dart';
-import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_controllers.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_visual_projection_queue.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_workshop_routes.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
-import 'package:avelune_studio/features/scenes/domain/scene_port.dart';
-import 'package:avelune_studio/features/stories/domain/story_port.dart';
-import 'package:avelune_studio/features/events/domain/event_port.dart';
-import 'package:avelune_studio/features/dialogues/domain/dialogue_port.dart';
-import 'package:avelune_studio/features/cinematics/domain/cinematic_port.dart';
-import 'package:avelune_studio/features/presentations/domain/presentation_port.dart';
-import 'package:avelune_studio/features/world/domain/world_port.dart';
-import 'package:avelune_studio/features/verification/domain/verification_port.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,22 +56,6 @@ class _Visuals extends WorkspaceTestVisuals
 
 class _Narrative extends Fake implements NarrativePort {}
 
-class _Scenes extends Fake implements ScenePort {}
-
-class _Stories extends Fake implements StoryPort {}
-
-class _Events extends Fake implements EventPort {}
-
-class _Dialogues extends Fake implements DialoguePort {}
-
-class _Cinematics extends Fake implements CinematicPort {}
-
-class _Presentations extends Fake implements PresentationPort {}
-
-class _World extends Fake implements WorldPort {}
-
-class _Verification extends Fake implements VerificationPort {}
-
 void main() {
   late WorkspaceMemoryPort port;
   late MapWorkspaceController controller;
@@ -91,59 +66,6 @@ void main() {
     await controller.initialize();
   });
   tearDown(() => controller.dispose());
-
-  test('workshops compose without loading unrelated project data', () async {
-    final visuals = _Visuals();
-    final loaded = (await loadWorkspaceSession(
-      workspace: controller,
-      loadVisuals: (_, _) async => visuals,
-      narrativePort: _Narrative(),
-      isActive: () => true,
-      changed: () {},
-      onUse: (_) async {},
-    ))!;
-    final reads = port.reads;
-    final catalogs = port.catalogs;
-    var flushes = 0;
-    final owners = WorkspaceSessionControllers(
-      controller: controller,
-      changed: () {},
-      visualCatalogChanged: (_) {},
-      flushEditors: () async {
-        flushes++;
-        return true;
-      },
-      scenePort: _Scenes(),
-      storyPort: _Stories(),
-      eventPort: _Events(),
-      dialoguePort: _Dialogues(),
-      cinematicPort: _Cinematics(),
-      presentationPort: _Presentations(),
-      worldPort: _World(),
-      verificationPort: _Verification(),
-    );
-
-    owners.initializeLoaded(loaded);
-
-    expect(owners.narrative, same(loaded.narrative));
-    expect(owners.scenes, isNotNull);
-    expect(owners.stories, isNotNull);
-    expect(owners.events, isNotNull);
-    expect(owners.dialogues, isNotNull);
-    expect(owners.cinematics, isNotNull);
-    expect(owners.presentations, isNotNull);
-    expect(owners.world!.initialized, isFalse);
-    expect(await owners.verification!.flushEdits!(), isTrue);
-    expect(flushes, 1);
-    expect(port.reads, reads);
-    expect(port.catalogs, catalogs);
-    final first = owners.dispose();
-    expect(identical(first, owners.dispose()), isTrue);
-    await first;
-    expect(visuals.disposals, 1);
-    expect(visuals.listeners, isEmpty);
-    expect(controller.historyGuard, isNull);
-  });
 
   test(
     'session owns visual listener and history guard through disposal',

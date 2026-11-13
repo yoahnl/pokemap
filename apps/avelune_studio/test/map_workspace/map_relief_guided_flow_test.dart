@@ -1,11 +1,9 @@
-import 'package:avelune_studio/features/map_workspace/application/map_cliff_guidance.dart';
 
 import 'dart:convert';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_cliff_levels.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_surface_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_review.dart';
@@ -143,74 +141,6 @@ void main() {
     ).addAngle(to);
   }
 
-  test('the contour reads low and high levels and the wall side', () {
-    final draft = along(4);
-    final levels = mapCliffLevels(
-      spatialBorderMap(),
-      draft.anchors,
-      alignment: draft.alignment,
-    )!;
-    expect(levels.lowLevel, 0);
-    expect(levels.highLevel, 2);
-    expect(levels.highSide, MapCliffSide.right);
-    expect(
-      mapCliffLevelsSummary(levels),
-      'Bas 0 · haut 2 · paroi à droite du tracé',
-    );
-    final reversed = along(4, reverse: true);
-    expect(
-      mapCliffLevels(
-        spatialBorderMap(),
-        reversed.anchors,
-        alignment: reversed.alignment,
-      )!.highSide,
-      MapCliffSide.left,
-    );
-  });
-
-  test('a flat contour sends back to the height step', () {
-    final state = mapCliffGuideState(
-      map: spatialBorderMap(),
-      definition: spatialBorderProject()
-          .borderCatalog
-          .records
-          .single
-          .latestPublished!
-          .definition,
-      draft: along(1),
-    );
-    expect(state.step, MapCliffStep.height);
-    expect(state.message, contains('le sol est plat'));
-  });
-
-  test('decors standing on the contour are named before applying', () {
-    final base = spatialBorderMap();
-    final map = base.copyWith(
-      spatialScene: base.spatialScene!.copyWith(
-        instances: [
-          SpatialModelInstance(
-            id: 'lamp',
-            modelId: 'oak',
-            position: Model3dVector3(x: 3.5, y: 0, z: 4.5),
-          ),
-          SpatialModelInstance(
-            id: 'far',
-            modelId: 'oak',
-            position: Model3dVector3(x: 10.5, y: 0, z: 8.5),
-          ),
-        ],
-      ),
-    );
-    final draft = along(4);
-    final levels = mapCliffLevels(
-      map,
-      draft.anchors,
-      alignment: draft.alignment,
-    )!;
-    expect(levels.coveredDecorIds, ['lamp']);
-    expect(mapCliffLevelsSummary(levels), endsWith('1 décor le long du tracé'));
-  });
-
   test('moving an angle keeps the contour and refuses a point outside', () {
     final draft = _start(
       spatialBorderProject(),
@@ -291,25 +221,4 @@ void main() {
     );
   });
 
-  test('guidance projects profile contour and qualified review states', () {
-    final project = spatialBorderProject();
-    final map = spatialBorderMap();
-    final definition =
-        project.borderCatalog.records.single.latestPublished!.definition;
-    expect(
-      mapCliffGuideState(map: map, definition: null, draft: null).step,
-      MapCliffStep.profile,
-    );
-    expect(
-      mapCliffGuideState(map: map, definition: definition, draft: null).step,
-      MapCliffStep.contour,
-    );
-    final review = mapCliffGuideState(
-      map: map,
-      definition: definition,
-      draft: along(4),
-    );
-    expect(review.step, MapCliffStep.review);
-    expect(review.message, 'Revue : Bas 0 · haut 2 · paroi à droite du tracé.');
-  });
 }

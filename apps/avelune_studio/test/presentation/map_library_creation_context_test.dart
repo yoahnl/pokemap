@@ -1,14 +1,10 @@
 import 'dart:io';
 
-import 'package:avelune_studio/features/project_creation/application/project_creation_controller.dart';
-import 'package:avelune_studio/features/project_creation/application/project_template_contents.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../map_workspace/map_catalog_fixture.dart';
-import '../support/synthetic_template_fixture.dart';
 
 ProjectManifest _hgssScaleCatalogue() {
   const regions = ['Johto', 'Kanto'];
@@ -103,55 +99,6 @@ void main() {
     expect(found('etage'), ['map-0']);
   });
 
-  test('each template states what it really contains before creation', () {
-    final playable = projectTemplateContents(
-      dimension: ProjectDimension.twoD,
-      template: ProjectCreationTemplate.playable,
-      width: '20',
-      height: '15',
-    );
-    expect(playable.rows['Carte'], 'Première carte, 20 × 15 cases');
-    expect(playable.rows['Personnage joueur'], 'Inclus');
-    expect(playable.rows['Départ du joueur'], 'Inclus sur la première carte');
-    expect(playable.rows['Pokémon'], 'Désactivés, activables ensuite');
-    expect(playable.beforeTest, contains('Tester la carte'));
-    expect(playable.beforeTest, isNot(contains('prêt à tester')));
-
-    final empty = projectTemplateContents(
-      dimension: ProjectDimension.twoD,
-      template: ProjectCreationTemplate.empty,
-      width: '20',
-      height: '15',
-    );
-    expect(empty.rows['Carte'], 'Aucune');
-    expect(empty.rows['Personnage joueur'], 'Aucun');
-    expect(empty.beforeTest, contains('une carte, un personnage et un départ'));
-
-    final spatial = projectTemplateContents(
-      dimension: ProjectDimension.threeD,
-      template: ProjectCreationTemplate.empty,
-      width: '20',
-      height: '15',
-    );
-    expect(
-      spatial.rows['Carte'],
-      'Première carte 3D, terrain plat de 20 × 15 cases',
-    );
-    expect(spatial.rows['Personnage joueur'], 'Aucun');
-
-    final catalogue = projectTemplateContents(
-      dimension: ProjectDimension.twoD,
-      template: ProjectCreationTemplate.catalogue,
-      width: '12',
-      height: '10',
-      catalogueLabel: 'Template Alpha',
-    );
-    expect(
-      catalogue.rows['Personnage joueur'],
-      'Fourni par Template Alpha, détaillé après création',
-    );
-  });
-
   test('a 3D map is created without a 2D default sheet', () async {
     final fixture = await open(empty: true, dimension: ProjectDimension.threeD);
     final result = await fixture.createMap('spatial');
@@ -200,36 +147,4 @@ void main() {
     },
   );
 
-  test(
-    'the creation request retains the chosen parent and suggested folder name',
-    () {
-      final controller = ProjectCreationController(offlineProjectCreation)
-        ..setName('Mon aventure');
-      addTearDown(controller.dispose);
-      expect(controller.folderName, 'mon-aventure');
-      expect(controller.request.parentPath, isEmpty);
-      controller.parentPath = '/Projets';
-      expect(controller.request.parentPath, '/Projets');
-      expect(controller.request.folderName, 'mon-aventure');
-      controller.setTemplate(ProjectCreationTemplate.empty);
-      expect(controller.request.template, ProjectCreationTemplate.empty);
-    },
-  );
-
-  test('a cancelled folder picker leaves no destination to create', () async {
-    final controller = ProjectCreationController(offlineProjectCreation)
-      ..setName('Mon aventure');
-    addTearDown(controller.dispose);
-    var picks = 0;
-    await controller.chooseParent(() async {
-      picks++;
-      return null;
-    });
-    expect(picks, 1);
-    expect(controller.parentPath, isEmpty);
-    expect(controller.destination, isNull);
-    expect(controller.receipt, isNull);
-    expect(controller.selecting, isFalse);
-    expect(controller.request.validate, throwsFormatException);
-  });
 }

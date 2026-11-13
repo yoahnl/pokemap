@@ -1,4 +1,3 @@
-import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
 
 import 'dart:typed_data';
 
@@ -52,25 +51,6 @@ void main() {
       presets: [preset],
     ),
   );
-
-  test('spatial terrain and environment commands select their intended resource family', () {
-    final view = MapEditingViewportSession();
-    addTearDown(view.dispose);
-    var selected = '';
-    final runner = MapToolCommandRunner(
-      view: view,
-      paletteTab: () => selected,
-      selectPalette: (value) => selected = value,
-      spatial: true,
-      paletteVisible: true,
-      onChanged: () {},
-      onMoreTools: () {},
-      onResources: () {},
-    );
-    runner.runFamily('Terrains');
-    expect(view.tool, StudioMapTool.terrain);
-    expect(selected, 'Terrains');
-  });
 
   testWidgets(
     'ground drag interpolates cells and commits one undoable stroke',

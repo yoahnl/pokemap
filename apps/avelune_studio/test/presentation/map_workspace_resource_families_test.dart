@@ -1,6 +1,5 @@
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -49,50 +48,6 @@ void main() {
     },
   );
 
-  test('descendant families and staged map-scope filters preserve committed choices until applied', () {
-    final project = _project();
-    final view = MapWorkspaceEditingState();
-    view.resourceFilters.familyId = 'trees';
-    final all = view.paletteResourcesFor(
-      project,
-      'a',
-      'Décors',
-      applyFilters: false,
-    );
-    List<ResourceItem> visible(ResourceCatalogFilterState filters) =>
-        filterResourceCatalog(
-          project,
-          all,
-          filters,
-          activeMapId: 'a',
-          forMapPicker: true,
-        );
-    expect(
-      visible(view.resourceFilters).map((item) => item.id),
-      containsAll(['shared-tree', 'a-tree']),
-    );
-    expect(visible(view.resourceFilters), hasLength(2));
-    final draft = view.resourceFilters.copy()..scope = ResourceCatalogScope.map;
-    expect(visible(draft).map((item) => item.id), ['a-tree']);
-    expect(view.resourceFilters.scope, ResourceCatalogScope.all);
-    expect(visible(view.resourceFilters), hasLength(2));
-    view.resourceFilters.copyFrom(draft);
-    expect(
-      view.paletteResourcesFor(project, 'a', 'Décors').map((item) => item.id),
-      ['a-tree'],
-    );
-    expect(
-      ResourceFamilyTree(
-        project,
-        all,
-        activeMapId: 'a',
-        forMapPicker: true,
-        filters: view.resourceFilters,
-      ).total,
-      1,
-    );
-  });
-
   test('draft counts retain a resource search and can report zero results', () {
     final project = _project();
     final view = MapWorkspaceEditingState();
@@ -133,42 +88,6 @@ void main() {
     expect(view.resourceFilters.query, 'a-tree');
     expect(view.paletteResourcesFor(project, 'a', 'Décors'), isEmpty);
   });
-
-  test(
-    'character counts retain their query independently of filter drafts',
-    () {
-      final project = _project();
-      final view = MapWorkspaceEditingState();
-      final items = view.paletteResourcesFor(
-        project,
-        'a',
-        'Personnages',
-        applyFilters: false,
-      );
-      final filters = view.resourceFilters.copy()..query = 'inexistant';
-      expect(
-        ResourceFamilyTree(
-          project,
-          items,
-          activeMapId: 'a',
-          forMapPicker: true,
-          filters: filters,
-        ).total,
-        0,
-      );
-      expect(
-        filterResourceCatalog(
-          project,
-          items,
-          filters,
-          activeMapId: 'a',
-          forMapPicker: true,
-        ),
-        isEmpty,
-      );
-      expect(view.resourceFilters.scope, ResourceCatalogScope.all);
-    },
-  );
 
   test('resource kinds retain map scope for borders environments characters and tile sources', () {
     final project = _project();

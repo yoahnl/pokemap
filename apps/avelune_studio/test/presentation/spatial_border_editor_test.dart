@@ -1,4 +1,3 @@
-import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
@@ -403,25 +402,6 @@ void main() {
     },
   );
 
-  test('the shared border command requests the spatial resource picker', () {
-    final view = MapEditingViewportSession();
-    addTearDown(view.dispose);
-    var opened = false;
-    var tab = '';
-    MapToolCommandRunner(
-      view: view,
-      paletteTab: () => tab,
-      selectPalette: (value) => tab = value,
-      spatial: true,
-      paletteVisible: false,
-      onChanged: () {},
-      onMoreTools: () => opened = true,
-      onResources: () {},
-    ).runFamily('Bordures');
-    expect(view.tool, StudioMapTool.border);
-    expect(tab, 'Bordures');
-    expect(opened, isTrue);
-  });
 }
 
 class _BorderVisuals extends WorkspaceTestVisuals

@@ -1,12 +1,9 @@
 import 'dart:io';
 
-import 'package:avelune_studio/features/game_export/application/studio_game_export_workflow.dart';
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
-import 'package:avelune_studio/features/project_settings/application/project_identity_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'm3_story_fixture.dart';
@@ -52,45 +49,27 @@ class MapHostOwnerFixture {
   Future<bool> save() async =>
       await RealTestIo.run(tester, () => maps.save(document)) ?? false;
 
-  Future<bool> exportGame(File package, {required String author}) async {
-    final identity = ProjectIdentityController(port: gameExport);
-    final guard = WorkspaceWorkflow(
-      controller: maps,
-      isActive: () => !maps.isDisposed,
-      changed: maps.notify,
-      resources: () => null,
-      narrative: () => null,
-      confirmClose: () async => WorkspaceCloseChoice.cancel,
-      flushFocus: () {},
-      launchMap: (_, _) async =>
-          throw StateError('No playtest launch requested by an export'),
-    );
-    final workflow = StudioGameExportWorkflow(
-      controller: gameExport,
-      pickFile: (_) async =>
-          StudioGameExportDestination(package.path, exists: await package.exists()),
-      prepare: guard.saveForExport,
-      preparationFailure: () => guard.exportPreparationFailure,
-      hasPendingChanges: () => guard.hasPendingChanges,
-      isCurrentProject: () => !maps.isDisposed,
-      isActive: () => true,
-    );
-    try {
-      return await RealTestIo.run(tester, () async {
-            await gameExport.load();
-            await identity.open();
-            return workflow.run(
-              metadata: identity.exportMetadata.copyWith(author: author),
-              publication: false,
-              confirmOverwrite: (_) async => false,
-            );
-          }) ??
-          false;
-    } finally {
-      workflow.dispose();
-      identity.dispose();
-    }
-  }
+  Future<bool> exportGame(File package, {required String author}) async =>
+      await RealTestIo.run(tester, () async {
+        await gameExport.load();
+        return gameExport.export(
+          metadata: StudioGameExportMetadata(
+            gameId: 'games.avelune.map-host-owner',
+            title: source.session.name,
+            version: '0.1.0',
+            author: author,
+            locale: 'fr',
+            locales: 'fr',
+          ),
+          outputPath: package.path,
+          overwriteConfirmed: false,
+          publication: false,
+          prepare: () async => !document.dirty || await maps.save(document),
+          hasPendingChanges: () => maps.dirty,
+          isCurrentProject: () => !maps.isDisposed,
+        );
+      }) ??
+      false;
 
   Future<Map<String, List<int>>> disk() async =>
       (await RealTestIo.run(

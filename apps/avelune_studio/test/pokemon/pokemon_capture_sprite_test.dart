@@ -1,14 +1,10 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/features/pokemon/application/pokemon_commerce_controller.dart';
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_commerce_adapter.dart';
-import 'package:avelune_studio/features/pokemon/domain/pokemon_commerce_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/features/pokemon/application/pokemon_capture_sprite_picker_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_authoring/map_authoring.dart';
@@ -16,133 +12,6 @@ import 'package:map_core/map_core.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  test(
-    'imports a capture sprite into the draft before saving its item',
-    () async {
-      final port = _CommercePort();
-      final commerce = PokemonCommerceController(port, changed: () {});
-      await commerce.load();
-      commerce.selectItem(_ball);
-      await commerce.importCaptureSprite(sourcePath: '/picked.png');
-
-      expect(commerce.item!.capture!.animationSpritePath, _path);
-      expect(commerce.dirty, isTrue);
-      expect(port.saved, isNull);
-      expect(port.imports, 1);
-      expect(await commerce.save(), isTrue);
-      expect(port.saved!.capture!.animationSpritePath, _path);
-      expect(commerce.dirty, isFalse);
-      commerce.dispose();
-    },
-  );
-
-  test('failed capture sprite import preserves the draft', () async {
-    final port = _CommercePort()..failure = StateError('PNG invalide');
-    final commerce = PokemonCommerceController(port, changed: () {});
-    await commerce.load();
-    commerce.selectItem(_ball);
-    commerce.editItem((item) => item.copyWith(displayName: 'Brouillon'));
-    final before = commerce.item;
-    await commerce.importCaptureSprite(sourcePath: '/picked.png');
-
-    expect(commerce.item, before);
-    expect(commerce.error, contains('PNG invalide'));
-    expect(commerce.importing, isFalse);
-    expect(port.saved, isNull);
-    commerce.dispose();
-  });
-
-  test('capture import locks draft changes and stops when disposed', () async {
-    final port = _CommercePort()..gate = Completer<void>();
-    final commerce = PokemonCommerceController(port, changed: () {});
-    await commerce.load();
-    commerce.selectItem(_ball);
-    final importing = commerce.importCaptureSprite(sourcePath: '/picked.png');
-    expect(commerce.importing, isTrue);
-    expect(commerce.selectItem(_ball.copyWith(id: 'other')), isFalse);
-    commerce.editItem((item) => item.copyWith(displayName: 'Wrong'));
-    commerce.discardSelected();
-    expect(commerce.item, _ball);
-    expect(await commerce.save(), isFalse);
-    commerce.dispose();
-    port.gate!.complete();
-    await importing;
-    expect(commerce.item, _ball);
-    expect(port.saved, isNull);
-  });
-
-  test('picker updates the draft and can remove its animation', () async {
-    final port = _CommercePort();
-    final commerce = PokemonCommerceController(port, changed: () {});
-    await commerce.load();
-    commerce.selectItem(_ball);
-    addTearDown(commerce.dispose);
-    final workflow = PokemonCaptureSpritePickerController(
-      commerce: commerce,
-      isActive: () => true,
-    );
-    addTearDown(workflow.dispose);
-    expect(await workflow.choose(() async => '/picked.png'), isTrue);
-    expect(commerce.item!.capture!.animationSpritePath, _path);
-    expect(port.imports, 1);
-    expect(port.saved, isNull);
-    workflow.remove();
-    expect(commerce.item!.capture!.animationSpritePath, isNull);
-    expect(commerce.item, _ball);
-    expect(commerce.dirty, isFalse);
-    expect(port.imports, 1);
-    expect(port.saved, isNull);
-  });
-
-  test('cancelled PNG selection leaves the item untouched', () async {
-    final port = _CommercePort();
-    final commerce = PokemonCommerceController(port, changed: () {});
-    await commerce.load();
-    commerce.selectItem(_ball);
-    addTearDown(commerce.dispose);
-    final workflow = PokemonCaptureSpritePickerController(
-      commerce: commerce,
-      isActive: () => true,
-    );
-    addTearDown(workflow.dispose);
-    expect(await workflow.choose(() async => null), isFalse);
-    expect(commerce.item, same(_ball));
-    expect(commerce.dirty, isFalse);
-    expect(port.imports, 0);
-  });
-
-  for (final closed in [false, true]) {
-    test(
-      'late PNG selection preserves a ${closed ? 'closed' : 'changed'} item owner',
-      () async {
-        final port = _CommercePort();
-        final commerce = PokemonCommerceController(port, changed: () {});
-        await commerce.load();
-        commerce.selectItem(_ball);
-        addTearDown(commerce.dispose);
-        final workflow = PokemonCaptureSpritePickerController(
-          commerce: commerce,
-          isActive: () => true,
-        );
-        final picker = Completer<String?>();
-        final choosing = workflow.choose(() => picker.future);
-        expect(await workflow.choose(() async => '/other.png'), isFalse);
-        if (closed) {
-          workflow.dispose();
-        } else {
-          commerce.editItem(
-            (item) => item.copyWith(displayName: 'Brouillon conservé'),
-          );
-        }
-        final before = commerce.item;
-        picker.complete('/picked.png');
-        expect(await choosing, isFalse);
-        expect(port.imports, 0);
-        expect(commerce.item, same(before));
-      },
-    );
-  }
 
   test(
     'canonical adapter imports exact PNG bytes before item update',
@@ -225,7 +94,6 @@ void main() {
   );
 }
 
-const _path = 'data/pokemon/assets/items/capture/custom.png';
 const _ball = ProjectItemDefinition(
   id: 'custom-ball',
   displayName: 'Custom Ball',
@@ -239,52 +107,6 @@ const _ball = ProjectItemDefinition(
 
 Uint8List _png(int width, int height) =>
     Uint8List.fromList(img.encodePng(img.Image(width: width, height: height)));
-
-final class _CommercePort implements PokemonCommercePort {
-  ProjectItemDefinition? saved;
-  Object? failure;
-  int imports = 0;
-  Completer<void>? gate;
-
-  @override
-  Future<String> importCaptureSprite({
-    required String sourcePath,
-    required String itemId,
-    bool Function()? shouldContinue,
-  }) async {
-    imports++;
-    await gate?.future;
-    if (failure != null) throw failure!;
-    if (shouldContinue?.call() == false) throw StateError('Cancelled');
-    return _path;
-  }
-
-  @override
-  Future<Uint8List?> loadCaptureSprite(String path) async => _png(64, 2048);
-
-  @override
-  Future<void> saveItem(
-    ProjectItemDefinition? before,
-    ProjectItemDefinition after,
-  ) async {
-    saved = after;
-  }
-
-  @override
-  Future<PokemonCommerceSnapshot> load() async => PokemonCommerceSnapshot(
-    project: const ProjectManifest(name: 'Capture', maps: [], tilesets: []),
-    catalog: ProjectItemCatalog(schemaVersion: 1, entries: [saved ?? _ball]),
-    shops: const [],
-    references: ProjectItemReferenceIndex(const []),
-    narrativeReferences: NarrativeDependencyIndex(),
-    shopDiagnostics: const [],
-    catalogPath: 'data/pokemon/catalogs/items.json',
-    problem: null,
-  );
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
 
 final class _Fixture {
   _Fixture(this.directory, this.adapter, this.catalogFile);

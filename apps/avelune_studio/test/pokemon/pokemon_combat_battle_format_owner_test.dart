@@ -2,14 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/features/pokemon/application/pokemon_combat_authoring_rules.dart';
-import 'package:avelune_studio/features/pokemon/application/pokemon_combat_controller.dart';
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_combat_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import '../support/pokemon_combat_owner_fixture.dart';
 
 void main() {
   final shared = jsonDecode(
@@ -17,121 +14,6 @@ void main() {
       Platform.environment['POKEMAP_BATTLE_FORMAT_FIXTURE'] ?? '../../packages/map_authoring/test/fixtures/trainer_battle_format.json',
     ).readAsStringSync(),
   ) as Map<String, dynamic>;
-
-  test('Combat offers an explicit singles or doubles format', () async {
-    final port = RecordingPokemonCombatPort(_trainer(shared, 'singles'));
-    final combat = PokemonCombatController(port, changed: () {});
-    addTearDown(combat.dispose);
-    combat.snapshot = port.snapshot;
-    combat.selectTrainer(port.snapshot.project.trainers.single);
-    expect(combat.trainer!.current.battleFormat, BattleFormat.singles);
-
-    combat.setTrainerBattleFormat(BattleFormat.fromJson('doubles'));
-
-    expect(combat.trainer!.current.toJson()['battleFormat'], 'singles');
-    expect(combat.trainer!.dirty, isFalse);
-    expect(combat.error, contains('Standard'));
-    expect(port.saved, isEmpty);
-  });
-
-  test(
-    'Combat changes the named project rules before enabling doubles',
-    () async {
-      final port = RecordingPokemonCombatPort(_trainer(shared, 'singles'));
-      final combat = PokemonCombatController(port, changed: () {});
-      addTearDown(combat.dispose);
-      combat.snapshot = port.snapshot;
-      combat.view = PokemonCombatView.trainers;
-      combat.selectTrainer(port.snapshot.project.trainers.single);
-
-      await combat.setRuleset(pokemonRulesetProfile('pokemap-standard-v1'));
-      expect(port.rulesets.single.profileId, 'pokemap-standard-v1');
-      combat.setTrainerBattleFormat(BattleFormat.fromJson('doubles'));
-      expect(await combat.save(pokemonCombatOwnerIndex), isTrue);
-      expect(port.saved.single.toJson()['battleFormat'], 'doubles');
-      expect(port.saved.single.team, hasLength(6));
-      expect(port.saved.single.battleDifficulty, 7);
-
-      await combat.setRuleset(pokemonRulesetProfile('pokemap-beta-v1'));
-      expect(port.rulesets, hasLength(1));
-      expect(
-        combat.snapshot!.project.pokemon.ruleset.profileId,
-        'pokemap-standard-v1',
-      );
-      expect(combat.error, contains('combats doubles'));
-    },
-  );
-
-  test('ruleset profile identifiers map to the named project rules', () {
-    expect(
-      pokemonRulesetProfile(PokemonRulesetProfile.standardProfileId),
-      PokemonRulesetProfile.standardV1,
-    );
-    expect(
-      pokemonRulesetProfile('pokemap-beta-v1'),
-      PokemonRulesetProfile.pokeMapBetaV1,
-    );
-  });
-
-  test(
-    'Combat keeps project rules unchanged while a trainer draft is dirty',
-    () async {
-      final port = RecordingPokemonCombatPort(_trainer(shared, 'singles'));
-      final combat = PokemonCombatController(port, changed: () {});
-      addTearDown(combat.dispose);
-      combat.snapshot = port.snapshot;
-      combat.selectTrainer(port.snapshot.project.trainers.single);
-      combat.editTrainer((value) => value.copyWith(name: 'Unsaved trainer'));
-
-      await combat.setRuleset(_standard(shared));
-
-      expect(port.rulesets, isEmpty);
-      expect(
-        combat.snapshot!.project.pokemon.ruleset,
-        PokemonRulesetProfile.pokeMapBetaV1,
-      );
-      expect(combat.trainer!.current.name, 'Unsaved trainer');
-      expect(combat.error, contains('Enregistrez ou annulez'));
-    },
-  );
-
-  test(
-    'Combat refuses one remaining member in doubles with a readable error',
-    () async {
-      final port = RecordingPokemonCombatPort(
-        _trainer(shared, 'doubles'),
-        ruleset: _standard(shared),
-      );
-      final combat = PokemonCombatController(port, changed: () {});
-      addTearDown(combat.dispose);
-      combat.snapshot = port.snapshot;
-      combat.selectTrainer(port.snapshot.project.trainers.single);
-      combat.deleteTeamMember(1);
-
-      expect(await combat.save(pokemonCombatOwnerIndex), isFalse);
-      expect(combat.error, contains('deux Pokémon'));
-      expect(port.saved, isEmpty);
-      expect(combat.trainer!.current.team, hasLength(1));
-      expect(combat.trainer!.dirty, isTrue);
-    },
-  );
-
-  test(
-    'Combat retains all six singles members when editing the trainer',
-    () async {
-      final port = RecordingPokemonCombatPort(_trainer(shared, 'singles'));
-      final combat = PokemonCombatController(port, changed: () {});
-      addTearDown(combat.dispose);
-      combat.snapshot = port.snapshot;
-      combat.selectTrainer(port.snapshot.project.trainers.single);
-      combat.editTrainer((value) => value.copyWith(name: 'Updated trainer'));
-
-      expect(await combat.save(pokemonCombatOwnerIndex), isTrue);
-      expect(port.saved.single.toJson()['battleFormat'], 'singles');
-      expect(port.saved.single.team, hasLength(6));
-      expect(port.saved.single.battleDifficulty, 7);
-    },
-  );
 
   test(
     'real Studio adapter persists format, refuses stale and reopens cold',

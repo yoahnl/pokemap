@@ -5,11 +5,7 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/map_workspace/data/local_map_catalog_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
-import 'package:avelune_studio/features/resources/application/working_catalog_controller.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
-import 'package:avelune_studio/features/resources/data/local_working_catalog_adapter.dart';
-import 'package:avelune_studio/features/resources/domain/working_catalog_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
@@ -56,83 +52,6 @@ void main() {
   tearDown(() async {
     await resources.dispose();
     await fixture.dispose();
-  });
-
-  test('a crashed transaction reopens in recovery and resumes through the Studio catalogue port', () async {
-    const reader = LocalProjectFileReader();
-    final policy = await WorkspacePolicy.create(
-      allowedRootPaths: [fixture.root.path],
-      fileReader: reader,
-    );
-    final handles = WorkspaceHandleStore();
-    final loader = ProjectSnapshotLoader(handles: handles);
-    final service = ProjectOpenService(
-      policy: policy,
-      fileReader: reader,
-      handles: handles,
-    );
-    final opened = await service.openProject(fixture.root.path);
-    final crash = LocalMapAuthoringMutationApi(
-      policy: policy,
-      snapshotLoader: loader,
-      faultInjector: (context) {
-        if (context.checkpoint ==
-                AuthoringTransactionCheckpoint.afterResourcePromoted &&
-            context.storageKey == CatalogStorageStore.headStorageKey) {
-          throw const AuthoringTransactionSimulatedCrash();
-        }
-      },
-    );
-    await crash.attachProject(
-      projectRootPath: fixture.root.path,
-      workspaceHandle: opened.workspaceHandle,
-      projectHandle: opened.projectHandle,
-    );
-    final before = await loader.load(opened.projectHandle);
-    final plan = await crash.planMutation(
-      opened.projectHandle,
-      AuthoringRequest(
-        requestId: 'crash',
-        actionId: 'map.create',
-        actionVersion: 1,
-        workspaceHandle: opened.workspaceHandle.value,
-        expectedRevision: before.revision,
-        idempotencyKey: 'crash',
-        parameters: const {'mapId': 'recovered', 'width': 4, 'height': 4},
-      ),
-    );
-    await expectLater(
-      crash.applyMutation(
-        opened.projectHandle,
-        planId: plan.planId,
-        operationId: 'interrupted-map',
-      ),
-      throwsA(isA<AuthoringTransactionSimulatedCrash>()),
-    );
-    await crash.detachWorkspace(opened.workspaceHandle);
-    service.closeWorkspace(opened.workspaceHandle);
-    final sessions = LocalProjectSessionAdapter();
-    final reopened = await sessions.open(fixture.root.path);
-    expect(reopened.storage, ProjectSessionStorage.workingCatalog);
-    expect(reopened.recoveryOperationIds, ['interrupted-map']);
-    final port = LocalWorkingCatalogAdapter(reopened);
-    final controller = WorkingCatalogController(
-      port,
-      recoveryOperationIds: reopened.recoveryOperationIds,
-    );
-    addTearDown(controller.dispose);
-    await controller.search('');
-    expect(controller.items, isEmpty);
-    await controller.recover();
-    expect(controller.error, isNull);
-    expect(controller.recoveryOperationIds, isEmpty);
-    expect(
-      (await LocalMapWorkspaceAdapter().loadProject(reopened)).maps
-          .map((map) => map.id),
-      contains('recovered'),
-    );
-    await port.close();
-    await sessions.close(reopened);
   });
 
   test('neutral map preview preserves the active metadata without reading unrelated definitions', () async {
@@ -307,36 +226,6 @@ void main() {
     expect(reopened.elements.single, decor);
     expect(reopened.tilesets, hasLength(2));
   });
-
-  test(
-    'a changed catalog HEAD rejects map save without overwriting the map',
-    () async {
-      await maps.loadProject(session);
-      final base = await maps.loadMap(session, ResourceFixture.entry);
-      final before = await fixture.mapFile.readAsBytes();
-      final catalog = LocalWorkingCatalogAdapter(session);
-      addTearDown(catalog.close);
-      final page = await catalog.query(kind: 'tileset', text: 'Existing');
-      final detail = await catalog.open(page.items.single);
-      await catalog.save(
-        detail.entry,
-        WorkingCatalogDraft.fromEntry(detail.entry)
-            .copyWith(name: 'Changed elsewhere'),
-        revision: detail.revision,
-      );
-      await expectLater(
-        maps.saveMap(session, base, base.map.copyWith(name: 'À préserver')),
-        throwsA(
-          isA<MapWorkspaceFailure>().having(
-            (failure) => failure.problem,
-            'problem',
-            MapWorkspaceProblem.conflict,
-          ),
-        ),
-      );
-      expect(await fixture.mapFile.readAsBytes(), before);
-    },
-  );
 
   test(
     'map creation uses a complete projected receipt and survives reopening',

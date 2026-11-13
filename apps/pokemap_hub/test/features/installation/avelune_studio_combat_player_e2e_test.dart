@@ -4,9 +4,7 @@ import 'dart:io';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
-import 'package:avelune_studio/features/pokemon/application/pokemon_combat_controller.dart';
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_combat_adapter.dart';
-import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -171,78 +169,67 @@ void main() {
 
 Future<void> _configureCombatAuthoring(AuthoringExportFixture author) async {
   final source = author.source;
-  final pokemon = LocalPokemonWorkspaceAdapter(
+  final combat = LocalPokemonCombatAdapter(
     session: source.session,
     mapAdapter: source.maps,
   );
-  final combat = PokemonCombatController(
-    LocalPokemonCombatAdapter(session: source.session, mapAdapter: source.maps),
-    changed: () {},
-    projectChanged: (project) {
-      final current = author.maps.project!;
-      author.maps.acceptResources(
-        current,
-        mergeProjectMetadataSections(current, project, const {
-          'pokemon',
-          'trainers',
-          'encounterTables',
-        }),
-      );
-    },
+  await combat.load();
+  await combat.saveTable(
+    null,
+    ProjectEncounterTable(
+      id: 'jardin_sauvage',
+      name: 'Jardin sauvage',
+      encounterKind: EncounterKind.walk,
+      chancePerStep: 1,
+      entries: [
+        ProjectEncounterEntry(speciesId: 'sproutle', minLevel: 5, maxLevel: 5),
+      ],
+    ),
   );
-  try {
-    final index = await pokemon.loadIndex();
-    await combat.load();
-    expect(combat.createTable('Jardin sauvage'), isTrue);
-    combat.editTable(
-      (table) => table.copyWith(
-        chancePerStep: 1,
-        entries: [
-          ProjectEncounterEntry(
-            speciesId: 'sproutle',
-            minLevel: 5,
-            maxLevel: 5,
-          ),
-        ],
-      ),
-    );
-    expect(await combat.save(index), isTrue, reason: combat.error);
-    expect(author.maps.project!.encounterTables, hasLength(1));
-    expect(combat.createTrainer('Chef gare'), isTrue);
-    combat.editTrainer(
-      (trainer) => trainer.copyWith(
-        team: [
-          ProjectTrainerPokemonEntry(
-            speciesId: 'sproutle',
-            level: 5,
-            moves: ['tackle'],
-          ),
-        ],
-      ),
-    );
-    expect(await combat.save(index), isTrue, reason: combat.error);
-    expect(author.maps.project!.trainers, hasLength(1));
-    final zones = GameplayZoneEditingCommands(
-      author.document,
-      author.maps.project!,
-    );
-    final zone = zones.paintEncounterCells([
-      const GridPos(x: 9, y: 9),
-    ], erase: false)!;
-    zones.updateEncounter(zone.id, tableId: 'jardin_sauvage');
-    CharacterEditingCommands(
-      author.document,
-      author.maps.project!,
-    ).assignTrainer('combat-guide', 'chef_gare');
-    expect(
-      await author.maps.save(author.document),
-      isTrue,
-      reason: author.document.error,
-    );
-  } finally {
-    combat.dispose();
-    await pokemon.close();
-  }
+  await combat.saveTrainer(
+    null,
+    ProjectTrainerEntry(
+      id: 'chef_gare',
+      name: 'Chef gare',
+      trainerClass: 'Dresseur',
+      team: [
+        ProjectTrainerPokemonEntry(
+          speciesId: 'sproutle',
+          level: 5,
+          moves: ['tackle'],
+        ),
+      ],
+    ),
+  );
+  final saved = (await combat.load()).project;
+  final current = author.maps.project!;
+  author.maps.acceptResources(
+    current,
+    mergeProjectMetadataSections(current, saved, const {
+      'pokemon',
+      'trainers',
+      'encounterTables',
+    }),
+  );
+  expect(author.maps.project!.encounterTables, hasLength(1));
+  expect(author.maps.project!.trainers, hasLength(1));
+  final zones = GameplayZoneEditingCommands(
+    author.document,
+    author.maps.project!,
+  );
+  final zone = zones.paintEncounterCells([
+    const GridPos(x: 9, y: 9),
+  ], erase: false)!;
+  zones.updateEncounter(zone.id, tableId: 'jardin_sauvage');
+  CharacterEditingCommands(
+    author.document,
+    author.maps.project!,
+  ).assignTrainer('combat-guide', 'chef_gare');
+  expect(
+    await author.maps.save(author.document),
+    isTrue,
+    reason: author.document.error,
+  );
 }
 
 Future<void> _prepareCombatExportFixture(M3StoryFixture source) async {

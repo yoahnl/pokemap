@@ -9,7 +9,6 @@ import 'package:avelune_studio/features/map_workspace/domain/map_exterior_decora
 import 'package:avelune_studio/features/project_visuals/application/project_visuals_controller.dart';
 import 'package:avelune_studio/features/project_visuals/domain/project_visuals_port.dart';
 import 'package:map_authoring/map_authoring.dart';
-import 'package:avelune_studio/features/project_surf/application/project_surf_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -277,16 +276,13 @@ void main() {
         expect(metadataNodesCopied, lessThan(16));
         expect(await File('${root.path}/maps/a.json').readAsBytes(), mapBytes);
         if (foreignCount == 0) {
-          final surfOwner = ProjectSurfController(
-            session: session,
-            port: local,
-            dimension: ProjectDimension.threeD,
-            onSaved: controller.acceptSurfConfiguration,
+          final surf = await local.loadSurf(session);
+          final savedSurf = await local.saveSurf(
+            session,
+            const ProjectSurfSettings(),
+            surf.revision,
           );
-          addTearDown(surfOwner.dispose);
-          await surfOwner.open();
-          surfOwner.change(enabled: true);
-          expect(await surfOwner.save(), isTrue);
+          controller.acceptSurfConfiguration(savedSurf.configuration);
           expect(controller.project!.settings.surf!.enabled, isTrue);
           await api.detachWorkspace(opened.workspaceHandle);
           await api.attachProject(
@@ -337,8 +333,6 @@ void main() {
           expect(controller.project!.settings.surf!.enabled, isFalse);
           await controller.activate(entries[1]);
           expect(controller.project!.settings.surf!.enabled, isFalse);
-          expect(surfOwner.preview.value.enabled, isTrue);
-          expect(surfOwner.canUndo, isTrue);
         }
         final a = controller.documents['a']!;
         a.commit(a.current.copyWith(name: 'Human draft'));

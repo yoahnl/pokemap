@@ -1,7 +1,5 @@
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_warp_target_session.dart';
-import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -69,24 +67,4 @@ void main() {
     },
   );
 
-  test('an invalid arrival coordinate preserves the target and valid input remains possible', () {
-    final commands = WarpEditingCommands(h.document, h.project);
-    final warp = commands.place(
-      workspaceEntries.firstWhere((entry) => entry.id == 'b'),
-      const GridPos(x: 3, y: 3),
-    );
-    commands.retarget(warp.id, targetPos: const GridPos(x: 5, y: 2));
-    final session = MapWarpTargetSession(
-      h.document,
-      h.project,
-      commands.selected(warp.id)!,
-    );
-    addTearDown(session.dispose);
-    final before = h.document.current;
-    expect(session.commitTarget('abc', horizontal: true), isFalse);
-    expect(h.document.current, same(before));
-    expect(h.document.error, contains('nombres positifs'));
-    expect(session.commitTarget('7', horizontal: true), isTrue);
-    expect(commands.selected(warp.id)!.targetPos, const GridPos(x: 7, y: 2));
-  });
 }

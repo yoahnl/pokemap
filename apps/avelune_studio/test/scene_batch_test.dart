@@ -1,18 +1,20 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
 import 'package:avelune_studio/features/scenes/domain/scene_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import 'support/ui12_world_harness.dart';
+import '../tool/create_example_project.dart';
 
 void main() {
   test(
     'Studio scene adapter publishes one canonical batch and cold reopens it',
     () async {
-      final h = await Ui12WorldHarness.create();
+      final h = await _Project.create();
       addTearDown(h.dispose);
       final adapter = LocalSceneAdapter(
         session: h.session,
@@ -34,16 +36,15 @@ void main() {
         history.where((entry) => entry.contains('scene.upsert_batch')),
         hasLength(1),
       );
-      final reopened = await Ui12WorldHarness.open(h.directory);
-      addTearDown(() => reopened.dispose(deleteDirectory: false));
-      expect(reopened.world.project.scenes, containsAll([first, second]));
+      final reopened = await LocalMapWorkspaceAdapter().loadProject(h.session);
+      expect(reopened.scenes, containsAll([first, second]));
     },
   );
 
   test(
     'Studio refuses a stale last base and an invalid last scene atomically',
     () async {
-      final h = await Ui12WorldHarness.create();
+      final h = await _Project.create();
       addTearDown(h.dispose);
       final adapter = LocalSceneAdapter(
         session: h.session,
@@ -86,7 +87,7 @@ void main() {
   );
 
   test('Studio refuses empty and 129-scene batches before writing', () async {
-    final h = await Ui12WorldHarness.create();
+    final h = await _Project.create();
     addTearDown(h.dispose);
     final adapter = LocalSceneAdapter(
       session: h.session,
@@ -145,3 +146,31 @@ SceneAsset _scene(String id, {String? name, String? dialogue}) => SceneAsset(
     ],
   ),
 );
+
+class _Project {
+  _Project(this.directory, this.session);
+
+  final Directory directory;
+  final ProjectSession session;
+  final adapter = LocalMapWorkspaceAdapter();
+
+  static Future<_Project> create() async {
+    final temporary = await Directory.systemTemp.createTemp('avelune_scene_');
+    final directory = Directory(await temporary.resolveSymbolicLinks());
+    await writeExampleProject(directory);
+    final project = _Project(
+      directory,
+      ProjectSession(
+        sessionId: directory.path,
+        name: 'Scènes',
+        directoryPath: directory.path,
+      ),
+    );
+    await project.adapter.loadProject(project.session);
+    return project;
+  }
+
+  Future<void> dispose() async {
+    if (await directory.exists()) await directory.delete(recursive: true);
+  }
+}

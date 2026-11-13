@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
-import 'package:avelune_studio/features/map_workspace/coordination/workspace_resource_owner_bindings.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -48,24 +48,8 @@ void main() {
         );
       },
     );
-    await host.runFamily('Bordures');
+    await host.selectTool(StudioMapTool.border);
     final view = host.view;
-    view.borderBlueprintId = 'muret';
-    WorkspaceResourceOwnerBindings(
-      controller: host.maps,
-      views: () => {host.document.base.mapId: view},
-      pokemon: () => null,
-      dialogues: () => null,
-      narrative: () => null,
-      cinematics: () => null,
-      drawEnvironment: (_) async {},
-      retainBrush: () {},
-    ).reconcileBrushes();
-    host.maps.notify();
-    await host.pump(frames: 3);
-    expect(view.borderBlueprintId, isNull);
-    expect(view.tool.name, 'select');
-    await host.runFamily('Bordures');
     expect(view.borderBlueprintId, isNull);
     expect(
       MapBorderEditingCommands.publishedLines(host.maps.project!)

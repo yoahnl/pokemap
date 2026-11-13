@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:avelune_studio/features/map_workspace/application/map_decor_group_editing.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
@@ -46,7 +45,6 @@ void main() {
     final document = workspace.active!;
     final project = workspace.project!;
     final commands = MapEditingCommands(document, project);
-    final group = MapDecorGroupEditing(document, project);
     ProjectElementEntry element(String id) =>
         project.elements.singleWhere((entry) => entry.id == id);
 
@@ -71,7 +69,7 @@ void main() {
       const GridPos(x: 2, y: 2),
     )!;
     commands.move(placed, const GridPos(x: 3, y: 2));
-    final copy = group.duplicate([authored.id])!.single;
+    final copy = commands.clone(authored.id)!;
     final duplicated = document.current.placedElements.singleWhere(
       (instance) => instance.id == copy,
     );
@@ -79,7 +77,12 @@ void main() {
       duplicated,
       authored.copyWith(id: copy, visualOrder: duplicated.visualOrder),
     );
-    expect(group.remove([placed]), isTrue);
+    document.selectedId = placed;
+    commands.deleteSelected();
+    expect(
+      document.current.placedElements.map((instance) => instance.id),
+      isNot(contains(placed)),
+    );
 
     final beforeRefusal = document.current;
     expect(

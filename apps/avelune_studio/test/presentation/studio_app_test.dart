@@ -4,7 +4,6 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
-import 'package:avelune_studio/features/project_session/application/project_open_message.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,7 +104,7 @@ void main() {
         const ProjectOpenFailure(ProjectOpenProblem.manifestInvalid),
       );
       expect(await failed, isFalse);
-      expect(projectOpenMessage(session.state.problem), contains('manifeste'));
+      expect(session.state.problem, ProjectOpenProblem.manifestInvalid);
       expect(session.state.project, isNull);
       final retry = opening.open(directoryPath: '/corrige');
       port.pending.last.complete(exampleA);

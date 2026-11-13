@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
-import 'package:avelune_studio/features/characters/application/character_movement_inputs.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 
@@ -140,70 +139,6 @@ void main() {
     },
   );
 
-  test('timing input rejects invalid values before history mutation and commits valid values', () {
-    final fixture = _fixture();
-    final inputs = CharacterMovementInputs();
-    final commands = CharacterEditingCommands(fixture.$1, fixture.$2);
-    final original = fixture.$1.current.entities.single.npc!.movement;
-    for (final invalid in ['0', '-1', '60001', 'not a number']) {
-      expect(inputs.timing(original, invalid, pause: false), isNull);
-      expect(fixture.$1.undoCount, 0);
-      expect(
-        fixture.$1.current.entities.single.npc!.movement.stepDurationMs,
-        250,
-      );
-    }
-    expect(
-      inputs.problem,
-      'La durée du pas doit être comprise entre 1 et 60 000 ms.',
-    );
-    commands.setMovementConfiguration(
-      'npc',
-      inputs.timing(original, '480', pause: false)!,
-    );
-    expect(
-      fixture.$1.current.entities.single.npc!.movement.stepDurationMs,
-      480,
-    );
-    expect(fixture.$1.undoCount, 1);
-    expect(inputs.timing(original, '0', pause: true)!.pauseDurationMs, 0);
-    expect(inputs.timing(original, '3600001', pause: true), isNull);
-  });
-
-  test('3D fixed routes retain bounded movement area and random pauses', () {
-    final fixture = _fixture(spatial: true);
-    final commands = CharacterEditingCommands(fixture.$1, fixture.$2);
-    final inputs = CharacterMovementInputs();
-    commands.setMovementConfiguration('npc', _movement());
-    expect(fixture.$1.current.entities.single.npc!.movement, _movement());
-    expect(fixture.$1.undoCount, 1);
-    final bounded = inputs.toggleArea(
-      _movement(),
-      fixture.$1.current,
-      fixture.$1.current.entities.single,
-    );
-    commands.setMovementConfiguration('npc', bounded);
-    expect(
-      fixture.$1.current.entities.single.npc!.movement.movementArea,
-      const MapRect(
-        pos: GridPos(x: 2, y: 3),
-        size: GridSize(width: 3, height: 3),
-      ),
-    );
-    commands.setMovementConfiguration(
-      'npc',
-      bounded.copyWith(pauseDurationsMs: const [500, 1000]),
-    );
-    final current = fixture.$1.current.entities.single.npc!.movement;
-    expect(current.pauseDurationsMs, [500, 1000]);
-    expect(inputs.area(current, fixture.$1.current, 'x', '-1'), isNull);
-    expect(inputs.problem, 'La zone doit rester dans les limites de la carte.');
-    expect(inputs.pauseChoice(current, 0, '-1'), isNull);
-    expect(inputs.pauseChoice(current, 0, '250')!.pauseDurationsMs, [
-      250,
-      1000,
-    ]);
-  });
 }
 
 MapEntityNpcMovementConfig _movement() => MapEntityNpcMovementConfig(
