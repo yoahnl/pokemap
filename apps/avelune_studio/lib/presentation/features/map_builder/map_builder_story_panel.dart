@@ -1,11 +1,16 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
+
+import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_inspector.dart'
+    show mapBuilderStoryError;
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 IconData mapBuilderStoryIcon(MapStoryElementKind kind) => switch (kind) {
@@ -72,6 +77,7 @@ class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
     final binding = widget.binding;
     final visible = binding.visible;
     final selected = binding.selected?.key;
+    final orphans = binding.orphans;
     final pending = (binding.elements?.elements ?? const <MapStoryElement>[])
         .where(
           (element) =>
@@ -150,6 +156,28 @@ class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
                   ..._additions(context, muted),
                 ],
                 const SizedBox(height: StudioSpacing.l),
+                if (orphans.isNotEmpty) ...[
+                  _GroupHeader(
+                    key: const ValueKey('map-story-repair'),
+                    icon: Icons.build_outlined,
+                    label: l10n.storyRepair,
+                    count: orphans.length,
+                  ),
+                  if (binding.repairError case final error?) ...[
+                    StudioNotice(
+                      mapBuilderStoryError(error, l10n),
+                      isError: true,
+                    ),
+                    const SizedBox(height: StudioSpacing.s),
+                  ],
+                  for (final orphan in orphans)
+                    _Orphan(
+                      key: ValueKey('map-story-orphan-${orphan.behaviour.id}'),
+                      behaviour: orphan.behaviour,
+                      binding: binding,
+                    ),
+                  const SizedBox(height: StudioSpacing.m),
+                ],
                 if (visible.isEmpty)
                   Text(
                     binding.query.trim().isEmpty
@@ -271,8 +299,72 @@ class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
   }
 }
 
+class _Orphan extends StatelessWidget {
+  const _Orphan({super.key, required this.behaviour, required this.binding});
+
+  final NarrativeEventRecord behaviour;
+  final MapBuilderStoryBinding binding;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final targets = binding.repairTargets;
+    final enabled = binding.ready && !binding.publishing;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: StudioSpacing.m),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            behaviour.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            l10n.storyRepairMissing,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: StudioTone.warning.color(context),
+            ),
+          ),
+          const SizedBox(height: StudioSpacing.s),
+          StudioSelect(
+            key: ValueKey('map-story-orphan-reassign-${behaviour.id}'),
+            label: l10n.storyReassign,
+            value: null,
+            options: {
+              for (final element in targets)
+                element.key: mapBuilderStoryName(element, l10n),
+            },
+            onChanged: enabled && targets.isNotEmpty
+                ? (key) {
+                    final element = targets
+                        .where((element) => element.key == key)
+                        .firstOrNull;
+                    if (element != null) binding.reassign(behaviour, element);
+                  }
+                : null,
+          ),
+          const SizedBox(height: StudioSpacing.s),
+          StudioButton(
+            key: ValueKey('map-story-orphan-delete-${behaviour.id}'),
+            label: l10n.storyRepairDelete,
+            icon: Icons.delete_outline,
+            variant: StudioButtonVariant.secondary,
+            onPressed: enabled ? () => binding.deleteOrphan(behaviour) : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _GroupHeader extends StatelessWidget {
   const _GroupHeader({
+    super.key,
     required this.icon,
     required this.label,
     required this.count,

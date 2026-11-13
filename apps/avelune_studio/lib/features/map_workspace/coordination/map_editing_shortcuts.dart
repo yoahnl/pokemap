@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_command_runner.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_deletion_guard.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -43,6 +44,18 @@ Map<ShortcutActivator, VoidCallback> mapEditingShortcuts(
     }
     final target = selected.target;
     try {
+      final context =
+          contextAt?.call(selected.at) ??
+          MapContextActionContext(
+            document: document,
+            project: project,
+            position: selected.at,
+          );
+      final blocked = mapContextDeletionProblem(context, target);
+      if (blocked != null) {
+        document.error = blocked;
+        return;
+      }
       if (target.family == MapContextFamily.character) {
         final before = document.current;
         final after = removeEntityFromMap(before, entityId: target.id);
@@ -52,14 +65,8 @@ Map<ShortcutActivator, VoidCallback> mapEditingShortcuts(
           return;
         }
       }
-      final refusal = MapContextCommandRunner(
-        contextAt?.call(selected.at) ??
-            MapContextActionContext(
-              document: document,
-              project: project,
-              position: selected.at,
-            ),
-      ).run(MapContextCommand.delete, target);
+      final refusal = MapContextCommandRunner(context)
+          .run(MapContextCommand.delete, target);
       if (refusal != null) {
         document.error = refusal;
         return;

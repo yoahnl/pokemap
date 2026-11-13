@@ -1296,6 +1296,29 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get storyRepair => 'To repair';
+
+  @override
+  String get storyRepairMissing => 'Its element no longer exists on this map.';
+
+  @override
+  String get storyReassign => 'Reassign';
+
+  @override
+  String get storyRepairDelete => 'Delete';
+
+  @override
+  String storyElementInUse(String name, int count, String names) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count behaviours use it',
+      one: '1 behaviour uses it',
+    );
+    return 'Cannot delete “$name”: $_temp0 ($names).';
+  }
+
+  @override
   String get storyDeleteCoverageUnknown =>
       'Deletion refused: the behaviour uses of this project are not indexed yet, so Avelune cannot prove this one is unused. Nothing was changed.';
 

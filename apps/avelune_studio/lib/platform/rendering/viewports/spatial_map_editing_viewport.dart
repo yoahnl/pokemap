@@ -1333,8 +1333,9 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
         if (!locked) {
           discardGesture();
           try {
-            commands.delete(id);
-            widget.view.clearSelection(editingDocument);
+            if (commands.delete(id)) {
+              widget.view.clearSelection(editingDocument);
+            }
           } on Object catch (failure) {
             editingDocument.error = failure.toString();
           }

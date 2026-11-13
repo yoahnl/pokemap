@@ -2210,6 +2210,36 @@ abstract class AppLocalizations {
   /// **'« {name} »'**
   String storyDeleteUserOther(String name);
 
+  /// No description provided for @storyRepair.
+  ///
+  /// In fr, this message translates to:
+  /// **'À réparer'**
+  String get storyRepair;
+
+  /// No description provided for @storyRepairMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Son élément n’existe plus sur cette carte.'**
+  String get storyRepairMissing;
+
+  /// No description provided for @storyReassign.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réattribuer'**
+  String get storyReassign;
+
+  /// No description provided for @storyRepairDelete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get storyRepairDelete;
+
+  /// No description provided for @storyElementInUse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de supprimer « {name} » : {count, plural, =1{1 comportement l’utilise} other{{count} comportements l’utilisent}} ({names}).'**
+  String storyElementInUse(String name, int count, String names);
+
   /// No description provided for @storyDeleteCoverageUnknown.
   ///
   /// In fr, this message translates to:

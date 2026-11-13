@@ -337,8 +337,13 @@ class SpatialModelEditingCommands {
     );
   }
 
-  void delete(String id) {
+  bool delete(String id) {
     _requireIndependent(id);
+    final problem = document.modelDeletionProblem?.call(id);
+    if (problem != null) {
+      document.error = problem;
+      return false;
+    }
     final source = owner(id);
     document.commit(
       source == null
@@ -350,6 +355,7 @@ class SpatialModelEditingCommands {
               placementId: id,
             ),
     );
+    return true;
   }
 
   void duplicate(String id) {

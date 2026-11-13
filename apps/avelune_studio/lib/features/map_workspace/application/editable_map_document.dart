@@ -104,6 +104,7 @@ class EditableMapDocument {
   MapData? _visibilityPreviewBase;
   MapData get spatialPreviewMap => _visibilityPreviewBase ?? current;
   Future<bool> Function(MapData next)? configureFieldTraversal;
+  String? Function(String modelId)? modelDeletionProblem;
   Future<bool> Function(String instanceId, MapEntityFieldObstacleData? value)? configureSpatialFieldObstacle;
   bool elementOrderSaving = false;
   String? error;

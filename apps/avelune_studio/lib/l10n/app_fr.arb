@@ -721,6 +721,24 @@
       }
     }
   },
+  "storyRepair": "À réparer",
+  "storyRepairMissing": "Son élément n’existe plus sur cette carte.",
+  "storyReassign": "Réattribuer",
+  "storyRepairDelete": "Supprimer",
+  "storyElementInUse": "Impossible de supprimer « {name} » : {count, plural, =1{1 comportement l’utilise} other{{count} comportements l’utilisent}} ({names}).",
+  "@storyElementInUse": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "storyDeleteCoverageUnknown": "Suppression refusée : les usages des comportements de ce projet ne sont pas encore recensés, Avelune ne peut donc pas prouver que celui-ci est inutilisé. Rien n’a été modifié.",
   "storyBehaviourNameField": "Nom du comportement",
   "storyBehaviourActive": "Comportement actif",

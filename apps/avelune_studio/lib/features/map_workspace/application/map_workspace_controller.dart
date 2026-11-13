@@ -322,6 +322,7 @@ class MapWorkspaceController {
   bool loading = false;
   String? error;
   String? Function(MapData before, MapData after)? historyGuard;
+  String? Function(String mapId, String modelId)? modelDeletionGuard;
   String? Function(String actionId, String targetMapId)?
   catalogDependencyFailure;
   var _generation = 0;
@@ -717,6 +718,8 @@ class MapWorkspaceController {
       }
       final document = cached ?? await pending!;
       document.configureFieldTraversal = port is FieldTraversalZonePort ? (next) => configureFieldTraversal(document, next) : null;
+      document.modelDeletionProblem = (modelId) =>
+          modelDeletionGuard?.call(document.current.id, modelId);
       document.configureSpatialModelVisibility = (instanceId, value) =>
           configureModelVisibility(document, instanceId, value);
       document.configureSpatialFieldObstacle = (instanceId, value) => configureFieldObstacle(document, instanceId, value);

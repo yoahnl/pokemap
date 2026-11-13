@@ -45,6 +45,8 @@ class MapBuilderGameplayBinding {
     required bool Function() isActive,
     required this.changed,
     required this.labels,
+    this.entityDeletionProblem,
+    this.storyProject,
   }) : links = MapWorkspaceConnectionActions(
          controller: maps,
          port: port,
@@ -56,6 +58,8 @@ class MapBuilderGameplayBinding {
   final MapWorkspaceEditingState? Function() view;
   final void Function() changed;
   final AppLocalizations Function() labels;
+  final String? Function(String entityId)? entityDeletionProblem;
+  final ProjectManifest Function(ProjectManifest project)? storyProject;
   final MapWorkspaceConnectionActions links;
   ({String mapId, MapConnectionDirection? direction})? _connection;
   ({String mapId, Set<String> known})? _warpDraft;
@@ -209,7 +213,11 @@ class MapBuilderGameplayBinding {
     final project = maps.project;
     return document == null || project == null
         ? null
-        : MapEntityEditingCommands(document, project);
+        : _GuardedEntityCommands(
+            document,
+            storyProject?.call(project) ?? project,
+            entityDeletionProblem,
+          );
   }
 
   List<MapEntity> get spawns => [
@@ -676,4 +684,14 @@ class MapBuilderGameplayBinding {
     }
     maps.notify();
   }
+}
+
+class _GuardedEntityCommands extends MapEntityEditingCommands {
+  _GuardedEntityCommands(super.document, super.project, this._problem);
+
+  final String? Function(String entityId)? _problem;
+
+  @override
+  String? deletionProblem(String id) =>
+      _problem?.call(id) ?? super.deletionProblem(id);
 }

@@ -1302,6 +1302,29 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get storyRepair => 'À réparer';
+
+  @override
+  String get storyRepairMissing => 'Son élément n’existe plus sur cette carte.';
+
+  @override
+  String get storyReassign => 'Réattribuer';
+
+  @override
+  String get storyRepairDelete => 'Supprimer';
+
+  @override
+  String storyElementInUse(String name, int count, String names) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count comportements l’utilisent',
+      one: '1 comportement l’utilise',
+    );
+    return 'Impossible de supprimer « $name » : $_temp0 ($names).';
+  }
+
+  @override
   String get storyDeleteCoverageUnknown =>
       'Suppression refusée : les usages des comportements de ce projet ne sont pas encore recensés, Avelune ne peut donc pas prouver que celui-ci est inutilisé. Rien n’a été modifié.';
 

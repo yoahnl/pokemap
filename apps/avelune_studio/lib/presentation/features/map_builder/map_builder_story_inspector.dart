@@ -143,7 +143,7 @@ class _Behaviours extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (binding.error case final error?) ...[
-          StudioNotice(_storyError(error, l10n), isError: true),
+          StudioNotice(mapBuilderStoryError(error, l10n), isError: true),
           const SizedBox(height: StudioSpacing.m),
         ],
         if (!binding.ready) ...[
@@ -280,7 +280,10 @@ class _Behaviours extends StatelessWidget {
       };
 }
 
-String _storyError(String error, AppLocalizations l10n) => switch (error) {
+String mapBuilderStoryError(
+  String error,
+  AppLocalizations l10n,
+) => switch (error) {
   MapBuilderStoryBinding.outOfMap => l10n.storyOutOfMap,
   'publish-unavailable' => l10n.storyPublishUnavailable,
   _ when error.startsWith(MapBuilderStoryBinding.deactivated) =>
@@ -346,7 +349,7 @@ class _Properties extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (binding.error case final error?) ...[
-          StudioNotice(_storyError(error, l10n), isError: true),
+          StudioNotice(mapBuilderStoryError(error, l10n), isError: true),
           const SizedBox(height: StudioSpacing.m),
         ],
         if (editable)

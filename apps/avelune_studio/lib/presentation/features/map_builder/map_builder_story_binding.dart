@@ -4,6 +4,9 @@ import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_deletion_guard.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
@@ -13,6 +16,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_story_elem
 import 'package:avelune_studio/features/map_workspace/application/trigger_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_input_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/project_session/application/project_draft.dart';
 
@@ -32,12 +36,16 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
     String Function()? zoneName,
     String Function(int index)? behaviourName,
     String Function(List<String> names)? conflictMessage,
+    String Function(String name, List<String> behaviours)? deletionRefusal,
     this.loadMedia,
     this.port,
   }) : _zoneName = zoneName ?? (() => 'Zone'),
        _behaviourName = behaviourName ?? ((index) => 'Comportement $index'),
        _conflictMessage =
-           conflictMessage ?? ((names) => '$conflict${names.join(', ')}');
+           conflictMessage ?? ((names) => '$conflict${names.join(', ')}'),
+       _deletionRefusal =
+           deletionRefusal ??
+           ((name, behaviours) => '$carrier$name:${behaviours.join(', ')}');
 
   final MapWorkspaceController maps;
   final void Function() changed;
@@ -45,6 +53,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   final String Function() _zoneName;
   final String Function(int index) _behaviourName;
   final String Function(List<String> names) _conflictMessage;
+  final String Function(String name, List<String> behaviours) _deletionRefusal;
   final Future<ProjectMediaCatalog?> Function(ProjectManifest project)?
   loadMedia;
   final EventPort? Function()? port;
@@ -100,7 +109,9 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   MapStoryTab tab = MapStoryTab.behaviour;
   int behaviour = 0;
   String? error;
+  String? repairError;
   String? _mapSelection;
+  MapStoryBehaviourIndex? _index;
   MapStoryElements? _elements;
   MapData? _source;
   ProjectManifest? _project;
@@ -112,19 +123,65 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
     if (map == null) return null;
     final project = maps.project;
     final registry = project == null ? null : behaviours.registry(project);
-    if (!identical(map, _source) ||
-        !identical(project, _project) ||
+    var index = _index;
+    if (index == null ||
+        index.mapId != map.id ||
         !identical(registry, _registry)) {
+      _registry = registry;
+      _elements = null;
+      index = _index = MapStoryBehaviourIndex(
+        map.id,
+        registry?.records ?? const [],
+      );
+    }
+    if (_elements == null ||
+        !identical(map, _source) ||
+        !identical(project, _project)) {
       _source = map;
       _project = project;
-      _registry = registry;
-      _elements = MapStoryElements(
-        map,
-        project == null ? null : behaviours.project(project),
-      );
+      _elements = MapStoryElements(map, project, behaviours: index);
     }
     return _elements;
   }
+
+  List<MapStoryOrphan> get orphans => elements?.orphans ?? const [];
+
+  List<MapStoryElement> get repairTargets => [
+    for (final element in elements?.elements ?? const <MapStoryElement>[])
+      if (element.target != MapStoryElementTarget.map) element,
+  ];
+
+  String? deletionProblem(MapStoryElementTarget target, String id) {
+    final carrier = elements?.carrier(target, id);
+    return carrier == null
+        ? null
+        : _deletionRefusal(carrier.name, [
+            for (final record in carrier.behaviours) record.name,
+          ]);
+  }
+
+  String? modelDeletionProblem(String mapId, String modelId) => mapId == map?.id
+      ? deletionProblem(MapStoryElementTarget.model, modelId)
+      : null;
+
+  String? contextDeletionProblem(MapContextTarget target) =>
+      target.mapId != map?.id
+      ? null
+      : switch (target.family) {
+          MapContextFamily.character || MapContextFamily.marker =>
+            deletionProblem(MapStoryElementTarget.entity, target.id),
+          MapContextFamily.trigger => deletionProblem(
+            MapStoryElementTarget.trigger,
+            target.id,
+          ),
+          MapContextFamily.decor => deletionProblem(
+            MapStoryElementTarget.model,
+            target.id,
+          ),
+          MapContextFamily.warp ||
+          MapContextFamily.zone ||
+          MapContextFamily.cell => null,
+        };
 
   List<MapStoryElement> get visible {
     final needle = query.trim().toLowerCase();
@@ -583,6 +640,31 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
           ),
   ]);
 
+  bool reassign(NarrativeEventRecord record, MapStoryElement element) {
+    final kinds = triggerKinds(element);
+    final current = record.source?.kind;
+    return _repair(
+      () => setTrigger(
+        element,
+        record,
+        kinds.contains(current) ? current! : kinds.first,
+      ),
+    );
+  }
+
+  bool deleteOrphan(NarrativeEventRecord record) =>
+      _repair(() => deleteBehaviour(record));
+
+  bool _repair(bool Function() repair) {
+    final before = attempts;
+    final repaired = repair();
+    if (attempts == before) return repaired;
+    repairError = error;
+    error = null;
+    changed();
+    return repaired;
+  }
+
   bool deleteBehaviour(NarrativeEventRecord record) {
     final project = maps.project;
     final map = this.map;
@@ -610,6 +692,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
     final map = this.map;
     if (project == null || map == null || publishing || !ready) return false;
     attempts++;
+    repairError = null;
     final enabled = active?.enabledOrNull == true;
     final id = active?.id;
     final wrapped = [
@@ -741,6 +824,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   static const outOfMap = 'out-of-map';
   static const deactivated = 'deactivated:';
   static const conflict = 'conflict:';
+  static const carrier = 'carrier:';
 
   bool _fits(MapData map, GridPos position, GridSize size) =>
       position.x >= 0 &&
@@ -898,5 +982,42 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   void openBehaviour(int index) {
     behaviour = index;
     changed();
+  }
+}
+
+class MapBuilderInputSession extends MapEditingInputSession {
+  MapBuilderInputSession({
+    required super.controller,
+    required super.view,
+    required this.story,
+  });
+
+  final MapBuilderStoryBinding story;
+
+  @override
+  MapContextActionContext? contextAt(GridPos position) {
+    final context = super.contextAt(position);
+    return context == null
+        ? null
+        : MapGuardedContextActionContext(
+            document: context.document,
+            project: story.behaviours.project(context.project),
+            position: position,
+            referenceGuard: context.referenceGuard,
+            deletionGuard: story.contextDeletionProblem,
+          );
+  }
+
+  @override
+  void run(MapContextCommand command) {
+    final selected = target;
+    final document = controller.active;
+    final problem = command != MapContextCommand.delete || selected == null
+        ? null
+        : story.contextDeletionProblem(selected);
+    if (problem == null || document == null) return super.run(command);
+    dismiss();
+    document.error = problem;
+    notifyListeners();
   }
 }

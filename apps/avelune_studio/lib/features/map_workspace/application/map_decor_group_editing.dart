@@ -113,7 +113,9 @@ final class MapDecorGroupEditing {
     return _grouped(() {
       for (final id in summary.editableIds) {
         if (_spatial) {
-          SpatialModelEditingCommands(document, project).delete(id);
+          if (!SpatialModelEditingCommands(document, project).delete(id)) {
+            return false;
+          }
         } else {
           if (document.current.movingProps.any(
             (prop) => prop.placedElementId == id,

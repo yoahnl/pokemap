@@ -15,6 +15,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/project_session/application/project_draft.dart';
 import 'package:avelune_studio/platform/input/editor_shortcuts.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_selection_context.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_input_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
@@ -103,6 +104,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     isActive: () => !_disposed,
     changed: _changed,
     labels: () => context.l10n,
+    entityDeletionProblem: (id) =>
+        _story.deletionProblem(MapStoryElementTarget.entity, id),
+    storyProject: (project) => _story.behaviours.project(project),
   );
   late final _story = MapBuilderStoryBinding(
     maps: _maps,
@@ -112,6 +116,11 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     behaviourName: (index) => context.l10n.storyBehaviourName(index),
     conflictMessage: (names) =>
         context.l10n.leaveGuardStoryConflict(names.join(', ')),
+    deletionRefusal: (name, behaviours) => context.l10n.storyElementInUse(
+      name,
+      behaviours.length,
+      behaviours.join(', '),
+    ),
     port: () => ref.read(eventPortProvider(widget.session)),
     loadMedia: (project) async =>
         switch (ref.read(eventPortProvider(widget.session))) {
@@ -148,11 +157,16 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       (_, _) {},
     );
     _maps = _subscription.read();
+    _maps.modelDeletionGuard = _story.modelDeletionProblem;
     _connections = ref.listenManual(
       mapConnectionPortProvider(widget.session),
       (_, _) {},
     );
-    _input = MapEditingInputSession(controller: _maps, view: () => _view);
+    _input = MapBuilderInputSession(
+      controller: _maps,
+      view: () => _view,
+      story: _story,
+    );
     _lifecycle = ref.read(studioLifecycleControllerProvider);
     _maps.addListener(_changed);
     FocusManager.instance.addListener(_focusChanged);
@@ -326,6 +340,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     }
     _pageFocus.dispose();
     _ambiance.dispose();
+    if (_maps.modelDeletionGuard == _story.modelDeletionProblem) {
+      _maps.modelDeletionGuard = null;
+    }
     _maps.removeListener(_changed);
     _input.dispose();
     for (final view in _views.values) {
