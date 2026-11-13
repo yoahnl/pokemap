@@ -318,7 +318,6 @@
   "storyAfter": "AFTER IT RUNS",
   "storyTrigger": "{kind, select, entityInteract{The player interacts} modelInteract{The player interacts} entityBump{The player touches the element} entityAutorun{Automatically} triggerEnter{The player enters the zone} triggerBump{The player touches the zone} mapEnter{On arriving on the map} outcomeReceived{When a result is received} other{Trigger to choose}}",
   "storyAlways": "Always",
-  "storyConditions": "{count, plural, =1{1 condition} other{{count} conditions}}",
   "storySceneMissing": "No scene chosen",
   "storyOnce": "Only once",
   "storyEachTime": "Every time",
@@ -382,6 +381,98 @@
   "storyPreparing": "Loading the project story…",
   "storyNotPrepared": "The project story is not loaded: behaviours stay read-only.",
   "storyDeactivated": "This behaviour was disabled: enable it again once its setup is complete.",
+  "storyLineSays": "This character says…",
+  "storyLineShows": "What is shown…",
+  "storyLineLoading": "Reading the line…",
+  "storyLineShared": "This line is also used by {scenes}. Detach it to edit it here without changing the others.",
+  "@storyLineShared": {
+    "placeholders": {
+      "scenes": {
+        "type": "String"
+      }
+    }
+  },
+  "storyLineDetach": "Detach",
+  "storyLineOrScene": "Or start a scene",
+  "storyLineUnavailable": "The line could not be read: {problem}",
+  "@storyLineUnavailable": {
+    "placeholders": {
+      "problem": {
+        "type": "String"
+      }
+    }
+  },
+  "storyLineRefused": "{reason, select, blankName{This behaviour needs a name before its line.} noLine{Write at least one line.} blankLine{A line is empty.} rejectedByDialogueFormat{This text cannot be saved as a line.} notFaithful{This text does not read back identically: nothing was changed.} other{This line is refused.}}",
+  "@storyLineRefused": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "storyConditionAnd": "and",
+  "storyConditionAdd": "Add a condition",
+  "storyConditionTest": "{test, select, isTrue{is true} isFalse{is false} equalsNumber{equals} other{{test}}}",
+  "@storyConditionTest": {
+    "placeholders": {
+      "test": {
+        "type": "String"
+      }
+    }
+  },
+  "storyConditionNumber": "Number",
+  "storyConditionFixed": "Advanced condition, kept as is",
+  "storyConditionRemove": "Remove",
+  "storyConditionChooseFact": "Choose a fact",
+  "storyFactSearch": "Search a fact",
+  "storyFactNoMatch": "No fact matches.",
+  "storyFactNew": "New fact",
+  "storyFactNewLabel": "New fact name",
+  "storyFactKindField": "Type",
+  "storyFactKind": "{kind, select, boolean{True or false} integer{Number} other{{kind}}}",
+  "@storyFactKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "storyFactCreate": "Create and use",
+  "storyFactClose": "Close",
+  "storyCaseShadowed": "Can never play: “{name}” always goes first.",
+  "@storyCaseShadowed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storyCaseNoTrigger": "No trigger",
+  "storyCaseAfterRefused": "{reason, select, wouldDropOutcomeRearm{This behaviour rearms after an outcome: choosing something else removes that rearm.} outcomeRequired{First choose the outcome that rearms it.} parallelNeedsEachTime{A behaviour played in parallel must play every time.} visitNeedsPlace{“Once per visit” needs a trigger on the map.} other{This choice is refused.}}",
+  "@storyCaseAfterRefused": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "storyCaseAfterReplace": "Replace anyway",
+  "storyPublicationUnsupported": "Nothing was saved: this project cannot save {kinds} here yet.",
+  "@storyPublicationUnsupported": {
+    "placeholders": {
+      "kinds": {
+        "type": "String"
+      }
+    }
+  },
+  "storyPublicationKind": "{kind, select, event{behaviours} scene{scenes} dialogue{lines} fact{facts} story{stories} worldRule{world rules} other{{kind}}}",
+  "@storyPublicationKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
   "rubricUnavailable": "{detail} · {unavailable}",
   "directionNorth": "North",
   "directionEast": "East",
@@ -513,7 +604,6 @@
   "obstaclePlace": "Place an obstacle",
   "obstacle3dHint": "Select a decor on the map (tree, rock) to turn it into an obstacle.",
   "obstacleEyebrow": "FIELD OBSTACLE",
-  "obstacleNew": "New obstacle",
   "obstacleVisual": "Obstacle visual",
   "obstaclePlaceHint": "Choose its visual, then click the obstacle cell.",
   "obstaclePlaceClick": "Click the obstacle cell.",

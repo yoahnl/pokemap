@@ -1,6 +1,15 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
+import 'package:avelune_studio/features/events/application/behaviour/behaviour_cases.dart';
+import 'package:avelune_studio/features/events/application/behaviour/behaviour_conditions.dart';
+import 'package:avelune_studio/features/events/application/behaviour/behaviour_line.dart';
+import 'package:avelune_studio/features/events/application/behaviour/behaviour_line_draft.dart';
+import 'package:avelune_studio/features/events/application/behaviour/behaviour_reuse.dart';
+import 'package:avelune_studio/features/events/application/behaviour/behaviour_triggers.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_deletion_guard.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
@@ -15,17 +24,30 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_input_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:avelune_studio/features/project_session/application/project_draft.dart';
+import 'package:avelune_studio/features/story_draft/application/story_draft.dart';
 import 'package:avelune_studio/features/story_draft/application/story_publication_gateway.dart';
 import 'package:avelune_studio/features/story_draft/application/story_publication_plan.dart';
+import 'package:avelune_studio/features/story_draft/application/story_saved_dialogues.dart';
+import 'package:avelune_studio/features/story_draft/domain/story_dialogue_source.dart';
+import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dart';
+
+part 'map_builder_story_cases_binding.dart';
+part 'map_builder_story_conditions_binding.dart';
+part 'map_builder_story_line_binding.dart';
 
 enum MapStoryTab { behaviour, properties }
 
 enum MapStoryAddition { character, sign, zone }
 
-enum MapStoryAfter { once, eachTime, oncePerVisit }
-
 enum _StorySide { map, behaviours }
+
+final class _StoryRefused implements Exception {
+  const _StoryRefused(this.problem);
+
+  final String problem;
+}
 
 class MapBuilderStoryBinding implements ProjectDraftPart {
   MapBuilderStoryBinding({
@@ -37,7 +59,8 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
     String Function(List<String> names)? conflictMessage,
     String Function(String name, List<String> behaviours)? deletionRefusal,
     this.loadMedia,
-    this.port,
+    this.gateway,
+    this.loadDialogue,
   }) : _zoneName = zoneName ?? (() => 'Zone'),
        _behaviourName = behaviourName ?? ((index) => 'Comportement $index'),
        _conflictMessage =
@@ -55,8 +78,12 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   final String Function(String name, List<String> behaviours) _deletionRefusal;
   final Future<ProjectMediaCatalog?> Function(ProjectManifest project)?
   loadMedia;
-  final EventPort? Function()? port;
+  final StoryPublicationGatewayFactory? gateway;
+  final StoryDialogueLoader? loadDialogue;
   final behaviours = MapStoryBehaviours();
+  final _lines = _StoryLines();
+  final _triggers = _StoryTriggers();
+  BehaviourAfter? pendingAfter;
   bool _mediaLoaded = false;
   final _done = <(_StorySide, Object?)>[];
   final _undone = <(_StorySide, Object?)>[];
@@ -393,7 +420,8 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   bool get saving => publishing;
 
   @override
-  Future<bool> save() => publish(port?.call());
+  Future<bool> save() =>
+      publish(gateway?.call(behaviours.draft, behaviours.dialogues));
 
   bool get canUndo =>
       _done.any((step) => _matches(step, undo: true)) ||
@@ -472,20 +500,11 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   }
 
   List<NarrativeEventSourceKind> triggerKinds(MapStoryElement element) {
-    final spatial = map?.spatialScene != null;
-    return switch (element.target) {
-      MapStoryElementTarget.entity => [
-        NarrativeEventSourceKind.entityInteract,
-        if (!spatial) NarrativeEventSourceKind.entityBump,
-        if (!spatial) NarrativeEventSourceKind.entityAutorun,
-      ],
-      MapStoryElementTarget.model => [NarrativeEventSourceKind.modelInteract],
-      MapStoryElementTarget.trigger => [
-        NarrativeEventSourceKind.triggerEnter,
-        if (!spatial) NarrativeEventSourceKind.triggerBump,
-      ],
-      MapStoryElementTarget.map => [NarrativeEventSourceKind.mapEnter],
-    };
+    final project = maps.project;
+    final map = this.map;
+    return project == null || map == null
+        ? const []
+        : _triggers.kinds(behaviours.project(project), map, element);
   }
 
   bool addBehaviour(MapStoryElement element) {
@@ -495,7 +514,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
       (highest, record) => record.order > highest ? record.order : highest,
     );
     String? created;
-    final applied = _operate(null, [
+    final applied = _operate(const [], [
       (c) {
         final result = createNarrativeEventDraft(
           context: c,
@@ -529,7 +548,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   }
 
   bool renameBehaviour(NarrativeEventRecord record, String name) =>
-      _operate(null, [
+      _operate(const [], [
         (c) => renameNarrativeEvent(
           context: c,
           expectedRevision: c.revision,
@@ -566,82 +585,69 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
       NarrativeEventSourceKind.outcomeReceived => null,
     };
     if (source == null) return false;
-    return _operate(record, [
-      (c) => record.source == null
-          ? selectNarrativeEventSource(
-              context: c,
-              expectedRevision: c.revision,
-              eventId: record.id,
-              source: source,
-            )
-          : replaceNarrativeEventSource(
-              context: c,
-              expectedRevision: c.revision,
-              eventId: record.id,
-              source: source,
-            ),
-    ]);
+    return _operate(
+      [record],
+      [
+        (c) => record.source == null
+            ? selectNarrativeEventSource(
+                context: c,
+                expectedRevision: c.revision,
+                eventId: record.id,
+                source: source,
+              )
+            : replaceNarrativeEventSource(
+                context: c,
+                expectedRevision: c.revision,
+                eventId: record.id,
+                source: source,
+              ),
+      ],
+    );
   }
 
-  bool setScene(NarrativeEventRecord record, String? sceneId) =>
-      _operate(record, [
-        (c) => sceneId == null
-            ? removeNarrativeEventScene(
-                context: c,
-                expectedRevision: c.revision,
-                eventId: record.id,
-              )
-            : setNarrativeEventScene(
-                context: c,
-                expectedRevision: c.revision,
-                eventId: record.id,
-                sceneId: sceneId,
-              ),
-      ]);
+  bool setScene(NarrativeEventRecord record, String? sceneId) => _operate(
+    [record],
+    [
+      (c) => sceneId == null
+          ? removeNarrativeEventScene(
+              context: c,
+              expectedRevision: c.revision,
+              eventId: record.id,
+            )
+          : setNarrativeEventScene(
+              context: c,
+              expectedRevision: c.revision,
+              eventId: record.id,
+              sceneId: sceneId,
+            ),
+    ],
+  );
 
-  bool setAfter(NarrativeEventRecord record, MapStoryAfter after) =>
-      _operate(record, [
-        (c) => setNarrativeEventResetPolicy(
-          context: c,
-          expectedRevision: c.revision,
-          eventId: record.id,
-          resetPolicy: after == MapStoryAfter.oncePerVisit
-              ? const NarrativeEventResetPolicy.onMapReentry()
-              : const NarrativeEventResetPolicy.never(),
-        ),
-        (c) => setNarrativeEventReusePolicy(
-          context: c,
-          expectedRevision: c.revision,
-          eventId: record.id,
-          reusePolicy: after == MapStoryAfter.eachTime
-              ? NarrativeEventReusePolicy.reusable
-              : NarrativeEventReusePolicy.oneShot,
-        ),
-      ]);
-
-  bool setActive(NarrativeEventRecord record, bool active) => _operate(null, [
-    if (active && record.draftOrNull != null)
-      (c) => publishNarrativeEvent(
-        context: c,
-        expectedRevision: c.revision,
-        eventId: record.id,
-      ),
-    (c) => active
-        ? activateNarrativeEvent(
-            context: c,
-            expectedRevision: c.revision,
-            eventId: record.id,
-          )
-        : deactivateNarrativeEvent(
+  bool setActive(NarrativeEventRecord record, bool active) =>
+      _operate(const [], [
+        if (active && record.draftOrNull != null)
+          (c) => publishNarrativeEvent(
             context: c,
             expectedRevision: c.revision,
             eventId: record.id,
           ),
-  ]);
+        (c) => active
+            ? activateNarrativeEvent(
+                context: c,
+                expectedRevision: c.revision,
+                eventId: record.id,
+              )
+            : deactivateNarrativeEvent(
+                context: c,
+                expectedRevision: c.revision,
+                eventId: record.id,
+              ),
+      ]);
 
   bool reassign(NarrativeEventRecord record, MapStoryElement element) {
     final kinds = triggerKinds(element);
     final current = record.source?.kind;
+    if (kinds.isEmpty) return false;
     return _repair(
       () => setTrigger(
         element,
@@ -668,7 +674,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
     final project = maps.project;
     final map = this.map;
     if (project == null || map == null) return false;
-    final applied = _operate(null, [
+    final applied = _operate(const [], [
       (c) => deleteNarrativeEvent(
         context: c,
         expectedRevision: c.revision,
@@ -684,61 +690,78 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   }
 
   bool _operate(
-    NarrativeEventRecord? active,
-    List<MapStoryBehaviourOperation> operations,
-  ) {
+    List<NarrativeEventRecord> active,
+    List<MapStoryBehaviourOperation> operations, {
+    void Function(StoryDraft draft)? stage,
+  }) {
     final project = maps.project;
     final map = this.map;
     if (project == null || map == null || publishing || !ready) return false;
     attempts++;
     repairError = null;
-    final enabled = active?.enabledOrNull == true;
-    final id = active?.id;
+    final enabled = [
+      for (final record in active)
+        if (record.enabledOrNull == true) record.id,
+    ];
     final wrapped = [
-      if (enabled)
+      for (final id in enabled)
         (NarrativeEventAuthoringContext c) => deactivateNarrativeEvent(
           context: c,
           expectedRevision: c.revision,
-          eventId: id!,
+          eventId: id,
         ),
       ...operations,
     ];
-    var result = behaviours.apply(project, map, [
-      ...wrapped,
-      if (enabled)
-        (NarrativeEventAuthoringContext c) => activateNarrativeEvent(
-          context: c,
-          expectedRevision: c.revision,
-          eventId: id!,
-        ),
-    ]);
+    final draft = behaviours.draft;
+    final recorded = draft.recorded;
+    String? problem;
     String? notice;
-    if (result.problem != null && enabled) {
-      notice = result.problem;
-      result = behaviours.apply(project, map, wrapped);
+    try {
+      draft.group(() {
+        stage?.call(draft);
+        var result = behaviours.apply(project, map, [
+          ...wrapped,
+          for (final id in enabled)
+            (NarrativeEventAuthoringContext c) => activateNarrativeEvent(
+              context: c,
+              expectedRevision: c.revision,
+              eventId: id,
+            ),
+        ]);
+        if (result.problem != null && enabled.isNotEmpty) {
+          notice = result.problem;
+          result = behaviours.apply(project, map, wrapped);
+        }
+        if (result.problem case final refused?) throw _StoryRefused(refused);
+      });
+    } on _StoryRefused catch (refused) {
+      problem = refused.problem;
+    } on Object catch (failure) {
+      problem = failure is StateError ? failure.message : '$failure';
     }
-    final after = id == null
-        ? null
-        : behaviours
-              .registry(project)
-              ?.records
-              .where((record) => record.id == id)
-              .firstOrNull;
-    final dropped = enabled && after != null && after.enabledOrNull != true;
+    final records = {
+      for (final record
+          in behaviours.registry(project)?.records ??
+              const <NarrativeEventRecord>[])
+        record.id: record,
+    };
+    final dropped = enabled.any(
+      (id) => records[id] != null && records[id]!.enabledOrNull != true,
+    );
     error =
-        result.problem ??
+        problem ??
         (dropped
             ? '$deactivated${notice?.trim().isNotEmpty == true ? ' $notice' : ''}'
             : null);
-    if (result.problem == null) _record(_StorySide.behaviours, null);
+    if (draft.recorded != recorded) _record(_StorySide.behaviours, null);
     changed();
-    return result.problem == null;
+    return problem == null;
   }
 
-  Future<bool> publish(EventPort? port) async {
+  Future<bool> publish(StoryPublicationGateway? gateway) async {
     final project = maps.project;
     if (project == null || !dirty) return true;
-    if (port == null) {
+    if (gateway == null) {
       error = 'publish-unavailable';
       changed();
       return false;
@@ -746,10 +769,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
     publishing = true;
     changed();
     try {
-      await StoryPublicationGateway(
-        draft: behaviours.draft,
-        events: port,
-      ).publish(
+      await gateway.publish(
         planStoryPublication(
           behaviours.draft.changes(behaviours.saved(project)),
         ),
@@ -779,6 +799,10 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
       }
       error = null;
       return true;
+    } on StoryPublicationUnsupported catch (failure) {
+      error =
+          '$unsupported${[for (final kind in failure.kinds) kind.name].join(',')}';
+      return false;
     } on Object catch (failure) {
       final cause = failure is StoryPublicationFailed ? failure.cause : failure;
       error = cause is EventFailure ? cause.message : '$cause';
@@ -793,6 +817,9 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   static const deactivated = 'deactivated:';
   static const conflict = 'conflict:';
   static const carrier = 'carrier:';
+  static const afterRefused = 'after-refused:';
+  static const unsupported = 'publish-unsupported:';
+  static const lineRefused = 'line-refused:';
 
   bool _fits(MapData map, GridPos position, GridSize size) =>
       position.x >= 0 &&

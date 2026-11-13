@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
+import 'map_builder_story_support.dart';
 
 class _RecordingPort implements EventPort {
   _RecordingPort(this.maps);
@@ -157,7 +158,11 @@ void main() {
         _event(2, 'arrivée MCP', NarrativeEventSourceRef.mapEnter('a')),
       );
 
-      expect(await story.publish(port), isTrue, reason: story.error);
+      expect(
+        await story.publish(storyEvents(story, port)),
+        isTrue,
+        reason: story.error,
+      );
 
       expect(port.published, [
         (id: _meeting.id, base: 'meeting', current: 'Rencontre'),
@@ -178,7 +183,7 @@ void main() {
       ),
     );
 
-    expect(await story.publish(port), isFalse);
+    expect(await story.publish(storyEvents(story, port)), isFalse);
 
     expect(port.published, isEmpty);
     expect(saved(_meeting.id).name, 'réunion MCP');
@@ -205,7 +210,7 @@ void main() {
       ),
     );
 
-    expect(await story.publish(port), isFalse);
+    expect(await story.publish(storyEvents(story, port)), isFalse);
 
     expect(port.published, [
       (id: _arrival.id, base: 'arrival', current: 'Arrivée'),

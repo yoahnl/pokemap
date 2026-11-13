@@ -1922,12 +1922,6 @@ abstract class AppLocalizations {
   /// **'Toujours'**
   String get storyAlways;
 
-  /// No description provided for @storyConditions.
-  ///
-  /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 condition} other{{count} conditions}}'**
-  String storyConditions(int count);
-
   /// No description provided for @storySceneMissing.
   ///
   /// In fr, this message translates to:
@@ -2305,6 +2299,180 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ce comportement a été désactivé : réactivez-le une fois sa configuration complète.'**
   String get storyDeactivated;
+
+  /// No description provided for @storyLineSays.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce personnage dit…'**
+  String get storyLineSays;
+
+  /// No description provided for @storyLineShows.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce qui s’affiche…'**
+  String get storyLineShows;
+
+  /// No description provided for @storyLineLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture de la réplique…'**
+  String get storyLineLoading;
+
+  /// No description provided for @storyLineShared.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette réplique sert aussi à {scenes}. Détachez-la pour la modifier ici sans changer les autres.'**
+  String storyLineShared(String scenes);
+
+  /// No description provided for @storyLineDetach.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détacher'**
+  String get storyLineDetach;
+
+  /// No description provided for @storyLineOrScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ou lancer une scène'**
+  String get storyLineOrScene;
+
+  /// No description provided for @storyLineUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'La réplique n’a pas pu être lue : {problem}'**
+  String storyLineUnavailable(String problem);
+
+  /// No description provided for @storyLineRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'{reason, select, blankName{Ce comportement doit avoir un nom avant sa réplique.} noLine{Écrivez au moins une ligne.} blankLine{Une ligne est vide.} rejectedByDialogueFormat{Ce texte ne peut pas être enregistré comme réplique.} notFaithful{Ce texte ne se relit pas à l’identique : rien n’a été modifié.} other{Cette réplique est refusée.}}'**
+  String storyLineRefused(String reason);
+
+  /// No description provided for @storyConditionAnd.
+  ///
+  /// In fr, this message translates to:
+  /// **'et'**
+  String get storyConditionAnd;
+
+  /// No description provided for @storyConditionAdd.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter une condition'**
+  String get storyConditionAdd;
+
+  /// No description provided for @storyConditionTest.
+  ///
+  /// In fr, this message translates to:
+  /// **'{test, select, isTrue{est vrai} isFalse{est faux} equalsNumber{est égal à} other{{test}}}'**
+  String storyConditionTest(String test);
+
+  /// No description provided for @storyConditionNumber.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nombre'**
+  String get storyConditionNumber;
+
+  /// No description provided for @storyConditionFixed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Condition avancée, conservée telle quelle'**
+  String get storyConditionFixed;
+
+  /// No description provided for @storyConditionRemove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer'**
+  String get storyConditionRemove;
+
+  /// No description provided for @storyConditionChooseFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir un fait'**
+  String get storyConditionChooseFact;
+
+  /// No description provided for @storyFactSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un fait'**
+  String get storyFactSearch;
+
+  /// No description provided for @storyFactNoMatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun fait ne correspond.'**
+  String get storyFactNoMatch;
+
+  /// No description provided for @storyFactNew.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau fait'**
+  String get storyFactNew;
+
+  /// No description provided for @storyFactNewLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom du nouveau fait'**
+  String get storyFactNewLabel;
+
+  /// No description provided for @storyFactKindField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type'**
+  String get storyFactKindField;
+
+  /// No description provided for @storyFactKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, boolean{Vrai ou faux} integer{Nombre} other{{kind}}}'**
+  String storyFactKind(String kind);
+
+  /// No description provided for @storyFactCreate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer et utiliser'**
+  String get storyFactCreate;
+
+  /// No description provided for @storyFactClose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer'**
+  String get storyFactClose;
+
+  /// No description provided for @storyCaseShadowed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ne peut jamais se jouer : « {name} » passe toujours avant.'**
+  String storyCaseShadowed(String name);
+
+  /// No description provided for @storyCaseNoTrigger.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans déclencheur'**
+  String get storyCaseNoTrigger;
+
+  /// No description provided for @storyCaseAfterRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'{reason, select, wouldDropOutcomeRearm{Ce comportement se réarme après un résultat : choisir autre chose supprime ce réarmement.} outcomeRequired{Choisissez d’abord le résultat qui le réarme.} parallelNeedsEachTime{Un comportement joué en parallèle doit se jouer à chaque fois.} visitNeedsPlace{« Une fois par visite » demande un déclencheur sur la carte.} other{Ce choix est refusé.}}'**
+  String storyCaseAfterRefused(String reason);
+
+  /// No description provided for @storyCaseAfterReplace.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remplacer quand même'**
+  String get storyCaseAfterReplace;
+
+  /// No description provided for @storyPublicationUnsupported.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rien n’a été enregistré : ce projet ne sait pas encore enregistrer {kinds} ici.'**
+  String storyPublicationUnsupported(String kinds);
+
+  /// No description provided for @storyPublicationKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, event{les comportements} scene{les scènes} dialogue{les répliques} fact{les faits} story{les histoires} worldRule{les règles du monde} other{{kind}}}'**
+  String storyPublicationKind(String kind);
 
   /// No description provided for @rubricUnavailable.
   ///
@@ -3096,12 +3264,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'OBSTACLE DE TERRAIN'**
   String get obstacleEyebrow;
-
-  /// No description provided for @obstacleNew.
-  ///
-  /// In fr, this message translates to:
-  /// **'Nouvel obstacle'**
-  String get obstacleNew;
 
   /// No description provided for @obstacleVisual.
   ///

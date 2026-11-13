@@ -175,69 +175,56 @@ Map<String, int> _orders(
   int index,
   int priority,
 ) {
-  final current = {for (final record in group) record.id: record.order};
   final moved = group[index];
-  bool ranks(Map<String, int> orders) => _sameIds(
-    _engineOrder([
-      for (final record in group)
-        editBehaviourRecord(
-          record,
-          priority: identical(record, moved) ? priority : null,
-          order: orders[record.id],
-        ),
-    ], moved.source!),
-    group,
-  );
-  if (ranks(current)) return current;
-  final forward = {...current};
-  var lastOrder = index == 0 ? 0 : current[group[index - 1].id]!;
-  String? lastId = index == 0 ? null : group[index - 1].id;
-  for (var i = index; i < group.length; i++) {
-    final id = group[i].id;
-    final order = forward[id]!;
-    if (i > index &&
-        (order > lastOrder ||
-            (order == lastOrder && id.compareTo(lastId!) > 0))) {
-      break;
-    }
-    final value = lastId == null || id.compareTo(lastId) > 0
-        ? lastOrder
-        : lastOrder + 1;
-    forward[id] = lastOrder = value;
-    lastId = id;
-  }
-  Map<String, int>? backward;
-  if (index < group.length - 1) {
-    final candidate = {...current};
-    var firstOrder = current[group[index + 1].id]!;
-    var firstId = group[index + 1].id;
-    var valid = true;
-    for (var i = index; i >= 0; i--) {
-      final id = group[i].id;
-      final order = candidate[id]!;
-      if (i < index &&
-          (order < firstOrder ||
-              (order == firstOrder && id.compareTo(firstId) < 0))) {
-        break;
+  final room = [
+    for (final (position, record) in group.indexed) record.order - position,
+  ];
+  final kept = List<(int, int)>.filled(group.length, (0, 0));
+  final previous = List<int?>.filled(group.length, null);
+  int? last;
+  for (var i = 0; i < group.length; i++) {
+    if (room[i] < 0) continue;
+    final own = (1, identical(group[i], moved) ? 0 : 1);
+    kept[i] = own;
+    for (var j = 0; j < i; j++) {
+      if (room[j] < 0 || room[j] > room[i]) continue;
+      final longer = (kept[j].$1 + own.$1, kept[j].$2 + own.$2);
+      if (_better(longer, kept[i])) {
+        kept[i] = longer;
+        previous[i] = j;
       }
-      final value = id.compareTo(firstId) < 0 ? firstOrder : firstOrder - 1;
-      if (value < 0) {
-        valid = false;
-        break;
-      }
-      candidate[id] = firstOrder = value;
-      firstId = id;
     }
-    if (valid) backward = candidate;
+    if (last == null || _better(kept[i], kept[last])) last = i;
   }
-  final chosen =
-      backward != null &&
-          _changes(backward, current) < _changes(forward, current)
-      ? backward
-      : forward;
-  if (!ranks(chosen)) throw StateError('behaviourCaseOrder');
-  return chosen;
+  final keep = <int>{};
+  for (var at = last; at != null; at = previous[at]) {
+    keep.add(at);
+  }
+  final orders = <String, int>{};
+  int? before;
+  for (var i = 0; i < group.length; i++) {
+    if (keep.contains(i)) {
+      before = i;
+      orders[group[i].id] = group[i].order;
+      continue;
+    }
+    final anchor = before ?? keep.where((at) => at > i).firstOrNull;
+    orders[group[i].id] = (anchor == null ? 0 : room[anchor]) + i;
+  }
+  final ranked = _engineOrder([
+    for (final record in group)
+      editBehaviourRecord(
+        record,
+        priority: identical(record, moved) ? priority : null,
+        order: orders[record.id],
+      ),
+  ], moved.source!);
+  if (!_sameIds(ranked, group)) throw StateError('behaviourCaseOrder');
+  return orders;
 }
+
+bool _better((int, int) left, (int, int) right) =>
+    left.$1 > right.$1 || (left.$1 == right.$1 && left.$2 > right.$2);
 
 bool _sameIds(
   List<NarrativeEventRecord> left,
@@ -248,8 +235,3 @@ bool _sameIds(
   }
   return true;
 }
-
-int _changes(Map<String, int> next, Map<String, int> current) => [
-  for (final entry in next.entries)
-    if (current[entry.key] != entry.value) entry.key,
-].length;

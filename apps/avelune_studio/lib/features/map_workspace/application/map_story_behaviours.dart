@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../story_draft/application/story_draft.dart';
 import '../../story_draft/application/story_draft_manifest_reader.dart';
+import '../../story_draft/application/story_saved_dialogues.dart';
 import '../../story_draft/domain/story_draft_entry.dart';
 import '../../story_draft/domain/story_draft_saved.dart';
 
@@ -19,14 +20,22 @@ const _workingRevision = 'map-story-working-copy';
 
 const _event = StoryDraftKind.event;
 
+const _catalogKinds = <StoryDraftKind<Object>>[
+  StoryDraftKind.scene,
+  StoryDraftKind.dialogue,
+  StoryDraftKind.fact,
+];
+
 final class MapStoryBehaviours {
   MapStoryBehaviours({StoryDraft? draft}) : draft = draft ?? StoryDraft();
 
   final StoryDraft draft;
+  final dialogues = StorySavedDialogues();
   ProjectMediaCatalog? media;
   final _reader = StoryDraftManifestReader();
   (
     ProjectManifest,
+    List<int>,
     MapData,
     ProjectMediaCatalog?,
     NarrativeEventProjectCatalogBasis,
@@ -36,7 +45,8 @@ final class MapStoryBehaviours {
   bool get canUndo => draft.canUndo;
   bool get canRedo => draft.canRedo;
 
-  StoryDraftSaved saved(ProjectManifest project) => _reader.of(project);
+  StoryDraftSaved saved(ProjectManifest project) =>
+      _reader.of(project, beyond: dialogues);
 
   NarrativeEventRegistry? registry(ProjectManifest project) =>
       draft.eventRegistry(project.eventRegistry);
@@ -52,7 +62,7 @@ final class MapStoryBehaviours {
   ];
 
   List<String> conflicts(ProjectManifest project) => [
-    for (final ref in draft.conflicts(saved(project), kind: _event)) ref.id,
+    for (final ref in draft.conflicts(saved(project))) ref.id,
   ];
 
   NarrativeEventRecord? draftOf(String id) =>
@@ -88,17 +98,23 @@ final class MapStoryBehaviours {
     MapData map,
     NarrativeEventRegistry? registry,
   ) {
+    final sections = [for (final kind in _catalogKinds) draft.versionOf(kind)];
     final cached = _basis;
     if (cached != null &&
         identical(cached.$1, project) &&
-        identical(cached.$2, map) &&
-        identical(cached.$3, media) &&
-        cached.$4.fits(registry)) {
-      return cached.$4;
+        _same(cached.$2, sections) &&
+        identical(cached.$3, map) &&
+        identical(cached.$4, media) &&
+        cached.$5.fits(registry)) {
+      return cached.$5;
     }
-    final current = identical(registry, project.eventRegistry)
+    final staged = _catalogKinds.any((kind) => draft.touched(kind).isNotEmpty)
+        ? draft.project(project)
+        : project;
+    final current =
+        identical(staged, project) && identical(registry, project.eventRegistry)
         ? project
-        : project.copyWith(eventRegistry: registry);
+        : staged.copyWith(eventRegistry: registry);
     final scenes = <String, List<SceneAsset>>{};
     for (final scene in current.scenes) {
       scenes.putIfAbsent(scene.id, () => []).add(scene);
@@ -110,8 +126,15 @@ final class MapStoryBehaviours {
       presentationMediaCatalog: media,
       lookupRewardScenes: (id) => scenes[id] ?? const [],
     );
-    _basis = (project, map, media, basis);
+    _basis = (project, sections, map, media, basis);
     return basis;
+  }
+
+  bool _same(List<int> left, List<int> right) {
+    for (var index = 0; index < left.length; index++) {
+      if (left[index] != right[index]) return false;
+    }
+    return true;
   }
 
   ({String? eventId, String? problem}) apply(
@@ -179,10 +202,5 @@ final class MapStoryBehaviours {
 
   void redo() => draft.redo();
 
-  void settle(ProjectManifest saved, {Set<String>? only}) => draft.rebase(
-    this.saved(saved),
-    only: {
-      for (final id in only ?? draft.touched(_event)) (kind: _event, id: id),
-    },
-  );
+  void settle(ProjectManifest saved) => draft.rebase(this.saved(saved));
 }

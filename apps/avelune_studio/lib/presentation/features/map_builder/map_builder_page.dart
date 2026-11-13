@@ -9,6 +9,7 @@ import 'package:avelune_studio/app/di/event_providers.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/narrative_providers.dart';
+import 'package:avelune_studio/app/di/story_draft_providers.dart';
 import 'package:avelune_studio/app/di/studio_lifecycle_providers.dart';
 import 'package:avelune_studio/app/studio_lifecycle_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_draft.dart';
@@ -121,7 +122,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       behaviours.length,
       behaviours.join(', '),
     ),
-    port: () => ref.read(eventPortProvider(widget.session)),
+    gateway: (draft, saved) =>
+        ref.read(storyPublicationGatewayProvider(widget.session))(draft, saved),
+    loadDialogue: ref.read(storyDialogueLoaderProvider(widget.session)),
     loadMedia: (project) async =>
         switch (ref.read(eventPortProvider(widget.session))) {
           final EventPresentationCatalogPort port =>

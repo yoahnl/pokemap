@@ -11,6 +11,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_sto
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import '../presentation/map_builder_story_support.dart';
 
 String _event(int index) =>
     'evt_019abcde-0000-7000-8000-${index.toRadixString(16).padLeft(12, '0')}';
@@ -275,7 +276,7 @@ void main() {
       expect(story.error, isNull);
 
       expect(story.deleteBehaviour(_record(opened.maps, _free)), isTrue);
-      expect(await story.publish(opened.port), isFalse);
+      expect(await story.publish(storyEvents(story, opened.port)), isFalse);
 
       final refusal = EventDeletionRefused.parse(story.error!);
       expect(refusal, isNotNull);

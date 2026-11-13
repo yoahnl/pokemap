@@ -145,9 +145,9 @@ void main() {
       final changed = moveBehaviourCase(sameGroup, 0, 2);
       final result = _engineOrder(_apply(sameGroup, changed));
       expect(_ids(result), ['02', '03', '01', '04']);
-      expect(_ids(changed), ['01']);
-      expect(changed.single.order, 3);
-      expect(changed.single.priority, 0);
+      expect(_ids(changed), ['01', '04']);
+      expect([for (final record in changed) record.order], [3, 4]);
+      expect(changed.every((record) => record.priority == 0), isTrue);
     });
 
     test('moving up to the top renumbers below when nothing fits above', () {
@@ -158,7 +158,7 @@ void main() {
         '02',
         '03',
       ]);
-      expect(_ids(changed), unorderedEquals(['04', '01']));
+      expect(_ids(changed), unorderedEquals(['01', '02', '03']));
     });
 
     test('uses free gaps without touching neighbours', () {

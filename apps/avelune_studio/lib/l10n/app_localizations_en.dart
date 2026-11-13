@@ -1112,17 +1112,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyAlways => 'Always';
 
   @override
-  String storyConditions(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count conditions',
-      one: '1 condition',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get storySceneMissing => 'No scene chosen';
 
   @override
@@ -1356,6 +1345,148 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storyDeactivated =>
       'This behaviour was disabled: enable it again once its setup is complete.';
+
+  @override
+  String get storyLineSays => 'This character says…';
+
+  @override
+  String get storyLineShows => 'What is shown…';
+
+  @override
+  String get storyLineLoading => 'Reading the line…';
+
+  @override
+  String storyLineShared(String scenes) {
+    return 'This line is also used by $scenes. Detach it to edit it here without changing the others.';
+  }
+
+  @override
+  String get storyLineDetach => 'Detach';
+
+  @override
+  String get storyLineOrScene => 'Or start a scene';
+
+  @override
+  String storyLineUnavailable(String problem) {
+    return 'The line could not be read: $problem';
+  }
+
+  @override
+  String storyLineRefused(String reason) {
+    String _temp0 = intl.Intl.selectLogic(reason, {
+      'blankName': 'This behaviour needs a name before its line.',
+      'noLine': 'Write at least one line.',
+      'blankLine': 'A line is empty.',
+      'rejectedByDialogueFormat': 'This text cannot be saved as a line.',
+      'notFaithful':
+          'This text does not read back identically: nothing was changed.',
+      'other': 'This line is refused.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyConditionAnd => 'and';
+
+  @override
+  String get storyConditionAdd => 'Add a condition';
+
+  @override
+  String storyConditionTest(String test) {
+    String _temp0 = intl.Intl.selectLogic(test, {
+      'isTrue': 'is true',
+      'isFalse': 'is false',
+      'equalsNumber': 'equals',
+      'other': '$test',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyConditionNumber => 'Number';
+
+  @override
+  String get storyConditionFixed => 'Advanced condition, kept as is';
+
+  @override
+  String get storyConditionRemove => 'Remove';
+
+  @override
+  String get storyConditionChooseFact => 'Choose a fact';
+
+  @override
+  String get storyFactSearch => 'Search a fact';
+
+  @override
+  String get storyFactNoMatch => 'No fact matches.';
+
+  @override
+  String get storyFactNew => 'New fact';
+
+  @override
+  String get storyFactNewLabel => 'New fact name';
+
+  @override
+  String get storyFactKindField => 'Type';
+
+  @override
+  String storyFactKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'boolean': 'True or false',
+      'integer': 'Number',
+      'other': '$kind',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyFactCreate => 'Create and use';
+
+  @override
+  String get storyFactClose => 'Close';
+
+  @override
+  String storyCaseShadowed(String name) {
+    return 'Can never play: “$name” always goes first.';
+  }
+
+  @override
+  String get storyCaseNoTrigger => 'No trigger';
+
+  @override
+  String storyCaseAfterRefused(String reason) {
+    String _temp0 = intl.Intl.selectLogic(reason, {
+      'wouldDropOutcomeRearm': 'This behaviour rearms after an outcome: choosing something else removes that rearm.',
+      'outcomeRequired': 'First choose the outcome that rearms it.',
+      'parallelNeedsEachTime':
+          'A behaviour played in parallel must play every time.',
+      'visitNeedsPlace': '“Once per visit” needs a trigger on the map.',
+      'other': 'This choice is refused.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyCaseAfterReplace => 'Replace anyway';
+
+  @override
+  String storyPublicationUnsupported(String kinds) {
+    return 'Nothing was saved: this project cannot save $kinds here yet.';
+  }
+
+  @override
+  String storyPublicationKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'event': 'behaviours',
+      'scene': 'scenes',
+      'dialogue': 'lines',
+      'fact': 'facts',
+      'story': 'stories',
+      'worldRule': 'world rules',
+      'other': '$kind',
+    });
+    return '$_temp0';
+  }
 
   @override
   String rubricUnavailable(String detail, String unavailable) {
@@ -1785,9 +1916,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get obstacleEyebrow => 'FIELD OBSTACLE';
-
-  @override
-  String get obstacleNew => 'New obstacle';
 
   @override
   String get obstacleVisual => 'Obstacle visual';

@@ -12,3 +12,4 @@ export 'game_export_providers.dart';
 export 'pokemon_providers.dart';
 export 'project_creation_providers.dart';
 export 'regional_map_providers.dart';
+export 'story_draft_providers.dart';

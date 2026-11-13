@@ -17,6 +17,7 @@ final class StoryDraft {
     (kind) => _versions[kind] ?? 0,
   );
   StoryDraftStep? _open;
+  int _recorded = 0;
 
   NarrativeEventRegistry? get eventRegistryShell => _eventRegistryShell;
 
@@ -28,6 +29,10 @@ final class StoryDraft {
 
   bool get canUndo => _history.canUndo;
   bool get canRedo => _history.canRedo;
+
+  int get recorded => _recorded;
+
+  int versionOf(StoryDraftKind<Object> kind) => _versions[kind] ?? 0;
 
   bool load<T extends Object>(StoryDraftKind<T> kind, String id, T? saved) {
     if (saved != null && kind.idOf(saved) != id) {
@@ -94,7 +99,9 @@ final class StoryDraft {
       _open = null;
     }
     step.removeWhere((_, change) => change.before == change.after);
-    if (step.isNotEmpty) _history.record(step);
+    if (step.isEmpty) return;
+    _history.record(step);
+    _recorded++;
   }
 
   void undo() => _travel(redo: false);

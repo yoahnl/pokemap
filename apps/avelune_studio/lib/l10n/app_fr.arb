@@ -610,14 +610,6 @@
     }
   },
   "storyAlways": "Toujours",
-  "storyConditions": "{count, plural, =1{1 condition} other{{count} conditions}}",
-  "@storyConditions": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "storySceneMissing": "Aucune scène choisie",
   "storyOnce": "Une seule fois",
   "storyEachTime": "À chaque fois",
@@ -757,6 +749,98 @@
   "storyPreparing": "Chargement de l’histoire du projet…",
   "storyNotPrepared": "L’histoire du projet n’est pas chargée : les comportements restent en lecture.",
   "storyDeactivated": "Ce comportement a été désactivé : réactivez-le une fois sa configuration complète.",
+  "storyLineSays": "Ce personnage dit…",
+  "storyLineShows": "Ce qui s’affiche…",
+  "storyLineLoading": "Lecture de la réplique…",
+  "storyLineShared": "Cette réplique sert aussi à {scenes}. Détachez-la pour la modifier ici sans changer les autres.",
+  "@storyLineShared": {
+    "placeholders": {
+      "scenes": {
+        "type": "String"
+      }
+    }
+  },
+  "storyLineDetach": "Détacher",
+  "storyLineOrScene": "Ou lancer une scène",
+  "storyLineUnavailable": "La réplique n’a pas pu être lue : {problem}",
+  "@storyLineUnavailable": {
+    "placeholders": {
+      "problem": {
+        "type": "String"
+      }
+    }
+  },
+  "storyLineRefused": "{reason, select, blankName{Ce comportement doit avoir un nom avant sa réplique.} noLine{Écrivez au moins une ligne.} blankLine{Une ligne est vide.} rejectedByDialogueFormat{Ce texte ne peut pas être enregistré comme réplique.} notFaithful{Ce texte ne se relit pas à l’identique : rien n’a été modifié.} other{Cette réplique est refusée.}}",
+  "@storyLineRefused": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "storyConditionAnd": "et",
+  "storyConditionAdd": "Ajouter une condition",
+  "storyConditionTest": "{test, select, isTrue{est vrai} isFalse{est faux} equalsNumber{est égal à} other{{test}}}",
+  "@storyConditionTest": {
+    "placeholders": {
+      "test": {
+        "type": "String"
+      }
+    }
+  },
+  "storyConditionNumber": "Nombre",
+  "storyConditionFixed": "Condition avancée, conservée telle quelle",
+  "storyConditionRemove": "Retirer",
+  "storyConditionChooseFact": "Choisir un fait",
+  "storyFactSearch": "Rechercher un fait",
+  "storyFactNoMatch": "Aucun fait ne correspond.",
+  "storyFactNew": "Nouveau fait",
+  "storyFactNewLabel": "Nom du nouveau fait",
+  "storyFactKindField": "Type",
+  "storyFactKind": "{kind, select, boolean{Vrai ou faux} integer{Nombre} other{{kind}}}",
+  "@storyFactKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "storyFactCreate": "Créer et utiliser",
+  "storyFactClose": "Fermer",
+  "storyCaseShadowed": "Ne peut jamais se jouer : « {name} » passe toujours avant.",
+  "@storyCaseShadowed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storyCaseNoTrigger": "Sans déclencheur",
+  "storyCaseAfterRefused": "{reason, select, wouldDropOutcomeRearm{Ce comportement se réarme après un résultat : choisir autre chose supprime ce réarmement.} outcomeRequired{Choisissez d’abord le résultat qui le réarme.} parallelNeedsEachTime{Un comportement joué en parallèle doit se jouer à chaque fois.} visitNeedsPlace{« Une fois par visite » demande un déclencheur sur la carte.} other{Ce choix est refusé.}}",
+  "@storyCaseAfterRefused": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "storyCaseAfterReplace": "Remplacer quand même",
+  "storyPublicationUnsupported": "Rien n’a été enregistré : ce projet ne sait pas encore enregistrer {kinds} ici.",
+  "@storyPublicationUnsupported": {
+    "placeholders": {
+      "kinds": {
+        "type": "String"
+      }
+    }
+  },
+  "storyPublicationKind": "{kind, select, event{les comportements} scene{les scènes} dialogue{les répliques} fact{les faits} story{les histoires} worldRule{les règles du monde} other{{kind}}}",
+  "@storyPublicationKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {
@@ -967,7 +1051,6 @@
   "obstaclePlace": "Placer un obstacle",
   "obstacle3dHint": "Sélectionnez un décor sur la carte (arbre, rocher) pour en faire un obstacle.",
   "obstacleEyebrow": "OBSTACLE DE TERRAIN",
-  "obstacleNew": "Nouvel obstacle",
   "obstacleVisual": "Visuel de l’obstacle",
   "obstaclePlaceHint": "Choisissez son visuel, puis cliquez sur la case de l’obstacle.",
   "obstaclePlaceClick": "Cliquez sur la case de l’obstacle.",

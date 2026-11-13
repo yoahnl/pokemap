@@ -153,14 +153,14 @@ void main() {
     expect(() => guarded.delete(sign.id), throwsStateError);
   });
 
-  test('an unsaved interaction draft blocks deletion until released', () {
+  test('an unsaved draft target blocks deletion until released', () {
     final document = documentFor('a');
     final sign = MapEntityEditingCommands(
       document,
       workspaceProject,
     ).place(MapEntityKind.sign, const GridPos(x: 4, y: 4));
     var sources = MapDraftReferenceSources(
-      interactionDrafts: [
+      ruleTargets: [
         (mapId: 'a', kind: MapDraftReferenceKind.entity, id: sign.id),
       ],
     );

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
+import 'map_builder_story_support.dart';
 
 class _Port implements EventPort {
   _Port(this.maps);
@@ -161,7 +162,11 @@ void main() {
     final port = _BatchPort(maps);
     deleteThenRename();
 
-    expect(await story.publish(port), isTrue, reason: story.error);
+    expect(
+      await story.publish(storyEvents(story, port)),
+      isTrue,
+      reason: story.error,
+    );
 
     String renamed(int from, int to) => _call('batch', {
       for (var index = from; index <= to; index++) _id(index): 'renamed $index',
@@ -182,7 +187,11 @@ void main() {
       expect(story.renameBehaviour(saved(index), 'renamed $index'), isTrue);
     }
 
-    expect(await story.publish(port), isTrue, reason: story.error);
+    expect(
+      await story.publish(storyEvents(story, port)),
+      isTrue,
+      reason: story.error,
+    );
 
     expect(port.calls, [
       for (var index = 2; index <= 4; index++)
@@ -194,13 +203,21 @@ void main() {
   test('an edit saved then undone is published back as a change', () async {
     final port = _BatchPort(maps);
     expect(story.renameBehaviour(saved(2), 'Rencontre'), isTrue);
-    expect(await story.publish(port), isTrue, reason: story.error);
+    expect(
+      await story.publish(storyEvents(story, port)),
+      isTrue,
+      reason: story.error,
+    );
     expect(story.dirty, isFalse);
     expect(story.canUndo, isTrue);
 
     story.undo();
     expect(story.dirty, isTrue);
-    expect(await story.publish(port), isTrue, reason: story.error);
+    expect(
+      await story.publish(storyEvents(story, port)),
+      isTrue,
+      reason: story.error,
+    );
 
     expect(port.calls, [
       _call('batch', {_id(2): 'Rencontre'}),

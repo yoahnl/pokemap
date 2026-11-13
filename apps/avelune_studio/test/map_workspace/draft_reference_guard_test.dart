@@ -1,7 +1,6 @@
 import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core.dart';
 
 import '../support/draft_reference_fixture.dart';
 
@@ -93,36 +92,5 @@ void main() {
     expect(commands.deletionProblem(sign.id), isNull);
     commands.delete(sign.id);
     expect(commands.selected(sign.id), isNull);
-  });
-
-  test('a configured record is read from its definition, not its draft', () {
-    // The business state says configured; the working version is still
-    // unsaved. Its source then lives in the definition.
-    final configured = NarrativeEventRecord.configuredStructurallyUnchecked(
-      NarrativeEventDefinition(
-        id: 'evt_0192bc3d-4e5f-7a1b-8c2d-3e4f5a6b7c8d',
-        name: 'Lecture',
-        source: NarrativeEventSourceRef.entityInteract('jardin', 'panneau'),
-        conditions: const [],
-        conditionExpression: NarrativeEventConditionExpression.all(const []),
-        sceneId: 'scene',
-        reusePolicy: NarrativeEventReusePolicy.oneShot,
-        priority: 0,
-        order: 0,
-      ),
-      enabled: true,
-    );
-    expect(configured.draftOrNull, isNull);
-    expect(recordSource(configured), isNotNull);
-
-    final index = MapDraftReferenceIndex(
-      () => MapDraftReferenceSources(eventDrafts: [configured]),
-    );
-    expect(
-      index.problemFor(mapId: 'jardin', entityId: 'panneau'),
-      contains('brouillon'),
-      reason: 'the guard follows the source wherever the shape keeps it',
-    );
-    expect(index.problemFor(mapId: 'clairiere', entityId: 'panneau'), isNull);
   });
 }

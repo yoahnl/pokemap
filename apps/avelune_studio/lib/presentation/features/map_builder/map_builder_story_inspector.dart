@@ -8,19 +8,11 @@ import 'package:avelune_studio/features/map_workspace/application/map_story_elem
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_cases.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_conditions.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_line_field.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_panel.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
-
-String mapBuilderBehaviourAfter(
-  NarrativeEventRecord record,
-  AppLocalizations l10n,
-) => switch ((record.reusePolicy, record.resetPolicy)) {
-  (null, _) => l10n.storyReuseUnset,
-  (NarrativeEventReusePolicy.reusable, _) => l10n.storyEachTime,
-  (_, NarrativeEventResetOnMapReentry()) => l10n.storyOncePerVisit,
-  (_, NarrativeEventResetOnOutcomeReceived()) => l10n.storyOnceUntilOutcome,
-  _ => l10n.storyOnce,
-};
 
 String mapBuilderBehaviourState(
   NarrativeEventRecord record,
@@ -155,15 +147,13 @@ class _Behaviours extends StatelessWidget {
         _Eyebrow(l10n.storyBehavioursTitle(behaviours.length)),
         const SizedBox(height: StudioSpacing.s),
         if (behaviours.isEmpty) _Caption(l10n.storyNoBehaviour),
-        for (final (index, record) in behaviours.indexed)
-          StudioChoice(
-            key: ValueKey('map-story-behaviour-$index'),
-            dense: true,
-            label: '${index + 1} · ${record.name}',
-            subtitle: mapBuilderBehaviourState(record, l10n),
-            selected: identical(record, current),
-            onTap: () => binding.openBehaviour(index),
-          ),
+        MapBuilderStoryCaseList(
+          binding: binding,
+          element: element,
+          current: current,
+          editable: editable,
+          state: mapBuilderBehaviourState,
+        ),
         const SizedBox(height: StudioSpacing.s),
         Align(
           alignment: Alignment.centerLeft,
@@ -193,6 +183,8 @@ class _Behaviours extends StatelessWidget {
                 : null,
           ),
           const SizedBox(height: StudioSpacing.s),
+          _Eyebrow(l10n.storyWhen),
+          const SizedBox(height: StudioSpacing.xs),
           StudioSelect(
             key: const ValueKey('map-story-when'),
             label: l10n.storyWhenField,
@@ -200,6 +192,9 @@ class _Behaviours extends StatelessWidget {
             options: {
               if (current.source == null) '': l10n.storyTrigger('none'),
               for (final kind in binding.triggerKinds(element))
+                kind.name: l10n.storyTrigger(kind.name),
+              if (current.source?.kind case final kind?
+                  when !binding.triggerKinds(element).contains(kind))
                 kind.name: l10n.storyTrigger(kind.name),
             },
             onChanged: editable
@@ -211,46 +206,46 @@ class _Behaviours extends StatelessWidget {
                 : null,
           ),
           const SizedBox(height: StudioSpacing.m),
-          _Fact(
-            l10n.storyIf,
-            current.expression.leaves.isEmpty
-                ? l10n.storyAlways
-                : l10n.storyConditions(current.expression.leaves.length),
-            key: const ValueKey('map-story-if'),
-          ),
-          StudioSelect(
-            key: const ValueKey('map-story-then'),
-            label: l10n.storyThenField,
-            value: current.sceneId ?? '',
-            options: {
-              '': l10n.storySceneMissing,
-              if (current.sceneId != null &&
-                  !scenes.any((scene) => scene.id == current.sceneId))
-                current.sceneId!: current.sceneId!,
-              for (final scene in scenes) scene.id: scene.name,
-            },
-            onChanged: editable
-                ? (value) =>
-                      binding.setScene(current, value.isEmpty ? null : value)
-                : null,
+          _Eyebrow(l10n.storyIf),
+          const SizedBox(height: StudioSpacing.xs),
+          MapBuilderStoryConditions(
+            key: ValueKey('map-story-conditions-${current.id}'),
+            binding: binding,
+            record: current,
+            editable: editable,
           ),
           const SizedBox(height: StudioSpacing.m),
-          StudioSelect(
-            key: const ValueKey('map-story-after'),
-            label: l10n.storyAfterField,
-            value: _after(current)?.name ?? '',
-            options: {
-              if (_after(current) == null) '': l10n.storyReuseUnset,
-              MapStoryAfter.once.name: l10n.storyOnce,
-              MapStoryAfter.eachTime.name: l10n.storyEachTime,
-              MapStoryAfter.oncePerVisit.name: l10n.storyOncePerVisit,
-            },
-            onChanged: editable
-                ? (value) => binding.setAfter(
-                    current,
-                    MapStoryAfter.values.byName(value),
-                  )
-                : null,
+          _Eyebrow(l10n.storyThen),
+          const SizedBox(height: StudioSpacing.xs),
+          MapBuilderStoryLineField(
+            binding: binding,
+            element: element,
+            record: current,
+            editable: editable,
+            scenePicker: (label) => StudioSelect(
+              key: const ValueKey('map-story-then'),
+              label: label,
+              value: current.sceneId ?? '',
+              options: {
+                '': l10n.storySceneMissing,
+                if (current.sceneId != null &&
+                    !scenes.any((scene) => scene.id == current.sceneId))
+                  current.sceneId!: current.sceneId!,
+                for (final scene in scenes) scene.id: scene.name,
+              },
+              onChanged: editable
+                  ? (value) =>
+                        binding.setScene(current, value.isEmpty ? null : value)
+                  : null,
+            ),
+          ),
+          const SizedBox(height: StudioSpacing.m),
+          _Eyebrow(l10n.storyAfter),
+          const SizedBox(height: StudioSpacing.xs),
+          MapBuilderStoryAfter(
+            binding: binding,
+            record: current,
+            editable: editable,
           ),
           const SizedBox(height: StudioSpacing.l),
           Align(
@@ -269,15 +264,6 @@ class _Behaviours extends StatelessWidget {
       ],
     );
   }
-
-  MapStoryAfter? _after(NarrativeEventRecord record) =>
-      switch ((record.reusePolicy, record.resetPolicy)) {
-        (null, _) => null,
-        (NarrativeEventReusePolicy.reusable, _) => MapStoryAfter.eachTime,
-        (_, NarrativeEventResetOnMapReentry()) => MapStoryAfter.oncePerVisit,
-        (_, NarrativeEventResetNever()) => MapStoryAfter.once,
-        _ => null,
-      };
 }
 
 String mapBuilderStoryError(
@@ -286,6 +272,22 @@ String mapBuilderStoryError(
 ) => switch (error) {
   MapBuilderStoryBinding.outOfMap => l10n.storyOutOfMap,
   'publish-unavailable' => l10n.storyPublishUnavailable,
+  _ when error.startsWith(MapBuilderStoryBinding.afterRefused) =>
+    l10n.storyCaseAfterRefused(
+      error.substring(MapBuilderStoryBinding.afterRefused.length),
+    ),
+  _ when error.startsWith(MapBuilderStoryBinding.lineRefused) =>
+    l10n.storyLineRefused(
+      error.substring(MapBuilderStoryBinding.lineRefused.length),
+    ),
+  _ when error.startsWith(MapBuilderStoryBinding.unsupported) =>
+    l10n.storyPublicationUnsupported(
+      error
+          .substring(MapBuilderStoryBinding.unsupported.length)
+          .split(',')
+          .map(l10n.storyPublicationKind)
+          .join(', '),
+    ),
   _ when error.startsWith(MapBuilderStoryBinding.deactivated) =>
     '${l10n.storyDeactivated} ${error.substring(MapBuilderStoryBinding.deactivated.length)}'
         .trim(),
@@ -568,7 +570,7 @@ class _Pair extends StatelessWidget {
 }
 
 class _Fact extends StatelessWidget {
-  const _Fact(this.label, this.value, {super.key});
+  const _Fact(this.label, this.value);
 
   final String label;
   final String value;

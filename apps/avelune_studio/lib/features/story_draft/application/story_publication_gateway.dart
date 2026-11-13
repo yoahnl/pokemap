@@ -1,14 +1,24 @@
 import 'package:map_core/map_core_domain.dart';
 
+import '../../dialogues/domain/dialogue_port.dart';
 import '../../events/domain/event_port.dart';
 import '../../resources/domain/resource_port.dart';
+import '../../scenes/domain/scene_port.dart';
+import '../../world/domain/world_port.dart';
+import '../domain/story_dialogue_source.dart';
 import '../domain/story_draft_entry.dart';
 import '../domain/story_draft_saved.dart';
 import 'story_draft.dart';
 import 'story_publication_plan.dart';
+import 'story_saved_dialogues.dart';
 
 typedef StoryPublicationLanding = Future<StoryDraftSaved> Function(
   Future<ResourceMutationReceipt> Function() write,
+);
+
+typedef StoryPublicationGatewayFactory = StoryPublicationGateway Function(
+  StoryDraft draft,
+  StorySavedDialogues dialogues,
 );
 
 final class StoryPublicationUnsupported implements Exception {
@@ -33,12 +43,30 @@ final class StoryPublicationFailed implements Exception {
 }
 
 final class StoryPublicationGateway {
-  const StoryPublicationGateway({required this._draft, required this._events});
-
-  static const published = {StoryDraftKind.event};
+  StoryPublicationGateway({
+    required this._draft,
+    this._events,
+    this._scenes,
+    this._dialogues,
+    this._facts,
+    this._savedDialogues,
+  });
 
   final StoryDraft _draft;
-  final EventPort _events;
+  final EventPort? _events;
+  final ScenePort? _scenes;
+  final DialoguePort? _dialogues;
+  final WorldPort? _facts;
+  final StorySavedDialogues? _savedDialogues;
+
+  bool supports(StoryDraftKind<Object> kind, {required bool deletion}) =>
+      switch (kind) {
+        StoryDraftKind.event => _events != null,
+        StoryDraftKind.scene => _scenes != null && !deletion,
+        StoryDraftKind.dialogue => _dialogues != null,
+        StoryDraftKind.fact => _facts != null,
+        StoryDraftKind.story || StoryDraftKind.worldRule => false,
+      };
 
   Future<StoryPublicationProgress> publish(
     List<StoryPublicationStep> plan, {
@@ -46,7 +74,7 @@ final class StoryPublicationGateway {
   }) async {
     final unsupported = {
       for (final step in plan)
-        if (!published.contains(step.kind)) step.kind,
+        if (!supports(step.kind, deletion: step.deletion)) step.kind,
     };
     if (unsupported.isNotEmpty) throw StoryPublicationUnsupported(unsupported);
     final batch = switch (_events) {
@@ -55,13 +83,16 @@ final class StoryPublicationGateway {
     };
     final steps = [
       for (final step in plan)
-        if (step.deletion || batch != null)
+        if (step.entries.length == 1 ||
+            (step.kind == StoryDraftKind.event &&
+                !step.deletion &&
+                batch != null))
           step
         else
           for (final entry in step.entries)
             StoryPublicationStep(
               kind: step.kind,
-              deletion: false,
+              deletion: step.deletion,
               entries: [entry],
             ),
     ];
@@ -87,6 +118,25 @@ final class StoryPublicationGateway {
   Future<ResourceMutationReceipt> _write(
     StoryPublicationStep step,
     EventBatchPort? batch,
+  ) => switch (step.kind) {
+    StoryDraftKind.event => _writeEvents(step, batch),
+    StoryDraftKind.scene => _writeScene(
+      step.entries.single as StoryDraftEntry<SceneAsset>,
+    ),
+    StoryDraftKind.dialogue => _writeDialogue(
+      step.entries.single as StoryDraftEntry<StoryDialogueSource>,
+    ),
+    StoryDraftKind.fact => _writeFact(
+      step.entries.single as StoryDraftEntry<NarrativeFactDefinition>,
+    ),
+    StoryDraftKind.story || StoryDraftKind.worldRule => throw StateError(
+      'unsupported ${step.kind.name}',
+    ),
+  };
+
+  Future<ResourceMutationReceipt> _writeEvents(
+    StoryPublicationStep step,
+    EventBatchPort? batch,
   ) {
     final changes = [
       for (final entry in step.entries)
@@ -98,10 +148,60 @@ final class StoryPublicationGateway {
     ];
     if (batch != null && !step.deletion) return batch.publishEvents(changes);
     final change = changes.single;
-    return _events.publishEvent(
+    return _events!.publishEvent(
       id: change.id,
       base: change.base,
       current: change.current,
     );
   }
+
+  Future<ResourceMutationReceipt> _writeScene(
+    StoryDraftEntry<SceneAsset> entry,
+  ) async => (await _scenes!.publishScene(
+    base: entry.base,
+    current: entry.current!,
+  )).catalog;
+
+  Future<ResourceMutationReceipt> _writeDialogue(
+    StoryDraftEntry<StoryDialogueSource> entry,
+  ) async {
+    final base = entry.base;
+    final current = entry.current;
+    final revision = base?.revision;
+    if (base != null && revision == null) {
+      throw StateError('The saved dialogue ${entry.id} has no revision.');
+    }
+    final receipt = await _dialogues!.publish(
+      id: entry.id,
+      base: base == null
+          ? null
+          : DialogueSourceSnapshot(
+              entry: base.entry,
+              source: base.source,
+              revision: revision!,
+            ),
+      entry: current?.entry,
+      source: current?.source,
+    );
+    switch (receipt.snapshot) {
+      case final snapshot?:
+        _savedDialogues?.remember(
+          StoryDialogueSource(
+            entry: snapshot.entry,
+            source: snapshot.source,
+            revision: snapshot.revision,
+          ),
+        );
+      case null:
+        _savedDialogues?.forget(entry.id);
+    }
+    return receipt.resources;
+  }
+
+  Future<ResourceMutationReceipt> _writeFact(
+    StoryDraftEntry<NarrativeFactDefinition> entry,
+  ) => switch (entry.current) {
+    final current? => _facts!.publishFact(base: entry.base, current: current),
+    null => _facts!.deleteFact(entry.base!),
+  };
 }

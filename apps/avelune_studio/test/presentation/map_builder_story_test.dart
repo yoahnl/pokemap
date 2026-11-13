@@ -17,6 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
+import 'map_builder_story_support.dart';
 
 var _events = 0;
 
@@ -566,7 +567,7 @@ void main() {
     expect(find.text('3 · Comportement 3'), findsNothing);
 
     final port = _EventPort(maps);
-    expect(await story.publish(port), isTrue);
+    expect(await story.publish(storyEvents(story, port)), isTrue);
     expect(port.published, hasLength(1));
     expect(story.dirty, isFalse);
     final saved = maps.project!.eventRegistry!.records.singleWhere(
@@ -574,7 +575,7 @@ void main() {
     );
     expect(saved.sceneId, 'scene-greeting');
     expect(saved.reusePolicy, NarrativeEventReusePolicy.reusable);
-    expect(await story.publish(null), isTrue);
+    expect(await story.publish(storyEvents(story, null)), isTrue);
   });
 
   testWidgets('the map element authors what happens on arrival', (
@@ -624,7 +625,7 @@ void main() {
     );
 
     final port = _EventPort(maps);
-    expect(await story.publish(port), isTrue);
+    expect(await story.publish(storyEvents(story, port)), isTrue);
     expect(port.published, [added.id]);
     final saved = maps.project!.eventRegistry!.records.singleWhere(
       (record) => record.id == added.id,

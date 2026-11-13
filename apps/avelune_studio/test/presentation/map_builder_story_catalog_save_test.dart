@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:avelune_studio/features/events/application/behaviour/behaviour_reuse.dart';
 import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
@@ -9,6 +10,8 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_sto
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+
+import 'map_builder_story_support.dart';
 
 String _event(int index, {int block = 0}) =>
     'evt_019abcde-000$block-7000-8000-${index.toRadixString(16).padLeft(12, '0')}';
@@ -175,9 +178,10 @@ void main() {
       final maps = opened.maps;
       final record = maps.project!.eventRegistry!.records.single;
 
-      expect(story.setAfter(record, MapStoryAfter.eachTime), isTrue);
+      expect(story.setAfter(record, BehaviourAfter.eachTime), isTrue);
       expect(story.dirty, isTrue);
-      expect(await story.publish(opened.port), isTrue, reason: story.error);
+      final saved = await story.publish(storyEvents(story, opened.port));
+      expect(saved, isTrue, reason: story.error);
 
       expect(story.dirty, isFalse);
       expect(story.behaviours.changes(maps.project!), isEmpty);
@@ -264,25 +268,20 @@ void main() {
             if (context.storageKey case final key?) promoted.add(key);
           },
         );
+        final story = opened.story;
+        final project = opened.maps.project!;
         final records = [
-          for (final record in opened.maps.project!.eventRegistry!.records)
+          for (final record in project.eventRegistry!.records)
             if (record.definitionOrNull != null) record,
         ].take(count);
         for (final record in records) {
-          expect(opened.story.setAfter(record, MapStoryAfter.eachTime), isTrue);
+          expect(story.setAfter(record, BehaviourAfter.eachTime), isTrue);
         }
-        expect(
-          opened.story.behaviours.changes(opened.maps.project!),
-          hasLength(count),
-        );
+        expect(story.behaviours.changes(project), hasLength(count));
+        final saved = await story.publish(storyEvents(story, opened.port));
+        expect(saved, isTrue, reason: story.error);
 
-        expect(
-          await opened.story.publish(opened.port),
-          isTrue,
-          reason: opened.story.error,
-        );
-
-        expect(opened.story.dirty, isFalse);
+        expect(story.dirty, isFalse);
         expect(operations, hasLength(1), reason: '$count behaviours');
         expect(promoted.where((key) => key.startsWith('maps/')), isEmpty);
         expect(

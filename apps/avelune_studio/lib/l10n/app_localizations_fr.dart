@@ -1118,17 +1118,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storyAlways => 'Toujours';
 
   @override
-  String storyConditions(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count conditions',
-      one: '1 condition',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get storySceneMissing => 'Aucune scène choisie';
 
   @override
@@ -1362,6 +1351,150 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get storyDeactivated =>
       'Ce comportement a été désactivé : réactivez-le une fois sa configuration complète.';
+
+  @override
+  String get storyLineSays => 'Ce personnage dit…';
+
+  @override
+  String get storyLineShows => 'Ce qui s’affiche…';
+
+  @override
+  String get storyLineLoading => 'Lecture de la réplique…';
+
+  @override
+  String storyLineShared(String scenes) {
+    return 'Cette réplique sert aussi à $scenes. Détachez-la pour la modifier ici sans changer les autres.';
+  }
+
+  @override
+  String get storyLineDetach => 'Détacher';
+
+  @override
+  String get storyLineOrScene => 'Ou lancer une scène';
+
+  @override
+  String storyLineUnavailable(String problem) {
+    return 'La réplique n’a pas pu être lue : $problem';
+  }
+
+  @override
+  String storyLineRefused(String reason) {
+    String _temp0 = intl.Intl.selectLogic(reason, {
+      'blankName': 'Ce comportement doit avoir un nom avant sa réplique.',
+      'noLine': 'Écrivez au moins une ligne.',
+      'blankLine': 'Une ligne est vide.',
+      'rejectedByDialogueFormat':
+          'Ce texte ne peut pas être enregistré comme réplique.',
+      'notFaithful':
+          'Ce texte ne se relit pas à l’identique : rien n’a été modifié.',
+      'other': 'Cette réplique est refusée.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyConditionAnd => 'et';
+
+  @override
+  String get storyConditionAdd => 'Ajouter une condition';
+
+  @override
+  String storyConditionTest(String test) {
+    String _temp0 = intl.Intl.selectLogic(test, {
+      'isTrue': 'est vrai',
+      'isFalse': 'est faux',
+      'equalsNumber': 'est égal à',
+      'other': '$test',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyConditionNumber => 'Nombre';
+
+  @override
+  String get storyConditionFixed => 'Condition avancée, conservée telle quelle';
+
+  @override
+  String get storyConditionRemove => 'Retirer';
+
+  @override
+  String get storyConditionChooseFact => 'Choisir un fait';
+
+  @override
+  String get storyFactSearch => 'Rechercher un fait';
+
+  @override
+  String get storyFactNoMatch => 'Aucun fait ne correspond.';
+
+  @override
+  String get storyFactNew => 'Nouveau fait';
+
+  @override
+  String get storyFactNewLabel => 'Nom du nouveau fait';
+
+  @override
+  String get storyFactKindField => 'Type';
+
+  @override
+  String storyFactKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'boolean': 'Vrai ou faux',
+      'integer': 'Nombre',
+      'other': '$kind',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyFactCreate => 'Créer et utiliser';
+
+  @override
+  String get storyFactClose => 'Fermer';
+
+  @override
+  String storyCaseShadowed(String name) {
+    return 'Ne peut jamais se jouer : « $name » passe toujours avant.';
+  }
+
+  @override
+  String get storyCaseNoTrigger => 'Sans déclencheur';
+
+  @override
+  String storyCaseAfterRefused(String reason) {
+    String _temp0 = intl.Intl.selectLogic(reason, {
+      'wouldDropOutcomeRearm': 'Ce comportement se réarme après un résultat : choisir autre chose supprime ce réarmement.',
+      'outcomeRequired': 'Choisissez d’abord le résultat qui le réarme.',
+      'parallelNeedsEachTime':
+          'Un comportement joué en parallèle doit se jouer à chaque fois.',
+      'visitNeedsPlace':
+          '« Une fois par visite » demande un déclencheur sur la carte.',
+      'other': 'Ce choix est refusé.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get storyCaseAfterReplace => 'Remplacer quand même';
+
+  @override
+  String storyPublicationUnsupported(String kinds) {
+    return 'Rien n’a été enregistré : ce projet ne sait pas encore enregistrer $kinds ici.';
+  }
+
+  @override
+  String storyPublicationKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'event': 'les comportements',
+      'scene': 'les scènes',
+      'dialogue': 'les répliques',
+      'fact': 'les faits',
+      'story': 'les histoires',
+      'worldRule': 'les règles du monde',
+      'other': '$kind',
+    });
+    return '$_temp0';
+  }
 
   @override
   String rubricUnavailable(String detail, String unavailable) {
@@ -1794,9 +1927,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get obstacleEyebrow => 'OBSTACLE DE TERRAIN';
-
-  @override
-  String get obstacleNew => 'Nouvel obstacle';
 
   @override
   String get obstacleVisual => 'Visuel de l’obstacle';
