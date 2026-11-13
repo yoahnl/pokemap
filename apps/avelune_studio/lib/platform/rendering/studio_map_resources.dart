@@ -34,6 +34,19 @@ part 'studio_map_resource_recovery.dart';
 part 'studio_map_resources_helpers.dart';
 part 'studio_cinematic_spatial_preview.dart';
 
+Future<RuntimeMapBundle> loadStudioPreviewBundle({
+  required String projectRoot,
+  required ProjectManifest manifest,
+  required MapData map,
+}) => loadRuntimeMapBundle(
+  projectFilePath: '$projectRoot/project.json',
+  mapId: map.id,
+  preloadedManifest: manifest,
+  additionalCharacterIds: {
+    for (final entity in map.entities) ?entity.npc?.characterId,
+  },
+);
+
 final class StudioMapResources
     implements
         MapWorkspaceVisuals,
@@ -98,10 +111,10 @@ final class StudioMapResources
       return SpatialNpcPreview(frames, () {});
     }
     await initializeSpatialRenderer();
-    final bundle = await loadRuntimeMapBundle(
-      projectFilePath: '$projectRoot/project.json',
-      mapId: map.id,
-      preloadedManifest: manifest,
+    final bundle = await loadStudioPreviewBundle(
+      projectRoot: projectRoot,
+      manifest: manifest,
+      map: map,
     );
     final resolver = CharacterAnimationSourceResolver();
     final textures = <String, SpatialActorTexture>{};
