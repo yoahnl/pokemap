@@ -297,25 +297,27 @@ final class CatalogScopedWorkingMutation {
       }
     }
     if (changedFields.isNotEmpty) {
-      final built = PortableCatalogPublication.encodeProject(projected);
-      final generated = PortableCatalogPublication.readSync(built.descriptor,
+      late final built = PortableCatalogPublication.encodeProject(projected);
+      late final generated = PortableCatalogPublication.readSync(built.descriptor,
           readObject: (reference) => built.storage.objects[reference.sha256]!);
-      final builtBefore = PortableCatalogPublication.encodeProject(before);
-      final canonicalBefore = {
+      late final builtBefore = PortableCatalogPublication.encodeProject(before);
+      late final canonicalBefore = {
         for (final unit in PortableCatalogPublication.readSync(
             builtBefore.descriptor,
             readObject: (reference) =>
                 builtBefore.storage.objects[reference.sha256]!).units)
           unit.key: unit
       };
-      final generatedShell =
+      late final generatedShell =
           generated.units.singleWhere((unit) => unit.key == shellKey);
-      final generatedValue = generatedShell.payload['value'] as Map;
+      late final generatedValue = generatedShell.payload['value'] as Map;
       for (final field in changedFields) {
-        if (generatedValue.containsKey(field)) {
-          nextShell[field] = generatedValue[field];
-        } else {
-          nextShell.remove(field);
+        if (previousJson[field] is! Map) {
+          if (generatedValue.containsKey(field)) {
+            nextShell[field] = generatedValue[field];
+          } else {
+            nextShell.remove(field);
+          }
         }
         final previousUnits = <CatalogDefinitionKey, CatalogDefinitionUnit>{};
         Future<void> collect(String type, [int? position]) async {
@@ -356,7 +358,7 @@ final class CatalogScopedWorkingMutation {
                 ]));
           final preserved = _preserveUntouched(rawAggregate, previous, projectedJson[field]);
           List<int> aggregateBytes = utf8.encode(jsonEncode(preserved));
-          final generatedHeader = generated.units.where((unit) =>
+          late final generatedHeader = generated.units.where((unit) =>
               unit.payload['section'] == r'$projectAggregateHeader' &&
               (unit.payload['value'] as Map)['field'] == field).firstOrNull;
           if (header == null && generatedHeader == null && aggregateBytes.length <= 8192) {

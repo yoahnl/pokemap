@@ -91,15 +91,29 @@ final class EventV2Actions {
           maps: context.snapshot.maps, records: records,
           presentationMediaCatalog: presentationMediaCatalog,
           lookupRewardScenes: context.snapshot.lookupRewardScenes);
+      final before = {
+        for (final record in context.snapshot.manifest.eventRegistry?.records ??
+            const <NarrativeEventRecord>[])
+          record.id: record
+      };
+      final after = {
+        for (final record in projected.eventRegistry!.records) record.id: record
+      };
+      final changed = {
+        for (final id in {...before.keys, ...after.keys})
+          if (before[id] != after[id]) id
+      };
       return narrativeProjectDraft(context.snapshot, projected,
           operation: context.request.actionId,
           path: '/eventRegistry/records',
-          before: context.snapshot.manifest.eventRegistry?.records
-              .map((record) => record.toJson())
-              .toList(),
-          after: projected.eventRegistry!.records
-              .map((record) => record.toJson())
-              .toList(),
+          before: {
+            for (final id in changed)
+              if (before[id] case final record?) id: record.toJson()
+          },
+          after: {
+            for (final id in changed)
+              if (after[id] case final record?) id: record.toJson()
+          },
           preview: {'recordIds': records.map((record) => record.id).toList()});
     }
     if (context.request.actionId == 'event_v2.registry_mode.set') {

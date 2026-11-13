@@ -53,6 +53,57 @@ void main() {
             original, '/not-read', {'b'}),
         {_id(2)});
   });
+  test('one changed event rewrites only its document and touched owners',
+      () async {
+    final beforeSource = _source(_registry([
+      for (var i = 1; i <= 400; i++) _record(i, sceneId: 'scene-$i'),
+    ]));
+    final before = {
+      for (final unit in beforeSource) unit.key: unit,
+      for (final unit
+          in CatalogNarrativeEventDocuments.initialize(beforeSource))
+        unit.key: unit
+    };
+    final afterSource = _source(_registry([
+      _record(1, sceneId: 'scene-1'),
+      _record(2, name: 'Renamed', sceneId: 'scene-2'),
+      _record(3, sceneId: 'scene-4'),
+      for (var i = 4; i <= 400; i++) _record(i, sceneId: 'scene-$i'),
+    ]));
+    final upserts = afterSource
+        .where((unit) =>
+            jsonEncode(before[unit.key]?.toJson()) !=
+            jsonEncode(unit.toJson()))
+        .toList();
+
+    final indexed = await CatalogNarrativeEventDocuments.maintain(
+        lookup: (key) async => before[key], upserts: upserts, removals: const []);
+
+    expect(indexed.map((unit) => unit.key).toSet(), {
+      CatalogNarrativeEventDocuments.recordKey(_id(2)),
+      CatalogNarrativeEventDocuments.recordKey(_id(3)),
+      CatalogNarrativeEventDocuments.sceneOwnerKey('scene-3'),
+      CatalogNarrativeEventDocuments.sceneOwnerKey('scene-4'),
+    });
+    final next = {...before};
+    for (final unit in [...upserts, ...indexed]) {
+      next[unit.key] = unit;
+    }
+    final snapshot = await _snapshot(next.values);
+    final selected =
+        await CatalogNarrativeEventDocuments.read(snapshot, {_id(2), _id(3)});
+    expect(selected!.records.first.draftOrNull!.name, 'Renamed');
+    expect(selected.records.last.draftOrNull!.sceneId, 'scene-4');
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            snapshot, '/not-read', {'scene-3'}),
+        isEmpty);
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            snapshot, '/not-read', {'scene-4'}),
+        {_id(3), _id(4)});
+  });
+
   test('legacy owner cache rejects changed registry until explicit reopen',
       () async {
     final qa = Directory(

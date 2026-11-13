@@ -361,8 +361,9 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
       }
       maps.add(decoded);
     }
-    final resources = await ProjectCatalogSelection(catalog)
-        .forMaps(maps, additionalRoots: roots);
+    final resources = await ProjectCatalogSelection(catalog).forMaps(
+        actionId.startsWith('event_v2.') ? const [] : maps,
+        additionalRoots: roots);
     manifest = manifest.copyWith(
         tilesets: resources.tilesets,
         elements: resources.elements,

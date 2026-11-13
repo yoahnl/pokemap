@@ -123,7 +123,7 @@ final class CatalogAuthoringSession {
   ({String requestKey, String revision, CatalogModelSourceSelection selection})?
       _modelSourceSelection;
   ({String requestKey, CatalogWorkshopSelection selection})?
-      _modelPruneSelection;
+      _workshopSelection;
   final Map<String, CatalogEditingPlan> _plans = {};
   final Map<String, String> _operations = {};
   final Map<String, Map<String, String>> _battleGifs = {};
@@ -410,7 +410,7 @@ final class CatalogAuthoringSession {
       Map<String, String> readDependencies = const {}}) async {
     requireRead();
     _modelSourceSelection = null;
-    _modelPruneSelection = null;
+    _workshopSelection = null;
     if (actionId == 'map3d.edit_batch' &&
         !CatalogSpatialMapSelection.supports(actionId,parameters:parameters)) {
       throw AuthoringPlanException(code:'map3d.edit_batch.scope_unsupported',
@@ -443,9 +443,10 @@ final class CatalogAuthoringSession {
     final selection = await CatalogWorkshopSelection.read(reader: current,
         projectHandle: projectHandle, actionId: actionId,
         parameters: parameters, readDependencies: readDependencies);
-    if (actionId == 'model3d.prune_unused') {
-      _modelPruneSelection = (
-        requestKey: _modelSourceRequestKey(actionId, parameters),
+    if (actionId == 'model3d.prune_unused' ||
+        _reusableWorkshopActions.contains(actionId)) {
+      _workshopSelection = (
+        requestKey: _workshopRequestKey(actionId, parameters, readDependencies),
         selection: selection,
       );
     }
@@ -561,8 +562,8 @@ final class CatalogAuthoringSession {
   }
 
   Future<AuthoringMutationPlanResult> _planWorkshop(AuthoringRequest request) async {
-    final previousPrune = _modelPruneSelection;
-    _modelPruneSelection = null;
+    final previous = _workshopSelection;
+    _workshopSelection = null;
     final mediaArtifacts = {
       ...await _prepareBattleGifs(request),
       ...await _prepareBattleCry(request),
@@ -570,24 +571,32 @@ final class CatalogAuthoringSession {
     };
     final current = (await CatalogProjectReader.open(store: reader.store,
         descriptor: reader.descriptor, metadataFields: {}))!;
+    final readDependencies = Map<String, String>.from(
+        request.extensions['workshopReadDependencies'] as Map? ?? const {});
+    final reusable = previous != null &&
+        previous.requestKey ==
+            _workshopRequestKey(
+                request.actionId, request.parameters, readDependencies) &&
+        previous.selection.snapshot.revision == request.expectedRevision;
     final CatalogWorkshopSelection selection;
-    if (request.actionId == 'model3d.prune_unused' &&
-        previousPrune != null &&
-        previousPrune.requestKey ==
-            _modelSourceRequestKey(request.actionId, request.parameters) &&
-        previousPrune.selection.snapshot.revision == request.expectedRevision) {
-      selection = previousPrune.selection;
+    if (request.actionId == 'model3d.prune_unused' && reusable) {
+      selection = previous.selection;
       if (current.catalog.snapshot.root !=
           selection.reader.catalog.snapshot.root) {
         throw AuthoringPlanException(
             code: 'plan.stale', message: 'The library changed after its audit.');
       }
       await selection.requireCurrent();
+    } else if (reusable &&
+        _reusableWorkshopActions.contains(request.actionId) &&
+        current.catalog.snapshot.root ==
+            previous.selection.reader.catalog.snapshot.root) {
+      selection = previous.selection;
+      await selection.requireCurrent();
     } else {
       selection = await CatalogWorkshopSelection.read(reader: current,
           projectHandle: projectHandle, actionId: request.actionId,
-          parameters: request.parameters, readDependencies: Map<String, String>.from(
-              request.extensions['workshopReadDependencies'] as Map? ?? const {}));
+          parameters: request.parameters, readDependencies: readDependencies);
     }
     selection.requireSafeParameters(request);
     var scopedRequest = request;
@@ -888,6 +897,19 @@ final class CatalogAuthoringSession {
   String _modelSourceRequestKey(
           String actionId, Map<String, Object?> parameters) =>
       canonicalAuthoringJson({'actionId': actionId, 'parameters': parameters});
+
+  static const _reusableWorkshopActions = {
+    'event_v2.record_upsert',
+    'event_v2.record_upsert_batch',
+  };
+
+  String _workshopRequestKey(String actionId, Map<String, Object?> parameters,
+          Map<String, String> readDependencies) =>
+      canonicalAuthoringJson({
+        'actionId': actionId,
+        'parameters': parameters,
+        'readDependencies': readDependencies,
+      });
 
   Future<AuthoringMutationPlanResult> _planModelSource(AuthoringRequest request) async {
     final previous = _modelSourceSelection;
@@ -1869,7 +1891,7 @@ final class CatalogAuthoringSession {
     final opening = _editingFuture;
     _editingFuture = null;
     _modelSourceSelection = null;
-    _modelPruneSelection = null;
+    _workshopSelection = null;
     _plans.clear();
     _operations.clear();
     _battleGifs.clear();

@@ -1021,6 +1021,82 @@ void main() {
     expect(sceneEdit.availableProjectDocuments!['scenes'], {scene.id});
   });
 
+  test('an event batch edit stays bounded next to 400 unrelated records',
+      () async {
+    final observer = _CaptureWorkObserver();
+    final fixture = await _Fixture.open(captureObserver: observer);
+    addTearDown(fixture.close);
+    String id(int index) =>
+        'evt_019abcde-0000-7000-8000-${index.toRadixString(16).padLeft(12, '0')}';
+    Map<String, Object?> draft(int index, String name) =>
+        NarrativeEventRecord.draft(NarrativeEventDraft(
+                id: id(index),
+                name: name,
+                conditions: const [],
+                priority: 0,
+                order: index))
+            .toJson();
+    for (var start = 0; start < 400; start += 100) {
+      await _applyScoped(
+          fixture,
+          'event_v2.record_upsert_batch',
+          {
+            'records': [
+              for (var i = start; i < start + 100; i++) draft(i, 'Event $i')
+            ]
+          },
+          'seed-$start');
+    }
+    Future<int> planDecodes(int index, {required bool reuse}) async {
+      final parameters = <String, Object?>{
+        'records': [draft(index, 'Renamed $index')]
+      };
+      final snapshot = await fixture.api.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'event_v2.record_upsert_batch',
+          parameters: parameters);
+      if (!reuse) {
+        await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+            actionId: 'fact.create',
+            parameters: {
+              'fact': NarrativeFactDefinition(id: 'other', label: 'Other')
+                  .toJson()
+            });
+      }
+      observer.counters.clear();
+      final planned = await fixture.api.planMutation(
+          fixture.opened.projectHandle,
+          AuthoringRequest(
+              requestId: 'rename-$index',
+              actionId: 'event_v2.record_upsert_batch',
+              actionVersion: 1,
+              workspaceHandle: fixture.opened.workspaceHandle.value,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: 'rename-$index',
+              parameters: parameters,
+              extensions: const {'workshopScope': true}));
+      final decodes =
+          observer.counters[AuthoringPerformanceCounterName.jsonDecode] ?? 0;
+      final entry = planned.plan.changeSet.diff.entries
+          .singleWhere((entry) => entry.path == '/eventRegistry/records');
+      expect((entry.before as Map).keys, [id(index)]);
+      expect((entry.after as Map).keys, [id(index)]);
+      observer.counters.clear();
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: planned.planId, operationId: 'rename-$index');
+      expect(
+          observer.counters[AuthoringPerformanceCounterName
+                  .gatewayJournalCompletedWriteInputBytes] ??
+              0,
+          lessThan(64 * 1024));
+      return decodes;
+    }
+
+    final reused = await planDecodes(7, reuse: true);
+    final reread = await planDecodes(9, reuse: false);
+    expect(reused, lessThan(reread));
+  });
+
   test('first and repeated fact publications ignore unrelated maps and assets',
       () async {
     final fixture = await _Fixture.open();

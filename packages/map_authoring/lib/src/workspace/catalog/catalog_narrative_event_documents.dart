@@ -225,43 +225,61 @@ abstract final class CatalogNarrativeEventDocuments {
 
     final before = _decode(await capture(false));
     final after = _decode(await capture(true));
-    final next = _project(after);
-    final afterIds = {
-      for (final raw in after?['records'] as List? ?? const []) _recordId(raw)
+    final beforeRegistry =
+        before == null ? null : NarrativeEventRegistry.fromJson(before);
+    final afterRegistry =
+        after == null ? null : NarrativeEventRegistry.fromJson(after);
+    final next = <CatalogDefinitionUnit>[];
+    final index = _indexUnit(after);
+    if (jsonEncode(_indexUnit(before).payload) != jsonEncode(index.payload)) {
+      next.add(index);
+    }
+    final beforeRaw = before?['records'] as List? ?? const [];
+    final previous = <String, String>{
+      for (var i = 0; i < beforeRaw.length; i++)
+        beforeRegistry!.records[i].id: jsonEncode(beforeRaw[i]),
     };
-    for (final raw in before?['records'] as List? ?? const []) {
-      final id = _recordId(raw);
+    final afterRaw = after?['records'] as List? ?? const [];
+    final afterIds = <String>{};
+    for (var i = 0; i < afterRaw.length; i++) {
+      final id = afterRegistry!.records[i].id;
+      afterIds.add(id);
+      if (previous[id] != jsonEncode(afterRaw[i])) {
+        next.addAll(_recordUnits(afterRaw[i]));
+      }
+    }
+    for (final id in previous.keys) {
       if (!afterIds.contains(id)) {
         next.add(CatalogDefinitionUnit(
             key: recordKey(id),
             payload: {'id': recordKey(id).id, 'eventId': id, 'deleted': true}));
       }
     }
-    final previousOwners = _sceneOwners([
-      for (final record in before?['records'] as List? ?? const [])
-        NarrativeEventRecord.fromJson(record)
-    ]);
-    final nextOwners = _sceneOwners([
-      for (final record in after?['records'] as List? ?? const [])
-        NarrativeEventRecord.fromJson(record)
-    ]);
-    for (final sceneId in previousOwners.keys
-        .where((sceneId) => !nextOwners.containsKey(sceneId))) {
-      next.add(_sceneOwnerUnit(sceneId, const {}));
+    final previousOwners = _sceneOwners(beforeRegistry?.records ?? const []);
+    final nextOwners = _sceneOwners(afterRegistry?.records ?? const []);
+    for (final sceneId in {...previousOwners.keys, ...nextOwners.keys}) {
+      final owners = nextOwners[sceneId] ?? const <String>{};
+      final prior = previousOwners[sceneId] ?? const <String>{};
+      if (owners.length != prior.length || !owners.containsAll(prior)) {
+        next.add(_sceneOwnerUnit(sceneId, owners));
+      }
     }
     return next;
   }
 
-  static List<CatalogDefinitionUnit> _project(Map<String, Object?>? raw) {
-    if (raw != null) NarrativeEventRegistry.fromJson(raw);
-    return [
+  static CatalogDefinitionUnit _indexUnit(Map<String, Object?>? raw) =>
       CatalogDefinitionUnit(key: indexKey, payload: {
         'indexVersion': 2,
         'sceneOwnersVersion': 1,
         'present': raw != null,
         if (raw != null) 'schemaVersion': raw['schemaVersion'],
         if (raw != null) 'mode': raw['mode'],
-      }),
+      });
+
+  static List<CatalogDefinitionUnit> _project(Map<String, Object?>? raw) {
+    if (raw != null) NarrativeEventRegistry.fromJson(raw);
+    return [
+      _indexUnit(raw),
       for (final record in raw?['records'] as List? ?? const [])
         ..._recordUnits(record),
       for (final entry in _sceneOwners([
