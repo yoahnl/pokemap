@@ -173,6 +173,9 @@ class MapBuilderAmbianceBinding {
 
   bool get audioMore => _audioCursor != null;
 
+  static bool _shipped(String? path) =>
+      path != null && const {'assets', 'data'}.contains(path.split('/').first);
+
   Future<void> loadAudio({bool more = false}) async {
     final port = maps.port;
     if (port is! ProjectAudioPort) return;
@@ -189,7 +192,7 @@ class MapBuilderAmbianceBinding {
       if (generation != _audioGeneration) return;
       audio = [
         if (more) ...audio,
-        ...page.entries.where((entry) => entry.path != null),
+        ...page.entries.where((entry) => _shipped(entry.path)),
       ];
       _audioCursor = page.nextCursor;
       audioLoaded = true;

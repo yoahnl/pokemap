@@ -48,6 +48,11 @@ class _VisualsPort extends WorkspaceMemoryPort
       label: 'combat.wav',
       path: 'assets/audio/johto/arene/combat.wav',
     ),
+    ProjectAudioEntry(
+      id: 'title',
+      label: 'titre.m4a',
+      path: 'presentation/demarrage/titre.m4a',
+    ),
   ];
 
   @override
@@ -566,6 +571,7 @@ void main() {
 
     expect(find.text('Aucune musique'), findsNWidgets(2));
     expect(find.text('arene · combat'), findsOneWidget);
+    expect(key('map-ambiance-music-track-title'), findsNothing);
     expect(key('map-ambiance-music-volume'), findsNothing);
 
     await tester.tap(key('map-ambiance-music-track-town'));
