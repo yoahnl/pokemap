@@ -64,7 +64,22 @@ enum MapWorkspaceWorkshop {
       'pokemon',
       'eventRegistry',
     },
-    story || events || world || verification => const {
+    events => const {
+      'facts',
+      'storylines',
+      'scenes',
+      'dialogues',
+      'cinematics',
+      'presentationCinematics',
+      'eventRegistry',
+      'worldRules',
+      'scenarios',
+      'narrativeDiagnosticSuppressions',
+      'cinematicMediaAssets',
+      'encounterTables',
+      'badges',
+    },
+    story || world || verification => const {
       'facts',
       'storylines',
       'scenes',
