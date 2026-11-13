@@ -3,6 +3,7 @@ part of 'catalog_workshop_selection.dart';
 const _sceneWorkshopActions = {
   'event_v2.record_upsert',
   'event_v2.record_upsert_batch',
+  'event_v2.delete',
   'world_rule.create',
   'world_rule.update',
   'world_rule.upsert_batch',
@@ -26,6 +27,10 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
   });
   return selected.read((catalog) async {
     await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
+    if (actionId == 'event_v2.delete' && parameters['eventId'] is String) {
+      await _requireUnusedEvent(catalog.snapshot,
+          catalog.projectMetadata.eventRegistry, parameters['eventId'] as String);
+    }
     final ids = <String, Set<String>>{};
     void add(String field, Iterable<String> values) {
       final filtered = values.where((value) => value.isNotEmpty).toSet();
@@ -431,6 +436,32 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
     await result.requireCurrent();
     return result;
   });
+}
+
+Future<void> _requireUnusedEvent(CatalogSnapshot snapshot,
+    NarrativeEventRegistry? registry, String eventId) async {
+  final external =
+      await CatalogNarrativeEventConsumers.consumersOf(snapshot, eventId);
+  if (external == null) {
+    throw AuthoringPlanException(
+        code: 'catalog.narrative_event_consumers.preparation_required',
+        message:
+            'Deleting a behaviour on this catalog needs the prepared index of the world rules and maps that use behaviours.',
+        remediation: const [
+          'Nothing was changed. Prepare the workshop catalog with scope ${CatalogNarrativeEventConsumers.preparationScope}, then retry the deletion.'
+        ]);
+  }
+  if (external.isEmpty) return;
+  throw NarrativeAuthoringException(
+      'eventReferenced', 'Cet événement est encore utilisé par le projet.',
+      details: {
+        'eventId': eventId,
+        'consumers': distinctNarrativeEventConsumers([
+          ...narrativeEventRegistryConsumers(registry, eventId),
+          for (final consumer in external)
+            {'kind': consumer.kind, 'id': consumer.id, 'label': consumer.label},
+        ]),
+      });
 }
 
 Object? _withoutRewardReferences(Object? value) => switch (value) {

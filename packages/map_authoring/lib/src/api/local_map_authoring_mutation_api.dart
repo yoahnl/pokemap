@@ -599,7 +599,7 @@ final class LocalMapAuthoringMutationApi
   }
 
   Future<void> prepareWorkshopCatalog(ProjectHandle handle, {String? scope}) async {
-    if (scope != null && !const {'mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext', 'resourceIndexes'}.contains(scope)) throw const FormatException('catalog.preparation_scope_unsupported');
+    if (scope != null && !const {'mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext', 'resourceIndexes', 'narrativeEventConsumers'}.contains(scope)) throw const FormatException('catalog.preparation_scope_unsupported');
     final session = _catalogSession(handle);
     if (session == null) {
       if (scope != null) throw const FormatException('catalog.preparation_requires_catalog');
@@ -658,7 +658,7 @@ final class LocalMapAuthoringMutationApi
       };
     }
     return {'prepared': true, if (current != null) 'snapshotRevision': current.revision,
-      'scope': scope == 'resourceIndexes' ? 'explicitResourceUsageAndFamilyIndexes' : scope == 'dialogueCreation' ? 'explicitDialoguePathOwnershipIndex' : scope == 'nativeResources' ? 'explicitNativeResourcePositions' : scope == 'assetImport' ? 'explicitAssetImportPositions' : scope == 'mapCreation' ? 'explicitMapOwnershipIndex' : catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
+      'scope': scope == 'resourceIndexes' ? 'explicitResourceUsageAndFamilyIndexes' : scope == 'narrativeEventConsumers' ? 'explicitNarrativeEventConsumerIndex' : scope == 'dialogueCreation' ? 'explicitDialoguePathOwnershipIndex' : scope == 'nativeResources' ? 'explicitNativeResourcePositions' : scope == 'assetImport' ? 'explicitAssetImportPositions' : scope == 'mapCreation' ? 'explicitMapOwnershipIndex' : catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
   }
 
   Future<bool> catalogProjectReadOnly(ProjectHandle handle) async {
@@ -790,7 +790,15 @@ final class LocalMapAuthoringMutationApi
         actions: _dispatcher.descriptors,
         fullParity: AuthoringFullParityCatalog.canonical(),
         workshopPreparation: const {
-          'scopes': ['mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext', 'resourceIndexes'],
+          'scopes': ['mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext', 'resourceIndexes', 'narrativeEventConsumers'],
+          'narrativeEventConsumers': {
+            'readsWorldRules': true,
+            'readsMaps': true,
+            'changesHead': true,
+            'preservesProjectData': true,
+            'routineEditsMaintainIndexes': true,
+            'requiredBy': ['event_v2.delete'],
+          },
           'resourceIndexes': {
             'requiresPreparedLocalEditingIndexes': true,
             'readsProject': true,

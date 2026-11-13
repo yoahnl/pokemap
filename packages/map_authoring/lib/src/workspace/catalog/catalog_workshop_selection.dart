@@ -9,6 +9,7 @@ import '../../domains/assets/asset_store.dart';
 import '../../domains/assets/project_media_store.dart';
 import '../../domains/narrative/dialogue_source_store.dart';
 import '../../domains/narrative/dialogue_authoring_service.dart';
+import '../../domains/narrative/event_actions.dart';
 import '../../domains/narrative/narrative_authoring_exception.dart';
 import '../../domains/narrative/scene_party_move_catalog.dart';
 import '../../support/authoring_fingerprint.dart';
@@ -19,6 +20,7 @@ import '../project_snapshot.dart';
 import '../workspace_handle_store.dart';
 import 'catalog_project_reader.dart';
 import 'catalog_metadata_documents.dart';
+import 'catalog_narrative_event_consumers.dart';
 import 'catalog_narrative_event_documents.dart';
 import 'catalog_resource_positions.dart';
 import 'catalog_resource_usage_index.dart';
@@ -135,6 +137,7 @@ final class CatalogWorkshopSelection {
         'dialogue.source_update',
         'event_v2.record_upsert',
         'event_v2.record_upsert_batch',
+        'event_v2.delete',
         'event_v2.registry_mode.set',
         'world_rule.create',
         'world_rule.update',

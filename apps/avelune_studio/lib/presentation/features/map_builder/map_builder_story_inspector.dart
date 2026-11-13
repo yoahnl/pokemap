@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
@@ -285,8 +286,23 @@ String _storyError(String error, AppLocalizations l10n) => switch (error) {
   _ when error.startsWith(MapBuilderStoryBinding.deactivated) =>
     '${l10n.storyDeactivated} ${error.substring(MapBuilderStoryBinding.deactivated.length)}'
         .trim(),
-  _ => error,
+  _ => switch (EventDeletionRefused.parse(error)) {
+    final refusal? when refusal.coverageUnknown =>
+      l10n.storyDeleteCoverageUnknown,
+    final refusal? => l10n.storyDeleteInUse(
+      refusal.users.map((user) => _storyDeleteUser(user, l10n)).join(', '),
+    ),
+    null => error,
+  },
 };
+
+String _storyDeleteUser(EventDeletionUser user, AppLocalizations l10n) =>
+    switch (user.kind) {
+      'event' => l10n.storyDeleteUserEvent(user.label),
+      'worldRule' => l10n.storyDeleteUserWorldRule(user.label),
+      'map' => l10n.storyDeleteUserMap(user.label),
+      _ => l10n.storyDeleteUserOther(user.label),
+    };
 
 class _Properties extends StatelessWidget {
   const _Properties({

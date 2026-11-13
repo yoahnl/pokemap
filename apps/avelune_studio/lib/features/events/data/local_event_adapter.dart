@@ -1,6 +1,8 @@
 import 'package:map_authoring/map_authoring.dart'
     show
+        AuthoringPlanException,
         AuthoringTransactionFaultInjector,
+        NarrativeAuthoringException,
         ProjectSnapshot,
         StandardEventTemplateSpec,
         decodeProjectMediaCatalogBytes,
@@ -133,6 +135,36 @@ class LocalEventAdapter
   }
 
   Future<ResourceMutationReceipt> _publish(
+    String actionId,
+    List<EventRecordChange> changes,
+  ) async {
+    try {
+      return await _run(actionId, changes);
+    } on NarrativeAuthoringException catch (failure) {
+      if (actionId != 'event_v2.delete' ||
+          failure.code != 'eventReferenced') {
+        rethrow;
+      }
+      throw EventDeletionRefused.inUse([
+        for (final consumer
+            in failure.details['consumers'] as List? ?? const [])
+          if (consumer case {
+            'kind': final String kind,
+            'label': final String label,
+          })
+            (kind: kind, label: label),
+      ]);
+    } on AuthoringPlanException catch (failure) {
+      if (actionId != 'event_v2.delete' ||
+          failure.code !=
+              'catalog.narrative_event_consumers.preparation_required') {
+        rethrow;
+      }
+      throw EventDeletionRefused.coverageUnknown();
+    }
+  }
+
+  Future<ResourceMutationReceipt> _run(
     String actionId,
     List<EventRecordChange> changes,
   ) =>

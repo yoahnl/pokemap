@@ -534,23 +534,72 @@ final class EventV2Actions {
     PeriodicRewardSceneLookup? lookupRewardScenes,
     required String revision,
     required String eventId,
-  }) =>
-      _apply(
-        project,
-        deleteNarrativeEvent(
-          context: _context(project,
-              maps: maps,
-              revision: revision,
-              presentationMediaCatalog: presentationMediaCatalog,
-              lookupRewardScenes: lookupRewardScenes),
-          expectedRevision: revision,
-          eventId: eventId,
-          dependencyIndex: buildNarrativeDependencyIndex(
-            project: project,
+  }) {
+    final index = buildNarrativeDependencyIndex(project: project, maps: maps);
+    return _apply(
+      project,
+      deleteNarrativeEvent(
+        context: _context(project,
             maps: maps,
-          ),
-        ),
-      );
+            revision: revision,
+            presentationMediaCatalog: presentationMediaCatalog,
+            lookupRewardScenes: lookupRewardScenes),
+        expectedRevision: revision,
+        eventId: eventId,
+        dependencyIndex: index,
+      ),
+      dependencyIndex: index,
+    );
+  }
+}
+
+List<Map<String, Object?>> narrativeEventRegistryConsumers(
+    NarrativeEventRegistry? registry, String eventId) {
+  if (registry == null) return const [];
+  final index = buildNarrativeDependencyIndex(
+      project: ProjectManifest(
+          name: 'Event registry',
+          maps: const [],
+          tilesets: const [],
+          eventRegistry: registry));
+  final target = NarrativeDependencyKey.eventV2(eventId);
+  return distinctNarrativeEventConsumers([
+    for (final usage in index.usagesFor(target))
+      if (usage.owner != target) describeNarrativeEventConsumer(usage, index),
+    for (final claim in registry.legacyClaims)
+      if (claim.targetEventIds.contains(eventId))
+        {'kind': 'legacySourceClaim', 'id': claim.cohortId, 'label': claim.cohortId},
+  ]);
+}
+
+List<Map<String, Object?>> distinctNarrativeEventConsumers(
+    Iterable<Map<String, Object?>> consumers) {
+  final seen = <(Object?, Object?)>{};
+  return [
+    for (final consumer in consumers)
+      if (seen.add((consumer['kind'], consumer['id']))) consumer,
+  ];
+}
+
+Map<String, Object?> describeNarrativeEventConsumer(
+    NarrativeDependencyUsage usage, NarrativeDependencyIndex index) {
+  final owner = usage.owner;
+  final label = index.definitionsFor(owner).firstOrNull?.label;
+  final kind = switch (owner.kind) {
+    NarrativeDependencyTargetKind.eventV2 => 'event',
+    NarrativeDependencyTargetKind.worldRule => 'worldRule',
+    NarrativeDependencyTargetKind.sourceMap
+        when owner.sourceKind == 'legacySourceClaim' =>
+      'legacySourceClaim',
+    NarrativeDependencyTargetKind.sourceMap when owner.sourceKind == 'map' =>
+      'map',
+    _ => owner.kind.name,
+  };
+  return {
+    'kind': kind,
+    'id': owner.id,
+    'label': label == null || label.isEmpty ? owner.id : label,
+  };
 }
 
 NarrativeEventAuthoringContext _context(
@@ -583,8 +632,9 @@ NarrativeEventAuthoringContext _context(
 
 ProjectManifest _apply(
   ProjectManifest project,
-  NarrativeEventAuthoringResult result,
-) {
+  NarrativeEventAuthoringResult result, {
+  NarrativeDependencyIndex? dependencyIndex,
+}) {
   switch (result.status) {
     case NarrativeEventAuthoringStatus.applied:
       return project.copyWith(eventRegistry: result.nextRegistry!);
@@ -599,6 +649,14 @@ ProjectManifest _apply(
         result.humanReason ?? 'The canonical Event V2 operation was rejected.',
         details: {
           'status': result.status.name,
+          if (result.deletionPreview case final preview?
+              when dependencyIndex != null && !preview.canDelete) ...{
+            'eventId': preview.eventId,
+            'consumers': distinctNarrativeEventConsumers([
+              for (final usage in preview.consumers)
+                describeNarrativeEventConsumer(usage, dependencyIndex),
+            ]),
+          },
           'diagnostics': [
             for (final item in result.diagnostics)
               {

@@ -25,6 +25,7 @@ import 'catalog_targeted_map_edit.dart';
 import 'catalog_spatial_map_selection.dart';
 import 'catalog_model_source_selection.dart';
 import 'catalog_workshop_selection.dart';
+import 'catalog_narrative_event_consumers.dart';
 import 'catalog_resource_usage_index.dart';
 import 'catalog_resource_index_snapshot.dart';
 import 'catalog_scoped_working_mutation.dart';
@@ -475,6 +476,10 @@ final class CatalogAuthoringSession {
       await (await _editing()).prepareDialogueCreation();
       return;
     }
+    if (scope == CatalogNarrativeEventConsumers.preparationScope) {
+      await (await _editing()).prepareNarrativeEventConsumers();
+      return;
+    }
     await preparePendingTransactionJournals(reader.store.gateway);
     if (scope == 'assetImport' || scope == 'nativeResources') {
       await (await _editing()).prepareAssetImport(nativeResources: scope == 'nativeResources');
@@ -901,6 +906,7 @@ final class CatalogAuthoringSession {
   static const _reusableWorkshopActions = {
     'event_v2.record_upsert',
     'event_v2.record_upsert_batch',
+    'event_v2.delete',
   };
 
   String _workshopRequestKey(String actionId, Map<String, Object?> parameters,

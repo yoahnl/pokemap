@@ -78,6 +78,12 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
           );
           attached = true;
           await api.prepareWorkshopCatalog(opened.projectHandle);
+          if (catalog != null) {
+            await api.prepareWorkshopCatalog(
+              opened.projectHandle,
+              scope: 'narrativeEventConsumers',
+            );
+          }
         } finally {
           if (attached) await api.detachWorkspace(opened.workspaceHandle);
         }

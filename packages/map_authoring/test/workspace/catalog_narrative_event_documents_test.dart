@@ -53,6 +53,76 @@ void main() {
             original, '/not-read', {'b'}),
         {_id(2)});
   });
+  test('a deleted event leaves no document, chunk or empty owner row',
+      () async {
+    final large = NarrativeEventRecord.draft(NarrativeEventDraft(
+        id: _id(2),
+        name: 'x' * 20000,
+        sceneId: 'alone',
+        conditions: const [],
+        priority: 0,
+        order: 2));
+    final beforeSource =
+        _source(_registry([_record(1, sceneId: 'shared'), large]));
+    final before = {
+      for (final unit in [
+        ...beforeSource,
+        ...CatalogNarrativeEventDocuments.initialize(beforeSource)
+      ])
+        unit.key: unit
+    };
+    final document = before[CatalogNarrativeEventDocuments.recordKey(_id(2))]!;
+    expect(document.payload['chunkCount'], greaterThan(0));
+    final afterSource = _source(_registry([_record(1, sceneId: 'shared')]));
+    final afterKeys = afterSource.map((unit) => unit.key).toSet();
+    final upserts = afterSource
+        .where((unit) =>
+            jsonEncode(before[unit.key]?.toJson()) !=
+            jsonEncode(unit.toJson()))
+        .toList();
+    final removals = beforeSource
+        .map((unit) => unit.key)
+        .where((key) => !afterKeys.contains(key))
+        .toList();
+    Future<CatalogDefinitionUnit?> lookup(CatalogDefinitionKey key) async =>
+        before[key];
+
+    final settled = await CatalogNarrativeEventDocuments.settle(
+        await CatalogNarrativeEventDocuments.maintain(
+            lookup: lookup, upserts: upserts, removals: removals),
+        lookup);
+
+    expect(
+        settled.upserts.where((unit) =>
+            unit.payload['deleted'] == true ||
+            unit.key == CatalogNarrativeEventDocuments.recordKey(_id(2)) ||
+            unit.key == CatalogNarrativeEventDocuments.sceneOwnerKey('alone')),
+        isEmpty);
+    expect(settled.removals.toSet(), {
+      CatalogNarrativeEventDocuments.recordKey(_id(2)),
+      for (var i = 0; i < (document.payload['chunkCount'] as int); i++)
+        CatalogDefinitionKey(CatalogDefinitionKind.workspaceState,
+            jsonEncode(['narrativeEventDocumentChunk', _id(2), i])),
+      CatalogNarrativeEventDocuments.sceneOwnerKey('alone'),
+    });
+    final next = {...before}
+      ..removeWhere((key, _) =>
+          removals.contains(key) || settled.removals.contains(key));
+    for (final unit in [...upserts, ...settled.upserts]) {
+      next[unit.key] = unit;
+    }
+    final committed = await _snapshot(next.values);
+    expect(
+        (await CatalogNarrativeEventDocuments.read(committed, {_id(1), _id(2)}))!
+            .records
+            .map((record) => record.id),
+        [_id(1)]);
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            committed, '/not-read', {'alone'}),
+        isEmpty);
+  });
+
   test('one changed event rewrites only its document and touched owners',
       () async {
     final beforeSource = _source(_registry([

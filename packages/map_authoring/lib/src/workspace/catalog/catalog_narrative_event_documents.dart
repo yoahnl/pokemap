@@ -267,6 +267,44 @@ abstract final class CatalogNarrativeEventDocuments {
     return next;
   }
 
+  static Future<
+      ({
+        List<CatalogDefinitionUnit> upserts,
+        List<CatalogDefinitionKey> removals
+      })> settle(
+    Iterable<CatalogDefinitionUnit> units,
+    Future<CatalogDefinitionUnit?> Function(CatalogDefinitionKey) lookup,
+  ) async {
+    final upserts = <CatalogDefinitionUnit>[];
+    final removals = <CatalogDefinitionKey>[];
+    for (final unit in units) {
+      if (isRecordKey(unit.key) && unit.payload['deleted'] == true) {
+        final previous = await lookup(unit.key);
+        if (previous == null) continue;
+        removals.add(unit.key);
+        final count = previous.payload['chunkCount'];
+        if (count is int) {
+          final id = unit.payload['eventId'] as String;
+          for (var i = 0; i < count; i++) {
+            removals.add(_recordChunkKey(id, i));
+          }
+        }
+        continue;
+      }
+      if (_isSceneOwnerKey(unit.key) &&
+          (unit.payload['eventIds'] as List).isEmpty) {
+        if (await lookup(unit.key) != null) removals.add(unit.key);
+        continue;
+      }
+      upserts.add(unit);
+    }
+    return (upserts: upserts, removals: removals);
+  }
+
+  static bool _isSceneOwnerKey(CatalogDefinitionKey key) =>
+      key.kind == CatalogDefinitionKind.workspaceState &&
+      key.id.startsWith('["sceneEventOwners",');
+
   static CatalogDefinitionUnit _indexUnit(Map<String, Object?>? raw) =>
       CatalogDefinitionUnit(key: indexKey, payload: {
         'indexVersion': 2,

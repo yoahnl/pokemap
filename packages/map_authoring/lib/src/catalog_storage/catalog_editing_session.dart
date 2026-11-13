@@ -27,6 +27,8 @@ import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
 import '../transactions/revision_set.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
+import '../workspace/catalog/catalog_narrative_event_consumers.dart';
+import '../workspace/catalog/catalog_narrative_event_documents.dart';
 import '../workspace/catalog/catalog_periodic_reward_consumers.dart';
 import '../workspace/catalog/catalog_resource_positions.dart';
 import '../workspace/catalog/catalog_resource_usage_index.dart';
@@ -424,6 +426,26 @@ final class CatalogEditingSession {
     await _apply(plan);
   });
 
+  Future<void> prepareNarrativeEventConsumers() => _serialize(() async {
+        _requireOpen();
+        if (await CatalogNarrativeEventConsumers.prepared(snapshot)) return;
+        final index = await CatalogNarrativeEventConsumers.prepare(
+            snapshot: snapshot, store: store);
+        final plan = await _planPatch(
+            upserts: index.units,
+            removals: const [],
+            additionalChanges: const [],
+            workspaceFingerprint: null,
+            publicBaseRevision: index.revision,
+            publicDiff: null,
+            publicPlan: null,
+            currentProjectRevision: index.currentRevision,
+            idempotencyKey: _token('narrative_event_consumers_prepare_'),
+            request: null,
+            prepareMetadataDocuments: true);
+        await _apply(plan);
+      });
+
   Future<void> prepareMetadataDocuments({bool force = false}) =>
       _serialize(() async {
         _requireOpen();
@@ -606,13 +628,22 @@ final class CatalogEditingSession {
           key: key,
           payload: {'id': 'workspace', 'fingerprint': workspaceFingerprint}));
     }
-    units.addAll(await CatalogMetadataDocuments.maintain(
-        lookup: base.lookup, upserts: units, removals: deleted));
+    final documents = await CatalogNarrativeEventDocuments.settle(
+        await CatalogMetadataDocuments.maintain(
+            lookup: base.lookup, upserts: units, removals: deleted),
+        base.lookup);
+    units.addAll(documents.upserts);
+    deleted.addAll(documents.removals);
     units.addAll(await CatalogPeriodicRewardConsumers.maintainAndGuard(
         snapshot: base, upserts: units, removals: deleted,
         additionalChanges: additional,
         validatedMaps: validatedMaps,
         request: request));
+    final eventConsumers = await CatalogNarrativeEventConsumers.maintain(
+        snapshot: base, upserts: units, removals: deleted,
+        additionalChanges: additional);
+    units.addAll(eventConsumers.upserts);
+    deleted.addAll(eventConsumers.removals);
     units.addAll(await CatalogResourcePositions.maintain(
         lookup: base.lookup, upserts: units, removals: deleted));
     units.addAll(await CatalogResourceUsageIndex.maintain(
@@ -1227,32 +1258,45 @@ final class CatalogEditingSession {
     }
     final delta = await next.admitFrom(snapshot);
     if (await store.metadataIndexPrepared(snapshot)) {
-      final expected = await CatalogMetadataDocuments.maintain(
+      final maintained = await CatalogMetadataDocuments.maintain(
           lookup: snapshot.lookup,
           upserts: delta.upserts,
           removals: delta.removals);
-      final expectedByKey = {for (final unit in expected) unit.key: unit};
-      for (final unit in delta.upserts) {
-        if (unit.key.kind != CatalogDefinitionKind.workspaceState ||
-            unit.key.id == 'workspace') {
-          continue;
+      final settled =
+          await CatalogNarrativeEventDocuments.settle(maintained, snapshot.lookup);
+      Future<bool> matches(List<CatalogDefinitionUnit> expected,
+          List<CatalogDefinitionKey> removed) async {
+        final expectedByKey = {for (final unit in expected) unit.key: unit};
+        for (final unit in delta.upserts) {
+          if (unit.key.kind != CatalogDefinitionKind.workspaceState ||
+              unit.key.id == 'workspace') {
+            continue;
+          }
+          final canonical = expectedByKey[unit.key];
+          if (canonical == null ||
+              canonicalAuthoringJson(unit.toJson()) !=
+                  canonicalAuthoringJson(canonical.toJson())) {
+            return false;
+          }
         }
-        final canonical = expectedByKey[unit.key];
-        if (canonical == null ||
-            canonicalAuthoringJson(unit.toJson()) !=
-                canonicalAuthoringJson(canonical.toJson())) {
-          throw const CatalogStorageException('catalog.preparation_required',
-              'The selected historical document indexes need explicit preparation.');
+        for (final unit in expected) {
+          final actual = await next.lookup(unit.key);
+          if (actual == null ||
+              canonicalAuthoringJson(actual.toJson()) !=
+                  canonicalAuthoringJson(unit.toJson())) {
+            return false;
+          }
         }
+        for (final key in removed) {
+          if (await next.lookup(key) != null) return false;
+        }
+        return true;
       }
-      for (final unit in expected) {
-        final actual = await next.lookup(unit.key);
-        if (actual == null ||
-            canonicalAuthoringJson(actual.toJson()) !=
-                canonicalAuthoringJson(unit.toJson())) {
-          throw const CatalogStorageException('catalog.preparation_required',
-              'The selected historical document indexes differ from their changes.');
-        }
+
+      if (!await matches(settled.upserts, settled.removals) &&
+          !await matches(maintained, const [])) {
+        throw const CatalogStorageException('catalog.preparation_required',
+            'The selected historical document indexes need explicit preparation.');
       }
       await store.publishMetadataIndexAdmissionUnderLock(next);
     }
