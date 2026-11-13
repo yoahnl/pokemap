@@ -1201,6 +1201,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyTrainerNone => 'No trainer';
 
   @override
+  String get storyAddClose => 'Close';
+
+  @override
+  String get storyAddCharacter => 'Character';
+
+  @override
+  String get storyAddSign => 'Sign';
+
+  @override
+  String get storyAddZone => 'Zone';
+
+  @override
+  String get storyCharactersLoading => 'Loading characters…';
+
+  @override
+  String get storyNoCharacters => 'No character in the project.';
+
+  @override
+  String get storyCharacterSearch => 'Search a character';
+
+  @override
+  String get storyPlaceSign => 'Click on the map to place the sign.';
+
+  @override
+  String get storyDrawZone => 'Draw the zone on the map.';
+
+  @override
+  String get storyNewZone => 'New zone';
+
+  @override
+  String get storyAppearanceField => 'Appearance';
+
+  @override
+  String get storyChangeAppearance => 'Change the appearance';
+
+  @override
+  String storyPlaceCharacter(String name) {
+    return 'Click on the map to place $name.';
+  }
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

@@ -2054,6 +2054,84 @@ abstract class AppLocalizations {
   /// **'Aucun dresseur'**
   String get storyTrainerNone;
 
+  /// No description provided for @storyAddClose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer'**
+  String get storyAddClose;
+
+  /// No description provided for @storyAddCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnage'**
+  String get storyAddCharacter;
+
+  /// No description provided for @storyAddSign.
+  ///
+  /// In fr, this message translates to:
+  /// **'Panneau'**
+  String get storyAddSign;
+
+  /// No description provided for @storyAddZone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Zone'**
+  String get storyAddZone;
+
+  /// No description provided for @storyCharactersLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement des personnages…'**
+  String get storyCharactersLoading;
+
+  /// No description provided for @storyNoCharacters.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun personnage dans le projet.'**
+  String get storyNoCharacters;
+
+  /// No description provided for @storyCharacterSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un personnage'**
+  String get storyCharacterSearch;
+
+  /// No description provided for @storyPlaceSign.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cliquez sur la carte pour poser le panneau.'**
+  String get storyPlaceSign;
+
+  /// No description provided for @storyDrawZone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dessinez la zone sur la carte.'**
+  String get storyDrawZone;
+
+  /// No description provided for @storyNewZone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle zone'**
+  String get storyNewZone;
+
+  /// No description provided for @storyAppearanceField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Apparence'**
+  String get storyAppearanceField;
+
+  /// No description provided for @storyChangeAppearance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer l’apparence'**
+  String get storyChangeAppearance;
+
+  /// No description provided for @storyPlaceCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cliquez sur la carte pour poser {name}.'**
+  String storyPlaceCharacter(String name);
+
   /// No description provided for @rubricUnavailable.
   ///
   /// In fr, this message translates to:

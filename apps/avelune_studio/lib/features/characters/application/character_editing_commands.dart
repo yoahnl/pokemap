@@ -51,6 +51,21 @@ class CharacterEditingCommands {
     return entity;
   }
 
+  void setCharacter(String id, ProjectCharacterEntry character) {
+    final entity = selected(id);
+    if (entity?.npc == null) return;
+    if (!project.characters.any((entry) => entry.id == character.id)) {
+      throw StateError('Ce personnage ne fait plus partie du catalogue.');
+    }
+    document.commit(
+      updateEntityOnMap(
+        document.current,
+        entityId: id,
+        npc: entity!.npc!.copyWith(characterId: character.id),
+      ),
+    );
+  }
+
   void move(String id, GridPos position) {
     if (document.isElementUnavailable('entity', id)) return;
     document.commit(

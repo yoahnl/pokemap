@@ -639,6 +639,26 @@
   "storyTrainerHint": "Associer un dresseur ne lance pas de combat : le combat appartient à la scène associée.",
   "storySignTextField": "Texte du panneau",
   "storyTrainerNone": "Aucun dresseur",
+  "storyAddClose": "Fermer",
+  "storyAddCharacter": "Personnage",
+  "storyAddSign": "Panneau",
+  "storyAddZone": "Zone",
+  "storyCharactersLoading": "Chargement des personnages…",
+  "storyNoCharacters": "Aucun personnage dans le projet.",
+  "storyCharacterSearch": "Rechercher un personnage",
+  "storyPlaceSign": "Cliquez sur la carte pour poser le panneau.",
+  "storyDrawZone": "Dessinez la zone sur la carte.",
+  "storyNewZone": "Nouvelle zone",
+  "storyAppearanceField": "Apparence",
+  "storyChangeAppearance": "Changer l’apparence",
+  "storyPlaceCharacter": "Cliquez sur la carte pour poser {name}.",
+  "@storyPlaceCharacter": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {

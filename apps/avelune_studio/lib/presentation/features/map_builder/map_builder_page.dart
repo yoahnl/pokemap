@@ -94,6 +94,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     maps: _maps,
     changed: _changed,
     view: () => _view,
+    zoneName: () => context.l10n.storyNewZone,
   );
   late final _ambiance = MapBuilderAmbianceBinding(
     maps: _maps,
@@ -181,6 +182,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     _resources.reconcileTool();
     _gameplay.reconcile();
     _ambiance.reconcile();
+    _story.reconcile();
     if (mounted) setState(() {});
   }
 
@@ -276,6 +278,11 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   void _setSpace(MapBuilderSpace space) {
     if (space != MapBuilderSpace.construction) _resources.release();
     if (space != MapBuilderSpace.gameplay) _gameplay.leave();
+    if (space != MapBuilderSpace.story) {
+      _story
+        ..cancelAdding()
+        ..choosing = false;
+    }
     _gameplay
       ..shown = space == MapBuilderSpace.gameplay
       ..reconcile();
@@ -422,6 +429,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
         input: _input,
         onChanged: _changed,
         onSave: () => unawaited(_save()),
+        onZoneDrawn: _space == MapBuilderSpace.story ? _story.addZone : null,
         busy: !_editable,
       ),
     );

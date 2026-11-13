@@ -299,7 +299,47 @@ class _Properties extends StatelessWidget {
             ),
           ),
         if (npc != null) ...[
-          _Fact(l10n.storyAppearance, character ?? l10n.storyNone),
+          if (binding.characters.isNotEmpty)
+            StudioSelect(
+              key: const ValueKey('map-story-appearance'),
+              label: l10n.storyAppearanceField,
+              value: npc.characterId ?? '',
+              options: {
+                if (npc.characterId == null) '': l10n.storyNone,
+                if (npc.characterId != null &&
+                    !binding.characters.any(
+                      (entry) => entry.id == npc.characterId,
+                    ))
+                  npc.characterId!: character!,
+                for (final entry in binding.characters) entry.id: entry.name,
+              },
+              onChanged: enabled
+                  ? (value) => switch (binding.characters
+                        .where((entry) => entry.id == value)
+                        .firstOrNull) {
+                      final entry? => binding.setCharacter(element, entry),
+                      null => null,
+                    }
+                  : null,
+            )
+          else ...[
+            _Fact(l10n.storyAppearance, character ?? l10n.storyNone),
+            if (enabled)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: StudioButton(
+                  key: const ValueKey('map-story-load-characters'),
+                  variant: StudioButtonVariant.quiet,
+                  label: binding.charactersLoading
+                      ? l10n.storyCharactersLoading
+                      : l10n.storyChangeAppearance,
+                  onPressed: binding.charactersLoading
+                      ? null
+                      : binding.loadCharacters,
+                ),
+              ),
+          ],
+          const SizedBox(height: StudioSpacing.m),
           StudioSelect(
             key: const ValueKey('map-story-facing'),
             label: l10n.storyFacingField,

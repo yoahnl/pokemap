@@ -43,6 +43,7 @@ class SpatialMapEditingViewport extends StatefulWidget {
     required this.view,
     required this.onChanged,
     this.onContextMenu,
+    this.onZoneDrawn,
     this.neighbors = const [],
     this.neighborDecorations = const [],
     this.exteriorContextReady = true,
@@ -57,6 +58,7 @@ class SpatialMapEditingViewport extends StatefulWidget {
   final MapEditingViewportSession view;
   final VoidCallback onChanged;
   final void Function(GridPos, Offset)? onContextMenu;
+  final ValueChanged<MapRect>? onZoneDrawn;
   @override
   State<SpatialMapEditingViewport> createState() =>
       _SpatialMapEditingViewportState();
@@ -1024,6 +1026,8 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
       if (!{
         StudioMapTool.select,
         StudioMapTool.character,
+        StudioMapTool.sign,
+        StudioMapTool.zone,
         StudioMapTool.spawn,
         StudioMapTool.warp,
         StudioMapTool.gameplayZone,
@@ -1190,7 +1194,8 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
         editingDocument.error = failure.toString();
       }
     } else {
-      gesture?.commit();
+      final area = gesture?.commit();
+      if (area != null) widget.onZoneDrawn?.call(area);
     }
     gesture = null;
     widget.onChanged();

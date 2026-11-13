@@ -51,10 +51,12 @@ class MapBuilderStoryPanel extends StatefulWidget {
 
 class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
   late final _search = TextEditingController(text: widget.binding.query);
+  final _characterSearch = TextEditingController();
 
   @override
   void dispose() {
     _search.dispose();
+    _characterSearch.dispose();
     super.dispose();
   }
 
@@ -133,6 +135,21 @@ class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
                   ),
                 ),
                 const SizedBox(height: StudioSpacing.m),
+                StudioButton(
+                  key: const ValueKey('map-story-add'),
+                  icon: binding.choosing ? Icons.close : Icons.add,
+                  label: binding.choosing
+                      ? l10n.storyAddClose
+                      : outline.addLabel ?? l10n.storyAdd,
+                  onPressed: binding.maps.active == null
+                      ? null
+                      : binding.toggleChoices,
+                ),
+                if (binding.choosing) ...[
+                  const SizedBox(height: StudioSpacing.s),
+                  ..._additions(context, muted),
+                ],
+                const SizedBox(height: StudioSpacing.l),
                 if (visible.isEmpty)
                   Text(
                     binding.query.trim().isEmpty
@@ -179,6 +196,78 @@ class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
         ],
       ),
     );
+  }
+
+  List<Widget> _additions(BuildContext context, TextStyle? muted) {
+    final l10n = context.l10n;
+    final binding = widget.binding;
+    final adding = binding.adding;
+    final needle = _characterSearch.text.trim().toLowerCase();
+    final selectedCharacter = binding.view()?.character?.id;
+    return [
+      for (final (kind, icon, label) in [
+        (
+          MapStoryAddition.character,
+          Icons.person_outline,
+          l10n.storyAddCharacter,
+        ),
+        (MapStoryAddition.sign, Icons.signpost_outlined, l10n.storyAddSign),
+        (MapStoryAddition.zone, Icons.crop_square, l10n.storyAddZone),
+      ])
+        StudioChoice(
+          key: ValueKey('map-story-add-${kind.name}'),
+          dense: true,
+          leading: Icon(icon, size: 16),
+          label: label,
+          selected: adding == kind,
+          onTap: () => binding.startAdding(kind),
+        ),
+      if (adding == MapStoryAddition.character && !binding.armed) ...[
+        const SizedBox(height: StudioSpacing.m),
+        if (binding.charactersError case final error?)
+          StudioNotice(error, isError: true)
+        else if (binding.charactersLoading)
+          Text(l10n.storyCharactersLoading, style: muted)
+        else if (binding.characters.isEmpty)
+          Text(l10n.storyNoCharacters, style: muted)
+        else ...[
+          TextField(
+            key: const ValueKey('map-story-character-search'),
+            controller: _characterSearch,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: l10n.storyCharacterSearch,
+              prefixIcon: const Icon(Icons.search, size: 18),
+            ),
+          ),
+          const SizedBox(height: StudioSpacing.s),
+          for (final character in binding.characters)
+            if (needle.isEmpty || character.name.toLowerCase().contains(needle))
+              StudioChoice(
+                key: ValueKey('map-story-character-${character.id}'),
+                dense: true,
+                label: character.name,
+                selected: character.id == selectedCharacter,
+                onTap: () => binding.chooseCharacter(character),
+              ),
+        ],
+      ],
+      if (binding.armed) ...[
+        const SizedBox(height: StudioSpacing.m),
+        Text(
+          switch (adding) {
+            MapStoryAddition.character => l10n.storyPlaceCharacter(
+              binding.view()?.character?.name ?? '',
+            ),
+            MapStoryAddition.sign => l10n.storyPlaceSign,
+            _ => l10n.storyDrawZone,
+          },
+          key: const ValueKey('map-story-add-hint'),
+          style: muted,
+        ),
+      ],
+    ];
   }
 }
 

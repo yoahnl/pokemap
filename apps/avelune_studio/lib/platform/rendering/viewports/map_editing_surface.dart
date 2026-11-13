@@ -94,6 +94,7 @@ class MapEditingSurface extends StatelessWidget {
                         neighborDecorations: neighbors?.decorations ?? const [],
                         exteriorContextReady: neighbors?.ready ?? true,
                         onChanged: onChanged,
+                        onZoneDrawn: onZoneDrawn,
                         onContextMenu: (cell, _) => input.open(cell),
                       ),
               ),

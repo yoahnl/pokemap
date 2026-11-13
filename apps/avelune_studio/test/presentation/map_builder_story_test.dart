@@ -1,4 +1,5 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
@@ -36,6 +37,14 @@ NarrativeEventRecord _event(
 );
 
 final _project = workspaceProject.copyWith(
+  characters: const [
+    ProjectCharacterEntry(id: 'rival', name: 'Silver', tilesetId: 'atlas'),
+    ProjectCharacterEntry(
+      id: 'elm',
+      name: 'Professeur Orme',
+      tilesetId: 'atlas',
+    ),
+  ],
   eventRegistry: NarrativeEventRegistry(
     schemaVersion: 1,
     mode: EventSystemMode.legacyOnly,
@@ -65,7 +74,7 @@ MapData _map() => workspaceMap('a').copyWith(
       name: 'Luth',
       kind: MapEntityKind.npc,
       pos: GridPos(x: 3, y: 2),
-      npc: MapEntityNpcData(facing: EntityFacing.east),
+      npc: MapEntityNpcData(facing: EntityFacing.east, characterId: 'rival'),
     ),
     MapEntity(
       id: 'rival',
@@ -125,6 +134,7 @@ void main() {
       maps: maps,
       changed: () => tick.value++,
       view: () => view,
+      zoneName: () => 'Nouvelle zone',
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -328,5 +338,94 @@ void main() {
     await tester.tap(key('map-story-name'));
     await tester.pump();
     expect(entity('board').sign!.plainText, 'Bienvenue');
+  });
+
+  testWidgets('the add button places characters, signs and story zones', (
+    tester,
+  ) async {
+    await open(tester);
+    Finder key(String value) => find.byKey(ValueKey(value));
+
+    await tester.tap(key('map-story-add'));
+    await tester.pump();
+    await tester.tap(key('map-story-add-character'));
+    await tester.pump();
+    await tester.pump();
+    expect(key('map-story-character-elm'), findsOneWidget);
+    await tester.enterText(key('map-story-character-search'), 'orme');
+    await tester.pump();
+    expect(key('map-story-character-rival'), findsNothing);
+    await tester.tap(key('map-story-character-elm'));
+    await tester.pump();
+    expect(view.tool, StudioMapTool.character);
+    expect(
+      find.text('Cliquez sur la carte pour poser Professeur Orme.'),
+      findsOneWidget,
+    );
+
+    final placed = CharacterEditingCommands(
+      maps.active!,
+      maps.project!,
+    ).place(view.character!, const GridPos(x: 9, y: 9));
+    view.select(maps.active!, MapSelectionFamily.character, placed.id);
+    story.reconcile();
+    await tester.pump();
+    expect(view.tool, StudioMapTool.select);
+    expect(story.adding, isNull);
+    expect(story.selected?.id, placed.id);
+    expect(key('map-story-properties-entity:${placed.id}'), findsOneWidget);
+
+    await tester.tap(key('map-story-add'));
+    await tester.pump();
+    await tester.tap(key('map-story-add-zone'));
+    await tester.pump();
+    expect(view.tool, StudioMapTool.zone);
+    expect(find.text('Dessinez la zone sur la carte.'), findsOneWidget);
+    expect(
+      story.addZone(
+        const MapRect(
+          pos: GridPos(x: 4, y: 4),
+          size: GridSize(width: 2, height: 2),
+        ),
+      ),
+      isTrue,
+    );
+    await tester.pump();
+    final zone = maps.active!.current.triggers.last;
+    expect(zone.name, 'Nouvelle zone');
+    expect(zone.type, TriggerType.event);
+    expect(view.selectedFor('a', MapSelectionFamily.trigger), zone.id);
+    expect(view.tool, StudioMapTool.select);
+    expect(
+      story.addZone(
+        const MapRect(
+          pos: GridPos(x: 1, y: 1),
+          size: GridSize(width: 1, height: 1),
+        ),
+      ),
+      isFalse,
+    );
+
+    await tester.tap(key('map-story-add'));
+    await tester.pump();
+    await tester.tap(key('map-story-add-sign'));
+    await tester.pump();
+    expect(view.tool, StudioMapTool.sign);
+    await tester.tap(key('map-story-add'));
+    await tester.pump();
+    expect(view.tool, StudioMapTool.select);
+    expect(key('map-story-add-sign'), findsNothing);
+
+    await tester.tap(key('map-story-element-entity:luth'));
+    await tester.pump();
+    tester.widget<StudioSelect>(key('map-story-appearance')).onChanged!('elm');
+    await tester.pump();
+    expect(
+      maps.active!.current.entities
+          .singleWhere((item) => item.id == 'luth')
+          .npc!
+          .characterId,
+      'elm',
+    );
   });
 }

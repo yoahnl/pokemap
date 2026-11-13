@@ -1208,6 +1208,47 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storyTrainerNone => 'Aucun dresseur';
 
   @override
+  String get storyAddClose => 'Fermer';
+
+  @override
+  String get storyAddCharacter => 'Personnage';
+
+  @override
+  String get storyAddSign => 'Panneau';
+
+  @override
+  String get storyAddZone => 'Zone';
+
+  @override
+  String get storyCharactersLoading => 'Chargement des personnages…';
+
+  @override
+  String get storyNoCharacters => 'Aucun personnage dans le projet.';
+
+  @override
+  String get storyCharacterSearch => 'Rechercher un personnage';
+
+  @override
+  String get storyPlaceSign => 'Cliquez sur la carte pour poser le panneau.';
+
+  @override
+  String get storyDrawZone => 'Dessinez la zone sur la carte.';
+
+  @override
+  String get storyNewZone => 'Nouvelle zone';
+
+  @override
+  String get storyAppearanceField => 'Apparence';
+
+  @override
+  String get storyChangeAppearance => 'Changer l’apparence';
+
+  @override
+  String storyPlaceCharacter(String name) {
+    return 'Cliquez sur la carte pour poser $name.';
+  }
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }
