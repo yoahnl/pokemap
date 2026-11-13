@@ -19,6 +19,8 @@ Map<ShortcutActivator, VoidCallback> mapEditingShortcuts(
   MapWorkspaceEditingState? view,
   void Function(void Function()) guarded, {
   VoidCallback? onSave,
+  VoidCallback? onUndo,
+  VoidCallback? onRedo,
   void Function(void Function())? guardedWhileTyping,
   VoidCallback? onContextMenu,
   VoidCallback? onCommandPalette,
@@ -91,14 +93,14 @@ Map<ShortcutActivator, VoidCallback> mapEditingShortcuts(
       meta: meta,
       control: !meta,
     )] = () =>
-        guarded(() => controller.restore(redo: false));
+        guarded(onUndo ?? () => controller.restore(redo: false));
     result[SingleActivator(
       LogicalKeyboardKey.keyZ,
       meta: meta,
       control: !meta,
       shift: true,
     )] = () =>
-        guarded(() => controller.restore(redo: true));
+        guarded(onRedo ?? () => controller.restore(redo: true));
     result[SingleActivator(
       LogicalKeyboardKey.keyS,
       meta: meta,

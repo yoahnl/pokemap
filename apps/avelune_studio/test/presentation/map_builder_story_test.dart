@@ -6,6 +6,7 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space_outline.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
@@ -631,6 +632,40 @@ void main() {
     expect(saved.source, NarrativeEventSourceRef.mapEnter('a'));
     expect(saved.enabledOrNull, isTrue);
     expect(saved.sceneId, 'scene-greeting');
+  });
+
+  testWidgets('undo follows the history of the active space', (tester) async {
+    await open(tester);
+    final id = story.behaviours.registry(maps.project!)!.records.first.id;
+    NarrativeEventRecord meeting() => story.behaviours
+        .registry(maps.project!)!
+        .records
+        .singleWhere((record) => record.id == id);
+    VoidCallback? step({
+      bool redo = false,
+      bool scenario = true,
+      bool editable = true,
+    }) => mapBuilderHistoryStep(
+      maps,
+      redo: redo,
+      editable: editable,
+      story: scenario ? story : null,
+    );
+
+    expect(step(), isNull);
+    expect(story.renameBehaviour(meeting(), 'Rencontre'), isTrue);
+    expect(step(scenario: false), isNull);
+    expect(step(editable: false), isNull);
+    step()!();
+    expect(meeting().name, 'meeting');
+    step(redo: true)!();
+    expect(meeting().name, 'Rencontre');
+
+    final luth = story.elements!.byKey('entity:luth')!;
+    expect(story.rename(luth, 'Luth bis'), isTrue);
+    step(scenario: false)!();
+    expect(story.entityOf(luth)!.name, 'Luth');
+    expect(meeting().name, 'Rencontre');
   });
 
   testWidgets('an edit that cannot re-enable a behaviour says so', (

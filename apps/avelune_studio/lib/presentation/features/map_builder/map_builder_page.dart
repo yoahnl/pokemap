@@ -447,9 +447,19 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
         input: _input,
         onChanged: _changed,
         onSave: () => unawaited(_save()),
+        onUndo: () => _historyStep(redo: false)?.call(),
+        onRedo: () => _historyStep(redo: true)?.call(),
         onZoneDrawn: _space == MapBuilderSpace.story ? _story.addZone : null,
         busy: !_editable,
       ),
     );
   }
+
+  VoidCallback? _historyStep({required bool redo}) => mapBuilderHistoryStep(
+    _maps,
+    redo: redo,
+    editable: _editable,
+    ambiance: _space == MapBuilderSpace.ambiance ? _ambiance : null,
+    story: _space == MapBuilderSpace.story ? _story : null,
+  );
 }

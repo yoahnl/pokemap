@@ -7,6 +7,30 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_amb
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:avelune_studio/presentation/shell/studio_top_bar.dart';
 
+VoidCallback? mapBuilderHistoryStep(
+  MapWorkspaceController maps, {
+  required bool redo,
+  required bool editable,
+  MapBuilderAmbianceBinding? ambiance,
+  MapBuilderStoryBinding? story,
+}) {
+  if (!editable) return null;
+  return switch ((ambiance, story)) {
+    (final ambiance?, _) =>
+      (redo ? ambiance.canRedo : ambiance.canUndo)
+          ? (redo ? ambiance.redo : ambiance.undo)
+          : null,
+    (_, final story?) =>
+      (redo ? story.canRedo : story.canUndo)
+          ? (redo ? story.redo : story.undo)
+          : null,
+    (null, null) =>
+      (redo ? maps.active?.canRedo : maps.active?.canUndo) == true
+          ? () => maps.restore(redo: redo)
+          : null,
+  };
+}
+
 class MapBuilderHeader extends StatelessWidget {
   const MapBuilderHeader({
     super.key,
@@ -49,24 +73,20 @@ class MapBuilderHeader extends StatelessWidget {
       maps: maps.project?.maps ?? const [],
       activeMapId: document?.base.mapId,
       onSelectMap: editable ? (entry) => unawaited(maps.activate(entry)) : null,
-      onUndo: switch ((ambiance, story)) {
-        (final ambiance?, _) =>
-          editable && ambiance.canUndo ? ambiance.undo : null,
-        (_, final story?) => editable && story.canUndo ? story.undo : null,
-        (null, null) =>
-          editable && document?.canUndo == true
-              ? () => maps.restore(redo: false)
-              : null,
-      },
-      onRedo: switch ((ambiance, story)) {
-        (final ambiance?, _) =>
-          editable && ambiance.canRedo ? ambiance.redo : null,
-        (_, final story?) => editable && story.canRedo ? story.redo : null,
-        (null, null) =>
-          editable && document?.canRedo == true
-              ? () => maps.restore(redo: true)
-              : null,
-      },
+      onUndo: mapBuilderHistoryStep(
+        maps,
+        redo: false,
+        editable: editable,
+        ambiance: ambiance,
+        story: story,
+      ),
+      onRedo: mapBuilderHistoryStep(
+        maps,
+        redo: true,
+        editable: editable,
+        ambiance: ambiance,
+        story: story,
+      ),
       saveState: _saveState,
       onSave: editable && _dirty ? onSave : null,
       onTestMap: editable && document != null && !testing ? onTestMap : null,

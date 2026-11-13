@@ -22,6 +22,8 @@ class MapEditingSurface extends StatelessWidget {
     this.neighbors,
     this.onZoneDrawn,
     this.onSave,
+    this.onUndo,
+    this.onRedo,
     this.busy = false,
   });
 
@@ -32,6 +34,8 @@ class MapEditingSurface extends StatelessWidget {
   final SpatialMapNeighborSession? neighbors;
   final ValueChanged<MapRect>? onZoneDrawn;
   final VoidCallback? onSave;
+  final VoidCallback? onUndo;
+  final VoidCallback? onRedo;
   final VoidCallback onChanged;
   final bool busy;
 
@@ -55,6 +59,8 @@ class MapEditingSurface extends StatelessWidget {
             view,
             guarded,
             onSave: onSave,
+            onUndo: onUndo,
+            onRedo: onRedo,
             contextAt: input.contextAt,
           ),
           child: FocusScope(
