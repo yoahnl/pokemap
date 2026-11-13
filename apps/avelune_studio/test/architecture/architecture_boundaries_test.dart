@@ -156,6 +156,28 @@ void main() {
     expect(violations.map((edge) => '$edge'), isEmpty);
   });
 
+  test('constructeur de carte sans port ni action de scene', () {
+    final builder = sources.where(
+      (file) => file.path.contains('/lib/presentation/features/map_builder/'),
+    );
+    expect(builder, isNotEmpty);
+    final scenePorts = '${lib.uri}features/scenes/domain/';
+    final sceneAction = RegExp('[\'"]scene\\.');
+    final violations = <String>[];
+    for (final source in builder) {
+      for (final specifier in graph.specifiers(source.uri)) {
+        final target = graph.resolve(source.uri, specifier).toString();
+        if (target.startsWith(scenePorts) && target.endsWith('_port.dart')) {
+          violations.add('${source.path}: $specifier');
+        }
+      }
+      if (sceneAction.hasMatch(source.readAsStringSync())) {
+        violations.add('${source.path}: action scene.*');
+      }
+    }
+    expect(violations, isEmpty);
+  });
+
   test('fichiers Dart manuels limites a 300 lignes', () {
     final testSources = Directory('${appRoot.path}/test')
         .listSync(recursive: true)

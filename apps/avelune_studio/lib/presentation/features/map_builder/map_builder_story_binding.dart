@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
@@ -10,7 +8,6 @@ import 'package:avelune_studio/features/map_workspace/application/map_context_me
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
-import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_behaviours.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/features/map_workspace/application/trigger_editing_commands.dart';
@@ -19,6 +16,8 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_works
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_input_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/project_session/application/project_draft.dart';
+import 'package:avelune_studio/features/story_draft/application/story_publication_gateway.dart';
+import 'package:avelune_studio/features/story_draft/application/story_publication_plan.dart';
 
 enum MapStoryTab { behaviour, properties }
 
@@ -384,7 +383,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
 
   bool get dirty {
     final project = maps.project;
-    return project != null && behaviours.dirty(project);
+    return project != null && behaviours.draft.dirty(behaviours.saved(project));
   }
 
   @override
@@ -738,7 +737,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
 
   Future<bool> publish(EventPort? port) async {
     final project = maps.project;
-    if (project == null || !behaviours.dirty(project)) return true;
+    if (project == null || !dirty) return true;
     if (port == null) {
       error = 'publish-unavailable';
       changed();
@@ -747,55 +746,23 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
     publishing = true;
     changed();
     try {
-      Future<void> accept(
-        Future<ResourceMutationReceipt> publication,
-        Iterable<EventRecordChange> published,
-      ) async {
-        final before = maps.project!;
-        final receipt = await publication;
-        maps.acceptResources(
-          maps.project == receipt.before ? receipt.before : before,
-          receipt.manifest,
-        );
-        behaviours.settle(
-          receipt.manifest,
-          only: {for (final change in published) change.id},
-        );
-      }
-
-      final changes = behaviours.changes(project);
-      final batch = switch (port) {
-        final EventBatchPort batch => batch,
-        _ => null,
-      };
-      final batched = [
-        if (batch != null)
-          for (final change in changes)
-            if (change.current != null) change,
-      ];
-      for (
-        var start = 0;
-        start < batched.length;
-        start += EventBatchPort.maxRecords
-      ) {
-        final slice = batched.sublist(
-          start,
-          math.min(start + EventBatchPort.maxRecords, batched.length),
-        );
-        await accept(batch!.publishEvents(slice), slice);
-      }
-      final batchedIds = {for (final change in batched) change.id};
-      for (final change in changes) {
-        if (batchedIds.contains(change.id)) continue;
-        await accept(
-          port.publishEvent(
-            id: change.id,
-            base: change.base,
-            current: change.current,
-          ),
-          [change],
-        );
-      }
+      await StoryPublicationGateway(
+        draft: behaviours.draft,
+        events: port,
+      ).publish(
+        planStoryPublication(
+          behaviours.draft.changes(behaviours.saved(project)),
+        ),
+        land: (write) async {
+          final before = maps.project!;
+          final receipt = await write();
+          maps.acceptResources(
+            maps.project == receipt.before ? receipt.before : before,
+            receipt.manifest,
+          );
+          return behaviours.saved(receipt.manifest);
+        },
+      );
       final saved = maps.project!;
       behaviours.settle(saved);
       final conflicts = behaviours.conflicts(saved);
@@ -813,7 +780,8 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
       error = null;
       return true;
     } on Object catch (failure) {
-      error = failure is EventFailure ? failure.message : '$failure';
+      final cause = failure is StoryPublicationFailed ? failure.cause : failure;
+      error = cause is EventFailure ? cause.message : '$cause';
       return false;
     } finally {
       publishing = false;
