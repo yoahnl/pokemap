@@ -547,7 +547,7 @@
       }
     }
   },
-  "storyKindEyebrow": "{kind, select, character{PERSONNAGE} interactive{OBJET INTERACTIF} zone{ZONE} map{CARTE} other{ÉLÉMENT}}",
+  "storyKindEyebrow": "{kind, select, character{PERSONNAGE} interactive{OBJET INTERACTIF} zone{ZONE DE DÉCLENCHEMENT} map{ÉVÉNEMENT} other{ÉLÉMENT}}",
   "@storyKindEyebrow": {
     "placeholders": {
       "kind": {
@@ -627,7 +627,7 @@
     }
   },
   "storyNone": "Aucune",
-  "storyMapProperties": "Les propriétés de la carte se règlent dans Réglages de carte.",
+  "storyMapProperties": "Événement de carte : ses conditions et sa scène se règlent dans Comportement.",
   "storyOutOfMap": "Cette position sort de la carte.",
   "storyNameField": "Nom dans l’éditeur",
   "storyWidth": "Largeur",

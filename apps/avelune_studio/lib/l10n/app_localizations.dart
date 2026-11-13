@@ -1817,7 +1817,7 @@ abstract class AppLocalizations {
   /// No description provided for @storyKindEyebrow.
   ///
   /// In fr, this message translates to:
-  /// **'{kind, select, character{PERSONNAGE} interactive{OBJET INTERACTIF} zone{ZONE} map{CARTE} other{ÉLÉMENT}}'**
+  /// **'{kind, select, character{PERSONNAGE} interactive{OBJET INTERACTIF} zone{ZONE DE DÉCLENCHEMENT} map{ÉVÉNEMENT} other{ÉLÉMENT}}'**
   String storyKindEyebrow(String kind);
 
   /// No description provided for @storyPosition.
@@ -1985,7 +1985,7 @@ abstract class AppLocalizations {
   /// No description provided for @storyMapProperties.
   ///
   /// In fr, this message translates to:
-  /// **'Les propriétés de la carte se règlent dans Réglages de carte.'**
+  /// **'Événement de carte : ses conditions et sa scène se règlent dans Comportement.'**
   String get storyMapProperties;
 
   /// No description provided for @storyOutOfMap.

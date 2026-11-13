@@ -1032,8 +1032,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(kind, {
       'character': 'PERSONNAGE',
       'interactive': 'OBJET INTERACTIF',
-      'zone': 'ZONE',
-      'map': 'CARTE',
+      'zone': 'ZONE DE DÉCLENCHEMENT',
+      'map': 'ÉVÉNEMENT',
       'other': 'ÉLÉMENT',
     });
     return '$_temp0';
@@ -1171,7 +1171,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storyMapProperties =>
-      'Les propriétés de la carte se règlent dans Réglages de carte.';
+      'Événement de carte : ses conditions et sa scène se règlent dans Comportement.';
 
   @override
   String get storyOutOfMap => 'Cette position sort de la carte.';

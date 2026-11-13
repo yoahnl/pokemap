@@ -340,7 +340,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('map-story-element-map:a')));
     await tester.pump();
     expect(view.hasSelectionIn('a'), isFalse);
-    expect(find.text('CARTE'), findsOneWidget);
+    expect(find.text('ÉVÉNEMENT'), findsOneWidget);
     expect(find.text('En arrivant sur la carte'), findsOneWidget);
 
     await tester.tap(
@@ -574,6 +574,63 @@ void main() {
     expect(saved.sceneId, 'scene-greeting');
     expect(saved.reusePolicy, NarrativeEventReusePolicy.reusable);
     expect(await story.publish(null), isTrue);
+  });
+
+  testWidgets('the map element authors what happens on arrival', (
+    tester,
+  ) async {
+    await open(tester);
+    Finder key(String value) => find.byKey(ValueKey(value));
+    StudioSelect select(String value) =>
+        tester.widget<StudioSelect>(key(value));
+    List<NarrativeEventRecord> arrivals() => [
+      for (final record in story.behaviours.registry(maps.project!)!.records)
+        if (record.source == NarrativeEventSourceRef.mapEnter('a')) record,
+    ];
+
+    await tester.tap(key('map-story-element-map:a'));
+    await tester.pump();
+    expect(find.text('Arrivée à a'), findsNWidgets(2));
+    expect(select('map-story-when').options.keys, ['mapEnter']);
+
+    await tester.tap(key('map-story-behaviour-add'));
+    await tester.pump();
+    expect(find.text('2 · Comportement 2'), findsOneWidget);
+    final added = arrivals().last;
+    expect(added.name, 'Comportement 2');
+    expect(added.draftOrNull, isNotNull);
+
+    select('map-story-then').onChanged!('scene-greeting');
+    await tester.pump();
+    select('map-story-after').onChanged!('oncePerVisit');
+    await tester.pump();
+    await tester.tap(key('map-story-behaviour-active'));
+    await tester.pump();
+    expect(story.error, isNull);
+    final active = arrivals().last;
+    expect(active.enabledOrNull, isTrue);
+    expect(active.sceneId, 'scene-greeting');
+    expect(active.resetPolicy, isA<NarrativeEventResetOnMapReentry>());
+    expect(subtitle(tester, 'map:a'), '2 comportements');
+
+    await tester.tap(find.text('Propriétés'));
+    await tester.pump();
+    expect(
+      find.text(
+        'Événement de carte : ses conditions et sa scène se règlent dans Comportement.',
+      ),
+      findsOneWidget,
+    );
+
+    final port = _EventPort(maps);
+    expect(await story.publish(port), isTrue);
+    expect(port.published, [added.id]);
+    final saved = maps.project!.eventRegistry!.records.singleWhere(
+      (record) => record.id == added.id,
+    );
+    expect(saved.source, NarrativeEventSourceRef.mapEnter('a'));
+    expect(saved.enabledOrNull, isTrue);
+    expect(saved.sceneId, 'scene-greeting');
   });
 
   testWidgets('an edit that cannot re-enable a behaviour says so', (

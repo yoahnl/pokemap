@@ -1026,8 +1026,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(kind, {
       'character': 'CHARACTER',
       'interactive': 'INTERACTIVE OBJECT',
-      'zone': 'ZONE',
-      'map': 'MAP',
+      'zone': 'TRIGGER ZONE',
+      'map': 'EVENT',
       'other': 'ELEMENT',
     });
     return '$_temp0';
@@ -1164,7 +1164,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyNone => 'None';
 
   @override
-  String get storyMapProperties => 'Map properties are set in Map settings.';
+  String get storyMapProperties =>
+      'Map event: its conditions and scene are set in Behaviour.';
 
   @override
   String get storyOutOfMap => 'This position is outside the map.';
