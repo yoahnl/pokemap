@@ -36,8 +36,10 @@ Widget? mapBuilderSpaceInspector(
   (MapBuilderSpace.story, final outline?) when story != null =>
     switch (story.selected) {
       final element? => MapBuilderStoryInspector(
+        key: ValueKey('story-${element.key}'),
         binding: story,
         element: element,
+        enabled: enabled,
       ),
       null => MapBuilderSpaceInspectorBody(outline: outline, live: true),
     },

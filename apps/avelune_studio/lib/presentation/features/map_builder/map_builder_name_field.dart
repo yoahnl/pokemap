@@ -7,12 +7,14 @@ class MapBuilderNameField extends StatefulWidget {
     required this.label,
     required this.onCommit,
     required this.enabled,
+    this.lines = 1,
   });
 
   final String value;
   final String label;
   final ValueChanged<String> onCommit;
   final bool enabled;
+  final int lines;
 
   @override
   State<MapBuilderNameField> createState() => _MapBuilderNameFieldState();
@@ -55,6 +57,8 @@ class _MapBuilderNameFieldState extends State<MapBuilderNameField> {
     controller: _text,
     focusNode: _focus,
     enabled: widget.enabled,
+    minLines: widget.lines,
+    maxLines: widget.lines,
     onSubmitted: (_) => _commit(),
     decoration: InputDecoration(isDense: true, labelText: widget.label),
   );

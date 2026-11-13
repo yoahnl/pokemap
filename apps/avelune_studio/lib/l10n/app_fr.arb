@@ -609,20 +609,7 @@
   "storyDraft": "Brouillon",
   "storyName": "NOM",
   "storyPositionLabel": "POSITION",
-  "storyAreaLabel": "TAILLE",
-  "storyAreaSize": "{width} × {height} cases",
-  "@storyAreaSize": {
-    "placeholders": {
-      "width": {
-        "type": "int"
-      },
-      "height": {
-        "type": "int"
-      }
-    }
-  },
   "storyAppearance": "APPARENCE",
-  "storyFacing": "ORIENTATION",
   "storyFacingName": "{facing, select, north{Nord} south{Sud} east{Est} west{Ouest} other{{facing}}}",
   "@storyFacingName": {
     "placeholders": {
@@ -631,8 +618,6 @@
       }
     }
   },
-  "storyCollision": "BLOQUE LE PASSAGE",
-  "storyMovement": "DÉPLACEMENT",
   "storyMovementName": "{mode, select, idle{Immobile} patrol{Patrouille} scriptedOnly{Seulement en scène} fixedRoute{Parcours fixe} other{{mode}}}",
   "@storyMovementName": {
     "placeholders": {
@@ -641,13 +626,19 @@
       }
     }
   },
-  "storyTrainer": "DRESSEUR",
-  "storyNoTrainer": "Aucun · personnage ordinaire",
   "storyNone": "Aucune",
-  "storySignText": "TEXTE",
-  "storyYes": "Oui",
-  "storyNo": "Non",
   "storyMapProperties": "Les propriétés de la carte se règlent dans Réglages de carte.",
+  "storyOutOfMap": "Cette position sort de la carte.",
+  "storyNameField": "Nom dans l’éditeur",
+  "storyWidth": "Largeur",
+  "storyHeight": "Hauteur",
+  "storyFacingField": "Orientation initiale",
+  "storyCollisionField": "Bloquer le passage",
+  "storyMovementField": "Déplacement autonome",
+  "storyTrainerField": "Définition de dresseur",
+  "storyTrainerHint": "Associer un dresseur ne lance pas de combat : le combat appartient à la scène associée.",
+  "storySignTextField": "Texte du panneau",
+  "storyTrainerNone": "Aucun dresseur",
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {

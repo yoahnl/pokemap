@@ -1140,18 +1140,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storyPositionLabel => 'POSITION';
 
   @override
-  String get storyAreaLabel => 'TAILLE';
-
-  @override
-  String storyAreaSize(int width, int height) {
-    return '$width × $height cases';
-  }
-
-  @override
   String get storyAppearance => 'APPARENCE';
-
-  @override
-  String get storyFacing => 'ORIENTATION';
 
   @override
   String storyFacingName(String facing) {
@@ -1166,12 +1155,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get storyCollision => 'BLOQUE LE PASSAGE';
-
-  @override
-  String get storyMovement => 'DÉPLACEMENT';
-
-  @override
   String storyMovementName(String mode) {
     String _temp0 = intl.Intl.selectLogic(mode, {
       'idle': 'Immobile',
@@ -1184,26 +1167,45 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get storyTrainer => 'DRESSEUR';
-
-  @override
-  String get storyNoTrainer => 'Aucun · personnage ordinaire';
-
-  @override
   String get storyNone => 'Aucune';
-
-  @override
-  String get storySignText => 'TEXTE';
-
-  @override
-  String get storyYes => 'Oui';
-
-  @override
-  String get storyNo => 'Non';
 
   @override
   String get storyMapProperties =>
       'Les propriétés de la carte se règlent dans Réglages de carte.';
+
+  @override
+  String get storyOutOfMap => 'Cette position sort de la carte.';
+
+  @override
+  String get storyNameField => 'Nom dans l’éditeur';
+
+  @override
+  String get storyWidth => 'Largeur';
+
+  @override
+  String get storyHeight => 'Hauteur';
+
+  @override
+  String get storyFacingField => 'Orientation initiale';
+
+  @override
+  String get storyCollisionField => 'Bloquer le passage';
+
+  @override
+  String get storyMovementField => 'Déplacement autonome';
+
+  @override
+  String get storyTrainerField => 'Définition de dresseur';
+
+  @override
+  String get storyTrainerHint =>
+      'Associer un dresseur ne lance pas de combat : le combat appartient à la scène associée.';
+
+  @override
+  String get storySignTextField => 'Texte du panneau';
+
+  @override
+  String get storyTrainerNone => 'Aucun dresseur';
 
   @override
   String rubricUnavailable(String detail, String unavailable) {

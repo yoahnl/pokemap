@@ -231,7 +231,7 @@ void main() {
     await tester.tap(find.text('Propriétés'));
     await tester.pump();
     expect(find.text('Est'), findsOneWidget);
-    expect(find.text('Aucun · personnage ordinaire'), findsOneWidget);
+    expect(find.text('Aucun dresseur'), findsOneWidget);
     expect(find.text('Immobile'), findsOneWidget);
     await tester.tap(find.text('Comportement'));
     await tester.pump();
@@ -255,5 +255,78 @@ void main() {
     );
     await tester.pump();
     expect(find.text('Aucun comportement pour l’instant.'), findsOneWidget);
+  });
+
+  testWidgets('the properties tab edits the element in the map draft', (
+    tester,
+  ) async {
+    await open(tester);
+    MapEntity entity(String id) =>
+        maps.active!.current.entities.singleWhere((item) => item.id == id);
+    Finder key(String value) => find.byKey(ValueKey(value));
+    Future<void> commit(String field, String text) async {
+      await tester.enterText(key(field), text);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+    }
+
+    await tester.tap(key('map-story-element-entity:luth'));
+    await tester.pump();
+    await tester.tap(find.text('Propriétés'));
+    await tester.pump();
+
+    await commit('map-story-name', 'Luth la sage');
+    expect(entity('luth').name, 'Luth la sage');
+    expect(entity('luth').npc!.displayName, 'Luth la sage');
+    expect(find.text('Luth la sage'), findsWidgets);
+
+    await commit('map-story-x', '25');
+    expect(entity('luth').pos, const GridPos(x: 3, y: 2));
+    expect(find.text('Cette position sort de la carte.'), findsOneWidget);
+    await commit('map-story-x', '5');
+    expect(entity('luth').pos, const GridPos(x: 5, y: 2));
+    expect(find.text('Cette position sort de la carte.'), findsNothing);
+
+    tester.widget<StudioSelect>(key('map-story-facing')).onChanged!('north');
+    await tester.pump();
+    expect(entity('luth').npc!.facing, EntityFacing.north);
+    await tester.tap(key('map-story-blocks'));
+    await tester.pump();
+    expect(entity('luth').blocksMovement, isFalse);
+    tester.widget<StudioSelect>(key('map-story-movement')).onChanged!('patrol');
+    await tester.pump();
+    expect(entity('luth').npc!.movement.mode, MapEntityNpcMovementMode.patrol);
+
+    final before = maps.active!.current;
+    expect(story.setTrainer(story.selected!, 'ghost'), isFalse);
+    expect(maps.active!.current, same(before));
+    expect(story.error, isNotNull);
+
+    maps.restore(redo: false);
+    expect(entity('luth').npc!.movement.mode, MapEntityNpcMovementMode.idle);
+
+    await tester.tap(key('map-story-element-trigger:departure'));
+    await tester.pump();
+    await commit('map-story-width', '3');
+    final trigger = maps.active!.current.triggers.singleWhere(
+      (item) => item.id == 'departure',
+    );
+    expect(trigger.area.size, const GridSize(width: 3, height: 3));
+    await commit('map-story-height', '40');
+    expect(
+      maps.active!.current.triggers
+          .singleWhere((item) => item.id == 'departure')
+          .area
+          .size
+          .height,
+      3,
+    );
+
+    await tester.tap(key('map-story-element-entity:board'));
+    await tester.pump();
+    await tester.enterText(key('map-story-sign-text'), 'Bienvenue');
+    await tester.tap(key('map-story-name'));
+    await tester.pump();
+    expect(entity('board').sign!.plainText, 'Bienvenue');
   });
 }

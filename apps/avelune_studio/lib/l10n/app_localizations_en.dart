@@ -1134,18 +1134,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyPositionLabel => 'POSITION';
 
   @override
-  String get storyAreaLabel => 'SIZE';
-
-  @override
-  String storyAreaSize(int width, int height) {
-    return '$width × $height cells';
-  }
-
-  @override
   String get storyAppearance => 'APPEARANCE';
-
-  @override
-  String get storyFacing => 'FACING';
 
   @override
   String storyFacingName(String facing) {
@@ -1160,12 +1149,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get storyCollision => 'BLOCKS THE WAY';
-
-  @override
-  String get storyMovement => 'MOVEMENT';
-
-  @override
   String storyMovementName(String mode) {
     String _temp0 = intl.Intl.selectLogic(mode, {
       'idle': 'Still',
@@ -1178,25 +1161,44 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get storyTrainer => 'TRAINER';
-
-  @override
-  String get storyNoTrainer => 'None · ordinary character';
-
-  @override
   String get storyNone => 'None';
 
   @override
-  String get storySignText => 'TEXT';
-
-  @override
-  String get storyYes => 'Yes';
-
-  @override
-  String get storyNo => 'No';
-
-  @override
   String get storyMapProperties => 'Map properties are set in Map settings.';
+
+  @override
+  String get storyOutOfMap => 'This position is outside the map.';
+
+  @override
+  String get storyNameField => 'Name in the editor';
+
+  @override
+  String get storyWidth => 'Width';
+
+  @override
+  String get storyHeight => 'Height';
+
+  @override
+  String get storyFacingField => 'Initial facing';
+
+  @override
+  String get storyCollisionField => 'Block the way';
+
+  @override
+  String get storyMovementField => 'Autonomous movement';
+
+  @override
+  String get storyTrainerField => 'Trainer definition';
+
+  @override
+  String get storyTrainerHint =>
+      'Linking a trainer does not start a battle: the battle belongs to the linked scene.';
+
+  @override
+  String get storySignTextField => 'Sign text';
+
+  @override
+  String get storyTrainerNone => 'No trainer';
 
   @override
   String rubricUnavailable(String detail, String unavailable) {

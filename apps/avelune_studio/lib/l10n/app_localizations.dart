@@ -1958,29 +1958,11 @@ abstract class AppLocalizations {
   /// **'POSITION'**
   String get storyPositionLabel;
 
-  /// No description provided for @storyAreaLabel.
-  ///
-  /// In fr, this message translates to:
-  /// **'TAILLE'**
-  String get storyAreaLabel;
-
-  /// No description provided for @storyAreaSize.
-  ///
-  /// In fr, this message translates to:
-  /// **'{width} × {height} cases'**
-  String storyAreaSize(int width, int height);
-
   /// No description provided for @storyAppearance.
   ///
   /// In fr, this message translates to:
   /// **'APPARENCE'**
   String get storyAppearance;
-
-  /// No description provided for @storyFacing.
-  ///
-  /// In fr, this message translates to:
-  /// **'ORIENTATION'**
-  String get storyFacing;
 
   /// No description provided for @storyFacingName.
   ///
@@ -1988,35 +1970,11 @@ abstract class AppLocalizations {
   /// **'{facing, select, north{Nord} south{Sud} east{Est} west{Ouest} other{{facing}}}'**
   String storyFacingName(String facing);
 
-  /// No description provided for @storyCollision.
-  ///
-  /// In fr, this message translates to:
-  /// **'BLOQUE LE PASSAGE'**
-  String get storyCollision;
-
-  /// No description provided for @storyMovement.
-  ///
-  /// In fr, this message translates to:
-  /// **'DÉPLACEMENT'**
-  String get storyMovement;
-
   /// No description provided for @storyMovementName.
   ///
   /// In fr, this message translates to:
   /// **'{mode, select, idle{Immobile} patrol{Patrouille} scriptedOnly{Seulement en scène} fixedRoute{Parcours fixe} other{{mode}}}'**
   String storyMovementName(String mode);
-
-  /// No description provided for @storyTrainer.
-  ///
-  /// In fr, this message translates to:
-  /// **'DRESSEUR'**
-  String get storyTrainer;
-
-  /// No description provided for @storyNoTrainer.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucun · personnage ordinaire'**
-  String get storyNoTrainer;
 
   /// No description provided for @storyNone.
   ///
@@ -2024,29 +1982,77 @@ abstract class AppLocalizations {
   /// **'Aucune'**
   String get storyNone;
 
-  /// No description provided for @storySignText.
-  ///
-  /// In fr, this message translates to:
-  /// **'TEXTE'**
-  String get storySignText;
-
-  /// No description provided for @storyYes.
-  ///
-  /// In fr, this message translates to:
-  /// **'Oui'**
-  String get storyYes;
-
-  /// No description provided for @storyNo.
-  ///
-  /// In fr, this message translates to:
-  /// **'Non'**
-  String get storyNo;
-
   /// No description provided for @storyMapProperties.
   ///
   /// In fr, this message translates to:
   /// **'Les propriétés de la carte se règlent dans Réglages de carte.'**
   String get storyMapProperties;
+
+  /// No description provided for @storyOutOfMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette position sort de la carte.'**
+  String get storyOutOfMap;
+
+  /// No description provided for @storyNameField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom dans l’éditeur'**
+  String get storyNameField;
+
+  /// No description provided for @storyWidth.
+  ///
+  /// In fr, this message translates to:
+  /// **'Largeur'**
+  String get storyWidth;
+
+  /// No description provided for @storyHeight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hauteur'**
+  String get storyHeight;
+
+  /// No description provided for @storyFacingField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Orientation initiale'**
+  String get storyFacingField;
+
+  /// No description provided for @storyCollisionField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bloquer le passage'**
+  String get storyCollisionField;
+
+  /// No description provided for @storyMovementField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplacement autonome'**
+  String get storyMovementField;
+
+  /// No description provided for @storyTrainerField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Définition de dresseur'**
+  String get storyTrainerField;
+
+  /// No description provided for @storyTrainerHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Associer un dresseur ne lance pas de combat : le combat appartient à la scène associée.'**
+  String get storyTrainerHint;
+
+  /// No description provided for @storySignTextField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Texte du panneau'**
+  String get storySignTextField;
+
+  /// No description provided for @storyTrainerNone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun dresseur'**
+  String get storyTrainerNone;
 
   /// No description provided for @rubricUnavailable.
   ///
