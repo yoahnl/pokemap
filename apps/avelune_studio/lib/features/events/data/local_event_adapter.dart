@@ -1,6 +1,7 @@
 import 'package:map_authoring/map_authoring.dart'
     show
         AuthoringTransactionFaultInjector,
+        ProjectSnapshot,
         StandardEventTemplateSpec,
         decodeProjectMediaCatalogBytes,
         projectMediaCatalogResourceIdentity,
@@ -28,6 +29,7 @@ import '../domain/event_template_port.dart';
 class LocalEventAdapter
     implements
         EventPort,
+        EventBatchPort,
         EventRegistryModePort,
         EventTemplatePort,
         EventPresentationCatalogPort {
@@ -113,63 +115,95 @@ class LocalEventAdapter
     required String id,
     required NarrativeEventRecord? base,
     required NarrativeEventRecord? current,
-  }) =>
+  }) => _publish(
+    current == null ? 'event_v2.delete' : 'event_v2.record_upsert',
+    [(id: id, base: base, current: current)],
+  );
+
+  @override
+  Future<ResourceMutationReceipt> publishEvents(
+    List<EventRecordChange> changes,
+  ) {
+    if (changes.isEmpty ||
+        changes.length > EventBatchPort.maxRecords ||
+        changes.any((change) => change.current == null)) {
+      throw ArgumentError.value(changes.length, 'changes');
+    }
+    return _publish('event_v2.record_upsert_batch', changes);
+  }
+
+  Future<ResourceMutationReceipt> _publish(
+    String actionId,
+    List<EventRecordChange> changes,
+  ) =>
       LocalNarrativeCatalogTransaction(
         session: session,
         mapAdapter: mapAdapter,
         faultInjector: faultInjector,
       ).run(
-        actionId: current == null
-            ? 'event_v2.delete'
-            : 'event_v2.record_upsert',
-        validateSnapshot: (snapshot) {
-          final project = snapshot.manifest;
-          final maps = snapshot.maps;
-          final bytes = snapshot.findResourceBytes(
-            projectMediaCatalogResourceIdentity,
-          );
-          final presentationMediaCatalog = bytes == null
-              ? null
-              : decodeProjectMediaCatalogBytes(bytes);
-          final source = current?.source;
-          if (source != null && source != base?.source) {
-            final catalog = buildNarrativeEventProjectCatalog(
-              project: project,
-              maps: maps,
-              presentationMediaCatalog: presentationMediaCatalog,
-            );
-            if (catalog.resolveSource(source).status !=
-                NarrativeEventProjectResolutionStatus.found) {
+        actionId: actionId,
+        validateSnapshot: (snapshot) => _validate(snapshot, changes),
+        parameters: (project) {
+          final records = {
+            for (final record
+                in project.eventRegistry?.records ??
+                    const <NarrativeEventRecord>[])
+              record.id: record,
+          };
+          for (final change in changes) {
+            if ((change.base != null && change.base!.id != change.id) ||
+                (change.current != null && change.current!.id != change.id)) {
+              throw const EventFailure('L’identité de l’événement a changé.');
+            }
+            if (records[change.id] != change.base) {
               throw const EventFailure(
-                'La source choisie n’est pas disponible dans le projet enregistré. Enregistrez d’abord sa carte ou son producteur.',
+                'Cet événement a changé sur le disque. Le brouillon est conservé ; rechargez la version enregistrée pour résoudre le conflit.',
               );
             }
           }
-          final sceneId = current?.sceneId;
-          if (sceneId != null &&
-              sceneId != base?.sceneId &&
-              !project.scenes.any((s) => s.id == sceneId)) {
-            throw const EventFailure(
-              'Enregistrez d’abord la scène liée dans son éditeur.',
-            );
-          }
-        },
-        parameters: (project) {
-          if ((base != null && base.id != id) ||
-              (current != null && current.id != id)) {
-            throw const EventFailure('L’identité de l’événement a changé.');
-          }
-          final existing = project.eventRegistry?.records
-              .where((r) => r.id == id)
-              .firstOrNull;
-          if (existing != base) {
-            throw const EventFailure(
-              'Cet événement a changé sur le disque. Le brouillon est conservé ; rechargez la version enregistrée pour résoudre le conflit.',
-            );
-          }
-          return current == null
-              ? {'eventId': id}
-              : {'record': current.toJson()};
+          return switch (actionId) {
+            'event_v2.delete' => {'eventId': changes.single.id},
+            'event_v2.record_upsert' => {
+              'record': changes.single.current!.toJson(),
+            },
+            _ => {
+              'records': [for (final change in changes) change.current!.toJson()],
+            },
+          };
         },
       );
+
+  void _validate(ProjectSnapshot snapshot, List<EventRecordChange> changes) {
+    final project = snapshot.manifest;
+    NarrativeEventProjectCatalog? catalog;
+    for (final change in changes) {
+      final source = change.current?.source;
+      if (source != null && source != change.base?.source) {
+        final bytes = snapshot.findResourceBytes(
+          projectMediaCatalogResourceIdentity,
+        );
+        catalog ??= buildNarrativeEventProjectCatalog(
+          project: project,
+          maps: snapshot.maps,
+          presentationMediaCatalog: bytes == null
+              ? null
+              : decodeProjectMediaCatalogBytes(bytes),
+        );
+        if (catalog.resolveSource(source).status !=
+            NarrativeEventProjectResolutionStatus.found) {
+          throw const EventFailure(
+            'La source choisie n’est pas disponible dans le projet enregistré. Enregistrez d’abord sa carte ou son producteur.',
+          );
+        }
+      }
+      final sceneId = change.current?.sceneId;
+      if (sceneId != null &&
+          sceneId != change.base?.sceneId &&
+          !project.scenes.any((s) => s.id == sceneId)) {
+        throw const EventFailure(
+          'Enregistrez d’abord la scène liée dans son éditeur.',
+        );
+      }
+    }
+  }
 }

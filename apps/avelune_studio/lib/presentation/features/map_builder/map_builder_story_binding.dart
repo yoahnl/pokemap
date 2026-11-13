@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
@@ -5,6 +7,7 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_behaviours.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/features/map_workspace/application/trigger_editing_commands.dart';
@@ -645,16 +648,48 @@ class MapBuilderStoryBinding {
     publishing = true;
     changed();
     try {
-      for (final change in behaviours.changes(project)) {
+      Future<void> accept(Future<ResourceMutationReceipt> publication) async {
         final before = maps.project!;
-        final receipt = await port.publishEvent(
-          id: change.id,
-          base: change.base,
-          current: change.current,
-        );
+        final receipt = await publication;
         maps.acceptResources(
           maps.project == receipt.before ? receipt.before : before,
           receipt.manifest,
+        );
+      }
+
+      final changes = behaviours.changes(project);
+      final batch = switch (port) {
+        final EventBatchPort batch => batch,
+        _ => null,
+      };
+      final batched = [
+        if (batch != null)
+          for (final change in changes)
+            if (change.current != null) change,
+      ];
+      for (
+        var start = 0;
+        start < batched.length;
+        start += EventBatchPort.maxRecords
+      ) {
+        await accept(
+          batch!.publishEvents(
+            batched.sublist(
+              start,
+              math.min(start + EventBatchPort.maxRecords, batched.length),
+            ),
+          ),
+        );
+      }
+      final batchedIds = {for (final change in batched) change.id};
+      for (final change in changes) {
+        if (batchedIds.contains(change.id)) continue;
+        await accept(
+          port.publishEvent(
+            id: change.id,
+            base: change.base,
+            current: change.current,
+          ),
         );
       }
       behaviours.settle(maps.project!);

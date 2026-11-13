@@ -398,9 +398,13 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
           'settings',
           'pokemon',
           'scenes',
+          if (actionId.startsWith('event_v2.')) 'eventRegistry',
           ...ids.keys
         },
-        availableProjectDocuments: ids,
+        availableProjectDocuments: {
+          ...ids,
+          'scenes': ids['scenes'] ?? const <String>{}
+        },
         resourceBytes: bytes,
         resourceStorageKeys: paths,
         resourceFingerprints: {

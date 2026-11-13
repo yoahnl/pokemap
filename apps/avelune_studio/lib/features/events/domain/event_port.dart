@@ -10,6 +10,20 @@ abstract interface class EventPort {
   });
 }
 
+typedef EventRecordChange = ({
+  String id,
+  NarrativeEventRecord? base,
+  NarrativeEventRecord? current,
+});
+
+abstract interface class EventBatchPort {
+  static const maxRecords = 128;
+
+  Future<ResourceMutationReceipt> publishEvents(
+    List<EventRecordChange> changes,
+  );
+}
+
 class EventFailure implements Exception {
   const EventFailure(this.message);
   final String message;

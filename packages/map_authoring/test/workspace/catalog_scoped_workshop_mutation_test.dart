@@ -945,6 +945,82 @@ void main() {
             (error) => error.code, 'code', 'catalog.mutation_scope_required')));
   });
 
+  test('scene workshops declare the registry and only the scenes they read',
+      () async {
+    final fixture = await _Fixture.open(playerCharacters: true);
+    addTearDown(fixture.close);
+    final mapFile = File('${fixture.root.path}/maps/0.json');
+    await mapFile.parent.create(recursive: true);
+    await mapFile.writeAsString(jsonEncode(MapData(
+        id: 'map-0',
+        name: 'Selected map',
+        size: const GridSize(width: 8, height: 8),
+        tilesetId: 'unused-0',
+        layers: const [ObjectLayer(id: 'objects', name: 'Objects')]).toJson()));
+    final scene = SceneAsset(
+        id: 'declared_scene',
+        name: 'Declared scene',
+        graph: SceneGraph(startNodeId: 'start', nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ], edges: [
+          SceneEdge(
+              id: 'flow',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.defaultFlow)
+        ]));
+    await _applyScoped(
+        fixture, 'scene.upsert', {'scene': scene.toJson()}, 'declared-scene');
+    Future<ProjectSnapshot> read(
+            String action, Map<String, Object?> parameters) =>
+        fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+            actionId: action, parameters: parameters);
+    Map<String, Object?> draft(String id, String? sceneId) =>
+        NarrativeEventRecord.draft(NarrativeEventDraft(
+                id: id,
+                name: 'Draft $id',
+                conditions: const [],
+                sceneId: sceneId,
+                priority: 0,
+                order: 0))
+            .toJson();
+
+    final withScene = await read('event_v2.record_upsert',
+        {'record': draft('evt_019abcde-0000-7000-8000-000000000011', scene.id)});
+    expect(withScene.availableProjectSections, contains('eventRegistry'));
+    expect(withScene.availableProjectDocuments, isNot(contains('eventRegistry')));
+    expect(withScene.availableProjectDocuments!['scenes'], {scene.id});
+
+    final withoutScene = await read('event_v2.record_upsert',
+        {'record': draft('evt_019abcde-0000-7000-8000-000000000012', null)});
+    expect(withoutScene.availableProjectSections, contains('eventRegistry'));
+    expect(withoutScene.manifest.scenes, isEmpty);
+    expect(withoutScene.availableProjectDocuments!['scenes'], isEmpty);
+
+    final rule = await read('world_rule.create', {
+      'rule': WorldRuleDefinition(
+              id: 'world_rule_declared',
+              label: 'Declared',
+              source: WorldRuleSource.civilWeekday(
+                  weekday: CivilWeekday.friday, expectedValue: true),
+              target: const WorldRuleTarget(
+                  kind: WorldRuleTargetKind.mapEntity,
+                  mapId: 'map-0',
+                  entityId: 'tree'),
+              effect: const WorldRuleEffect(
+                  kind: WorldRuleEffectKind.entityHidden))
+          .toJson()
+    });
+    expect(rule.availableProjectSections, isNot(contains('eventRegistry')));
+    expect(rule.availableProjectDocuments!['scenes'], isEmpty);
+
+    final sceneEdit = await read('scene.upsert', {'scene': scene.toJson()});
+    expect(sceneEdit.availableProjectSections, isNot(contains('eventRegistry')));
+    expect(sceneEdit.availableProjectDocuments!['scenes'], {scene.id});
+  });
+
   test('first and repeated fact publications ignore unrelated maps and assets',
       () async {
     final fixture = await _Fixture.open();
