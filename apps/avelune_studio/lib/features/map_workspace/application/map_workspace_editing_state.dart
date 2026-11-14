@@ -6,6 +6,7 @@ import 'map_border_review.dart';
 import 'editable_map_document.dart';
 import 'environment_editing_commands.dart';
 import 'map_border_drawing_draft.dart';
+import 'map_relief_tool.dart';
 import 'map_border_editing_commands.dart';
 import 'map_terrain_patterns.dart';
 import 'spatial_ramp_editing_commands.dart';
@@ -27,6 +28,7 @@ class MapWorkspaceEditingState {
   Set<GameplayZoneKind> revealedZones = const {};
   StudioMapTool tool = StudioMapTool.select;
 
+  final relief = MapReliefToolState();
   SpatialTerrainMode spatialTerrainMode = SpatialTerrainMode.ground;
   int spatialTerrainLevel = 1;
   SpatialRampEditingPreview? rampPreview;

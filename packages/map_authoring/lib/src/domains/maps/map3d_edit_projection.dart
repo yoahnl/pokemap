@@ -7,6 +7,7 @@ import 'border_materialization_batch_actions.dart';
 import 'semantic_map_action_support.dart';
 import 'smart_tile_cell_actions.dart';
 import 'spatial_map_actions.dart';
+import 'spatial_terrain_relief_actions.dart';
 import 'spatial_terrain_surface_actions.dart';
 
 final class Map3dEditProjection {
@@ -16,6 +17,7 @@ final class Map3dEditProjection {
     'smart_tile.cell.paint',
     'smart_tile.cell.paint_batch',
     'smart_tile.cell.erase',
+    'map3d.terrain.paint_height',
     'map3d.terrain.surface.upsert_batch',
     'map3d.terrain.surface.delete_batch',
     'map3d.instance.upsert_batch',
@@ -80,6 +82,10 @@ final class Map3dEditProjection {
     );
     if (action.startsWith('smart_tile.')) {
       return const SmartTileCellActions()
+          .project(context, projectedMap: map, deferFinalization: true);
+    }
+    if (action == SpatialTerrainReliefActions.paintHeight) {
+      return const SpatialTerrainReliefActions()
           .project(context, projectedMap: map, deferFinalization: true);
     }
     if (action.startsWith('map3d.terrain.surface.')) {

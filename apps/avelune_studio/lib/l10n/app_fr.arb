@@ -1878,5 +1878,50 @@
         "type": "String"
       }
     }
-  }
+  },
+  "toolHintRelief": "Peignez les cases à la hauteur choisie ; relâchez pour poser les falaises.",
+  "reliefPaletteTitle": "Hauteur",
+  "reliefPaletteGround": "Sol de la carte",
+  "reliefLevelUp": "Monter d’un niveau (+)",
+  "reliefLevelDown": "Descendre d’un niveau (−)",
+  "reliefLevel": "Niveau {level}",
+  "@reliefLevel": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "reliefStyleTitle": "Style des falaises",
+  "reliefStyleLoading": "Chargement des reliefs…",
+  "reliefStyleEmpty": "Aucun relief droitier sur un niveau n’est publié dans « Reliefs et parois » pour cette carte.",
+  "reliefStyleLoadFailed": "Impossible de charger les reliefs : {error}",
+  "@reliefStyleLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "reliefStyleTwoLevels": "Variante sur deux niveaux disponible",
+  "reliefStyleOneLevel": "Un niveau seulement",
+  "reliefShortcuts": "Glisser : peindre · Maj+glisser : rectangle · Alt+clic : prendre la hauteur · + / − : changer de niveau. Une hauteur plus basse creuse.",
+  "reliefProblemNoProfile": "Choisissez d’abord un style de falaise dans le panneau Propriétés.",
+  "reliefProblemProfileUnavailable": "Ce style de falaise n’est plus disponible sur cette carte. Choisissez-en un autre.",
+  "reliefProblemLeftHanded": "Ce style pose ses parois du côté haut. Choisissez sa variante droitière.",
+  "reliefProblemProfileLevels": "Ce style ne correspond pas à la hauteur d’un niveau de cette carte.",
+  "reliefProblemLevelInvalid": "Cette hauteur dépasse la limite de la carte.",
+  "reliefProblemStepNotLevel": "Le sol voisin n’est pas à un niveau entier : la falaise ne peut pas s’y raccorder. Peignez d’abord ce sol à un niveau entier.",
+  "reliefProblemTwoLevelMissing": "Ce dénivelé de deux niveaux demande une falaise sur deux niveaux, absente de la famille de ce style. Peignez un palier intermédiaire.",
+  "reliefProblemStepTooHigh": "Ce dénivelé dépasse deux niveaux. Peignez des paliers intermédiaires.",
+  "reliefProblemAmbiguous": "Deux reliefs se touchent par un coin : le contour est ambigu. Élargissez ou séparez les zones.",
+  "reliefProblemNarrowCorner": "Coin trop étroit pour ce style de falaise : laissez au moins trois cases entre deux angles.",
+  "reliefProblemProfileIncompatible": "Ce style de falaise ne se raccorde pas proprement à ce dénivelé.",
+  "reliefProblemSurfaceLimit": "La carte a atteint sa limite de surfaces de terrain. Fusionnez des zones de même hauteur.",
+  "reliefProblemFootprintLimit": "Cette forme est trop découpée pour une seule surface. Simplifiez le contour.",
+  "reliefProblemRampConflict": "Une pente couvre ces cases. Retirez-la avant de changer leur hauteur.",
+  "reliefProblemBusy": "La carte a changé pendant le tracé. Recommencez.",
+  "reliefProblemUnknown": "Impossible de peindre ce relief. La carte reste inchangée.",
+  "reliefWarningUnreachable": "Zone inaccessible : ajoutez une pente ou un escalier",
+  "reliefWarningExterior": "Le décor extérieur touche cette zone : régénérez-le près du bord de la carte."
 }

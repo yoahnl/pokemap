@@ -27,6 +27,7 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
       return;
     }
     view.tool = tool;
+    if (tool == StudioMapTool.relief) unawaited(_prepareRelief(view));
     _changed();
   }
 
@@ -114,11 +115,21 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                                       document?.error,
                                   borderWarnings:
                                       document?.borderWarnings ?? const {},
+                                  reliefAvailable: _reliefAvailable,
+                                  reliefPalette: _reliefPalette(view),
+                                  reliefNotice:
+                                      view?.tool == StudioMapTool.relief
+                                      ? mapBuilderReliefNotice(
+                                          context.l10n,
+                                          view!.relief.outcome,
+                                        )
+                                      : null,
                                   surface: _surface(),
                                   statusBar: MapBuilderStatusBar(
                                     toolLabel:
                                         _resources.armed != null ||
-                                            _gameplay.placing
+                                            _gameplay.placing ||
+                                            view?.tool == StudioMapTool.relief
                                         ? toolLabel ??
                                               context.l10n.statusBuilding
                                         : view?.tool == StudioMapTool.pan
@@ -147,14 +158,16 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                                         ),
                                   onRelease: _resources.release,
                                   onCollapse: onCollapse,
-                                  body: mapBuilderSpaceInspector(
-                                    _space,
-                                    _gameplay,
-                                    _ambiance,
-                                    context.l10n,
-                                    enabled: _editable,
-                                    story: _story,
-                                  ),
+                                  body: view?.tool == StudioMapTool.relief
+                                      ? _reliefInspector(view!)
+                                      : mapBuilderSpaceInspector(
+                                          _space,
+                                          _gameplay,
+                                          _ambiance,
+                                          context.l10n,
+                                          enabled: _editable,
+                                          story: _story,
+                                        ),
                                 ),
                             ],
                           ),

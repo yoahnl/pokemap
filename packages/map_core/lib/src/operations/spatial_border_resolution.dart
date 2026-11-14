@@ -1916,20 +1916,21 @@ List<BorderDiagnostic> validateSpatialDirectedFaceOrientation({
   return diagnostics;
 }
 
-({MapData map, List<String> refreshed, List<String> stale})
+({MapData map, List<String> refreshed, List<String> stale, List<String> resolved})
 refreshSpatialBordersForTerrainChange({
   required ProjectManifest manifest,
   required MapData before,
   required MapData after,
+  Set<String> skipFeatureKeys = const {},
 }) {
   final previousScene = before.spatialScene;
   final nextScene = after.spatialScene;
   if (previousScene == null || nextScene == null) {
-    return (map: after, refreshed: const [], stale: const []);
+    return (map: after, refreshed: const [], stale: const [], resolved: const []);
   }
   final changed = spatialTerrainChangeBounds(previousScene, nextScene);
   if (changed == null) {
-    return (map: after, refreshed: const [], stale: const []);
+    return (map: after, refreshed: const [], stale: const [], resolved: const []);
   }
   const margin = 2.0;
   final left = changed.left - margin, right = changed.right + margin;
@@ -1940,6 +1941,7 @@ refreshSpatialBordersForTerrainChange({
   var map = after;
   final refreshed = <String>[];
   final stale = <String>[];
+  final resolvedKeys = <String>[];
   for (final layer in after.layers.whereType<BorderLayer>()) {
     for (final feature in layer.content.features) {
       final materialization = feature.materialization;
@@ -1961,6 +1963,8 @@ refreshSpatialBordersForTerrainChange({
         continue;
       }
       final key = '${layer.id}/${feature.id}';
+      if (skipFeatureKeys.contains(key)) continue;
+      resolvedKeys.add(key);
       final resolved = resolveSpatialBorderFeature(
         manifest: manifest,
         map: map,
@@ -1991,6 +1995,7 @@ refreshSpatialBordersForTerrainChange({
     map: map,
     refreshed: List.unmodifiable(refreshed),
     stale: List.unmodifiable(stale),
+    resolved: List.unmodifiable(resolvedKeys),
   );
 }
 

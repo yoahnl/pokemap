@@ -7,6 +7,9 @@ extension _SpatialKeyboardEditing on _SpatialMapEditingViewportState {
       null;
 
   KeyEventResult handleKey(KeyEvent event, LogicalKeyboardKey key) {
+    if (reliefKey(event, key) == KeyEventResult.handled) {
+      return KeyEventResult.handled;
+    }
     final delta = switch (key) {
       LogicalKeyboardKey.arrowLeft => (-1, 0),
       LogicalKeyboardKey.arrowRight => (1, 0),
@@ -88,6 +91,7 @@ extension _SpatialKeyboardEditing on _SpatialMapEditingViewportState {
         key == LogicalKeyboardKey.escape &&
         (contentSource != null ||
             reliefStroke != null ||
+            reliefPaint != null ||
             terrainStroke != null ||
             environmentGesture != null ||
             widget.view.rampPreview != null ||

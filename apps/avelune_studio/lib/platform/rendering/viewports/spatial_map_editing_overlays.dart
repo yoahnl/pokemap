@@ -36,7 +36,9 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditingViewportState {
   }
 
   List<SpatialCellOverlay> previewOverlays(ColorScheme colors) {
-    if (!showsHover) return const [];
+    if (!showsHover || widget.view.tool == StudioMapTool.relief) {
+      return const [];
+    }
     final scene = editingDocument.current.spatialScene!;
     final stroke = reliefStroke;
     final targets = <(int, int)>{};

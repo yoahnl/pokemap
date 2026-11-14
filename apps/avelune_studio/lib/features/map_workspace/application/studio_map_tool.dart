@@ -3,6 +3,7 @@ enum StudioMapTool {
   place,
   paint,
   terrain,
+  relief,
   character,
   warp,
   connection,

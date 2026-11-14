@@ -11,10 +11,10 @@ import '../assets/resource_library_actions_test.dart' show librarySnapshot;
 import 'border_spatial_actions_test.dart' show context;
 
 void main() {
-  test('descriptor admits exactly the 24 semantic operations', () {
+  test('descriptor admits exactly the 25 semantic operations', () {
     final descriptor =
         MapMutationDispatcher.canonical().descriptor('map3d.edit_batch');
-    expect(descriptor.extensions['admittedActions'], hasLength(24));
+    expect(descriptor.extensions['admittedActions'], hasLength(25));
     expect(descriptor.extensions['defaultSeed'], 0);
     expect(Map3dEditProjection.admittedActions,
         isNot(contains('map3d.edit_batch')));
@@ -360,6 +360,11 @@ void main() {
       },
       'map3d.instance.delete_batch': {
         'instanceIds': ['unrelated-object']
+      },
+      'map3d.terrain.paint_height': {
+        'level': 2,
+        'blueprintId': 'fence',
+        'region': {'x': 10, 'y': 8, 'width': 3, 'height': 3}
       },
       'border_layer.feature_create': {
         'layerId': 'border',

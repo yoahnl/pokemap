@@ -153,6 +153,12 @@ MapPaletteIntent _toolIntent(
       emptyNext: 'Choisissez une tuile dans son atlas.',
     ),
     StudioMapTool.terrain => _terrainIntent(view, spatial, null),
+    StudioMapTool.relief => MapPaletteIntent(
+      group: MapIntentGroup.build,
+      action: 'Relief',
+      armed: view.relief.profileId != null,
+      next: 'Peignez les cases à la hauteur choisie.',
+    ),
     StudioMapTool.erase => const MapPaletteIntent(
       group: MapIntentGroup.build,
       action: 'Gomme de tuiles',

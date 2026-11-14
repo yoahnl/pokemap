@@ -5159,6 +5159,192 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{reason, select, draft{brouillon} disabled{désactivé} worldRuleDisabled{désactivé par une règle du monde} worldRuleHidden{caché par une règle du monde} sourceMismatch{autre déclencheur} factConditionFalse{une condition sur un état est fausse} narrativeEventConsumedConditionFalse{une condition sur un comportement joué est fausse} mapEventInstanceBooleanConditionFalse{une condition de la carte est fausse} eventConsumed{déjà joué une fois} eventInFlight{déjà en cours} runtimeReferenceUnavailable{une référence manque au jeu} other{non retenu par le moteur}}'**
   String simulationReason(String reason);
+
+  /// No description provided for @toolHintRelief.
+  ///
+  /// In fr, this message translates to:
+  /// **'Peignez les cases à la hauteur choisie ; relâchez pour poser les falaises.'**
+  String get toolHintRelief;
+
+  /// No description provided for @reliefPaletteTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hauteur'**
+  String get reliefPaletteTitle;
+
+  /// No description provided for @reliefPaletteGround.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sol de la carte'**
+  String get reliefPaletteGround;
+
+  /// No description provided for @reliefLevelUp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Monter d’un niveau (+)'**
+  String get reliefLevelUp;
+
+  /// No description provided for @reliefLevelDown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Descendre d’un niveau (−)'**
+  String get reliefLevelDown;
+
+  /// No description provided for @reliefLevel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Niveau {level}'**
+  String reliefLevel(int level);
+
+  /// No description provided for @reliefStyleTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Style des falaises'**
+  String get reliefStyleTitle;
+
+  /// No description provided for @reliefStyleLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement des reliefs…'**
+  String get reliefStyleLoading;
+
+  /// No description provided for @reliefStyleEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun relief droitier sur un niveau n’est publié dans « Reliefs et parois » pour cette carte.'**
+  String get reliefStyleEmpty;
+
+  /// No description provided for @reliefStyleLoadFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de charger les reliefs : {error}'**
+  String reliefStyleLoadFailed(String error);
+
+  /// No description provided for @reliefStyleTwoLevels.
+  ///
+  /// In fr, this message translates to:
+  /// **'Variante sur deux niveaux disponible'**
+  String get reliefStyleTwoLevels;
+
+  /// No description provided for @reliefStyleOneLevel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un niveau seulement'**
+  String get reliefStyleOneLevel;
+
+  /// No description provided for @reliefShortcuts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Glisser : peindre · Maj+glisser : rectangle · Alt+clic : prendre la hauteur · + / − : changer de niveau. Une hauteur plus basse creuse.'**
+  String get reliefShortcuts;
+
+  /// No description provided for @reliefProblemNoProfile.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez d’abord un style de falaise dans le panneau Propriétés.'**
+  String get reliefProblemNoProfile;
+
+  /// No description provided for @reliefProblemProfileUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce style de falaise n’est plus disponible sur cette carte. Choisissez-en un autre.'**
+  String get reliefProblemProfileUnavailable;
+
+  /// No description provided for @reliefProblemLeftHanded.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce style pose ses parois du côté haut. Choisissez sa variante droitière.'**
+  String get reliefProblemLeftHanded;
+
+  /// No description provided for @reliefProblemProfileLevels.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce style ne correspond pas à la hauteur d’un niveau de cette carte.'**
+  String get reliefProblemProfileLevels;
+
+  /// No description provided for @reliefProblemLevelInvalid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette hauteur dépasse la limite de la carte.'**
+  String get reliefProblemLevelInvalid;
+
+  /// No description provided for @reliefProblemStepNotLevel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le sol voisin n’est pas à un niveau entier : la falaise ne peut pas s’y raccorder. Peignez d’abord ce sol à un niveau entier.'**
+  String get reliefProblemStepNotLevel;
+
+  /// No description provided for @reliefProblemTwoLevelMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce dénivelé de deux niveaux demande une falaise sur deux niveaux, absente de la famille de ce style. Peignez un palier intermédiaire.'**
+  String get reliefProblemTwoLevelMissing;
+
+  /// No description provided for @reliefProblemStepTooHigh.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce dénivelé dépasse deux niveaux. Peignez des paliers intermédiaires.'**
+  String get reliefProblemStepTooHigh;
+
+  /// No description provided for @reliefProblemAmbiguous.
+  ///
+  /// In fr, this message translates to:
+  /// **'Deux reliefs se touchent par un coin : le contour est ambigu. Élargissez ou séparez les zones.'**
+  String get reliefProblemAmbiguous;
+
+  /// No description provided for @reliefProblemNarrowCorner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coin trop étroit pour ce style de falaise : laissez au moins trois cases entre deux angles.'**
+  String get reliefProblemNarrowCorner;
+
+  /// No description provided for @reliefProblemProfileIncompatible.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce style de falaise ne se raccorde pas proprement à ce dénivelé.'**
+  String get reliefProblemProfileIncompatible;
+
+  /// No description provided for @reliefProblemSurfaceLimit.
+  ///
+  /// In fr, this message translates to:
+  /// **'La carte a atteint sa limite de surfaces de terrain. Fusionnez des zones de même hauteur.'**
+  String get reliefProblemSurfaceLimit;
+
+  /// No description provided for @reliefProblemFootprintLimit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette forme est trop découpée pour une seule surface. Simplifiez le contour.'**
+  String get reliefProblemFootprintLimit;
+
+  /// No description provided for @reliefProblemRampConflict.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une pente couvre ces cases. Retirez-la avant de changer leur hauteur.'**
+  String get reliefProblemRampConflict;
+
+  /// No description provided for @reliefProblemBusy.
+  ///
+  /// In fr, this message translates to:
+  /// **'La carte a changé pendant le tracé. Recommencez.'**
+  String get reliefProblemBusy;
+
+  /// No description provided for @reliefProblemUnknown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de peindre ce relief. La carte reste inchangée.'**
+  String get reliefProblemUnknown;
+
+  /// No description provided for @reliefWarningUnreachable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Zone inaccessible : ajoutez une pente ou un escalier'**
+  String get reliefWarningUnreachable;
+
+  /// No description provided for @reliefWarningExterior.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le décor extérieur touche cette zone : régénérez-le près du bord de la carte.'**
+  String get reliefWarningExterior;
 }
 
 class _AppLocalizationsDelegate

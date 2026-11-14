@@ -23,6 +23,7 @@ extension MapBuilderToolLabels on AppLocalizations {
               : view.spatialTerrainMode == SpatialTerrainMode.relief
               ? toolRelief
               : toolSlope,
+        StudioMapTool.relief => toolRelief,
         StudioMapTool.erase => toolEraseTiles,
         StudioMapTool.eraseDecor => toolEraseDecor,
         StudioMapTool.border => toolBorder,
@@ -45,6 +46,7 @@ extension MapBuilderToolLabels on AppLocalizations {
       switch (view.tool) {
         StudioMapTool.select => toolHintSelect,
         StudioMapTool.pan => toolHintPan,
+        StudioMapTool.relief => toolHintRelief,
         _ => armed ? toolHintArmed : toolHintChoose,
       };
 }

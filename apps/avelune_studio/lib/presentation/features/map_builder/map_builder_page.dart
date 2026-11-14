@@ -44,6 +44,9 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_gam
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_inspector.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_inspector.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_relief_tool.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_relief_inspector.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_relief_palette.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_opening.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_side_panel.dart';
@@ -58,6 +61,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_too
 
 part 'map_builder_page_layout.dart';
 part 'map_builder_page_leave_guard.dart';
+part 'map_builder_page_relief.dart';
 part 'map_builder_page_scene.dart';
 part 'map_builder_page_state.dart';
 part 'map_builder_page_story.dart';

@@ -67,6 +67,15 @@ Map<String, Object?>? mapActionInputExample(String actionId) {
           }
         ]
       },
+    'map3d.terrain.paint_height' => {
+        'mapId': 'map',
+        'level': 2,
+        'blueprintId': 'fence',
+        'cells': [
+          {'x': 10, 'y': 8},
+          {'x': 11, 'y': 8}
+        ]
+      },
     'map3d.terrain.surface.delete_batch' => {
         'mapId': 'map',
         'surfaceIds': ['lower-ground']

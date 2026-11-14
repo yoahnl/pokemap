@@ -3274,4 +3274,121 @@ class AppLocalizationsEn extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get toolHintRelief =>
+      'Paint cells at the chosen height; release to place the cliffs.';
+
+  @override
+  String get reliefPaletteTitle => 'Height';
+
+  @override
+  String get reliefPaletteGround => 'Map ground';
+
+  @override
+  String get reliefLevelUp => 'Raise one level (+)';
+
+  @override
+  String get reliefLevelDown => 'Lower one level (−)';
+
+  @override
+  String reliefLevel(int level) {
+    return 'Level $level';
+  }
+
+  @override
+  String get reliefStyleTitle => 'Cliff style';
+
+  @override
+  String get reliefStyleLoading => 'Loading reliefs…';
+
+  @override
+  String get reliefStyleEmpty =>
+      'No right-handed one-level relief is published in “Reliefs and walls” for this map.';
+
+  @override
+  String reliefStyleLoadFailed(String error) {
+    return 'Reliefs could not be loaded: $error';
+  }
+
+  @override
+  String get reliefStyleTwoLevels => 'Two-level variant available';
+
+  @override
+  String get reliefStyleOneLevel => 'One level only';
+
+  @override
+  String get reliefShortcuts =>
+      'Drag: paint · Shift+drag: rectangle · Alt+click: pick the height · + / −: change level. A lower height digs.';
+
+  @override
+  String get reliefProblemNoProfile =>
+      'First choose a cliff style in the Properties panel.';
+
+  @override
+  String get reliefProblemProfileUnavailable =>
+      'This cliff style is no longer available on this map. Choose another one.';
+
+  @override
+  String get reliefProblemLeftHanded =>
+      'This style puts its walls on the high side. Choose its right-handed variant.';
+
+  @override
+  String get reliefProblemProfileLevels =>
+      'This style does not match one level of this map.';
+
+  @override
+  String get reliefProblemLevelInvalid => 'This height exceeds the map limit.';
+
+  @override
+  String get reliefProblemStepNotLevel =>
+      'The neighbouring ground is not at a whole level, so the cliff cannot join it. Paint that ground at a whole level first.';
+
+  @override
+  String get reliefProblemTwoLevelMissing =>
+      'This two-level drop needs a two-level cliff, which this style\'s family lacks. Paint an intermediate step.';
+
+  @override
+  String get reliefProblemStepTooHigh =>
+      'This drop is higher than two levels. Paint intermediate steps.';
+
+  @override
+  String get reliefProblemAmbiguous =>
+      'Two reliefs touch at a corner, so the contour is ambiguous. Widen or separate the areas.';
+
+  @override
+  String get reliefProblemNarrowCorner =>
+      'Corner too narrow for this cliff style: leave at least three cells between two corners.';
+
+  @override
+  String get reliefProblemProfileIncompatible =>
+      'This cliff style does not join this height difference cleanly.';
+
+  @override
+  String get reliefProblemSurfaceLimit =>
+      'The map reached its terrain surface limit. Merge areas of the same height.';
+
+  @override
+  String get reliefProblemFootprintLimit =>
+      'This shape is too fragmented for one surface. Simplify its outline.';
+
+  @override
+  String get reliefProblemRampConflict =>
+      'A slope covers these cells. Remove it before changing their height.';
+
+  @override
+  String get reliefProblemBusy =>
+      'The map changed during the stroke. Try again.';
+
+  @override
+  String get reliefProblemUnknown =>
+      'This relief cannot be painted. The map is unchanged.';
+
+  @override
+  String get reliefWarningUnreachable =>
+      'Unreachable area: add a slope or stairs';
+
+  @override
+  String get reliefWarningExterior =>
+      'The exterior decoration touches this area: regenerate it near the map edge.';
 }

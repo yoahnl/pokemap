@@ -10,6 +10,7 @@ extension _SpatialCellOverlays on _SpatialMapEditingViewportState {
     final destination = contentGestureValid ? gesture?.destination : null;
     final cells = <SpatialCellOverlay>[];
     cells.addAll(previewOverlays(colors));
+    cells.addAll(reliefOverlays(colors));
     cells.addAll(environmentOverlays(colors));
     cells.addAll(borderOverlays(colors));
     cells.addAll(terrainSurfaceSelectionOverlays(colors));

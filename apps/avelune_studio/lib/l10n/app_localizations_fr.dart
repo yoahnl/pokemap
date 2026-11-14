@@ -3294,4 +3294,122 @@ class AppLocalizationsFr extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get toolHintRelief =>
+      'Peignez les cases à la hauteur choisie ; relâchez pour poser les falaises.';
+
+  @override
+  String get reliefPaletteTitle => 'Hauteur';
+
+  @override
+  String get reliefPaletteGround => 'Sol de la carte';
+
+  @override
+  String get reliefLevelUp => 'Monter d’un niveau (+)';
+
+  @override
+  String get reliefLevelDown => 'Descendre d’un niveau (−)';
+
+  @override
+  String reliefLevel(int level) {
+    return 'Niveau $level';
+  }
+
+  @override
+  String get reliefStyleTitle => 'Style des falaises';
+
+  @override
+  String get reliefStyleLoading => 'Chargement des reliefs…';
+
+  @override
+  String get reliefStyleEmpty =>
+      'Aucun relief droitier sur un niveau n’est publié dans « Reliefs et parois » pour cette carte.';
+
+  @override
+  String reliefStyleLoadFailed(String error) {
+    return 'Impossible de charger les reliefs : $error';
+  }
+
+  @override
+  String get reliefStyleTwoLevels => 'Variante sur deux niveaux disponible';
+
+  @override
+  String get reliefStyleOneLevel => 'Un niveau seulement';
+
+  @override
+  String get reliefShortcuts =>
+      'Glisser : peindre · Maj+glisser : rectangle · Alt+clic : prendre la hauteur · + / − : changer de niveau. Une hauteur plus basse creuse.';
+
+  @override
+  String get reliefProblemNoProfile =>
+      'Choisissez d’abord un style de falaise dans le panneau Propriétés.';
+
+  @override
+  String get reliefProblemProfileUnavailable =>
+      'Ce style de falaise n’est plus disponible sur cette carte. Choisissez-en un autre.';
+
+  @override
+  String get reliefProblemLeftHanded =>
+      'Ce style pose ses parois du côté haut. Choisissez sa variante droitière.';
+
+  @override
+  String get reliefProblemProfileLevels =>
+      'Ce style ne correspond pas à la hauteur d’un niveau de cette carte.';
+
+  @override
+  String get reliefProblemLevelInvalid =>
+      'Cette hauteur dépasse la limite de la carte.';
+
+  @override
+  String get reliefProblemStepNotLevel =>
+      'Le sol voisin n’est pas à un niveau entier : la falaise ne peut pas s’y raccorder. Peignez d’abord ce sol à un niveau entier.';
+
+  @override
+  String get reliefProblemTwoLevelMissing =>
+      'Ce dénivelé de deux niveaux demande une falaise sur deux niveaux, absente de la famille de ce style. Peignez un palier intermédiaire.';
+
+  @override
+  String get reliefProblemStepTooHigh =>
+      'Ce dénivelé dépasse deux niveaux. Peignez des paliers intermédiaires.';
+
+  @override
+  String get reliefProblemAmbiguous =>
+      'Deux reliefs se touchent par un coin : le contour est ambigu. Élargissez ou séparez les zones.';
+
+  @override
+  String get reliefProblemNarrowCorner =>
+      'Coin trop étroit pour ce style de falaise : laissez au moins trois cases entre deux angles.';
+
+  @override
+  String get reliefProblemProfileIncompatible =>
+      'Ce style de falaise ne se raccorde pas proprement à ce dénivelé.';
+
+  @override
+  String get reliefProblemSurfaceLimit =>
+      'La carte a atteint sa limite de surfaces de terrain. Fusionnez des zones de même hauteur.';
+
+  @override
+  String get reliefProblemFootprintLimit =>
+      'Cette forme est trop découpée pour une seule surface. Simplifiez le contour.';
+
+  @override
+  String get reliefProblemRampConflict =>
+      'Une pente couvre ces cases. Retirez-la avant de changer leur hauteur.';
+
+  @override
+  String get reliefProblemBusy =>
+      'La carte a changé pendant le tracé. Recommencez.';
+
+  @override
+  String get reliefProblemUnknown =>
+      'Impossible de peindre ce relief. La carte reste inchangée.';
+
+  @override
+  String get reliefWarningUnreachable =>
+      'Zone inaccessible : ajoutez une pente ou un escalier';
+
+  @override
+  String get reliefWarningExterior =>
+      'Le décor extérieur touche cette zone : régénérez-le près du bord de la carte.';
 }

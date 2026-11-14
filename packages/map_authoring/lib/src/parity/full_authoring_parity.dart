@@ -1103,6 +1103,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/spatial_lift_stdio.test.ts',
     };
   }
+  if (actionId == 'map3d.terrain.paint_height') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/workspace/catalog_terrain_relief_paint_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/spatial_terrain_relief_actions_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/map_relief_tool_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/terrain_relief_paint_stdio.test.ts',
+    };
+  }
   if (actionId.startsWith('map3d.terrain.surface.')) {
     return const {
       AuthoringTransport.directApi:
@@ -2105,6 +2117,9 @@ String _contractTestFor(String actionId) {
   if(actionId=='project.catalog.partition') return 'test/workspace/catalog_partition_action_test.dart';
   if(actionId=='catalog.definition.update') return 'test/catalog_storage/catalog_project_transport_test.dart';
   if(actionId=='map3d.edit_batch') return 'test/domains/maps/map3d_edit_batch_actions_test.dart';
+  if (actionId == 'map3d.terrain.paint_height') {
+    return 'test/domains/maps/spatial_terrain_relief_actions_test.dart';
+  }
   if (_eventV2TransportCertifiedActionIds.contains(actionId)) {
     return 'test/domains/narrative/event_record_batch_transport_test.dart';
   }

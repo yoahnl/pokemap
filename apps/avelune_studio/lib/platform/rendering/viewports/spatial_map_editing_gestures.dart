@@ -94,6 +94,7 @@ extension _SpatialGestureFlow on _SpatialMapEditingViewportState {
     terrainStroke = null;
     environmentGesture = null;
     reliefStroke = null;
+    reliefPaint = null;
     terrainSource = null;
     terrainProject = null;
     terrainTool = null;
@@ -144,6 +145,12 @@ extension _SpatialGestureFlow on _SpatialMapEditingViewportState {
     contentSource = null;
     contentProject = null;
     nudgeKeys.clear();
+    final paint = reliefPaint;
+    if (paint != null) {
+      discardGesture();
+      finishRelief(paint);
+      return;
+    }
     final stroke = terrainStroke;
     final relief = reliefStroke;
     final source = terrainSource;
@@ -239,6 +246,10 @@ extension _SpatialGestureFlow on _SpatialMapEditingViewportState {
         cancel();
         return;
       }
+      widget.onChanged();
+    }
+    if (reliefPaint != null && !locked) {
+      reliefPaint!.paint(GridPos(x: cell.$1, y: cell.$2));
       widget.onChanged();
     }
     if (reliefStroke != null && !locked) {

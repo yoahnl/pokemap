@@ -160,6 +160,7 @@ final class CatalogSpatialMapSelection {
       'environment.generated_placement_delete',
       'map3d.terrain.configure_appearance',
       'map3d.terrain.surface.upsert_batch',
+      'map3d.terrain.paint_height',
       'map3d.lift.upsert_batch',
       'map3d.lift.delete_batch',
       'map3d.terrain.surface.delete_batch',
@@ -602,7 +603,8 @@ final class CatalogSpatialMapSelection {
           CatalogDefinitionKind.environmentPreset: {'presetId'},
           CatalogDefinitionKind.borderRecord: {
             'blueprintId',
-            'targetBlueprintId'
+            'targetBlueprintId',
+            'twoLevelBlueprintId'
           },
           CatalogDefinitionKind.smartTileAtlas: {'atlasId'},
           CatalogDefinitionKind.smartTilePreset: {'presetId', 'targetPresetId'},

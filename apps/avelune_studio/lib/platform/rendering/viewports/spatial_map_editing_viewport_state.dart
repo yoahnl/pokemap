@@ -52,6 +52,7 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
   MapData? borderPreviewMap;
   String? borderPreviewError;
   SpatialTerrainStroke? reliefStroke;
+  MapReliefStroke? reliefPaint;
   MapData? terrainSource;
   ProjectManifest? terrainProject;
   StudioMapTool? terrainTool;

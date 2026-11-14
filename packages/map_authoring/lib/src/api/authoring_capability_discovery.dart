@@ -83,6 +83,7 @@ const authoringCapabilityDomains = {
     'map3d.terrain.configure_appearance',
     'map3d.terrain.configure_height',
     'map3d.terrain.set_levels',
+    'map3d.terrain.paint_height',
     'map3d.terrain.surface.delete_batch',
     'map3d.terrain.surface.upsert_batch',
     'model3d.configure',

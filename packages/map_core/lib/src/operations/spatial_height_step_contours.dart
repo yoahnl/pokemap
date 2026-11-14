@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import 'spatial_border_resolution_context.dart';
@@ -52,19 +54,24 @@ HeightStepContours computeHeightStepEdges(
       'The height step region must be inside the map.',
     );
   }
-  for (var y = area.y; y < bottom; y++) {
-    for (var x = area.x; x < right; x++) {
-      if (scene.navigation.ramps.any((ramp) => ramp.contains(x + .5, y + .5))) {
-        return HeightStepContours(
-          SpatialIntentResolutionState.unsupported,
-          [],
-          reason: 'ramps_require_explicit_contour',
-        );
+  bool rampAt(int x, int y) =>
+      scene.navigation.ramps.any((ramp) => ramp.contains(x + .5, y + .5));
+  final rampRefusal = HeightStepContours(
+    SpatialIntentResolutionState.unsupported,
+    [],
+    reason: 'ramps_require_explicit_contour',
+  );
+  if (cells == null) {
+    for (var y = area.y; y < bottom; y++) {
+      for (var x = area.x; x < right; x++) {
+        if (rampAt(x, y)) return rampRefusal;
       }
     }
   }
   final terrain = SpatialBorderResolutionContext.fromMap(map);
-  double heightAt(int x, int y) => terrain.worldHeightAt(x + .5, y + .5);
+  final heights = <int, double>{};
+  double heightAt(int x, int y) =>
+      heights[y * scene.width + x] ??= terrain.worldHeightAt(x + .5, y + .5);
   bool raised(int x, int y) => heightAt(x, y) >= upperHeight - 1e-6;
   final component = cells == null
       ? null
@@ -76,6 +83,9 @@ HeightStepContours computeHeightStepEdges(
           right: right,
           bottom: bottom,
         );
+  if (component != null && component.any((cell) => rampAt(cell.x, cell.y))) {
+    return rampRefusal;
+  }
   if (component != null && component.isEmpty) {
     return HeightStepContours(
       SpatialIntentResolutionState.noSource,
@@ -92,9 +102,20 @@ HeightStepContours computeHeightStepEdges(
         (!exactHeights || height >= lowerHeight - 1e-6);
   }
 
+  var scanLeft = area.x, scanTop = area.y;
+  var scanRight = right, scanBottom = bottom;
+  if (component != null) {
+    scanLeft = math.max(area.x, component.map((c) => c.x).reduce(math.min) - 1);
+    scanTop = math.max(area.y, component.map((c) => c.y).reduce(math.min) - 1);
+    scanRight = math.min(right, component.map((c) => c.x).reduce(math.max) + 2);
+    scanBottom = math.min(
+      bottom,
+      component.map((c) => c.y).reduce(math.max) + 2,
+    );
+  }
   final edges = <(GridPos, GridPos)>{};
-  for (var y = area.y; y < bottom; y++) {
-    for (var x = area.x; x < right; x++) {
+  for (var y = scanTop; y < scanBottom; y++) {
+    for (var x = scanLeft; x < scanRight; x++) {
       if (y > 0) {
         final a = GridPos(x: x, y: y), b = GridPos(x: x + 1, y: y);
         if (upper(x, y) && lower(x, y - 1)) edges.add((a, b));

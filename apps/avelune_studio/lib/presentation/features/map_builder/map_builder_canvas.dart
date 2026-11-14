@@ -21,6 +21,9 @@ class MapBuilderCanvas extends StatelessWidget {
     required this.onToggleInspector,
     required this.error,
     this.borderWarnings = const {},
+    this.reliefAvailable = false,
+    this.reliefPalette,
+    this.reliefNotice,
     required this.surface,
     required this.statusBar,
   });
@@ -34,6 +37,9 @@ class MapBuilderCanvas extends StatelessWidget {
   final VoidCallback onToggleInspector;
   final String? error;
   final Set<String> borderWarnings;
+  final bool reliefAvailable;
+  final Widget? reliefPalette;
+  final ({String message, bool isError})? reliefNotice;
   final Widget? surface;
   final Widget statusBar;
 
@@ -90,6 +96,16 @@ class MapBuilderCanvas extends StatelessWidget {
                   selected: tool == StudioMapTool.pan,
                   onPressed: () => onTool(StudioMapTool.pan),
                 ),
+                if (reliefAvailable) ...[
+                  const SizedBox(width: StudioSpacing.xs),
+                  StudioTool(
+                    key: const ValueKey('map-tool-relief'),
+                    label: context.l10n.toolRelief,
+                    icon: Icons.terrain_outlined,
+                    selected: tool == StudioMapTool.relief,
+                    onPressed: () => onTool(StudioMapTool.relief),
+                  ),
+                ],
                 const Spacer(),
                 IconButton(
                   key: const ValueKey('map-inspector-toggle'),
@@ -137,6 +153,15 @@ class MapBuilderCanvas extends StatelessWidget {
               padding: const EdgeInsets.all(StudioSpacing.l),
               child: StudioNotice(error, isError: true),
             )
+          else if (reliefNotice case final notice?)
+            Padding(
+              padding: const EdgeInsets.all(StudioSpacing.l),
+              child: StudioNotice(
+                notice.message,
+                key: const ValueKey('map-relief-notice'),
+                isError: notice.isError,
+              ),
+            )
           else if (warning != null)
             Padding(
               padding: const EdgeInsets.all(StudioSpacing.l),
@@ -152,7 +177,13 @@ class MapBuilderCanvas extends StatelessWidget {
                         ? const CircularProgressIndicator()
                         : const SizedBox(),
                   )
-                : ClipRect(child: surface),
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ?reliefPalette,
+                      Expanded(child: ClipRect(child: surface)),
+                    ],
+                  ),
           ),
           statusBar,
         ],
