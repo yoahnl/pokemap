@@ -64,8 +64,8 @@ final class StoryPublicationGateway {
         StoryDraftKind.event => _events != null,
         StoryDraftKind.scene => _scenes != null && !deletion,
         StoryDraftKind.dialogue => _dialogues != null,
-        StoryDraftKind.fact => _facts != null,
-        StoryDraftKind.story || StoryDraftKind.worldRule => false,
+        StoryDraftKind.fact || StoryDraftKind.worldRule => _facts != null,
+        StoryDraftKind.story => false,
       };
 
   Future<StoryPublicationProgress> publish(
@@ -129,9 +129,10 @@ final class StoryPublicationGateway {
     StoryDraftKind.fact => _writeFact(
       step.entries.single as StoryDraftEntry<NarrativeFactDefinition>,
     ),
-    StoryDraftKind.story || StoryDraftKind.worldRule => throw StateError(
-      'unsupported ${step.kind.name}',
+    StoryDraftKind.worldRule => _writeRule(
+      step.entries.single as StoryDraftEntry<WorldRuleDefinition>,
     ),
+    StoryDraftKind.story => throw StateError('unsupported ${step.kind.name}'),
   };
 
   Future<ResourceMutationReceipt> _writeEvents(
@@ -203,5 +204,12 @@ final class StoryPublicationGateway {
   ) => switch (entry.current) {
     final current? => _facts!.publishFact(base: entry.base, current: current),
     null => _facts!.deleteFact(entry.base!),
+  };
+
+  Future<ResourceMutationReceipt> _writeRule(
+    StoryDraftEntry<WorldRuleDefinition> entry,
+  ) => switch (entry.current) {
+    final current? => _facts!.publishRule(base: entry.base, current: current),
+    null => _facts!.deleteRule(entry.base!),
   };
 }

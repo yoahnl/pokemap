@@ -155,6 +155,8 @@ String projectOpeningPhaseLabel(
 ) => switch (phase) {
   ProjectOpeningPhase.project => l10n.openingPhaseProject,
   ProjectOpeningPhase.workshop => l10n.openingPhaseWorkshop,
+  ProjectOpeningPhase.narrativeTitles => l10n.openingPhaseNarrativeTitles,
+  ProjectOpeningPhase.narrativeUsages => l10n.openingPhaseNarrativeUsages,
   ProjectOpeningPhase.map => l10n.openingPhaseMap,
   ProjectOpeningPhase.resources => l10n.openingPhaseResources,
   ProjectOpeningPhase.palette => l10n.openingPhasePalette,

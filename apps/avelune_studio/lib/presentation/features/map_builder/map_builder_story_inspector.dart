@@ -12,6 +12,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_sto
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_errors.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_line_field.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_panel.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_presence.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 export 'package:avelune_studio/presentation/features/map_builder/map_builder_story_errors.dart';

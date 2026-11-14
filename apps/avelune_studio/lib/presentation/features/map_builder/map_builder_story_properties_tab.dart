@@ -236,6 +236,17 @@ class _Properties extends StatelessWidget {
             lines: 3,
             onCommit: (text) => binding.setSignText(element, text),
           ),
+        if (element.kind == MapStoryElementKind.character && entity != null)
+          MapBuilderStoryPresence(
+            port: binding.narrative,
+            mapId: binding.map!.id,
+            characterId: element.id,
+            saved:
+                binding.maps.active?.base.map.entities.any(
+                  (saved) => saved.id == element.id,
+                ) ??
+                false,
+          ),
       ],
     );
   }

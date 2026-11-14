@@ -83,6 +83,43 @@ void main() {
       progress[ProjectOpeningPhase.map].status,
       ProjectOpeningStepStatus.pending,
     );
+    for (final phase in const [
+      ProjectOpeningPhase.narrativeTitles,
+      ProjectOpeningPhase.narrativeUsages,
+    ]) {
+      expect(progress[phase].status, ProjectOpeningStepStatus.skipped);
+    }
+  });
+
+  test('narrative indexes prepared at opening finish as phases', () async {
+    final opening = controller.open('/example/requested');
+    final progress = controller.state.progress!;
+    final report = port.phaseReporters.single!;
+
+    report(ProjectOpeningPhase.workshop);
+    report(ProjectOpeningPhase.narrativeTitles);
+    expect(
+      progress[ProjectOpeningPhase.workshop].status,
+      ProjectOpeningStepStatus.done,
+    );
+    report(ProjectOpeningPhase.narrativeUsages);
+    expect(
+      progress[ProjectOpeningPhase.narrativeTitles].status,
+      ProjectOpeningStepStatus.done,
+    );
+    expect(
+      progress[ProjectOpeningPhase.narrativeUsages].status,
+      ProjectOpeningStepStatus.running,
+    );
+
+    port.pending.single.complete(exampleA);
+    await opening;
+
+    expect(
+      progress[ProjectOpeningPhase.narrativeUsages].status,
+      ProjectOpeningStepStatus.done,
+    );
+    expect(progress[ProjectOpeningPhase.narrativeUsages].elapsed, isNotNull);
   });
 
   test('a superseded opening no longer moves its progress', () async {

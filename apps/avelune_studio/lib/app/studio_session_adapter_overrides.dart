@@ -25,6 +25,7 @@ import '../features/cinematics/data/local_cinematic_adapter.dart';
 import '../features/presentations/data/local_presentation_adapter.dart';
 import '../features/verification/data/local_verification_adapter.dart';
 import '../features/world/data/local_world_adapter.dart';
+import '../features/game_memory/data/local_narrative_index_adapter.dart';
 import '../platform/files/native_presentation_media_picker.dart';
 import '../features/dialogues/data/local_dialogue_adapter.dart';
 import '../features/events/data/local_event_adapter.dart';
@@ -196,6 +197,9 @@ List<Override> studioSessionAdapterOverrides() => [
         mapWorkspacePortProvider(session),
       ) as LocalMapWorkspaceAdapter,
     ),
+  ),
+  narrativeIndexPortProvider.overrideWith(
+    (ref, session) => LocalNarrativeIndexAdapter(session),
   ),
   verificationPortProvider.overrideWith(
     (ref, session) => LocalVerificationAdapter(

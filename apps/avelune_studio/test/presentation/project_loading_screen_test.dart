@@ -90,7 +90,18 @@ void main() {
     await tester.pump();
     expect(detail(tester, ProjectOpeningPhase.project), matches(seconds));
     expect(detail(tester, ProjectOpeningPhase.workshop), 'En cours…');
-    expect(percent(tester), '16 %');
+    expect(percent(tester), '12 %');
+
+    sessions.phaseReporters.single!(ProjectOpeningPhase.narrativeTitles);
+    sessions.phaseReporters.single!(ProjectOpeningPhase.narrativeUsages);
+    await tester.pump();
+    expect(detail(tester, ProjectOpeningPhase.workshop), matches(seconds));
+    expect(
+      detail(tester, ProjectOpeningPhase.narrativeTitles),
+      matches(seconds),
+    );
+    expect(detail(tester, ProjectOpeningPhase.narrativeUsages), 'En cours…');
+    expect(find.text('Index des noms de l’histoire'), findsOneWidget);
 
     sessions.pending.single.complete(exampleA);
     await settle(tester);
@@ -105,7 +116,7 @@ void main() {
     expect(detail(tester, ProjectOpeningPhase.workshop), matches(seconds));
     expect(detail(tester, ProjectOpeningPhase.map), matches(seconds));
     expect(detail(tester, ProjectOpeningPhase.resources), 'En cours…');
-    expect(percent(tester), '50 %');
+    expect(percent(tester), '62 %');
 
     visuals.complete(WorkspaceTestVisuals());
     await settle(tester);

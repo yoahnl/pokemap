@@ -3,6 +3,7 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  final phases = ProjectOpeningPhase.values.length;
   late Duration now;
   late ProjectOpeningProgress progress;
   late int notifications;
@@ -34,7 +35,7 @@ void main() {
     expect(step.status, ProjectOpeningStepStatus.done);
     expect(step.elapsed, const Duration(milliseconds: 1250));
     expect(step.fraction, 1);
-    expect(progress.fraction, closeTo(1 / 6, 1e-9));
+    expect(progress.fraction, closeTo(1 / phases, 1e-9));
   });
 
   test('counted work gives the running phase a real fraction', () {
@@ -43,7 +44,7 @@ void main() {
       ..count(ProjectOpeningPhase.scene, 3, 12);
 
     expect(progress[ProjectOpeningPhase.scene].fraction, .25);
-    expect(progress.fraction, closeTo(.25 / 6, 1e-9));
+    expect(progress.fraction, closeTo(.25 / phases, 1e-9));
 
     progress.count(ProjectOpeningPhase.palette, 1, 2);
     expect(progress[ProjectOpeningPhase.palette].total, isNull);
@@ -88,7 +89,7 @@ void main() {
   });
 
   test('the opening settles when every phase ends or one fails', () {
-    for (final phase in ProjectOpeningPhase.values.take(5)) {
+    for (final phase in ProjectOpeningPhase.values.take(phases - 1)) {
       progress
         ..start(phase)
         ..finish(phase);

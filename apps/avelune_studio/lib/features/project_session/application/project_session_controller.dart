@@ -71,6 +71,14 @@ class ProjectSessionController {
     progress
       ..finish(ProjectOpeningPhase.project)
       ..finish(ProjectOpeningPhase.workshop);
+    for (final phase in const [
+      ProjectOpeningPhase.narrativeTitles,
+      ProjectOpeningPhase.narrativeUsages,
+    ]) {
+      progress[phase].status == ProjectOpeningStepStatus.running
+          ? progress.finish(phase)
+          : progress.skip(phase);
+    }
     _publish(
       ProjectSessionState(
         status: ProjectSessionStatus.ready,

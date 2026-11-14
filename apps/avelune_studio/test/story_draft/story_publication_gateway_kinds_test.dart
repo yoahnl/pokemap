@@ -163,6 +163,32 @@ void main() {
     expect(draft.dirty(saved()), isFalse);
   });
 
+  test('a new world rule is written after the fact it tests', () async {
+    draft.group(() {
+      write(StoryDraftKind.worldRule, 'gate', rule('gate', 'Porte'));
+      write(StoryDraftKind.fact, 'fact', fact('fact', 'Clé trouvée'));
+    });
+
+    expect(await publish(), isA<StoryPublicationProgress>());
+
+    expect(ports.calls, ['fact fact', 'rule gate']);
+    expect(project.worldRules.single.label, 'Porte');
+    expect(draft.dirty(saved()), isFalse);
+  });
+
+  test('a world rule changed on disk stays in the draft', () async {
+    project = manifest(events: [event(1)], rules: [rule('gate', 'Disque')]);
+    write(StoryDraftKind.worldRule, 'gate', rule('gate', 'Mienne'));
+    project = manifest(events: [event(1)], rules: [rule('gate', 'Ailleurs')]);
+
+    expect(await publish(), isA<StoryPublicationProgress>());
+
+    expect(ports.calls, isEmpty);
+    expect(draft.conflicts(saved()), [
+      (kind: StoryDraftKind.worldRule, id: 'gate'),
+    ]);
+  });
+
   test('a scene deletion is refused before anything is written', () async {
     project = manifest(events: [event(1)], scenes: [scene('old')]);
     draft.group(() {

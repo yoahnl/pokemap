@@ -13,3 +13,4 @@ export 'pokemon_providers.dart';
 export 'project_creation_providers.dart';
 export 'regional_map_providers.dart';
 export 'story_draft_providers.dart';
+export 'game_memory_providers.dart';

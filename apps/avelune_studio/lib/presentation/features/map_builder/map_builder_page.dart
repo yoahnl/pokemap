@@ -6,6 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:avelune_studio/app/di/event_providers.dart';
+import 'package:avelune_studio/app/di/game_memory_providers.dart';
+import 'package:avelune_studio/app/di/presentation_providers.dart';
+import 'package:avelune_studio/features/world/domain/world_port.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_memory.dart';
+import 'package:avelune_studio/presentation/features/story/story_page.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/narrative_providers.dart';
@@ -51,6 +56,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_too
 part 'map_builder_page_layout.dart';
 part 'map_builder_page_leave_guard.dart';
 part 'map_builder_page_state.dart';
+part 'map_builder_page_story.dart';
 
 const mapBuilderMinimumSize = Size(1280, 720);
 

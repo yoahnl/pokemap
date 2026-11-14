@@ -1138,5 +1138,291 @@
         "type": "String"
       }
     }
-  }
+  },
+  "openingPhaseNarrativeTitles": "Index des noms de l’histoire",
+  "openingPhaseNarrativeUsages": "Index des usages de l’histoire",
+  "storyTabMemory": "Mémoire du jeu",
+  "memorySectionFacts": "États",
+  "memorySectionRules": "Règles du monde",
+  "memorySearchFacts": "Rechercher un état",
+  "memoryFilterNeverRead": "Jamais lu",
+  "memoryFilterNeverWritten": "Jamais écrit",
+  "memoryNewFact": "Nouvel état",
+  "memoryFactsLoading": "Lecture des états…",
+  "memoryUsagesLoading": "Lecture des usages…",
+  "memoryFactsEmpty": "Aucun état pour l’instant",
+  "memoryFactsEmptyHint": "Un état retient ce qui s’est passé dans la partie : une rencontre, une clé trouvée, un compteur…",
+  "memoryFactsNoMatch": "Aucun état ne correspond",
+  "memoryFactsNoMatchHint": "Changez la recherche ou retirez un filtre.",
+  "memoryShowAll": "Tout afficher",
+  "memoryLoadFailed": "Lecture impossible : {cause}",
+  "@memoryLoadFailed": {
+    "placeholders": {
+      "cause": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryRetry": "Réessayer",
+  "memoryPreparationRequired": "L’index de l’histoire n’est pas prêt",
+  "memoryPreparationHint": "Rouvrez le projet : son ouverture prépare cet index.",
+  "memoryUnavailable": "Mémoire du jeu indisponible pour ce projet",
+  "memoryUnavailableHint": "Elle se lit dans la copie de travail d’un projet catalogue.",
+  "memoryUnsaved": "Non enregistré",
+  "memoryValueKind": "{kind, select, bool{Oui / non} int{Nombre} other{Texte}}",
+  "@memoryValueKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryBoolean": "{value, select, true{vrai} other{faux}}",
+  "@memoryBoolean": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryNamed": "« {name} »",
+  "@memoryNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryRowSubtitle": "{kind} · au départ : {value}",
+  "@memoryRowSubtitle": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryRowReading": "Lecture du type…",
+  "memoryFactName": "Nom",
+  "memoryFactKind": "Type",
+  "memoryFactStart": "Valeur de départ",
+  "memoryKindLocked": "Le type et la valeur de départ ne se changent pas encore ici : il faudrait d’abord vérifier tout ce qui utilise cet état.",
+  "memoryDelete": "Supprimer",
+  "memoryDeleteRefused": "Suppression refusée : un état enregistré ne peut pas encore être supprimé dans ce projet. Ce qui l’utilise est listé ci-dessous.",
+  "memoryDiscard": "Retirer cet état non enregistré",
+  "memoryCreatedUnused": "Cet état n’est pas encore enregistré : rien ne l’utilise encore.",
+  "memoryWrittenBy": "Modifié par",
+  "memoryReadBy": "Lu par",
+  "memoryNobodyWrites": "Rien ne le modifie d’après l’index.",
+  "memoryNobodyReads": "Rien ne le lit d’après l’index.",
+  "memoryOwnerKind": "{kind, select, scene{Scène} worldRule{Règle du monde} storyline{Trame} cinematic{Cinématique} event{Comportement} other{Élément}}",
+  "@memoryOwnerKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryOwnerUnnamed": "{kind} sans nom",
+  "@memoryOwnerUnnamed": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryOpen": "Ouvrir",
+  "memoryNotCovered": "Non couvert par l’index : {sources}.",
+  "@memoryNotCovered": {
+    "placeholders": {
+      "sources": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryCoverageSource": "{source, select, maps{les cartes (événements, personnages et décors posés dessus)} mapAppearanceVariants{les variantes d’apparence des cartes} decorationVisibilityConditions{les conditions d’affichage des décors} dialogueTextFacts{les états cités dans le texte des dialogues} dialogueDefinitions{les dialogues} presentationCinematics{les cinématiques de présentation} legacyFlagAliasesUnderAliasId{les anciens noms d’interrupteurs} legacyEventClaims{les anciens événements} legacyScenarios{les anciens scénarios} projectSettings{les réglages du projet} other{d’autres sources}}",
+  "@memoryCoverageSource": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "memorySelectFact": "Choisissez un état pour voir ce qui le lit et le modifie.",
+  "memoryCreateFactName": "Nom de l’état",
+  "memoryCreate": "Créer",
+  "memoryCancel": "Annuler",
+  "memoryRulesLoading": "Lecture des règles…",
+  "memoryRulesEmpty": "Aucune règle du monde",
+  "memoryRulesEmptyHint": "Une règle fait apparaître ou disparaître un personnage tant qu’un état a une valeur.",
+  "memoryRuleNeedsFact": "Créez d’abord un état à tester, dans une copie de travail.",
+  "memoryNewRule": "Nouvelle règle",
+  "memoryRuleDisabled": "Désactivée",
+  "memoryRuleActive": "Règle active",
+  "memoryRuleName": "Nom de la règle",
+  "memoryRuleWhile": "Tant que",
+  "memoryRuleThen": "Alors",
+  "memoryRuleFact": "État",
+  "memoryRuleComparison": "Comparaison",
+  "memoryRuleValue": "Valeur",
+  "memoryRuleEffect": "Effet",
+  "memoryRuleMap": "Carte",
+  "memoryRuleCharacter": "Personnage",
+  "memoryRuleCharactersLoading": "Lecture des personnages de la carte…",
+  "memoryRuleNoCharacter": "Cette carte n’a aucun personnage.",
+  "memoryRuleConditionLocked": "Cette condition ne se modifie pas encore ici.",
+  "memoryRuleTargetLocked": "Ce que la règle touche ne se change pas après sa création.",
+  "memorySelectRule": "Choisissez une règle pour la modifier.",
+  "memoryRuleSentence": "Tant que {condition}, alors {effect}.",
+  "@memoryRuleSentence": {
+    "placeholders": {
+      "condition": {
+        "type": "String"
+      },
+      "effect": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryConditionFact": "{fact} {test}",
+  "@memoryConditionFact": {
+    "placeholders": {
+      "fact": {
+        "type": "String"
+      },
+      "test": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryBooleanTest": "{value, select, true{est vrai} other{est faux}}",
+  "@memoryBooleanTest": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryOperator": "{operator, select, equals{est égal à} notEquals{est différent de} greaterThan{est supérieur à} greaterThanOrEqual{vaut au moins} lessThan{est inférieur à} other{vaut au plus}}",
+  "@memoryOperator": {
+    "placeholders": {
+      "operator": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryComparison": "{operator, select, equals{vaut {value}} notEquals{ne vaut pas {value}} greaterThan{est supérieur à {value}} greaterThanOrEqual{vaut au moins {value}} lessThan{est inférieur à {value}} other{vaut au plus {value}}}",
+  "@memoryComparison": {
+    "placeholders": {
+      "operator": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryUnknownFact": "un état introuvable",
+  "memoryConditionWeekday": "{expected, select, true{on est {day}} other{on n’est pas {day}}}",
+  "@memoryConditionWeekday": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "expected": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryWeekday": "{day, select, monday{lundi} tuesday{mardi} wednesday{mercredi} thursday{jeudi} friday{vendredi} saturday{samedi} other{dimanche}}",
+  "@memoryWeekday": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryAnyDay": "un jour précis",
+  "memoryConditionStep": "{completed, select, true{une étape de la trame est terminée} other{une étape de la trame n’est pas terminée}}",
+  "@memoryConditionStep": {
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryConditionEvent": "{consumed, select, true{{name} a déjà eu lieu} other{{name} n’a pas encore eu lieu}}",
+  "@memoryConditionEvent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "consumed": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryUnknownEvent": "un comportement",
+  "memoryConditionReward": "{available, select, true{une récompense périodique est disponible} other{une récompense périodique n’est pas disponible}}",
+  "@memoryConditionReward": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryEffect": "{target} {verb}",
+  "@memoryEffect": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "verb": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryEffectAtmosphere": "l’ambiance de {target} change",
+  "@memoryEffectAtmosphere": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryEffectAtmosphereSomewhere": "l’ambiance d’une carte change",
+  "memoryEffectKind": "{effect, select, entityVisible{apparaît} entityHidden{disparaît} npcDialogueOverride{change de dialogue} eventEnabled{est actif} eventDisabled{est inactif} eventHidden{est caché} other{change l’ambiance}}",
+  "@memoryEffectKind": {
+    "placeholders": {
+      "effect": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryTargetCharacter": "« {name} » ({map})",
+  "@memoryTargetCharacter": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "map": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryTargetUnnamedCharacter": "un personnage de {map}",
+  "@memoryTargetUnnamedCharacter": {
+    "placeholders": {
+      "map": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryUnknownCharacter": "un personnage",
+  "memoryPresence": "Présence",
+  "memoryPresenceHint": "Règles du monde et scènes qui citent ce personnage, pour le faire apparaître, disparaître ou autre chose.",
+  "memoryPresenceEmpty": "Aucune règle du monde ni scène ne cite ce personnage d’après l’index.",
+  "memoryPresenceSaveFirst": "Enregistrez la carte pour lire la présence de ce personnage."
 }

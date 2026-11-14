@@ -3,6 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../story_draft/application/story_draft.dart';
 import '../../story_draft/application/story_draft_manifest_reader.dart';
 import '../../story_draft/application/story_saved_dialogues.dart';
+import '../../story_draft/application/story_saved_records.dart';
 import '../../story_draft/domain/story_draft_entry.dart';
 import '../../story_draft/domain/story_draft_saved.dart';
 
@@ -31,6 +32,8 @@ final class MapStoryBehaviours {
 
   final StoryDraft draft;
   final dialogues = StorySavedDialogues();
+  final records = StorySavedRecords();
+  late final StoryDraftSaved _beyond = _SavedBeyond(dialogues, records);
   ProjectMediaCatalog? media;
   final _reader = StoryDraftManifestReader();
   (
@@ -46,7 +49,7 @@ final class MapStoryBehaviours {
   bool get canRedo => draft.canRedo;
 
   StoryDraftSaved saved(ProjectManifest project) =>
-      _reader.of(project, beyond: dialogues);
+      _reader.of(project, beyond: _beyond);
 
   NarrativeEventRegistry? registry(ProjectManifest project) =>
       draft.eventRegistry(project.eventRegistry);
@@ -203,4 +206,28 @@ final class MapStoryBehaviours {
   void redo() => draft.redo();
 
   void settle(ProjectManifest saved) => draft.rebase(this.saved(saved));
+
+  void rememberPublished(Iterable<StoryDraftEntry<Object>> published) {
+    for (final entry in published) {
+      switch (entry.current) {
+        case final NarrativeFactDefinition fact:
+          records.rememberFact(fact);
+        case final WorldRuleDefinition rule:
+          records.rememberRule(rule);
+      }
+    }
+  }
+}
+
+final class _SavedBeyond implements StoryDraftSaved {
+  const _SavedBeyond(this._dialogues, this._records);
+
+  final StorySavedDialogues _dialogues;
+  final StorySavedRecords _records;
+
+  @override
+  Object? read(StoryDraftKind<Object> kind, String id) =>
+      kind == StoryDraftKind.dialogue
+      ? _dialogues.read(kind, id)
+      : _records.read(kind, id);
 }

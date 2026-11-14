@@ -16,7 +16,16 @@ class ProjectSession {
   final List<String> recoveryOperationIds;
 }
 
-enum ProjectOpeningPhase { project, workshop, map, resources, palette, scene }
+enum ProjectOpeningPhase {
+  project,
+  workshop,
+  narrativeTitles,
+  narrativeUsages,
+  map,
+  resources,
+  palette,
+  scene,
+}
 
 abstract interface class ProjectSessionPort {
   Future<ProjectSession> open(

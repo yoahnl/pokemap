@@ -3582,6 +3582,570 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{port, select, bagFull{sac plein} soundBlocked{son coupé} blocked{bloqué} cancelled{annulé} noCapacity{plus de place} quit{abandon} failed{échec} interrupted{interrompu} other{{port}}}'**
   String storyStepFailureReason(String port);
+
+  /// No description provided for @openingPhaseNarrativeTitles.
+  ///
+  /// In fr, this message translates to:
+  /// **'Index des noms de l’histoire'**
+  String get openingPhaseNarrativeTitles;
+
+  /// No description provided for @openingPhaseNarrativeUsages.
+  ///
+  /// In fr, this message translates to:
+  /// **'Index des usages de l’histoire'**
+  String get openingPhaseNarrativeUsages;
+
+  /// No description provided for @storyTabMemory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mémoire du jeu'**
+  String get storyTabMemory;
+
+  /// No description provided for @memorySectionFacts.
+  ///
+  /// In fr, this message translates to:
+  /// **'États'**
+  String get memorySectionFacts;
+
+  /// No description provided for @memorySectionRules.
+  ///
+  /// In fr, this message translates to:
+  /// **'Règles du monde'**
+  String get memorySectionRules;
+
+  /// No description provided for @memorySearchFacts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un état'**
+  String get memorySearchFacts;
+
+  /// No description provided for @memoryFilterNeverRead.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jamais lu'**
+  String get memoryFilterNeverRead;
+
+  /// No description provided for @memoryFilterNeverWritten.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jamais écrit'**
+  String get memoryFilterNeverWritten;
+
+  /// No description provided for @memoryNewFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvel état'**
+  String get memoryNewFact;
+
+  /// No description provided for @memoryFactsLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture des états…'**
+  String get memoryFactsLoading;
+
+  /// No description provided for @memoryUsagesLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture des usages…'**
+  String get memoryUsagesLoading;
+
+  /// No description provided for @memoryFactsEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun état pour l’instant'**
+  String get memoryFactsEmpty;
+
+  /// No description provided for @memoryFactsEmptyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un état retient ce qui s’est passé dans la partie : une rencontre, une clé trouvée, un compteur…'**
+  String get memoryFactsEmptyHint;
+
+  /// No description provided for @memoryFactsNoMatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun état ne correspond'**
+  String get memoryFactsNoMatch;
+
+  /// No description provided for @memoryFactsNoMatchHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changez la recherche ou retirez un filtre.'**
+  String get memoryFactsNoMatchHint;
+
+  /// No description provided for @memoryShowAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout afficher'**
+  String get memoryShowAll;
+
+  /// No description provided for @memoryLoadFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture impossible : {cause}'**
+  String memoryLoadFailed(String cause);
+
+  /// No description provided for @memoryRetry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer'**
+  String get memoryRetry;
+
+  /// No description provided for @memoryPreparationRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'L’index de l’histoire n’est pas prêt'**
+  String get memoryPreparationRequired;
+
+  /// No description provided for @memoryPreparationHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rouvrez le projet : son ouverture prépare cet index.'**
+  String get memoryPreparationHint;
+
+  /// No description provided for @memoryUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mémoire du jeu indisponible pour ce projet'**
+  String get memoryUnavailable;
+
+  /// No description provided for @memoryUnavailableHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Elle se lit dans la copie de travail d’un projet catalogue.'**
+  String get memoryUnavailableHint;
+
+  /// No description provided for @memoryUnsaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non enregistré'**
+  String get memoryUnsaved;
+
+  /// No description provided for @memoryValueKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, bool{Oui / non} int{Nombre} other{Texte}}'**
+  String memoryValueKind(String kind);
+
+  /// No description provided for @memoryBoolean.
+  ///
+  /// In fr, this message translates to:
+  /// **'{value, select, true{vrai} other{faux}}'**
+  String memoryBoolean(String value);
+
+  /// No description provided for @memoryNamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'« {name} »'**
+  String memoryNamed(String name);
+
+  /// No description provided for @memoryRowSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind} · au départ : {value}'**
+  String memoryRowSubtitle(String kind, String value);
+
+  /// No description provided for @memoryRowReading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture du type…'**
+  String get memoryRowReading;
+
+  /// No description provided for @memoryFactName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom'**
+  String get memoryFactName;
+
+  /// No description provided for @memoryFactKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type'**
+  String get memoryFactKind;
+
+  /// No description provided for @memoryFactStart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur de départ'**
+  String get memoryFactStart;
+
+  /// No description provided for @memoryKindLocked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le type et la valeur de départ ne se changent pas encore ici : il faudrait d’abord vérifier tout ce qui utilise cet état.'**
+  String get memoryKindLocked;
+
+  /// No description provided for @memoryDelete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get memoryDelete;
+
+  /// No description provided for @memoryDeleteRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suppression refusée : un état enregistré ne peut pas encore être supprimé dans ce projet. Ce qui l’utilise est listé ci-dessous.'**
+  String get memoryDeleteRefused;
+
+  /// No description provided for @memoryDiscard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer cet état non enregistré'**
+  String get memoryDiscard;
+
+  /// No description provided for @memoryCreatedUnused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet état n’est pas encore enregistré : rien ne l’utilise encore.'**
+  String get memoryCreatedUnused;
+
+  /// No description provided for @memoryWrittenBy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifié par'**
+  String get memoryWrittenBy;
+
+  /// No description provided for @memoryReadBy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lu par'**
+  String get memoryReadBy;
+
+  /// No description provided for @memoryNobodyWrites.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rien ne le modifie d’après l’index.'**
+  String get memoryNobodyWrites;
+
+  /// No description provided for @memoryNobodyReads.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rien ne le lit d’après l’index.'**
+  String get memoryNobodyReads;
+
+  /// No description provided for @memoryOwnerKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, scene{Scène} worldRule{Règle du monde} storyline{Trame} cinematic{Cinématique} event{Comportement} other{Élément}}'**
+  String memoryOwnerKind(String kind);
+
+  /// No description provided for @memoryOwnerUnnamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind} sans nom'**
+  String memoryOwnerUnnamed(String kind);
+
+  /// No description provided for @memoryOpen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir'**
+  String get memoryOpen;
+
+  /// No description provided for @memoryNotCovered.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non couvert par l’index : {sources}.'**
+  String memoryNotCovered(String sources);
+
+  /// No description provided for @memoryCoverageSource.
+  ///
+  /// In fr, this message translates to:
+  /// **'{source, select, maps{les cartes (événements, personnages et décors posés dessus)} mapAppearanceVariants{les variantes d’apparence des cartes} decorationVisibilityConditions{les conditions d’affichage des décors} dialogueTextFacts{les états cités dans le texte des dialogues} dialogueDefinitions{les dialogues} presentationCinematics{les cinématiques de présentation} legacyFlagAliasesUnderAliasId{les anciens noms d’interrupteurs} legacyEventClaims{les anciens événements} legacyScenarios{les anciens scénarios} projectSettings{les réglages du projet} other{d’autres sources}}'**
+  String memoryCoverageSource(String source);
+
+  /// No description provided for @memorySelectFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez un état pour voir ce qui le lit et le modifie.'**
+  String get memorySelectFact;
+
+  /// No description provided for @memoryCreateFactName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom de l’état'**
+  String get memoryCreateFactName;
+
+  /// No description provided for @memoryCreate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer'**
+  String get memoryCreate;
+
+  /// No description provided for @memoryCancel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler'**
+  String get memoryCancel;
+
+  /// No description provided for @memoryRulesLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture des règles…'**
+  String get memoryRulesLoading;
+
+  /// No description provided for @memoryRulesEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune règle du monde'**
+  String get memoryRulesEmpty;
+
+  /// No description provided for @memoryRulesEmptyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une règle fait apparaître ou disparaître un personnage tant qu’un état a une valeur.'**
+  String get memoryRulesEmptyHint;
+
+  /// No description provided for @memoryRuleNeedsFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créez d’abord un état à tester, dans une copie de travail.'**
+  String get memoryRuleNeedsFact;
+
+  /// No description provided for @memoryNewRule.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle règle'**
+  String get memoryNewRule;
+
+  /// No description provided for @memoryRuleDisabled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Désactivée'**
+  String get memoryRuleDisabled;
+
+  /// No description provided for @memoryRuleActive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Règle active'**
+  String get memoryRuleActive;
+
+  /// No description provided for @memoryRuleName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom de la règle'**
+  String get memoryRuleName;
+
+  /// No description provided for @memoryRuleWhile.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tant que'**
+  String get memoryRuleWhile;
+
+  /// No description provided for @memoryRuleThen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Alors'**
+  String get memoryRuleThen;
+
+  /// No description provided for @memoryRuleFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'État'**
+  String get memoryRuleFact;
+
+  /// No description provided for @memoryRuleComparison.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comparaison'**
+  String get memoryRuleComparison;
+
+  /// No description provided for @memoryRuleValue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur'**
+  String get memoryRuleValue;
+
+  /// No description provided for @memoryRuleEffect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effet'**
+  String get memoryRuleEffect;
+
+  /// No description provided for @memoryRuleMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Carte'**
+  String get memoryRuleMap;
+
+  /// No description provided for @memoryRuleCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnage'**
+  String get memoryRuleCharacter;
+
+  /// No description provided for @memoryRuleCharactersLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture des personnages de la carte…'**
+  String get memoryRuleCharactersLoading;
+
+  /// No description provided for @memoryRuleNoCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette carte n’a aucun personnage.'**
+  String get memoryRuleNoCharacter;
+
+  /// No description provided for @memoryRuleConditionLocked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette condition ne se modifie pas encore ici.'**
+  String get memoryRuleConditionLocked;
+
+  /// No description provided for @memoryRuleTargetLocked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce que la règle touche ne se change pas après sa création.'**
+  String get memoryRuleTargetLocked;
+
+  /// No description provided for @memorySelectRule.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez une règle pour la modifier.'**
+  String get memorySelectRule;
+
+  /// No description provided for @memoryRuleSentence.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tant que {condition}, alors {effect}.'**
+  String memoryRuleSentence(String condition, String effect);
+
+  /// No description provided for @memoryConditionFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'{fact} {test}'**
+  String memoryConditionFact(String fact, String test);
+
+  /// No description provided for @memoryBooleanTest.
+  ///
+  /// In fr, this message translates to:
+  /// **'{value, select, true{est vrai} other{est faux}}'**
+  String memoryBooleanTest(String value);
+
+  /// No description provided for @memoryOperator.
+  ///
+  /// In fr, this message translates to:
+  /// **'{operator, select, equals{est égal à} notEquals{est différent de} greaterThan{est supérieur à} greaterThanOrEqual{vaut au moins} lessThan{est inférieur à} other{vaut au plus}}'**
+  String memoryOperator(String operator);
+
+  /// No description provided for @memoryComparison.
+  ///
+  /// In fr, this message translates to:
+  /// **'{operator, select, equals{vaut {value}} notEquals{ne vaut pas {value}} greaterThan{est supérieur à {value}} greaterThanOrEqual{vaut au moins {value}} lessThan{est inférieur à {value}} other{vaut au plus {value}}}'**
+  String memoryComparison(String operator, String value);
+
+  /// No description provided for @memoryUnknownFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'un état introuvable'**
+  String get memoryUnknownFact;
+
+  /// No description provided for @memoryConditionWeekday.
+  ///
+  /// In fr, this message translates to:
+  /// **'{expected, select, true{on est {day}} other{on n’est pas {day}}}'**
+  String memoryConditionWeekday(String day, String expected);
+
+  /// No description provided for @memoryWeekday.
+  ///
+  /// In fr, this message translates to:
+  /// **'{day, select, monday{lundi} tuesday{mardi} wednesday{mercredi} thursday{jeudi} friday{vendredi} saturday{samedi} other{dimanche}}'**
+  String memoryWeekday(String day);
+
+  /// No description provided for @memoryAnyDay.
+  ///
+  /// In fr, this message translates to:
+  /// **'un jour précis'**
+  String get memoryAnyDay;
+
+  /// No description provided for @memoryConditionStep.
+  ///
+  /// In fr, this message translates to:
+  /// **'{completed, select, true{une étape de la trame est terminée} other{une étape de la trame n’est pas terminée}}'**
+  String memoryConditionStep(String completed);
+
+  /// No description provided for @memoryConditionEvent.
+  ///
+  /// In fr, this message translates to:
+  /// **'{consumed, select, true{{name} a déjà eu lieu} other{{name} n’a pas encore eu lieu}}'**
+  String memoryConditionEvent(String name, String consumed);
+
+  /// No description provided for @memoryUnknownEvent.
+  ///
+  /// In fr, this message translates to:
+  /// **'un comportement'**
+  String get memoryUnknownEvent;
+
+  /// No description provided for @memoryConditionReward.
+  ///
+  /// In fr, this message translates to:
+  /// **'{available, select, true{une récompense périodique est disponible} other{une récompense périodique n’est pas disponible}}'**
+  String memoryConditionReward(String available);
+
+  /// No description provided for @memoryEffect.
+  ///
+  /// In fr, this message translates to:
+  /// **'{target} {verb}'**
+  String memoryEffect(String target, String verb);
+
+  /// No description provided for @memoryEffectAtmosphere.
+  ///
+  /// In fr, this message translates to:
+  /// **'l’ambiance de {target} change'**
+  String memoryEffectAtmosphere(String target);
+
+  /// No description provided for @memoryEffectAtmosphereSomewhere.
+  ///
+  /// In fr, this message translates to:
+  /// **'l’ambiance d’une carte change'**
+  String get memoryEffectAtmosphereSomewhere;
+
+  /// No description provided for @memoryEffectKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'{effect, select, entityVisible{apparaît} entityHidden{disparaît} npcDialogueOverride{change de dialogue} eventEnabled{est actif} eventDisabled{est inactif} eventHidden{est caché} other{change l’ambiance}}'**
+  String memoryEffectKind(String effect);
+
+  /// No description provided for @memoryTargetCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'« {name} » ({map})'**
+  String memoryTargetCharacter(String name, String map);
+
+  /// No description provided for @memoryTargetUnnamedCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'un personnage de {map}'**
+  String memoryTargetUnnamedCharacter(String map);
+
+  /// No description provided for @memoryUnknownCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'un personnage'**
+  String get memoryUnknownCharacter;
+
+  /// No description provided for @memoryPresence.
+  ///
+  /// In fr, this message translates to:
+  /// **'Présence'**
+  String get memoryPresence;
+
+  /// No description provided for @memoryPresenceHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Règles du monde et scènes qui citent ce personnage, pour le faire apparaître, disparaître ou autre chose.'**
+  String get memoryPresenceHint;
+
+  /// No description provided for @memoryPresenceEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune règle du monde ni scène ne cite ce personnage d’après l’index.'**
+  String get memoryPresenceEmpty;
+
+  /// No description provided for @memoryPresenceSaveFirst.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrez la carte pour lire la présence de ce personnage.'**
+  String get memoryPresenceSaveFirst;
 }
 
 class _AppLocalizationsDelegate

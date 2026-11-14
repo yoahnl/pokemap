@@ -33,8 +33,9 @@ class LocalWorldAdapter implements WorldPort, WorldMapSelectionPort {
     required NarrativeFactDefinition current,
   }) => _transaction.run(
     actionId: base == null ? 'fact.create' : 'fact.update',
-    parameters: (project) {
-      final existing = project.facts
+    parameters: (_) => {'fact': current.toJson()},
+    validateSnapshot: (snapshot) {
+      final existing = snapshot.manifest.facts
           .where((fact) => fact.id == current.id)
           .firstOrNull;
       if (existing != base) {
@@ -42,7 +43,6 @@ class LocalWorldAdapter implements WorldPort, WorldMapSelectionPort {
           'Cet état a changé sur le disque. Votre brouillon est conservé.',
         );
       }
-      return {'fact': current.toJson()};
     },
   );
 
@@ -69,7 +69,9 @@ class LocalWorldAdapter implements WorldPort, WorldMapSelectionPort {
     required WorldRuleDefinition current,
   }) => _transaction.run(
     actionId: base == null ? 'world_rule.create' : 'world_rule.update',
-    parameters: (project) {
+    parameters: (_) => {'rule': current.toJson()},
+    validateSnapshot: (snapshot) {
+      final project = snapshot.manifest;
       final existing = project.worldRules
           .where((rule) => rule.id == current.id)
           .firstOrNull;
@@ -84,7 +86,6 @@ class LocalWorldAdapter implements WorldPort, WorldMapSelectionPort {
           'L’état utilisé par cette règle n’est pas encore enregistré.',
         );
       }
-      return {'rule': current.toJson()};
     },
   );
 
@@ -98,9 +99,14 @@ class LocalWorldAdapter implements WorldPort, WorldMapSelectionPort {
     }
     return _transaction.run(
       actionId: 'world_rule.upsert_batch',
-      parameters: (project) {
+      parameters: (_) => {
+        'rules': [
+          for (final publication in rules) publication.current.toJson(),
+        ],
+      },
+      validateSnapshot: (snapshot) {
         for (final publication in rules) {
-          final existing = project.worldRules
+          final existing = snapshot.manifest.worldRules
               .where((rule) => rule.id == publication.current.id)
               .firstOrNull;
           if (existing != publication.base) {
@@ -109,11 +115,6 @@ class LocalWorldAdapter implements WorldPort, WorldMapSelectionPort {
             );
           }
         }
-        return {
-          'rules': [
-            for (final publication in rules) publication.current.toJson(),
-          ],
-        };
       },
     );
   }

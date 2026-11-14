@@ -45,6 +45,7 @@ class MapBuilderHeader extends StatelessWidget {
     required this.testing,
     this.ambiance,
     this.story,
+    this.history = true,
   });
 
   final MapWorkspaceController maps;
@@ -57,6 +58,7 @@ class MapBuilderHeader extends StatelessWidget {
   final bool testing;
   final MapBuilderAmbianceBinding? ambiance;
   final MapBuilderStoryBinding? story;
+  final bool history;
 
   StudioSaveState get _saveState {
     if (draft.saving) return StudioSaveState.saving;
@@ -75,14 +77,14 @@ class MapBuilderHeader extends StatelessWidget {
       onUndo: mapBuilderHistoryStep(
         maps,
         redo: false,
-        editable: editable,
+        editable: editable && history,
         ambiance: ambiance,
         story: story,
       ),
       onRedo: mapBuilderHistoryStep(
         maps,
         redo: true,
-        editable: editable,
+        editable: editable && history,
         ambiance: ambiance,
         story: story,
       ),

@@ -16,6 +16,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_context_me
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
+import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_behaviours.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
@@ -41,6 +42,7 @@ part 'map_builder_story_conditions_binding.dart';
 part 'map_builder_story_element_editing.dart';
 part 'map_builder_story_history.dart';
 part 'map_builder_story_line_binding.dart';
+part 'map_builder_story_publication.dart';
 part 'map_builder_story_selection.dart';
 
 enum MapStoryTab { behaviour, properties }
@@ -86,6 +88,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   loadMedia;
   final StoryPublicationGatewayFactory? gateway;
   final StoryDialogueLoader? loadDialogue;
+  NarrativeIndexPort? narrative;
   final behaviours = MapStoryBehaviours();
   final _lines = _StoryLines();
   final _triggers = _StoryTriggers();
@@ -229,61 +232,6 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   @override
   Future<bool> save() =>
       publish(gateway?.call(behaviours.draft, behaviours.dialogues));
-
-  Future<bool> publish(StoryPublicationGateway? gateway) async {
-    final project = maps.project;
-    if (project == null || !dirty) return true;
-    if (gateway == null) {
-      error = 'publish-unavailable';
-      changed();
-      return false;
-    }
-    publishing = true;
-    changed();
-    try {
-      await gateway.publish(
-        planStoryPublication(
-          behaviours.draft.changes(behaviours.saved(project)),
-        ),
-        land: (write) async {
-          final before = maps.project!;
-          final receipt = await write();
-          maps.acceptResources(
-            maps.project == receipt.before ? receipt.before : before,
-            receipt.manifest,
-          );
-          return behaviours.saved(receipt.manifest);
-        },
-      );
-      final saved = maps.project!;
-      behaviours.settle(saved);
-      final conflicts = behaviours.conflicts(saved);
-      if (conflicts.isNotEmpty) {
-        final records = saved.eventRegistry?.records ?? const [];
-        error = _conflictMessage([
-          for (final id in conflicts)
-            (behaviours.draftOf(id) ??
-                        records.where((record) => record.id == id).firstOrNull)
-                    ?.name ??
-                id,
-        ]);
-        return false;
-      }
-      error = null;
-      return true;
-    } on StoryPublicationUnsupported catch (failure) {
-      error =
-          '$unsupported${[for (final kind in failure.kinds) kind.name].join(',')}';
-      return false;
-    } on Object catch (failure) {
-      final cause = failure is StoryPublicationFailed ? failure.cause : failure;
-      error = cause is EventFailure ? cause.message : '$cause';
-      return false;
-    } finally {
-      publishing = false;
-      changed();
-    }
-  }
 
   static const outOfMap = 'out-of-map';
   static const deactivated = 'deactivated:';

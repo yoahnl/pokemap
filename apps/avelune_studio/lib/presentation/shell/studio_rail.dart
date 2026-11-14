@@ -5,10 +5,19 @@ import 'package:avelune_studio/presentation/shared/localization/studio_locale.da
 
 const studioRailWidth = 64.0;
 
+enum StudioRailSection { map, story }
+
 class StudioRail extends StatelessWidget {
-  const StudioRail({super.key, required this.onHome});
+  const StudioRail({
+    super.key,
+    required this.onHome,
+    this.section = StudioRailSection.map,
+    this.onSection,
+  });
 
   final VoidCallback onHome;
+  final StudioRailSection section;
+  final ValueChanged<StudioRailSection>? onSection;
 
   @override
   Widget build(BuildContext context) {
@@ -30,16 +39,24 @@ class StudioRail extends StatelessWidget {
             onPressed: onHome,
           ),
           _RailEntry(
+            key: const ValueKey('studio-rail-map'),
             label: l10n.railMapBuilder,
             icon: Icons.map_outlined,
-            selected: true,
+            selected: section == StudioRailSection.map,
+            onPressed: _open(StudioRailSection.map),
           ),
           _RailEntry(label: l10n.railRegionalMap, icon: Icons.explore_outlined),
           _RailEntry(
             label: l10n.railResources,
             icon: Icons.view_in_ar_outlined,
           ),
-          _RailEntry(label: l10n.railStory, icon: Icons.menu_book_outlined),
+          _RailEntry(
+            key: const ValueKey('studio-rail-story'),
+            label: l10n.railStory,
+            icon: Icons.menu_book_outlined,
+            selected: section == StudioRailSection.story,
+            onPressed: _open(StudioRailSection.story),
+          ),
           const Spacer(),
           _RailEntry(label: l10n.railHelp, icon: Icons.help_outline),
           _RailEntry(label: l10n.railProjectSettings, icon: Icons.tune),
@@ -47,10 +64,16 @@ class StudioRail extends StatelessWidget {
       ),
     );
   }
+
+  VoidCallback? _open(StudioRailSection target) {
+    final open = onSection;
+    return open == null ? null : () => open(target);
+  }
 }
 
 class _RailEntry extends StatelessWidget {
   const _RailEntry({
+    super.key,
     required this.label,
     required this.icon,
     this.onPressed,

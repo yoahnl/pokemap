@@ -134,7 +134,15 @@ final class StoryFakePorts
   Future<ResourceMutationReceipt> publishRule({
     required WorldRuleDefinition? base,
     required WorldRuleDefinition current,
-  }) => throw UnimplementedError();
+  }) async => _write('rule ${current.id}', (before) {
+    final existing = before.worldRules
+        .where((rule) => rule.id == current.id)
+        .firstOrNull;
+    if (existing != base) throw const WorldFailure('rule changed');
+    return before.copyWith(
+      worldRules: _put(before.worldRules, current.id, current, (r) => r.id),
+    );
+  });
 
   @override
   Future<ResourceMutationReceipt> publishRuleBatch({

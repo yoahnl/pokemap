@@ -2111,4 +2111,433 @@ class AppLocalizationsEn extends AppLocalizations {
     });
     return '$_temp0';
   }
+
+  @override
+  String get openingPhaseNarrativeTitles => 'Story name index';
+
+  @override
+  String get openingPhaseNarrativeUsages => 'Story usage index';
+
+  @override
+  String get storyTabMemory => 'Game memory';
+
+  @override
+  String get memorySectionFacts => 'States';
+
+  @override
+  String get memorySectionRules => 'World rules';
+
+  @override
+  String get memorySearchFacts => 'Search a state';
+
+  @override
+  String get memoryFilterNeverRead => 'Never read';
+
+  @override
+  String get memoryFilterNeverWritten => 'Never written';
+
+  @override
+  String get memoryNewFact => 'New state';
+
+  @override
+  String get memoryFactsLoading => 'Reading states…';
+
+  @override
+  String get memoryUsagesLoading => 'Reading usages…';
+
+  @override
+  String get memoryFactsEmpty => 'No state yet';
+
+  @override
+  String get memoryFactsEmptyHint =>
+      'A state remembers what happened in the game: a meeting, a key found, a counter…';
+
+  @override
+  String get memoryFactsNoMatch => 'No state matches';
+
+  @override
+  String get memoryFactsNoMatchHint => 'Change the search or remove a filter.';
+
+  @override
+  String get memoryShowAll => 'Show everything';
+
+  @override
+  String memoryLoadFailed(String cause) {
+    return 'Could not read: $cause';
+  }
+
+  @override
+  String get memoryRetry => 'Retry';
+
+  @override
+  String get memoryPreparationRequired => 'The story index is not ready';
+
+  @override
+  String get memoryPreparationHint =>
+      'Reopen the project: opening it prepares this index.';
+
+  @override
+  String get memoryUnavailable => 'Game memory is unavailable for this project';
+
+  @override
+  String get memoryUnavailableHint =>
+      'It reads the working copy of a catalog project.';
+
+  @override
+  String get memoryUnsaved => 'Unsaved';
+
+  @override
+  String memoryValueKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'bool': 'Yes / no',
+      'int': 'Number',
+      'other': 'Text',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String memoryBoolean(String value) {
+    String _temp0 = intl.Intl.selectLogic(value, {
+      'true': 'true',
+      'other': 'false',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String memoryNamed(String name) {
+    return '“$name”';
+  }
+
+  @override
+  String memoryRowSubtitle(String kind, String value) {
+    return '$kind · starts at: $value';
+  }
+
+  @override
+  String get memoryRowReading => 'Reading the type…';
+
+  @override
+  String get memoryFactName => 'Name';
+
+  @override
+  String get memoryFactKind => 'Type';
+
+  @override
+  String get memoryFactStart => 'Starting value';
+
+  @override
+  String get memoryKindLocked =>
+      'The type and starting value cannot be changed here yet: everything that uses this state would need checking first.';
+
+  @override
+  String get memoryDelete => 'Delete';
+
+  @override
+  String get memoryDeleteRefused =>
+      'Deletion refused: a saved state cannot be deleted in this project yet. What uses it is listed below.';
+
+  @override
+  String get memoryDiscard => 'Remove this unsaved state';
+
+  @override
+  String get memoryCreatedUnused =>
+      'This state is not saved yet: nothing uses it yet.';
+
+  @override
+  String get memoryWrittenBy => 'Changed by';
+
+  @override
+  String get memoryReadBy => 'Read by';
+
+  @override
+  String get memoryNobodyWrites => 'Nothing changes it according to the index.';
+
+  @override
+  String get memoryNobodyReads => 'Nothing reads it according to the index.';
+
+  @override
+  String memoryOwnerKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'scene': 'Scene',
+      'worldRule': 'World rule',
+      'storyline': 'Storyline',
+      'cinematic': 'Cutscene',
+      'event': 'Behaviour',
+      'other': 'Element',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String memoryOwnerUnnamed(String kind) {
+    return 'Unnamed $kind';
+  }
+
+  @override
+  String get memoryOpen => 'Open';
+
+  @override
+  String memoryNotCovered(String sources) {
+    return 'Not covered by the index: $sources.';
+  }
+
+  @override
+  String memoryCoverageSource(String source) {
+    String _temp0 = intl.Intl.selectLogic(source, {
+      'maps': 'maps (events, characters and decorations placed on them)',
+      'mapAppearanceVariants': 'map appearance variants',
+      'decorationVisibilityConditions': 'decoration display conditions',
+      'dialogueTextFacts': 'states quoted in dialogue text',
+      'dialogueDefinitions': 'dialogues',
+      'presentationCinematics': 'presentation cutscenes',
+      'legacyFlagAliasesUnderAliasId': 'old switch names',
+      'legacyEventClaims': 'old events',
+      'legacyScenarios': 'old scenarios',
+      'projectSettings': 'project settings',
+      'other': 'other sources',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get memorySelectFact =>
+      'Choose a state to see what reads and changes it.';
+
+  @override
+  String get memoryCreateFactName => 'State name';
+
+  @override
+  String get memoryCreate => 'Create';
+
+  @override
+  String get memoryCancel => 'Cancel';
+
+  @override
+  String get memoryRulesLoading => 'Reading rules…';
+
+  @override
+  String get memoryRulesEmpty => 'No world rule';
+
+  @override
+  String get memoryRulesEmptyHint =>
+      'A rule shows or hides a character while a state has a value.';
+
+  @override
+  String get memoryRuleNeedsFact =>
+      'First create a state to test, in a working copy.';
+
+  @override
+  String get memoryNewRule => 'New rule';
+
+  @override
+  String get memoryRuleDisabled => 'Disabled';
+
+  @override
+  String get memoryRuleActive => 'Rule active';
+
+  @override
+  String get memoryRuleName => 'Rule name';
+
+  @override
+  String get memoryRuleWhile => 'While';
+
+  @override
+  String get memoryRuleThen => 'Then';
+
+  @override
+  String get memoryRuleFact => 'State';
+
+  @override
+  String get memoryRuleComparison => 'Comparison';
+
+  @override
+  String get memoryRuleValue => 'Value';
+
+  @override
+  String get memoryRuleEffect => 'Effect';
+
+  @override
+  String get memoryRuleMap => 'Map';
+
+  @override
+  String get memoryRuleCharacter => 'Character';
+
+  @override
+  String get memoryRuleCharactersLoading => 'Reading the map’s characters…';
+
+  @override
+  String get memoryRuleNoCharacter => 'This map has no character.';
+
+  @override
+  String get memoryRuleConditionLocked =>
+      'This condition cannot be edited here yet.';
+
+  @override
+  String get memoryRuleTargetLocked =>
+      'What the rule affects cannot be changed after creating it.';
+
+  @override
+  String get memorySelectRule => 'Choose a rule to edit it.';
+
+  @override
+  String memoryRuleSentence(String condition, String effect) {
+    return 'While $condition, then $effect.';
+  }
+
+  @override
+  String memoryConditionFact(String fact, String test) {
+    return '$fact $test';
+  }
+
+  @override
+  String memoryBooleanTest(String value) {
+    String _temp0 = intl.Intl.selectLogic(value, {
+      'true': 'is true',
+      'other': 'is false',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String memoryOperator(String operator) {
+    String _temp0 = intl.Intl.selectLogic(operator, {
+      'equals': 'equals',
+      'notEquals': 'differs from',
+      'greaterThan': 'is greater than',
+      'greaterThanOrEqual': 'is at least',
+      'lessThan': 'is less than',
+      'other': 'is at most',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String memoryComparison(String operator, String value) {
+    String _temp0 = intl.Intl.selectLogic(operator, {
+      'equals': 'equals $value',
+      'notEquals': 'does not equal $value',
+      'greaterThan': 'is greater than $value',
+      'greaterThanOrEqual': 'is at least $value',
+      'lessThan': 'is less than $value',
+      'other': 'is at most $value',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get memoryUnknownFact => 'a missing state';
+
+  @override
+  String memoryConditionWeekday(String day, String expected) {
+    String _temp0 = intl.Intl.selectLogic(expected, {
+      'true': 'it is $day',
+      'other': 'it is not $day',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String memoryWeekday(String day) {
+    String _temp0 = intl.Intl.selectLogic(day, {
+      'monday': 'Monday',
+      'tuesday': 'Tuesday',
+      'wednesday': 'Wednesday',
+      'thursday': 'Thursday',
+      'friday': 'Friday',
+      'saturday': 'Saturday',
+      'other': 'Sunday',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get memoryAnyDay => 'a given day';
+
+  @override
+  String memoryConditionStep(String completed) {
+    String _temp0 = intl.Intl.selectLogic(completed, {
+      'true': 'a storyline step is complete',
+      'other': 'a storyline step is not complete',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String memoryConditionEvent(String name, String consumed) {
+    String _temp0 = intl.Intl.selectLogic(consumed, {
+      'true': '$name has already happened',
+      'other': '$name has not happened yet',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get memoryUnknownEvent => 'a behaviour';
+
+  @override
+  String memoryConditionReward(String available) {
+    String _temp0 = intl.Intl.selectLogic(available, {
+      'true': 'a periodic reward is available',
+      'other': 'a periodic reward is not available',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String memoryEffect(String target, String verb) {
+    return '$target $verb';
+  }
+
+  @override
+  String memoryEffectAtmosphere(String target) {
+    return 'the atmosphere of $target changes';
+  }
+
+  @override
+  String get memoryEffectAtmosphereSomewhere =>
+      'the atmosphere of a map changes';
+
+  @override
+  String memoryEffectKind(String effect) {
+    String _temp0 = intl.Intl.selectLogic(effect, {
+      'entityVisible': 'appears',
+      'entityHidden': 'disappears',
+      'npcDialogueOverride': 'changes dialogue',
+      'eventEnabled': 'is active',
+      'eventDisabled': 'is inactive',
+      'eventHidden': 'is hidden',
+      'other': 'changes the atmosphere',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String memoryTargetCharacter(String name, String map) {
+    return '“$name” ($map)';
+  }
+
+  @override
+  String memoryTargetUnnamedCharacter(String map) {
+    return 'a character of $map';
+  }
+
+  @override
+  String get memoryUnknownCharacter => 'a character';
+
+  @override
+  String get memoryPresence => 'Presence';
+
+  @override
+  String get memoryPresenceHint =>
+      'World rules and scenes that mention this character, to show it, hide it or something else.';
+
+  @override
+  String get memoryPresenceEmpty =>
+      'No world rule or scene mentions this character according to the index.';
+
+  @override
+  String get memoryPresenceSaveFirst =>
+      'Save the map to read this character’s presence.';
 }

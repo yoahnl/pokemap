@@ -47,20 +47,23 @@ typedef MapStoryCarrier = ({
   List<NarrativeEventRecord> behaviours,
 });
 
+(String, MapStoryElementTarget, String)? mapStoryLocation(
+  NarrativeEventRecord record,
+) => record.source?.when(
+  entityInteract: (mapId, id) => (mapId, MapStoryElementTarget.entity, id),
+  entityBump: (mapId, id) => (mapId, MapStoryElementTarget.entity, id),
+  entityAutorun: (mapId, id) => (mapId, MapStoryElementTarget.entity, id),
+  modelInteract: (mapId, id) => (mapId, MapStoryElementTarget.model, id),
+  triggerEnter: (mapId, id) => (mapId, MapStoryElementTarget.trigger, id),
+  triggerBump: (mapId, id) => (mapId, MapStoryElementTarget.trigger, id),
+  mapEnter: (mapId) => (mapId, MapStoryElementTarget.map, mapId),
+  outcomeReceived: (_) => null,
+);
+
 final class MapStoryBehaviourIndex {
   MapStoryBehaviourIndex(this.mapId, Iterable<NarrativeEventRecord> records) {
     for (final record in records) {
-      final at = record.source?.when(
-        entityInteract: (mapId, id) =>
-            (mapId, MapStoryElementTarget.entity, id),
-        entityBump: (mapId, id) => (mapId, MapStoryElementTarget.entity, id),
-        entityAutorun: (mapId, id) => (mapId, MapStoryElementTarget.entity, id),
-        modelInteract: (mapId, id) => (mapId, MapStoryElementTarget.model, id),
-        triggerEnter: (mapId, id) => (mapId, MapStoryElementTarget.trigger, id),
-        triggerBump: (mapId, id) => (mapId, MapStoryElementTarget.trigger, id),
-        mapEnter: (mapId) => (mapId, MapStoryElementTarget.map, mapId),
-        outcomeReceived: (_) => null,
-      );
+      final at = mapStoryLocation(record);
       if (at == null || at.$1 != mapId) continue;
       _byTarget
           .putIfAbsent(at.$2, () => {})
