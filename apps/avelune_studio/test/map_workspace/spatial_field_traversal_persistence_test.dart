@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
@@ -9,7 +8,6 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
-import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,7 +15,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/spatial_environment_fixture.dart';
-import '../support/map_workspace_fixture.dart';
+import 'spatial_field_traversal_persistence_support.dart';
 
 void main() {
   for (final storage in [
@@ -55,7 +53,7 @@ void main() {
                 ),
             ],
           );
-          final reader = _Reader();
+          final reader = TraversalReader();
           final local = LocalMapWorkspaceAdapter(reader: reader);
           final session = ProjectSession(
             sessionId: root.path,
@@ -120,7 +118,7 @@ void main() {
                     document: document,
                     controller: controller,
                     project: controller.project!,
-                    visuals: _SpatialVisuals(),
+                    visuals: TraversalVisuals(),
                     view: view,
                     onChanged: () => refresh(() {}),
                   ),
@@ -286,60 +284,4 @@ void main() {
       );
     }
   }
-}
-
-final class _Reader
-    implements
-        ProjectFileReader,
-        ProjectResourceStreamReader,
-        ProjectResourceProbeReader {
-  final paths = <String>[];
-  final delegate = const LocalProjectFileReader();
-  @override
-  bool get supportsStreamingResources => true;
-  @override
-  Future<String> canonicalizeDirectory(String path) =>
-      delegate.canonicalizeDirectory(path);
-  @override
-  Future<ProjectResourceProbe> probeResource({
-    required String projectRoot,
-    required String relativePath,
-  }) => delegate.probeResource(
-    projectRoot: projectRoot,
-    relativePath: relativePath,
-  );
-  @override
-  Future<List<int>> readBytes({
-    required String projectRoot,
-    required String relativePath,
-  }) {
-    paths.add(relativePath);
-    return delegate.readBytes(
-      projectRoot: projectRoot,
-      relativePath: relativePath,
-    );
-  }
-
-  @override
-  Stream<List<int>> openRead({
-    required String projectRoot,
-    required String relativePath,
-  }) {
-    paths.add(relativePath);
-    return delegate.openRead(
-      projectRoot: projectRoot,
-      relativePath: relativePath,
-    );
-  }
-}
-
-class _SpatialVisuals extends WorkspaceTestVisuals
-    implements SpatialWorkspaceVisuals {
-  @override
-  Future<Uint8List> readModel(String modelId) async => Uint8List(0);
-  @override
-  Future<Uint8List> readGroundImage(String tilesetId) async => Uint8List(0);
-  @override
-  Future<SpatialNpcPreview> spatialPreview(MapData map) async =>
-      SpatialNpcPreview({}, () {});
 }

@@ -41,6 +41,9 @@ import 'pokemon_moves_sync.dart';
 import 'pokemon_project_locale.dart';
 import 'pokemon_types_projection.dart';
 
+part 'local_pokemon_workspace_index.dart';
+part 'local_pokemon_workspace_sources.dart';
+
 final class LocalPokemonWorkspaceAdapter
     implements
         PokemonWorkspacePort,
@@ -81,146 +84,9 @@ final class LocalPokemonWorkspaceAdapter
   List<PokemonSpeciesSummary>? _indexedSpecies;
   Map<String, Set<String>> _mediaReferenceOwners = const {};
 
-  void _acceptSpeciesIndex(List<PokemonSpeciesSummary> entries) {
-    _indexedSpecies = entries;
-    _knownSpeciesIds = {for (final entry in entries) entry.id};
-    final owners = <String, Set<String>>{};
-    for (final entry in entries) {
-      owners.putIfAbsent(entry.mediaReference, () => {}).add(entry.id);
-    }
-    _mediaReferenceOwners = owners;
-  }
-
-  Future<String> get _catalogRelease {
-    final existing = _catalogReleaseOpening;
-    if (existing != null) return existing;
-    late final Future<String> opening;
-    opening = _manifest
-        .then((manifest) {
-          final release =
-              manifest.pokemon.catalogRelease ?? aveluneCatalogRelease;
-          if (!RegExp(r'^[a-z0-9][a-z0-9-]{0,127}$').hasMatch(release)) {
-            throw const PokemonWorkspaceFailure(
-              'La version du catalogue Pokémon est invalide.',
-            );
-          }
-          return release;
-        })
-        .catchError((Object error, StackTrace stack) {
-          if (identical(_catalogReleaseOpening, opening)) {
-            _catalogReleaseOpening = null;
-          }
-          Error.throwWithStackTrace(error, stack);
-        });
-    return _catalogReleaseOpening = opening;
-  }
-
-  Future<PokemonExternalImport> _prepareExternal() async {
-    if (_closed) throw StateError('L’atelier Pokémon est fermé.');
-    if (_externalImport != null) return _externalImport!;
-    final release = await _catalogRelease;
-    if (_closed) throw StateError('L’atelier Pokémon est fermé.');
-    return _externalImport ??= PokemonExternalImport(
-      session: session,
-      mapAdapter: mapAdapter,
-      reader: _reader,
-      source: (_externalSession ??= PokemonExternalSourceSession(
-        _externalSource,
-        release: release,
-      )).source,
-      gen5Source: session.storage == ProjectSessionStorage.workingCatalog
-          ? _gen5Source ??
-                AveluneGen5BattleSource(
-                  release: release,
-                  client: HttpPokemonExternalTransport(
-                    _gen5Client ??= http.Client(),
-                  ),
-                )
-          : null,
-      gifSource: session.storage == ProjectSessionStorage.workingCatalog
-          ? _gifSource ??
-                (_externalSource == null
-                    ? AveluneBattleGifSource(
-                        release: release,
-                        client: HttpPokemonExternalTransport(
-                          _gen5Client ??= http.Client(),
-                        ),
-                      )
-                    : null)
-          : null,
-      crySource: session.storage == ProjectSessionStorage.workingCatalog
-          ? _crySource ??
-                (_externalSource == null
-                    ? AvelunePokemonCrySource(
-                        media: AvelunePokemonMediaSource(
-                          release: release,
-                          client: HttpPokemonExternalTransport(
-                            _gen5Client ??= http.Client(),
-                          ),
-                        ),
-                      )
-                    : null)
-          : null,
-      pngSource: session.storage == ProjectSessionStorage.workingCatalog
-          ? _pngSource ??
-                (_externalSource == null
-                    ? AvelunePokemonPngSource(
-                        media: AvelunePokemonMediaSource(
-                          release: release,
-                          client: HttpPokemonExternalTransport(
-                            _gen5Client ??= http.Client(),
-                          ),
-                        ),
-                      )
-                    : null)
-          : null,
-      isCurrent: () => !_closed,
-      loadIndex: loadIndex,
-    );
-  }
-
   @override
   bool get supportsMoveRecipes =>
       session.storage == ProjectSessionStorage.workingCatalog;
-
-  Future<PokemonMoveRecipeImport> _prepareMoveRecipes() {
-    if (_closed) {
-      return Future.error(StateError('L’atelier Pokémon est fermé.'));
-    }
-    if (!supportsMoveRecipes) {
-      return Future.error(
-        const PokemonWorkspaceFailure(
-          'Une copie de travail est nécessaire pour importer une animation.',
-        ),
-      );
-    }
-    final existing = _recipeOpening;
-    if (existing != null) return existing;
-    late final Future<PokemonMoveRecipeImport> opening;
-    opening = _openMoveRecipes().catchError((Object error, StackTrace stack) {
-      if (identical(_recipeOpening, opening)) _recipeOpening = null;
-      Error.throwWithStackTrace(error, stack);
-    });
-    return _recipeOpening = opening;
-  }
-
-  Future<PokemonMoveRecipeImport> _openMoveRecipes() async {
-    var source = _recipeMediaSource;
-    if (source == null) {
-      final release = await _catalogRelease;
-      if (_closed) throw StateError('L’atelier Pokémon est fermé.');
-      source = AvelunePokemonMediaSource(
-        client: HttpPokemonExternalTransport(_recipeClient ??= http.Client()),
-        release: release,
-      );
-    }
-    return PokemonMoveRecipeImport.open(
-      session: session,
-      mapAdapter: mapAdapter,
-      media: source,
-      reader: _reader,
-    );
-  }
 
   @override
   Future<void> prepareMoveRecipes() async {
@@ -300,24 +166,6 @@ final class LocalPokemonWorkspaceAdapter
     PokemonExternalConflictPolicy policy,
   ) async => (await _prepareExternal()).apply(preview, policy);
 
-  Future<PokemonMovesSync> _prepareSync() async {
-    final release = await _catalogRelease;
-    if (_closed) throw StateError('L’atelier Pokémon est fermé.');
-    return PokemonMovesSync(
-      session: session,
-      mapAdapter: mapAdapter,
-      reader: _reader,
-      source:
-          _movesSource ??
-          ExternalPokemonMovesSnapshotSource(
-            (_externalSession ??= PokemonExternalSourceSession(
-              _externalSource,
-              release: release,
-            )).source,
-          ),
-    );
-  }
-
   @override
   Future<PokemonMovesSyncPreview> previewMovesSync() async =>
       (await _prepareSync()).preview();
@@ -355,76 +203,8 @@ final class LocalPokemonWorkspaceAdapter
     role: role,
   );
 
-  Future<ProjectManifest> get _manifest async =>
-      (await mapAdapter.resourceBaseline(session)).manifest;
   @override
-  Future<PokemonWorkspaceIndex> loadIndex() async {
-    final manifest = await _manifest;
-    if (!manifest.pokemon.enabled) {
-      return PokemonWorkspaceIndex(
-        enabled: false,
-        entries: const [],
-        types: const [],
-        items: const {},
-        moves: const PokemonMovesCatalogView(
-          entries: [],
-          relativePath: '',
-          problem: 'La configuration Pokémon est désactivée pour ce projet.',
-        ),
-      );
-    }
-    final entries = await loadPokemonSpeciesIndex(
-      reader: _reader,
-      projectRoot: session.directoryPath,
-      config: manifest.pokemon,
-    );
-    _acceptSpeciesIndex(entries);
-    final language = await readPokemonProjectLocale(session.directoryPath);
-    final moves = await loadPokemonMoves(
-      reader: _reader,
-      projectRoot: session.directoryPath,
-      config: manifest.pokemon,
-      locale: language.locale,
-    );
-    final types = await loadPokemonTypes(
-      reader: _reader,
-      projectRoot: session.directoryPath,
-      config: manifest.pokemon,
-      entries: entries,
-    );
-    final itemCatalog = await loadPokemonItemCatalog(
-      reader: _reader,
-      projectRoot: session.directoryPath,
-      config: manifest.pokemon,
-    );
-    final abilityNames = await loadPokemonAbilityNames(
-      reader: _reader,
-      projectRoot: session.directoryPath,
-      config: manifest.pokemon,
-      locale: language.locale,
-    );
-    return PokemonWorkspaceIndex(
-      enabled: true,
-      entries: entries,
-      moves: language.diagnostic == null
-          ? moves
-          : PokemonMovesCatalogView(
-              entries: moves.entries,
-              relativePath: moves.relativePath,
-              problem: moves.problem,
-              diagnostics: [...moves.diagnostics, language.diagnostic!],
-            ),
-      types: types,
-      items: {
-        for (final item
-            in itemCatalog?.entries ?? const <ProjectItemDefinition>[])
-          item.id: item.displayName,
-      },
-      itemCatalog: itemCatalog,
-      locale: language.locale,
-      abilityNames: abilityNames,
-    );
-  }
+  Future<PokemonWorkspaceIndex> loadIndex() => _loadIndex();
 
   @override
   Future<PokemonSpeciesBundle> loadSpecies(PokemonSpeciesSummary entry) async {
@@ -446,54 +226,7 @@ final class LocalPokemonWorkspaceAdapter
   }
 
   @override
-  Future<PokemonSpeciesBundle> save(PokemonSpeciesDraft draft) async {
-    final changed = draft.changedFamilies;
-    final mediaOnly =
-        changed.length == 1 && changed.single == PokemonDocumentFamily.media;
-    final savedBytes = await PokemonDocumentTransaction(
-      session: session,
-      mapAdapter: mapAdapter,
-      reader: _reader,
-    ).save(draft);
-    if (mediaOnly) {
-      final source = draft.base.media!;
-      try {
-        final bytes = savedBytes!;
-        final document = Map<String, dynamic>.from(
-          jsonDecode(utf8.decode(bytes)) as Map,
-        );
-        return PokemonSpeciesBundle(
-          species: draft.base.species,
-          learnset: draft.base.learnset,
-          evolution: draft.base.evolution,
-          media: PokemonDocumentSource(
-            family: PokemonDocumentFamily.media,
-            relativePath: source.relativePath,
-            bytes: bytes,
-            document: document,
-          ),
-        );
-      } on Object catch (error) {
-        throw PokemonWorkspaceFailure(
-          'Enregistrement confirmé, mais actualisation impossible. '
-          'Rouvrez le projet avant de continuer : $error',
-        );
-      }
-    }
-    final entries = await loadPokemonSpeciesIndex(
-      reader: _reader,
-      projectRoot: session.directoryPath,
-      config: (await _manifest).pokemon,
-    );
-    _acceptSpeciesIndex(entries);
-    final entry = entries.where((entry) => entry.id == draft.id).firstOrNull;
-    if (entry == null) {
-      throw const PokemonWorkspaceFailure(
-        'La fiche enregistrée est introuvable dans le Pokédex.',
-      );
-    }
-    return loadSpecies(entry);
-  }
+  Future<PokemonSpeciesBundle> save(PokemonSpeciesDraft draft) => _save(draft);
 
   @override
   Future<Uint8List?> loadImage(String relativePath) => loadPokemonImage(
@@ -529,15 +262,4 @@ final class LocalPokemonWorkspaceAdapter
         referencingSpeciesIds:
             _mediaReferenceOwners[entry.mediaReference] ?? const {},
       );
-
-  Future<Set<String>> _speciesIdentities() async {
-    if (_knownSpeciesIds case final ids?) return ids;
-    final entries = await loadPokemonSpeciesIndex(
-      reader: _reader,
-      projectRoot: session.directoryPath,
-      config: (await _manifest).pokemon,
-    );
-    _acceptSpeciesIndex(entries);
-    return _knownSpeciesIds!;
-  }
 }

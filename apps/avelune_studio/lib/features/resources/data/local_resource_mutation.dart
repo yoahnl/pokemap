@@ -21,7 +21,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
     }
 
     try {
-      if (_disposed || !LocalResourceAdapter._actions.contains(actionId)) {
+      if (_disposed || !_resourceMutationActions.contains(actionId)) {
         throw const ResourceFailure(
           'Cette opération de ressource est indisponible.',
         );
@@ -120,37 +120,12 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         }
         if (borderSources != null &&
             borderSources.any((source) => !source.draft.isSpatial)) {
-          final handlesByPath = <String, String>{};
-          fields['primitiveSources'] = <Object?>[
-            for (final source in borderSources)
-              if (!source.draft.isSpatial)
-                <String, Object?>{
-                  'primitiveId': source.draft.id,
-                  'frames': <Object?>[
-                    for (final frame in source.frames)
-                      <String, Object?>{
-                        'artifactHandle': await _stageBorderFrame(
-                          api,
-                          artifacts,
-                          frame,
-                          handlesByPath,
-                          stagedHandles,
-                        ),
-                        'sourceProjectRelativePath': frame.relativePath,
-                        'sourceRectPx': <String, int>{
-                          'x': frame.rect.x,
-                          'y': frame.rect.y,
-                          'width': frame.rect.width,
-                          'height': frame.rect.height,
-                        },
-                        if (frame.durationMs != null)
-                          'durationMs': frame.durationMs,
-                        if (frame.transparentColorArgb != null)
-                          'transparentColorArgb': frame.transparentColorArgb,
-                      },
-                  ],
-                },
-          ];
+          fields['primitiveSources'] = await _stagedBorderSources(
+            api,
+            artifacts,
+            borderSources,
+            stagedHandles,
+          );
         }
         phase('attach.start');
         await context.attach();
@@ -248,81 +223,26 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         );
         phase('receipt.end');
         _requireAvailable();
-        try {
-          final confirmation = confirmDestructive
-              ? await api.confirmMutation(
-                  opened.projectHandle,
-                  planId: planned.planId,
-                )
-              : null;
-          await api.applyMutation(
-            opened.projectHandle,
-            planId: planned.planId,
-            operationId: operationId,
-            confirmationToken: confirmation?.confirmationToken,
-            precondition: () async {
-              await beforeTransactionPrecondition?.call();
-              _requireAvailable();
-              final problem = validateBeforeApply?.call();
-              if (problem != null) throw ResourceFailure(problem);
-            },
-          );
-        } on Object catch (failure, stack) {
-          late final AuthoringMutationResult recovered;
-          try {
-            recovered = await api.recoverMutation(
-              opened.projectHandle,
-              operationId: operationId,
-            );
-          } on Object {
-            Error.throwWithStackTrace(failure, stack);
-          }
-          if (recovered.receipt.status.name != 'applied' &&
-              recovered.receipt.extensions['recoveryOutcome'] != 'resumed') {
-            Error.throwWithStackTrace(failure, stack);
-          }
-        }
-        try {
-          phase('apply.end');
-          await beforeReconciliation?.call();
-          _requireAvailable();
-          if (snapshot.materializedCatalogProject || scopedModelMutation) {
-            final after = scopedModelMutation
-                ? await api.readWorkshopSnapshot(
-                    opened.projectHandle,
-                    actionId: actionId,
-                    parameters: fields,
-                  )
-                : await snapshots.load(
-                    opened.projectHandle,
-                    policy: ProjectSnapshotLoadPolicy.editorReadProjection,
-                  );
-            if ((scopedModelMutation
-                        ? _modelSourceDocumentRevision(after)
-                        : studioProjectSnapshotRevision(after)) !=
-                    receipt.revision ||
-                (scopedModelMutation
-                    ? !_modelSourcesMatch(
-                        after.manifest,
-                        planned.projectedProject ?? snapshot.manifest,
-                      )
-                    : after.manifest != receipt.manifest)) {
-              throw const ResourceFailure(
-                'La publication a changé avant sa relecture. Relisez sans la rejouer.',
-              );
-            }
-          }
-          await mapAdapter.acceptResourceMutation(
-            session,
-            receipt,
-            allowMapOrganization: actionId == 'map.library.reorganize',
-          );
-        } on Object catch (failure) {
-          throw ResourceFailure(
-            'La publication a réussi, mais la relecture a échoué. Ne relancez pas la mutation. $failure',
-            partialReceipt: receipt,
-          );
-        }
+        await _applyPlanned(
+          api: api,
+          opened: opened,
+          planned: planned,
+          operationId: operationId,
+          confirmDestructive: confirmDestructive,
+          validateBeforeApply: validateBeforeApply,
+        );
+        await _rereadApplied(
+          api: api,
+          snapshots: snapshots,
+          opened: opened,
+          snapshot: snapshot,
+          planned: planned,
+          receipt: receipt,
+          actionId: actionId,
+          fields: fields,
+          scopedModelMutation: scopedModelMutation,
+          phase: phase,
+        );
         phase('reconciliation.end');
         return receipt;
       } finally {

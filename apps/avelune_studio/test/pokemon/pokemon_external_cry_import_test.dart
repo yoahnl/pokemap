@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
@@ -16,73 +15,7 @@ import 'package:map_runtime/src/presentation/flame/battle_pokemon_sprite_resolve
 
 import '../../../../packages/map_distribution/test/support/spatial_feature_capabilities_fixture.dart';
 import '../support/pokemon_external_source_fixture.dart';
-
-final class _FormSourceFixture extends PokemonExternalSourceFixture {
-  const _FormSourceFixture();
-
-  @override
-  Future<Map<String, dynamic>> fetchPokeApiPokemonPayload(String id) async => {
-    ...await super.fetchPokeApiPokemonPayload(id),
-    'name': 'bulbasaur-base',
-  };
-}
-
-final class _CryTransport implements PokemonBoundedExternalHttpTransport {
-  _CryTransport(this.wav, this.mp3, this.scenario);
-  final Uint8List wav;
-  final Uint8List mp3;
-  final String scenario;
-  bool offline = false;
-  int calls = 0;
-
-  @override
-  Future<PokemonExternalHttpResponse> getBounded(
-    Uri uri, {
-    required Map<String, String> headers,
-    required int maximumBytes,
-    required Duration timeout,
-  }) async {
-    calls++;
-    if (offline || scenario == 'offline') {
-      throw const SocketException('offline');
-    }
-    final isList = uri.path.contains('/owners/pokemon/');
-    final useMp3 = scenario == 'mp3';
-    final sound = useMp3 ? mp3 : wav;
-    final payload = isList
-        ? Uint8List.fromList(
-            utf8.encode(
-              jsonEncode([
-                {
-                  'id': 'bulbasaur-cry-latest${useMp3 ? '' : '-wav'}',
-                  'sha256': sha256.convert(sound).toString(),
-                  'contentType': useMp3 ? 'audio/mpeg' : 'audio/wav',
-                  'usage': 'cry',
-                  'representation': 'audio',
-                  'style': 'latest',
-                  'metadata': {
-                    'formId': scenario == 'form'
-                        ? 'bulbasaur-base'
-                        : 'bulbasaur',
-                    'provenance': {
-                      'source': useMp3 ? 'fixture' : 'avelune/cry-wav',
-                    },
-                  },
-                },
-              ]),
-            ),
-          )
-        : scenario == 'corrupt'
-        ? Uint8List.fromList([1, 2, 3])
-        : sound;
-    return PokemonExternalHttpResponse(
-      statusCode: 200,
-      headers: const {},
-      body: isList ? utf8.decode(payload) : '',
-      bodyBytes: payload,
-    );
-  }
-}
+import 'pokemon_external_cry_import_support.dart';
 
 void main() {
   for (final scenario in [
@@ -171,14 +104,14 @@ void main() {
       final mp3 = await File(
         '../../packages/map_runtime/assets/audio/battle/se/stat_fall_down.mp3',
       ).readAsBytes();
-      final transport = _CryTransport(wav, mp3, scenario);
+      final transport = CryTransport(wav, mp3, scenario);
       final maps = LocalMapWorkspaceAdapter();
       await maps.loadCatalog(session);
       var adapter = LocalPokemonWorkspaceAdapter(
         session: session,
         mapAdapter: maps,
         externalSource: scenario == 'form'
-            ? const _FormSourceFixture()
+            ? const FormSourceFixture()
             : const PokemonExternalSourceFixture(),
         crySource: AvelunePokemonCrySource(
           media: AvelunePokemonMediaSource(

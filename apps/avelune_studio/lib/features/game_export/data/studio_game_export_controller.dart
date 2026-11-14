@@ -11,6 +11,9 @@ import '../../verification/application/studio_failure_diagnosis.dart';
 import '../../pokemon/data/studio_project_item_icons.dart';
 import 'studio_export_revision.dart';
 
+part 'studio_game_export_identity.dart';
+part 'studio_game_export_run.dart';
+
 typedef BuildStudioGamePackage =
     Future<GamePackageExportArtifact> Function(
       Directory projectRoot,
@@ -55,47 +58,6 @@ final class StudioGameExportController implements StudioGameExportPort {
   String? _profileRevision;
   @override
   StudioGameExportMetadata? get metadata => _metadataOf(profile);
-
-  static StudioGameExportMetadata? _metadataOf(
-    GamePackageExportProfile? profile,
-  ) => profile == null
-      ? null
-      : StudioGameExportMetadata(
-          gameId: profile.gameId,
-          title: profile.title,
-          version: profile.gameVersion,
-          author: profile.authorName,
-          locale: profile.defaultLocale,
-          locales: profile.supportedLocales.join(', '),
-        );
-
-  static GamePackageExportProfile _profileFrom(
-    GamePackageExportProfile? base,
-    StudioGameExportMetadata metadata,
-  ) {
-    final locales = metadata.locales
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
-    return base == null
-        ? GamePackageExportProfile(
-            gameId: metadata.gameId.trim(),
-            gameVersion: metadata.version.trim(),
-            title: metadata.title.trim(),
-            authorName: metadata.author.trim(),
-            defaultLocale: metadata.locale.trim(),
-            supportedLocales: locales,
-          )
-        : base.copyWith(
-            gameId: metadata.gameId.trim(),
-            gameVersion: metadata.version.trim(),
-            title: metadata.title.trim(),
-            authorName: metadata.author.trim(),
-            defaultLocale: metadata.locale.trim(),
-            supportedLocales: locales,
-          );
-  }
 
   StudioGameIdentityState _identityOf(
     GamePackageExportProfileSnapshot snapshot,
@@ -237,194 +199,16 @@ final class StudioGameExportController implements StudioGameExportPort {
     String? Function()? preparationFailure,
     required bool Function() hasPendingChanges,
     required bool Function() isCurrentProject,
-  }) async {
-    if (!canStart) return false;
-    final outputFile = File(outputPath);
-    if (p.isWithin(projectRoot.absolute.path, outputFile.absolute.path) ||
-        p.equals(projectRoot.absolute.path, outputFile.absolute.path)) {
-      error = 'Choisissez une destination hors du projet auteur.';
-      failure = StudioFailureDiagnosis(
-        family: StudioCheckFamily.input,
-        owner: StudioFailureOwner.exportDestination,
-        summary: error!,
-        detail: outputFile.path,
-      );
-      stage = StudioExportStage.failed;
-      _notify();
-      return false;
-    }
-    final operation = ++_operation;
-    _inFlight = true;
-    this.outputPath = null;
-    packageSha256 = null;
-    sourceRevision = null;
-    error = null;
-    failure = null;
-    warning = null;
-    stage = StudioExportStage.preparing;
-    _notify();
-    try {
-      final profile = _profileFrom(this.profile, metadata);
-      if (!await prepare()) {
-        throw _ExportStop(
-          'Enregistrement préalable refusé. ${preparationFailure?.call() ?? 'Consultez le document en échec.'} Les sauvegardes déjà terminées et tous les brouillons restent conservés.',
-          StudioCheckFamily.input,
-        );
-      }
-      if (!_valid(operation, isCurrentProject)) return false;
-      if (hasPendingChanges()) {
-        throw const _ExportStop(
-          'Des modifications sont encore en cours. Corrigez-les et relancez l’export.',
-          StudioCheckFamily.input,
-        );
-      }
-      final root = projectRoot.path;
-      final prepareAssets = prepareProjectAssets;
-      if (prepareAssets != null) {
-        await prepareAssets(root);
-      } else {
-        await StudioProjectItemIcons.shared.prepare(
-          root,
-          shouldContinue: () => _valid(operation, isCurrentProject),
-        );
-      }
-      if (!_valid(operation, isCurrentProject)) return false;
-      if (hasPendingChanges()) {
-        throw const _ExportStop(
-          'Le projet a changé pendant la préparation des images. Relancez l’export.',
-          StudioCheckFamily.launch,
-        );
-      }
-      final profileStore = GamePackageExportProfileStore(projectRoot: projectRoot);
-      final profileSnapshot = await profileStore.validate(profile);
-      if (_profileRevision != null && _profileRevision != profileSnapshot.profileRevision) {
-        throw const GamePackageExportException(code: 'exportProfileStale', message: 'Le profil d’export a changé. Rechargez-le avant de continuer.');
-      }
-      final before = await readFingerprints(root);
-      if (!_valid(operation, isCurrentProject)) return false;
-      stage = StudioExportStage.building;
-      _notify();
-      final artifact = await buildPackage(
-        Directory(root),
-        profile,
-        publication
-            ? GamePackageExportMode.publication
-            : GamePackageExportMode.localTest,
-      );
-      if (!_valid(operation, isCurrentProject)) return false;
-      final after = await readFingerprints(root);
-      if (!_valid(operation, isCurrentProject)) return false;
-      if (!sameSourceFiles(before, after) || hasPendingChanges()) {
-        throw const _ExportStop(
-          'Le projet a changé pendant la construction. Aucun paquet n’a été écrit ; relancez l’export.',
-          StudioCheckFamily.launch,
-        );
-      }
-      if (!overwriteConfirmed && await destinationExists(outputFile)) {
-        throw const _ExportStop(
-          'Le fichier de destination existe désormais. Confirmez son remplacement et relancez l’export.',
-          StudioCheckFamily.input,
-          StudioFailureOwner.exportDestination,
-        );
-      }
-      if (!_valid(operation, isCurrentProject)) return false;
-      stage = StudioExportStage.writing;
-      _notify();
-      if (writePackage case final write?) {
-        await write(artifact, outputFile);
-      } else {
-        await service.writeArtifactToFile(
-          artifact: artifact,
-          outputFile: outputFile,
-        );
-      }
-      if (!_valid(operation, isCurrentProject)) return false;
-      try {
-        final latest = await readFingerprints(root);
-        if (!_valid(operation, isCurrentProject)) return false;
-        if (!sameSourceFiles(after, latest) || hasPendingChanges()) {
-          warning =
-              'Le projet a changé après sa capture. Ces modifications ne figurent pas dans ce paquet.';
-        }
-      } on Object {
-        if (!_valid(operation, isCurrentProject)) return false;
-        warning =
-            'Le paquet est prêt, mais les modifications plus récentes du projet n’ont pas pu être vérifiées.';
-      }
-      this.profile = profile;
-      try {
-        final saved = await profileStore.save(profile,
-          expectedProfileRevision: profileSnapshot.profileRevision,
-          expectedContextRevision: profileSnapshot.contextRevision);
-        _profileRevision = saved.profileRevision;
-      } on Object catch (failure) {
-        if (!_valid(operation, isCurrentProject)) return false;
-        warning = [
-          ?warning,
-          'Le paquet est prêt, mais le profil d’export n’a pas été mémorisé : $failure',
-        ].join(' ');
-      }
-      if (!_valid(operation, isCurrentProject)) return false;
-      sourceRevision = sourceRevisionOf(after);
-      this.outputPath = outputFile.path;
-      packageSha256 = artifact.packageSha256;
-      stage = StudioExportStage.completed;
-      _notify();
-      return true;
-    } on GamePackageExportException catch (failure) {
-      if (_valid(operation, isCurrentProject)) {
-        final summary = failure.code == 'runtime3d.publication_unsupported'
-            ? 'L’export 3D est disponible en mode Test local. '
-                  'La publication attend la validation complète sur iOS et Android.'
-            : failure.message;
-        error = [summary, if (failure.path != null) failure.path!].join(' · ');
-        this.failure = diagnoseExportFailure(
-          code: failure.code,
-          summary: summary,
-          path: failure.path,
-          readinessCodes: [
-            for (final item
-                in failure.gameplayReadinessReport?.diagnostics ??
-                    const <NarrativeProjectDiagnostic>[])
-              if (item.severity == NarrativeProjectDiagnosticSeverity.error)
-                item.code,
-          ],
-        );
-        stage = StudioExportStage.failed;
-        _notify();
-      }
-      return false;
-    } on _ExportStop catch (stop) {
-      if (_valid(operation, isCurrentProject)) {
-        error = stop.message;
-        failure = StudioFailureDiagnosis(
-          family: stop.family,
-          owner: stop.owner,
-          summary: stop.message,
-          detail: stop.message,
-        );
-        stage = StudioExportStage.failed;
-        _notify();
-      }
-      return false;
-    } on Object catch (failure) {
-      if (_valid(operation, isCurrentProject)) {
-        error = failure is StateError
-            ? failure.message.toString()
-            : 'Export impossible : $failure';
-        this.failure = StudioFailureDiagnosis(
-          summary: 'Export impossible.',
-          detail: '$failure',
-        );
-        stage = StudioExportStage.failed;
-        _notify();
-      }
-      return false;
-    } finally {
-      _inFlight = false;
-      _notify();
-    }
-  }
+  }) => _runExport(
+    metadata: metadata,
+    outputPath: outputPath,
+    overwriteConfirmed: overwriteConfirmed,
+    publication: publication,
+    prepare: prepare,
+    preparationFailure: preparationFailure,
+    hasPendingChanges: hasPendingChanges,
+    isCurrentProject: isCurrentProject,
+  );
 
   bool _valid(int operation, bool Function() isCurrentProject) =>
       !_disposed && operation == _operation && isCurrentProject();
@@ -439,64 +223,4 @@ final class StudioGameExportController implements StudioGameExportPort {
     _operation++;
     _changes.close();
   }
-}
-
-final class _ExportStop implements Exception {
-  const _ExportStop(this.message, this.family, [this.owner]);
-  final String message;
-  final StudioCheckFamily family;
-  final StudioFailureOwner? owner;
-}
-
-Future<GamePackageExportArtifact> _buildInIsolate(
-  Directory root,
-  GamePackageExportProfile profile,
-  GamePackageExportMode mode,
-) => Isolate.run(
-  () => const CanonicalGamePackageExportService().build(
-    projectRoot: root,
-    profile: profile,
-    mode: mode,
-  ),
-);
-
-StudioGameIdentityProblem studioGameIdentityProblem(
-  String code,
-  StudioGameExportMetadata metadata,
-) {
-  final locales = metadata.locales
-      .split(',')
-      .map((s) => s.trim())
-      .where((s) => s.isNotEmpty)
-      .toSet();
-  return switch (code) {
-    'invalidGameId' => const StudioGameIdentityProblem(
-      StudioGameIdentityField.gameId,
-      'Identifiant technique invalide : utilisez par exemple '
-      'games.studio.auteur.jeu.',
-    ),
-    'invalidGameVersion' => const StudioGameIdentityProblem(
-      StudioGameIdentityField.version,
-      'Version du contenu invalide : utilisez le format 1.0.0.',
-    ),
-    'invalidTitle' => const StudioGameIdentityProblem(
-      StudioGameIdentityField.title,
-      'Le titre doit contenir de 1 à 120 caractères.',
-    ),
-    'invalidAuthor' => const StudioGameIdentityProblem(
-      StudioGameIdentityField.author,
-      'Indiquez un auteur ou une équipe, en 120 caractères au plus.',
-    ),
-    'invalidLocales' when !locales.contains(metadata.locale.trim()) =>
-      const StudioGameIdentityProblem(
-        StudioGameIdentityField.locale,
-        'La langue principale doit figurer parmi les langues disponibles.',
-      ),
-    'invalidLocales' => const StudioGameIdentityProblem(
-      StudioGameIdentityField.locales,
-      'Langues invalides : des codes uniques comme fr, en ou fr-FR, '
-      'séparés par des virgules.',
-    ),
-    _ => StudioGameIdentityProblem(null, 'Identité refusée : $code.'),
-  };
 }

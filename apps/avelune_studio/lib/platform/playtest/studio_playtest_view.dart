@@ -24,6 +24,9 @@ export '../../features/playtest/contracts/studio_playtest_controls.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
+part 'studio_playtest_view_commands.dart';
+part 'studio_playtest_view_loading.dart';
+
 class StudioPlaytestView extends StatefulWidget {
   const StudioPlaytestView({
     super.key,
@@ -60,23 +63,8 @@ class StudioPlaytestView extends StatefulWidget {
   State<StudioPlaytestView> createState() => _StudioPlaytestViewState();
 }
 
-class _StudioPlaytestViewState extends State<StudioPlaytestView> {
-  late Future<Object> _loading = _load();
-  PlayableMapGame? _game;
-  RuntimeMapBundle? _playerBundle;
-  PlayerServiceRuntimeController? _playerServices;
-  SpatialExplorationSession? _spatial;
-  StudioSpatialPlaytest? _spatialPlaytest;
-  late final _saves = widget.testSession ?? StudioPlaytestSession();
-  bool _busy = false;
-  String? _message;
-  bool _spatialPaused = false;
-  bool _ready = false;
-  Completer<void>? _spatialMountReady;
-  HeadlessSceneInteractionPort? _preSessionInteractions;
-  StreamSubscription<SceneInteractionRequest>? _preSessionSubscription;
-  SceneInteractionRequest? _preSessionRequest;
-
+class _StudioPlaytestViewState extends State<StudioPlaytestView>
+    with _StudioPlaytestRuntimeLoading, _StudioPlaytestSessionCommands {
   late StudioPlaytestControls _controls;
 
   @override
@@ -137,182 +125,6 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     _controls.statusChanged();
   }
 
-  Future<Object> _load({bool restoreSpatialSave = false}) async {
-    final document = await widget.port.loadMap(widget.session, widget.entry);
-    if (document.revision != widget.expectedRevision) {
-      throw const StudioLaunchProblem(
-        'La carte a changé sur disque. Revenez et rechargez-la.',
-        owner: StudioFailureOwner.map,
-      );
-    }
-    final projectPath = p.join(widget.session.directoryPath, 'project.json');
-    if (!mounted) throw StateError('Test fermé');
-    if (document.map.spatialScene != null) {
-      var bundle = await loadRuntimeMapBundle(
-        projectFilePath: projectPath,
-        mapId: widget.entry.id,
-      );
-      _requireUnchangedMap(bundle, document.map);
-      StudioSpatialPlaytest.validateHero(bundle);
-      final preparedAssets = await _prepareProjectAssets(
-        project: bundle.manifest,
-      );
-      if (!mounted) throw StateError('Test fermé');
-      if (preparedAssets) {
-        bundle = await loadRuntimeMapBundle(
-          projectFilePath: projectPath,
-          mapId: widget.entry.id,
-        );
-        _requireUnchangedMap(bundle, document.map);
-      }
-      final playtest = await StudioSpatialPlaytest.prepare(
-        bundle: bundle,
-        projectFilePath: projectPath,
-        projectRevision: widget.expectedRevision,
-        saves: _saves,
-        restore: restoreSpatialSave,
-        mountSession: (runtime) async {
-          if (!mounted) throw StateError('Test fermé');
-          final ready = Completer<void>();
-          _spatialMountReady = ready;
-          setState(() => _spatial = runtime.session);
-          await ready.future;
-        },
-        unmountSession: (runtime) async {
-          if (mounted && identical(_spatialPlaytest?.runtime, runtime)) {
-            setState(() => _spatial = null);
-          }
-        },
-      );
-      if (!mounted) {
-        await playtest.dispose();
-        throw StateError('Test fermé');
-      }
-      _spatialPlaytest = playtest;
-      try {
-        await playtest.runtime.load((_) {});
-      } catch (_) {
-        if (mounted && identical(_spatialPlaytest, playtest)) {
-          setState(() {
-            _spatialPlaytest = null;
-            _spatial = null;
-            _ready = false;
-          });
-          await WidgetsBinding.instance.endOfFrame;
-        }
-        await playtest.dispose();
-        rethrow;
-      }
-      if (!mounted) throw StateError('Test fermé');
-      setState(() {
-        _spatial = playtest.runtime.session;
-        _ready = true;
-      });
-      return playtest;
-    }
-    await _prepareProjectAssets();
-    if (!mounted) throw StateError('Test fermé');
-    final bundle = await loadRuntimeMapBundle(
-      projectFilePath: projectPath,
-      mapId: widget.entry.id,
-    );
-    _requireUnchangedMap(bundle, document.map);
-    final GameState? initialGameState;
-    if (bundle.manifest.newGame.enabled &&
-        bundle.manifest.newGame.preSessionSceneId?.trim().isNotEmpty == true) {
-      final interactions = HeadlessSceneInteractionPort();
-      _preSessionInteractions = interactions;
-      _preSessionSubscription = interactions.requests.listen((request) {
-        if (mounted) setState(() => _preSessionRequest = request);
-      });
-      try {
-        initialGameState = await prepareStudioPlaytestStart(
-          bundle,
-          projectPath,
-          interactions: interactions,
-        );
-      } finally {
-        await _preSessionSubscription?.cancel();
-        _preSessionSubscription = null;
-        interactions.close();
-        _preSessionInteractions = null;
-        if (mounted) setState(() => _preSessionRequest = null);
-      }
-    } else {
-      initialGameState = await prepareStudioPlaytestStart(bundle, projectPath);
-    }
-    if (!mounted) throw StateError('Test fermé');
-    final game = PlayableMapGame(
-      bundle: bundle,
-      projectFilePath: projectPath,
-      initialGameState: initialGameState,
-      saveRepository: _saves,
-      initialMapActivationReason: MapActivationReason.initialBoot,
-    );
-    _game = game;
-    _playerBundle = bundle;
-    _playerServices = PlayerServiceRuntimeController.contextual(
-      bagCapacity: bundle.manifest.bagCapacity,
-      supportsRepel: true,
-      currentGameState: () => game.playerServiceGameStateSnapshot,
-      commitAndSave: game.commitAndSavePlayerServiceState,
-      setInputLocked: (locked) => game.setExternalInputLock(
-        RuntimeExternalInputLock.playerService,
-        locked: locked,
-      ),
-      loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
-        gameState: state,
-        projectRootDirectory: bundle.projectRootDirectory,
-        pokemonConfig: bundle.manifest.pokemon,
-      ),
-      healingDisplayMapReader: game.playerServiceHealingDisplayMap,
-      conditionContext: ScriptEvaluationContext(
-        narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
-          bundle.manifest.facts,
-        ),
-      ),
-      projectRootDirectory: bundle.projectRootDirectory,
-      pokemonConfig: bundle.manifest.pokemon,
-      locale: 'fr',
-    );
-    game.setPlayerServiceRuntimeController(_playerServices!);
-    game.setDialogueFlutterOverlayPreferred(true);
-    setState(() => _ready = true);
-    return game;
-  }
-
-  void _requireUnchangedMap(RuntimeMapBundle bundle, MapData document) {
-    final expected = projectSpatialSmartTileModels(
-      map: document,
-      catalog: bundle.manifest.smartTileCatalog,
-      sourceCellWidth: bundle.manifest.settings.tileWidth,
-      sourceCellHeight: bundle.manifest.settings.tileHeight,
-    );
-    if (bundle.map != expected) {
-      throw const StudioLaunchProblem(
-        'La carte a changé pendant la préparation du test.',
-        owner: StudioFailureOwner.map,
-      );
-    }
-  }
-
-  Future<bool> _prepareProjectAssets({ProjectManifest? project}) async {
-    final prepareProjectAssets = widget.prepareProjectAssets;
-    if (prepareProjectAssets != null) {
-      await prepareProjectAssets(widget.session.directoryPath);
-      return true;
-    }
-    if (widget.session.storage == ProjectSessionStorage.workingCatalog ||
-        project?.pokemon.enabled == false) {
-      return false;
-    }
-    await StudioProjectItemIcons.shared.prepare(
-      widget.session.directoryPath,
-      shouldContinue: () => mounted,
-    );
-    return true;
-  }
-
   @override
   void dispose() {
     _controls.detach(this);
@@ -328,101 +140,6 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       if (deleteSaves) await _saves.delete();
     }());
     super.dispose();
-  }
-
-  void _finishSpatialMount([Object? error]) {
-    final ready = _spatialMountReady;
-    if (ready == null || ready.isCompleted) return;
-    if (error == null) {
-      ready.complete();
-    } else {
-      ready.completeError(error);
-    }
-  }
-
-  Future<void> _save() async {
-    setState(() => _busy = true);
-    var saved = false;
-    try {
-      saved = _spatialPlaytest == null
-          ? await _game?.saveGame() ?? false
-          : await _spatialPlaytest!.save();
-    } catch (_) {
-      saved = false;
-    }
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _message = saved
-          ? 'Test enregistré en mémoire pour cette session.'
-          : 'Terminez l’interaction avant d’enregistrer le test.';
-    });
-  }
-
-  Future<void> _resume() async {
-    if (_busy || !_ready) return;
-    setState(() => _busy = true);
-    if (_spatialPlaytest != null) {
-      _replaceTest(restoreSpatialSave: true);
-      return;
-    }
-    final loaded = await _game?.loadGame() ?? false;
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _message = loaded ? 'Sauvegarde du test reprise.' : 'Reprise impossible pendant cette interaction ou après ce changement.';
-    });
-  }
-
-  Future<void> _newGame() async {
-    if (_busy || !_ready) return;
-    _replaceTest(restoreSpatialSave: false);
-  }
-
-  void _replaceTest({required bool restoreSpatialSave}) {
-    final previous = _spatialPlaytest;
-    final services = _playerServices;
-    _game?.pauseEngine();
-    setState(() {
-      _playerServices = null;
-      _playerBundle = null;
-      _game = null;
-      _spatialPlaytest = null;
-      _spatial = null;
-      _ready = false;
-      _spatialPaused = false;
-      _busy = false;
-      _message = restoreSpatialSave
-          ? 'Reprise de la sauvegarde du test…'
-          : 'Préparation d’une nouvelle partie…';
-      _loading = () async {
-        await WidgetsBinding.instance.endOfFrame;
-        await services?.dispose();
-        await previous?.dispose();
-        if (!restoreSpatialSave) await _saves.delete();
-        if (!mounted) throw StateError('Test fermé');
-        final loaded = await _load(restoreSpatialSave: restoreSpatialSave);
-        if (mounted) {
-          setState(
-            () => _message = restoreSpatialSave
-                ? 'Sauvegarde du test reprise.'
-                : 'Nouvelle partie : état de test réinitialisé.',
-          );
-        }
-        return loaded;
-      }();
-    });
-  }
-
-  Future<void> _toggleSpatialPause() async {
-    final runtime = _spatialPlaytest?.runtime;
-    if (runtime == null) return;
-    if (_spatialPaused) {
-      await runtime.resume();
-    } else {
-      await runtime.pause();
-    }
-    if (mounted) setState(() => _spatialPaused = !_spatialPaused);
   }
 
   Widget _launchFailure(BuildContext context, Object error) {

@@ -3,23 +3,13 @@ import 'package:map_authoring/map_authoring_editing.dart';
 
 import 'editable_map_document.dart';
 
+part 'spatial_model_binding_commands.dart';
+part 'spatial_model_duplication.dart';
+
 class SpatialModelEditingCommands {
   const SpatialModelEditingCommands(this.document, this.project);
   final EditableMapDocument document;
   final ProjectManifest project;
-  Future<bool> configureVisibility(
-    String id,
-    NarrativeEventConditionExpression? value,
-  ) {
-    final publish = document.configureSpatialModelVisibility;
-    if (publish == null) return Future.value(false);
-    return publish(
-      id,
-      value is NarrativeEventConditionAll && value.children.isEmpty
-          ? null
-          : value,
-    );
-  }
 
   bool number(String text, void Function(double) update) {
     final value = double.tryParse(text.trim());
@@ -32,92 +22,6 @@ class SpatialModelEditingCommands {
       return true;
     } on Object catch (error) {
       document.error = error.toString();
-      return false;
-    }
-  }
-
-  bool canConfigureFieldObstacle(String id) {
-    final instance = selected(id);
-    if (instance == null) return false;
-    final bound = document.current.entities
-        .where((entity) => entity.id == instance.entityId)
-        .firstOrNull;
-    final model = project.models3d
-        .where((model) => model.id == instance.modelId)
-        .firstOrNull;
-    return bound?.fieldObstacle != null ||
-        instance.blocksMovement &&
-            instance.animationIndex == null &&
-            instance.clip == null &&
-            model != null &&
-            model.inspection.animations.isEmpty &&
-            model.rampProfile == null &&
-            (instance.entityId == null || bound?.kind == MapEntityKind.custom);
-  }
-
-  Iterable<MapEntity> bindableEntities(String id) {
-    final occupied = {
-      for (final model in document.current.spatialScene!.instances)
-        if (model.id != id && model.entityId != null) model.entityId!,
-    };
-    return document.current.entities.where(
-      (entity) =>
-          entity.kind != MapEntityKind.npc &&
-          !occupied.contains(entity.id) &&
-          (entity.item == null ||
-              entity.item!.pickupMode == ItemPickupMode.once &&
-                  entity.item!.respawnPolicy == ItemRespawnPolicy.none),
-    );
-  }
-
-  Future<bool> configureFieldObstacle(
-    String id,
-    MapEntityFieldObstacleData? value,
-  ) async {
-    if (document.saving) return false;
-    final publish = document.configureSpatialFieldObstacle;
-    if (publish != null) return publish(id, value);
-    try {
-      document.commit(
-        const SpatialMapActions().configureFieldObstacle(
-          document.current,
-          project: project,
-          instanceId: id,
-          fieldObstacle: value,
-        ),
-      );
-      document.error = null;
-      return true;
-    } on Object {
-      document.error = 'Choisissez un décor statique bloquant sans autre rôle de jeu pour Coupe, Force ou Éclate-Roc.';
-      return false;
-    }
-  }
-
-  bool bindEntity(String instanceId, String entityId) {
-    if (document.saving) return false;
-    try {
-      final instance = selected(instanceId);
-      if (instance == null) {
-        throw const FormatException('Missing model instance.');
-      }
-      final next = instance.copyWith(
-        entityId: entityId.isEmpty ? null : entityId,
-        clearEntityBinding: entityId.isEmpty,
-      );
-      document.commit(
-        operations.upsertInstance(
-          document.current,
-          next,
-          model: project.models3d
-              .where((model) => model.id == next.modelId)
-              .firstOrNull,
-        ),
-      );
-      document.error = null;
-      return true;
-    } on FormatException {
-      document.error = 'Choisissez un élément de cette carte qui n’est pas déjà lié à un autre décor.';
       return false;
     }
   }
@@ -356,98 +260,5 @@ class SpatialModelEditingCommands {
             ),
     );
     return true;
-  }
-
-  void duplicate(String id) {
-    _requireIndependent(id);
-    final item = selected(id);
-    if (item == null) throw StateError('Ce décor n’existe plus.');
-    final next = SpatialModelInstance(
-      id: _id(),
-      modelId: item.modelId,
-      position: item.position,
-      rotationDegrees: item.rotationDegrees,
-      scale: item.scale,
-      animationIndex: item.animationIndex,
-      animationLoop: item.animationLoop,
-      animationSpeed: item.animationSpeed,
-      blocksMovement: item.blocksMovement,
-      castsShadows: item.castsShadows,
-      clip: item.clip,
-      visibilityCondition: item.visibilityCondition,
-    );
-    final source = owner(id);
-    final map = source == null
-        ? document.current
-        : environments.addGeneratedPlacement(
-            project,
-            document.current,
-            layerId: source.layerId,
-            areaId: source.areaId,
-            placementId: next.id,
-            modelId: next.modelId,
-            pos: GridPos(
-              x: next.position.x.floor(),
-              y: next.position.z.floor(),
-            ),
-          );
-    final model = project.models3d
-        .where((model) => model.id == item.modelId)
-        .firstOrNull;
-    if (model?.rampProfile != null) {
-      final scene = map.spatialScene!;
-      final elevated =
-          item.position.y -
-          scene.worldHeightAt(
-            item.position.x,
-            item.position.z,
-            excludingRampSurface: item.id,
-          );
-      for (var distance = 1; distance < scene.width + scene.depth; distance++) {
-        for (final offset in [
-          (distance, 0),
-          (-distance, 0),
-          (0, distance),
-          (0, -distance),
-        ]) {
-          final x = next.position.x + offset.$1;
-          final z = next.position.z + offset.$2;
-          if (x < 0 || z < 0 || x >= scene.width || z >= scene.depth) continue;
-          final candidate = next.copyWith(
-            position: Model3dVector3(
-              x: x,
-              y:
-                  scene.worldHeightAt(x, z, excludingRampSurface: item.id) +
-                  elevated,
-              z: z,
-            ),
-          );
-          try {
-            final result = operations.upsertInstance(
-              map,
-              candidate,
-              model: model,
-            );
-            document.commit(result);
-            document.selectedId = next.id;
-            return;
-          } on FormatException {
-            continue;
-          }
-        }
-      }
-      throw StateError(
-        'Aucune place libre pour dupliquer cet escalier et sa pente.',
-      );
-    }
-    if (map.spatialScene!.navigation.ramps.any(
-      (ramp) => ramp.surfaceInstanceId == item.id,
-    )) {
-      throw StateError(
-        'Définissez le comportement Escalier dans Ressources avant de dupliquer cet ancien assemblage manuel.',
-      );
-    }
-    document.commit(operations.upsertInstance(map, next, model: model));
-    document.selectedId = next.id;
   }
 }

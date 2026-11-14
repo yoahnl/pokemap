@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:archive/archive.dart';
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/data/studio_export_revision.dart';
@@ -10,11 +9,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
-import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
-
 import '../support/game_export_fixture.dart';
 import '../support/m3_story_fixture.dart';
+import 'studio_project_item_icons_export_support.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -70,7 +68,7 @@ void main() {
             reason: 'Item icons must exist before package construction.',
           );
           return CanonicalGamePackageExportService(
-            pokemonValidator: _acceptPokemonProjection,
+            pokemonValidator: acceptPokemonProjection,
           ).build(projectRoot: root, profile: profile, mode: mode);
         },
       );
@@ -79,7 +77,7 @@ void main() {
       final succeeded = await export(
         controller,
         prepare: () async {
-          await _enableItems(source.directory);
+          await enableItems(source.directory);
           return true;
         },
       );
@@ -136,7 +134,7 @@ void main() {
   test(
     'Studio preserves custom item pixels in the project and game package',
     () async {
-      await _enableItems(source.directory);
+      await enableItems(source.directory);
       final customPixels = image.encodePng(image.Image(width: 3, height: 2));
       final icon = File(
         p.join(source.directory.path, 'data/pokemon/assets/items/potion.png'),
@@ -146,7 +144,7 @@ void main() {
       final controller = StudioGameExportController(
         projectRoot: source.directory,
         projectName: source.session.name,
-        buildPackage: _buildPackage,
+        buildPackage: buildItemIconsPackage,
       );
       addTearDown(controller.dispose);
 
@@ -172,14 +170,14 @@ void main() {
   test(
     'Studio exports neutral projects without loading or installing item art',
     () async {
-      final bundle = _ItemIconBundle(const {});
+      final bundle = ItemIconBundle(const {});
       final icons = StudioProjectItemIcons(bundle: bundle);
       final before = await sourceFingerprints(source.directory.path);
       final controller = StudioGameExportController(
         projectRoot: source.directory,
         projectName: source.session.name,
         prepareProjectAssets: icons.prepare,
-        buildPackage: _buildPackage,
+        buildPackage: buildItemIconsPackage,
       );
       addTearDown(controller.dispose);
 
@@ -206,8 +204,8 @@ void main() {
   test(
     'Studio blocks export when the item icon pack cannot be verified',
     () async {
-      await _enableItems(source.directory);
-      final bundle = _ItemIconBundle({
+      await enableItems(source.directory);
+      final bundle = ItemIconBundle({
         'assets/pokemon/item_icons/manifest.json': utf8.encode(
           jsonEncode({
             'schemaVersion': 1,
@@ -227,7 +225,7 @@ void main() {
         prepareProjectAssets: icons.prepare,
         buildPackage: (root, profile, mode) {
           builds++;
-          return _buildPackage(root, profile, mode);
+          return buildItemIconsPackage(root, profile, mode);
         },
         writePackage: (_, _) async {
           writes++;
@@ -249,73 +247,4 @@ void main() {
       expect(await sourceFingerprints(source.directory.path), before);
     },
   );
-}
-
-Future<GamePackageExportArtifact> _buildPackage(
-  Directory root,
-  GamePackageExportProfile profile,
-  GamePackageExportMode mode,
-) => CanonicalGamePackageExportService(
-  pokemonValidator: _acceptPokemonProjection,
-).build(projectRoot: root, profile: profile, mode: mode);
-
-Future<void> _enableItems(Directory root) async {
-  final projectFile = File(p.join(root.path, 'project.json'));
-  final project = ProjectManifest.fromJson(
-    jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
-  );
-  await projectFile.writeAsString(
-    jsonEncode(
-      project
-          .copyWith(
-            pokemon: const ProjectPokemonConfig(
-              enabled: true,
-              ruleset: PokemonRulesetProfile.pokeMapBetaV1,
-            ),
-          )
-          .toJson(),
-    ),
-  );
-  final catalog = File(p.join(root.path, 'data/pokemon/catalogs/items.json'));
-  await catalog.parent.create(recursive: true);
-  await catalog.writeAsString(
-    jsonEncode(
-      encodeProjectItemCatalog(
-        ProjectItemCatalog(
-          schemaVersion: 1,
-          entries: [
-            ProjectItemDefinition(
-              id: 'potion',
-              displayName: 'Potion',
-              pocketId: 'medicine',
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-  await File(
-    p.join(root.path, 'data/pokemon/catalogs/moves.json'),
-  ).writeAsString(jsonEncode({'entries': []}));
-}
-
-Future<PokemonCatalogCoherenceReport> _acceptPokemonProjection({
-  required ProjectFileReader reader,
-  required String projectRoot,
-  required ProjectManifest manifest,
-}) async => PokemonCatalogCoherenceReport(const <PokemonCatalogDiagnostic>[]);
-
-final class _ItemIconBundle extends CachingAssetBundle {
-  _ItemIconBundle(this.assets);
-
-  final Map<String, List<int>> assets;
-  final requests = <String>[];
-
-  @override
-  Future<ByteData> load(String key) async {
-    requests.add(key);
-    final bytes = assets[key];
-    if (bytes == null) throw StateError('Unexpected asset request: $key');
-    return ByteData.sublistView(Uint8List.fromList(bytes));
-  }
 }

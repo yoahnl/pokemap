@@ -14,6 +14,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/spatial_environment_fixture.dart';
+import 'spatial_field_obstacle_persistence_support.dart';
 
 void main() {
   final workCounts = <List<int>>[];
@@ -66,7 +67,7 @@ void main() {
             ],
             environmentPresets: const [],
           );
-          final reader = _Reader();
+          final reader = ObstacleReader();
           final adapter = LocalMapWorkspaceAdapter(reader: reader);
           final session = ProjectSession(
             sessionId: root.path,
@@ -283,50 +284,5 @@ void main() {
         },
       );
     }
-  }
-}
-
-final class _Reader
-    implements
-        ProjectFileReader,
-        ProjectResourceStreamReader,
-        ProjectResourceProbeReader {
-  final paths = <String>[];
-  final delegate = const LocalProjectFileReader();
-  @override
-  bool get supportsStreamingResources => true;
-  @override
-  Future<String> canonicalizeDirectory(String path) =>
-      delegate.canonicalizeDirectory(path);
-  @override
-  Future<ProjectResourceProbe> probeResource({
-    required String projectRoot,
-    required String relativePath,
-  }) => delegate.probeResource(
-    projectRoot: projectRoot,
-    relativePath: relativePath,
-  );
-  @override
-  Future<List<int>> readBytes({
-    required String projectRoot,
-    required String relativePath,
-  }) {
-    paths.add(relativePath);
-    return delegate.readBytes(
-      projectRoot: projectRoot,
-      relativePath: relativePath,
-    );
-  }
-
-  @override
-  Stream<List<int>> openRead({
-    required String projectRoot,
-    required String relativePath,
-  }) {
-    paths.add(relativePath);
-    return delegate.openRead(
-      projectRoot: projectRoot,
-      relativePath: relativePath,
-    );
   }
 }

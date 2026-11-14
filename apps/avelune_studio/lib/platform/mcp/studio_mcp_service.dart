@@ -1,49 +1,16 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import 'studio_mcp_models.dart';
 import 'studio_mcp_process.dart';
 
-enum StudioMcpState { starting, ready, failed, stopping, stopped }
+export 'studio_mcp_models.dart';
 
-class StudioMcpConnection {
-  const StudioMcpConnection(this.url, this._token, this.protocolVersions);
-  final Uri url;
-  final String _token;
-  final List<String> protocolVersions;
-
-  String get clientConfiguration => const JsonEncoder.withIndent('  ').convert({
-    'mcpServers': {
-      'avelune-studio': {
-        'type': 'http',
-        'url': url.toString(),
-        'headers': {'Authorization': 'Bearer $_token'},
-      },
-    },
-  });
-}
-
-class StudioMcpResource {
-  const StudioMcpResource({required this.kind, required this.id});
-  final String kind;
-  final String id;
-}
-
-class StudioMcpMutation {
-  const StudioMcpMutation({
-    required this.projectRoot,
-    required this.resources,
-    required this.revision,
-    this.operationId,
-  });
-  final String projectRoot;
-  final List<StudioMcpResource> resources;
-  final String revision;
-  final String? operationId;
-}
+part 'studio_mcp_events.dart';
+part 'studio_mcp_roots.dart';
 
 class StudioMcpService extends ChangeNotifier {
   StudioMcpService({
@@ -190,90 +157,6 @@ class StudioMcpService extends ChangeNotifier {
     _cancelRequests();
   }
 
-  void _handleEvent(Map<String, Object?> event, int generation) {
-    if (_disposed || generation != _generation) return;
-    if (event['type'] == 'failed') {
-      final code = event['code'];
-      _failReadiness(
-        code is String &&
-                RegExp(r'^[a-zA-Z][a-zA-Z0-9_.-]{0,96}$').hasMatch(code)
-            ? code
-            : 'companion.initialization_failed',
-      );
-      return;
-    }
-    if (event['type'] == 'ready') {
-      try {
-        if (_connection != null || event['controlVersion'] != 1) {
-          throw const FormatException();
-        }
-        final url = Uri.parse(event['url'] as String);
-        final token = event['token'] as String;
-        final protocols = (event['protocolVersions'] as List).cast<String>();
-        if (url.scheme != 'http' ||
-            !['127.0.0.1', '::1', '[::1]'].contains(url.host) ||
-            !url.hasPort ||
-            url.port == 0 ||
-            url.userInfo.isNotEmpty ||
-            url.hasQuery ||
-            url.hasFragment ||
-            token.isEmpty ||
-            protocols.isEmpty) {
-          throw const FormatException();
-        }
-        _connection = StudioMcpConnection(
-          url,
-          token,
-          List.unmodifiable(protocols),
-        );
-        if (!_ready!.isCompleted) _ready!.complete();
-      } on Object {
-        _failReadiness();
-      }
-    } else if (event['type'] == 'response') {
-      final pending = _requests.remove(event['id']);
-      if (pending == null || pending.isCompleted) return;
-      if (event['ok'] == true) {
-        pending.complete();
-      } else {
-        final code = event['code'];
-        if (code is String &&
-            RegExp(r'^(control\.[a-z_]+|permission\.transfer_failed_[1-5])$')
-                .hasMatch(code)) {
-          _diagnosticCode = code;
-        }
-        pending.completeError(StateError('companion.command_failed'));
-      }
-    } else if (event['type'] == 'mutation' &&
-        _state == StudioMcpState.ready &&
-        _authorizedRoot != null &&
-        event['projectRoot'] == _desiredRoot &&
-        event['projectRoot'] == _authorizedRoot) {
-      try {
-        final resources = (event['resources'] as List)
-            .map((resource) {
-              final value = resource as Map;
-              return StudioMcpResource(
-                kind: value['kind'] as String,
-                id: value['id'] as String,
-              );
-            })
-            .toList(growable: false);
-        _mutations.add(
-          StudioMcpMutation(
-            projectRoot: _authorizedRoot!,
-            resources: resources,
-            revision: event['revision'] as String,
-            operationId: event['operationId'] as String?,
-          ),
-        );
-      } on Object {
-        _error = 'Une modification externe ne peut pas être synchronisée.';
-        _publish();
-      }
-    }
-  }
-
   Future<void> setProjectRoot(String? root) {
     if (root != null && (!p.isAbsolute(root) || root.contains('\u0000'))) {
       return Future.error(ArgumentError('project.root_invalid'));
@@ -296,49 +179,6 @@ class StudioMcpService extends ChangeNotifier {
       }
     });
     return _rootChanges;
-  }
-
-  Future<void> _synchronizeRoots() async {
-    if (_rootsSynchronized && _authorizedRoot == _desiredRoot) return;
-    final process = _process;
-    if (process == null) return;
-    final generation = _generation;
-    while (!_disposed && generation == _generation) {
-      final root = _desiredRoot;
-      final bookmark = root == null
-          ? null
-          : await projectBookmark?.call(root).timeout(commandTimeout);
-      if (root != null && projectBookmark != null && bookmark == null) {
-        throw const FormatException('permission.bookmark_unavailable');
-      }
-      if (_disposed || generation != _generation) return;
-      if (root != _desiredRoot) continue;
-      final id = 'studio-${++_requestNumber}';
-      final acknowledged = Completer<void>();
-      _requests[id] = acknowledged;
-      try {
-        await Future.wait([
-          acknowledged.future.timeout(commandTimeout),
-          process.send({
-            'id': id,
-            'command': 'set_roots',
-            'roots': [?root],
-            if (bookmark != null)
-              'grants': [
-                {'root': root, 'bookmark': bookmark},
-              ],
-          }),
-        ], eagerError: true);
-      } finally {
-        _requests.remove(id);
-      }
-      if (_disposed || generation != _generation) return;
-      if (root == _desiredRoot) {
-        _authorizedRoot = root;
-        _rootsSynchronized = true;
-        return;
-      }
-    }
   }
 
   Future<void> retry() async {

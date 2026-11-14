@@ -33,6 +33,8 @@ import 'presentation_workspace_visuals.dart';
 part 'studio_map_resource_recovery.dart';
 part 'studio_map_resources_helpers.dart';
 part 'studio_cinematic_spatial_preview.dart';
+part 'studio_map_resources_catalog.dart';
+part 'studio_map_resources_spatial.dart';
 
 Future<RuntimeMapBundle> loadStudioPreviewBundle({
   required String projectRoot,
@@ -83,151 +85,23 @@ final class StudioMapResources
     CinematicActorDisplayPreviewModel actors,
   ) => _cinematicSpatialPreview(map, actors);
   @override
-  Future<Uint8List> readGroundImage(String tilesetId) async {
-    final tileset = manifest.tilesets
-        .where((tileset) => tileset.id == tilesetId)
-        .firstOrNull;
-    if (tileset == null) {
-      throw StateError('Image de terrain absente : $tilesetId');
-    }
-    return readGroundDefinition(tileset);
-  }
+  Future<Uint8List> readGroundImage(String tilesetId) =>
+      _readGroundImage(tilesetId);
 
   @override
-  Future<Uint8List> readGroundDefinition(ProjectTilesetEntry tileset) async {
-    return Uint8List.fromList(
-      await const LocalProjectFileReader().readBytes(
-        projectRoot: projectRoot,
-        relativePath: tileset.relativePath,
-      ),
-    );
-  }
+  Future<Uint8List> readGroundDefinition(ProjectTilesetEntry tileset) =>
+      _readGroundDefinition(tileset);
 
   @override
-  Future<SpatialNpcPreview> spatialPreview(MapData map) async {
-    final frames = <String, SpatialActorVisual>{};
-    final images = <String, ui.Image>{};
-    if (!map.entities.any((entity) => entity.npc != null)) {
-      return SpatialNpcPreview(frames, () {});
-    }
-    await initializeSpatialRenderer();
-    final bundle = await loadStudioPreviewBundle(
-      projectRoot: projectRoot,
-      manifest: manifest,
-      map: map,
-    );
-    final resolver = CharacterAnimationSourceResolver();
-    final textures = <String, SpatialActorTexture>{};
-    try {
-      for (final entity in map.entities.where((entity) => entity.npc != null)) {
-        final actor = manifest.characters
-            .where((actor) => actor.id == entity.npc!.characterId)
-            .firstOrNull;
-        if (actor == null) {
-          throw StateError('Personnage du PNJ absent : ${entity.name}');
-        }
-        final animation =
-            actor.animations
-                .where(
-                  (clip) =>
-                      clip.direction == entity.npc!.facing &&
-                      clip.state == CharacterAnimationState.idle,
-                )
-                .firstOrNull ??
-            actor.animations
-                .where(
-                  (clip) =>
-                      clip.direction == entity.npc!.facing &&
-                      clip.state == CharacterAnimationState.walk,
-                )
-                .firstOrNull;
-        if (animation == null || animation.frames.isEmpty) {
-          throw StateError('Animation du PNJ absente : ${entity.name}');
-        }
-        final asset = animation.sourceAssetId?.trim();
-        final imageId = asset != null && asset.isNotEmpty
-            ? characterAnimationRuntimeImageId(asset)
-            : actor.tilesetId;
-        if (!images.containsKey(imageId)) {
-          final path = bundle.runtimeImageAbsolutePathsById[imageId];
-          if (path == null) {
-            throw StateError('Image du PNJ absente : ${entity.name}');
-          }
-          final codec = await ui.instantiateImageCodec(
-            await File(path).readAsBytes(),
-          );
-          try {
-            images[imageId] = (await codec.getNextFrame()).image;
-          } finally {
-            codec.dispose();
-          }
-          textures[imageId] = await SpatialActorTexture.fromImage(
-            images[imageId]!,
-          );
-        }
-        final source = resolver.resolveFrame(
-          character: actor,
-          animation: animation,
-          frame: animation.frames.first,
-          tileWidth: manifest.settings.tileWidth,
-          tileHeight: manifest.settings.tileHeight,
-          availableImageIds: images.keys.toSet(),
-        );
-        final image = images[imageId]!;
-        if (source == null ||
-            source.sourceRect.left < 0 ||
-            source.sourceRect.top < 0 ||
-            source.sourceRect.width <= 0 ||
-            source.sourceRect.height <= 0 ||
-            source.sourceRect.right > image.width ||
-            source.sourceRect.bottom > image.height) {
-          throw StateError('Frame du PNJ invalide : ${entity.name}');
-        }
-        final x = entity.pos.x + .5, z = entity.pos.y + .5;
-        frames['npc:${entity.id}'] = SpatialActorVisual(
-          x: x,
-          y: map.spatialScene!.worldHeightAt(x, z),
-          z: z,
-          texture: textures[imageId]!,
-          frame: source.sourceRect,
-          contactShadow:
-              actor.contactShadow ??
-              manifest.settings.actorContactShadowsByDefault,
-        );
-      }
-      return SpatialNpcPreview(frames, () {
-        for (final image in images.values) {
-          image.dispose();
-        }
-      });
-    } on Object {
-      for (final image in images.values) {
-        image.dispose();
-      }
-      rethrow;
-    }
-  }
+  Future<SpatialNpcPreview> spatialPreview(MapData map) =>
+      _spatialPreview(map);
 
   @override
-  Future<Uint8List> readModel(String modelId) async {
-    final model = manifest.models3d
-        .where((item) => item.id == modelId)
-        .firstOrNull;
-    if (model == null) throw StateError('Modèle introuvable : $modelId');
-    return readModelDefinition(model);
-  }
+  Future<Uint8List> readModel(String modelId) => _readModel(modelId);
 
   @override
-  Future<Uint8List> readModelDefinition(ProjectModel3dEntry model) async {
-    final bytes = Uint8List.fromList(
-      await const LocalProjectFileReader().readBytes(
-        projectRoot: projectRoot,
-        relativePath: model.relativePath,
-      ),
-    );
-    await Isolate.run(() => const GlbModel3dInspector().inspect(bytes));
-    return bytes;
-  }
+  Future<Uint8List> readModelDefinition(ProjectModel3dEntry model) =>
+      _readModelDefinition(model);
 
   @override
   CinematicMediaPlaybackPort createCinematicMedia(ProjectManifest project) =>
@@ -279,103 +153,25 @@ final class StudioMapResources
     ProjectManifest manifest, {
     int maximumBytes = 256 * 1024 * 1024,
     StudioImageDecoder decode = decodeRuntimeTilesetImage,
-  }) async {
-    final result = StudioMapResources._(session.directoryPath, manifest);
-    try {
-      result.paths.addAll(
-        await resolveStudioResourcePaths(
-          session.directoryPath,
-          manifest,
-          result._index.supported,
-        ),
-      );
-    } on Object catch (error) {
-      result._failed(
-        'catalogue',
-        StudioResourceFailure(
-          WorkspaceResourceCause.readFailure,
-          error.toString(),
-        ),
-      );
-    }
-    result.store = StudioImageStore(
-      projectRoot: result.projectRoot,
-      maximumBytes: maximumBytes,
-      paths: result.paths,
-      colors: result._index.colors,
-      decode: decode,
-      changed: result._notify,
-      failed: result._failed,
-    );
-    return result;
-  }
+  }) => _loadStudioMapResources(
+    session,
+    manifest,
+    maximumBytes: maximumBytes,
+    decode: decode,
+  );
 
   @override
   Future<void> updateModelSources(
     ProjectManifest updated,
     Map<String, ProjectModel3dEntry> definitions,
     Map<String, String> revisions,
-  ) async {
-    if (_disposed) return;
-    manifest = updated;
-    modelSourceUpdates.publish(revisions: revisions, definitions: definitions);
-    catalogVersion++;
-    _notify();
-  }
+  ) => _updateModelSources(updated, definitions, revisions);
 
   @override
   Future<void> updateCatalog(
     ProjectManifest updated, {
     Set<String> changedRelativePaths = const {},
-  }) async {
-    if (_disposed) return;
-    final next = StudioResourceIndex(updated);
-    final resolved = await resolveStudioResourcePaths(
-      projectRoot,
-      updated,
-      next.supported,
-    );
-    Set<String> invalidResourceIds() => changedStudioResourceIds(
-      root: projectRoot,
-      before: paths,
-      after: resolved,
-      previousColors: _index.colors,
-      nextColors: next.colors,
-      changedRelativePaths: changedRelativePaths,
-    );
-    var invalid = invalidResourceIds();
-    if (invalid.isNotEmpty) {
-      await store.settled;
-      invalid = invalidResourceIds();
-    }
-    if (_disposed) return;
-    final borderChanged =
-        manifest.borderCatalog != updated.borderCatalog ||
-        manifest.settings != updated.settings ||
-        updated.borderCatalog.visualSnapshots.any(
-          (snapshot) => snapshot.frames.any(
-            (frame) => changedRelativePaths.contains(frame.relativeAssetPath),
-          ),
-        );
-    manifest = updated;
-    _index = next;
-    paths
-      ..clear()
-      ..addAll(resolved);
-    store.colors
-      ..clear()
-      ..addAll(next.colors);
-    store.invalidate(invalid);
-    catalogVersion++;
-    if (_activeMap != null) {
-      if (borderChanged) {
-        borderPreview.invalidate(updated, _activeMap!);
-      }
-      setActiveMap(_activeMap!);
-    }
-    _refreshBrushAfterCatalog(updated);
-    _notify();
-  }
+  }) => _updateCatalog(updated, changedRelativePaths: changedRelativePaths);
 
   @override
   Widget atlasPreview(String tilesetId) =>

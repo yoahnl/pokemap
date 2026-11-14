@@ -35,6 +35,8 @@ import 'package:avelune_studio/features/resources/application/environment_draft.
 part 'resource_navigation_terrain.dart';
 part 'resource_navigation_management.dart';
 part 'resource_navigation_lifecycle.dart';
+part 'resource_navigation_opening.dart';
+part 'resource_navigation_receipts.dart';
 part 'resource_navigation_environment.dart';
 part 'resource_navigation_saving.dart';
 part 'resource_navigation_management_publication.dart';
@@ -99,6 +101,8 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   void changed() {
     if (!_disposed) notifyListeners();
   }
+
+  void _notifyListeners() => notifyListeners();
 
   String? Function(String blueprintId)? borderDrawingOwner;
   List<String> Function(String characterId)? additionalCharacterOwners;
@@ -185,45 +189,10 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     notifyListeners();
   }
 
-  Future<bool> loadFamily(ResourceLibraryFamily family) async {
-    if (_disposed || workspace.isDisposed) return false;
-    final request = ++_libraryLoadRequest;
-    try {
-      await workspace.ensureResourceKind(family.canonicalKind);
-      if (_disposed || workspace.isDisposed || request != _libraryLoadRequest) {
-        return false;
-      }
-      error = null;
-      changed();
-      return true;
-    } catch (failure) {
-      if (!_disposed && request == _libraryLoadRequest) {
-        error = 'Cette famille ne peut pas être chargée : $failure';
-        changed();
-      }
-      return false;
-    }
-  }
+  Future<bool> loadFamily(ResourceLibraryFamily family) => _loadFamily(family);
 
-  Future<void> openCharacters([String? characterId]) async {
-    if (_disposed || workspace.isDisposed) return;
-    final request = ++_libraryLoadRequest;
-    try {
-      await workspace.ensureResourceKind('character');
-      if (_disposed || workspace.isDisposed || request != _libraryLoadRequest) {
-        return;
-      }
-      if (characterId != null) characters.select(characterId);
-      page = ResourcePage.characters;
-      error = null;
-      changed();
-    } catch (failure) {
-      if (!_disposed && request == _libraryLoadRequest) {
-        error = 'Les personnages ne peuvent pas être chargés : $failure';
-        changed();
-      }
-    }
-  }
+  Future<void> openCharacters([String? characterId]) =>
+      _openCharacters(characterId);
 
   void openBorders() {
     library.selectFamily(ResourceLibraryFamily.borders);
@@ -269,23 +238,8 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     }
   }
 
-  void openElement(ProjectElementEntry? element, {bool edit = false}) {
-    final item = element == null
-        ? null
-        : ResourceItem(
-            id: element.id,
-            name: element.name,
-            kind: ResourceKind.decors,
-            element: element,
-            category: element.categoryId,
-            tags: element.tags,
-          );
-    if (edit && item != null) {
-      this.edit(item);
-    } else {
-      showLibrary(item);
-    }
-  }
+  void openElement(ProjectElementEntry? element, {bool edit = false}) =>
+      _openElement(element, edit: edit);
 
   Future<ProjectManifest> accept(ResourceMutationReceipt receipt) =>
       _acceptResourceReceipt(this, receipt);
@@ -298,95 +252,12 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   Future<void> import(
     ResourceImageImport request, {
     ResourceImportIntent intent = ResourceImportIntent.decor,
-  }) async {
-    busy = true;
-    error = null;
-    importedSource = null;
-    notifyListeners();
-    try {
-      final receipt = await port.importImage(request);
-      final manifest = await accept(receipt);
-      final tileset = manifest.tilesets.firstWhere(
-        (t) => t.id == receipt.createdTilesetId,
-      );
-      final item = ResourceItem(
-        id: tileset.id,
-        name: tileset.name,
-        kind: ResourceKind.images,
-        tileset: tileset,
-        category: tileset.folderId ?? '',
-      );
-      switch (intent) {
-        case ResourceImportIntent.decor:
-          edit(item);
-        case ResourceImportIntent.terrain:
-          prepareTerrain(item);
-        case ResourceImportIntent.source:
-          importedSource = item;
-          showLibrary(item);
-      }
-    } catch (e) {
-      if (e is ResourceFailure && e.partialReceipt != null) {
-        pendingReceipt = e.partialReceipt;
-      }
-      error = e.toString();
-    } finally {
-      busy = false;
-      changed();
-    }
-  }
+  }) => _import(request, intent: intent);
 
-  void edit(ResourceItem item) {
-    importedSource = null;
-    if (item.model3d != null) {
-      library.selectFamily(ResourceLibraryFamily.models3d);
-      showLibrary(item);
-      return;
-    }
-    if (item.environment case final preset?) {
-      openEnvironment(preset);
-      return;
-    }
-    if (item.character != null) {
-      openCharacters(item.id);
-      return;
-    }
-    if (item.border != null) {
-      openBorders();
-      return;
-    }
-    final project = workspace.project!;
-    final tileset =
-        item.tileset ??
-        project.tilesets.firstWhere((t) => t.id == item.element!.tilesetId);
-    if (item.element == null && !canCreateDecor(tileset, project)) {
-      error = decorConversionProblem(tileset, project);
-      showLibrary(item);
-      return;
-    }
-    decor = decors.putIfAbsent(
-      item.identity,
-      () => DecorDraft(tileset: tileset, original: item.element),
-    );
-    page = ResourcePage.decor;
-    notifyListeners();
-  }
+  void edit(ResourceItem item) => _edit(item);
 
-  void completeTerrainPublication(ProjectSmartTilePreset preset) {
-    final item = ResourceItem(
-      id: preset.id,
-      name: preset.name,
-      kind: ResourceKind.terrains,
-      terrain: preset,
-      category: preset.categoryId,
-      tags: preset.tags,
-    );
-    if (workspace.project!.maps.isEmpty) {
-      showLibrary(item);
-    } else {
-      onUse(item);
-    }
-  }
+  void completeTerrainPublication(ProjectSmartTilePreset preset) =>
+      _completeTerrainPublication(preset);
 
   @override
   void dispose() {

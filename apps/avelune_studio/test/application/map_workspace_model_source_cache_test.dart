@@ -1,19 +1,15 @@
-import 'dart:async';
 import 'dart:collection';
-
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-
 import '../support/scoped_map_workspace_port.dart';
+import 'map_workspace_model_source_cache_fakes.dart';
 
 void main() {
   test(
     'source receipt survives cached activation and preview definitions',
     () async {
-      final port = _SourcePort();
+      final port = ModelSourcePort();
       final controller = MapWorkspaceController(scopedMapSession, port);
       addTearDown(controller.dispose);
       await controller.initialize();
@@ -23,7 +19,7 @@ void main() {
       final second = controller.active!;
       await controller.previewMap('preview');
       final before = controller.project!;
-      final replacement = _model('tree', 4);
+      final replacement = sourceModel('tree', 4);
       controller.acceptResources(
         before,
         before.copyWith(models3d: [replacement]),
@@ -49,13 +45,13 @@ void main() {
   test(
     'resource family and cached visual composition keep replaced definitions',
     () async {
-      final port = _SourcePort();
+      final port = ModelSourcePort();
       final controller = MapWorkspaceController(scopedMapSession, port);
       addTearDown(controller.dispose);
       await controller.initialize();
       await controller.ensureResourceKind('model3d');
       final beforeVisual = controller.visualProject!;
-      final replacement = _model('tree', 4);
+      final replacement = sourceModel('tree', 4);
       final before = controller.project!;
       controller.acceptResources(
         before,
@@ -78,7 +74,7 @@ void main() {
     test(
       'source receipt accepts equal distinct projections without reading $unrelated unrelated maps',
       () async {
-        final port = _SourcePort(unrelatedMaps: unrelated);
+        final port = ModelSourcePort(unrelatedMaps: unrelated);
         final controller = MapWorkspaceController(scopedMapSession, port);
         addTearDown(controller.dispose);
         await controller.initialize();
@@ -89,7 +85,7 @@ void main() {
         final before = loaded.copyWith(maps: receiptMaps);
         expect(identical(controller.project, before), isFalse);
         expect(controller.project, before);
-        final replacement = _model('tree', 4);
+        final replacement = sourceModel('tree', 4);
         final updated = before.copyWith(
           models3d: (before.models3d as ProjectModel3dEntries)
               .replaceSelected([replacement]),
@@ -116,7 +112,7 @@ void main() {
     test(
       'replacement only visits cached dependencies with $unrelated unrelated maps and definitions',
       () async {
-        final port = _SourcePort(unrelatedMaps: unrelated);
+        final port = ModelSourcePort(unrelatedMaps: unrelated);
         final controller = MapWorkspaceController(scopedMapSession, port);
         addTearDown(controller.dispose);
         await controller.initialize();
@@ -133,7 +129,7 @@ void main() {
         final beforeVisual = controller.visualProject!;
         final untouched = controller.previewDefinitionsFor('unrelated-0');
         final before = controller.project!;
-        final replacement = _model('tree', 4);
+        final replacement = sourceModel('tree', 4);
         controller.acceptResources(
           before,
           before.copyWith(
@@ -170,13 +166,13 @@ void main() {
   }
 
   test('source receipt preserves current fields outside its changed models', () async {
-    final port = _SourcePort();
+    final port = ModelSourcePort();
     final controller = MapWorkspaceController(scopedMapSession, port);
     addTearDown(controller.dispose);
     await controller.initialize();
     await controller.ensureResourceKind('model3d');
     final before = controller.project!;
-    final replacement = _model('tree', 4);
+    final replacement = sourceModel('tree', 4);
     final unrelated = port.other.copyWith(name: 'Current unrelated model');
     final currentMaps = _CountingMapEntries([
       for (final map in before.maps) map.copyWith(name: 'Current ${map.name}'),
@@ -204,229 +200,7 @@ void main() {
     expect(models.lookup('tree'), same(replacement));
     expect(models.lookup('other'), same(unrelated));
   });
-
-  test('source receipt validates the whole batch before mutating projections', () async {
-    final port = _SourcePort();
-    final controller = MapWorkspaceController(scopedMapSession, port);
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    await controller.ensureResourceKind('model3d');
-    await controller.previewMap('first');
-    final before = controller.project!;
-    final preview = controller.previewDefinitionsFor('first');
-    final visual = controller.visualProject;
-    final current = before.copyWith(
-      models3d: (before.models3d as ProjectModel3dEntries)
-          .replaceSelected([port.other.copyWith(name: 'Concurrent edit')]),
-    );
-    controller.project = current;
-    port.previewGate = Completer<void>();
-    final pending = controller.previewMap('preview');
-    var notifications = 0;
-    controller.addListener(() => notifications++);
-    final replacements = {'tree': _model('tree', 4), 'other': _model('other', 5)};
-    expect(
-      () => controller.acceptResources(
-        before,
-        before.copyWith(models3d: (before.models3d as ProjectModel3dEntries)
-            .replaceSelected(replacements.values)),
-        changedModels: replacements,
-      ),
-      throwsA(isA<MapWorkspaceFailure>().having(
-        (failure) => failure.problem, 'problem', MapWorkspaceProblem.conflict)),
-    );
-    expect(controller.project, same(current));
-    expect(controller.previewDefinitionsFor('first'), same(preview));
-    expect(controller.visualProject, same(visual));
-    expect(controller.modelSourceSelectionsVisited, 0);
-    expect(controller.modelSourcePreviewsVisited, 0);
-    expect(controller.modelSourceProjectionLookups, 0);
-    expect(notifications, 0);
-    port.previewGate!.complete();
-    await pending;
-    expect(controller.previewDefinitionsFor('preview')!.models3d.single, same(port.tree));
-  });
-
-  test('source receipt accepts an already applied retry without restoring old fields', () async {
-    final port = _SourcePort();
-    final controller = MapWorkspaceController(scopedMapSession, port);
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    await controller.previewMap('preview');
-    final before = controller.project!;
-    final replacement = _model('tree', 4);
-    final updated = before.copyWith(models3d: (before.models3d as ProjectModel3dEntries)
-        .replaceSelected([replacement]));
-    controller.acceptResources(before, updated, changedModels: {'tree': replacement});
-    final preview = controller.previewDefinitionsFor('preview');
-    final current = controller.project!.copyWith(name: 'Current project');
-    controller.project = current;
-    controller.acceptResources(before, updated, changedModels: {'tree': replacement});
-    expect(controller.project, same(current));
-    expect(controller.previewDefinitionsFor('preview'), same(preview));
-    expect(controller.project!.models3d.single, same(replacement));
-  });
-
-  test('source receipt allows a target absent from the active partial projection', () async {
-    final port = _SourcePort(unrelatedMaps: 1);
-    final controller = MapWorkspaceController(scopedMapSession, port);
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    await controller.activate(port.entries.last);
-    await controller.activate(port.entries.first);
-    final current = controller.project!;
-    final before = current.copyWith(
-      models3d: ProjectModel3dEntries.prepare([port.tree, port.other]),
-    );
-    final replacement = _model('other', 5);
-    controller.acceptResources(
-      before,
-      before.copyWith(models3d: (before.models3d as ProjectModel3dEntries)
-          .replaceSelected([replacement])),
-      changedModels: {'other': replacement},
-    );
-    expect(controller.project, same(current));
-    expect(controller.project!.models3d.single, same(port.tree));
-    await controller.activate(port.entries.last);
-    expect(controller.project!.models3d.single, same(replacement));
-  });
-
-  test(
-    'light then source receipt preserve cache indexes and collision metadata',
-    () async {
-      final port = _SourcePort();
-      final controller = MapWorkspaceController(scopedMapSession, port);
-      addTearDown(controller.dispose);
-      await controller.initialize();
-      await controller.activate(port.entries[1]);
-      await controller.previewMap('preview');
-      final light = Model3dPointLight(localPosition: Model3dVector3.zero);
-      await controller.acceptModelLight(
-        port.tree.copyWith(light: light),
-        'before',
-        'after',
-      );
-      expect(
-        controller.previewDefinitionsFor('preview')!.models3d.single.light,
-        same(light),
-      );
-      final replacement = _model(
-        'tree',
-        4,
-      ).copyWith(light: light, collisionBounds: port.tree.inspection.bounds);
-      final before = controller.project!;
-      controller.acceptResources(
-        before,
-        before.copyWith(
-          models3d: (before.models3d as ProjectModel3dEntries).replaceSelected([
-            replacement,
-          ]),
-        ),
-        changedModels: {'tree': replacement},
-      );
-      await controller.activate(port.entries.first);
-      expect(controller.project!.models3d.single, same(replacement));
-      expect(
-        controller.project!.models3d.single.collisionBounds,
-        port.tree.inspection.bounds,
-      );
-      expect(port.selectionReads, ['first', 'second']);
-      expect(controller.modelSourceSelectionsVisited, 4);
-    },
-  );
-
-  test('fresh canonical loads after a source receipt are not overwritten by its old definition', () async {
-    final port = _SourcePort();
-    final controller = MapWorkspaceController(scopedMapSession, port);
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    final before = controller.project!;
-    final replacement = _model('tree', 4);
-    controller.acceptResources(
-      before,
-      before.copyWith(models3d: [replacement]),
-      changedModels: {'tree': replacement},
-    );
-    final canonical = _model(
-      'tree',
-      7,
-    ).copyWith(name: 'Canonical edit', scale: 3);
-    port.tree = canonical;
-    await controller.previewMap('preview');
-    expect(
-      controller.previewDefinitionsFor('preview')!.models3d.single,
-      same(canonical),
-    );
-    await controller.activate(port.entries[1]);
-    expect(controller.project!.models3d.single, same(canonical));
-    await controller.ensureResourceKind('model3d');
-    expect(
-      (controller.visualProject!.models3d as ProjectModel3dEntries).lookup(
-        'tree',
-      ),
-      same(canonical),
-    );
-  });
-
-  test('a preview started before a source receipt receives only its newer override', () async {
-    final port = _SourcePort();
-    final controller = MapWorkspaceController(scopedMapSession, port);
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    port.previewGate = Completer<void>();
-    final pending = controller.previewMap('preview');
-    final before = controller.project!;
-    final replacement = _model('tree', 4);
-    controller.acceptResources(
-      before,
-      before.copyWith(models3d: [replacement]),
-      changedModels: {'tree': replacement},
-    );
-    port.previewGate!.complete();
-    await pending;
-    expect(
-      controller.previewDefinitionsFor('preview')!.models3d.single,
-      same(replacement),
-    );
-  });
-
-  test(
-    'a delayed selection cannot restore definitions from before a receipt',
-    () async {
-      final port = _SourcePort();
-      final controller = MapWorkspaceController(scopedMapSession, port);
-      addTearDown(controller.dispose);
-      await controller.initialize();
-      port.gate = Completer<void>();
-      final pending = controller.activate(port.entries[1]);
-      final before = controller.project!;
-      final replacement = _model('tree', 4);
-      controller.acceptResources(
-        before,
-        before.copyWith(models3d: [replacement]),
-        changedModels: {'tree': replacement},
-      );
-      port.gate!.complete();
-      await pending;
-      expect(controller.project!.models3d.single, same(replacement));
-    },
-  );
 }
-
-ProjectModel3dEntry _model(String id, double width) => ProjectModel3dEntry(
-  id: id,
-  name: id,
-  sourceAssetId: '$id-source',
-  relativePath: 'assets/models3d/$id.glb',
-  inspection: Model3dInspection(
-    bounds: Model3dBounds(
-      min: Model3dVector3.zero,
-      max: Model3dVector3(x: width, y: 1, z: 1),
-    ),
-    meshCount: 1,
-    triangleCount: 1,
-  ),
-);
 
 final class _CountingMapEntries extends ListBase<ProjectMapEntry> {
   _CountingMapEntries(Iterable<ProjectMapEntry> entries)
@@ -459,80 +233,4 @@ final class _CountingMapEntries extends ListBase<ProjectMapEntry> {
   @override
   void operator []=(int index, ProjectMapEntry value) =>
       throw UnsupportedError('immutable');
-}
-
-final class _SourcePort extends ScopedTestMapPort
-    implements MapWorkspacePreviewSelectionPort {
-  _SourcePort({int unrelatedMaps = 0})
-    : super(
-        metadata: ProjectManifest(
-          name: 'Sources',
-          maps: [
-            for (final id in [
-              'first',
-              'second',
-              'preview',
-              for (var i = 0; i < unrelatedMaps; i++) 'unrelated-$i',
-            ])
-              ProjectMapEntry(id: id, name: id, relativePath: '$id.json'),
-          ],
-          tilesets: const [],
-        ),
-      );
-  List<ProjectMapEntry> get entries => metadata.maps;
-  var tree = _model('tree', 1);
-  final other = _model('other', 2);
-  final selectionReads = <String>[], previewReads = <String>[];
-  Completer<void>? gate;
-  Completer<void>? previewGate;
-
-  @override
-  Future<MapWorkspaceSelection> loadMapSelection(
-    ProjectSession session,
-    ProjectMapEntry entry,
-  ) async {
-    selectionReads.add(entry.id);
-    final selection = await _selection(session, entry);
-    await gate?.future;
-    return selection;
-  }
-
-  Future<MapWorkspaceSelection> _selection(
-    ProjectSession session,
-    ProjectMapEntry entry,
-  ) async => MapWorkspaceSelection(
-    document: await loadMap(session, entry),
-    definitions: metadata.copyWith(
-      models3d: [entry.id.startsWith('unrelated-') ? other : tree],
-    ),
-    catalogRevision: 'catalog-1',
-    snapshotRevision: 'snapshot-1',
-  );
-
-  @override
-  Future<MapWorkspaceSelection> loadMapPreviewSelection(
-    ProjectSession session,
-    ProjectMapEntry entry,
-  ) async {
-    previewReads.add(entry.id);
-    final selection = await _selection(session, entry);
-    await previewGate?.future;
-    return selection;
-  }
-
-  @override
-  Future<MapWorkspaceCatalog> loadResourceKind(
-    ProjectSession session,
-    String canonicalKind, {
-    bool placeableOnly = false,
-  }) async => MapWorkspaceCatalog(
-    metadata: metadata.copyWith(
-      models3d: [
-        tree,
-        other,
-        for (final entry in entries.skip(3)) _model(entry.id, 2),
-      ],
-    ),
-    revision: 'catalog-1',
-  );
 }

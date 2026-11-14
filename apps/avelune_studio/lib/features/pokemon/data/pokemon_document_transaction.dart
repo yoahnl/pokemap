@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:map_authoring/map_authoring_local.dart';
+import 'package:map_core/map_core.dart' show ProjectManifest;
 import 'package:map_authoring/map_authoring.dart'
     show
         PokemonDocumentKind,
@@ -15,26 +16,13 @@ import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
 import '../domain/pokemon_workspace_models.dart';
+import 'pokemon_document_write_request.dart';
 
-final class PokemonDocumentWriteRequest {
-  const PokemonDocumentWriteRequest({
-    required this.family,
-    required this.relativePath,
-    required this.beforeBytes,
-    required this.document,
-  });
+export 'pokemon_document_write_request.dart';
 
-  final PokemonDocumentFamily family;
-  final String relativePath;
-  final List<int>? beforeBytes;
-  final Map<String, dynamic> document;
-}
-
-typedef PokemonDocumentReadDependency = ({
-  String resourceIdentity,
-  String relativePath,
-  List<int> beforeBytes,
-});
+part 'pokemon_document_transaction_commit.dart';
+part 'pokemon_document_transaction_session.dart';
+part 'pokemon_document_transaction_writes.dart';
 
 final class PokemonDocumentTransaction {
   const PokemonDocumentTransaction({
@@ -168,59 +156,11 @@ final class PokemonDocumentTransaction {
       );
     }
     final baseline = await mapAdapter.resourceBaseline(session);
-    final writes = <Map<String, Object?>>[];
-    final changedPaths = <String>{};
-    final dependencies = [...expectedDependencies];
-    for (final item in documents) {
-      final currentBytes = await _readOptional(item.relativePath);
-      if (!_sameBytes(currentBytes, item.beforeBytes)) {
-        throw PokemonWorkspaceFailure(
-          'Le document ${item.relativePath} a changé sur le disque. '
-          'Votre brouillon reste ouvert.',
-        );
-      }
-      final kind = switch (item.family) {
-        PokemonDocumentFamily.species => PokemonDocumentKind.species,
-        PokemonDocumentFamily.learnset => PokemonDocumentKind.learnset,
-        PokemonDocumentFamily.evolution => PokemonDocumentKind.evolution,
-        PokemonDocumentFamily.media => PokemonDocumentKind.media,
-      };
-      final json = PokemonJsonDocument.fromJson(kind, item.document).toJson();
-      final after = utf8.encode(
-        '${const JsonEncoder.withIndent('  ').convert(json)}\n',
-      );
-      if (currentBytes != null && _sameBytes(currentBytes, after)) {
-        final identity = switch (item.family) {
-          PokemonDocumentFamily.species => pokemonSpeciesResourceIdentity(
-            json['id'] as String,
-          ),
-          PokemonDocumentFamily.media => pokemonMediaResourceIdentity(
-            json['speciesId'] as String,
-          ),
-          PokemonDocumentFamily.learnset =>
-            'pokemonLearnset:${item.relativePath}',
-          PokemonDocumentFamily.evolution =>
-            'pokemonEvolution:${item.relativePath}',
-        };
-        dependencies.add((
-          resourceIdentity: identity,
-          relativePath: item.relativePath,
-          beforeBytes: currentBytes,
-        ));
-        continue;
-      }
-      changedPaths.add(item.relativePath);
-      writes.add({
-        'actionId': 'pokemon.${item.family.name}.write',
-        'parameters': {
-          'relativePath': item.relativePath,
-          'document': item.document,
-          if (migrateMedia) 'migrateSchema': true,
-          if (item.beforeBytes != null)
-            'beforeBytesBase64': base64Encode(item.beforeBytes!),
-        },
-      });
-    }
+    final (:writes, :changedPaths, :dependencies) = await _plannedWrites(
+      documents,
+      expectedDependencies: expectedDependencies,
+      migrateMedia: migrateMedia,
+    );
     if (writes.isEmpty) {
       for (final dependency in dependencies) {
         if (!_sameBytes(
@@ -234,41 +174,8 @@ final class PokemonDocumentTransaction {
       }
       return mediaOnly ? documents.single.beforeBytes : null;
     }
-    final policy = await WorkspacePolicy.create(
-      allowedRootPaths: [session.directoryPath],
-      fileReader: reader,
-    );
-    final handles = WorkspaceHandleStore();
-    final opener = ProjectOpenService(
-      policy: policy,
-      fileReader: reader,
-      handles: handles,
-      workshopScope: mediaOnly,
-      initializeSceneOwners: !mediaOnly,
-      catalogMetadataFields:
-          session.storage == ProjectSessionStorage.workingCatalog
-          ? const {}
-          : null,
-    );
-    final gateway = mediaOnly
-        ? await LocalTransactionFileGateway.open(
-            projectRoot: session.directoryPath,
-          )
-        : null;
-    final opened = gateway == null
-        ? await opener.openProject(session.directoryPath)
-        : await gateway.withExclusiveWriteLock(() async {
-            await readPendingTransactionJournals(
-              gateway,
-              requirePrepared: true,
-            );
-            return opener.openProject(session.directoryPath);
-          });
-    final snapshots = ProjectSnapshotLoader(handles: handles);
-    final api = LocalMapAuthoringMutationApi(
-      policy: policy,
-      snapshotLoader: snapshots,
-      catalogFileReader: reader,
+    final (:handles, :opened, :snapshots, :api) = await _openTransaction(
+      mediaOnly,
     );
     var attached = false;
     try {
@@ -299,41 +206,15 @@ final class PokemonDocumentTransaction {
               opened.projectHandle,
               policy: ProjectSnapshotLoadPolicy.editorReadProjection,
             );
-      for (final dependency in dependencies) {
-        if (snapshot.resourceStorageKeys[dependency.resourceIdentity] !=
-                dependency.relativePath ||
-            !_sameBytes(
-              snapshot.findResourceBytes(dependency.resourceIdentity),
-              dependency.beforeBytes,
-            )) {
-          throw PokemonWorkspaceFailure(
-            '${dependency.relativePath} a changé depuis l’aperçu. '
-            'Reprévisualisez.',
-          );
-        }
-      }
+      _requireSnapshotDependencies(snapshot, dependencies);
       final operation =
           'pokemon_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}';
-      final gifHandles = <String, String>{};
-      for (final entry in battleGifs.entries) {
-        gifHandles[entry.key] = (await api.artifacts.put(
-          entry.value,
-          declaredMediaType: 'image/gif',
-        )).reference.handle;
-      }
-      final pngHandles = <String, String>{};
-      for (final entry in pokemonPngs.entries) {
-        pngHandles[entry.key] = (await api.artifacts.put(
-          entry.value,
-          declaredMediaType: 'image/png',
-        )).reference.handle;
-      }
-      final cryHandle = battleCry == null
-          ? null
-          : (await api.artifacts.put(
-              battleCry.bytes,
-              declaredMediaType: battleCry.mediaType,
-            )).reference.handle;
+      final (:gifHandles, :pngHandles, :cryHandle) = await _putArtifacts(
+        api,
+        battleGifs: battleGifs,
+        pokemonPngs: pokemonPngs,
+        battleCry: battleCry,
+      );
       final planned = await api.planMutation(
         opened.projectHandle,
         AuthoringRequest(
@@ -369,154 +250,26 @@ final class PokemonDocumentTransaction {
           '${planned.nonApplicableReason ?? "raison inconnue"}.',
         );
       }
-      final changes = planned.plan.changeSet.changes;
-      final expectedPaths = {...changedPaths};
-      if (session.storage == ProjectSessionStorage.workingCatalog) {
-        if (planned.plan.catalogDelta == null) {
-          throw const PokemonWorkspaceFailure(
-            'La transaction Pokémon ne contient pas de mise à jour du catalogue.',
-          );
-        }
-        planned.plan.requireCatalogDelta();
-        expectedPaths.add(CatalogStorageStore.headStorageKey);
-      }
-      final plannedPaths = {for (final change in changes) change.storageKey};
-      if (plannedPaths.length != changes.length ||
-          plannedPaths.length != expectedPaths.length ||
-          plannedPaths.any((path) => !expectedPaths.contains(path))) {
-        throw const PokemonWorkspaceFailure(
-          'La transaction Pokémon touche un autre document que prévu.',
-        );
-      }
-      try {
-        await api.applyMutation(
-          opened.projectHandle,
-          planId: planned.planId,
-          operationId: operation,
-          precondition: () async {
-            for (final dependency in dependencies) {
-              if (!_sameBytes(
-                await _readOptional(dependency.relativePath),
-                dependency.beforeBytes,
-              )) {
-                throw PokemonWorkspaceFailure(
-                  '${dependency.relativePath} a changé depuis l’aperçu. '
-                  'Reprévisualisez.',
-                );
-              }
-            }
-          },
-        );
-      } on Object catch (failure, stack) {
-        if (mediaOnly) {
-          final status = await api.recoveryStatus(
-            opened.projectHandle,
-            operationId: operation,
-          );
-          if (status['disposition'] == 'notFound') {
-            Error.throwWithStackTrace(failure, stack);
-          }
-        }
-        try {
-          final recovered = await api.recoverMutation(
-            opened.projectHandle,
-            operationId: operation,
-          );
-          if (recovered.receipt.extensions['recoveryOutcome'] != 'resumed' &&
-              !(mediaOnly && recovered.receipt.status.name == 'applied')) {
-            throw PokemonWorkspaceFailure(
-              'Transaction interrompue ; vérifiez le projet avant de réessayer : $failure',
-            );
-          }
-        } on Object {
-          throw PokemonWorkspaceFailure(
-            'État de la transaction incertain ; rouvrez le projet et vérifiez '
-            'les documents avant de réessayer. Référence $operation : $failure',
-          );
-        }
-      }
-      List<int>? savedMediaBytes;
-      try {
-        for (final change in changes) {
-          final actual = await reader.readBytes(
-            projectRoot: session.directoryPath,
-            relativePath: change.storageKey,
-          );
-          if (!_sameBytes(actual, change.afterBytes)) {
-            throw StateError(
-              'Le document ${change.storageKey} ne correspond pas au reçu.',
-            );
-          }
-          if (mediaOnly && change.storageKey == documents.single.relativePath) {
-            savedMediaBytes = List.unmodifiable(actual);
-          }
-        }
-        final revision = await mapAdapter.resourceRevision(session);
-        final head = changes.where(
-          (change) => change.storageKey == CatalogStorageStore.headStorageKey,
-        );
-        if (head.isNotEmpty &&
-            !_sameBytes(
-              await _readOptional(CatalogStorageStore.headStorageKey),
-              head.single.afterBytes,
-            )) {
-          throw StateError('Le catalogue a changé après la transaction.');
-        }
-        await mapAdapter.acceptResourceMutation(
-          session,
-          ResourceMutationReceipt(
-            before: baseline.manifest,
-            manifest: baseline.manifest,
-            beforeRevision: baseline.revision,
-            revision: revision,
-            changedPaths: [for (final change in changes) change.storageKey],
-            operationId: operation,
-            actionId: actionId,
-          ),
-        );
-      } on Object catch (failure) {
-        throw PokemonWorkspaceFailure(
-          'Écriture confirmée ; vérification ou actualisation impossible. '
-          'Rouvrez le projet avant de continuer : $failure',
-        );
-      }
-      if (mediaOnly && savedMediaBytes == null) {
-        throw const PokemonWorkspaceFailure(
-          'Écriture confirmée mais préimage enregistrée indisponible. '
-          'Rouvrez le projet avant de continuer.',
-        );
-      }
-      return savedMediaBytes;
+      final changes = _plannedChanges(planned, changedPaths);
+      await _applyOrRecover(
+        api: api,
+        opened: opened,
+        planned: planned,
+        operation: operation,
+        dependencies: dependencies,
+        mediaOnly: mediaOnly,
+      );
+      return await _verifyCommitted(
+        changes: changes,
+        documents: documents,
+        mediaOnly: mediaOnly,
+        baseline: baseline,
+        operation: operation,
+        actionId: actionId,
+      );
     } finally {
       if (attached) await api.detachWorkspace(opened.workspaceHandle);
       handles.closeWorkspace(opened.workspaceHandle);
     }
-  }
-
-  Future<List<int>?> _readOptional(String path) async {
-    final probe = reader;
-    if (probe is ProjectResourceProbeReader) {
-      final result = await (probe as ProjectResourceProbeReader).probeResource(
-        projectRoot: session.directoryPath,
-        relativePath: path,
-      );
-      if (result.status == ProjectResourceProbeStatus.missing) return null;
-      if (result.status != ProjectResourceProbeStatus.exists) {
-        throw PokemonWorkspaceFailure('Document inaccessible : $path');
-      }
-    }
-    return reader.readBytes(
-      projectRoot: session.directoryPath,
-      relativePath: path,
-    );
-  }
-
-  bool _sameBytes(List<int>? a, List<int>? b) {
-    if (identical(a, b)) return true;
-    if (a == null || b == null || a.length != b.length) return false;
-    for (var index = 0; index < a.length; index++) {
-      if (a[index] != b[index]) return false;
-    }
-    return true;
   }
 }

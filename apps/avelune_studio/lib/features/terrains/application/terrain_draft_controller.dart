@@ -4,6 +4,10 @@ import '../domain/terrain_connections.dart';
 import '../domain/terrain_draft_compatibility.dart';
 import '../domain/terrain_spatial_draft.dart';
 
+part 'terrain_draft_save.dart';
+part 'terrain_draft_scratch.dart';
+part 'terrain_draft_spatial_edits.dart';
+
 typedef MutateTerrainResource = Future<ProjectManifest> Function(
   String actionId,
   Map<String, Object?> parameters,
@@ -177,26 +181,8 @@ class TerrainDraftController {
     );
   }
 
-  bool setSelectedModelAnimation(int? animationIndex) {
-    final part = partFor(selectedRule);
-    final source = part?.source;
-    if (source is! SmartTileModel3dSource || part == null) return false;
-    final model = manifest.models3d
-        .where((entry) => entry.id == source.modelId)
-        .firstOrNull;
-    if (model == null) return false;
-    assignModel(
-      model,
-      scale: source.scale,
-      offsetX: source.offsetX,
-      offsetY: source.offsetY,
-      offsetZ: source.offsetZ,
-      quarterTurns: part.transform.quarterTurns,
-      animationIndex: animationIndex,
-      changeAnimation: true,
-    );
-    return true;
-  }
+  bool setSelectedModelAnimation(int? animationIndex) =>
+      _setSelectedModelAnimation(animationIndex);
 
   void assignModel(
     ProjectModel3dEntry model, {
@@ -208,132 +194,20 @@ class TerrainDraftController {
     int quarterTurns = 0,
     int? animationIndex,
     bool changeAnimation = false,
-  }) {
-    final owner = manifest.resourceLibraryCatalog
-        .entryFor('smartTilePreset', draft.targetPresetId)
-        ?.mapId;
-    if (!spatial ||
-        !scale.isFinite ||
-        scale <= 0 ||
-        !offsetY.isFinite ||
-        (offsetX != null && !offsetX.isFinite) ||
-        (offsetZ != null && !offsetZ.isFinite) ||
-        quarterTurns < 0 ||
-        quarterTurns > 3 ||
-        (changeAnimation &&
-            animationIndex != null &&
-            !model.inspection.animations.any(
-              (clip) => clip.index == animationIndex,
-            )) ||
-        !manifest.models3d.any((entry) => entry.id == model.id) ||
-        !manifest.resourceLibraryCatalog.availableForMap(
-          'model3d',
-          model.id,
-          owner ?? '',
-        )) {
-      return;
-    }
-    final previous = partFor(selectedRule);
-    final previousSource = previous?.source;
-    final baseSource =
-        previousSource is SmartTileModel3dSource &&
-            previousSource.modelId == model.id
-        ? previousSource.copyWith(
-            scale: scale,
-            offsetX: offsetX ?? previousSource.offsetX,
-            offsetY: offsetY,
-            offsetZ: offsetZ ?? previousSource.offsetZ,
-          )
-        : SmartTileVisualSource.model3d(
-            modelId: model.id,
-            scale: scale,
-            offsetX: offsetX ?? 0,
-            offsetY: offsetY,
-            offsetZ: offsetZ ?? 0,
-          );
-    final source = changeAnimation
-        ? (baseSource as SmartTileModel3dSource).copyWith(
-            animationIndex: animationIndex,
-          )
-        : baseSource;
-    final transform = SmartTileSpriteTransform(quarterTurns: quarterTurns);
-    final part = previous == null
-        ? SmartTileVisualPart(source: source, transform: transform)
-        : previous.copyWith(source: source, transform: transform);
-    final expanded = selectedRule >= 16 && draft.rules.length == 16;
-    final rules = <SmartTileRule>[
-      ...draft.rules,
-      if (expanded)
-        for (var index = 16; index < 20; index++)
-          spatialTerrainRule(
-            index,
-            null,
-            draft.defaultMaterialId!,
-            uniform: false,
-          ),
-    ];
-    _record(
-      draft.copyWith(
-        rules: [
-          for (var index = 0; index < rules.length; index++)
-            if (all || index == selectedRule)
-              rules[index].candidates.isEmpty
-                  ? spatialTerrainRule(
-                      index,
-                      part,
-                      draft.defaultMaterialId!,
-                      uniform: uniform,
-                    )
-                  : rules[index].copyWith(
-                      candidates: [
-                        rules[index].candidates.single.copyWith(parts: [part]),
-                      ],
-                    )
-            else
-              rules[index],
-        ],
-        topology: expanded ? SmartTileTopology.blob8 : draft.topology,
-        templateHint: expanded
-            ? SmartTileTemplateHint.blob47
-            : draft.templateHint,
-        guideId: expanded ? 'avelune-spatial-path20-v1' : draft.guideId,
-        transformPolicy: quarterTurns == 0
-            ? draft.transformPolicy
-            : draft.transformPolicy.copyWith(allowQuarterTurns: true),
-      ),
-    );
-  }
+  }) => _assignModel(
+    model,
+    all: all,
+    scale: scale,
+    offsetX: offsetX,
+    offsetY: offsetY,
+    offsetZ: offsetZ,
+    quarterTurns: quarterTurns,
+    animationIndex: animationIndex,
+    changeAnimation: changeAnimation,
+  );
 
-  void setSpatialConnections(bool connections) {
-    if (!spatial || connections == !uniform) return;
-    final part = partFor(selectedRule);
-    selectedRule = 0;
-    _record(
-      draft.copyWith(
-        rules: [
-          for (var index = 0; index < (connections ? 16 : 1); index++)
-            spatialTerrainRule(
-              index,
-              part,
-              draft.defaultMaterialId!,
-              uniform: !connections,
-            ),
-        ],
-        topology: connections
-            ? SmartTileTopology.cardinal4
-            : SmartTileTopology.uniform,
-        templateHint: connections
-            ? SmartTileTemplateHint.edge16
-            : SmartTileTemplateHint.simple,
-        coveragePolicy: connections
-            ? SmartTileCoveragePolicy.sparse
-            : SmartTileCoveragePolicy.complete,
-        guideId: connections
-            ? 'avelune-spatial-cardinal4-v1'
-            : 'avelune-spatial-uniform-v1',
-      ),
-    );
-  }
+  void setSpatialConnections(bool connections) =>
+      _setSpatialConnections(connections);
 
   void removeAssignment([int? rule]) {
     final index = rule ?? selectedRule;
@@ -357,140 +231,18 @@ class TerrainDraftController {
     }
   }
 
-  void clearScratch() {
-    scratch.clear();
-    _resolve();
-  }
+  void clearScratch() => _clearScratch();
 
-  void example() {
-    scratch.clear();
-    for (var mask = 0; mask < 16; mask++) {
-      final x = 2 + mask % 4 * 4;
-      final y = 2 + mask ~/ 4 * 4;
-      scratch.add(GridPos(x: x, y: y));
-      if (mask & 1 != 0) scratch.add(GridPos(x: x, y: y - 1));
-      if (mask & 2 != 0) scratch.add(GridPos(x: x + 1, y: y));
-      if (mask & 4 != 0) scratch.add(GridPos(x: x, y: y + 1));
-      if (mask & 8 != 0) scratch.add(GridPos(x: x - 1, y: y));
-    }
-    _resolve();
-  }
+  void example() => _example();
 
-  void paint(GridPos position, {bool erase = false}) {
-    if (!_inside(position)) return;
-    erase ? scratch.remove(position) : scratch.add(position);
-    _resolve();
-  }
+  void paint(GridPos position, {bool erase = false}) =>
+      _paint(position, erase: erase);
 
-  bool _inside(GridPos p) =>
-      p.x >= 0 && p.y >= 0 && p.x < scratchSize && p.y < scratchSize;
+  void paintLine(GridPos from, GridPos to, {bool erase = false}) =>
+      _paintLine(from, to, erase: erase);
 
-  void paintLine(GridPos from, GridPos to, {bool erase = false}) {
-    if (!_inside(from) || !_inside(to)) return;
-    final dx = to.x - from.x, dy = to.y - from.y;
-    final steps = dx.abs() > dy.abs() ? dx.abs() : dy.abs();
-    for (var step = 0; step <= steps; step++) {
-      final p = steps == 0
-          ? from
-          : GridPos(
-              x: (from.x + dx * step / steps).round(),
-              y: (from.y + dy * step / steps).round(),
-            );
-      erase ? scratch.remove(p) : scratch.add(p);
-    }
-    _resolve();
-  }
+  void inspect(GridPos position) => _inspect(position);
 
-  void inspect(GridPos position) {
-    if (!scratch.contains(position)) return;
-    selectedRule = uniform
-        ? 0
-        : terrainRuleAt(
-            scratch,
-            position,
-            withOuterCorners: draft.rules.length == 20,
-          );
-  }
-
-  void _resolve() {
-    final resolver = PreparedSmartTileResolver(
-      preset: previewPreset,
-      materials: draft.materials,
-    );
-    resolved = List.generate(scratchSize * scratchSize, (index) {
-      final x = index % scratchSize, y = index ~/ scratchSize;
-      return resolver.resolve(
-        context: SmartTileCellContext.fromCellGrid(
-          width: scratchSize,
-          height: scratchSize,
-          x: x,
-          y: y,
-          materialAt: (x, y) => scratch.contains(GridPos(x: x, y: y))
-              ? draft.defaultMaterialId
-              : null,
-        ),
-        x: x,
-        y: y,
-      );
-    });
-  }
-
-  Future<bool> save(
-    MutateTerrainResource mutate, {
-    bool publish = false,
-  }) async {
-    if (busy) return false;
-    if (publishedPreset case final preset?) {
-      final problem = terrainPresetCompatibilityProblem(manifest, preset);
-      if (problem != null) {
-        error = problem;
-        return false;
-      }
-      draft = draft.copyWith(sourcePresetId: draft.targetPresetId);
-    }
-    if (publish && !complete) {
-      error = 'Associez les ${draft.rules.length} raccords avant de publier.';
-      return false;
-    }
-    busy = true;
-    error = null;
-    publicationFailedAfterSave = false;
-    final snapshot = draft;
-    var saved = false;
-    try {
-      final canonical = manifest.smartTileCatalog.drafts
-          .where((d) => d.id == snapshot.id)
-          .firstOrNull;
-      if (_saved != snapshot || canonical != snapshot || !publish) {
-        manifest = await mutate('smart_tile.preset.draft.upsert', {
-          'draft': snapshot.toJson(),
-        });
-        _saved =
-            manifest.smartTileCatalog.drafts
-                .where((d) => d.id == snapshot.id)
-                .firstOrNull ??
-            snapshot;
-        if (draft == snapshot) draft = _saved!;
-      }
-      saved = true;
-      if (publish) {
-        manifest = await mutate('smart_tile.preset.publish', {
-          'draftId': snapshot.id,
-        });
-        if (draft == _saved) {
-          draft = draft.copyWith(sourcePresetId: draft.targetPresetId);
-          _saved = draft;
-        }
-      }
-      return true;
-    } catch (failure) {
-      publicationFailedAfterSave = publish && saved;
-      error = publicationFailedAfterSave
-          ? 'Brouillon enregistré ; publication non effectuée\n$failure'
-          : failure.toString();
-      return false;
-    } finally {
-      busy = false;
-    }
-  }
+  Future<bool> save(MutateTerrainResource mutate, {bool publish = false}) =>
+      _save(mutate, publish: publish);
 }

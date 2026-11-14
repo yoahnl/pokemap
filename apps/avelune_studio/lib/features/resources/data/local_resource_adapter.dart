@@ -32,16 +32,19 @@ import 'resource_no_change.dart';
 part 'local_border_resource_adapter.dart';
 part 'local_resource_character_operations.dart';
 part 'local_resource_mutation.dart';
+part 'local_resource_mutation_steps.dart';
 part 'local_model_source_replacement.dart';
 part 'local_character_contact_shadow.dart';
 part 'local_resource_mutation_context.dart';
 part 'local_resource_preparation.dart';
+part 'local_resource_prepared_apply.dart';
 part 'local_resource_receipt.dart';
 part 'local_resource_reconciliation.dart';
 part 'local_resource_lifecycle_preparation.dart';
 part 'local_resource_lifecycle_apply.dart';
 part 'local_character_removal_adapter.dart';
 part 'local_resource_classification.dart';
+part 'local_resource_classified_manifest.dart';
 part 'local_resource_index_preparation.dart';
 
 final class LocalResourceAdapter
@@ -84,47 +87,6 @@ final class LocalResourceAdapter
   late final ResourceUsagePort usages = LocalResourceUsageAdapter(
     session: session,
   );
-
-  static final _actions = {
-    'project.actor_contact_shadows.configure',
-    'model3d.import',
-    'model3d.source.replace',
-    'model3d.source.replace_batch',
-    'model3d.configure',
-    'model3d.delete',
-    'asset.move',
-    'asset.delete',
-    'asset.replace',
-    'element.delete',
-    'element.duplicate',
-    'tileset.source.replace',
-    'tileset.remove',
-    ...ResourceManagementActions.actionIds,
-    'tileset.import_image',
-    'element.upsert',
-    'environment.preset.upsert',
-    'environment.preset.delete',
-    'smart_tile.preset.draft.upsert',
-    'smart_tile.preset.publish',
-    'smart_tile.preset.rename',
-    'smart_tile.preset.duplicate',
-    'smart_tile.preset.delete',
-    'smart_tile.preset.draft.delete',
-    'border.blueprint.draft.upsert',
-    'border.blueprint.publish',
-    'border.blueprint.delete',
-    'border.blueprint.set_deprecated',
-    'map.library.reorganize',
-    'characterStudio.character.create',
-    'characterStudio.character.update',
-    'characterStudio.character.deletePlan',
-    'characterStudio.character.delete',
-    'characterStudio.animationClip.upsert',
-    'characterStudio.animationClip.delete',
-    'characterStudio.portraitState.create',
-    'characterStudio.character.portrait.clear',
-    'characterStudio.asset.import',
-  };
 
   @override
   Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request) =>
@@ -292,50 +254,11 @@ final class LocalResourceAdapter
     ResourceMutationPreparation preparation, {
     bool confirmDestructive = false,
     String? Function()? validateBeforeApply,
-  }) async {
-    _requireAvailable();
-    if (preparation.actionId == 'characterStudio.character.deletePlan') {
-      throw const ResourceFailure(
-        'L’inspection ne peut pas être appliquée. Préparez le retrait après avoir choisi une résolution.',
-      );
-    }
-    if (preparation.sessionId != session.sessionId ||
-        !_appliedPreparations.add(preparation)) {
-      throw const ResourceFailure(
-        'Cette préparation est déjà appliquée ou appartient à un autre projet.',
-      );
-    }
-    try {
-      if (_isCatalogClassification(this, preparation.actionId)) {
-        return await _applyCatalogClassification(
-          this,
-          preparation,
-          validateBeforeApply: validateBeforeApply,
-        );
-      }
-      if (_lifecycleActions.contains(preparation.actionId)) {
-        return await _applyLifecycleOperation(
-          this,
-          preparation,
-          confirmDestructive: confirmDestructive,
-          validateBeforeApply: validateBeforeApply,
-        );
-      }
-      return await _run(
-        preparation.actionId,
-        (_) => preparation.parameters,
-        expectedBeforeRevision: preparation.manifestRevision,
-        expectedSnapshotRevision: preparation.snapshotRevision,
-        confirmDestructive: confirmDestructive,
-        validateBeforeApply: validateBeforeApply,
-      );
-    } on ResourceFailure catch (failure) {
-      if (failure.partialReceipt == null) {
-        _appliedPreparations.remove(preparation);
-      }
-      rethrow;
-    }
-  }
+  }) => _applyPrepared(
+    preparation,
+    confirmDestructive: confirmDestructive,
+    validateBeforeApply: validateBeforeApply,
+  );
 
   @override
   Future<void> dispose() async {

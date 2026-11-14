@@ -6,81 +6,12 @@ import 'package:path/path.dart' as p;
 
 import '../domain/resource_port.dart';
 import '../domain/border_sequence_primitives.dart';
+import 'border_resource_primitive.dart';
 
-final class BorderResourceFrame {
-  const BorderResourceFrame({
-    required this.absolutePath,
-    required this.relativePath,
-    required this.rect,
-    this.durationMs,
-    this.transparentColorArgb,
-  });
+export 'border_resource_primitive.dart';
 
-  final String absolutePath;
-  final String relativePath;
-  final BorderPixelRect rect;
-  final int? durationMs;
-  final int? transparentColorArgb;
-}
-
-final class BorderResourcePrimitive {
-  const BorderResourcePrimitive({required this.draft, required this.frames});
-
-  final BorderPrimitiveDraft draft;
-  final List<BorderResourceFrame> frames;
-}
-
-BorderPrimitiveDraft _withModelSettings(
-  ProjectManifest manifest,
-  BorderCreationRequest request,
-  BorderPrimitiveDraft primitive,
-) {
-  final original = BorderModelSettings(
-    animationIndex: primitive.animationIndex,
-    animationLoop: primitive.animationLoop,
-    animationSpeed: primitive.animationSpeed,
-    blocksMovement: primitive.blocksMovement,
-    cornerJoinCells: primitive.cornerJoinCells,
-  );
-  final settings = request.primitiveModelSettings[primitive.id] ?? original;
-  final model = manifest.models3d.firstWhere(
-    (model) => model.id == primitive.sourceModelId,
-  );
-  if (!settings.animationSpeed.isFinite ||
-      settings.animationSpeed <= 0 ||
-      settings.animationSpeed > 16) {
-    throw const ResourceFailure(
-      'La vitesse doit être supérieure à 0 et au maximum égale à 16.',
-    );
-  }
-  if (settings.animationIndex != null &&
-      !model.inspection.animations.any(
-        (clip) => clip.index == settings.animationIndex,
-      )) {
-    throw const ResourceFailure(
-      'Le modèle ne contient pas l’animation sélectionnée. Choisissez une animation disponible ou « Aucune ».',
-    );
-  }
-  if (settings == original) return primitive;
-  return BorderPrimitiveDraft(
-    id: primitive.id,
-    sourceModelId: primitive.sourceModelId,
-    role: primitive.role,
-    cornerTurn: primitive.cornerTurn,
-    cornerJoinCells: settings.cornerJoinCells,
-    authoredOrientation: primitive.authoredOrientation,
-    sequenceIndex: primitive.sequenceIndex,
-    weight: primitive.weight,
-    anchorWorld: primitive.anchorWorld,
-    transforms: primitive.transforms,
-    animationIndex: settings.animationIndex,
-    animationLoop: settings.animationLoop,
-    animationSpeed: settings.animationSpeed,
-    blocksMovement: settings.blocksMovement,
-    groundFootprints: primitive.groundFootprints,
-    groundSurfaces: primitive.groundSurfaces,
-  );
-}
+part 'border_resource_spatial_sources.dart';
+part 'border_resource_sprite_sources.dart';
 
 Future<List<BorderResourcePrimitive>> prepareBorderResources({
   required ProjectManifest manifest,
@@ -245,114 +176,16 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
     );
   }
   if (existing?.isSpatial == true || sequenceLength > 1) {
-    if (chosen.any((source) => source.$3 != null)) {
-      throw const ResourceFailure(
-        'Cette bordure 3D doit utiliser uniquement des modèles.',
-      );
-    }
-    for (final primitive in sequencePrimitives) {
-      final roleModelId = switch (primitive.role) {
-        BorderPrimitiveRole.lineCap => request.capModelId,
-        BorderPrimitiveRole.lineStraight => request.straightModelId,
-        BorderPrimitiveRole.lineCorner =>
-          primitive.cornerTurn == BorderCornerTurn.left
-              ? request.innerCornerModelId
-              : request.cornerModelId,
-        _ => null,
-      };
-      final modelId =
-          request.primitiveModelIds[primitive.id] ??
-          roleModelId ??
-          primitive.sourceModelId!;
-      if (manifest.settings.dimension != ProjectDimension.threeD ||
-          !manifest.models3d.any((model) => model.id == modelId) ||
-          !manifest.resourceLibraryCatalog.availableForMap(
-            'model3d',
-            modelId,
-            mapId ?? '',
-          )) {
-        throw const ResourceFailure(
-          'Choisissez un modèle 3D disponible pour cette variante.',
-        );
-      }
-      result.add(
-        BorderResourcePrimitive(
-          draft: _withModelSettings(
-            manifest,
-            request,
-            modelId == primitive.sourceModelId &&
-                    (!directed ||
-                        primitive.role != BorderPrimitiveRole.lineCorner ||
-                        primitive.cornerTurn != null)
-                ? primitive
-                : BorderPrimitiveDraft(
-                    id: primitive.id,
-                    sourceModelId: modelId,
-                    role: primitive.role,
-                    cornerTurn:
-                        primitive.cornerTurn ??
-                        (directed &&
-                                primitive.role == BorderPrimitiveRole.lineCorner
-                            ? BorderCornerTurn.right
-                            : null),
-                    authoredOrientation: primitive.authoredOrientation,
-                    sequenceIndex: primitive.sequenceIndex,
-                    cornerJoinCells: primitive.cornerJoinCells,
-                    weight: primitive.weight,
-                    anchorWorld: primitive.anchorWorld,
-                    transforms: primitive.transforms,
-                    animationIndex: primitive.animationIndex,
-                    animationLoop: primitive.animationLoop,
-                    animationSpeed: primitive.animationSpeed,
-                    blocksMovement: primitive.blocksMovement,
-                    groundFootprints: primitive.groundFootprints,
-                    groundSurfaces: primitive.groundSurfaces,
-                  ),
-          ),
-          frames: const [],
-        ),
-      );
-    }
-    for (final (role, turn, _, modelId) in chosen) {
-      if (modelId == null ||
-          sequencePrimitives.any(
-            (primitive) => matches(primitive, role, turn),
-          )) {
-        continue;
-      }
-      if (!manifest.models3d.any((model) => model.id == modelId) ||
-          !manifest.resourceLibraryCatalog.availableForMap(
-            'model3d',
-            modelId,
-            mapId ?? '',
-          )) {
-        throw const ResourceFailure(
-          'Choisissez un modèle 3D disponible pour cette bordure.',
-        );
-      }
-      result.add(
-        BorderResourcePrimitive(
-          draft: _withModelSettings(
-            manifest,
-            request,
-            BorderPrimitiveDraft(
-              id: primitiveId(role, turn),
-              sourceModelId: modelId,
-              role: role,
-              cornerTurn: turn,
-              authoredOrientation: BorderPrimitiveOrientation.east,
-              weight: 1000,
-              transforms: BorderTransformPolicy(
-                allowFlipX: false,
-                allowedQuarterTurns: const [0, 1, 2, 3],
-              ),
-            ),
-          ),
-          frames: const [],
-        ),
-      );
-    }
-    return result;
+    return _prepareSpatialBorderResources(
+      manifest: manifest,
+      request: request,
+      chosen: chosen,
+      sequencePrimitives: sequencePrimitives,
+      directed: directed,
+      mapId: mapId,
+      primitiveId: primitiveId,
+      matches: matches,
+    );
   }
   final preservedRoles = <(BorderPrimitiveRole, BorderCornerTurn?)>{};
   if (existing != null && !existing.isSpatial) {
@@ -429,201 +262,15 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
       continue;
     }
     if (elementId == null) continue;
-    if (manifest.settings.dimension != ProjectDimension.twoD) {
-      throw const ResourceFailure(
-        'Cette bordure 3D doit utiliser uniquement des modèles.',
-      );
-    }
-    final element = manifest.elements
-        .where((candidate) => candidate.id == elementId)
-        .firstOrNull;
-    if (element == null || element.frames.isEmpty) {
-      throw ResourceFailure('Choisissez un décor existant pour ${role.name}.');
-    }
-    final frames = <BorderResourceFrame>[];
-    final sources = <CanonicalBorderSourceFrame>[];
-    for (final frame in element.frames) {
-      final tilesetId = frame.tilesetId.isEmpty
-          ? element.tilesetId
-          : frame.tilesetId;
-      final tileset = manifest.tilesets
-          .where((candidate) => candidate.id == tilesetId)
-          .firstOrNull;
-      if (tileset == null) {
-        throw ResourceFailure(
-          'Image source introuvable pour « ${element.name} ».',
-        );
-      }
-      final relative = tileset.relativePath;
-      if (relative.isEmpty ||
-          p.isAbsolute(relative) ||
-          relative.split('/').any((part) => part == '..')) {
-        throw ResourceFailure(
-          'Chemin source non sûr pour « ${element.name} ».',
-        );
-      }
-      final file = File(p.join(root, relative));
-      if (!await file.exists()) {
-        throw ResourceFailure(
-          'Image source manquante pour « ${element.name} ». Réimportez-la avant de publier.',
-        );
-      }
-      final resolved = await file.resolveSymbolicLinks();
-      if (!p.isWithin(root, resolved)) {
-        throw ResourceFailure(
-          'Image source hors du projet pour « ${element.name} ».',
-        );
-      }
-      final rect = BorderPixelRect(
-        x: frame.source.x * manifest.settings.tileWidth,
-        y: frame.source.y * manifest.settings.tileHeight,
-        width: frame.source.width * manifest.settings.tileWidth,
-        height: frame.source.height * manifest.settings.tileHeight,
-      );
-      final color = tileset.transparentColor;
-      final transparent = color == null
-          ? null
-          : 0xff000000 | (color.red << 16) | (color.green << 8) | color.blue;
-      final bytes = await file.readAsBytes();
-      frames.add(
-        BorderResourceFrame(
-          absolutePath: resolved,
-          relativePath: relative,
-          rect: rect,
-          durationMs: frame.durationMs,
-          transparentColorArgb: transparent,
-        ),
-      );
-      sources.add(
-        CanonicalBorderSourceFrame(
-          sourceProjectRelativePath: relative,
-          encodedImageBytes: bytes,
-          sourceRectPx: rect,
-          durationMs: frame.durationMs,
-          transparentColorArgb: transparent,
-        ),
-      );
-    }
-    final first = frames.first.rect;
-    final anchor = BorderPixelPos(x: first.width ~/ 2, y: first.height ~/ 2);
-    final preparation = const CanonicalBorderSnapshotCompiler().prepare(
-      sourceElementId: element.id,
-      frames: sources,
-      anchorPx: anchor,
-    );
     result.add(
-      BorderResourcePrimitive(
-        draft: BorderPrimitiveDraft(
-          id: role.name,
-          sourceElementId: element.id,
-          role: role,
-          authoredOrientation: isFacade
-              ? BorderPrimitiveOrientation.east
-              : BorderPrimitiveOrientation.legacyAxis,
-          weight: 1000,
-          anchorPx: anchor,
-          transforms: BorderTransformPolicy(
-            allowFlipX: !isFacade,
-            allowedQuarterTurns: isFacade ? const [0] : const [0, 1, 2, 3],
-          ),
-          currentMetrics: preparation.metrics,
-        ),
-        frames: frames,
+      await _prepareElementSpriteSource(
+        manifest: manifest,
+        root: root,
+        role: role,
+        elementId: elementId,
+        isFacade: isFacade,
       ),
     );
-  }
-  return result;
-}
-
-Future<List<BorderResourcePrimitive>> _prepareExistingSpriteSources(
-  ProjectManifest manifest,
-  String root,
-  Iterable<BorderPrimitiveDraft> primitives,
-) async {
-  final result = <BorderResourcePrimitive>[];
-  for (final primitive in primitives) {
-    final element = manifest.elements
-        .where((element) => element.id == primitive.sourceElementId)
-        .firstOrNull;
-    if (element == null || element.frames.isEmpty) {
-      throw const ResourceFailure(
-        'Un décor source du rebord est indisponible.',
-      );
-    }
-    final frames = <BorderResourceFrame>[];
-    final sources = <CanonicalBorderSourceFrame>[];
-    for (final frame in element.frames) {
-      final tilesetId = frame.tilesetId.isEmpty
-          ? element.tilesetId
-          : frame.tilesetId;
-      final tileset = manifest.tilesets
-          .where((tileset) => tileset.id == tilesetId)
-          .firstOrNull;
-      if (tileset == null) {
-        throw ResourceFailure(
-          'Image source introuvable pour « ${element.name} ».',
-        );
-      }
-      final relative = tileset.relativePath;
-      if (relative.isEmpty ||
-          p.isAbsolute(relative) ||
-          relative.split('/').any((part) => part == '..')) {
-        throw ResourceFailure(
-          'Chemin source non sûr pour « ${element.name} ».',
-        );
-      }
-      final file = File(p.join(root, relative));
-      if (!await file.exists()) {
-        throw ResourceFailure(
-          'Image source manquante pour « ${element.name} ».',
-        );
-      }
-      final resolved = await file.resolveSymbolicLinks();
-      if (!p.isWithin(root, resolved)) {
-        throw ResourceFailure(
-          'Image source hors du projet pour « ${element.name} ».',
-        );
-      }
-      final rect = BorderPixelRect(
-        x: frame.source.x * manifest.settings.tileWidth,
-        y: frame.source.y * manifest.settings.tileHeight,
-        width: frame.source.width * manifest.settings.tileWidth,
-        height: frame.source.height * manifest.settings.tileHeight,
-      );
-      final color = tileset.transparentColor;
-      final transparent = color == null
-          ? null
-          : 0xff000000 | (color.red << 16) | (color.green << 8) | color.blue;
-      frames.add(
-        BorderResourceFrame(
-          absolutePath: resolved,
-          relativePath: relative,
-          rect: rect,
-          durationMs: frame.durationMs,
-          transparentColorArgb: transparent,
-        ),
-      );
-      sources.add(
-        CanonicalBorderSourceFrame(
-          sourceProjectRelativePath: relative,
-          encodedImageBytes: await file.readAsBytes(),
-          sourceRectPx: rect,
-          durationMs: frame.durationMs,
-          transparentColorArgb: transparent,
-        ),
-      );
-    }
-    final preparation = const CanonicalBorderSnapshotCompiler().prepare(
-      sourceElementId: element.id,
-      frames: sources,
-      anchorPx: primitive.anchorPx,
-    );
-    if (preparation.metrics != primitive.currentMetrics) {
-      throw ResourceFailure(
-        'Le dessin source de « ${element.name} » a changé. Réimportez ce rebord avant de publier.',
-      );
-    }
-    result.add(BorderResourcePrimitive(draft: primitive, frames: frames));
   }
   return result;
 }
