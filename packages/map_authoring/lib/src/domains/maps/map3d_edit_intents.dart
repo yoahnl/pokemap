@@ -88,7 +88,14 @@ Map<String, Object?> mapEditIntentContracts() {
               'seed': {'type': 'integer', 'minimum': 0, 'maximum': 2147483647},
               'region': region,
               'lowerHeight': {'type': 'number'},
-              'upperHeight': {'type': 'number'}
+              'upperHeight': {'type': 'number'},
+              'cells': {
+                'type': 'array',
+                'minItems': 1,
+                'maxItems': 4096,
+                'items': cell
+              },
+              'exactHeights': {'type': 'boolean', 'default': false}
             },
           },
         },
@@ -231,7 +238,9 @@ List<Map<String, Object?>> expandMapEditIntent({
         'region',
         'lowerHeight',
         'upperHeight',
-        'name'
+        'name',
+        'cells',
+        'exactHeights'
       },
   };
   final parameters = SemanticParameters(raw, allowed: {'mapId', ...allowed});
@@ -390,7 +399,12 @@ List<Map<String, Object?>> expandMapEditIntent({
       upperHeight: upper.toDouble(),
       region: parameters.contains('region')
           ? _region(parameters.object('region'))
-          : null);
+          : null,
+      cells: parameters.contains('cells')
+          ? _cells(parameters.list('cells'))
+          : null,
+      exactHeights: parameters.contains('exactHeights') &&
+          parameters.boolean('exactHeights'));
   if (contours.status != SpatialIntentResolutionState.resolved) {
     throw semanticFailure('intent.step_ambiguous',
         'This step needs an explicit contour or a different region.',
@@ -403,6 +417,7 @@ List<Map<String, Object?>> expandMapEditIntent({
         });
   }
   final blueprintId = parameters.string('blueprintId');
+  _refuseHighSideFaces(manifest, blueprintId);
   final geometry = feature?.geometry;
   if (feature != null &&
       (feature.blueprintId != blueprintId ||
@@ -453,6 +468,27 @@ List<Map<String, Object?>> expandMapEditIntent({
       },
     })
   ];
+}
+
+void _refuseHighSideFaces(ProjectManifest manifest, String blueprintId) {
+  final published =
+      manifest.borderCatalog.recordById(blueprintId)?.latestPublished;
+  if (published == null) return;
+  final faces = validateSpatialDirectedFaceOrientation(
+      blueprintId: blueprintId,
+      definition: published.definition,
+      manifest: manifest);
+  if (faces.isEmpty) return;
+  throw semanticFailure('intent.step_profile_faces_high_side',
+      'This profile puts its faces on the high side of a traced step; choose its right-handed variant.',
+      details: {
+        'blueprintId': blueprintId,
+        'primitives': [
+          for (final face in faces.take(20))
+            {'primitiveId': face.parameters['primitiveId'], 'code': face.code}
+        ],
+        'primitiveCount': faces.length,
+      });
 }
 
 List<Map<String, Object?>> groundFillOperations(

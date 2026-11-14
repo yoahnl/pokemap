@@ -255,8 +255,21 @@ final class Map3dEditBatchActions {
       ...materializations.keys
     };
     final rematerialized = <Map<String, Object?>>[];
-    final beforeDiagnostics =
-        _diagnostics(context.manifest, context.map, touched);
+    var diagnoses = 0;
+    final latest = <(String, String),
+        (MapData, List<Map<String, Object?>>)>{};
+    List<Map<String, Object?>> diagnose(MapData target, (String, String) key) {
+      final cached = latest[key];
+      if (cached != null && identical(cached.$1, target)) return cached.$2;
+      diagnoses++;
+      final result = _diagnostics(context.manifest, target, [key]);
+      latest[key] = (target, result);
+      return result;
+    }
+
+    final beforeDiagnostics = [
+      for (final key in touched) ...diagnose(context.map, key)
+    ];
     {
       for (final key in touched) {
         final materialization = materializations[key];
@@ -266,8 +279,9 @@ final class Map3dEditBatchActions {
         }
         final feature = _feature(map, key);
         if (feature == null) continue;
-        final diagnostics = _diagnostics(context.manifest, map, [key]);
-        if (materialization == null && !diagnostics.any(_stale)) continue;
+        if (materialization == null && !diagnose(map, key).any(_stale)) {
+          continue;
+        }
         final artifact = const BorderActions().preview(
           manifest: context.manifest,
           map: map,
@@ -318,7 +332,7 @@ final class Map3dEditBatchActions {
     final afterIntegrity =
         inspectIntegrity(manifest: context.manifest, map: map);
     final introduced = afterIntegrity.introducedSince(beforeIntegrity);
-    final afterDiagnostics = _diagnostics(context.manifest, map, touched);
+    final afterDiagnostics = [for (final key in touched) ...diagnose(map, key)];
     final tracedFeatures = {
       for (final operation in request.operations)
         if (operation['actionId'] == 'intent.border.trace_step')
@@ -411,6 +425,8 @@ final class Map3dEditBatchActions {
         'integrityScope': 'whole_selected_map',
         'localCostAcceptance': 'PARTIAL',
         'borderResolutions': 'not_measured',
+        'touchedBorderCount': touched.length,
+        'borderDiagnoses': diagnoses,
         'invalidations': 'not_measured'
       },
     };
@@ -460,16 +476,16 @@ Set<(String, String)> _touchedFeatures(MapData before, MapData after) {
       for (final feature in layer.content.features)
         (layer.id, feature.id): feature
   };
-  final previousScene = before.spatialScene!, nextScene = after.spatialScene!;
-  final terrainChanged = previousScene.levelHeight != nextScene.levelHeight ||
-      previousScene.heightLevels.length != nextScene.heightLevels.length ||
-      previousScene.heightLevels.indexed
-          .any((entry) => entry.$2 != nextScene.heightLevels[entry.$1]) ||
-      previousScene.terrainSurfaces != nextScene.terrainSurfaces;
+  final changed =
+      spatialTerrainChangeBounds(before.spatialScene!, after.spatialScene!);
+  final near = changed == null
+      ? const <(String, String)>{}
+      : spatialBorderFeaturesNear([before, after], changed);
   return {
     for (final layer in after.layers.whereType<BorderLayer>())
       for (final feature in layer.content.features)
-        if (terrainChanged || previous[(layer.id, feature.id)] != feature)
+        if (near.contains((layer.id, feature.id)) ||
+            previous[(layer.id, feature.id)] != feature)
           (layer.id, feature.id)
   };
 }

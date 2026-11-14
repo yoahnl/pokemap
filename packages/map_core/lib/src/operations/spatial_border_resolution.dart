@@ -27,6 +27,7 @@ import 'border_linear_lattice.dart';
 import 'border_region_contours.dart';
 import 'border_resolver.dart';
 import 'narrative_event_canonical_json.dart';
+import 'spatial_terrain_change_scope.dart';
 import 'spatial_border_resolution_context.dart';
 
 final class SpatialBorderResolutionResult {
@@ -1926,28 +1927,13 @@ refreshSpatialBordersForTerrainChange({
   if (previousScene == null || nextScene == null) {
     return (map: after, refreshed: const [], stale: const []);
   }
-  final previous = {
-    for (final surface in previousScene.terrainSurfaces.surfaces)
-      surface.id: surface,
-  };
-  final next = {
-    for (final surface in nextScene.terrainSurfaces.surfaces)
-      surface.id: surface,
-  };
-  final points = [
-    for (final id in {...previous.keys, ...next.keys})
-      if (previous[id] != next[id])
-        for (final surface in [previous[id], next[id]])
-          if (surface != null)
-            for (final footprint in surface.footprints)
-              for (final point in footprint.points) point,
-  ];
-  if (points.isEmpty) return (map: after, refreshed: const [], stale: const []);
+  final changed = spatialTerrainChangeBounds(previousScene, nextScene);
+  if (changed == null) {
+    return (map: after, refreshed: const [], stale: const []);
+  }
   const margin = 2.0;
-  final left = points.map((point) => point.x).reduce(math.min) - margin;
-  final right = points.map((point) => point.x).reduce(math.max) + margin;
-  final top = points.map((point) => point.z).reduce(math.min) - margin;
-  final bottom = points.map((point) => point.z).reduce(math.max) + margin;
+  final left = changed.left - margin, right = changed.right + margin;
+  final top = changed.top - margin, bottom = changed.bottom + margin;
   final instances = {
     for (final instance in nextScene.instances) instance.id: instance,
   };
