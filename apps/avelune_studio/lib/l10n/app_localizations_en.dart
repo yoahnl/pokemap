@@ -1501,6 +1501,31 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String storyPublicationRefused(String kind, String name) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'fact':
+          'The project refused to save the fact “$name”. Your draft is kept.',
+      'story':
+          'The project refused to save the storyline “$name”. Your draft is kept.',
+      'scene':
+          'The project refused to save the scene “$name”. Your draft is kept.',
+      'dialogue':
+          'The project refused to save the line “$name”. Your draft is kept.',
+      'event':
+          'The project refused to save the behaviour “$name”. Your draft is kept.',
+      'worldRule':
+          'The project refused to save the world rule “$name”. Your draft is kept.',
+      'other': 'The project refused to save. Your draft is kept.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String storySaveFailed(String reason) {
+    return 'Save failed: $reason';
+  }
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

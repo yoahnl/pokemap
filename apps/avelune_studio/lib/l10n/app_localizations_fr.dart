@@ -1509,6 +1509,32 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String storyPublicationRefused(String kind, String name) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'fact':
+          'Le projet a refusé d’enregistrer l’état « $name ». Votre brouillon est conservé.',
+      'story':
+          'Le projet a refusé d’enregistrer la trame « $name ». Votre brouillon est conservé.',
+      'scene':
+          'Le projet a refusé d’enregistrer la scène « $name ». Votre brouillon est conservé.',
+      'dialogue':
+          'Le projet a refusé d’enregistrer la réplique « $name ». Votre brouillon est conservé.',
+      'event':
+          'Le projet a refusé d’enregistrer le comportement « $name ». Votre brouillon est conservé.',
+      'worldRule':
+          'Le projet a refusé d’enregistrer la règle du monde « $name ». Votre brouillon est conservé.',
+      'other':
+          'Le projet a refusé l’enregistrement. Votre brouillon est conservé.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String storySaveFailed(String reason) {
+    return 'Échec de l’enregistrement : $reason';
+  }
+
+  @override
   String rubricUnavailable(String detail, String unavailable) {
     return '$detail · $unavailable';
   }

@@ -10,6 +10,9 @@ import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../map_workspace/domain/map_workspace_workshop.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
+import '../domain/narrative_catalog_failure.dart';
+
+export '../domain/narrative_catalog_failure.dart';
 
 class LocalNarrativeCatalogTransaction {
   const LocalNarrativeCatalogTransaction({
@@ -218,11 +221,4 @@ class LocalNarrativeCatalogTransaction {
       handles.closeWorkspace(opened.workspaceHandle);
     }
   });
-}
-
-class NarrativeCatalogFailure implements Exception {
-  const NarrativeCatalogFailure(this.message);
-  final String message;
-  @override
-  String toString() => message;
 }

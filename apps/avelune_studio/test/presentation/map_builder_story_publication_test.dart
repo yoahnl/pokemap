@@ -3,7 +3,10 @@ import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
+import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_errors.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -48,6 +51,19 @@ class _Port implements EventPort {
       changedPaths: const ['project.json'],
     );
   }
+}
+
+class _RefusingPort extends _Port {
+  _RefusingPort(super.maps, this.failure);
+
+  final Object failure;
+
+  @override
+  Future<ResourceMutationReceipt> publishEvent({
+    required String id,
+    required NarrativeEventRecord? base,
+    required NarrativeEventRecord? current,
+  }) async => throw failure;
 }
 
 class _BatchPort extends _Port implements EventBatchPort {
@@ -229,5 +245,34 @@ void main() {
     story.redo();
     expect(story.dirty, isTrue);
     expect(story.canUndo, isTrue);
+  });
+
+  test('a refused save is named in French and kept for the Histoire', () async {
+    final french = lookupAppLocalizations(const Locale('fr'));
+    expect(story.renameBehaviour(saved(2), 'Rencontre'), isTrue);
+
+    expect(
+      await story.publish(
+        storyEvents(story, _RefusingPort(maps, const FormatException('raw'))),
+      ),
+      isFalse,
+    );
+    expect(
+      mapBuilderStoryError(story.error!, french),
+      'Le projet a refusé d’enregistrer le comportement « Rencontre ». '
+      'Votre brouillon est conservé.',
+    );
+    expect(story.saveError, story.error);
+
+    await story.publish(
+      storyEvents(
+        story,
+        _RefusingPort(maps, const EventFailure('Ce comportement a changé.')),
+      ),
+    );
+    expect(story.saveError, 'Ce comportement a changé.');
+
+    expect(await story.publish(storyEvents(story, _Port(maps))), isTrue);
+    expect((story.error, story.saveError), (null, null));
   });
 }

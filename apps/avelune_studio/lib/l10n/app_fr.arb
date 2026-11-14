@@ -844,6 +844,25 @@
       }
     }
   },
+  "storyPublicationRefused": "{kind, select, fact{Le projet a refusé d’enregistrer l’état « {name} ». Votre brouillon est conservé.} story{Le projet a refusé d’enregistrer la trame « {name} ». Votre brouillon est conservé.} scene{Le projet a refusé d’enregistrer la scène « {name} ». Votre brouillon est conservé.} dialogue{Le projet a refusé d’enregistrer la réplique « {name} ». Votre brouillon est conservé.} event{Le projet a refusé d’enregistrer le comportement « {name} ». Votre brouillon est conservé.} worldRule{Le projet a refusé d’enregistrer la règle du monde « {name} ». Votre brouillon est conservé.} other{Le projet a refusé l’enregistrement. Votre brouillon est conservé.}}",
+  "@storyPublicationRefused": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storySaveFailed": "Échec de l’enregistrement : {reason}",
+  "@storySaveFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "rubricUnavailable": "{detail} · {unavailable}",
   "@rubricUnavailable": {
     "placeholders": {

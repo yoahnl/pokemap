@@ -175,11 +175,13 @@ void main() {
     );
 
     expect(trame.refusal, isNull);
+    final renamed = trame.view!.milestone('milestone_nouveau_jalon')!.milestone;
     expect(
-      trame.view!.milestone('milestone_nouveau_jalon')!.milestone.title,
-      'Jalon A',
+      (renamed.title, renamed.completionFactId),
+      ('Jalon A', 'fact_jalon_a'),
     );
-    final fact = staging.draft.entryOf(StoryDraftKind.fact, factId)!;
+    expect(staging.draft.isTouched(StoryDraftKind.fact, factId), isFalse);
+    final fact = staging.draft.entryOf(StoryDraftKind.fact, 'fact_jalon_a')!;
     expect((fact.creation, fact.current!.label), (true, 'Jalon A'));
     expect(index.factRequests, isEmpty);
   });

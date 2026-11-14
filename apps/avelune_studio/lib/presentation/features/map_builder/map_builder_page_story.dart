@@ -34,6 +34,13 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       },
       verification: _stories.verification,
       unsaved: _draft.unsaved,
+      saveError: switch (_story.saveError) {
+        final error? when _story.dirty => mapBuilderStoryError(
+          error,
+          context.l10n,
+        ),
+        _ => null,
+      },
       openScene: _openScene,
       simulate: (id) async {
         final opened = await _openBehaviour(id);

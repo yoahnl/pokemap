@@ -215,4 +215,53 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 3)),
   );
+
+  test(
+    'a fact renamed before its first save takes the id of its name',
+    () async {
+      final session = await openGameMemoryCatalog(unrelated: 20);
+      final adapter = LocalMapWorkspaceAdapter();
+      final maps = MapWorkspaceController(session, adapter);
+      addTearDown(maps.dispose);
+      await maps.initialize();
+      final story = MapBuilderStoryBinding(
+        maps: maps,
+        changed: () {},
+        view: () => null,
+        gateway: (draft, saved) => StoryPublicationGateway(
+          draft: draft,
+          facts: LocalWorldAdapter(session: session, mapAdapter: adapter),
+          savedDialogues: saved,
+        ),
+      );
+      final memory = GameMemoryController(
+        port: LocalNarrativeIndexAdapter(session),
+        staging: MapBuilderStoryMemory(story, editable: () => true),
+        changed: () {},
+      );
+      addTearDown(memory.dispose);
+      await memory.open();
+
+      final key = memory.createFact('Clé trouvée', NarrativeValueKind.boolean)!;
+      expect(key, 'fact_cl_trouv_e');
+      expect(memory.renameFact(key, 'Clé rouge'), isTrue);
+      expect(memory.selectedFact, 'fact_cl_rouge');
+      expect(memory.renameFact('fact_cl_rouge', 'Met'), isTrue);
+      expect(memory.selectedFact, 'fact_met_2');
+
+      expect(await story.save(), isTrue, reason: story.error);
+      expect(story.dirty, isFalse);
+      final index = LocalNarrativeIndexAdapter(session);
+      final saved = await index.facts(['fact_met_2', 'fact_met']);
+      expect([
+        for (final fact in saved) (fact.id, fact.label),
+      ], unorderedEquals([('fact_met_2', 'Met'), ('fact_met', 'Rencontre')]));
+      final titles = await index.titles(NarrativeTitleKind.facts);
+      expect(
+        titles.map((title) => title.id).where((id) => id.startsWith('fact_cl')),
+        isEmpty,
+      );
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
 }

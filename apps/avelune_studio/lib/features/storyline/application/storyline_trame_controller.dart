@@ -6,6 +6,7 @@ import '../../game_behaviours/application/game_behaviour_source.dart';
 import '../../game_memory/application/game_memory_resource.dart';
 import '../../game_memory/application/game_memory_staging.dart';
 import '../../game_memory/domain/narrative_index_port.dart';
+import '../../story_draft/application/story_draft_fact_identity.dart';
 import '../../story_draft/domain/story_draft_entry.dart';
 import '../domain/storyline_read_port.dart';
 import 'storyline_trame_view.dart';
@@ -198,6 +199,12 @@ final class StorylineTrameController {
           draft.load(StoryDraftKind.fact, fact.id, base);
         }
         draft.put(StoryDraftKind.fact, fact);
+      }
+      final taken = [for (final fact in result.after.facts) fact.id];
+      for (final fact in result.after.facts) {
+        if (beforeFacts[fact.id] case final previous? when previous != fact) {
+          followDraftFactName(draft, fact.id, taken: taken);
+        }
       }
     });
     return true;

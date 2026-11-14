@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:map_core/map_core_domain.dart';
 
+import '../../story_draft/application/story_draft_fact_identity.dart';
 import '../../story_draft/domain/story_draft_entry.dart';
 import '../domain/narrative_index_port.dart';
 import 'game_memory_fact_rows.dart';
@@ -188,20 +189,13 @@ final class GameMemoryController {
       for (final title in facts.value ?? const <NarrativeTitle>[]) title.id,
       ...staging.draft.touched(StoryDraftKind.fact),
     };
-    final fact = addNarrativeFact(
-      ProjectManifest(
-        name: 'facts',
-        maps: const [],
-        tilesets: const [],
-        facts: [
-          for (final id in known) NarrativeFactDefinition(id: id, label: id),
-        ],
-      ),
-      label: label,
+    final fact = NarrativeFactDefinition(
+      id: canonicalDraftFactId(label, known),
+      label: label.trim(),
       initialValue: kind == NarrativeValueKind.integer
           ? NarrativeValue.integer(0)
           : const NarrativeValue.boolean(false),
-    ).createdFact;
+    );
     staging.stage((draft) {
       draft.load(StoryDraftKind.fact, fact.id, null);
       draft.put(StoryDraftKind.fact, fact);
@@ -217,6 +211,7 @@ final class GameMemoryController {
     if (trimmed == before.label) return true;
     final saved = details[id];
     if (saved != null) staging.rememberFact(saved);
+    String? moved;
     staging.stage((draft) {
       if (!draft.isLoaded(StoryDraftKind.fact, id)) {
         draft.load(StoryDraftKind.fact, id, saved);
@@ -233,7 +228,15 @@ final class GameMemoryController {
           legacyFlagName: before.legacyFlagName,
         ),
       );
+      moved = followDraftFactName(
+        draft,
+        id,
+        taken: [
+          for (final title in facts.value ?? const <NarrativeTitle>[]) title.id,
+        ],
+      );
     });
+    if (moved case final moved? when selectedFact == id) select(moved);
     return true;
   }
 

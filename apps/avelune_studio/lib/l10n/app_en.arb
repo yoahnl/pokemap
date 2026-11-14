@@ -476,6 +476,25 @@
       }
     }
   },
+  "storyPublicationRefused": "{kind, select, fact{The project refused to save the fact “{name}”. Your draft is kept.} story{The project refused to save the storyline “{name}”. Your draft is kept.} scene{The project refused to save the scene “{name}”. Your draft is kept.} dialogue{The project refused to save the line “{name}”. Your draft is kept.} event{The project refused to save the behaviour “{name}”. Your draft is kept.} worldRule{The project refused to save the world rule “{name}”. Your draft is kept.} other{The project refused to save. Your draft is kept.}}",
+  "@storyPublicationRefused": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storySaveFailed": "Save failed: {reason}",
+  "@storySaveFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "rubricUnavailable": "{detail} · {unavailable}",
   "directionNorth": "North",
   "directionEast": "East",

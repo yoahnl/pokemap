@@ -2,6 +2,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../dialogues/domain/dialogue_port.dart';
 import '../../events/domain/event_port.dart';
+import '../../narrative/domain/narrative_catalog_failure.dart';
 import '../../resources/domain/resource_port.dart';
 import '../../scenes/domain/scene_port.dart';
 import '../../stories/domain/story_port.dart';
@@ -42,6 +43,16 @@ final class StoryPublicationFailed implements Exception {
   @override
   String toString() => '$cause';
 }
+
+String? storyPublicationReason(Object cause) => switch (cause) {
+  EventFailure(:final message) ||
+  WorldFailure(:final message) ||
+  StoryFailure(:final message) ||
+  SceneFailure(:final message) ||
+  DialogueFailure(:final message) ||
+  NarrativeCatalogFailure(:final message) => message,
+  _ => null,
+};
 
 final class StoryPublicationGateway {
   StoryPublicationGateway({

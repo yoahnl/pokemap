@@ -41,6 +41,7 @@ class StoryPage extends StatefulWidget {
     required this.simulate,
     required this.openMapEntry,
     required this.unsaved,
+    this.saveError,
     this.openScene,
   });
 
@@ -56,6 +57,7 @@ class StoryPage extends StatefulWidget {
   final Future<bool> Function(String eventId) simulate;
   final Future<bool> Function(String mapId) openMapEntry;
   final bool unsaved;
+  final String? saveError;
   final SceneOpener? openScene;
 
   @override
@@ -147,6 +149,20 @@ class _StoryPageState extends State<StoryPage> {
           selected: _tab,
           onSelected: (tab) => setState(() => _tab = tab),
         ),
+        if (widget.saveError case final reason?)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              StudioSpacing.l,
+              StudioSpacing.m,
+              StudioSpacing.l,
+              0,
+            ),
+            child: StudioNotice(
+              key: const ValueKey('story-save-error'),
+              l10n.storySaveFailed(reason),
+              isError: true,
+            ),
+          ),
         Expanded(
           child: memory == null
               ? StudioEmptyState(

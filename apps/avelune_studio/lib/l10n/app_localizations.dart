@@ -2492,6 +2492,18 @@ abstract class AppLocalizations {
   /// **'{kind, select, event{les comportements} scene{les scènes} dialogue{les répliques} fact{les faits} story{les histoires} worldRule{les règles du monde} other{{kind}}}'**
   String storyPublicationKind(String kind);
 
+  /// No description provided for @storyPublicationRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, fact{Le projet a refusé d’enregistrer l’état « {name} ». Votre brouillon est conservé.} story{Le projet a refusé d’enregistrer la trame « {name} ». Votre brouillon est conservé.} scene{Le projet a refusé d’enregistrer la scène « {name} ». Votre brouillon est conservé.} dialogue{Le projet a refusé d’enregistrer la réplique « {name} ». Votre brouillon est conservé.} event{Le projet a refusé d’enregistrer le comportement « {name} ». Votre brouillon est conservé.} worldRule{Le projet a refusé d’enregistrer la règle du monde « {name} ». Votre brouillon est conservé.} other{Le projet a refusé l’enregistrement. Votre brouillon est conservé.}}'**
+  String storyPublicationRefused(String kind, String name);
+
+  /// No description provided for @storySaveFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Échec de l’enregistrement : {reason}'**
+  String storySaveFailed(String reason);
+
   /// No description provided for @rubricUnavailable.
   ///
   /// In fr, this message translates to:

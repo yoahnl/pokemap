@@ -2,6 +2,13 @@ part of 'map_builder_story_binding.dart';
 
 extension MapStoryPublication on MapBuilderStoryBinding {
   Future<bool> publish(StoryPublicationGateway? gateway) async {
+    final published = await _publish(gateway);
+    saveError = published ? null : error;
+    changed();
+    return published;
+  }
+
+  Future<bool> _publish(StoryPublicationGateway? gateway) async {
     final project = maps.project;
     if (project == null || !dirty) return true;
     if (gateway == null) {
@@ -52,11 +59,32 @@ extension MapStoryPublication on MapBuilderStoryBinding {
         behaviours.rememberPublished(failure.progress.saved);
       }
       final cause = failure is StoryPublicationFailed ? failure.cause : failure;
-      error = cause is EventFailure ? cause.message : '$cause';
+      error = storyPublicationReason(cause) ?? _refusal(failure);
       return false;
     } finally {
       publishing = false;
       changed();
     }
+  }
+
+  String _refusal(Object failure) {
+    final step = failure is StoryPublicationFailed
+        ? failure.progress.failed
+        : null;
+    final entry = step?.entries.firstOrNull;
+    if (entry == null) return MapBuilderStoryBinding.publishRefused;
+    final value =
+        behaviours.draft.currentOf(entry.kind, entry.id) ??
+        entry.current ??
+        entry.base;
+    final name = switch (value) {
+      NarrativeFactDefinition(:final label) => label,
+      StorylineAsset(:final title) => title,
+      SceneAsset(:final name) => name,
+      NarrativeEventRecord(:final name) => name,
+      WorldRuleDefinition(:final label) => label,
+      _ => entry.id,
+    };
+    return '${MapBuilderStoryBinding.publishRefused}${entry.kind.name}:$name';
   }
 }

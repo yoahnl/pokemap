@@ -15,7 +15,6 @@ import 'package:avelune_studio/features/map_workspace/application/map_context_de
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
-import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
@@ -150,6 +149,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   MapStoryTab tab = MapStoryTab.behaviour;
   int behaviour = 0;
   String? error;
+  String? saveError;
   String? repairError;
   String? _mapSelection;
   MapStoryBehaviourIndex? _index;
@@ -246,4 +246,5 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   static const afterRefused = 'after-refused:';
   static const unsupported = 'publish-unsupported:';
   static const lineRefused = 'line-refused:';
+  static const publishRefused = 'publish-refused:';
 }

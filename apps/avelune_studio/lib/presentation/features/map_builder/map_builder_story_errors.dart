@@ -24,6 +24,11 @@ String mapBuilderStoryError(
           .map(l10n.storyPublicationKind)
           .join(', '),
     ),
+  _ when error.startsWith(MapBuilderStoryBinding.publishRefused) =>
+    _publishRefused(
+      error.substring(MapBuilderStoryBinding.publishRefused.length),
+      l10n,
+    ),
   _ when error.startsWith(MapBuilderStoryBinding.deactivated) =>
     '${l10n.storyDeactivated} ${error.substring(MapBuilderStoryBinding.deactivated.length)}'
         .trim(),
@@ -44,3 +49,13 @@ String _storyDeleteUser(EventDeletionUser user, AppLocalizations l10n) =>
       'map' => l10n.storyDeleteUserMap(user.label),
       _ => l10n.storyDeleteUserOther(user.label),
     };
+
+String _publishRefused(String refused, AppLocalizations l10n) {
+  final separator = refused.indexOf(':');
+  return separator < 0
+      ? l10n.storyPublicationRefused('', '')
+      : l10n.storyPublicationRefused(
+          refused.substring(0, separator),
+          refused.substring(separator + 1),
+        );
+}

@@ -186,4 +186,30 @@ void main() {
     );
     expect(find.text('Rien ne le modifie d’après l’index.'), findsOneWidget);
   });
+
+  testWidgets('a refused save is explained in Histoire', (tester) async {
+    await openMemoryStudio(tester, memoryIndex(), world: MapOnlyWorld.new);
+    await openHistoire(tester);
+    await tester.tap(find.byKey(const ValueKey('memory-new-fact')));
+    await settleMemory(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('memory-new-fact-name')),
+      'Clé trouvée',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('memory-new-fact-create')));
+    await settleMemory(tester);
+    expect(find.byKey(const ValueKey('story-save-error')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('studio-save')));
+    await settleMemory(tester);
+
+    expect(
+      tester
+          .widget<StudioNotice>(find.byKey(const ValueKey('story-save-error')))
+          .message,
+      'Échec de l’enregistrement : Le projet a refusé d’enregistrer '
+      'l’état « Clé trouvée ». Votre brouillon est conservé.',
+    );
+  });
 }
