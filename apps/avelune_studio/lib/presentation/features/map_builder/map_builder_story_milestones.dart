@@ -139,7 +139,6 @@ class MapBuilderStoryMilestonePicker extends StatelessWidget {
         for (final at in milestones)
           StudioChoice(
             key: ValueKey('map-story-after-${at.milestone.id}'),
-            dense: true,
             label: l10n.trameName(at.milestone.title, l10n.trameUnnamed),
             subtitle: l10n.trameName(at.chapter.title, l10n.trameUnnamed),
             onTap: () => onPick(at.milestone.completionFactId!),

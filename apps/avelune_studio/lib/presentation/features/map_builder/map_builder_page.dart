@@ -15,6 +15,7 @@ import 'package:avelune_studio/app/di/narrative_providers.dart';
 import 'package:avelune_studio/app/di/story_draft_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_draft.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
 import 'package:avelune_studio/features/project_session/application/project_draft.dart';
 import 'package:avelune_studio/features/project_session/application/studio_exit_guard.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/editor_shortcuts.dart';

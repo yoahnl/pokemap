@@ -1,3 +1,5 @@
+import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
+import 'package:avelune_studio/features/verification/domain/verification_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -71,13 +73,21 @@ FakeStorylineRead trameReads({bool empty = false}) => FakeStorylineRead(
 Future<FakeStorylineRead> openTrameStudio(
   WidgetTester tester, {
   bool empty = false,
+  VerificationPort? verification,
+  ProjectManifest? project,
 }) async {
   final reads = trameReads(empty: empty);
   await openMemoryStudio(
     tester,
-    memoryIndex()..addFacts(trameProject.facts),
-    project: trameProject,
+    memoryIndex()
+      ..addFacts(trameProject.facts)
+      ..titlesByKind[NarrativeTitleKind.events] = [
+        for (final record in (project ?? trameProject).eventRegistry!.records)
+          NarrativeTitle(id: record.id, title: record.id),
+      ],
+    project: project ?? trameProject,
     storylines: reads,
+    verification: verification,
   );
   await openTrame(tester);
   return reads;

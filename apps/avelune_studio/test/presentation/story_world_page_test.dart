@@ -51,8 +51,11 @@ void main() {
     await openWholeGame(tester);
 
     expect(
-      (_row(tester, guideTalk).trailing! as StudioBadge).label,
-      'Supprimé ailleurs',
+      find.descendant(
+        of: find.byKey(const ValueKey('behaviour-$guideTalk')),
+        matching: find.text('Supprimé ailleurs'),
+      ),
+      findsOneWidget,
     );
     await tester.tap(find.text('Parler au guide'));
     await settleMemory(tester);

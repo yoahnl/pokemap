@@ -78,6 +78,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     story: _story,
     editable: () => _editable,
     changed: _changed,
+    verificationProject: _verificationProject,
   );
   var _section = StudioRailSection.map;
   var _storyShown = false;

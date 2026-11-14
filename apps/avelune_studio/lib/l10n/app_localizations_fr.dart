@@ -2939,4 +2939,144 @@ class AppLocalizationsFr extends AppLocalizations {
   String trameMilestoneOption(String chapter, String milestone) {
     return '$chapter · $milestone';
   }
+
+  @override
+  String get storyTabVerify => 'Vérifier';
+
+  @override
+  String get verificationUnavailable =>
+      'Vérification indisponible pour ce projet.';
+
+  @override
+  String get verificationStart => 'Vérifier le projet';
+
+  @override
+  String get verificationCancel => 'Annuler la vérification';
+
+  @override
+  String get verificationScope =>
+      'Vérifie la version enregistrée, en arrière-plan. Aucune modification ni aucun enregistrement ne la lance.';
+
+  @override
+  String get verificationUnsaved =>
+      'Des modifications ne sont pas encore enregistrées : elles ne sont pas vérifiées.';
+
+  @override
+  String verificationPhase(String phase, int loaded, int total) {
+    String _temp0 = intl.Intl.selectLogic(phase, {
+      'project': 'Lecture de l’histoire du projet…',
+      'maps': 'Lecture des cartes ($loaded sur $total)…',
+      'dialogues': 'Lecture des dialogues…',
+      'other': 'Analyse en arrière-plan…',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String verificationFailed(String cause) {
+    return 'Vérification impossible : $cause';
+  }
+
+  @override
+  String get verificationCancelled => 'Vérification annulée : rien n’a changé.';
+
+  @override
+  String verificationSummary(int errors, int warnings, String seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      errors,
+      locale: localeName,
+      other: '$errors erreurs',
+      one: '1 erreur',
+      zero: 'Aucune erreur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      warnings,
+      locale: localeName,
+      other: '$warnings avertissements',
+      one: '1 avertissement',
+      zero: 'aucun avertissement',
+    );
+    return '$_temp0 · $_temp1 · $seconds s';
+  }
+
+  @override
+  String get verificationIdle => 'Le projet n’a pas encore été vérifié';
+
+  @override
+  String get verificationIdleHint =>
+      'La vérification cherche les jalons impossibles, les états requis mais jamais posés et les références absentes.';
+
+  @override
+  String get verificationClean => 'Aucun problème trouvé.';
+
+  @override
+  String verificationSeverity(String severity) {
+    String _temp0 = intl.Intl.selectLogic(severity, {
+      'error': 'Erreur',
+      'warning': 'Avertissement',
+      'other': 'Information',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get verificationOpen => 'Ouvrir';
+
+  @override
+  String get simulationOpen => 'Simuler';
+
+  @override
+  String get simulationClose => 'Fermer la simulation';
+
+  @override
+  String get simulationUnavailable =>
+      'La simulation attend que l’espace Histoire de la carte soit prêt.';
+
+  @override
+  String get simulationHint =>
+      'Choisissez les valeurs des états : rien n’est enregistré.';
+
+  @override
+  String simulationAlreadyPlayed(String name) {
+    return '« $name » a déjà été joué';
+  }
+
+  @override
+  String get simulationNothingPlays => 'Aucun cas ne se déclenche.';
+
+  @override
+  String simulationPlays(String name) {
+    return 'C’est « $name » qui se déclenche.';
+  }
+
+  @override
+  String simulationChosen(int priority, int order) {
+    return 'Choisi · priorité $priority, ordre $order';
+  }
+
+  @override
+  String simulationOutranked(int priority, int order) {
+    return 'Écarté par un cas prioritaire · priorité $priority, ordre $order';
+  }
+
+  @override
+  String simulationReason(String reason) {
+    String _temp0 = intl.Intl.selectLogic(reason, {
+      'draft': 'brouillon',
+      'disabled': 'désactivé',
+      'worldRuleDisabled': 'désactivé par une règle du monde',
+      'worldRuleHidden': 'caché par une règle du monde',
+      'sourceMismatch': 'autre déclencheur',
+      'factConditionFalse': 'une condition sur un état est fausse',
+      'narrativeEventConsumedConditionFalse':
+          'une condition sur un comportement joué est fausse',
+      'mapEventInstanceBooleanConditionFalse':
+          'une condition de la carte est fausse',
+      'eventConsumed': 'déjà joué une fois',
+      'eventInFlight': 'déjà en cours',
+      'runtimeReferenceUnavailable': 'une référence manque au jeu',
+      'other': 'non retenu par le moteur',
+    });
+    return '$_temp0';
+  }
 }

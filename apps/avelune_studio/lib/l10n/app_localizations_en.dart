@@ -2922,4 +2922,142 @@ class AppLocalizationsEn extends AppLocalizations {
   String trameMilestoneOption(String chapter, String milestone) {
     return '$chapter · $milestone';
   }
+
+  @override
+  String get storyTabVerify => 'Check';
+
+  @override
+  String get verificationUnavailable =>
+      'Checking is unavailable for this project.';
+
+  @override
+  String get verificationStart => 'Check the project';
+
+  @override
+  String get verificationCancel => 'Cancel the check';
+
+  @override
+  String get verificationScope =>
+      'Checks the saved version in the background. No edit or save starts it.';
+
+  @override
+  String get verificationUnsaved =>
+      'Some changes are not saved yet: they are not checked.';
+
+  @override
+  String verificationPhase(String phase, int loaded, int total) {
+    String _temp0 = intl.Intl.selectLogic(phase, {
+      'project': 'Reading the project’s story…',
+      'maps': 'Reading maps ($loaded of $total)…',
+      'dialogues': 'Reading dialogues…',
+      'other': 'Analysing in the background…',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String verificationFailed(String cause) {
+    return 'Check failed: $cause';
+  }
+
+  @override
+  String get verificationCancelled => 'Check cancelled: nothing changed.';
+
+  @override
+  String verificationSummary(int errors, int warnings, String seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      errors,
+      locale: localeName,
+      other: '$errors errors',
+      one: '1 error',
+      zero: 'No error',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      warnings,
+      locale: localeName,
+      other: '$warnings warnings',
+      one: '1 warning',
+      zero: 'no warning',
+    );
+    return '$_temp0 · $_temp1 · $seconds s';
+  }
+
+  @override
+  String get verificationIdle => 'The project has not been checked yet';
+
+  @override
+  String get verificationIdleHint =>
+      'The check looks for impossible milestones, required states that are never set and missing references.';
+
+  @override
+  String get verificationClean => 'No problem found.';
+
+  @override
+  String verificationSeverity(String severity) {
+    String _temp0 = intl.Intl.selectLogic(severity, {
+      'error': 'Error',
+      'warning': 'Warning',
+      'other': 'Information',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get verificationOpen => 'Open';
+
+  @override
+  String get simulationOpen => 'Simulate';
+
+  @override
+  String get simulationClose => 'Close the simulation';
+
+  @override
+  String get simulationUnavailable =>
+      'The simulation waits for the map’s Story space to be ready.';
+
+  @override
+  String get simulationHint => 'Choose the state values: nothing is saved.';
+
+  @override
+  String simulationAlreadyPlayed(String name) {
+    return '“$name” has already played';
+  }
+
+  @override
+  String get simulationNothingPlays => 'No case plays.';
+
+  @override
+  String simulationPlays(String name) {
+    return '“$name” is the case that plays.';
+  }
+
+  @override
+  String simulationChosen(int priority, int order) {
+    return 'Chosen · priority $priority, order $order';
+  }
+
+  @override
+  String simulationOutranked(int priority, int order) {
+    return 'Outranked by a higher case · priority $priority, order $order';
+  }
+
+  @override
+  String simulationReason(String reason) {
+    String _temp0 = intl.Intl.selectLogic(reason, {
+      'draft': 'draft',
+      'disabled': 'disabled',
+      'worldRuleDisabled': 'disabled by a world rule',
+      'worldRuleHidden': 'hidden by a world rule',
+      'sourceMismatch': 'another trigger',
+      'factConditionFalse': 'a state condition is false',
+      'narrativeEventConsumedConditionFalse':
+          'a played-behaviour condition is false',
+      'mapEventInstanceBooleanConditionFalse': 'a map condition is false',
+      'eventConsumed': 'already played once',
+      'eventInFlight': 'already running',
+      'runtimeReferenceUnavailable': 'a reference is missing in the game',
+      'other': 'not kept by the engine',
+    });
+    return '$_temp0';
+  }
 }

@@ -65,6 +65,17 @@ class _TrameViewState extends State<TrameView> {
     );
     if (state != null) return state;
     final view = trame.view!;
+    if (trame.focus case final id?) {
+      trame.focus = null;
+      if (view.milestone(id) case final at?) {
+        _selected = (
+          item: TrameItem.milestone,
+          storylineId: at.storyline.id,
+          chapterId: at.chapter.id,
+          milestoneId: id,
+        );
+      }
+    }
     if (view.outline.storylines.isEmpty) {
       return TrameStart(trame: trame);
     }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:isolate';
 
 import 'package:map_authoring/map_authoring_local.dart'
@@ -22,25 +21,30 @@ class LocalVerificationAdapter implements VerificationPort {
 
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
-  final _maps = <String, MapData>{};
-  String? _mapsRevision;
 
   @override
   Future<String> projectRevision() async =>
       (await mapAdapter.resourceBaseline(session)).revision;
 
   @override
-  Future<List<MapData>> loadMaps() async {
-    final baseline = await mapAdapter.resourceBaseline(session);
-    if (_mapsRevision != baseline.revision) {
-      _maps.clear();
-      _mapsRevision = baseline.revision;
+  Future<List<VerificationMapSource>> readMaps({
+    void Function(int loaded, int total)? progress,
+  }) async {
+    final entries = (await mapAdapter.resourceBaseline(session)).manifest.maps;
+    final maps = <VerificationMapSource>[];
+    for (final (index, entry) in entries.indexed) {
+      maps.add(
+        VerificationMapSource(
+          entry: entry,
+          bytes: await const LocalProjectFileReader().readBytes(
+            projectRoot: session.directoryPath,
+            relativePath: entry.relativePath,
+          ),
+        ),
+      );
+      progress?.call(index + 1, entries.length);
     }
-    for (final entry in baseline.manifest.maps) {
-      if (_maps.containsKey(entry.id)) continue;
-      _maps[entry.id] = (await mapAdapter.loadMap(session, entry)).map;
-    }
-    return _maps.values.toList(growable: false);
+    return maps;
   }
 
   @override
@@ -80,7 +84,7 @@ class LocalVerificationAdapter implements VerificationPort {
   @override
   VerificationJob analyse({
     required ProjectManifest project,
-    required List<MapData> maps,
+    required List<VerificationMapSource> maps,
     required List<VerificationDialogueSource> sources,
   }) {
     final replies = ReceivePort();
@@ -106,7 +110,6 @@ class LocalVerificationAdapter implements VerificationPort {
     });
     unawaited(() async {
       try {
-        final itemCatalog = await _loadItemCatalog(project, maps);
         final hasPictures = project.scenes.any(
           (scene) => scene.graph.nodes.any((node) {
             final payload = node.payload;
@@ -133,7 +136,7 @@ class LocalVerificationAdapter implements VerificationPort {
             project,
             maps,
             sources,
-            itemCatalog: itemCatalog,
+            projectRoot: session.directoryPath,
             presentationMediaCatalog: presentationMediaCatalog,
           ),
           debugName: verificationWorkerName,
@@ -162,41 +165,6 @@ class LocalVerificationAdapter implements VerificationPort {
         );
       }),
     );
-  }
-
-  Future<ProjectItemCatalog?> _loadItemCatalog(
-    ProjectManifest project,
-    List<MapData> maps,
-  ) async {
-    final required = buildNarrativeDependencyIndex(project: project, maps: maps)
-        .usages
-        .any(
-          (usage) => usage.target.kind == NarrativeDependencyTargetKind.item,
-        );
-    final path = project.pokemon.catalogFiles['items']?.trim();
-    if (!required || path == null || path.isEmpty) return null;
-    try {
-      final bytes = await const LocalProjectFileReader().readBytes(
-        projectRoot: session.directoryPath,
-        relativePath: path,
-      );
-      final catalog = decodeProjectItemCatalog(jsonDecode(utf8.decode(bytes)));
-      final validation = validateProjectItemCatalog(
-        catalog,
-        capabilityTruth: itemSystemV1CapabilityTruth,
-      );
-      final blocking = validation.diagnostics
-          .where((diagnostic) => diagnostic.isBlocking)
-          .firstOrNull;
-      if (blocking != null) {
-        throw FormatException('${blocking.path} : ${blocking.message}');
-      }
-      return catalog;
-    } on Object catch (failure) {
-      throw VerificationFailure(
-        'Catalogue des objets illisible ($path) : $failure',
-      );
-    }
   }
 
   @override

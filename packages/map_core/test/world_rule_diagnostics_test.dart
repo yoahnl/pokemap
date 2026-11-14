@@ -321,6 +321,96 @@ void main() {
       );
     });
 
+    test('ignores Storyline outcome effects the game never executes', () {
+      final project = _manifest(
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_known',
+            label: 'Known',
+            defaultValue: false,
+          ),
+        ],
+        storylines: [
+          StorylineAsset(
+            id: 'storyline_test',
+            type: StorylineType.main,
+            title: 'Storyline test',
+            chapters: [
+              StorylineChapter(
+                id: 'chapter_test',
+                title: 'Chapter test',
+                order: 0,
+                steps: [
+                  StorylineStep(
+                    id: 'step_locked',
+                    title: 'Locked step',
+                    order: 0,
+                  ),
+                ],
+              ),
+            ],
+            sceneLinks: [
+              StorylineSceneLink(
+                id: 'link_test',
+                chapterId: 'chapter_test',
+                stepId: 'step_locked',
+                label: 'Link',
+                state: StorylineSceneLinkState.placeholder,
+                role: StorylineSceneLinkRole.primary,
+                order: 0,
+                outcomeLinks: [
+                  StorylineSceneOutcomeLink(
+                    id: 'outcome_test',
+                    outcomeId: 'completed',
+                    effects: [
+                      StorylineEffect(
+                        type: StorylineEffectType.emitFact,
+                        targetId: 'fact_known',
+                        value: 'true',
+                      ),
+                      StorylineEffect(
+                        type: StorylineEffectType.completeStep,
+                        targetId: 'step_locked',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+        worldRules: [
+          _validRule(id: 'world_rule_emitted', label: 'Emitted'),
+          WorldRuleDefinition(
+            id: 'world_rule_step_locked',
+            label: 'Unlock after step',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.storyStepCompletion,
+              sourceId: 'step_locked',
+              predicate: WorldRuleSourcePredicate.completed,
+            ),
+            target: const WorldRuleTarget(
+              kind: WorldRuleTargetKind.mapEntity,
+              mapId: 'map_test',
+              entityId: 'npc_test',
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.entityVisible,
+            ),
+          ),
+        ],
+      );
+
+      final report = diagnoseWorldRules(project, maps: [_mapWithNpc()]);
+
+      expect(
+        report.byCode(
+          WorldRuleDiagnosticCode.worldRuleSourceNeverProduced,
+        ),
+        hasLength(2),
+      );
+    });
+
     test('reports a completed Story Step that has no completion producer', () {
       final project = _manifest(
         storylines: [

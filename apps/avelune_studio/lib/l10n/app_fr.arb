@@ -1672,5 +1672,111 @@
         "type": "String"
       }
     }
+  },
+  "storyTabVerify": "Vérifier",
+  "verificationUnavailable": "Vérification indisponible pour ce projet.",
+  "verificationStart": "Vérifier le projet",
+  "verificationCancel": "Annuler la vérification",
+  "verificationScope": "Vérifie la version enregistrée, en arrière-plan. Aucune modification ni aucun enregistrement ne la lance.",
+  "verificationUnsaved": "Des modifications ne sont pas encore enregistrées : elles ne sont pas vérifiées.",
+  "verificationPhase": "{phase, select, project{Lecture de l’histoire du projet…} maps{Lecture des cartes ({loaded} sur {total})…} dialogues{Lecture des dialogues…} other{Analyse en arrière-plan…}}",
+  "@verificationPhase": {
+    "placeholders": {
+      "phase": {
+        "type": "String"
+      },
+      "loaded": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "verificationFailed": "Vérification impossible : {cause}",
+  "@verificationFailed": {
+    "placeholders": {
+      "cause": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationCancelled": "Vérification annulée : rien n’a changé.",
+  "verificationSummary": "{errors, plural, =0{Aucune erreur} =1{1 erreur} other{{errors} erreurs}} · {warnings, plural, =0{aucun avertissement} =1{1 avertissement} other{{warnings} avertissements}} · {seconds} s",
+  "@verificationSummary": {
+    "placeholders": {
+      "errors": {
+        "type": "int"
+      },
+      "warnings": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationIdle": "Le projet n’a pas encore été vérifié",
+  "verificationIdleHint": "La vérification cherche les jalons impossibles, les états requis mais jamais posés et les références absentes.",
+  "verificationClean": "Aucun problème trouvé.",
+  "verificationSeverity": "{severity, select, error{Erreur} warning{Avertissement} other{Information}}",
+  "@verificationSeverity": {
+    "placeholders": {
+      "severity": {
+        "type": "String"
+      }
+    }
+  },
+  "verificationOpen": "Ouvrir",
+  "simulationOpen": "Simuler",
+  "simulationClose": "Fermer la simulation",
+  "simulationUnavailable": "La simulation attend que l’espace Histoire de la carte soit prêt.",
+  "simulationHint": "Choisissez les valeurs des états : rien n’est enregistré.",
+  "simulationAlreadyPlayed": "« {name} » a déjà été joué",
+  "@simulationAlreadyPlayed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "simulationNothingPlays": "Aucun cas ne se déclenche.",
+  "simulationPlays": "C’est « {name} » qui se déclenche.",
+  "@simulationPlays": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "simulationChosen": "Choisi · priorité {priority}, ordre {order}",
+  "@simulationChosen": {
+    "placeholders": {
+      "priority": {
+        "type": "int"
+      },
+      "order": {
+        "type": "int"
+      }
+    }
+  },
+  "simulationOutranked": "Écarté par un cas prioritaire · priorité {priority}, ordre {order}",
+  "@simulationOutranked": {
+    "placeholders": {
+      "priority": {
+        "type": "int"
+      },
+      "order": {
+        "type": "int"
+      }
+    }
+  },
+  "simulationReason": "{reason, select, draft{brouillon} disabled{désactivé} worldRuleDisabled{désactivé par une règle du monde} worldRuleHidden{caché par une règle du monde} sourceMismatch{autre déclencheur} factConditionFalse{une condition sur un état est fausse} narrativeEventConsumedConditionFalse{une condition sur un comportement joué est fausse} mapEventInstanceBooleanConditionFalse{une condition de la carte est fausse} eventConsumed{déjà joué une fois} eventInFlight{déjà en cours} runtimeReferenceUnavailable{une référence manque au jeu} other{non retenu par le moteur}}",
+  "@simulationReason": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
   }
 }

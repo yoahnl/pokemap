@@ -748,12 +748,10 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
           addNextFrontierState(eventState);
         }
         for (final terminal in result.terminalStates) {
-          final boundaryState =
-              _applyStorylineOutcomeEffects(project, terminal);
           if (eventBoundaryStates != null) {
-            addEventBoundaryState(boundaryState);
+            addEventBoundaryState(terminal);
           }
-          addNextFrontierState(boundaryState);
+          addNextFrontierState(terminal);
         }
       }
       batchFrontier = nextFrontier;
@@ -1208,7 +1206,6 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
 }) {
   final reads = <String>{};
   final writes = <String>{};
-  final sceneIds = definitions.map((definition) => definition.sceneId).toSet();
 
   for (final definition in definitions) {
     final factIds = <String>{};
@@ -1341,28 +1338,6 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
           }
         case _:
           break;
-      }
-    }
-  }
-
-  for (final storyline in project.storylines) {
-    for (final link in storyline.sceneLinks) {
-      final sceneId = link.sceneRef?.targetId;
-      if (sceneId == null || !sceneIds.contains(sceneId)) continue;
-      for (final outcome in link.outcomeLinks) {
-        for (final effect in outcome.effects) {
-          switch (effect.type) {
-            case StorylineEffectType.completeStep:
-              writes.add('step:${effect.targetId}');
-            case StorylineEffectType.emitFact:
-              writes.add('fact:${effect.targetId}');
-            case StorylineEffectType.activateStep:
-            case StorylineEffectType.unlockStoryline:
-            case StorylineEffectType.setWorldRule:
-            case StorylineEffectType.affectRelationship:
-              break;
-          }
-        }
       }
     }
   }
@@ -1861,49 +1836,6 @@ bool? _sourceEligibility(
         );
       },
     );
-
-NarrativeSymbolicState _applyStorylineOutcomeEffects(
-  ProjectManifest project,
-  NarrativeSymbolicState state,
-) {
-  var next = state;
-  for (final storyline in project.storylines) {
-    for (final link in storyline.sceneLinks) {
-      final sceneId = link.sceneRef?.targetId;
-      if (sceneId == null) continue;
-      for (final outcome in link.outcomeLinks) {
-        if (!state.emittedOutcomeKeys.contains(
-          _outcomeKey(sceneId, outcome.outcomeId),
-        )) {
-          continue;
-        }
-        for (final effect in outcome.effects) {
-          switch (effect.type) {
-            case StorylineEffectType.activateStep:
-            case StorylineEffectType.unlockStoryline:
-            case StorylineEffectType.setWorldRule:
-            case StorylineEffectType.affectRelationship:
-              break;
-            case StorylineEffectType.completeStep:
-              next = next.copyWith(
-                completedStepIds: {...next.completedStepIds, effect.targetId},
-              );
-            case StorylineEffectType.emitFact:
-              next = next.copyWith(
-                factValues: {
-                  ...next.factValues,
-                  effect.targetId: NarrativeValue.boolean(
-                    effect.value?.trim().toLowerCase() != 'false',
-                  ),
-                },
-              );
-          }
-        }
-      }
-    }
-  }
-  return next;
-}
 
 bool _isOptionalScene(ProjectManifest project, SceneAsset scene) {
   final storyline = project.storylines

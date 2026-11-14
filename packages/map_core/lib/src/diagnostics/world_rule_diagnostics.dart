@@ -9,7 +9,6 @@ import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
-import '../models/storyline_asset.dart';
 import '../models/spatial_visual_profile.dart';
 import '../models/world_rule.dart';
 import '../operations/narrative_fact_runtime.dart';
@@ -749,23 +748,6 @@ Map<String, Set<NarrativeValue>> _producibleFactValues(
       }
     }
   }
-  for (final storyline in project.storylines) {
-    for (final link in storyline.sceneLinks) {
-      for (final outcome in link.outcomeLinks) {
-        for (final effect in outcome.effects) {
-          if (effect.type != StorylineEffectType.emitFact) {
-            continue;
-          }
-          final produced = effect.resolvedFactValue;
-          if (produced != null) {
-            values
-                .putIfAbsent(effect.targetId, () => <NarrativeValue>{})
-                .add(produced);
-          }
-        }
-      }
-    }
-  }
   return values;
 }
 
@@ -846,17 +828,6 @@ Set<String> _producibleStoryStepIds(ProjectManifest project) {
       final consequence = payload.consequence;
       if (consequence is SceneCompleteStoryStepConsequence) {
         result.add(consequence.stepId);
-      }
-    }
-  }
-  for (final storyline in project.storylines) {
-    for (final link in storyline.sceneLinks) {
-      for (final outcome in link.outcomeLinks) {
-        for (final effect in outcome.effects) {
-          if (effect.type == StorylineEffectType.completeStep) {
-            result.add(effect.targetId);
-          }
-        }
       }
     }
   }

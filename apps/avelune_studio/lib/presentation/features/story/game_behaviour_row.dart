@@ -13,12 +13,14 @@ class GameBehaviourRowTile extends StatelessWidget {
     required this.summary,
     required this.factName,
     required this.onTap,
+    this.onSimulate,
   });
 
   final GameBehaviourRow row;
   final GameBehaviourSummary? summary;
   final String? Function(String factId) factName;
   final VoidCallback onTap;
+  final VoidCallback? onSimulate;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +57,23 @@ class GameBehaviourRowTile extends StatelessWidget {
           ? place
           : '$place\n${l10n.behaviourSummary(summary, factName)}',
       maxLines: 1,
-      trailing: badge == null ? null : StudioBadge(badge.$1, tone: badge.$2),
+      trailing: switch ((badge, onSimulate)) {
+        (final badge?, null) => StudioBadge(badge.$1, tone: badge.$2),
+        (_, final simulate?) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (badge != null) StudioBadge(badge.$1, tone: badge.$2),
+            IconButton(
+              key: ValueKey('behaviour-simulate-${row.id}'),
+              tooltip: l10n.simulationOpen,
+              iconSize: 18,
+              onPressed: simulate,
+              icon: const Icon(Icons.play_circle_outline),
+            ),
+          ],
+        ),
+        _ => null,
+      },
       onTap: onTap,
     );
   }

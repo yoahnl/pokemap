@@ -147,6 +147,23 @@ class _Behaviours extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: StudioButton(
+              key: const ValueKey('map-story-simulate'),
+              variant: StudioButtonVariant.secondary,
+              icon: Icons.play_circle_outline,
+              label: binding.simulating == current.id
+                  ? l10n.simulationClose
+                  : l10n.simulationOpen,
+              onPressed: binding.ready
+                  ? () => binding.toggleSimulation(current.id)
+                  : null,
+            ),
+          ),
+          if (binding.simulating == current.id)
+            MapBuilderStorySimulation(binding: binding, record: current),
+          const SizedBox(height: StudioSpacing.l),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: StudioButton(
               key: const ValueKey('map-story-behaviour-delete'),
               variant: StudioButtonVariant.destructive,
               icon: Icons.delete_outline,

@@ -30,6 +30,7 @@ final class StorylineTrameController {
   final proposal = GameMemoryResource<StorylineProposalRead>();
   final definitions = <String, NarrativeFactDefinition>{};
   String? refusal;
+  String? focus;
   Object? _revision;
   (Object?, Object?, Object?, Object?, StorylineTrameView)? _view;
 

@@ -1404,33 +1404,6 @@ _solveNarrativeReachability(ProjectManifest project, List<MapData> maps) {
       }
     }
 
-    for (final storyline in project.storylines) {
-      for (final link in storyline.sceneLinks) {
-        final sceneId = link.sceneRef?.targetId.trim();
-        if (sceneId == null || !reachableSceneIds.contains(sceneId)) continue;
-        for (final outcome in link.outcomeLinks) {
-          if (!reachableSceneOutcomeKeys.contains(
-            _sceneOutcomeKey(sceneId, outcome.outcomeId),
-          )) {
-            continue;
-          }
-          for (final effect in outcome.effects) {
-            if (effect.type == StorylineEffectType.completeStep &&
-                completedStepIds.add(effect.targetId)) {
-              changed = true;
-            }
-            if (effect.type == StorylineEffectType.emitFact) {
-              final value = effect.value?.trim().toLowerCase() != 'false';
-              if (possibleFactValues
-                  .putIfAbsent(effect.targetId, () => <bool>{})
-                  .add(value)) {
-                changed = true;
-              }
-            }
-          }
-        }
-      }
-    }
   }
 
   return (

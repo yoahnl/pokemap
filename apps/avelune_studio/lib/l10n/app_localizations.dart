@@ -4697,6 +4697,156 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{chapter} · {milestone}'**
   String trameMilestoneOption(String chapter, String milestone);
+
+  /// No description provided for @storyTabVerify.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifier'**
+  String get storyTabVerify;
+
+  /// No description provided for @verificationUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification indisponible pour ce projet.'**
+  String get verificationUnavailable;
+
+  /// No description provided for @verificationStart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifier le projet'**
+  String get verificationStart;
+
+  /// No description provided for @verificationCancel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler la vérification'**
+  String get verificationCancel;
+
+  /// No description provided for @verificationScope.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifie la version enregistrée, en arrière-plan. Aucune modification ni aucun enregistrement ne la lance.'**
+  String get verificationScope;
+
+  /// No description provided for @verificationUnsaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Des modifications ne sont pas encore enregistrées : elles ne sont pas vérifiées.'**
+  String get verificationUnsaved;
+
+  /// No description provided for @verificationPhase.
+  ///
+  /// In fr, this message translates to:
+  /// **'{phase, select, project{Lecture de l’histoire du projet…} maps{Lecture des cartes ({loaded} sur {total})…} dialogues{Lecture des dialogues…} other{Analyse en arrière-plan…}}'**
+  String verificationPhase(String phase, int loaded, int total);
+
+  /// No description provided for @verificationFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification impossible : {cause}'**
+  String verificationFailed(String cause);
+
+  /// No description provided for @verificationCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification annulée : rien n’a changé.'**
+  String get verificationCancelled;
+
+  /// No description provided for @verificationSummary.
+  ///
+  /// In fr, this message translates to:
+  /// **'{errors, plural, =0{Aucune erreur} =1{1 erreur} other{{errors} erreurs}} · {warnings, plural, =0{aucun avertissement} =1{1 avertissement} other{{warnings} avertissements}} · {seconds} s'**
+  String verificationSummary(int errors, int warnings, String seconds);
+
+  /// No description provided for @verificationIdle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet n’a pas encore été vérifié'**
+  String get verificationIdle;
+
+  /// No description provided for @verificationIdleHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'La vérification cherche les jalons impossibles, les états requis mais jamais posés et les références absentes.'**
+  String get verificationIdleHint;
+
+  /// No description provided for @verificationClean.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun problème trouvé.'**
+  String get verificationClean;
+
+  /// No description provided for @verificationSeverity.
+  ///
+  /// In fr, this message translates to:
+  /// **'{severity, select, error{Erreur} warning{Avertissement} other{Information}}'**
+  String verificationSeverity(String severity);
+
+  /// No description provided for @verificationOpen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir'**
+  String get verificationOpen;
+
+  /// No description provided for @simulationOpen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Simuler'**
+  String get simulationOpen;
+
+  /// No description provided for @simulationClose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer la simulation'**
+  String get simulationClose;
+
+  /// No description provided for @simulationUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'La simulation attend que l’espace Histoire de la carte soit prêt.'**
+  String get simulationUnavailable;
+
+  /// No description provided for @simulationHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez les valeurs des états : rien n’est enregistré.'**
+  String get simulationHint;
+
+  /// No description provided for @simulationAlreadyPlayed.
+  ///
+  /// In fr, this message translates to:
+  /// **'« {name} » a déjà été joué'**
+  String simulationAlreadyPlayed(String name);
+
+  /// No description provided for @simulationNothingPlays.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun cas ne se déclenche.'**
+  String get simulationNothingPlays;
+
+  /// No description provided for @simulationPlays.
+  ///
+  /// In fr, this message translates to:
+  /// **'C’est « {name} » qui se déclenche.'**
+  String simulationPlays(String name);
+
+  /// No description provided for @simulationChosen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisi · priorité {priority}, ordre {order}'**
+  String simulationChosen(int priority, int order);
+
+  /// No description provided for @simulationOutranked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écarté par un cas prioritaire · priorité {priority}, ordre {order}'**
+  String simulationOutranked(int priority, int order);
+
+  /// No description provided for @simulationReason.
+  ///
+  /// In fr, this message translates to:
+  /// **'{reason, select, draft{brouillon} disabled{désactivé} worldRuleDisabled{désactivé par une règle du monde} worldRuleHidden{caché par une règle du monde} sourceMismatch{autre déclencheur} factConditionFalse{une condition sur un état est fausse} narrativeEventConsumedConditionFalse{une condition sur un comportement joué est fausse} mapEventInstanceBooleanConditionFalse{une condition de la carte est fausse} eventConsumed{déjà joué une fois} eventInFlight{déjà en cours} runtimeReferenceUnavailable{une référence manque au jeu} other{non retenu par le moteur}}'**
+  String simulationReason(String reason);
 }
 
 class _AppLocalizationsDelegate

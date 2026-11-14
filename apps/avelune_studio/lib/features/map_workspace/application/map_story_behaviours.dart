@@ -71,6 +71,32 @@ final class MapStoryBehaviours {
   NarrativeEventRecord? draftOf(String id) =>
       draft.entryOf(_event, id)?.current;
 
+  NarrativeEventSimulationReport simulate(
+    ProjectManifest project,
+    MapData map,
+    NarrativeEventSimulationInput input,
+  ) {
+    final registry = this.registry(project);
+    final staged = draft.project(project);
+    return simulateNarrativeEventDispatch(
+      registryResult: registry == null
+          ? EventRegistryDecodeResult.absent()
+          : EventRegistryDecodeResult.decoded(registry),
+      projectCatalog: _basisFor(
+        project,
+        map,
+        registry,
+      ).catalog(registry, deferFingerprints: true),
+      facts: staged.facts,
+      input: input,
+      maps: [map],
+      project: staged.copyWith(eventRegistry: registry),
+      legacyClaimIndex: registry?.mode == EventSystemMode.dualRead
+          ? buildValidatedLegacyClaimIndex(registry!)
+          : null,
+    );
+  }
+
   void prepare(ProjectManifest project, MapData map) =>
       _basisFor(project, map, registry(project));
 

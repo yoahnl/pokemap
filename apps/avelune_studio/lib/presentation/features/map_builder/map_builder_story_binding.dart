@@ -45,6 +45,7 @@ part 'map_builder_story_history.dart';
 part 'map_builder_story_line_binding.dart';
 part 'map_builder_story_publication.dart';
 part 'map_builder_story_selection.dart';
+part 'map_builder_story_simulation_binding.dart';
 
 enum MapStoryTab { behaviour, properties }
 
@@ -91,6 +92,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   final StoryDialogueLoader? loadDialogue;
   NarrativeIndexPort? narrative;
   StorylineTrameController? trame;
+  String? simulating;
   final behaviours = MapStoryBehaviours();
   final _lines = _StoryLines();
   final _triggers = _StoryTriggers();

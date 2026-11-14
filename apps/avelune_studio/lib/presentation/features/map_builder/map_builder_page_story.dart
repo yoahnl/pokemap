@@ -31,7 +31,28 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
         _setSection(StudioRailSection.map);
         _setSpace(MapBuilderSpace.story);
       },
+      verification: _stories.verification,
+      unsaved: _draft.unsaved,
+      simulate: (id) async {
+        final opened = await _openBehaviour(id);
+        if (opened) _story.toggleSimulation(id);
+        return opened;
+      },
+      openMapEntry: (mapId) async {
+        final entry = _maps.project?.maps
+            .where((entry) => entry.id == mapId)
+            .firstOrNull;
+        if (entry == null || !_editable) return false;
+        _setSection(StudioRailSection.map);
+        if (_maps.active?.base.mapId != entry.id) await _maps.activate(entry);
+        return true;
+      },
     );
+  }
+
+  Future<ProjectManifest?> _verificationProject() async {
+    await _maps.ensureWorkshop(MapWorkspaceWorkshop.verification);
+    return _maps.project;
   }
 
   (ProjectMapEntry, MapStoryElementTarget, String)? _behaviourEntry(

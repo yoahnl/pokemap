@@ -14,6 +14,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_sto
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_milestones.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_presence.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_simulation.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 export 'package:avelune_studio/presentation/features/map_builder/map_builder_story_errors.dart';

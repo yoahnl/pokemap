@@ -53,6 +53,13 @@ class VerificationDialogueSource {
   bool get readable => problem == null;
 }
 
+class VerificationMapSource {
+  const VerificationMapSource({required this.entry, required this.bytes});
+
+  final ProjectMapEntry entry;
+  final List<int> bytes;
+}
+
 /// The canonical result of one analysis, produced away from the interface.
 class VerificationAnalysis {
   const VerificationAnalysis({
@@ -81,7 +88,9 @@ class VerificationJob {
 /// Reads what a narrative verification consumes. It never writes.
 abstract interface class VerificationPort {
   /// The maps the validator, the dependency index and the graph read.
-  Future<List<MapData>> loadMaps();
+  Future<List<VerificationMapSource>> readMaps({
+    void Function(int loaded, int total)? progress,
+  });
 
   /// Revision of the saved project, used to notice that the disk moved.
   Future<String> projectRevision();
@@ -103,7 +112,7 @@ abstract interface class VerificationPort {
   /// session.
   VerificationJob analyse({
     required ProjectManifest project,
-    required List<MapData> maps,
+    required List<VerificationMapSource> maps,
     required List<VerificationDialogueSource> sources,
   });
 }

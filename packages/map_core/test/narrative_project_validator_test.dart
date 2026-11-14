@@ -360,7 +360,7 @@ void main() {
       expect(report.byCode('storylineStepNeverCompleted'), hasLength(1));
     });
 
-    test('applies Storyline effects from an exact reachable Scene outcome', () {
+    test('ignores Storyline outcome effects the game never executes', () {
       final fixture = _fixture(
         completeStep: false,
         requireFact: true,
@@ -397,8 +397,12 @@ void main() {
         maps: [fixture.map],
       );
 
-      expect(report.byCode('requiredFactNeverProduced'), isEmpty);
-      expect(report.byCode('storylineStepNeverCompleted'), isEmpty);
+      expect(report.byCode('requiredFactNeverProduced'), hasLength(1));
+      expect(report.byCode('storylineStepNeverCompleted'), hasLength(1));
+      expect(report.symbolicReachability!.trueFactIds,
+          isNot(contains('fact_gate')));
+      expect(report.symbolicReachability!.completedStepIds,
+          isNot(contains('step_intro')));
     });
 
     test('legacy reachability stops at the first applicable disabled page', () {

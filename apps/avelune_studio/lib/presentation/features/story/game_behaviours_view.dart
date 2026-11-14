@@ -19,12 +19,14 @@ class GameBehavioursView extends StatefulWidget {
     required this.navigate,
     required this.openMap,
     this.trame,
+    this.simulate,
   });
 
   final GameBehavioursController behaviours;
   final Future<bool> Function(String eventId) navigate;
   final VoidCallback openMap;
   final StorylineTrameController? trame;
+  final Future<bool> Function(String eventId)? simulate;
 
   @override
   State<GameBehavioursView> createState() => _GameBehavioursViewState();
@@ -220,6 +222,9 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
           summary: behaviours.summary(row),
           factName: behaviours.factName,
           onTap: () => unawaited(behaviours.reach(row.id, widget.navigate)),
+          onSimulate: widget.simulate == null || row.record == null
+              ? null
+              : () => unawaited(behaviours.reach(row.id, widget.simulate!)),
         ),
         _ => const SizedBox.shrink(),
       },

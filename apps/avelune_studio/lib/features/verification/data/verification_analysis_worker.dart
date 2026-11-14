@@ -11,6 +11,7 @@ import 'package:map_gameplay/map_gameplay.dart'
         validateNarrativePhysicalReachability;
 
 import '../domain/verification_port.dart';
+import 'verification_inputs.dart';
 
 const verificationWorkerName = 'avelune-verification';
 
@@ -20,28 +21,39 @@ class VerificationAnalysisRequest {
     this.project,
     this.maps,
     this.sources, {
-    this.itemCatalog,
+    required this.projectRoot,
     this.presentationMediaCatalog,
   });
   final SendPort reply;
   final ProjectManifest project;
-  final List<MapData> maps;
+  final List<VerificationMapSource> maps;
   final List<VerificationDialogueSource> sources;
-  final ProjectItemCatalog? itemCatalog;
+  final String projectRoot;
   final ProjectMediaCatalog? presentationMediaCatalog;
 }
 
 /// Runs the canonical validators in the spawned isolate. The interface isolate
 /// only receives the finished result.
-void verificationAnalysisWorker(VerificationAnalysisRequest request) {
+Future<void> verificationAnalysisWorker(
+  VerificationAnalysisRequest request,
+) async {
   try {
+    final maps = [
+      for (final source in request.maps)
+        verificationMap(request.project, source),
+    ];
+    final itemCatalog = await verificationItemCatalog(
+      request.project,
+      maps,
+      request.projectRoot,
+    );
     final canonical = validateNarrativeProject(
       request.project,
-      maps: request.maps,
+      maps: maps,
       presentationMediaCatalog: request.presentationMediaCatalog,
-      knownItemIds: request.itemCatalog == null
+      knownItemIds: itemCatalog == null
           ? null
-          : {for (final entry in request.itemCatalog!.entries) entry.id},
+          : {for (final entry in itemCatalog.entries) entry.id},
     );
     final validation = _withDialogueSources(canonical, request.sources);
     final symbolic = validation.symbolicReachability;
@@ -56,7 +68,7 @@ void verificationAnalysisWorker(VerificationAnalysisRequest request) {
         : _physical(
             validateNarrativePhysicalReachability(
               project: request.project,
-              maps: request.maps,
+              maps: maps,
               narrativeReport: symbolic,
             ),
           );
@@ -65,8 +77,8 @@ void verificationAnalysisWorker(VerificationAnalysisRequest request) {
         validation: validation,
         dependencies: buildNarrativeDependencyIndex(
           project: request.project,
-          maps: request.maps,
-          itemCatalog: request.itemCatalog,
+          maps: maps,
+          itemCatalog: itemCatalog,
         ),
         physical: physical,
         isolateName: Isolate.current.debugName ?? verificationWorkerName,

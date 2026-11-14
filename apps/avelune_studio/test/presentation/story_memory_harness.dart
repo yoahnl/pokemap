@@ -6,6 +6,7 @@ import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/storyline/domain/storyline_read_port.dart';
+import 'package:avelune_studio/features/verification/domain/verification_port.dart';
 import 'package:avelune_studio/features/world/domain/world_port.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/presentation/shell/studio_root.dart';
@@ -122,6 +123,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   ProjectSession? session,
   ProjectManifest? project,
   StorylineReadPort? storylines,
+  VerificationPort? verification,
 }) async {
   final opened = session ?? memorySession;
   tester.view.physicalSize = const Size(1920, 1080);
@@ -154,6 +156,8 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
       narrativeIndexPortProvider(opened).overrideWithValue(index),
       if (storylines != null)
         storylineReadPortProvider(opened).overrideWithValue(storylines),
+      if (verification != null)
+        verificationPortProvider(opened).overrideWithValue(verification),
       if (world != null)
         worldPortProvider(opened).overrideWithValue(world(maps)),
     ],
