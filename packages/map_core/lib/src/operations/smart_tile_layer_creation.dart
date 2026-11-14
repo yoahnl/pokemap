@@ -9,6 +9,7 @@ import '../exceptions/map_exceptions.dart';
 import '../validation/validators.dart';
 import 'map_visual_composition.dart';
 import 'smart_tile_catalog_validation.dart';
+import 'smart_tile_preset_catalog_selection.dart';
 
 sealed class SmartTileLayerCreationResult {
   const SmartTileLayerCreationResult();
@@ -119,7 +120,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
     );
   }
   try {
-    _validateSelectedSmartTileCatalog(manifest);
+    _validateSelectedSmartTileCatalog(manifest, preset);
     MapValidator.validate(map, projectDialogueContext: manifest);
   } on ValidationException catch (error) {
     return SmartTileLayerCreationFailure(
@@ -271,7 +272,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
   );
 
   try {
-    _validateSelectedSmartTileCatalog(projectedManifest);
+    _validateSelectedSmartTileCatalog(projectedManifest, preset);
   } on ValidationException catch (error) {
     return SmartTileLayerCreationFailure(
       code: error.code ?? 'smart_tile_projected_manifest_invalid',
@@ -297,9 +298,12 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
   );
 }
 
-void _validateSelectedSmartTileCatalog(ProjectManifest manifest) {
+void _validateSelectedSmartTileCatalog(
+  ProjectManifest manifest,
+  ProjectSmartTilePreset preset,
+) {
   for (final diagnostic in validateProjectSmartTileCatalog(
-    catalog: manifest.smartTileCatalog,
+    catalog: selectSmartTilePresetCatalog(manifest.smartTileCatalog, preset),
     projectTilesetIds: manifest.tilesets.map((entry) => entry.id),
     projectModelIds: manifest.models3d.map((entry) => entry.id),
     projectModelAnimationIndices: {
