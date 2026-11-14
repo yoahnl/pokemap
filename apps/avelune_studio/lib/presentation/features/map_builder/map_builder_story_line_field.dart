@@ -88,6 +88,22 @@ class MapBuilderStoryLineField extends StatelessWidget {
         ],
         MapStoryLineState.scene => [
           scenePicker(l10n.storyThenField),
+          if ((binding.openScene, record.sceneId) case (
+            final open?,
+            final sceneId?,
+          )) ...[
+            const SizedBox(height: StudioSpacing.s),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: StudioButton(
+                key: const ValueKey('map-story-scene-open'),
+                variant: StudioButtonVariant.quiet,
+                icon: Icons.open_in_full,
+                label: l10n.sceneFocusOpen,
+                onPressed: () => open(sceneId, record.id),
+              ),
+            ),
+          ],
           if (binding.maps.project case final project?)
             if (record.sceneId case final sceneId?)
               if (binding.sceneOf(sceneId) case final scene?) ...[

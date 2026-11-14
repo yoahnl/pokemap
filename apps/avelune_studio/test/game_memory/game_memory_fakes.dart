@@ -1,5 +1,7 @@
 import 'package:avelune_studio/features/game_memory/application/game_memory_staging.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
+import 'package:avelune_studio/features/scenes/domain/scene_document.dart';
+import 'package:avelune_studio/features/game_memory/domain/map_directory.dart';
 import 'package:avelune_studio/features/story_draft/application/story_draft.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -21,6 +23,12 @@ final class FakeNarrativeIndex implements NarrativeIndexPort {
   final factRequests = <List<String>>[];
   final userRequests = <List<String>>[];
   var ruleRequests = 0;
+  final directory = <String, MapDirectoryPage>{};
+  final characters = <String, String>{};
+  final directoryRequests = <List<String>>[];
+  final characterRequests = <List<String>>[];
+  final documents = <String, SceneDocument>{};
+  final documentRequests = <String>[];
 
   void addFacts(Iterable<NarrativeFactDefinition> facts) {
     for (final fact in facts) {
@@ -72,6 +80,26 @@ final class FakeNarrativeIndex implements NarrativeIndexPort {
   Future<List<WorldRuleDefinition>> worldRules() async {
     ruleRequests++;
     return rules;
+  }
+
+  @override
+  Future<Map<String, MapDirectoryPage>> mapDirectory(
+    List<String> mapIds,
+  ) async {
+    directoryRequests.add(mapIds);
+    return {for (final id in mapIds) id: ?directory[id]};
+  }
+
+  @override
+  Future<Map<String, String>> characterNames(List<String> characterIds) async {
+    characterRequests.add(characterIds);
+    return {for (final id in characterIds) id: ?characters[id]};
+  }
+
+  @override
+  Future<SceneDocument> sceneDocument(String sceneId) async {
+    documentRequests.add(sceneId);
+    return documents[sceneId] ?? (throw StateError('Unknown scene $sceneId'));
   }
 }
 

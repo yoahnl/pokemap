@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
+import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_rows.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
@@ -10,6 +11,7 @@ import 'package:avelune_studio/features/storyline/application/storyline_trame_ed
 import 'package:avelune_studio/features/storyline/application/storyline_trame_view.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
 import 'package:avelune_studio/presentation/features/story/trame_behaviours.dart';
+import 'package:avelune_studio/presentation/features/story/trame_journal.dart';
 import 'package:avelune_studio/presentation/features/story/trame_labels.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
@@ -21,6 +23,7 @@ class TrameMilestoneDetail extends StatelessWidget {
     required this.at,
     required this.behaviours,
     required this.navigate,
+    this.openScene,
   });
 
   final StorylineTrameController trame;
@@ -28,6 +31,7 @@ class TrameMilestoneDetail extends StatelessWidget {
   final StorylineMilestoneAt at;
   final List<GameBehaviourRow> behaviours;
   final Future<bool> Function(String eventId) navigate;
+  final SceneOpener? openScene;
 
   @override
   Widget build(BuildContext context) {
@@ -169,6 +173,13 @@ class TrameMilestoneDetail extends StatelessWidget {
             ],
           ],
         ),
+        TrameMilestoneJournal(
+          trame: trame,
+          storylineId: storylineId,
+          chapterId: chapterId,
+          milestoneId: milestone.id,
+          milestoneTitle: milestone.title,
+        ),
         StudioSection(
           title: l10n.trameStartsWith,
           children: [
@@ -181,6 +192,9 @@ class TrameMilestoneDetail extends StatelessWidget {
                 sceneId: sceneId,
                 behaviours: behaviours,
                 navigate: navigate,
+                onOpen: openScene == null
+                    ? null
+                    : () => openScene!(sceneId, null),
                 onDetach: editable
                     ? () => unawaited(
                         trame.detachScene(

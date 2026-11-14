@@ -14,4 +14,6 @@ abstract interface class GameBehaviourSource {
   bool touched(String id);
 
   String? elementName(String mapId, MapStoryElementTarget target, String id);
+
+  bool? elementPresent(String mapId, MapStoryElementTarget target, String id);
 }

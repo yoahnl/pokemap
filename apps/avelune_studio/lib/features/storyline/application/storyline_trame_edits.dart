@@ -5,7 +5,7 @@ import 'storyline_ids.dart';
 import 'storyline_trame_controller.dart';
 
 extension StorylineTrameEdits on StorylineTrameController {
-  Future<bool> _edit(
+  Future<bool> edit(
     StorylineMilestoneMutation Function(ProjectManifest project) operation,
   ) async {
     if (!staging.editable || !await prepare() || !staging.editable) {
@@ -23,7 +23,7 @@ extension StorylineTrameEdits on StorylineTrameController {
   Future<bool> createChapter(String storylineId, String title) async {
     await prepare();
     final id = storylineItemId('chapter', title, _ids(false));
-    return _edit(
+    return edit(
       (p) => StorylineMilestoneMutation(
         createStorylineChapter(
           p,
@@ -39,7 +39,7 @@ extension StorylineTrameEdits on StorylineTrameController {
     String storylineId,
     String chapterId,
     String title,
-  ) => _edit(
+  ) => edit(
     (p) => StorylineMilestoneMutation(
       renameStorylineChapter(
         p,
@@ -54,7 +54,7 @@ extension StorylineTrameEdits on StorylineTrameController {
     String storylineId,
     String chapterId, {
     required bool archived,
-  }) => _edit(
+  }) => edit(
     (p) => StorylineMilestoneMutation(
       setStorylineChapterArchived(
         p,
@@ -66,7 +66,7 @@ extension StorylineTrameEdits on StorylineTrameController {
   );
 
   Future<bool> moveChapter(String storylineId, String chapterId, int delta) =>
-      _edit((p) {
+      edit((p) {
         final story = p.storylines.firstWhere((s) => s.id == storylineId);
         final ids = [
           for (final chapter in [
@@ -95,7 +95,7 @@ extension StorylineTrameEdits on StorylineTrameController {
   ) async {
     await prepare();
     final id = storylineItemId('milestone', title, _ids(true));
-    return _edit(
+    return edit(
       (p) => createStorylineMilestone(
         p,
         storylineId: storylineId,
@@ -117,7 +117,7 @@ extension StorylineTrameEdits on StorylineTrameController {
         !staging.draft.isTouched(StoryDraftKind.fact, completionFactId)) {
       await loadDefinition(completionFactId);
     }
-    return _edit(
+    return edit(
       (p) => renameStorylineMilestone(
         p,
         storylineId: storylineId,
@@ -134,7 +134,7 @@ extension StorylineTrameEdits on StorylineTrameController {
     String stepId, {
     required String targetChapterId,
     required int targetIndex,
-  }) => _edit(
+  }) => edit(
     (p) => StorylineMilestoneMutation(
       moveStorylineStep(
         p,
@@ -152,7 +152,7 @@ extension StorylineTrameEdits on StorylineTrameController {
     String chapterId,
     String stepId, {
     required bool archived,
-  }) => _edit(
+  }) => edit(
     (p) => StorylineMilestoneMutation(
       setStorylineMilestoneArchived(
         p,
@@ -169,7 +169,7 @@ extension StorylineTrameEdits on StorylineTrameController {
     String chapterId,
     String stepId,
     String sceneId,
-  ) => _edit(
+  ) => edit(
     (p) => attachSceneToStorylineMilestone(
       p,
       storylineId: storylineId,
@@ -184,7 +184,7 @@ extension StorylineTrameEdits on StorylineTrameController {
     String chapterId,
     String stepId,
     String sceneId,
-  ) => _edit(
+  ) => edit(
     (p) => StorylineMilestoneMutation(
       detachSceneFromStorylineMilestone(
         p,
@@ -196,7 +196,7 @@ extension StorylineTrameEdits on StorylineTrameController {
     ),
   );
 
-  Future<bool> renameStoryline(String storylineId, String title) => _edit((p) {
+  Future<bool> renameStoryline(String storylineId, String title) => edit((p) {
     final story = p.storylines.firstWhere((s) => s.id == storylineId);
     return StorylineMilestoneMutation(
       updateStoryline(
@@ -218,7 +218,7 @@ extension StorylineTrameEdits on StorylineTrameController {
       for (final story in project.storylines) story.id,
     });
     final chapter = storylineItemId('chapter', chapterTitle, _ids(false));
-    return _edit(
+    return edit(
       (p) => StorylineMilestoneMutation(
         createStoryline(
           p,
@@ -241,7 +241,7 @@ extension StorylineTrameEdits on StorylineTrameController {
   Future<bool> keepProposal(String title) async {
     final proposed = proposal.value?.storyline;
     if (proposed == null) return false;
-    final kept = await _edit(
+    final kept = await edit(
       (p) => StorylineMilestoneMutation(
         createStoryline(
           p,

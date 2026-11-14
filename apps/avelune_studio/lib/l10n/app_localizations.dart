@@ -3595,6 +3595,12 @@ abstract class AppLocalizations {
   /// **'Index des usages de l’histoire'**
   String get openingPhaseNarrativeUsages;
 
+  /// No description provided for @openingPhaseMapDirectory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Index des éléments des cartes'**
+  String get openingPhaseMapDirectory;
+
   /// No description provided for @storyTabMemory.
   ///
   /// In fr, this message translates to:
@@ -4171,6 +4177,12 @@ abstract class AppLocalizations {
   /// **'Par état'**
   String get behavioursByFact;
 
+  /// No description provided for @behavioursByCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Par personnage'**
+  String get behavioursByCharacter;
+
   /// No description provided for @behavioursFilterWithoutMap.
   ///
   /// In fr, this message translates to:
@@ -4261,6 +4273,24 @@ abstract class AppLocalizations {
   /// **'État sans nom'**
   String get behavioursUnnamedFact;
 
+  /// No description provided for @behavioursWithoutCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans personnage'**
+  String get behavioursWithoutCharacter;
+
+  /// No description provided for @behavioursUnnamedCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnage sans nom'**
+  String get behavioursUnnamedCharacter;
+
+  /// No description provided for @behavioursCharactersLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture des éléments des cartes…'**
+  String get behavioursCharactersLoading;
+
   /// No description provided for @behavioursUnnamed.
   ///
   /// In fr, this message translates to:
@@ -4326,6 +4356,12 @@ abstract class AppLocalizations {
   /// **'À réparer'**
   String get behavioursToRepair;
 
+  /// No description provided for @behavioursElementMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Élément supprimé de sa carte'**
+  String get behavioursElementMissing;
+
   /// No description provided for @behavioursRefused.
   ///
   /// In fr, this message translates to:
@@ -4335,7 +4371,7 @@ abstract class AppLocalizations {
   /// No description provided for @behavioursCoverage.
   ///
   /// In fr, this message translates to:
-  /// **'Recherche par nom, carte et élément. Les noms d’éléments ne sont connus que pour la carte ouverte ; la recherche dans les répliques viendra plus tard.'**
+  /// **'Recherche par nom, carte et élément ; la recherche dans les répliques viendra plus tard.'**
   String get behavioursCoverage;
 
   /// No description provided for @behavioursByFactHint.
@@ -4343,6 +4379,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'D’après l’index des usages : un comportement apparaît sous chaque état que lui ou sa scène lit ou modifie.'**
   String get behavioursByFactHint;
+
+  /// No description provided for @behavioursByCharacterHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un personnage regroupe les comportements de tous ses éléments, sur toutes les cartes ; un élément sans personnage forme son propre groupe.'**
+  String get behavioursByCharacterHint;
 
   /// No description provided for @storyTabTrame.
   ///
@@ -4517,6 +4559,246 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Archivé'**
   String get trameArchived;
+
+  /// No description provided for @trameJournal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journal du joueur'**
+  String get trameJournal;
+
+  /// No description provided for @trameJournalHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le joueur lit cette entrée dans son journal pendant l’étape, puis une fois l’étape terminée. Sans entrée, l’étape n’apparaît pas dans le journal.'**
+  String get trameJournalHint;
+
+  /// No description provided for @trameJournalTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Titre dans le journal'**
+  String get trameJournalTitle;
+
+  /// No description provided for @trameJournalText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Texte du journal'**
+  String get trameJournalText;
+
+  /// No description provided for @trameJournalAdd.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter au journal'**
+  String get trameJournalAdd;
+
+  /// No description provided for @trameJournalApply.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mettre à jour le journal'**
+  String get trameJournalApply;
+
+  /// No description provided for @trameJournalRemove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer du journal'**
+  String get trameJournalRemove;
+
+  /// No description provided for @trameJournalLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture de la trame complète…'**
+  String get trameJournalLoading;
+
+  /// No description provided for @trameJournalTranslations.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les traductions déjà écrites sont conservées telles quelles : relisez-les si vous changez le sens du texte.'**
+  String get trameJournalTranslations;
+
+  /// No description provided for @trameClues.
+  ///
+  /// In fr, this message translates to:
+  /// **'Notes d’indice'**
+  String get trameClues;
+
+  /// No description provided for @trameCluesHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une note s’affiche dans le journal du joueur dès que son état est vrai.'**
+  String get trameCluesHint;
+
+  /// No description provided for @trameCluesNoFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun état oui/non dans le projet : créez-en un dans la Mémoire du jeu pour écrire une note.'**
+  String get trameCluesNoFact;
+
+  /// No description provided for @trameClueText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Texte de la note'**
+  String get trameClueText;
+
+  /// No description provided for @trameClueFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Visible quand cet état est vrai'**
+  String get trameClueFact;
+
+  /// No description provided for @trameClueAdd.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter la note'**
+  String get trameClueAdd;
+
+  /// No description provided for @trameClueApply.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mettre à jour la note'**
+  String get trameClueApply;
+
+  /// No description provided for @trameClueRemove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer la note'**
+  String get trameClueRemove;
+
+  /// No description provided for @trameJournalLimit.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} caractères au plus'**
+  String trameJournalLimit(int count);
+
+  /// No description provided for @sceneFocusOpen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir la scène en grand'**
+  String get sceneFocusOpen;
+
+  /// No description provided for @sceneFocusClose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer la scène'**
+  String get sceneFocusClose;
+
+  /// No description provided for @sceneFocusLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture de la scène…'**
+  String get sceneFocusLoading;
+
+  /// No description provided for @sceneFocusPreview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prévisualiser un chemin'**
+  String get sceneFocusPreview;
+
+  /// No description provided for @sceneFocusPreviewStop.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrêter l’aperçu'**
+  String get sceneFocusPreviewStop;
+
+  /// No description provided for @sceneFocusDetach.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détacher une copie'**
+  String get sceneFocusDetach;
+
+  /// No description provided for @sceneFocusDetachHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'La copie ne sert qu’à ce comportement ; ses dialogues restent partagés.'**
+  String get sceneFocusDetachHint;
+
+  /// No description provided for @sceneFocusLaunchedBy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lancée par'**
+  String get sceneFocusLaunchedBy;
+
+  /// No description provided for @sceneFocusNoLauncher.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun comportement ne lance cette scène.'**
+  String get sceneFocusNoLauncher;
+
+  /// No description provided for @sceneFocusChangedFacts.
+  ///
+  /// In fr, this message translates to:
+  /// **'États modifiés'**
+  String get sceneFocusChangedFacts;
+
+  /// No description provided for @sceneFocusNoFactChange.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette scène ne modifie aucun état.'**
+  String get sceneFocusNoFactChange;
+
+  /// No description provided for @sceneFocusPath.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chemin'**
+  String get sceneFocusPath;
+
+  /// No description provided for @sceneFocusPathHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez chaque sortie : le chemin se surligne dans les étapes. Le jeu n’est pas lancé.'**
+  String get sceneFocusPathHint;
+
+  /// No description provided for @sceneFocusChooseExit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quelle sortie ?'**
+  String get sceneFocusChooseExit;
+
+  /// No description provided for @sceneFocusPathEnded.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fin de la scène.'**
+  String get sceneFocusPathEnded;
+
+  /// No description provided for @sceneFocusPathLooped.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce chemin revient sur une étape déjà parcourue.'**
+  String get sceneFocusPathLooped;
+
+  /// No description provided for @sceneFocusRestart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recommencer'**
+  String get sceneFocusRestart;
+
+  /// No description provided for @sceneFocusPathStart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Début'**
+  String get sceneFocusPathStart;
+
+  /// No description provided for @sceneFocusPathEnd.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fin'**
+  String get sceneFocusPathEnd;
+
+  /// No description provided for @sceneFocusShared.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} comportements lancent cette scène : la modifier ici les modifie tous.'**
+  String sceneFocusShared(int count);
+
+  /// No description provided for @sceneFocusCopyName.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} (copie)'**
+  String sceneFocusCopyName(String name);
+
+  /// No description provided for @sceneFocusPathStepDetail.
+  ///
+  /// In fr, this message translates to:
+  /// **'{step} · {detail}'**
+  String sceneFocusPathStepDetail(String step, String detail);
 
   /// No description provided for @trameRefused.
   ///

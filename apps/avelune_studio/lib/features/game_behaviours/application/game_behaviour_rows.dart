@@ -1,6 +1,7 @@
 import 'package:map_core/map_core_domain.dart';
 
 import '../../events/domain/event_record_view.dart';
+import '../../game_memory/domain/map_directory.dart';
 import '../../game_memory/domain/narrative_index_port.dart';
 import '../../map_workspace/application/map_story_elements.dart';
 import 'game_behaviour_source.dart';
@@ -21,6 +22,8 @@ final class GameBehaviourRow {
     this.elementId,
     this.elementName,
     this.unsaved = false,
+    this.elementMissing = false,
+    this.characterId,
   });
 
   final String id;
@@ -33,6 +36,8 @@ final class GameBehaviourRow {
   final String? elementId;
   final String? elementName;
   final bool unsaved;
+  final bool elementMissing;
+  final String? characterId;
 
   bool get withoutMap =>
       presence == GameBehaviourPresence.known && mapId == null;
@@ -43,6 +48,7 @@ final class GameBehaviourRow {
 
   bool get toRepair =>
       mapMissing ||
+      elementMissing ||
       (record != null &&
           record!.enabledOrNull == null &&
           (record!.source == null || record!.sceneId == null));
@@ -55,9 +61,18 @@ final class GameBehaviourRow {
   };
 }
 
+MapDirectoryElementKind? mapDirectoryKind(MapStoryElementTarget? target) =>
+    switch (target) {
+      MapStoryElementTarget.entity => MapDirectoryElementKind.entity,
+      MapStoryElementTarget.trigger => MapDirectoryElementKind.trigger,
+      MapStoryElementTarget.model => MapDirectoryElementKind.modelInstance,
+      _ => null,
+    };
+
 List<GameBehaviourRow> gameBehaviourRows({
   required List<NarrativeTitle> saved,
   required GameBehaviourSource source,
+  Map<String, MapDirectoryPage> directory = const {},
 }) {
   final records = {
     for (final record
@@ -74,6 +89,17 @@ List<GameBehaviourRow> gameBehaviourRows({
         ? GameBehaviourPresence.known
         : GameBehaviourPresence.deletedElsewhere;
     final name = record?.name.trim();
+    final page = at == null ? null : directory[at.$1];
+    final kind = mapDirectoryKind(at?.$2);
+    final element = kind == null ? null : page?.element(kind, at!.$3);
+    final present = at == null
+        ? null
+        : source.elementPresent(at.$1, at.$2, at.$3) ??
+              (page == null ||
+                      kind == null ||
+                      kind == MapDirectoryElementKind.modelInstance
+                  ? null
+                  : element != null);
     return GameBehaviourRow(
       id: id,
       name: name != null && name.isNotEmpty ? name : titles[id]?.title ?? '',
@@ -83,8 +109,12 @@ List<GameBehaviourRow> gameBehaviourRows({
       mapName: at == null ? null : maps[at.$1],
       target: at?.$2,
       elementId: at?.$3,
-      elementName: at == null ? null : source.elementName(at.$1, at.$2, at.$3),
+      elementName: at == null
+          ? null
+          : source.elementName(at.$1, at.$2, at.$3) ?? element?.name,
       unsaved: source.touched(id),
+      elementMissing: present == false && at?.$2 != MapStoryElementTarget.map,
+      characterId: element?.characterId,
     );
   }
 

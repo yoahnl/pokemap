@@ -33,6 +33,9 @@ extension GameBehaviourLabels on AppLocalizations {
     GameBehaviourGroupKind.notLoaded => behavioursNotLoaded,
     GameBehaviourGroupKind.fact => group.label ?? behavioursUnnamedFact,
     GameBehaviourGroupKind.withoutFact => behavioursWithoutFact,
+    GameBehaviourGroupKind.character =>
+      group.label ?? behavioursUnnamedCharacter,
+    GameBehaviourGroupKind.withoutCharacter => behavioursWithoutCharacter,
   };
 
   String behaviourSummary(

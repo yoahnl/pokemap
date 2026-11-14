@@ -34,7 +34,10 @@ import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.
 import 'package:avelune_studio/presentation/shell/studio_rail.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_canvas.dart';
+import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_scene_focus_draft.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/scene_focus_page.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_inspector.dart';
@@ -54,6 +57,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_too
 
 part 'map_builder_page_layout.dart';
 part 'map_builder_page_leave_guard.dart';
+part 'map_builder_page_scene.dart';
 part 'map_builder_page_state.dart';
 part 'map_builder_page_story.dart';
 

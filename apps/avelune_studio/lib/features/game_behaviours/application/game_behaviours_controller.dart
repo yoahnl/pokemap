@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../game_memory/application/game_memory_resource.dart';
+import '../../game_memory/domain/map_directory.dart';
 import '../../game_memory/domain/narrative_index_port.dart';
 import 'game_behaviour_groups.dart';
 import 'game_behaviour_rows.dart';
@@ -22,12 +23,14 @@ final class GameBehavioursController {
   final saved = GameMemoryResource<List<NarrativeTitle>>();
   final facts = GameMemoryResource<List<NarrativeTitle>>();
   final usages = GameMemoryResource<Map<String, NarrativeUsages>>();
+  final directory = GameMemoryResource<Map<String, MapDirectoryPage>>();
+  final characters = GameMemoryResource<Map<String, String>>();
   var grouping = GameBehaviourGrouping.map;
   var query = '';
   final filters = <GameBehaviourFilter>{};
   final refused = <String>{};
   Object? _revision;
-  (Object?, Object?, Object?, List<GameBehaviourRow>)? _rows;
+  (Object?, Object?, Object?, Object?, List<GameBehaviourRow>)? _rows;
   (Object?, Map<String, SceneAsset>)? _scenes;
   (Object?, Map<String, String>)? _factNames;
   final _summaries = Expando<GameBehaviourSummary>();
@@ -35,8 +38,31 @@ final class GameBehavioursController {
   Future<void> open() {
     _revision = source().revision;
     unawaited(facts.load(_factTitles, changed));
-    return saved.load(_titles, changed);
+    return saved.load(_titles, changed).then((_) => _loadDirectory());
   }
+
+  Future<void> _loadDirectory({bool force = false}) async {
+    await directory.load(
+      () async {
+        final ids = {for (final row in rows) ?row.mapId}.toList()..sort();
+        return ids.isEmpty ? const {} : port.mapDirectory(ids);
+      },
+      changed,
+      force: force,
+    );
+    if (grouping == GameBehaviourGrouping.character) {
+      await _loadCharacters(force: force);
+    }
+  }
+
+  Future<void> _loadCharacters({bool force = false}) => characters.load(
+    () async {
+      final ids = {for (final row in rows) ?row.characterId}.toList()..sort();
+      return ids.isEmpty ? const {} : port.characterNames(ids);
+    },
+    changed,
+    force: force,
+  );
 
   Future<List<NarrativeTitle>> _factTitles() =>
       port.titles(NarrativeTitleKind.facts);
@@ -66,7 +92,7 @@ final class GameBehavioursController {
     if (identical(revision, _revision)) return;
     _revision = revision;
     if (!saved.ready) return;
-    unawaited(retry());
+    unawaited(retry().then((_) => _loadDirectory(force: true)));
     if (usages.ready) unawaited(_loadFacts(force: true));
   }
 
@@ -76,14 +102,22 @@ final class GameBehavioursController {
     if (cached != null &&
         identical(cached.$1, saved.value) &&
         identical(cached.$2, current.registry) &&
-        identical(cached.$3, current.maps)) {
-      return cached.$4;
+        identical(cached.$3, current.maps) &&
+        identical(cached.$4, directory.value)) {
+      return cached.$5;
     }
     final built = gameBehaviourRows(
       saved: saved.value ?? const [],
       source: current,
+      directory: directory.value ?? const {},
     );
-    _rows = (saved.value, current.registry, current.maps, built);
+    _rows = (
+      saved.value,
+      current.registry,
+      current.maps,
+      directory.value,
+      built,
+    );
     return built;
   }
 
@@ -106,6 +140,10 @@ final class GameBehavioursController {
         visible,
         facts: facts.value ?? const [],
         usages: usages.value ?? const {},
+      ),
+      GameBehaviourGrouping.character => groupGameBehavioursByCharacter(
+        visible,
+        characters.value ?? const {},
       ),
     };
   }
@@ -138,10 +176,15 @@ final class GameBehavioursController {
   void group(GameBehaviourGrouping value) {
     grouping = value;
     if (value == GameBehaviourGrouping.fact) unawaited(_loadFacts());
+    if (value == GameBehaviourGrouping.character && directory.ready) {
+      unawaited(_loadCharacters());
+    }
     changed();
   }
 
   Future<void> retryFacts() => _loadFacts(force: true);
+
+  Future<void> retryDirectory() => _loadDirectory(force: true);
 
   Future<void> _loadFacts({bool force = false}) {
     if (force) unawaited(facts.load(_factTitles, changed, force: true));

@@ -4,6 +4,10 @@ import 'package:map_core/map_core.dart';
 import '../../project_session/data/local_workshop_reader.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/narrative_index_port.dart';
+import '../../scenes/domain/scene_document.dart';
+import '../domain/map_directory.dart';
+import 'local_map_directory_codec.dart';
+import 'local_scene_document_codec.dart' as codec;
 import 'local_narrative_read.dart';
 
 const _usageBatch = 50;
@@ -126,6 +130,70 @@ final class LocalNarrativeIndexAdapter implements NarrativeIndexPort {
         metadataFields: const {'worldRules'},
         operation: (project, _, _) async => project.worldRules,
       );
+
+  @override
+  Future<Map<String, MapDirectoryPage>> mapDirectory(List<String> mapIds) =>
+      _read((reads, handle) async {
+        final pages = <String, MapDirectoryPage>{};
+        for (var start = 0; start < mapIds.length; start += _usageBatch) {
+          final batch = mapIds.skip(start).take(_usageBatch).toList();
+          final page = await reads.queryProject(
+            handle,
+            AuthoringQueryRequest(
+              resourceKind: mapDirectoryResourceKind,
+              operation: AuthoringQueryOperation.batchGet,
+              ids: batch,
+              pageSize: batch.length,
+            ),
+          );
+          for (final item in page.items) {
+            final directory = mapDirectoryPage(item);
+            pages[directory.mapId] = directory;
+          }
+        }
+        return pages;
+      });
+
+  @override
+  Future<Map<String, String>> characterNames(List<String> characterIds) =>
+      _read((reads, handle) async {
+        final names = <String, String>{};
+        for (var start = 0; start < characterIds.length; start += _usageBatch) {
+          final batch = characterIds.skip(start).take(_usageBatch).toList();
+          final page = await reads.queryProject(
+            handle,
+            AuthoringQueryRequest(
+              resourceKind: 'character',
+              operation: AuthoringQueryOperation.batchGet,
+              ids: batch,
+              pageSize: batch.length,
+            ),
+          );
+          for (final item in page.items) {
+            if (item case {'id': final String id, 'name': final String name}
+                when name.trim().isNotEmpty) {
+              names[id] = name;
+            }
+          }
+        }
+        return names;
+      });
+
+  @override
+  Future<SceneDocument> sceneDocument(String sceneId) =>
+      _read((reads, handle) async {
+        final page = await reads.queryProject(
+          handle,
+          AuthoringQueryRequest(
+            resourceKind: sceneDocumentResourceKind,
+            operation: AuthoringQueryOperation.get,
+            view: AuthoringQueryView.detail,
+            ids: [sceneId],
+            pageSize: 1,
+          ),
+        );
+        return codec.sceneDocument(page.items.single);
+      });
 
   NarrativeUsages _usages(Map<String, Object?> item, String field) {
     final coverage = item['coverage'] as Map?;

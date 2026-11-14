@@ -12,6 +12,7 @@ import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/features/verification/application/project_verification_controller.dart';
+import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/verification/application/verification_problems.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviours_view.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_rule_creation.dart';
@@ -40,6 +41,7 @@ class StoryPage extends StatefulWidget {
     required this.simulate,
     required this.openMapEntry,
     required this.unsaved,
+    this.openScene,
   });
 
   final NarrativeIndexPort? port;
@@ -54,6 +56,7 @@ class StoryPage extends StatefulWidget {
   final Future<bool> Function(String eventId) simulate;
   final Future<bool> Function(String mapId) openMapEntry;
   final bool unsaved;
+  final SceneOpener? openScene;
 
   @override
   State<StoryPage> createState() => _StoryPageState();
@@ -157,6 +160,7 @@ class _StoryPageState extends State<StoryPage> {
                     trame: trame,
                     source: widget.behaviourSource,
                     navigate: widget.behaviours.open,
+                    openScene: widget.openScene,
                   ),
                   StoryTab.trame => StudioEmptyState(
                     icon: Icons.inventory_2_outlined,
@@ -169,6 +173,7 @@ class _StoryPageState extends State<StoryPage> {
                     openMap: widget.openMap,
                     trame: trame,
                     simulate: widget.simulate,
+                    openScene: widget.openScene,
                   ),
                   StoryTab.verify => VerificationView(
                     verification: widget.verification,

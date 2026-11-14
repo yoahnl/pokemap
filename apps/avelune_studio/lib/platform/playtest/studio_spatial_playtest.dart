@@ -180,6 +180,7 @@ final class StudioSpatialPlaytest {
         grantedCapabilities: {
           ...AveluneRuntimeCompatibility.host().capabilities,
           GameCompletionPartyCapabilities.capabilityId,
+          PlayerJournalCapabilities.capabilityId,
           'map3d@1',
           SpatialGameplayCapabilities.capabilityId,
           SpatialGameplayCapabilities.storyCapabilityId,

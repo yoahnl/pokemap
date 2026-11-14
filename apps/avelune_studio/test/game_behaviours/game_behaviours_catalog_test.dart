@@ -24,7 +24,9 @@ bool _indexUnit(String key) =>
     key.startsWith('workspaceState:["narrativeTitles","narrativeEvents",') ||
     key.startsWith('workspaceState:["narrativeTitles","facts",') ||
     key == 'workspaceState:narrativeFactUsersIndex' ||
-    key.startsWith('workspaceState:["narrativeFactUsers",');
+    key.startsWith('workspaceState:["narrativeFactUsers",') ||
+    key == 'workspaceState:mapDirectoryIndex' ||
+    key.startsWith('workspaceState:["mapDirectory",');
 
 void main() {
   test('Tout le jeu lists every behaviour from index pages only', () async {

@@ -16,6 +16,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   String? _visualsError;
   var _saveFailed = false;
   var _testing = false;
+  SceneFocusController? _sceneFocus;
   late final _projection = WorkspaceVisualProjectionQueue(
     currentVisuals: () => _visuals,
     activeMap: () => _maps.active?.current,
@@ -96,6 +97,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     _maps = _subscription.read();
     _maps.modelDeletionGuard = _story.modelDeletionProblem;
     _stories.attach();
+    _story.openScene = _openScene;
     _connections = ref.listenManual(
       mapConnectionPortProvider(widget.session),
       (_, _) {},

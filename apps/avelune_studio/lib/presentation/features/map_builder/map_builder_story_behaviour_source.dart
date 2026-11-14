@@ -40,4 +40,12 @@ final class MapBuilderStoryBehaviourSource implements GameBehaviourSource {
     final name = _story.elements?.byKey('${target.name}:$id')?.name.trim();
     return name == null || name.isEmpty ? null : name;
   }
+
+  @override
+  bool? elementPresent(String mapId, MapStoryElementTarget target, String id) {
+    if (_story.map?.id != mapId) return null;
+    return !_story.orphans.any(
+      (orphan) => orphan.target == target && orphan.id == id,
+    );
+  }
 }

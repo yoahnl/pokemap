@@ -37,6 +37,7 @@ class TrameSceneGroup extends StatelessWidget {
     required this.behaviours,
     required this.navigate,
     required this.onDetach,
+    this.onOpen,
   });
 
   final StorylineTrameController trame;
@@ -45,6 +46,7 @@ class TrameSceneGroup extends StatelessWidget {
   final List<GameBehaviourRow> behaviours;
   final Future<bool> Function(String eventId) navigate;
   final VoidCallback? onDetach;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +74,14 @@ class TrameSceneGroup extends StatelessWidget {
                   style: theme.textTheme.labelLarge,
                 ),
               ),
+              if (onOpen case final open?)
+                IconButton(
+                  key: ValueKey('trame-scene-open-$sceneId'),
+                  tooltip: l10n.sceneFocusOpen,
+                  iconSize: 18,
+                  onPressed: open,
+                  icon: const Icon(Icons.open_in_full),
+                ),
               StudioButton(
                 key: ValueKey('trame-detach-$sceneId'),
                 label: l10n.trameDetach,

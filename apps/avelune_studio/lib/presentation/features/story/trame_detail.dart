@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
+import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_rows.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_edits.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_view.dart';
 import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
+import 'package:avelune_studio/presentation/features/story/trame_clues.dart';
 import 'package:avelune_studio/presentation/features/story/trame_labels.dart';
 import 'package:avelune_studio/presentation/features/story/trame_milestone_detail.dart';
 import 'package:avelune_studio/presentation/features/story/trame_outside.dart';
@@ -23,6 +25,7 @@ class TrameDetail extends StatelessWidget {
     required this.selection,
     required this.behaviours,
     required this.navigate,
+    this.openScene,
   });
 
   final StorylineTrameController trame;
@@ -30,6 +33,7 @@ class TrameDetail extends StatelessWidget {
   final TrameSelection? selection;
   final List<GameBehaviourRow> behaviours;
   final Future<bool> Function(String eventId) navigate;
+  final SceneOpener? openScene;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +63,7 @@ class TrameDetail extends StatelessWidget {
         at: milestone,
         behaviours: behaviours,
         navigate: navigate,
+        openScene: openScene,
       ),
       TrameItem.chapter when storyline != null && chapter != null => ListView(
         key: ValueKey('trame-chapter-detail-${chapter.id}'),
@@ -165,6 +170,8 @@ class TrameDetail extends StatelessWidget {
                   : null,
             ),
           ),
+          const SizedBox(height: StudioSpacing.l),
+          TrameJournalClues(trame: trame, storylineId: storyline.id),
         ],
       ),
       _ => StudioEmptyState(

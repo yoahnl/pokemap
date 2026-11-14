@@ -86,6 +86,7 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
             for (final (phase, scope) in const [
               (ProjectOpeningPhase.narrativeTitles, 'narrativeTitles'),
               (ProjectOpeningPhase.narrativeUsages, 'narrativeUsages'),
+              (ProjectOpeningPhase.mapDirectory, 'mapDirectory'),
             ]) {
               onPhase?.call(phase);
               await api.prepareWorkshopCatalog(

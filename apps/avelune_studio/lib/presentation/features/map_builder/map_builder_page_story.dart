@@ -5,6 +5,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     if (section == _section) return;
     _commitTyping();
     if (section != StudioRailSection.map) _resources.release();
+    _sceneFocus = null;
     _section = section;
     _storyShown |= section == StudioRailSection.story;
     _changed();
@@ -33,6 +34,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       },
       verification: _stories.verification,
       unsaved: _draft.unsaved,
+      openScene: _openScene,
       simulate: (id) async {
         final opened = await _openBehaviour(id);
         if (opened) _story.toggleSimulation(id);

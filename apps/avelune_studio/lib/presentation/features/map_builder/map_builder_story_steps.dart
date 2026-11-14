@@ -22,6 +22,7 @@ class MapBuilderStorySteps extends StatelessWidget {
     required this.map,
     required this.enabled,
     required this.onChanged,
+    this.highlighted,
   });
 
   final SceneAsset scene;
@@ -29,6 +30,7 @@ class MapBuilderStorySteps extends StatelessWidget {
   final MapData? map;
   final bool enabled;
   final bool Function(SceneAsset next) onChanged;
+  final Set<String>? highlighted;
 
   @override
   Widget build(BuildContext context) {

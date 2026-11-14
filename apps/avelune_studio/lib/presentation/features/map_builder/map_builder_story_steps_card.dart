@@ -118,6 +118,7 @@ class _StepCard extends StatelessWidget {
         : l10n.storyStepFamily(family.name);
     final subtitle =
         current?.title ?? (form == null ? _commandOf(current) : null);
+    final onPath = steps.widget.highlighted?.contains(nodeId);
     return Container(
       key: ValueKey(
         form == null ? 'story-step-advanced-$nodeId' : 'story-step-$nodeId',
@@ -125,9 +126,20 @@ class _StepCard extends StatelessWidget {
       padding: const EdgeInsets.all(StudioSpacing.m),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        border: Border.all(
+          color: onPath == true
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant,
+          width: onPath == true ? 2 : 1,
+        ),
         borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
       ),
+      foregroundDecoration: onPath == false
+          ? BoxDecoration(
+              color: theme.colorScheme.surface.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

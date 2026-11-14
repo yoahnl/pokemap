@@ -2,6 +2,7 @@ import 'package:avelune_studio/features/events/application/behaviour/behaviour_r
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_groups.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_rows.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_summary.dart';
+import 'package:avelune_studio/features/game_memory/domain/map_directory.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -237,5 +238,52 @@ void main() {
       summarizeGameBehaviour(behaviour(2, 'X'), (_) => null).sceneChosen,
       isFalse,
     );
+  });
+
+  test('the open map wins over the saved directory of map elements', () {
+    final talks = [
+      behaviour(
+        1,
+        'Ajouté sans enregistrer',
+        source: NarrativeEventSourceRef.entityInteract('town', 'fresh'),
+        enabled: true,
+      ),
+      behaviour(
+        2,
+        'Retiré sans enregistrer',
+        source: NarrativeEventSourceRef.entityInteract('town', 'npc'),
+        enabled: true,
+      ),
+      behaviour(
+        3,
+        'Sur la carte entière',
+        source: NarrativeEventSourceRef.mapEnter('town'),
+        enabled: true,
+      ),
+    ];
+    final rows = gameBehaviourRows(
+      saved: [_title(1), _title(2), _title(3)],
+      source: FakeBehaviourSource(
+        records: talks,
+        maps: _maps,
+        present: {'town/entity:fresh': true, 'town/entity:npc': false},
+      ),
+      directory: {
+        'town': MapDirectoryPage(
+          mapId: 'town',
+          name: 'Bourg',
+          elements: const [
+            MapDirectoryElement(
+              id: 'npc',
+              kind: MapDirectoryElementKind.entity,
+              name: 'Léo',
+            ),
+          ],
+        ),
+      },
+    );
+
+    expect([for (final row in rows) row.elementMissing], [false, true, false]);
+    expect(rows[1].elementName, 'Léo');
   });
 }

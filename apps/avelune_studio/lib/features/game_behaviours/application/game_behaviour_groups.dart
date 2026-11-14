@@ -1,8 +1,9 @@
 import '../../events/domain/event_record_view.dart';
 import '../../game_memory/domain/narrative_index_port.dart';
+import '../../map_workspace/application/map_story_elements.dart';
 import 'game_behaviour_rows.dart';
 
-enum GameBehaviourGrouping { map, fact }
+enum GameBehaviourGrouping { map, fact, character }
 
 enum GameBehaviourGroupKind {
   map,
@@ -11,6 +12,8 @@ enum GameBehaviourGroupKind {
   notLoaded,
   fact,
   withoutFact,
+  character,
+  withoutCharacter,
 }
 
 final class GameBehaviourGroup {
@@ -95,5 +98,50 @@ List<GameBehaviourGroup> groupGameBehavioursByFact(
     ...groups,
     if (rest.isNotEmpty)
       GameBehaviourGroup(GameBehaviourGroupKind.withoutFact, rest),
+  ];
+}
+
+List<GameBehaviourGroup> groupGameBehavioursByCharacter(
+  List<GameBehaviourRow> rows,
+  Map<String, String> characterNames,
+) {
+  final groups = <String, List<GameBehaviourRow>>{};
+  final labels = <String, String?>{};
+  final rest = <GameBehaviourRow>[];
+  for (final row in rows) {
+    final key = switch (row) {
+      GameBehaviourRow(:final characterId?) => 'character:$characterId',
+      GameBehaviourRow(
+        target: MapStoryElementTarget.entity,
+        elementMissing: false,
+        :final mapId?,
+      ) =>
+        'entity:$mapId/${row.elementId}',
+      _ => null,
+    };
+    if (key == null) {
+      rest.add(row);
+      continue;
+    }
+    groups.putIfAbsent(key, () => []).add(row);
+    labels[key] ??= row.characterId == null
+        ? row.elementName
+        : characterNames[row.characterId] ?? row.elementName;
+  }
+  final ordered = groups.keys.toList()
+    ..sort(
+      (a, b) => (labels[a] ?? '').toLowerCase().compareTo(
+        (labels[b] ?? '').toLowerCase(),
+      ),
+    );
+  return [
+    for (final key in ordered)
+      GameBehaviourGroup(
+        GameBehaviourGroupKind.character,
+        groups[key]!,
+        label: labels[key],
+      ),
+    if (rest.isNotEmpty)
+      GameBehaviourGroup(GameBehaviourGroupKind.withoutCharacter, rest),
   ];
 }

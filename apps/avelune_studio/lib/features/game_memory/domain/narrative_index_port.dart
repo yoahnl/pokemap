@@ -1,5 +1,8 @@
 import 'package:map_core/map_core_domain.dart';
 
+import '../../scenes/domain/scene_document.dart';
+import 'map_directory.dart';
+
 enum NarrativeTitleKind {
   facts('facts'),
   worldRules('worldRules'),
@@ -102,4 +105,10 @@ abstract interface class NarrativeIndexPort {
   Future<NarrativeUsages> elementOwners(String mapId, String elementId);
 
   Future<List<WorldRuleDefinition>> worldRules();
+
+  Future<Map<String, MapDirectoryPage>> mapDirectory(List<String> mapIds);
+
+  Future<Map<String, String>> characterNames(List<String> characterIds);
+
+  Future<SceneDocument> sceneDocument(String sceneId);
 }

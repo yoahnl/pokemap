@@ -78,79 +78,88 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                   onSection: _setSection,
                 ),
                 Expanded(
-                  child: IndexedStack(
-                    index: _section.index,
-                    sizing: StackFit.expand,
+                  child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                      IndexedStack(
+                        index: _section.index,
+                        sizing: StackFit.expand,
                         children: [
-                          MapBuilderSidePanel(
-                            space: _space,
-                            story: _story,
-                            gameplay: _gameplay,
-                            ambiance: _ambiance,
-                            resources: _resources,
-                            maps: _maps,
-                            visuals: _visuals,
-                            enabled: _editable,
-                          ),
-                          Expanded(
-                            child: MapBuilderCanvas(
-                              space: _space,
-                              onSpace: _setSpace,
-                              entry: entry,
-                              tool: view?.tool ?? StudioMapTool.select,
-                              onTool: _setTool,
-                              inspectorOpen: _inspectorOpen,
-                              onToggleInspector: onToggleInspector,
-                              error:
-                                  _maps.error ??
-                                  _visualsError ??
-                                  _resourceProblem() ??
-                                  document?.error,
-                              surface: _surface(),
-                              statusBar: MapBuilderStatusBar(
-                                toolLabel:
-                                    _resources.armed != null ||
-                                        _gameplay.placing
-                                    ? toolLabel ?? context.l10n.statusBuilding
-                                    : view?.tool == StudioMapTool.pan
-                                    ? context.l10n.toolPan
-                                    : context.l10n.toolSelect,
-                                view: view,
-                                spatial: document?.current.spatialScene != null,
-                                onChanged: _changed,
-                              ),
-                            ),
-                          ),
-                          if (_inspectorOpen)
-                            MapBuilderInspector(
-                              entry: entry,
-                              projectName: project?.name ?? widget.session.name,
-                              space: _space,
-                              armed: _resources.armed,
-                              toolLabel: toolLabel,
-                              toolHint: view == null
-                                  ? null
-                                  : context.l10n.toolHint(
-                                      view,
-                                      armed: intent?.armed ?? false,
-                                    ),
-                              onRelease: _resources.release,
-                              onCollapse: onCollapse,
-                              body: mapBuilderSpaceInspector(
-                                _space,
-                                _gameplay,
-                                _ambiance,
-                                context.l10n,
-                                enabled: _editable,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              MapBuilderSidePanel(
+                                space: _space,
                                 story: _story,
+                                gameplay: _gameplay,
+                                ambiance: _ambiance,
+                                resources: _resources,
+                                maps: _maps,
+                                visuals: _visuals,
+                                enabled: _editable,
                               ),
-                            ),
+                              Expanded(
+                                child: MapBuilderCanvas(
+                                  space: _space,
+                                  onSpace: _setSpace,
+                                  entry: entry,
+                                  tool: view?.tool ?? StudioMapTool.select,
+                                  onTool: _setTool,
+                                  inspectorOpen: _inspectorOpen,
+                                  onToggleInspector: onToggleInspector,
+                                  error:
+                                      _maps.error ??
+                                      _visualsError ??
+                                      _resourceProblem() ??
+                                      document?.error,
+                                  surface: _surface(),
+                                  statusBar: MapBuilderStatusBar(
+                                    toolLabel:
+                                        _resources.armed != null ||
+                                            _gameplay.placing
+                                        ? toolLabel ??
+                                              context.l10n.statusBuilding
+                                        : view?.tool == StudioMapTool.pan
+                                        ? context.l10n.toolPan
+                                        : context.l10n.toolSelect,
+                                    view: view,
+                                    spatial:
+                                        document?.current.spatialScene != null,
+                                    onChanged: _changed,
+                                  ),
+                                ),
+                              ),
+                              if (_inspectorOpen)
+                                MapBuilderInspector(
+                                  entry: entry,
+                                  projectName:
+                                      project?.name ?? widget.session.name,
+                                  space: _space,
+                                  armed: _resources.armed,
+                                  toolLabel: toolLabel,
+                                  toolHint: view == null
+                                      ? null
+                                      : context.l10n.toolHint(
+                                          view,
+                                          armed: intent?.armed ?? false,
+                                        ),
+                                  onRelease: _resources.release,
+                                  onCollapse: onCollapse,
+                                  body: mapBuilderSpaceInspector(
+                                    _space,
+                                    _gameplay,
+                                    _ambiance,
+                                    context.l10n,
+                                    enabled: _editable,
+                                    story: _story,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          _storyPage(),
                         ],
                       ),
-                      _storyPage(),
+                      ?_scenePage(),
                     ],
                   ),
                 ),

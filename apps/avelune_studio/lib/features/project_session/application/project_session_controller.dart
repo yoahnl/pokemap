@@ -74,6 +74,7 @@ class ProjectSessionController {
     for (final phase in const [
       ProjectOpeningPhase.narrativeTitles,
       ProjectOpeningPhase.narrativeUsages,
+      ProjectOpeningPhase.mapDirectory,
     ]) {
       progress[phase].status == ProjectOpeningStepStatus.running
           ? progress.finish(phase)

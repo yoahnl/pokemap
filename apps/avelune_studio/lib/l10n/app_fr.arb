@@ -1141,6 +1141,7 @@
   },
   "openingPhaseNarrativeTitles": "Index des noms de l’histoire",
   "openingPhaseNarrativeUsages": "Index des usages de l’histoire",
+  "openingPhaseMapDirectory": "Index des éléments des cartes",
   "storyTabMemory": "Mémoire du jeu",
   "memorySectionFacts": "États",
   "memorySectionRules": "Règles du monde",
@@ -1429,6 +1430,7 @@
   "behavioursSearch": "Rechercher un comportement, une carte ou un élément",
   "behavioursByMap": "Par carte",
   "behavioursByFact": "Par état",
+  "behavioursByCharacter": "Par personnage",
   "behavioursFilterWithoutMap": "Sans carte",
   "behavioursFilterToRepair": "À réparer",
   "behavioursFilterDisabled": "Désactivés",
@@ -1454,6 +1456,9 @@
   "behavioursNotLoaded": "Créés ailleurs depuis l’ouverture du projet",
   "behavioursWithoutFact": "Sans état",
   "behavioursUnnamedFact": "État sans nom",
+  "behavioursWithoutCharacter": "Sans personnage",
+  "behavioursUnnamedCharacter": "Personnage sans nom",
+  "behavioursCharactersLoading": "Lecture des éléments des cartes…",
   "behavioursUnnamed": "Comportement sans nom",
   "behavioursElementKind": "{kind, select, entity{un personnage ou un panneau} model{un objet du décor} trigger{une zone} other{toute la carte}}",
   "@behavioursElementKind": {
@@ -1497,9 +1502,11 @@
   "behavioursDeletedElsewhere": "Supprimé ailleurs",
   "behavioursNotLoadedBadge": "Rechargez le projet",
   "behavioursToRepair": "À réparer",
+  "behavioursElementMissing": "Élément supprimé de sa carte",
   "behavioursRefused": "Ce comportement n’existe plus ou n’est plus sur sa carte : rien n’a été ouvert.",
-  "behavioursCoverage": "Recherche par nom, carte et élément. Les noms d’éléments ne sont connus que pour la carte ouverte ; la recherche dans les répliques viendra plus tard.",
+  "behavioursCoverage": "Recherche par nom, carte et élément ; la recherche dans les répliques viendra plus tard.",
   "behavioursByFactHint": "D’après l’index des usages : un comportement apparaît sous chaque état que lui ou sa scène lit ou modifie.",
+  "behavioursByCharacterHint": "Un personnage regroupe les comportements de tous ses éléments, sur toutes les cartes ; un élément sans personnage forme son propre groupe.",
   "storyTabTrame": "Trame",
   "behavioursFilterOutsideTrame": "Hors trame",
   "storyMilestoneField": "Jalon de la trame",
@@ -1567,6 +1574,77 @@
   "trameOutsideHint": "Comportements dont la scène n’est rattachée à aucun jalon.",
   "trameArchivedBadge": "Archivé",
   "trameArchived": "Archivé",
+  "trameJournal": "Journal du joueur",
+  "trameJournalHint": "Le joueur lit cette entrée dans son journal pendant l’étape, puis une fois l’étape terminée. Sans entrée, l’étape n’apparaît pas dans le journal.",
+  "trameJournalTitle": "Titre dans le journal",
+  "trameJournalText": "Texte du journal",
+  "trameJournalAdd": "Ajouter au journal",
+  "trameJournalApply": "Mettre à jour le journal",
+  "trameJournalRemove": "Retirer du journal",
+  "trameJournalLoading": "Lecture de la trame complète…",
+  "trameJournalTranslations": "Les traductions déjà écrites sont conservées telles quelles : relisez-les si vous changez le sens du texte.",
+  "trameClues": "Notes d’indice",
+  "trameCluesHint": "Une note s’affiche dans le journal du joueur dès que son état est vrai.",
+  "trameCluesNoFact": "Aucun état oui/non dans le projet : créez-en un dans la Mémoire du jeu pour écrire une note.",
+  "trameClueText": "Texte de la note",
+  "trameClueFact": "Visible quand cet état est vrai",
+  "trameClueAdd": "Ajouter la note",
+  "trameClueApply": "Mettre à jour la note",
+  "trameClueRemove": "Supprimer la note",
+  "trameJournalLimit": "{count} caractères au plus",
+  "@trameJournalLimit": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sceneFocusOpen": "Voir la scène en grand",
+  "sceneFocusClose": "Fermer la scène",
+  "sceneFocusLoading": "Lecture de la scène…",
+  "sceneFocusPreview": "Prévisualiser un chemin",
+  "sceneFocusPreviewStop": "Arrêter l’aperçu",
+  "sceneFocusDetach": "Détacher une copie",
+  "sceneFocusDetachHint": "La copie ne sert qu’à ce comportement ; ses dialogues restent partagés.",
+  "sceneFocusLaunchedBy": "Lancée par",
+  "sceneFocusNoLauncher": "Aucun comportement ne lance cette scène.",
+  "sceneFocusChangedFacts": "États modifiés",
+  "sceneFocusNoFactChange": "Cette scène ne modifie aucun état.",
+  "sceneFocusPath": "Chemin",
+  "sceneFocusPathHint": "Choisissez chaque sortie : le chemin se surligne dans les étapes. Le jeu n’est pas lancé.",
+  "sceneFocusChooseExit": "Quelle sortie ?",
+  "sceneFocusPathEnded": "Fin de la scène.",
+  "sceneFocusPathLooped": "Ce chemin revient sur une étape déjà parcourue.",
+  "sceneFocusRestart": "Recommencer",
+  "sceneFocusPathStart": "Début",
+  "sceneFocusPathEnd": "Fin",
+  "sceneFocusShared": "{count} comportements lancent cette scène : la modifier ici les modifie tous.",
+  "@sceneFocusShared": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sceneFocusCopyName": "{name} (copie)",
+  "@sceneFocusCopyName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneFocusPathStepDetail": "{step} · {detail}",
+  "@sceneFocusPathStepDetail": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "trameRefused": "Modification refusée ({code}). Rien n’a changé.",
   "@trameRefused": {
     "placeholders": {

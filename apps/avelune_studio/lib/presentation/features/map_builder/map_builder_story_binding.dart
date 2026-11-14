@@ -44,6 +44,7 @@ part 'map_builder_story_element_editing.dart';
 part 'map_builder_story_history.dart';
 part 'map_builder_story_line_binding.dart';
 part 'map_builder_story_publication.dart';
+part 'map_builder_story_scene_binding.dart';
 part 'map_builder_story_selection.dart';
 part 'map_builder_story_simulation_binding.dart';
 
@@ -93,6 +94,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   NarrativeIndexPort? narrative;
   StorylineTrameController? trame;
   String? simulating;
+  void Function(String sceneId, String? behaviourId)? openScene;
   final behaviours = MapStoryBehaviours();
   final _lines = _StoryLines();
   final _triggers = _StoryTriggers();

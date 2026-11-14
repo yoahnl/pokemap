@@ -14,6 +14,7 @@ class GameBehaviourRowTile extends StatelessWidget {
     required this.factName,
     required this.onTap,
     this.onSimulate,
+    this.onOpenScene,
   });
 
   final GameBehaviourRow row;
@@ -21,6 +22,7 @@ class GameBehaviourRowTile extends StatelessWidget {
   final String? Function(String factId) factName;
   final VoidCallback onTap;
   final VoidCallback? onSimulate;
+  final VoidCallback? onOpenScene;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,10 @@ class GameBehaviourRowTile extends StatelessWidget {
         StudioTone.warning,
       ),
       GameBehaviourRow(unsaved: true) => (l10n.memoryUnsaved, StudioTone.info),
+      GameBehaviourRow(elementMissing: true) => (
+        l10n.behavioursElementMissing,
+        StudioTone.warning,
+      ),
       GameBehaviourRow(toRepair: true) => (
         l10n.behavioursToRepair,
         StudioTone.warning,
@@ -50,6 +56,24 @@ class GameBehaviourRowTile extends StatelessWidget {
       _ => null,
     };
     final place = l10n.behaviourPlace(row);
+    final actions = [
+      if (onOpenScene case final open?)
+        IconButton(
+          key: ValueKey('behaviour-scene-${row.id}'),
+          tooltip: l10n.sceneFocusOpen,
+          iconSize: 18,
+          onPressed: open,
+          icon: const Icon(Icons.open_in_full),
+        ),
+      if (onSimulate case final simulate?)
+        IconButton(
+          key: ValueKey('behaviour-simulate-${row.id}'),
+          tooltip: l10n.simulationOpen,
+          iconSize: 18,
+          onPressed: simulate,
+          icon: const Icon(Icons.play_circle_outline),
+        ),
+    ];
     return StudioChoice(
       key: ValueKey('behaviour-${row.id}'),
       label: l10n.behaviourName(row),
@@ -57,22 +81,16 @@ class GameBehaviourRowTile extends StatelessWidget {
           ? place
           : '$place\n${l10n.behaviourSummary(summary, factName)}',
       maxLines: 1,
-      trailing: switch ((badge, onSimulate)) {
-        (final badge?, null) => StudioBadge(badge.$1, tone: badge.$2),
-        (_, final simulate?) => Row(
+      trailing: switch ((badge, actions.isEmpty)) {
+        (null, true) => null,
+        (final badge?, true) => StudioBadge(badge.$1, tone: badge.$2),
+        _ => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (badge != null) StudioBadge(badge.$1, tone: badge.$2),
-            IconButton(
-              key: ValueKey('behaviour-simulate-${row.id}'),
-              tooltip: l10n.simulationOpen,
-              iconSize: 18,
-              onPressed: simulate,
-              icon: const Icon(Icons.play_circle_outline),
-            ),
+            ...actions,
           ],
         ),
-        _ => null,
       },
       onTap: onTap,
     );

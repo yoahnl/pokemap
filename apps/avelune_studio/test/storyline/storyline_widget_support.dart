@@ -75,11 +75,12 @@ Future<FakeStorylineRead> openTrameStudio(
   bool empty = false,
   VerificationPort? verification,
   ProjectManifest? project,
+  FakeNarrativeIndex? index,
 }) async {
   final reads = trameReads(empty: empty);
   await openMemoryStudio(
     tester,
-    memoryIndex()
+    (index ?? memoryIndex())
       ..addFacts(trameProject.facts)
       ..titlesByKind[NarrativeTitleKind.events] = [
         for (final record in (project ?? trameProject).eventRegistry!.records)

@@ -37,9 +37,13 @@ Future<T> readNarrativeIndex<T>(
         const NarrativeIndexPreparationRequired('narrativeUsages'),
       'query.narrative_events_preparation_required' =>
         const NarrativeIndexPreparationRequired('narrativeEvents'),
+      'query.map_directory_preparation_required' =>
+        const NarrativeIndexPreparationRequired('mapDirectory'),
       'query.narrative_titles_catalog_required' ||
       'query.narrative_usages_catalog_required' ||
-      'query.storyline_read_catalog_required' =>
+      'query.storyline_read_catalog_required' ||
+      'query.map_directory_catalog_required' ||
+      'query.scene_document_catalog_required' =>
         const NarrativeIndexUnavailable(),
       _ => failure,
     };

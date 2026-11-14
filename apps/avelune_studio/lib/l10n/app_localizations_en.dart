@@ -2119,6 +2119,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openingPhaseNarrativeUsages => 'Story usage index';
 
   @override
+  String get openingPhaseMapDirectory => 'Map element index';
+
+  @override
   String get storyTabMemory => 'Game memory';
 
   @override
@@ -2554,6 +2557,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get behavioursByFact => 'By state';
 
   @override
+  String get behavioursByCharacter => 'By character';
+
+  @override
   String get behavioursFilterWithoutMap => 'Without map';
 
   @override
@@ -2603,6 +2609,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get behavioursUnnamedFact => 'Unnamed state';
 
   @override
+  String get behavioursWithoutCharacter => 'Without character';
+
+  @override
+  String get behavioursUnnamedCharacter => 'Unnamed character';
+
+  @override
+  String get behavioursCharactersLoading => 'Reading map elements…';
+
+  @override
   String get behavioursUnnamed => 'Unnamed behaviour';
 
   @override
@@ -2650,16 +2665,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get behavioursToRepair => 'To repair';
 
   @override
+  String get behavioursElementMissing => 'Element deleted from its map';
+
+  @override
   String get behavioursRefused =>
       'This behaviour no longer exists or is no longer on its map: nothing was opened.';
 
   @override
   String get behavioursCoverage =>
-      'Search by name, map and element. Element names are only known for the open map; searching lines will come later.';
+      'Search by name, map and element; searching lines will come later.';
 
   @override
   String get behavioursByFactHint =>
       'From the usage index: a behaviour appears under every state that it or its scene reads or changes.';
+
+  @override
+  String get behavioursByCharacterHint =>
+      'A character gathers the behaviours of all its elements, on every map; an element without a character forms its own group.';
 
   @override
   String get storyTabTrame => 'Plot';
@@ -2798,6 +2820,141 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trameArchived => 'Archived';
+
+  @override
+  String get trameJournal => 'Player journal';
+
+  @override
+  String get trameJournalHint =>
+      'The player reads this entry in their journal during the milestone, then once it is completed. Without an entry, the milestone does not appear in the journal.';
+
+  @override
+  String get trameJournalTitle => 'Journal title';
+
+  @override
+  String get trameJournalText => 'Journal text';
+
+  @override
+  String get trameJournalAdd => 'Add to the journal';
+
+  @override
+  String get trameJournalApply => 'Update the journal';
+
+  @override
+  String get trameJournalRemove => 'Remove from the journal';
+
+  @override
+  String get trameJournalLoading => 'Reading the full storyline…';
+
+  @override
+  String get trameJournalTranslations =>
+      'Existing translations are kept as they are: review them if you change the meaning of the text.';
+
+  @override
+  String get trameClues => 'Clue notes';
+
+  @override
+  String get trameCluesHint =>
+      'A note appears in the player journal as soon as its state is true.';
+
+  @override
+  String get trameCluesNoFact =>
+      'No yes/no state in the project: create one in the Game memory to write a note.';
+
+  @override
+  String get trameClueText => 'Note text';
+
+  @override
+  String get trameClueFact => 'Visible when this state is true';
+
+  @override
+  String get trameClueAdd => 'Add the note';
+
+  @override
+  String get trameClueApply => 'Update the note';
+
+  @override
+  String get trameClueRemove => 'Delete the note';
+
+  @override
+  String trameJournalLimit(int count) {
+    return '$count characters at most';
+  }
+
+  @override
+  String get sceneFocusOpen => 'Open the scene full screen';
+
+  @override
+  String get sceneFocusClose => 'Close the scene';
+
+  @override
+  String get sceneFocusLoading => 'Reading the scene…';
+
+  @override
+  String get sceneFocusPreview => 'Preview a path';
+
+  @override
+  String get sceneFocusPreviewStop => 'Stop the preview';
+
+  @override
+  String get sceneFocusDetach => 'Detach a copy';
+
+  @override
+  String get sceneFocusDetachHint =>
+      'The copy only serves this behaviour; its dialogues stay shared.';
+
+  @override
+  String get sceneFocusLaunchedBy => 'Started by';
+
+  @override
+  String get sceneFocusNoLauncher => 'No behaviour starts this scene.';
+
+  @override
+  String get sceneFocusChangedFacts => 'Changed states';
+
+  @override
+  String get sceneFocusNoFactChange => 'This scene changes no state.';
+
+  @override
+  String get sceneFocusPath => 'Path';
+
+  @override
+  String get sceneFocusPathHint =>
+      'Pick each exit: the path highlights in the steps. The game is not started.';
+
+  @override
+  String get sceneFocusChooseExit => 'Which exit?';
+
+  @override
+  String get sceneFocusPathEnded => 'End of the scene.';
+
+  @override
+  String get sceneFocusPathLooped =>
+      'This path comes back to a step already walked.';
+
+  @override
+  String get sceneFocusRestart => 'Start over';
+
+  @override
+  String get sceneFocusPathStart => 'Start';
+
+  @override
+  String get sceneFocusPathEnd => 'End';
+
+  @override
+  String sceneFocusShared(int count) {
+    return '$count behaviours start this scene: editing it here changes all of them.';
+  }
+
+  @override
+  String sceneFocusCopyName(String name) {
+    return '$name (copy)';
+  }
+
+  @override
+  String sceneFocusPathStepDetail(String step, String detail) {
+    return '$step · $detail';
+  }
 
   @override
   String trameRefused(String code) {

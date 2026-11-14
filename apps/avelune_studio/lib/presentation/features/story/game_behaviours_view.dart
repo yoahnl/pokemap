@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
+import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_groups.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_rows.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviours_controller.dart';
+import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviour_labels.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviour_row.dart';
@@ -20,6 +22,7 @@ class GameBehavioursView extends StatefulWidget {
     required this.openMap,
     this.trame,
     this.simulate,
+    this.openScene,
   });
 
   final GameBehavioursController behaviours;
@@ -27,6 +30,7 @@ class GameBehavioursView extends StatefulWidget {
   final VoidCallback openMap;
   final StorylineTrameController? trame;
   final Future<bool> Function(String eventId)? simulate;
+  final SceneOpener? openScene;
 
   @override
   State<GameBehavioursView> createState() => _GameBehavioursViewState();
@@ -80,6 +84,10 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
                       value: GameBehaviourGrouping.fact,
                       label: Text(l10n.behavioursByFact),
                     ),
+                    ButtonSegment(
+                      value: GameBehaviourGrouping.character,
+                      label: Text(l10n.behavioursByCharacter),
+                    ),
                   ],
                   selected: {behaviours.grouping},
                   onSelectionChanged: (value) => behaviours.group(value.single),
@@ -120,9 +128,12 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
                           },
                   ),
                 Text(
-                  behaviours.grouping == GameBehaviourGrouping.fact
-                      ? l10n.behavioursByFactHint
-                      : l10n.behavioursCoverage,
+                  switch (behaviours.grouping) {
+                    GameBehaviourGrouping.fact => l10n.behavioursByFactHint,
+                    GameBehaviourGrouping.character =>
+                      l10n.behavioursByCharacterHint,
+                    GameBehaviourGrouping.map => l10n.behavioursCoverage,
+                  },
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -161,14 +172,28 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
           loading: l10n.behavioursLoading,
           onRetry: behaviours.retry,
         ) ??
-        (behaviours.grouping == GameBehaviourGrouping.fact
-            ? gameMemoryResourceState(
-                context,
-                behaviours.usages,
-                loading: l10n.behavioursFactsLoading,
-                onRetry: behaviours.retryFacts,
-              )
-            : null);
+        switch (behaviours.grouping) {
+          GameBehaviourGrouping.fact => gameMemoryResourceState(
+            context,
+            behaviours.usages,
+            loading: l10n.behavioursFactsLoading,
+            onRetry: behaviours.retryFacts,
+          ),
+          GameBehaviourGrouping.character =>
+            gameMemoryResourceState(
+                  context,
+                  behaviours.directory,
+                  loading: l10n.behavioursCharactersLoading,
+                  onRetry: behaviours.retryDirectory,
+                ) ??
+                gameMemoryResourceState(
+                  context,
+                  behaviours.characters,
+                  loading: l10n.behavioursCharactersLoading,
+                  onRetry: behaviours.retryDirectory,
+                ),
+          GameBehaviourGrouping.map => null,
+        };
     if (state != null) return state;
     if (behaviours.rows.isEmpty) {
       return StudioEmptyState(
@@ -225,6 +250,10 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
           onSimulate: widget.simulate == null || row.record == null
               ? null
               : () => unawaited(behaviours.reach(row.id, widget.simulate!)),
+          onOpenScene: switch ((widget.openScene, row.record?.sceneId)) {
+            (final open?, final sceneId?) => () => open(sceneId, row.id),
+            _ => null,
+          },
         ),
         _ => const SizedBox.shrink(),
       },

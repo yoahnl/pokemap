@@ -4,6 +4,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_rows.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_source.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
@@ -21,11 +22,13 @@ class TrameView extends StatefulWidget {
     required this.trame,
     required this.source,
     required this.navigate,
+    this.openScene,
   });
 
   final StorylineTrameController trame;
   final GameBehaviourSource source;
   final Future<bool> Function(String eventId) navigate;
+  final SceneOpener? openScene;
 
   @override
   State<TrameView> createState() => _TrameViewState();
@@ -192,6 +195,7 @@ class _TrameViewState extends State<TrameView> {
               selection: _selected,
               behaviours: _behaviours,
               navigate: widget.navigate,
+              openScene: widget.openScene,
             ),
           ),
         ),

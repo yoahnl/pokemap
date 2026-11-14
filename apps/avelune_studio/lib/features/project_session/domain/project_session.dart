@@ -21,6 +21,7 @@ enum ProjectOpeningPhase {
   workshop,
   narrativeTitles,
   narrativeUsages,
+  mapDirectory,
   map,
   resources,
   palette,

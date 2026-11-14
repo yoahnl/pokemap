@@ -136,6 +136,7 @@ Future<StudioSpatialPlaytest> prepare({bool restore = false}) async {
       CharacterAnimationCanvasCapabilities.capabilityId,
       SpatialModelInstance.conditionalVisibilityCapabilityId,
       SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId,
+      PlayerJournalCapabilities.capabilityId,
     ]),
   );
   return host;

@@ -46,6 +46,7 @@ final class FakeBehaviourSource implements GameBehaviourSource {
     this.scenes = const [],
     this.touchedIds = const {},
     this.names = const {},
+    this.present = const {},
   }) : registry = NarrativeEventRegistry(
          schemaVersion: 1,
          mode: EventSystemMode.v2Only,
@@ -61,6 +62,7 @@ final class FakeBehaviourSource implements GameBehaviourSource {
   final List<SceneAsset> scenes;
   final Set<String> touchedIds;
   final Map<String, String> names;
+  final Map<String, bool> present;
   @override
   Object? revision;
 
@@ -70,4 +72,8 @@ final class FakeBehaviourSource implements GameBehaviourSource {
   @override
   String? elementName(String mapId, MapStoryElementTarget target, String id) =>
       names['$mapId/${target.name}:$id'];
+
+  @override
+  bool? elementPresent(String mapId, MapStoryElementTarget target, String id) =>
+      present['$mapId/${target.name}:$id'];
 }

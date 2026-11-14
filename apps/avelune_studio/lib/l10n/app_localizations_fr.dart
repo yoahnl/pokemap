@@ -2131,6 +2131,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get openingPhaseNarrativeUsages => 'Index des usages de l’histoire';
 
   @override
+  String get openingPhaseMapDirectory => 'Index des éléments des cartes';
+
+  @override
   String get storyTabMemory => 'Mémoire du jeu';
 
   @override
@@ -2569,6 +2572,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get behavioursByFact => 'Par état';
 
   @override
+  String get behavioursByCharacter => 'Par personnage';
+
+  @override
   String get behavioursFilterWithoutMap => 'Sans carte';
 
   @override
@@ -2618,6 +2624,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get behavioursUnnamedFact => 'État sans nom';
 
   @override
+  String get behavioursWithoutCharacter => 'Sans personnage';
+
+  @override
+  String get behavioursUnnamedCharacter => 'Personnage sans nom';
+
+  @override
+  String get behavioursCharactersLoading => 'Lecture des éléments des cartes…';
+
+  @override
   String get behavioursUnnamed => 'Comportement sans nom';
 
   @override
@@ -2665,16 +2680,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get behavioursToRepair => 'À réparer';
 
   @override
+  String get behavioursElementMissing => 'Élément supprimé de sa carte';
+
+  @override
   String get behavioursRefused =>
       'Ce comportement n’existe plus ou n’est plus sur sa carte : rien n’a été ouvert.';
 
   @override
   String get behavioursCoverage =>
-      'Recherche par nom, carte et élément. Les noms d’éléments ne sont connus que pour la carte ouverte ; la recherche dans les répliques viendra plus tard.';
+      'Recherche par nom, carte et élément ; la recherche dans les répliques viendra plus tard.';
 
   @override
   String get behavioursByFactHint =>
       'D’après l’index des usages : un comportement apparaît sous chaque état que lui ou sa scène lit ou modifie.';
+
+  @override
+  String get behavioursByCharacterHint =>
+      'Un personnage regroupe les comportements de tous ses éléments, sur toutes les cartes ; un élément sans personnage forme son propre groupe.';
 
   @override
   String get storyTabTrame => 'Trame';
@@ -2814,6 +2836,141 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get trameArchived => 'Archivé';
+
+  @override
+  String get trameJournal => 'Journal du joueur';
+
+  @override
+  String get trameJournalHint =>
+      'Le joueur lit cette entrée dans son journal pendant l’étape, puis une fois l’étape terminée. Sans entrée, l’étape n’apparaît pas dans le journal.';
+
+  @override
+  String get trameJournalTitle => 'Titre dans le journal';
+
+  @override
+  String get trameJournalText => 'Texte du journal';
+
+  @override
+  String get trameJournalAdd => 'Ajouter au journal';
+
+  @override
+  String get trameJournalApply => 'Mettre à jour le journal';
+
+  @override
+  String get trameJournalRemove => 'Retirer du journal';
+
+  @override
+  String get trameJournalLoading => 'Lecture de la trame complète…';
+
+  @override
+  String get trameJournalTranslations =>
+      'Les traductions déjà écrites sont conservées telles quelles : relisez-les si vous changez le sens du texte.';
+
+  @override
+  String get trameClues => 'Notes d’indice';
+
+  @override
+  String get trameCluesHint =>
+      'Une note s’affiche dans le journal du joueur dès que son état est vrai.';
+
+  @override
+  String get trameCluesNoFact =>
+      'Aucun état oui/non dans le projet : créez-en un dans la Mémoire du jeu pour écrire une note.';
+
+  @override
+  String get trameClueText => 'Texte de la note';
+
+  @override
+  String get trameClueFact => 'Visible quand cet état est vrai';
+
+  @override
+  String get trameClueAdd => 'Ajouter la note';
+
+  @override
+  String get trameClueApply => 'Mettre à jour la note';
+
+  @override
+  String get trameClueRemove => 'Supprimer la note';
+
+  @override
+  String trameJournalLimit(int count) {
+    return '$count caractères au plus';
+  }
+
+  @override
+  String get sceneFocusOpen => 'Voir la scène en grand';
+
+  @override
+  String get sceneFocusClose => 'Fermer la scène';
+
+  @override
+  String get sceneFocusLoading => 'Lecture de la scène…';
+
+  @override
+  String get sceneFocusPreview => 'Prévisualiser un chemin';
+
+  @override
+  String get sceneFocusPreviewStop => 'Arrêter l’aperçu';
+
+  @override
+  String get sceneFocusDetach => 'Détacher une copie';
+
+  @override
+  String get sceneFocusDetachHint =>
+      'La copie ne sert qu’à ce comportement ; ses dialogues restent partagés.';
+
+  @override
+  String get sceneFocusLaunchedBy => 'Lancée par';
+
+  @override
+  String get sceneFocusNoLauncher => 'Aucun comportement ne lance cette scène.';
+
+  @override
+  String get sceneFocusChangedFacts => 'États modifiés';
+
+  @override
+  String get sceneFocusNoFactChange => 'Cette scène ne modifie aucun état.';
+
+  @override
+  String get sceneFocusPath => 'Chemin';
+
+  @override
+  String get sceneFocusPathHint =>
+      'Choisissez chaque sortie : le chemin se surligne dans les étapes. Le jeu n’est pas lancé.';
+
+  @override
+  String get sceneFocusChooseExit => 'Quelle sortie ?';
+
+  @override
+  String get sceneFocusPathEnded => 'Fin de la scène.';
+
+  @override
+  String get sceneFocusPathLooped =>
+      'Ce chemin revient sur une étape déjà parcourue.';
+
+  @override
+  String get sceneFocusRestart => 'Recommencer';
+
+  @override
+  String get sceneFocusPathStart => 'Début';
+
+  @override
+  String get sceneFocusPathEnd => 'Fin';
+
+  @override
+  String sceneFocusShared(int count) {
+    return '$count comportements lancent cette scène : la modifier ici les modifie tous.';
+  }
+
+  @override
+  String sceneFocusCopyName(String name) {
+    return '$name (copie)';
+  }
+
+  @override
+  String sceneFocusPathStepDetail(String step, String detail) {
+    return '$step · $detail';
+  }
 
   @override
   String trameRefused(String code) {
