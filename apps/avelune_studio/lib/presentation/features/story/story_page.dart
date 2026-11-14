@@ -4,15 +4,18 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_source.dart';
+import 'package:avelune_studio/features/game_behaviours/application/game_behaviours_controller.dart';
 import 'package:avelune_studio/features/game_memory/application/game_memory_controller.dart';
 import 'package:avelune_studio/features/game_memory/application/game_memory_staging.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
+import 'package:avelune_studio/presentation/features/story/game_behaviours_view.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_rule_creation.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_usages.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_view.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
-enum StoryTab { memory }
+enum StoryTab { world, memory }
 
 class StoryPage extends StatefulWidget {
   const StoryPage({
@@ -22,6 +25,8 @@ class StoryPage extends StatefulWidget {
     required this.maps,
     required this.loadMap,
     required this.behaviours,
+    required this.behaviourSource,
+    required this.openMap,
   });
 
   final NarrativeIndexPort? port;
@@ -29,14 +34,17 @@ class StoryPage extends StatefulWidget {
   final List<ProjectMapEntry> maps;
   final GameMemoryMapLoader? loadMap;
   final GameMemoryBehaviourLink behaviours;
+  final GameBehaviourSource behaviourSource;
+  final VoidCallback openMap;
 
   @override
   State<StoryPage> createState() => _StoryPageState();
 }
 
 class _StoryPageState extends State<StoryPage> {
-  var _tab = StoryTab.memory;
+  var _tab = StoryTab.world;
   GameMemoryController? _memory;
+  GameBehavioursController? _behaviours;
 
   @override
   void initState() {
@@ -46,11 +54,19 @@ class _StoryPageState extends State<StoryPage> {
     _memory = GameMemoryController(
       port: port,
       staging: widget.staging,
-      changed: () {
-        if (mounted) setState(() {});
-      },
+      changed: _changed,
     )..rules.mapName = _mapName;
     unawaited(_memory!.open());
+    _behaviours = GameBehavioursController(
+      port: port,
+      source: () => widget.behaviourSource,
+      changed: _changed,
+    );
+    unawaited(_behaviours!.open());
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
   }
 
   String? _mapName(String id) =>
@@ -74,6 +90,11 @@ class _StoryPageState extends State<StoryPage> {
           key: const ValueKey('story-tabs'),
           tabs: [
             StudioTab(
+              key: const ValueKey('story-tab-world'),
+              value: StoryTab.world,
+              label: l10n.storyTabWorld,
+            ),
+            StudioTab(
               key: const ValueKey('story-tab-memory'),
               value: StoryTab.memory,
               label: l10n.storyTabMemory,
@@ -90,12 +111,19 @@ class _StoryPageState extends State<StoryPage> {
                   title: l10n.memoryUnavailable,
                   description: l10n.memoryUnavailableHint,
                 )
-              : GameMemoryView(
-                  memory: memory,
-                  maps: widget.maps,
-                  loadMap: widget.loadMap,
-                  behaviours: widget.behaviours,
-                ),
+              : switch (_tab) {
+                  StoryTab.world => GameBehavioursView(
+                    behaviours: _behaviours!,
+                    navigate: widget.behaviours.open,
+                    openMap: widget.openMap,
+                  ),
+                  StoryTab.memory => GameMemoryView(
+                    memory: memory,
+                    maps: widget.maps,
+                    loadMap: widget.loadMap,
+                    behaviours: widget.behaviours,
+                  ),
+                },
         ),
       ],
     );

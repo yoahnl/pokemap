@@ -23,8 +23,13 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       },
       behaviours: (
         available: (id) => _behaviourEntry(id) != null,
-        open: (id) => unawaited(_openBehaviour(id)),
+        open: _openBehaviour,
       ),
+      behaviourSource: MapBuilderStoryBehaviourSource(_story),
+      openMap: () {
+        _setSection(StudioRailSection.map);
+        _setSpace(MapBuilderSpace.story);
+      },
     );
   }
 
@@ -42,20 +47,26 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     return entry == null ? null : (entry, at!.$2, at.$3);
   }
 
-  Future<void> _openBehaviour(String eventId) async {
+  Future<bool> _openBehaviour(String eventId) async {
     final target = _behaviourEntry(eventId);
-    if (target == null || !_editable) return;
+    if (target == null || !_editable) return false;
     final (entry, kind, id) = target;
     _setSection(StudioRailSection.map);
     _setSpace(MapBuilderSpace.story);
     if (_maps.active?.base.mapId != entry.id) await _maps.activate(entry);
     await _story.prepare();
-    if (_disposed || _maps.active?.base.mapId != entry.id) return;
+    if (_disposed || _maps.active?.base.mapId != entry.id) return false;
     final element = _story.elements?.byKey('${kind.name}:$id');
-    if (element == null) return;
-    _story.select(element);
-    final index = element.behaviours.indexWhere((item) => item.id == eventId);
-    if (index >= 0) _story.openBehaviour(index);
-    _story.openTab(MapStoryTab.behaviour);
+    final index =
+        element?.behaviours.indexWhere((item) => item.id == eventId) ?? -1;
+    if (element == null || index < 0) {
+      _setSection(StudioRailSection.story);
+      return false;
+    }
+    _story
+      ..select(element)
+      ..openBehaviour(index)
+      ..openTab(MapStoryTab.behaviour);
+    return true;
   }
 }

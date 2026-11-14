@@ -1424,5 +1424,80 @@
   "memoryPresence": "Présence",
   "memoryPresenceHint": "Règles du monde et scènes qui citent ce personnage, pour le faire apparaître, disparaître ou autre chose.",
   "memoryPresenceEmpty": "Aucune règle du monde ni scène ne cite ce personnage d’après l’index.",
-  "memoryPresenceSaveFirst": "Enregistrez la carte pour lire la présence de ce personnage."
+  "memoryPresenceSaveFirst": "Enregistrez la carte pour lire la présence de ce personnage.",
+  "storyTabWorld": "Tout le jeu",
+  "behavioursSearch": "Rechercher un comportement, une carte ou un élément",
+  "behavioursByMap": "Par carte",
+  "behavioursByFact": "Par état",
+  "behavioursFilterWithoutMap": "Sans carte",
+  "behavioursFilterToRepair": "À réparer",
+  "behavioursFilterDisabled": "Désactivés",
+  "behavioursLoading": "Lecture des comportements…",
+  "behavioursFactsLoading": "Lecture des états et de leurs usages…",
+  "behavioursEmpty": "Aucun comportement dans ce projet",
+  "behavioursEmptyHint": "Un comportement se crée sur un élément d’une carte, dans l’espace Histoire de la carte.",
+  "behavioursOpenMap": "Aller à la carte",
+  "behavioursNoMatch": "Aucun comportement ne correspond",
+  "behavioursGroupHeader": "{group} · {count}",
+  "@behavioursGroupHeader": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "behavioursMissingMap": "Carte introuvable",
+  "behavioursWithoutMap": "Sans carte",
+  "behavioursNotLoaded": "Créés ailleurs depuis l’ouverture du projet",
+  "behavioursWithoutFact": "Sans état",
+  "behavioursUnnamedFact": "État sans nom",
+  "behavioursUnnamed": "Comportement sans nom",
+  "behavioursElementKind": "{kind, select, entity{un personnage ou un panneau} model{un objet du décor} trigger{une zone} other{toute la carte}}",
+  "@behavioursElementKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "behavioursPlace": "{map} · {element}",
+  "@behavioursPlace": {
+    "placeholders": {
+      "map": {
+        "type": "String"
+      },
+      "element": {
+        "type": "String"
+      }
+    }
+  },
+  "behavioursSummary": "Quand : {when} · Si : {condition} · Alors : {then} · Après : {after}",
+  "@behavioursSummary": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "condition": {
+        "type": "String"
+      },
+      "then": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "behavioursAdvancedCondition": "une condition avancée",
+  "behavioursSceneNotFound": "scène introuvable",
+  "behavioursLineScene": "une réplique",
+  "behavioursDeletedElsewhere": "Supprimé ailleurs",
+  "behavioursNotLoadedBadge": "Rechargez le projet",
+  "behavioursToRepair": "À réparer",
+  "behavioursRefused": "Ce comportement n’existe plus ou n’est plus sur sa carte : rien n’a été ouvert.",
+  "behavioursCoverage": "Recherche par nom, carte et élément. Les noms d’éléments ne sont connus que pour la carte ouverte ; la recherche dans les répliques viendra plus tard.",
+  "behavioursByFactHint": "D’après l’index des usages : un comportement apparaît sous chaque état que lui ou sa scène lit ou modifie."
 }

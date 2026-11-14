@@ -2540,4 +2540,124 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get memoryPresenceSaveFirst =>
       'Save the map to read this character’s presence.';
+
+  @override
+  String get storyTabWorld => 'Whole game';
+
+  @override
+  String get behavioursSearch => 'Search a behaviour, a map or an element';
+
+  @override
+  String get behavioursByMap => 'By map';
+
+  @override
+  String get behavioursByFact => 'By state';
+
+  @override
+  String get behavioursFilterWithoutMap => 'Without map';
+
+  @override
+  String get behavioursFilterToRepair => 'To repair';
+
+  @override
+  String get behavioursFilterDisabled => 'Disabled';
+
+  @override
+  String get behavioursLoading => 'Reading behaviours…';
+
+  @override
+  String get behavioursFactsLoading => 'Reading states and their usages…';
+
+  @override
+  String get behavioursEmpty => 'No behaviour in this project';
+
+  @override
+  String get behavioursEmptyHint =>
+      'A behaviour is created on a map element, in the map’s Story space.';
+
+  @override
+  String get behavioursOpenMap => 'Go to the map';
+
+  @override
+  String get behavioursNoMatch => 'No behaviour matches';
+
+  @override
+  String behavioursGroupHeader(String group, int count) {
+    return '$group · $count';
+  }
+
+  @override
+  String get behavioursMissingMap => 'Missing map';
+
+  @override
+  String get behavioursWithoutMap => 'Without map';
+
+  @override
+  String get behavioursNotLoaded =>
+      'Created elsewhere since the project opened';
+
+  @override
+  String get behavioursWithoutFact => 'Without state';
+
+  @override
+  String get behavioursUnnamedFact => 'Unnamed state';
+
+  @override
+  String get behavioursUnnamed => 'Unnamed behaviour';
+
+  @override
+  String behavioursElementKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'entity': 'a character or a sign',
+      'model': 'a decoration object',
+      'trigger': 'a zone',
+      'other': 'the whole map',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String behavioursPlace(String map, String element) {
+    return '$map · $element';
+  }
+
+  @override
+  String behavioursSummary(
+    String when,
+    String condition,
+    String then,
+    String after,
+  ) {
+    return 'When: $when · If: $condition · Then: $then · After: $after';
+  }
+
+  @override
+  String get behavioursAdvancedCondition => 'an advanced condition';
+
+  @override
+  String get behavioursSceneNotFound => 'missing scene';
+
+  @override
+  String get behavioursLineScene => 'a line';
+
+  @override
+  String get behavioursDeletedElsewhere => 'Deleted elsewhere';
+
+  @override
+  String get behavioursNotLoadedBadge => 'Reload the project';
+
+  @override
+  String get behavioursToRepair => 'To repair';
+
+  @override
+  String get behavioursRefused =>
+      'This behaviour no longer exists or is no longer on its map: nothing was opened.';
+
+  @override
+  String get behavioursCoverage =>
+      'Search by name, map and element. Element names are only known for the open map; searching lines will come later.';
+
+  @override
+  String get behavioursByFactHint =>
+      'From the usage index: a behaviour appears under every state that it or its scene reads or changes.';
 }

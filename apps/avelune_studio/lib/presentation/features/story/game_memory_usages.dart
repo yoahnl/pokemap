@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
@@ -8,7 +10,7 @@ import 'package:avelune_studio/presentation/shared/localization/studio_locale.da
 
 typedef GameMemoryBehaviourLink = ({
   bool Function(String eventId) available,
-  void Function(String eventId) open,
+  Future<bool> Function(String eventId) open,
 });
 
 class GameMemoryUsages extends StatelessWidget {
@@ -89,8 +91,9 @@ class _OwnerRow extends StatelessWidget {
     final l10n = context.l10n;
     final name = memory.names.name(owner.kind.titles, owner.id);
     final open = switch (owner.kind) {
-      NarrativeOwnerKind.event when behaviours.available(owner.id) =>
-        () => behaviours.open(owner.id),
+      NarrativeOwnerKind.event when behaviours.available(owner.id) => () {
+        unawaited(behaviours.open(owner.id));
+      },
       NarrativeOwnerKind.worldRule => () => memory.rules.select(owner.id),
       _ => null,
     };

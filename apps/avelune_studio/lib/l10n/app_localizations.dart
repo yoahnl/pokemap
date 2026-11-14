@@ -4146,6 +4146,203 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Enregistrez la carte pour lire la présence de ce personnage.'**
   String get memoryPresenceSaveFirst;
+
+  /// No description provided for @storyTabWorld.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout le jeu'**
+  String get storyTabWorld;
+
+  /// No description provided for @behavioursSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un comportement, une carte ou un élément'**
+  String get behavioursSearch;
+
+  /// No description provided for @behavioursByMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Par carte'**
+  String get behavioursByMap;
+
+  /// No description provided for @behavioursByFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Par état'**
+  String get behavioursByFact;
+
+  /// No description provided for @behavioursFilterWithoutMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans carte'**
+  String get behavioursFilterWithoutMap;
+
+  /// No description provided for @behavioursFilterToRepair.
+  ///
+  /// In fr, this message translates to:
+  /// **'À réparer'**
+  String get behavioursFilterToRepair;
+
+  /// No description provided for @behavioursFilterDisabled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Désactivés'**
+  String get behavioursFilterDisabled;
+
+  /// No description provided for @behavioursLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture des comportements…'**
+  String get behavioursLoading;
+
+  /// No description provided for @behavioursFactsLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture des états et de leurs usages…'**
+  String get behavioursFactsLoading;
+
+  /// No description provided for @behavioursEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun comportement dans ce projet'**
+  String get behavioursEmpty;
+
+  /// No description provided for @behavioursEmptyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un comportement se crée sur un élément d’une carte, dans l’espace Histoire de la carte.'**
+  String get behavioursEmptyHint;
+
+  /// No description provided for @behavioursOpenMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aller à la carte'**
+  String get behavioursOpenMap;
+
+  /// No description provided for @behavioursNoMatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun comportement ne correspond'**
+  String get behavioursNoMatch;
+
+  /// No description provided for @behavioursGroupHeader.
+  ///
+  /// In fr, this message translates to:
+  /// **'{group} · {count}'**
+  String behavioursGroupHeader(String group, int count);
+
+  /// No description provided for @behavioursMissingMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Carte introuvable'**
+  String get behavioursMissingMap;
+
+  /// No description provided for @behavioursWithoutMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans carte'**
+  String get behavioursWithoutMap;
+
+  /// No description provided for @behavioursNotLoaded.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créés ailleurs depuis l’ouverture du projet'**
+  String get behavioursNotLoaded;
+
+  /// No description provided for @behavioursWithoutFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans état'**
+  String get behavioursWithoutFact;
+
+  /// No description provided for @behavioursUnnamedFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'État sans nom'**
+  String get behavioursUnnamedFact;
+
+  /// No description provided for @behavioursUnnamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comportement sans nom'**
+  String get behavioursUnnamed;
+
+  /// No description provided for @behavioursElementKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, entity{un personnage ou un panneau} model{un objet du décor} trigger{une zone} other{toute la carte}}'**
+  String behavioursElementKind(String kind);
+
+  /// No description provided for @behavioursPlace.
+  ///
+  /// In fr, this message translates to:
+  /// **'{map} · {element}'**
+  String behavioursPlace(String map, String element);
+
+  /// No description provided for @behavioursSummary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quand : {when} · Si : {condition} · Alors : {then} · Après : {after}'**
+  String behavioursSummary(
+    String when,
+    String condition,
+    String then,
+    String after,
+  );
+
+  /// No description provided for @behavioursAdvancedCondition.
+  ///
+  /// In fr, this message translates to:
+  /// **'une condition avancée'**
+  String get behavioursAdvancedCondition;
+
+  /// No description provided for @behavioursSceneNotFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'scène introuvable'**
+  String get behavioursSceneNotFound;
+
+  /// No description provided for @behavioursLineScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'une réplique'**
+  String get behavioursLineScene;
+
+  /// No description provided for @behavioursDeletedElsewhere.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimé ailleurs'**
+  String get behavioursDeletedElsewhere;
+
+  /// No description provided for @behavioursNotLoadedBadge.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechargez le projet'**
+  String get behavioursNotLoadedBadge;
+
+  /// No description provided for @behavioursToRepair.
+  ///
+  /// In fr, this message translates to:
+  /// **'À réparer'**
+  String get behavioursToRepair;
+
+  /// No description provided for @behavioursRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce comportement n’existe plus ou n’est plus sur sa carte : rien n’a été ouvert.'**
+  String get behavioursRefused;
+
+  /// No description provided for @behavioursCoverage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche par nom, carte et élément. Les noms d’éléments ne sont connus que pour la carte ouverte ; la recherche dans les répliques viendra plus tard.'**
+  String get behavioursCoverage;
+
+  /// No description provided for @behavioursByFactHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'D’après l’index des usages : un comportement apparaît sous chaque état que lui ou sa scène lit ou modifie.'**
+  String get behavioursByFactHint;
 }
 
 class _AppLocalizationsDelegate

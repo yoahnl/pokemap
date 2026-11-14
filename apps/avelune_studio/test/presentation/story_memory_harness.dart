@@ -119,6 +119,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   FakeNarrativeIndex index, {
   WorldPort Function(WorkspaceMemoryPort maps)? world,
   ProjectSession? session,
+  ProjectManifest? project,
 }) async {
   final opened = session ?? memorySession;
   tester.view.physicalSize = const Size(1920, 1080);
@@ -126,7 +127,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final sessions = ControlledProjectSessionPort();
-  final maps = WorkspaceMemoryPort(manifest: memoryProject);
+  final maps = WorkspaceMemoryPort(manifest: project ?? memoryProject);
   maps.saved['a'] = workspaceMap('a').copyWith(
     entities: const [
       MapEntity(
@@ -167,8 +168,14 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   return maps;
 }
 
-Future<void> openHistoire(WidgetTester tester) async {
+Future<void> openWholeGame(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('studio-rail-story')));
+  await settleMemory(tester);
+}
+
+Future<void> openHistoire(WidgetTester tester) async {
+  await openWholeGame(tester);
+  await tester.tap(find.byKey(const ValueKey('story-tab-memory')));
   await settleMemory(tester);
 }
 

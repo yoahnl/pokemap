@@ -22,8 +22,8 @@ void main() {
 
     expect(find.byKey(const ValueKey('studio-story')), findsOneWidget);
     expect(find.text('Mémoire du jeu'), findsOneWidget);
+    expect(find.text('Tout le jeu'), findsOneWidget);
     expect(find.text('Trame'), findsNothing);
-    expect(find.text('Tout le jeu'), findsNothing);
     expect(find.byKey(const ValueKey('map-space-construction')), findsNothing);
     expect(find.text('Rencontre'), findsOneWidget);
     expect(find.text('Nombre · au départ : 3'), findsOneWidget);

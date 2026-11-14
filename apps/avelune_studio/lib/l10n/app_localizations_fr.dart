@@ -2554,4 +2554,125 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get memoryPresenceSaveFirst =>
       'Enregistrez la carte pour lire la présence de ce personnage.';
+
+  @override
+  String get storyTabWorld => 'Tout le jeu';
+
+  @override
+  String get behavioursSearch =>
+      'Rechercher un comportement, une carte ou un élément';
+
+  @override
+  String get behavioursByMap => 'Par carte';
+
+  @override
+  String get behavioursByFact => 'Par état';
+
+  @override
+  String get behavioursFilterWithoutMap => 'Sans carte';
+
+  @override
+  String get behavioursFilterToRepair => 'À réparer';
+
+  @override
+  String get behavioursFilterDisabled => 'Désactivés';
+
+  @override
+  String get behavioursLoading => 'Lecture des comportements…';
+
+  @override
+  String get behavioursFactsLoading => 'Lecture des états et de leurs usages…';
+
+  @override
+  String get behavioursEmpty => 'Aucun comportement dans ce projet';
+
+  @override
+  String get behavioursEmptyHint =>
+      'Un comportement se crée sur un élément d’une carte, dans l’espace Histoire de la carte.';
+
+  @override
+  String get behavioursOpenMap => 'Aller à la carte';
+
+  @override
+  String get behavioursNoMatch => 'Aucun comportement ne correspond';
+
+  @override
+  String behavioursGroupHeader(String group, int count) {
+    return '$group · $count';
+  }
+
+  @override
+  String get behavioursMissingMap => 'Carte introuvable';
+
+  @override
+  String get behavioursWithoutMap => 'Sans carte';
+
+  @override
+  String get behavioursNotLoaded =>
+      'Créés ailleurs depuis l’ouverture du projet';
+
+  @override
+  String get behavioursWithoutFact => 'Sans état';
+
+  @override
+  String get behavioursUnnamedFact => 'État sans nom';
+
+  @override
+  String get behavioursUnnamed => 'Comportement sans nom';
+
+  @override
+  String behavioursElementKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'entity': 'un personnage ou un panneau',
+      'model': 'un objet du décor',
+      'trigger': 'une zone',
+      'other': 'toute la carte',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String behavioursPlace(String map, String element) {
+    return '$map · $element';
+  }
+
+  @override
+  String behavioursSummary(
+    String when,
+    String condition,
+    String then,
+    String after,
+  ) {
+    return 'Quand : $when · Si : $condition · Alors : $then · Après : $after';
+  }
+
+  @override
+  String get behavioursAdvancedCondition => 'une condition avancée';
+
+  @override
+  String get behavioursSceneNotFound => 'scène introuvable';
+
+  @override
+  String get behavioursLineScene => 'une réplique';
+
+  @override
+  String get behavioursDeletedElsewhere => 'Supprimé ailleurs';
+
+  @override
+  String get behavioursNotLoadedBadge => 'Rechargez le projet';
+
+  @override
+  String get behavioursToRepair => 'À réparer';
+
+  @override
+  String get behavioursRefused =>
+      'Ce comportement n’existe plus ou n’est plus sur sa carte : rien n’a été ouvert.';
+
+  @override
+  String get behavioursCoverage =>
+      'Recherche par nom, carte et élément. Les noms d’éléments ne sont connus que pour la carte ouverte ; la recherche dans les répliques viendra plus tard.';
+
+  @override
+  String get behavioursByFactHint =>
+      'D’après l’index des usages : un comportement apparaît sous chaque état que lui ou sa scène lit ou modifie.';
 }
