@@ -142,6 +142,7 @@ export 'src/domains/narrative/scene_actions.dart';
 export 'src/domains/narrative/script_actions.dart';
 export 'src/domains/narrative/script_authoring_service.dart';
 export 'src/domains/narrative/storyline_actions.dart';
+export 'src/domains/narrative/storyline_trame_actions.dart';
 export 'src/domains/narrative/storyline_inspection.dart';
 export 'src/domains/project/capability_truth_adapter.dart';
 export 'src/domains/project/readiness_actions.dart';

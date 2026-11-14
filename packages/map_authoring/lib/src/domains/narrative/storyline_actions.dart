@@ -6,6 +6,7 @@ import '../../transactions/authoring_plan.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
 import 'storyline_inspection.dart';
+import 'storyline_trame_actions.dart';
 
 final class StorylineActions {
   const StorylineActions();
@@ -22,6 +23,7 @@ final class StorylineActions {
       resourceKinds: const ['project', 'storyline'],
       risk: AuthoringRiskLevel.high,
     ),
+    ...StorylineTrameActions.descriptors,
     narrativeActionDescriptor(
       'storyline.reorder_chapters',
       'Reorder Chapters without changing identities',
@@ -35,6 +37,9 @@ final class StorylineActions {
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
+    if (StorylineTrameActions.ids.contains(context.request.actionId)) {
+      return const StorylineTrameActions().build(context);
+    }
     final parameters = context.request.parameters;
     late final ProjectManifest projected;
     late final String storylineId;

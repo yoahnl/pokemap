@@ -31,6 +31,7 @@ import '../../domains/maps/model_visibility_dependencies.dart';
 import '../../catalog_storage/catalog_storage_store.dart';
 import 'catalog_spatial_map_selection.dart';
 import '../../domains/narrative/standard_event_template.dart';
+import '../../domains/narrative/storyline_trame_actions.dart';
 
 part 'catalog_gameplay_workshop_selection.dart';
 part 'catalog_surf_selection.dart';
@@ -49,6 +50,7 @@ part 'catalog_presentation_reset_selection.dart';
 part 'catalog_scene_workshop_selection.dart';
 part 'catalog_dialogue_creation_selection.dart';
 part 'catalog_model_prune_selection.dart';
+part 'catalog_storyline_scene_selection.dart';
 
 final class CatalogWorkshopSelection {
   CatalogWorkshopSelection._(
@@ -119,6 +121,7 @@ final class CatalogWorkshopSelection {
       action == 'pokemon.gen5_battle_source.import' ||
       action == 'project.battle_audio.update' ||
       _sceneWorkshopActions.contains(action) ||
+      StorylineTrameActions.ids.contains(action) ||
       _guidedActions.contains(action) ||
       _gameplayActions.contains(action) ||
       const {
@@ -348,8 +351,10 @@ final class CatalogWorkshopSelection {
         'regionalMap'
       else if (actionId.startsWith('event_v2.'))
         'eventRegistry'
-      else if (actionId.startsWith('storyline.'))
-        'storylines'
+      else if (actionId.startsWith('storyline.')) ...{
+        'storylines',
+        if (StorylineTrameActions.factWritingActions.contains(actionId)) 'facts'
+      }
       else if (actionId.startsWith('scene.'))
         'scenes'
       else if (actionId.startsWith('world_rule.'))
@@ -638,6 +643,9 @@ final class CatalogWorkshopSelection {
           }
         }
       }
+      final scenes = await _storylineSceneDocuments(
+          catalog.snapshot, manifest, actionId, parameters);
+      if (scenes != null) manifest = scenes.project;
       final projectBytes = utf8.encode(jsonEncode(manifest.toJson()));
       final projectFingerprint = computeAuthoringBytesFingerprint(projectBytes,
           logicalName: 'project.json');
@@ -657,7 +665,9 @@ final class CatalogWorkshopSelection {
         projectHandle: projectHandle,
         revision: revision,
         manifest: manifest,
-        availableProjectSections: fields,
+        availableProjectSections: {...fields, if (scenes != null) 'scenes'},
+        availableProjectDocuments:
+            scenes == null ? null : {'scenes': scenes.documents},
         maps: maps,
         resourceFingerprints: resourceFingerprints,
         resourceStorageKeys: paths,

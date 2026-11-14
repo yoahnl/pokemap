@@ -595,6 +595,17 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/item_authoring.test.ts',
     };
   }
+  if (actionId.startsWith('storyline.chapter.') ||
+      actionId.startsWith('storyline.milestone.')) {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/narrative/storyline_trame_actions_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/narrative/storyline_trame_actions_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/storyline_trame_stdio.test.ts',
+    };
+  }
   if (actionId == 'scene.graph.patch') {
     return const {
       AuthoringTransport.directApi:
@@ -2458,6 +2469,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['rail_journey.'],
     'test/domains/narrative/rail_journey_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['storyline.chapter.', 'storyline.milestone.'],
+    'test/domains/narrative/storyline_trame_actions_test.dart',
   ),
   _ContractEvidenceRule(
     ['storyline.', 'scenario.'],
