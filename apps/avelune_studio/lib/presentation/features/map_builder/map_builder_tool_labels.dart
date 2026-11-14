@@ -24,6 +24,8 @@ extension MapBuilderToolLabels on AppLocalizations {
               ? toolRelief
               : toolSlope,
         StudioMapTool.relief => toolRelief,
+        StudioMapTool.slope => toolSlope,
+        StudioMapTool.stair => toolStair,
         StudioMapTool.erase => toolEraseTiles,
         StudioMapTool.eraseDecor => toolEraseDecor,
         StudioMapTool.border => toolBorder,
@@ -47,6 +49,8 @@ extension MapBuilderToolLabels on AppLocalizations {
         StudioMapTool.select => toolHintSelect,
         StudioMapTool.pan => toolHintPan,
         StudioMapTool.relief => toolHintRelief,
+        StudioMapTool.slope => toolHintSlope,
+        StudioMapTool.stair => toolHintStair,
         _ => armed ? toolHintArmed : toolHintChoose,
       };
 }

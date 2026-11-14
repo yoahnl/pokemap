@@ -47,7 +47,7 @@ test("real JSONL discovery is compact, targeted and preserves schema details", a
     const examples = await authoring.request("describe", {actionIds:[
       "map3d.edit_batch",
       "map.create", "smart_tile.layer.create", "smart_tile.cell.paint", "smart_tile.cell.paint_batch", "smart_tile.cell.erase",
-      "map3d.terrain.paint_height", "map3d.terrain.surface.upsert_batch", "map3d.terrain.surface.delete_batch", "map3d.instance.upsert_batch", "map3d.instance.delete_batch",
+      "map3d.terrain.paint_height", "map3d.terrain.paint_slope", "map3d.terrain.place_stair", "map3d.terrain.surface.upsert_batch", "map3d.terrain.surface.delete_batch", "map3d.instance.upsert_batch", "map3d.instance.delete_batch",
       "border_layer.feature_create", "border_layer.feature_update", "border_layer.feature_delete", "border_layer.feature_move",
       "border_layer.stroke_add", "border_layer.stroke_update", "border_layer.stroke_delete", "border_layer.stroke_erase",
       "border_layer.region_fill", "border_layer.region_clear", "border_layer.feature_set_replacement", "border_layer.feature_set_suppressed",

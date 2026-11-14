@@ -159,6 +159,15 @@ MapPaletteIntent _toolIntent(
       armed: view.relief.profileId != null,
       next: 'Peignez les cases à la hauteur choisie.',
     ),
+    StudioMapTool.slope || StudioMapTool.stair => MapPaletteIntent(
+      group: MapIntentGroup.build,
+      action: view.tool == StudioMapTool.slope ? 'Pente' : 'Escalier',
+      armed:
+          view.tool == StudioMapTool.slope || view.slope.stairModelId != null,
+      next: view.tool == StudioMapTool.slope
+          ? 'Glissez du sol bas jusqu’au plateau.'
+          : 'Cliquez sur le bord d’une falaise.',
+    ),
     StudioMapTool.erase => const MapPaletteIntent(
       group: MapIntentGroup.build,
       action: 'Gomme de tuiles',

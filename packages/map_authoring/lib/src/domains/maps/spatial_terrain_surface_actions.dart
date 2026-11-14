@@ -197,6 +197,7 @@ const _surfaceSchema = {
     'height': {'type': 'number'},
     'gradientX': {'type': 'number'},
     'gradientZ': {'type': 'number'},
+    'closedFlanks': {'type': 'boolean', 'default': false},
     'footprints': {
       'type': 'array',
       'minItems': 1,

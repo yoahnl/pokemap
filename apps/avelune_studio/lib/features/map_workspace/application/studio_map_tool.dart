@@ -4,6 +4,8 @@ enum StudioMapTool {
   paint,
   terrain,
   relief,
+  slope,
+  stair,
   character,
   warp,
   connection,

@@ -96,16 +96,33 @@ class MapBuilderCanvas extends StatelessWidget {
                   selected: tool == StudioMapTool.pan,
                   onPressed: () => onTool(StudioMapTool.pan),
                 ),
-                if (reliefAvailable) ...[
-                  const SizedBox(width: StudioSpacing.xs),
-                  StudioTool(
-                    key: const ValueKey('map-tool-relief'),
-                    label: context.l10n.toolRelief,
-                    icon: Icons.terrain_outlined,
-                    selected: tool == StudioMapTool.relief,
-                    onPressed: () => onTool(StudioMapTool.relief),
-                  ),
-                ],
+                if (reliefAvailable)
+                  for (final (relief, label, icon) in [
+                    (
+                      StudioMapTool.relief,
+                      context.l10n.toolRelief,
+                      Icons.terrain_outlined,
+                    ),
+                    (
+                      StudioMapTool.slope,
+                      context.l10n.toolSlope,
+                      Icons.trending_up,
+                    ),
+                    (
+                      StudioMapTool.stair,
+                      context.l10n.toolStair,
+                      Icons.stairs_outlined,
+                    ),
+                  ]) ...[
+                    const SizedBox(width: StudioSpacing.xs),
+                    StudioTool(
+                      key: ValueKey('map-tool-${relief.name}'),
+                      label: label,
+                      icon: icon,
+                      selected: tool == relief,
+                      onPressed: () => onTool(relief),
+                    ),
+                  ],
                 const Spacer(),
                 IconButton(
                   key: const ValueKey('map-inspector-toggle'),

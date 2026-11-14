@@ -106,7 +106,8 @@ TerrainHeightPaint paintTerrainCellsAtHeight(
   }
   final target = merge.isEmpty ? null : merge.first;
   final union = {for (final surface in merge) ..._cellsOf(surface), ...painted};
-  final targetId = target?.id ?? newSurfaceId ?? _nextSurfaceId(scene);
+  final targetId =
+      target?.id ?? newSurfaceId ?? nextSpatialTerrainSurfaceId(scene);
   if (target == null && surfaces.any((surface) => surface.id == targetId)) {
     throw ValidationException(
       'This terrain surface identity is already used.',
@@ -281,7 +282,7 @@ BorderGroundFootprint _rectangle(num left, num top, num right, num bottom) =>
       ],
     );
 
-String _nextSurfaceId(MapSpatialScene scene) {
+String nextSpatialTerrainSurfaceId(MapSpatialScene scene) {
   final ids = {for (final s in scene.terrainSurfaces.surfaces) s.id};
   var index = 1;
   while (ids.contains('terrain_surface_$index')) {

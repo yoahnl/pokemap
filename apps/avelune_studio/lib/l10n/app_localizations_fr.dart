@@ -3412,4 +3412,104 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get reliefWarningExterior =>
       'Le décor extérieur touche cette zone : régénérez-le près du bord de la carte.';
+
+  @override
+  String get toolStair => 'Escalier';
+
+  @override
+  String get toolHintSlope =>
+      'Glissez du bas vers le haut : les hauteurs sont lues sur le terrain.';
+
+  @override
+  String get toolHintStair =>
+      'Cliquez sur le bord d’une falaise : l’escalier s’y oriente tout seul.';
+
+  @override
+  String get slopeHelpTitle => 'Pente';
+
+  @override
+  String get slopeHelp =>
+      'Appuyez sur le sol bas, glissez jusqu’au plateau et relâchez. La pente monte dans le sens du glissé, ses côtés bloquent le passage et la falaise du plateau s’arrête à la pente. Sur un sol plat, elle monte d’un niveau.';
+
+  @override
+  String get stairModelTitle => 'Modèle d’escalier';
+
+  @override
+  String get stairModelLoading => 'Chargement des escaliers…';
+
+  @override
+  String get stairModelEmpty =>
+      'Aucun modèle d’escalier n’est disponible sur cette carte.';
+
+  @override
+  String stairModelLoadFailed(String error) {
+    return 'Impossible de charger les escaliers : $error';
+  }
+
+  @override
+  String stairModelSize(int across, int along, int levels) {
+    return '$across × $along cases · monte de $levels niveau(x)';
+  }
+
+  @override
+  String get stairHelp =>
+      'Cliquez sur une case au pied ou au bord d’une falaise droite. L’escalier se place devant la falaise, coupe la paroi à cet endroit et devient praticable.';
+
+  @override
+  String get slopeProblemOutside => 'Restez à l’intérieur de la carte.';
+
+  @override
+  String get slopeProblemDirection =>
+      'Glissez dans un seul axe, du sol bas vers le plateau.';
+
+  @override
+  String get slopeProblemDownhill =>
+      'Glissez du bas vers le haut : le départ doit être le côté bas.';
+
+  @override
+  String get slopeProblemGroundNotFlat =>
+      'Une pente se pose sur un sol plat au niveau bas, contre un plateau aussi large qu’elle.';
+
+  @override
+  String get slopeProblemNoCliff => 'Cliquez sur le bord d’une falaise.';
+
+  @override
+  String get slopeProblemEdgeAmbiguous =>
+      'Cette case touche plusieurs dénivelés : cliquez sur une partie droite de la falaise.';
+
+  @override
+  String get slopeProblemHeightMismatch =>
+      'Ce modèle d’escalier ne monte pas de la hauteur de cette falaise. Choisissez-en un autre.';
+
+  @override
+  String get slopeProblemNoRoom =>
+      'Pas assez de place : il faut un sol plat devant une falaise droite aussi large que l’escalier.';
+
+  @override
+  String get slopeProblemNoStairModel =>
+      'Choisissez d’abord un modèle d’escalier dans le panneau Propriétés.';
+
+  @override
+  String get slopeProblemStairModelUnavailable =>
+      'Ce modèle d’escalier n’est pas disponible sur cette carte.';
+
+  @override
+  String get slopeProblemRampConflict =>
+      'Une rampe de navigation couvre ces cases. Retirez-la d’abord.';
+
+  @override
+  String get slopeProblemSurfaceLimit =>
+      'La carte a atteint sa limite de surfaces de terrain.';
+
+  @override
+  String get slopeProblemCliffRefused =>
+      'La falaise voisine ne peut pas être coupée proprement ici.';
+
+  @override
+  String get slopeProblemBusy =>
+      'La carte a changé pendant le geste. Recommencez.';
+
+  @override
+  String get slopeProblemUnknown =>
+      'Impossible de poser cette pente. La carte reste inchangée.';
 }

@@ -76,6 +76,16 @@ Map<String, Object?>? mapActionInputExample(String actionId) {
           {'x': 11, 'y': 8}
         ]
       },
+    'map3d.terrain.paint_slope' => {
+        'mapId': 'map',
+        'from': {'x': 10, 'y': 12},
+        'to': {'x': 10, 'y': 8}
+      },
+    'map3d.terrain.place_stair' => {
+        'mapId': 'map',
+        'cell': {'x': 10, 'y': 3},
+        'modelId': 'stone-stair'
+      },
     'map3d.terrain.surface.delete_batch' => {
         'mapId': 'map',
         'surfaceIds': ['lower-ground']

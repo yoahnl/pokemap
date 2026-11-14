@@ -161,6 +161,8 @@ final class CatalogSpatialMapSelection {
       'map3d.terrain.configure_appearance',
       'map3d.terrain.surface.upsert_batch',
       'map3d.terrain.paint_height',
+      'map3d.terrain.paint_slope',
+      'map3d.terrain.place_stair',
       'map3d.lift.upsert_batch',
       'map3d.lift.delete_batch',
       'map3d.terrain.surface.delete_batch',

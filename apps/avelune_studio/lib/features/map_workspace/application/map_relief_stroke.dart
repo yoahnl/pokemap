@@ -18,6 +18,9 @@ final class MapReliefStroke {
   final bool rectangle;
   final cells = <GridPos>{};
   GridPos? _previous;
+  GridPos? _end;
+
+  GridPos get end => _end ?? origin;
 
   double get targetHeight => level * source.spatialScene!.levelHeight;
 
@@ -30,6 +33,7 @@ final class MapReliefStroke {
       _previous = null;
       return;
     }
+    _end = cell;
     if (rectangle) {
       cells
         ..clear()

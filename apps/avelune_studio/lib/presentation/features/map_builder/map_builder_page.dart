@@ -47,6 +47,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_ins
 import 'package:avelune_studio/features/map_workspace/application/map_relief_tool.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_relief_inspector.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_relief_palette.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_slope_inspector.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_opening.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_side_panel.dart';

@@ -6,6 +6,7 @@ bool canTraverseSpatialTerrainStep(
         MapSpatialScene scene, double ax, double az, double bx, double bz, {double Function(double,double)? heightAt}) =>
     !scene.navigation.ledges.any((ledge) =>
         ledge.containsBarrier(ax, az) || ledge.containsBarrier(bx, bz)) &&
+    !_crossesClosedFlank(scene, ax, az, bx, bz) &&
     (((heightAt ?? scene.worldHeightAt)(bx, bz) - (heightAt ?? scene.worldHeightAt)(ax, az)).abs() <= .25 + 1e-6 ||
         _rampAllowsTransition(scene, ax, az, bx, bz, heightAt: heightAt));
 
@@ -38,4 +39,28 @@ bool _rampAllowsTransition(
     }
   }
   return false;
+}
+
+bool _crossesClosedFlank(
+    MapSpatialScene scene, double ax, double az, double bx, double bz) {
+  final terrain = scene.terrainSurfaces;
+  final first = terrain.candidatesAtCell(ax.floor(), az.floor());
+  final second = terrain.candidatesAtCell(bx.floor(), bz.floor());
+  return first.any((s) => _leavesSideways(s, ax, az, bx, bz)) ||
+      !identical(first, second) &&
+          second.any((s) => _leavesSideways(s, ax, az, bx, bz));
+}
+
+bool _leavesSideways(SpatialTerrainSurface surface, double ax, double az,
+    double bx, double bz) {
+  if (!surface.closedFlanks ||
+      (surface.gradientX == 0) == (surface.gradientZ == 0)) {
+    return false;
+  }
+  final fromInside = surface.contains(ax, az);
+  if (fromInside == surface.contains(bx, bz)) return false;
+  final (ix, iz, ox, oz) = fromInside ? (ax, az, bx, bz) : (bx, bz, ax, az);
+  return surface.gradientX == 0
+      ? !surface.contains(ox, iz)
+      : !surface.contains(ix, oz);
 }

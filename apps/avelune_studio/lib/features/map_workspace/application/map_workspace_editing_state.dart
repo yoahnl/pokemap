@@ -7,6 +7,7 @@ import 'editable_map_document.dart';
 import 'environment_editing_commands.dart';
 import 'map_border_drawing_draft.dart';
 import 'map_relief_tool.dart';
+import 'map_slope_tool.dart';
 import 'map_border_editing_commands.dart';
 import 'map_terrain_patterns.dart';
 import 'spatial_ramp_editing_commands.dart';
@@ -29,6 +30,7 @@ class MapWorkspaceEditingState {
   StudioMapTool tool = StudioMapTool.select;
 
   final relief = MapReliefToolState();
+  final slope = MapSlopeToolState();
   SpatialTerrainMode spatialTerrainMode = SpatialTerrainMode.ground;
   int spatialTerrainLevel = 1;
   SpatialRampEditingPreview? rampPreview;

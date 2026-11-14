@@ -230,6 +230,7 @@ final class CanonicalGamePackageExportService {
       var spatialStory = false;
       var customTerrainAppearance = false;
       var continuousTerrain = false;
+      var closedSlopeFlanks = false;
       var fractionalRamps = false;
       var directionalLedges = false;
       var entityModels = false;
@@ -298,6 +299,8 @@ final class CanonicalGamePackageExportService {
           customTerrainAppearance |= map.spatialScene?.generateCliffs == false;
           continuousTerrain |=
               map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty;
+          closedSlopeFlanks |= map.spatialScene!.terrainSurfaces.surfaces
+              .any((surface) => surface.closedFlanks);
           entityModels |= map.spatialScene!.instances.any((instance) => instance.entityId != null);
           manualEntityModels |= SpatialEntityModelOwnership.requiresCapability([map]);
           directionalLedges |= map.spatialScene!.navigation.ledges.isNotEmpty;
@@ -423,6 +426,7 @@ final class CanonicalGamePackageExportService {
           SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId,
         if (customTerrainAppearance) 'map3d.terrain-appearance@1',
         if (continuousTerrain) SpatialTerrainSurfaceSet.capabilityId,
+        if (closedSlopeFlanks) SpatialTerrainSurface.closedFlanksCapabilityId,
         if (fractionalRamps) SpatialRamp.fractionalLevelsCapabilityId,
         if (directionalLedges) SpatialLedge.capabilityId,
         if (spatialMaps.any((map) =>

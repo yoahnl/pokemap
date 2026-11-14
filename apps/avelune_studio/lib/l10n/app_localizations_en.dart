@@ -3391,4 +3391,102 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reliefWarningExterior =>
       'The exterior decoration touches this area: regenerate it near the map edge.';
+
+  @override
+  String get toolStair => 'Stairs';
+
+  @override
+  String get toolHintSlope =>
+      'Drag from the low side to the high side: heights are read from the terrain.';
+
+  @override
+  String get toolHintStair =>
+      'Click a cliff edge: the stairs orient themselves.';
+
+  @override
+  String get slopeHelpTitle => 'Slope';
+
+  @override
+  String get slopeHelp =>
+      'Press on the low ground, drag onto the plateau and release. The slope climbs in the drag direction, its sides block movement and the plateau cliff stops at the slope. On flat ground it climbs one level.';
+
+  @override
+  String get stairModelTitle => 'Stair model';
+
+  @override
+  String get stairModelLoading => 'Loading stairs…';
+
+  @override
+  String get stairModelEmpty => 'No stair model is available on this map.';
+
+  @override
+  String stairModelLoadFailed(String error) {
+    return 'Unable to load stairs: $error';
+  }
+
+  @override
+  String stairModelSize(int across, int along, int levels) {
+    return '$across × $along cells · climbs $levels level(s)';
+  }
+
+  @override
+  String get stairHelp =>
+      'Click a cell at the foot or on the edge of a straight cliff. The stairs snap in front of it, cut the wall there and become walkable.';
+
+  @override
+  String get slopeProblemOutside => 'Stay inside the map.';
+
+  @override
+  String get slopeProblemDirection =>
+      'Drag along one axis, from the low ground toward the plateau.';
+
+  @override
+  String get slopeProblemDownhill => 'Drag uphill: start on the low side.';
+
+  @override
+  String get slopeProblemGroundNotFlat =>
+      'A slope sits on flat low ground, against a plateau at least as wide.';
+
+  @override
+  String get slopeProblemNoCliff => 'Click the edge of a cliff.';
+
+  @override
+  String get slopeProblemEdgeAmbiguous =>
+      'This cell touches several height steps: click a straight part of the cliff.';
+
+  @override
+  String get slopeProblemHeightMismatch =>
+      'This stair model does not climb this cliff\'s height. Choose another one.';
+
+  @override
+  String get slopeProblemNoRoom =>
+      'Not enough room: the stairs need flat ground in front of a straight cliff as wide as they are.';
+
+  @override
+  String get slopeProblemNoStairModel =>
+      'Choose a stair model in the Properties panel first.';
+
+  @override
+  String get slopeProblemStairModelUnavailable =>
+      'This stair model is not available on this map.';
+
+  @override
+  String get slopeProblemRampConflict =>
+      'A navigation ramp covers these cells. Remove it first.';
+
+  @override
+  String get slopeProblemSurfaceLimit =>
+      'The map has reached its terrain surface limit.';
+
+  @override
+  String get slopeProblemCliffRefused =>
+      'The nearby cliff cannot be cut cleanly here.';
+
+  @override
+  String get slopeProblemBusy =>
+      'The map changed during the gesture. Try again.';
+
+  @override
+  String get slopeProblemUnknown =>
+      'This slope cannot be placed. The map is unchanged.';
 }

@@ -4,6 +4,7 @@ import '../domains/assets/resource_pack_actions.dart';
 import '../domains/assets/resource_pack_import_preparer.dart';
 import '../domains/maps/spatial_map_actions.dart';
 import '../domains/maps/spatial_terrain_relief_actions.dart';
+import '../domains/maps/spatial_terrain_slope_actions.dart';
 import '../domains/maps/spatial_terrain_surface_actions.dart';
 import '../domains/maps/dive_pair_actions.dart';
 import '../domains/maps/moving_platform_actions.dart';
@@ -249,6 +250,11 @@ final class MapMutationDispatcher {
         descriptor: SpatialTerrainReliefActions.descriptor,
         build: const SpatialTerrainReliefActions().build,
       ),
+      for (final descriptor in SpatialTerrainSlopeActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: const SpatialTerrainSlopeActions().build,
+        ),
       for (final descriptor in SpatialTerrainSurfaceActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,

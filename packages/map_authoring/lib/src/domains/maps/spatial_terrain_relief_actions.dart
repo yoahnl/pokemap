@@ -163,15 +163,7 @@ Map<String, Object?> reliefPaintPreview(TerrainReliefPaint painted) => {
       'upsertedSurfaceIds': painted.surfaces.upsertedSurfaceIds,
       'deletedSurfaceIds': painted.surfaces.deletedSurfaceIds,
       'traces': [
-        for (final trace in painted.traces)
-          {
-            'lowerHeight': trace.lowerHeight,
-            'upperHeight': trace.upperHeight,
-            'layerId': trace.layerId,
-            'featureId': trace.featureId,
-            'blueprintId': trace.blueprintId,
-            'change': trace.change.name,
-          },
+        for (final trace in painted.traces) reliefTracePreview(trace),
       ],
       'refreshedBorderFeatures': painted.refreshedBorders,
       'staleBorderFeatures': painted.staleBorders,
@@ -181,6 +173,15 @@ Map<String, Object?> reliefPaintPreview(TerrainReliefPaint painted) => {
         'resolvedBorderFeatures':
             painted.resolvedBorderFeatures.take(20).toList(),
       },
+    };
+
+Map<String, Object?> reliefTracePreview(TerrainReliefTrace trace) => {
+      'lowerHeight': trace.lowerHeight,
+      'upperHeight': trace.upperHeight,
+      'layerId': trace.layerId,
+      'featureId': trace.featureId,
+      'blueprintId': trace.blueprintId,
+      'change': trace.change.name,
     };
 
 List<GridPos> _cells(List<Object?> values) => [

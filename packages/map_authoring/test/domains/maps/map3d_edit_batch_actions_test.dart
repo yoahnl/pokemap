@@ -9,12 +9,13 @@ import 'package:test/test.dart';
 import '../../support/reliability_map_fixture.dart';
 import '../assets/resource_library_actions_test.dart' show librarySnapshot;
 import 'border_spatial_actions_test.dart' show context;
+import 'spatial_terrain_slope_actions_test.dart' show stairProject;
 
 void main() {
-  test('descriptor admits exactly the 25 semantic operations', () {
+  test('descriptor admits exactly the 27 semantic operations', () {
     final descriptor =
         MapMutationDispatcher.canonical().descriptor('map3d.edit_batch');
-    expect(descriptor.extensions['admittedActions'], hasLength(25));
+    expect(descriptor.extensions['admittedActions'], hasLength(27));
     expect(descriptor.extensions['defaultSeed'], 0);
     expect(Map3dEditProjection.admittedActions,
         isNot(contains('map3d.edit_batch')));
@@ -296,6 +297,7 @@ void main() {
         formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion)
       ..['id'] = 'replacement';
     final project = fixture.project.copyWith(
+        models3d: [...fixture.project.models3d, stairProject.models3d.last],
         borderCatalog: ProjectBorderCatalog(
             formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
             records: [
@@ -365,6 +367,14 @@ void main() {
         'level': 2,
         'blueprintId': 'fence',
         'region': {'x': 10, 'y': 8, 'width': 3, 'height': 3}
+      },
+      'map3d.terrain.paint_slope': {
+        'from': {'x': 18, 'y': 1},
+        'to': {'x': 18, 'y': 5}
+      },
+      'map3d.terrain.place_stair': {
+        'cell': {'x': 20, 'y': 3},
+        'modelId': 'stone-stair'
       },
       'border_layer.feature_create': {
         'layerId': 'border',

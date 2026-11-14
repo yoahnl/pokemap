@@ -1923,5 +1923,51 @@
   "reliefProblemBusy": "La carte a changé pendant le tracé. Recommencez.",
   "reliefProblemUnknown": "Impossible de peindre ce relief. La carte reste inchangée.",
   "reliefWarningUnreachable": "Zone inaccessible : ajoutez une pente ou un escalier",
-  "reliefWarningExterior": "Le décor extérieur touche cette zone : régénérez-le près du bord de la carte."
+  "reliefWarningExterior": "Le décor extérieur touche cette zone : régénérez-le près du bord de la carte.",
+  "toolStair": "Escalier",
+  "toolHintSlope": "Glissez du bas vers le haut : les hauteurs sont lues sur le terrain.",
+  "toolHintStair": "Cliquez sur le bord d’une falaise : l’escalier s’y oriente tout seul.",
+  "slopeHelpTitle": "Pente",
+  "slopeHelp": "Appuyez sur le sol bas, glissez jusqu’au plateau et relâchez. La pente monte dans le sens du glissé, ses côtés bloquent le passage et la falaise du plateau s’arrête à la pente. Sur un sol plat, elle monte d’un niveau.",
+  "stairModelTitle": "Modèle d’escalier",
+  "stairModelLoading": "Chargement des escaliers…",
+  "stairModelEmpty": "Aucun modèle d’escalier n’est disponible sur cette carte.",
+  "stairModelLoadFailed": "Impossible de charger les escaliers : {error}",
+  "@stairModelLoadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "stairModelSize": "{across} × {along} cases · monte de {levels} niveau(x)",
+  "@stairModelSize": {
+    "placeholders": {
+      "across": {
+        "type": "int"
+      },
+      "along": {
+        "type": "int"
+      },
+      "levels": {
+        "type": "int"
+      }
+    }
+  },
+  "stairHelp": "Cliquez sur une case au pied ou au bord d’une falaise droite. L’escalier se place devant la falaise, coupe la paroi à cet endroit et devient praticable.",
+  "slopeProblemOutside": "Restez à l’intérieur de la carte.",
+  "slopeProblemDirection": "Glissez dans un seul axe, du sol bas vers le plateau.",
+  "slopeProblemDownhill": "Glissez du bas vers le haut : le départ doit être le côté bas.",
+  "slopeProblemGroundNotFlat": "Une pente se pose sur un sol plat au niveau bas, contre un plateau aussi large qu’elle.",
+  "slopeProblemNoCliff": "Cliquez sur le bord d’une falaise.",
+  "slopeProblemEdgeAmbiguous": "Cette case touche plusieurs dénivelés : cliquez sur une partie droite de la falaise.",
+  "slopeProblemHeightMismatch": "Ce modèle d’escalier ne monte pas de la hauteur de cette falaise. Choisissez-en un autre.",
+  "slopeProblemNoRoom": "Pas assez de place : il faut un sol plat devant une falaise droite aussi large que l’escalier.",
+  "slopeProblemNoStairModel": "Choisissez d’abord un modèle d’escalier dans le panneau Propriétés.",
+  "slopeProblemStairModelUnavailable": "Ce modèle d’escalier n’est pas disponible sur cette carte.",
+  "slopeProblemRampConflict": "Une rampe de navigation couvre ces cases. Retirez-la d’abord.",
+  "slopeProblemSurfaceLimit": "La carte a atteint sa limite de surfaces de terrain.",
+  "slopeProblemCliffRefused": "La falaise voisine ne peut pas être coupée proprement ici.",
+  "slopeProblemBusy": "La carte a changé pendant le geste. Recommencez.",
+  "slopeProblemUnknown": "Impossible de poser cette pente. La carte reste inchangée."
 }

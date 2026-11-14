@@ -1115,6 +1115,19 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/terrain_relief_paint_stdio.test.ts',
     };
   }
+  if (actionId == 'map3d.terrain.paint_slope' ||
+      actionId == 'map3d.terrain.place_stair') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/workspace/catalog_terrain_slope_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/spatial_terrain_slope_actions_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/map_slope_tool_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/terrain_slope_stair_stdio.test.ts',
+    };
+  }
   if (actionId.startsWith('map3d.terrain.surface.')) {
     return const {
       AuthoringTransport.directApi:
@@ -2119,6 +2132,10 @@ String _contractTestFor(String actionId) {
   if(actionId=='map3d.edit_batch') return 'test/domains/maps/map3d_edit_batch_actions_test.dart';
   if (actionId == 'map3d.terrain.paint_height') {
     return 'test/domains/maps/spatial_terrain_relief_actions_test.dart';
+  }
+  if (actionId == 'map3d.terrain.paint_slope' ||
+      actionId == 'map3d.terrain.place_stair') {
+    return 'test/domains/maps/spatial_terrain_slope_actions_test.dart';
   }
   if (_eventV2TransportCertifiedActionIds.contains(actionId)) {
     return 'test/domains/narrative/event_record_batch_transport_test.dart';

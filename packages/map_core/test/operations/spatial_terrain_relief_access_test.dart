@@ -71,4 +71,15 @@ void main() {
       isFalse,
     );
   });
+
+  test('a slope or a stair touching the plateau makes it reachable', () {
+    final manifest = ProjectManifest(name: 'Access', maps: [], tilesets: []);
+    final sloped = paintTerrainSlope(
+      manifest: manifest,
+      map: plateau,
+      from: const GridPos(x: 3, y: 8),
+      to: const GridPos(x: 3, y: 5),
+    ).map;
+    expect(terrainReliefUnreachable(sloped, painted, 2), isFalse);
+  });
 }

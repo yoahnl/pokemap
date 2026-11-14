@@ -15,9 +15,17 @@ bool terrainReliefUnreachable(
       cell.y >= 0 &&
       cell.x < scene.width &&
       cell.y < scene.depth;
-  bool rampAt(GridPos cell) => scene.navigation.ramps.any(
-    (ramp) => ramp.contains(cell.x + .5, cell.y + .5),
-  );
+  bool rampAt(GridPos cell) =>
+      scene.navigation.ramps.any(
+        (ramp) => ramp.contains(cell.x + .5, cell.y + .5),
+      ) ||
+      scene.terrainSurfaces
+          .candidatesAtCell(cell.x, cell.y)
+          .any(
+            (surface) =>
+                (surface.gradientX != 0 || surface.gradientZ != 0) &&
+                surface.contains(cell.x + .5, cell.y + .5),
+          );
   final half = scene.width * scene.depth / 2;
   final warps = {for (final warp in map.warps) warp.pos};
   final visited = <GridPos>{};

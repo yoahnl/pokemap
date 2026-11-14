@@ -16,6 +16,7 @@ import 'package:avelune_studio/features/map_workspace/application/spatial_model_
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_relief_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_slope_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_surface_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';

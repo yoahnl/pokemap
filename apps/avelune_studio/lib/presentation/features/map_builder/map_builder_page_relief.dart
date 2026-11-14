@@ -78,4 +78,62 @@ extension _MapBuilderPageRelief on _MapBuilderPageState {
         profiles: _reliefProfiles(view),
         onProfile: (profile) => unawaited(_chooseRelief(view, profile)),
       );
+
+  Future<void> _prepareStair(MapEditingViewportSession view) async {
+    final slope = view.slope
+      ..loading = true
+      ..loadFailure = null;
+    _changed();
+    try {
+      await _maps.ensureResourceKind('model3d', placeableOnly: true);
+    } on Object catch (failure) {
+      slope.loadFailure = failure;
+    } finally {
+      slope.loading = false;
+    }
+    if (_disposed) return;
+    final models = _stairModels(view);
+    if (models.length == 1) slope.stairModelId = models.single.model.id;
+    _changed();
+  }
+
+  List<TerrainStairModel> _stairModels(MapEditingViewportSession view) {
+    final project = _maps.project, map = _maps.active?.current;
+    return project == null || map == null
+        ? const []
+        : view.slope.stairModels(project, map);
+  }
+
+  ({String message, bool isError})? _constructionNotice(
+    MapEditingViewportSession? view,
+  ) => switch (view?.tool) {
+    StudioMapTool.relief => mapBuilderReliefNotice(
+      context.l10n,
+      view!.relief.outcome,
+    ),
+    StudioMapTool.slope || StudioMapTool.stair => mapBuilderSlopeNotice(
+      context.l10n,
+      view!.slope.outcome,
+    ),
+    _ => null,
+  };
+
+  Widget? _constructionInspector(MapEditingViewportSession? view) =>
+      switch (view?.tool) {
+        StudioMapTool.relief => _reliefInspector(view!),
+        StudioMapTool.slope || StudioMapTool.stair => MapBuilderSlopeInspector(
+          stair: view!.tool == StudioMapTool.stair,
+          state: view.slope,
+          models: view.tool == StudioMapTool.stair
+              ? _stairModels(view)
+              : const [],
+          onModel: (model) {
+            view.slope
+              ..stairModelId = model.model.id
+              ..outcome = null;
+            _changed();
+          },
+        ),
+        _ => null,
+      };
 }

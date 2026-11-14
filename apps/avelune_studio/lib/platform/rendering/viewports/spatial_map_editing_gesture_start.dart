@@ -83,7 +83,13 @@ extension _SpatialGestureStart on _SpatialMapEditingViewportState {
     final document = editingDocument;
     final cell = GridPos(x: x, y: z);
     final commands = SpatialModelEditingCommands(document, widget.project);
-    if (widget.view.tool == StudioMapTool.relief) return startRelief(cell);
+    if (const {
+      StudioMapTool.relief,
+      StudioMapTool.slope,
+      StudioMapTool.stair,
+    }.contains(widget.view.tool)) {
+      return startRelief(cell);
+    }
     try {
       if (widget.view.tool == StudioMapTool.environment) {
         return startEnvironment(cell);

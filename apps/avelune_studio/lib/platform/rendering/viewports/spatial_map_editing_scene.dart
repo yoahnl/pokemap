@@ -7,6 +7,8 @@ extension _SpatialSceneComposition on _SpatialMapEditingViewportState {
         StudioMapTool.place,
         StudioMapTool.terrain,
         StudioMapTool.relief,
+        StudioMapTool.slope,
+        StudioMapTool.stair,
         StudioMapTool.erase,
         StudioMapTool.collisionPaint,
         StudioMapTool.collisionErase,

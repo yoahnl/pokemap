@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 import '../../support/reliability_map_fixture.dart';
 import '../assets/resource_library_actions_test.dart' show librarySnapshot;
 import 'border_spatial_actions_test.dart' show context;
+import 'spatial_terrain_slope_actions_test.dart' show stairProject;
 
 void main() {
   final dispatcher=MapMutationDispatcher.canonical();
@@ -24,6 +25,9 @@ void main() {
         raw['id']='replacement';
         project=project.copyWith(borderCatalog:ProjectBorderCatalog(formatVersion:9,
           records:[...project.borderCatalog.records,decodeBorderBlueprintRecordJson(raw,formatVersion:9)]));
+      }
+      if(action=='map3d.terrain.place_stair') {
+        project=project.copyWith(models3d:[...project.models3d,stairProject.models3d.last]);
       }
       if(action.startsWith('border_layer.region_')) {
         map=updateBorderFeatureGeometry(map,layerId:'border',featureId:'fence',

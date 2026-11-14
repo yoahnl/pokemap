@@ -34,6 +34,7 @@ abstract final class AveluneRuntimeCompatibility {
           SpatialModelClipCapabilities.capabilityId,
           'map3d.terrain-appearance@1',
           SpatialTerrainSurfaceSet.capabilityId,
+          SpatialTerrainSurface.closedFlanksCapabilityId,
           SpatialRamp.fractionalLevelsCapabilityId,
           SpatialLedge.capabilityId,
           SpatialNavigationProfile.fishingDropCapabilityId,

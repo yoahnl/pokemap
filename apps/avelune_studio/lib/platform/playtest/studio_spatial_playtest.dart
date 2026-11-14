@@ -224,6 +224,7 @@ final class StudioSpatialPlaytest {
           SpatialModelClipCapabilities.capabilityId,
           'map3d.terrain-appearance@1',
           SpatialTerrainSurfaceSet.capabilityId,
+          SpatialTerrainSurface.closedFlanksCapabilityId,
           SpatialRamp.fractionalLevelsCapabilityId,
         },
         locale: 'fr',

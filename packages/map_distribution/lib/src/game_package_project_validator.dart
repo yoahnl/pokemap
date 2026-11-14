@@ -549,6 +549,13 @@ final class GamePackageProjectValidator {
           _fail(
               'Custom fishing drop requires ${SpatialNavigationProfile.fishingDropCapabilityId}.');
         }
+        if (maps.any((map) => map.spatialScene!.terrainSurfaces.surfaces
+                .any((surface) => surface.closedFlanks)) &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains(SpatialTerrainSurface.closedFlanksCapabilityId)) {
+          _fail(
+              'Slopes with closed flanks require ${SpatialTerrainSurface.closedFlanksCapabilityId}.');
+        }
         if (maps.any((map) => map.spatialScene!.navigation.ledges.isNotEmpty) &&
             !packageManifest.compatibility.requiredCapabilities.contains(SpatialLedge.capabilityId)) {
           _fail('Directional ledges require ${SpatialLedge.capabilityId}.');

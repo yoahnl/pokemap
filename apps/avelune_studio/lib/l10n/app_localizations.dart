@@ -5345,6 +5345,162 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Le décor extérieur touche cette zone : régénérez-le près du bord de la carte.'**
   String get reliefWarningExterior;
+
+  /// No description provided for @toolStair.
+  ///
+  /// In fr, this message translates to:
+  /// **'Escalier'**
+  String get toolStair;
+
+  /// No description provided for @toolHintSlope.
+  ///
+  /// In fr, this message translates to:
+  /// **'Glissez du bas vers le haut : les hauteurs sont lues sur le terrain.'**
+  String get toolHintSlope;
+
+  /// No description provided for @toolHintStair.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cliquez sur le bord d’une falaise : l’escalier s’y oriente tout seul.'**
+  String get toolHintStair;
+
+  /// No description provided for @slopeHelpTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pente'**
+  String get slopeHelpTitle;
+
+  /// No description provided for @slopeHelp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appuyez sur le sol bas, glissez jusqu’au plateau et relâchez. La pente monte dans le sens du glissé, ses côtés bloquent le passage et la falaise du plateau s’arrête à la pente. Sur un sol plat, elle monte d’un niveau.'**
+  String get slopeHelp;
+
+  /// No description provided for @stairModelTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modèle d’escalier'**
+  String get stairModelTitle;
+
+  /// No description provided for @stairModelLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement des escaliers…'**
+  String get stairModelLoading;
+
+  /// No description provided for @stairModelEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun modèle d’escalier n’est disponible sur cette carte.'**
+  String get stairModelEmpty;
+
+  /// No description provided for @stairModelLoadFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de charger les escaliers : {error}'**
+  String stairModelLoadFailed(String error);
+
+  /// No description provided for @stairModelSize.
+  ///
+  /// In fr, this message translates to:
+  /// **'{across} × {along} cases · monte de {levels} niveau(x)'**
+  String stairModelSize(int across, int along, int levels);
+
+  /// No description provided for @stairHelp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cliquez sur une case au pied ou au bord d’une falaise droite. L’escalier se place devant la falaise, coupe la paroi à cet endroit et devient praticable.'**
+  String get stairHelp;
+
+  /// No description provided for @slopeProblemOutside.
+  ///
+  /// In fr, this message translates to:
+  /// **'Restez à l’intérieur de la carte.'**
+  String get slopeProblemOutside;
+
+  /// No description provided for @slopeProblemDirection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Glissez dans un seul axe, du sol bas vers le plateau.'**
+  String get slopeProblemDirection;
+
+  /// No description provided for @slopeProblemDownhill.
+  ///
+  /// In fr, this message translates to:
+  /// **'Glissez du bas vers le haut : le départ doit être le côté bas.'**
+  String get slopeProblemDownhill;
+
+  /// No description provided for @slopeProblemGroundNotFlat.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une pente se pose sur un sol plat au niveau bas, contre un plateau aussi large qu’elle.'**
+  String get slopeProblemGroundNotFlat;
+
+  /// No description provided for @slopeProblemNoCliff.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cliquez sur le bord d’une falaise.'**
+  String get slopeProblemNoCliff;
+
+  /// No description provided for @slopeProblemEdgeAmbiguous.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette case touche plusieurs dénivelés : cliquez sur une partie droite de la falaise.'**
+  String get slopeProblemEdgeAmbiguous;
+
+  /// No description provided for @slopeProblemHeightMismatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce modèle d’escalier ne monte pas de la hauteur de cette falaise. Choisissez-en un autre.'**
+  String get slopeProblemHeightMismatch;
+
+  /// No description provided for @slopeProblemNoRoom.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pas assez de place : il faut un sol plat devant une falaise droite aussi large que l’escalier.'**
+  String get slopeProblemNoRoom;
+
+  /// No description provided for @slopeProblemNoStairModel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez d’abord un modèle d’escalier dans le panneau Propriétés.'**
+  String get slopeProblemNoStairModel;
+
+  /// No description provided for @slopeProblemStairModelUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce modèle d’escalier n’est pas disponible sur cette carte.'**
+  String get slopeProblemStairModelUnavailable;
+
+  /// No description provided for @slopeProblemRampConflict.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une rampe de navigation couvre ces cases. Retirez-la d’abord.'**
+  String get slopeProblemRampConflict;
+
+  /// No description provided for @slopeProblemSurfaceLimit.
+  ///
+  /// In fr, this message translates to:
+  /// **'La carte a atteint sa limite de surfaces de terrain.'**
+  String get slopeProblemSurfaceLimit;
+
+  /// No description provided for @slopeProblemCliffRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'La falaise voisine ne peut pas être coupée proprement ici.'**
+  String get slopeProblemCliffRefused;
+
+  /// No description provided for @slopeProblemBusy.
+  ///
+  /// In fr, this message translates to:
+  /// **'La carte a changé pendant le geste. Recommencez.'**
+  String get slopeProblemBusy;
+
+  /// No description provided for @slopeProblemUnknown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de poser cette pente. La carte reste inchangée.'**
+  String get slopeProblemUnknown;
 }
 
 class _AppLocalizationsDelegate
