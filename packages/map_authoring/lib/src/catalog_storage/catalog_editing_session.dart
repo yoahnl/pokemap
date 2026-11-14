@@ -31,6 +31,7 @@ import '../workspace/catalog/catalog_metadata_documents.dart';
 import '../workspace/catalog/catalog_narrative_event_consumers.dart';
 import '../workspace/catalog/catalog_narrative_event_documents.dart';
 import '../workspace/catalog/catalog_narrative_titles.dart';
+import '../workspace/catalog/catalog_narrative_usages.dart';
 import '../workspace/catalog/catalog_periodic_reward_consumers.dart';
 import '../workspace/catalog/catalog_resource_positions.dart';
 import '../workspace/catalog/catalog_resource_usage_index.dart';
@@ -458,6 +459,20 @@ final class CatalogEditingSession {
             workspaceFingerprint: null, publicBaseRevision: null,
             publicDiff: null, publicPlan: null, currentProjectRevision: null,
             idempotencyKey: _token('narrative_titles_prepare_'), request: null,
+            prepareMetadataDocuments: true);
+        await _apply(plan);
+      });
+
+  Future<void> prepareNarrativeUsages() => _serialize(() async {
+        _requireOpen();
+        await store.requireMetadataIndexAdmission(snapshot);
+        final index = await CatalogNarrativeUsages.prepare(snapshot);
+        if (index.upserts.isEmpty) return;
+        final plan = await _planPatch(upserts: index.upserts,
+            removals: const [], additionalChanges: const [],
+            workspaceFingerprint: null, publicBaseRevision: null,
+            publicDiff: null, publicPlan: null, currentProjectRevision: null,
+            idempotencyKey: _token('narrative_usages_prepare_'), request: null,
             prepareMetadataDocuments: true);
         await _apply(plan);
       });

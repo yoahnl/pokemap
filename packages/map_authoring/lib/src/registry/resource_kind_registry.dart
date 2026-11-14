@@ -712,6 +712,25 @@ final class AuthoringResourceKindRegistry {
           'preparationRequiredCode': 'query.narrative_titles_preparation_required',
           'internalIndexPageSize': 128,
         }),
+      for (final kind in ['narrativeFactUsers', 'narrativeMapElementOwners'])
+        AuthoringResourceKindDescriptor(id: kind, version: 1,
+          displayName: kind == 'narrativeFactUsers' ? 'Narrative Fact users' : 'Narrative map element owners',
+          summary: 'Who reads or writes a Fact, or cites a map element, from the explicit derived usage indexes; maps are not analysed',
+          extensions: {
+            'operations': ['get', 'batch_get'], 'view': 'summary', 'idsMaximum': 50,
+            if (kind == 'narrativeMapElementOwners')
+              'requiredFilters': {'mapId': {'type': 'string', 'minLength': 1}},
+            'fields': kind == 'narrativeFactUsers'
+                ? ['factId', 'users', 'coverage']
+                : ['mapId', 'elementId', 'owners', 'coverage'],
+            'entryFields': kind == 'narrativeFactUsers'
+                ? ['kind', 'id', 'role']
+                : ['kind', 'id', 'sourceKind'],
+            'requiresCatalog': true,
+            'preparationScope': 'narrativeUsages',
+            'preparationRequiredCode': 'query.narrative_usages_preparation_required',
+            'coverage': 'returnedWithEveryItem',
+          }),
       for (final kind in ['periodicRewardScene', 'periodicRewardNode'])
         AuthoringResourceKindDescriptor(id: kind, version: 1,
           displayName: kind == 'periodicRewardScene' ? 'Published reward Scene choices' : 'Published reward node choices',
@@ -1173,6 +1192,8 @@ final class AuthoringResourceKindRegistry {
       ].map(_catalogStorageDescriptor),
       queryableResourceKindIds: const {
         'narrativeTitle',
+        'narrativeFactUsers',
+        'narrativeMapElementOwners',
         'periodicRewardScene',
         'periodicRewardNode',
         'resourcePackJob',

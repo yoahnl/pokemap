@@ -159,6 +159,8 @@ void main() {
           'mapEditor',
           'mapHealth',
           'model3d',
+          'narrativeFactUsers',
+          'narrativeMapElementOwners',
           'narrativeTitle',
           'partyCompanionConfiguration',
           'periodicRewardNode',

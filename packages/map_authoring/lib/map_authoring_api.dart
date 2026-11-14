@@ -26,6 +26,17 @@ export 'src/api/narrative_index_query.dart'
         CatalogNarrativeTitlePage,
         CatalogNarrativeTitlesPreparationRequired,
         CatalogNarrativeTitles;
+export 'src/api/narrative_usage_query.dart'
+    show
+        narrativeFactUsersResourceKind,
+        narrativeMapElementOwnersResourceKind,
+        narrativeUsageResourceKinds;
+export 'src/workspace/catalog/catalog_narrative_usages.dart'
+    show
+        CatalogNarrativeUsages,
+        CatalogNarrativeUsageRead,
+        CatalogNarrativeUsageEntries,
+        CatalogNarrativeUsagesPreparationRequired;
 export 'src/api/authoring_read_contracts.dart';
 export 'src/application/playtest_player_state_service.dart';
 export 'src/contracts/playtest_timing_contracts.dart';

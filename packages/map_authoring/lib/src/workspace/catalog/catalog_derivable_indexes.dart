@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../support/authoring_fingerprint.dart';
 import 'catalog_narrative_titles.dart';
+import 'catalog_narrative_usages.dart';
 
 typedef CatalogDerivedLookup = Future<CatalogDefinitionUnit?> Function(
     CatalogDefinitionKey key);
@@ -30,7 +31,11 @@ abstract interface class CatalogDerivableIndex {
 }
 
 abstract final class CatalogDerivableIndexes {
-  static const List<CatalogDerivableIndex> all = [CatalogNarrativeTitles.index];
+  static const List<CatalogDerivableIndex> all = [
+    CatalogNarrativeTitles.index,
+    CatalogNarrativeUsages.factUsers,
+    CatalogNarrativeUsages.mapElementOwners,
+  ];
 
   static List<CatalogDefinitionUnit> expected(
       Iterable<CatalogDefinitionUnit> units) {

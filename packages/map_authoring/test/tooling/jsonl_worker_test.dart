@@ -496,6 +496,10 @@ void main() {
           expect(result.error?.details['domainCode'],
               endsWith('_map_required'),
               reason: resourceKind);
+        } else if (narrativeUsageResourceKinds.contains(resourceKind)) {
+          expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
+          expect(result.error?.details['domainCode'],
+              'query.narrative_usage_scope_invalid');
         } else if (resourceKind == 'narrativeTitle') {
           expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
           expect(result.error?.details['domainCode'],

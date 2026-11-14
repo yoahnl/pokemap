@@ -20,6 +20,17 @@ export 'src/api/narrative_index_query.dart'
         CatalogNarrativeTitlePage,
         CatalogNarrativeTitlesPreparationRequired,
         CatalogNarrativeTitles;
+export 'src/api/narrative_usage_query.dart'
+    show
+        narrativeFactUsersResourceKind,
+        narrativeMapElementOwnersResourceKind,
+        narrativeUsageResourceKinds;
+export 'src/workspace/catalog/catalog_narrative_usages.dart'
+    show
+        CatalogNarrativeUsages,
+        CatalogNarrativeUsageRead,
+        CatalogNarrativeUsageEntries,
+        CatalogNarrativeUsagesPreparationRequired;
 export 'src/api/border_feature_query.dart' show AuthoringMapView;
 export 'src/api/authoring_read_contracts.dart';
 export 'src/api/authoring_mutation_api.dart';

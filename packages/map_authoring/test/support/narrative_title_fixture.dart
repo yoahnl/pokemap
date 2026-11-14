@@ -75,7 +75,10 @@ final class NarrativeTitleFixture {
       Directory('/Users/karim/Library/Caches/AveluneQA/c1/narrative-titles');
 
   static Future<NarrativeTitleFixture> create(
-      {int facts = 3, int unrelated = 0, Directory? at}) async {
+      {int facts = 3,
+      int unrelated = 0,
+      Directory? at,
+      ProjectManifest? project}) async {
     final root =
         at ?? await (await qa.create(recursive: true)).createTemp('project-');
     await root.create(recursive: true);
@@ -83,7 +86,8 @@ final class NarrativeTitleFixture {
     final working = await WorkingProjectCatalog.create(
         store: store,
         projectId: 'narrative-titles',
-        project: narrativeTitleProject(facts: facts, unrelated: unrelated));
+        project: project ??
+            narrativeTitleProject(facts: facts, unrelated: unrelated));
     await working.close();
     return attach(root);
   }

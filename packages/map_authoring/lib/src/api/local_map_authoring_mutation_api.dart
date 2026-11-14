@@ -599,7 +599,7 @@ final class LocalMapAuthoringMutationApi
   }
 
   Future<void> prepareWorkshopCatalog(ProjectHandle handle, {String? scope}) async {
-    if (scope != null && !const {'mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext', 'resourceIndexes', 'narrativeEventConsumers', 'narrativeTitles'}.contains(scope)) throw const FormatException('catalog.preparation_scope_unsupported');
+    if (scope != null && !const {'mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext', 'resourceIndexes', 'narrativeEventConsumers', 'narrativeTitles', 'narrativeUsages'}.contains(scope)) throw const FormatException('catalog.preparation_scope_unsupported');
     final session = _catalogSession(handle);
     if (session == null) {
       if (scope != null) throw const FormatException('catalog.preparation_requires_catalog');
@@ -658,7 +658,7 @@ final class LocalMapAuthoringMutationApi
       };
     }
     return {'prepared': true, if (current != null) 'snapshotRevision': current.revision,
-      'scope': scope == 'resourceIndexes' ? 'explicitResourceUsageAndFamilyIndexes' : scope == 'narrativeEventConsumers' ? 'explicitNarrativeEventConsumerIndex' : scope == 'narrativeTitles' ? 'explicitNarrativeTitleIndex' : scope == 'dialogueCreation' ? 'explicitDialoguePathOwnershipIndex' : scope == 'nativeResources' ? 'explicitNativeResourcePositions' : scope == 'assetImport' ? 'explicitAssetImportPositions' : scope == 'mapCreation' ? 'explicitMapOwnershipIndex' : catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
+      'scope': scope == 'resourceIndexes' ? 'explicitResourceUsageAndFamilyIndexes' : scope == 'narrativeEventConsumers' ? 'explicitNarrativeEventConsumerIndex' : scope == 'narrativeTitles' ? 'explicitNarrativeTitleIndex' : scope == 'narrativeUsages' ? 'explicitNarrativeUsageIndexes' : scope == 'dialogueCreation' ? 'explicitDialoguePathOwnershipIndex' : scope == 'nativeResources' ? 'explicitNativeResourcePositions' : scope == 'assetImport' ? 'explicitAssetImportPositions' : scope == 'mapCreation' ? 'explicitMapOwnershipIndex' : catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
   }
 
   Future<bool> catalogProjectReadOnly(ProjectHandle handle) async {
@@ -790,7 +790,16 @@ final class LocalMapAuthoringMutationApi
         actions: _dispatcher.descriptors,
         fullParity: AuthoringFullParityCatalog.canonical(),
         workshopPreparation: const {
-          'scopes': ['mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext', 'resourceIndexes', 'narrativeEventConsumers', 'narrativeTitles'],
+          'scopes': ['mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext', 'resourceIndexes', 'narrativeEventConsumers', 'narrativeTitles', 'narrativeUsages'],
+          'narrativeUsages': {
+            'requiresPreparedMetadataIndexes': true,
+            'reads': ['narrativeDefinitions', 'eventRegistry'],
+            'readsMaps': false,
+            'changesHead': true,
+            'preservesProjectData': true,
+            'routineEditsMaintainIndexes': true,
+            'requiredBy': ['query:narrativeFactUsers', 'query:narrativeMapElementOwners'],
+          },
           'narrativeTitles': {
             'requiresPreparedMetadataIndexes': true,
             'reads': ['narrativeDefinitions', 'eventRegistry'],

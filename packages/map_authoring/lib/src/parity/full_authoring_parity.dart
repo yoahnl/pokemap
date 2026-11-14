@@ -1750,7 +1750,8 @@ AuthoringResourceParity _resourceParity(
   String owner, {
   required Set<String> queryableResourceKinds,
 }) {
-  if (kind == 'narrativeTitle') {
+  if (const {'narrativeTitle', 'narrativeFactUsers', 'narrativeMapElementOwners'}
+      .contains(kind)) {
     return AuthoringResourceParity(
       resourceKind: kind,
       canonicalOwnerKind: owner,
@@ -1765,30 +1766,39 @@ AuthoringResourceParity _resourceParity(
               AuthoringParityCell.notApplicable(
                 capability: capability,
                 justification:
-                    'narrativeTitle is a read-only derived index. Scenes, dialogues, Facts, world rules, storylines, cinematics and Event V2 records own the persisted data, references and mutations.',
+                    '$kind is a read-only derived index. Scenes, dialogues, Facts, world rules, storylines, cinematics and Event V2 records own the persisted data, references and mutations.',
               ),
             AuthoringParityCapability.parity =>
               AuthoringParityCell.notApplicable(
                 capability: capability,
                 justification:
-                    'No Studio surface reads narrative titles yet; the Histoire tab must consume this canonical query when it is rebuilt.',
+                    'No Studio surface reads $kind yet; the Histoire tab must consume this canonical query when it is rebuilt.',
               ),
             AuthoringParityCapability.read
                 when !queryableResourceKinds.contains(kind) =>
               AuthoringParityCell.missing(
                 capability: capability,
-                justification: 'The narrative title query resource is unpublished.',
+                justification: 'The $kind query resource is unpublished.',
               ),
             _ => AuthoringParityCell.supported(
                 capability: capability,
-                evidence: const [
-                  'lib/src/api/narrative_index_query.dart',
-                  'lib/src/workspace/catalog/catalog_narrative_titles.dart',
-                  'test/workspace/catalog_narrative_titles_test.dart',
-                  'test/workspace/catalog_narrative_title_history_test.dart',
-                  'test/api/narrative_index_query_test.dart',
-                  '../../tools/pokemap_mcp/test/narrative_titles_stdio.test.ts',
-                ],
+                evidence: kind == 'narrativeTitle'
+                    ? const [
+                        'lib/src/api/narrative_index_query.dart',
+                        'lib/src/workspace/catalog/catalog_narrative_titles.dart',
+                        'test/workspace/catalog_narrative_titles_test.dart',
+                        'test/workspace/catalog_narrative_title_history_test.dart',
+                        'test/api/narrative_index_query_test.dart',
+                        '../../tools/pokemap_mcp/test/narrative_titles_stdio.test.ts',
+                      ]
+                    : const [
+                        'lib/src/api/narrative_usage_query.dart',
+                        'lib/src/workspace/catalog/catalog_narrative_usages.dart',
+                        'test/workspace/catalog_narrative_usages_test.dart',
+                        'test/workspace/catalog_narrative_usage_history_test.dart',
+                        'test/api/narrative_usage_query_test.dart',
+                        '../../tools/pokemap_mcp/test/narrative_usages_stdio.test.ts',
+                      ],
               ),
           },
       },
@@ -2529,6 +2539,8 @@ const _semanticOwners = <String, String>{
   'trainer': 'campaignContent',
   'trainerPokemonStats': 'campaignContent',
   'narrativeTitle': 'project',
+  'narrativeFactUsers': 'project',
+  'narrativeMapElementOwners': 'project',
   'character': 'campaignContent',
   'characterStudioCatalog': 'project',
   'characterStudioCharacter': 'project',
