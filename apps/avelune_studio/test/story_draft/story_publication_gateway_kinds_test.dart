@@ -44,6 +44,7 @@ void main() {
             dialogues: ports,
             facts: ports,
             savedDialogues: dialogues,
+            stories: ports,
           )
           .publish(
             planStoryPublication(draft.changes(saved())),
@@ -188,6 +189,22 @@ void main() {
       (kind: StoryDraftKind.worldRule, id: 'gate'),
     ]);
   });
+
+  test(
+    'a storyline is written after the new fact that ends a milestone',
+    () async {
+      draft.group(() {
+        write(StoryDraftKind.story, 'main', story('main', 'Trame'));
+        write(StoryDraftKind.fact, 'fact_end', fact('fact_end', 'Fin'));
+      });
+
+      expect(await publish(), isA<StoryPublicationProgress>());
+
+      expect(ports.calls, ['fact fact_end', 'story main']);
+      expect(project.storylines.single.title, 'Trame');
+      expect(draft.dirty(saved()), isFalse);
+    },
+  );
 
   test('a scene deletion is refused before anything is written', () async {
     project = manifest(events: [event(1)], scenes: [scene('old')]);

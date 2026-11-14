@@ -6,6 +6,7 @@ import 'package:avelune_studio/features/events/application/behaviour/behaviour_c
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_conditions_picker.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_milestones.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class MapBuilderStoryConditions extends StatefulWidget {
@@ -27,6 +28,7 @@ class MapBuilderStoryConditions extends StatefulWidget {
 
 class _MapBuilderStoryConditionsState extends State<MapBuilderStoryConditions> {
   int? _picking;
+  var _milestones = false;
 
   MapBuilderStoryBinding get _binding => widget.binding;
 
@@ -102,39 +104,68 @@ class _MapBuilderStoryConditionsState extends State<MapBuilderStoryConditions> {
               padding: const EdgeInsets.symmetric(vertical: StudioSpacing.xxs),
               child: Text(l10n.storyConditionAnd, style: muted),
             ),
-          switch (item) {
-            final BehaviourEditableCondition condition => _Row(
+          if (item is BehaviourEditableCondition &&
+              mapBuilderConditionMilestone(_binding, item) != null)
+            MapBuilderStoryMilestoneCondition(
               key: ValueKey('map-story-condition-$index'),
-              condition: condition,
-              fact: _binding.conditionFact(condition.factId),
-              tests: behaviourConditionTests(_kindOf(condition)),
-              enabled: editable,
-              onFact: () => setState(() => _picking = index),
-              onTest: (test) => _binding.setConditions(
-                widget.record,
-                conditions.replacing(index, _with(condition, test)),
-              ),
-              onNumber: (number) => _binding.setConditions(
-                widget.record,
-                conditions.replacing(
-                  index,
-                  _with(condition, BehaviourConditionTest.equalsNumber, number),
+              at: mapBuilderConditionMilestone(_binding, item)!,
+              onRemove: editable
+                  ? () => _binding.setConditions(
+                      widget.record,
+                      conditions.removing(index),
+                    )
+                  : null,
+            )
+          else
+            switch (item) {
+              final BehaviourEditableCondition condition => _Row(
+                key: ValueKey('map-story-condition-$index'),
+                condition: condition,
+                fact: _binding.conditionFact(condition.factId),
+                tests: behaviourConditionTests(_kindOf(condition)),
+                enabled: editable,
+                onFact: () => setState(() => _picking = index),
+                onTest: (test) => _binding.setConditions(
+                  widget.record,
+                  conditions.replacing(index, _with(condition, test)),
+                ),
+                onNumber: (number) => _binding.setConditions(
+                  widget.record,
+                  conditions.replacing(
+                    index,
+                    _with(
+                      condition,
+                      BehaviourConditionTest.equalsNumber,
+                      number,
+                    ),
+                  ),
+                ),
+                onRemove: () => _binding.setConditions(
+                  widget.record,
+                  conditions.removing(index),
                 ),
               ),
-              onRemove: () => _binding.setConditions(
-                widget.record,
-                conditions.removing(index),
+              BehaviourFixedCondition() => Text(
+                l10n.storyConditionFixed,
+                key: ValueKey('map-story-condition-fixed-$index'),
+                style: theme.textTheme.bodyMedium,
               ),
-            ),
-            BehaviourFixedCondition() => Text(
-              l10n.storyConditionFixed,
-              key: ValueKey('map-story-condition-fixed-$index'),
-              style: theme.textTheme.bodyMedium,
-            ),
-          },
+            },
         ],
         const SizedBox(height: StudioSpacing.xs),
-        if (picking != null)
+        if (_milestones)
+          MapBuilderStoryMilestonePicker(
+            binding: _binding,
+            onClose: () => setState(() => _milestones = false),
+            onPick: (factId) {
+              setState(() => _milestones = false);
+              _binding.setConditions(
+                widget.record,
+                conditions.adding(BehaviourEditableCondition.isTrue(factId)),
+              );
+            },
+          )
+        else if (picking != null)
           MapBuilderStoryFactPicker(
             facts: _binding.conditionFacts,
             onPick: (fact) => _pick(conditions, fact),
@@ -156,6 +187,19 @@ class _MapBuilderStoryConditionsState extends State<MapBuilderStoryConditions> {
               label: l10n.storyConditionAdd,
               onPressed: editable
                   ? () => setState(() => _picking = conditions.items.length)
+                  : null,
+            ),
+          ),
+        if (!_milestones && picking == null && _binding.trame != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: StudioButton(
+              key: const ValueKey('map-story-condition-after'),
+              variant: StudioButtonVariant.quiet,
+              icon: Icons.flag_outlined,
+              label: l10n.storyAfterMilestoneAdd,
+              onPressed: editable
+                  ? () => setState(() => _milestones = true)
                   : null,
             ),
           ),

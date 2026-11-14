@@ -33,26 +33,27 @@ void main() {
 
   Future<void> flush() => Future<void>.delayed(Duration.zero);
 
-  test('the list comes from the index and reads only revealed facts', () async {
-    await memory.open();
+  test(
+    'the list reads values from the index pages, never a definition',
+    () async {
+      await memory.open();
 
-    expect(memory.rows, hasLength(42));
-    expect(memory.rows.first.value, isNull);
-    expect(index.factRequests, isEmpty);
+      expect(memory.rows, hasLength(42));
+      expect(memory.rows.first.value, const NarrativeValue.boolean(false));
+      expect(memory.rows[1].value, NarrativeValue.integer(3));
+      expect(index.factRequests, isEmpty);
 
-    memory
-      ..reveal('met')
-      ..reveal('coins')
-      ..reveal('met');
-    await flush();
+      memory
+        ..reveal('met')
+        ..reveal('met');
+      await flush();
 
-    expect(index.factRequests, [
-      ['met', 'coins'],
-    ]);
-    expect(memory.rows[1].value, NarrativeValue.integer(3));
-    expect(memory.rows[5].value, isNull);
-    expect(changes, greaterThan(0));
-  });
+      expect(index.factRequests, [
+        ['met'],
+      ]);
+      expect(changes, greaterThan(0));
+    },
+  );
 
   test('search and filters narrow the list from the usage index', () async {
     index.users['met'] = NarrativeUsages(

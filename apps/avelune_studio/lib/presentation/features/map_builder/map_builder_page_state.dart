@@ -72,18 +72,12 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     view: () => _view,
   );
   late final _opening = MapBuilderOpening(widget.progress);
-  late final _storyMemory = MapBuilderStoryMemory(
-    _story,
-    editable: () =>
-        _editable &&
-        widget.session.storage == ProjectSessionStorage.workingCatalog,
-  );
-  late final _storyPorts = (
-    narrative: ref.listenManual(
-      narrativeIndexPortProvider(widget.session),
-      (_, _) {},
-    ),
-    world: ref.listenManual(worldPortProvider(widget.session), (_, _) {}),
+  late final _stories = MapBuilderStoryServices(
+    ref: ref,
+    session: widget.session,
+    story: _story,
+    editable: () => _editable,
+    changed: _changed,
   );
   var _section = StudioRailSection.map;
   var _storyShown = false;
@@ -100,7 +94,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     );
     _maps = _subscription.read();
     _maps.modelDeletionGuard = _story.modelDeletionProblem;
-    _story.narrative = _storyPorts.narrative.read();
+    _stories.attach();
     _connections = ref.listenManual(
       mapConnectionPortProvider(widget.session),
       (_, _) {},
@@ -254,8 +248,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       unawaited(visuals.dispose());
     }
     _runtime?.close();
-    _storyPorts.narrative.close();
-    _storyPorts.world.close();
+    _stories.close();
     _connections.close();
     _subscription.close();
     super.dispose();

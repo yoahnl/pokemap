@@ -5,6 +5,7 @@ import 'package:avelune_studio/app/di/presentation_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
+import 'package:avelune_studio/features/storyline/domain/storyline_read_port.dart';
 import 'package:avelune_studio/features/world/domain/world_port.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/presentation/shell/studio_root.dart';
@@ -120,6 +121,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   WorldPort Function(WorkspaceMemoryPort maps)? world,
   ProjectSession? session,
   ProjectManifest? project,
+  StorylineReadPort? storylines,
 }) async {
   final opened = session ?? memorySession;
   tester.view.physicalSize = const Size(1920, 1080);
@@ -150,6 +152,8 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
         (session, manifest) async => WorkspaceTestVisuals(),
       ),
       narrativeIndexPortProvider(opened).overrideWithValue(index),
+      if (storylines != null)
+        storylineReadPortProvider(opened).overrideWithValue(storylines),
       if (world != null)
         worldPortProvider(opened).overrideWithValue(world(maps)),
     ],
@@ -168,8 +172,14 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   return maps;
 }
 
-Future<void> openWholeGame(WidgetTester tester) async {
+Future<void> openTrame(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('studio-rail-story')));
+  await settleMemory(tester);
+}
+
+Future<void> openWholeGame(WidgetTester tester) async {
+  await openTrame(tester);
+  await tester.tap(find.byKey(const ValueKey('story-tab-world')));
   await settleMemory(tester);
 }
 

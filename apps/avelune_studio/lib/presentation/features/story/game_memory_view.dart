@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -39,7 +41,7 @@ class _GameMemoryViewState extends State<GameMemoryView> {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final memory = widget.memory;
-    if (TickerMode.valuesOf(context).enabled) memory.sync();
+    if (TickerMode.valuesOf(context).enabled) scheduleMicrotask(memory.sync);
     final loadMap = widget.loadMap;
     final canCreateRule =
         memory.staging.editable &&

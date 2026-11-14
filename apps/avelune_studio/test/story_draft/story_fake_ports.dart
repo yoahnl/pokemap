@@ -4,13 +4,14 @@ import 'package:avelune_studio/features/dialogues/domain/dialogue_port.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/scenes/domain/scene_port.dart';
+import 'package:avelune_studio/features/stories/domain/story_port.dart';
 import 'package:avelune_studio/features/world/domain/world_port.dart';
 import 'package:map_authoring/map_authoring_dialogue.dart'
     show DialogueLineTextEdit;
 import 'package:map_core/map_core.dart';
 
 final class StoryFakePorts
-    implements EventPort, ScenePort, DialoguePort, WorldPort {
+    implements EventPort, ScenePort, DialoguePort, WorldPort, StoryPort {
   StoryFakePorts(this.read);
 
   final ProjectManifest Function() read;
@@ -156,4 +157,20 @@ final class StoryFakePorts
 
   @override
   Future<List<MapData>> loadMaps() => throw UnimplementedError();
+
+  @override
+  Future<ResourceMutationReceipt> publishStory({
+    required String id,
+    required StorylineAsset? base,
+    required StorylineAsset? current,
+    Set<String> requiredStoryIds = const {},
+    Set<String> requiredFactIds = const {},
+    Set<String> requiredSceneIds = const {},
+  }) async => _write('story $id', (before) {
+    final existing = before.storylines.where((s) => s.id == id).firstOrNull;
+    if (existing != base) throw const StoryFailure('story changed');
+    return before.copyWith(
+      storylines: _put(before.storylines, id, current, (s) => s.id),
+    );
+  });
 }

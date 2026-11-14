@@ -29,11 +29,17 @@ enum NarrativeOwnerKind {
 }
 
 final class NarrativeTitle {
-  const NarrativeTitle({required this.id, required this.title, this.category});
+  const NarrativeTitle({
+    required this.id,
+    required this.title,
+    this.category,
+    this.value,
+  });
 
   final String id;
   final String title;
   final String? category;
+  final NarrativeValue? value;
 }
 
 enum NarrativeFactRole { read, write }

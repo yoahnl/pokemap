@@ -89,12 +89,14 @@ final class GameBehavioursController {
 
   List<GameBehaviourGroup> groups({
     String Function(GameBehaviourRow row)? elementLabel,
+    bool Function(GameBehaviourRow row)? outside,
   }) {
     final visible = filterGameBehaviours(
       rows,
       query: query,
       filters: filters,
       elementLabel: elementLabel,
+      outside: outside,
     );
     return switch (grouping) {
       GameBehaviourGrouping.map => groupGameBehavioursByMap(visible, [

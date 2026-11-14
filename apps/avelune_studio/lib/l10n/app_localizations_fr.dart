@@ -2675,4 +2675,268 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get behavioursByFactHint =>
       'D’après l’index des usages : un comportement apparaît sous chaque état que lui ou sa scène lit ou modifie.';
+
+  @override
+  String get storyTabTrame => 'Trame';
+
+  @override
+  String get behavioursFilterOutsideTrame => 'Hors trame';
+
+  @override
+  String get storyMilestoneField => 'Jalon de la trame';
+
+  @override
+  String get storyMilestoneNone => 'Aucun jalon n’a encore d’état de fin.';
+
+  @override
+  String storyAfterMilestone(String milestone) {
+    return 'Après le jalon « $milestone »';
+  }
+
+  @override
+  String get storyAfterMilestoneAdd => 'Après le jalon…';
+
+  @override
+  String get trameLoading => 'Lecture de la trame…';
+
+  @override
+  String get trameEmpty => 'Ce projet n’a pas encore de trame';
+
+  @override
+  String get trameEmptyHint =>
+      'La trame range l’histoire en chapitres et en jalons. Avelune peut en proposer une d’après vos comportements, ou vous pouvez partir d’une trame vide.';
+
+  @override
+  String get tramePropose => 'Proposer une trame';
+
+  @override
+  String get trameProposing => 'Préparation de la proposition…';
+
+  @override
+  String get trameProposalNone =>
+      'Rien à proposer : aucune scène ne met encore un état à vrai.';
+
+  @override
+  String get trameProposalDraft =>
+      'Proposition non enregistrée. Gardez-la pour l’ajouter au brouillon, puis enregistrez ; l’écarter n’écrit rien.';
+
+  @override
+  String get trameProposalKeep => 'Garder cette trame';
+
+  @override
+  String get trameProposalDiscard => 'Écarter';
+
+  @override
+  String get trameStartEmpty => 'Commencer une trame vide';
+
+  @override
+  String get trameMainTitle => 'Histoire principale';
+
+  @override
+  String get trameNewChapter => 'Nouveau chapitre';
+
+  @override
+  String get trameNewMilestone => 'Nouveau jalon';
+
+  @override
+  String get trameUnnamed => 'Sans nom';
+
+  @override
+  String trameStorylineType(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'main': 'Histoire principale',
+      'sideQuest': 'Quête annexe',
+      'tutorial': 'Tutoriel',
+      'epilogue': 'Épilogue',
+      'episode': 'Épisode',
+      'postGame': 'Après la fin',
+      'other': 'Événement caché',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String trameMilestoneCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jalons',
+      one: '1 jalon',
+      zero: 'Aucun jalon',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trameMilestoneSummary(int behaviours, int issues) {
+    String _temp0 = intl.Intl.pluralLogic(
+      behaviours,
+      locale: localeName,
+      other: '$behaviours comportements',
+      one: '1 comportement',
+      zero: 'Aucun comportement',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      issues,
+      locale: localeName,
+      other: ' · $issues points à vérifier',
+      one: ' · 1 point à vérifier',
+      zero: '',
+    );
+    return '$_temp0$_temp1';
+  }
+
+  @override
+  String get trameOutside => 'Hors trame';
+
+  @override
+  String trameOutsideCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count comportements',
+      one: '1 comportement',
+      zero: 'Aucun comportement',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trameOutsideEmpty =>
+      'Tous les comportements sont rattachés à un jalon.';
+
+  @override
+  String get trameOutsideHint =>
+      'Comportements dont la scène n’est rattachée à aucun jalon.';
+
+  @override
+  String get trameArchivedBadge => 'Archivé';
+
+  @override
+  String get trameArchived => 'Archivé';
+
+  @override
+  String trameRefused(String code) {
+    return 'Modification refusée ($code). Rien n’a changé.';
+  }
+
+  @override
+  String get trameSelect => 'Choisissez une trame, un chapitre ou un jalon.';
+
+  @override
+  String get trameStorylineName => 'Nom de la trame';
+
+  @override
+  String get trameChapterName => 'Nom du chapitre';
+
+  @override
+  String get trameMilestoneName => 'Nom du jalon';
+
+  @override
+  String get trameAddChapter => 'Ajouter un chapitre';
+
+  @override
+  String get trameAddMilestone => 'Ajouter un jalon';
+
+  @override
+  String get trameDiscardStoryline => 'Retirer cette trame non enregistrée';
+
+  @override
+  String get trameMoveUp => 'Monter';
+
+  @override
+  String get trameMoveDown => 'Descendre';
+
+  @override
+  String get trameMilestoneChapter => 'Chapitre';
+
+  @override
+  String get trameMilestoneFacts => 'Repères';
+
+  @override
+  String get trameNoMap => 'Sur aucune carte';
+
+  @override
+  String trameMaps(String maps) {
+    return 'Cartes : $maps';
+  }
+
+  @override
+  String trameBehaviourCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count comportements',
+      one: '1 comportement',
+      zero: 'Aucun comportement',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trameCompletion(String fact) {
+    return 'Se termine quand « $fact » devient vrai';
+  }
+
+  @override
+  String get trameNoCompletion => 'Aucun état ne marque sa fin';
+
+  @override
+  String trameIssueText(String issue) {
+    String _temp0 = intl.Intl.selectLogic(issue, {
+      'noBehaviour': 'Aucun comportement ne fait avancer ce jalon.',
+      'noCompletionFact': 'Aucun état ne marque la fin de ce jalon.',
+      'completionFactShared': 'Son état de fin sert aussi à un autre jalon.',
+      'other': 'Son état de fin peut repasser à faux.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get trameStartsWith => 'Ce qui le fait commencer';
+
+  @override
+  String get trameNoBehaviour => 'Aucun comportement rattaché.';
+
+  @override
+  String trameScene(String scene) {
+    return 'Scène « $scene »';
+  }
+
+  @override
+  String get trameDetach => 'Détacher';
+
+  @override
+  String trameSharedScene(int count) {
+    return 'Scène partagée par $count comportements : ils suivent tous ce jalon.';
+  }
+
+  @override
+  String get trameAttach => 'Rattacher un comportement';
+
+  @override
+  String get trameAttachTo => 'Rattacher à un jalon';
+
+  @override
+  String trameAttachShared(int count) {
+    return 'Rattacher à un jalon (scène partagée par $count comportements)';
+  }
+
+  @override
+  String get trameAttachWholeScene =>
+      'Le rattachement se fait par scène entière.';
+
+  @override
+  String get trameNeedsScene =>
+      'Choisissez d’abord une scène pour ce comportement.';
+
+  @override
+  String trameBehaviourOption(String name, String map) {
+    return '$name · $map';
+  }
+
+  @override
+  String trameMilestoneOption(String chapter, String milestone) {
+    return '$chapter · $milestone';
+  }
 }

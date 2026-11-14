@@ -214,6 +214,8 @@ final class MapStoryBehaviours {
           records.rememberFact(fact);
         case final WorldRuleDefinition rule:
           records.rememberRule(rule);
+        case final StorylineAsset story:
+          records.rememberStory(story);
       }
     }
   }

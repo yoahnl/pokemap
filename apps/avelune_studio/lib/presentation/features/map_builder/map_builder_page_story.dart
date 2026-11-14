@@ -14,10 +14,10 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     if (!_storyShown) return const SizedBox.shrink();
     return StoryPage(
       key: ValueKey('studio-story-${widget.session.sessionId}'),
-      port: _storyPorts.narrative.read(),
-      staging: _storyMemory,
+      port: _stories.narrative,
+      staging: _stories.memory,
       maps: _maps.project?.maps ?? const [],
-      loadMap: switch (_storyPorts.world.read()) {
+      loadMap: switch (_stories.world) {
         final WorldMapSelectionPort port => port.loadMap,
         _ => null,
       },
@@ -25,7 +25,8 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
         available: (id) => _behaviourEntry(id) != null,
         open: _openBehaviour,
       ),
-      behaviourSource: MapBuilderStoryBehaviourSource(_story),
+      behaviourSource: _stories.behaviours,
+      trame: _story.trame,
       openMap: () {
         _setSection(StudioRailSection.map);
         _setSpace(MapBuilderSpace.story);

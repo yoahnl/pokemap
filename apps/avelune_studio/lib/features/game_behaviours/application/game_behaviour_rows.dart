@@ -5,7 +5,7 @@ import '../../game_memory/domain/narrative_index_port.dart';
 import '../../map_workspace/application/map_story_elements.dart';
 import 'game_behaviour_source.dart';
 
-enum GameBehaviourFilter { withoutMap, toRepair, disabled }
+enum GameBehaviourFilter { withoutMap, toRepair, disabled, outsideTrame }
 
 enum GameBehaviourPresence { known, notLoaded, deletedElsewhere }
 
@@ -51,6 +51,7 @@ final class GameBehaviourRow {
     GameBehaviourFilter.withoutMap => withoutMap,
     GameBehaviourFilter.toRepair => toRepair,
     GameBehaviourFilter.disabled => disabled,
+    GameBehaviourFilter.outsideTrame => false,
   };
 }
 
@@ -99,13 +100,18 @@ List<GameBehaviourRow> filterGameBehaviours(
   String query = '',
   Set<GameBehaviourFilter> filters = const {},
   String Function(GameBehaviourRow row)? elementLabel,
+  bool Function(GameBehaviourRow row)? outside,
 }) {
   final needle = query.trim().toLowerCase();
+  bool keeps(GameBehaviourRow row, GameBehaviourFilter filter) =>
+      filter == GameBehaviourFilter.outsideTrame
+      ? outside?.call(row) ?? false
+      : row.matches(filter);
   bool found(String? value) =>
       value != null && value.toLowerCase().contains(needle);
   return [
     for (final row in rows)
-      if (filters.every(row.matches) &&
+      if (filters.every((filter) => keeps(row, filter)) &&
           (needle.isEmpty ||
               found(row.name) ||
               found(row.mapName) ||

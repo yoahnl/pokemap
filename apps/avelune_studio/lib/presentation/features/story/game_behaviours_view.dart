@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_groups.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_rows.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviours_controller.dart';
+import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviour_labels.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviour_row.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_states.dart';
@@ -17,11 +18,13 @@ class GameBehavioursView extends StatefulWidget {
     required this.behaviours,
     required this.navigate,
     required this.openMap,
+    this.trame,
   });
 
   final GameBehavioursController behaviours;
   final Future<bool> Function(String eventId) navigate;
   final VoidCallback openMap;
+  final StorylineTrameController? trame;
 
   @override
   State<GameBehavioursView> createState() => _GameBehavioursViewState();
@@ -41,7 +44,9 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final behaviours = widget.behaviours;
-    if (TickerMode.valuesOf(context).enabled) behaviours.sync();
+    if (TickerMode.valuesOf(context).enabled) {
+      scheduleMicrotask(behaviours.sync);
+    }
     return Material(
       color: theme.colorScheme.surfaceContainerLowest,
       child: Column(
@@ -97,9 +102,20 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
                         l10n.behavioursFilterToRepair,
                       GameBehaviourFilter.disabled =>
                         l10n.behavioursFilterDisabled,
+                      GameBehaviourFilter.outsideTrame =>
+                        l10n.behavioursFilterOutsideTrame,
                     },
                     selected: behaviours.filters.contains(filter),
-                    onSelected: (_) => behaviours.toggle(filter),
+                    onSelected:
+                        filter == GameBehaviourFilter.outsideTrame &&
+                            widget.trame == null
+                        ? null
+                        : (_) {
+                            if (filter == GameBehaviourFilter.outsideTrame) {
+                              unawaited(widget.trame!.open());
+                            }
+                            behaviours.toggle(filter);
+                          },
                   ),
                 Text(
                   behaviours.grouping == GameBehaviourGrouping.fact
@@ -165,7 +181,13 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
         ),
       );
     }
-    final groups = behaviours.groups(elementLabel: l10n.behaviourElement);
+    final trameView = widget.trame?.view;
+    final groups = behaviours.groups(
+      elementLabel: l10n.behaviourElement,
+      outside: trameView == null
+          ? null
+          : (row) => row.record != null && trameView.outside(row.record!),
+    );
     if (groups.isEmpty) {
       return StudioEmptyState(
         key: const ValueKey('behaviours-no-match'),

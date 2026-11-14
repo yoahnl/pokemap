@@ -28,7 +28,11 @@ final class FakeNarrativeIndex implements NarrativeIndexPort {
     }
     titlesByKind[NarrativeTitleKind.facts] = [
       for (final fact in definitions.values)
-        NarrativeTitle(id: fact.id, title: fact.label),
+        NarrativeTitle(
+          id: fact.id,
+          title: fact.label,
+          value: fact.initialValue,
+        ),
     ];
   }
 
@@ -80,6 +84,7 @@ final class FakeMemoryStaging implements GameMemoryStaging {
   Object? revision;
   final facts = <String, NarrativeFactDefinition>{};
   final rules = <String, WorldRuleDefinition>{};
+  final stories = <String, StorylineAsset>{};
   var stages = 0;
 
   @override
@@ -87,6 +92,9 @@ final class FakeMemoryStaging implements GameMemoryStaging {
 
   @override
   void rememberRule(WorldRuleDefinition rule) => rules[rule.id] = rule;
+
+  @override
+  void rememberStory(StorylineAsset story) => stories[story.id] = story;
 
   @override
   void stage(void Function(StoryDraft draft) body) {

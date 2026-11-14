@@ -13,5 +13,7 @@ abstract interface class GameMemoryStaging {
 
   void rememberRule(WorldRuleDefinition rule);
 
+  void rememberStory(StorylineAsset story);
+
   void stage(void Function(StoryDraft draft) body);
 }

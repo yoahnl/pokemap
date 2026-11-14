@@ -17,6 +17,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_context_me
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
+import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_behaviours.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
@@ -89,6 +90,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   final StoryPublicationGatewayFactory? gateway;
   final StoryDialogueLoader? loadDialogue;
   NarrativeIndexPort? narrative;
+  StorylineTrameController? trame;
   final behaviours = MapStoryBehaviours();
   final _lines = _StoryLines();
   final _triggers = _StoryTriggers();

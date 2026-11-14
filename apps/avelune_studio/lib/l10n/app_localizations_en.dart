@@ -2660,4 +2660,266 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get behavioursByFactHint =>
       'From the usage index: a behaviour appears under every state that it or its scene reads or changes.';
+
+  @override
+  String get storyTabTrame => 'Plot';
+
+  @override
+  String get behavioursFilterOutsideTrame => 'Outside the plot';
+
+  @override
+  String get storyMilestoneField => 'Plot milestone';
+
+  @override
+  String get storyMilestoneNone => 'No milestone has a completion state yet.';
+
+  @override
+  String storyAfterMilestone(String milestone) {
+    return 'After the milestone “$milestone”';
+  }
+
+  @override
+  String get storyAfterMilestoneAdd => 'After the milestone…';
+
+  @override
+  String get trameLoading => 'Reading the plot…';
+
+  @override
+  String get trameEmpty => 'This project has no plot yet';
+
+  @override
+  String get trameEmptyHint =>
+      'The plot organises the story into chapters and milestones. Avelune can propose one from your behaviours, or you can start from an empty plot.';
+
+  @override
+  String get tramePropose => 'Propose a plot';
+
+  @override
+  String get trameProposing => 'Preparing the proposal…';
+
+  @override
+  String get trameProposalNone =>
+      'Nothing to propose: no scene sets a state to true yet.';
+
+  @override
+  String get trameProposalDraft =>
+      'Unsaved proposal. Keep it to add it to the draft, then save; discarding it writes nothing.';
+
+  @override
+  String get trameProposalKeep => 'Keep this plot';
+
+  @override
+  String get trameProposalDiscard => 'Discard';
+
+  @override
+  String get trameStartEmpty => 'Start an empty plot';
+
+  @override
+  String get trameMainTitle => 'Main story';
+
+  @override
+  String get trameNewChapter => 'New chapter';
+
+  @override
+  String get trameNewMilestone => 'New milestone';
+
+  @override
+  String get trameUnnamed => 'Unnamed';
+
+  @override
+  String trameStorylineType(String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'main': 'Main story',
+      'sideQuest': 'Side quest',
+      'tutorial': 'Tutorial',
+      'epilogue': 'Epilogue',
+      'episode': 'Episode',
+      'postGame': 'Post-game',
+      'other': 'Hidden event',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String trameMilestoneCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count milestones',
+      one: '1 milestone',
+      zero: 'No milestone',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trameMilestoneSummary(int behaviours, int issues) {
+    String _temp0 = intl.Intl.pluralLogic(
+      behaviours,
+      locale: localeName,
+      other: '$behaviours behaviours',
+      one: '1 behaviour',
+      zero: 'No behaviour',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      issues,
+      locale: localeName,
+      other: ' · $issues things to check',
+      one: ' · 1 thing to check',
+      zero: '',
+    );
+    return '$_temp0$_temp1';
+  }
+
+  @override
+  String get trameOutside => 'Outside the plot';
+
+  @override
+  String trameOutsideCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count behaviours',
+      one: '1 behaviour',
+      zero: 'No behaviour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trameOutsideEmpty => 'Every behaviour is attached to a milestone.';
+
+  @override
+  String get trameOutsideHint =>
+      'Behaviours whose scene is attached to no milestone.';
+
+  @override
+  String get trameArchivedBadge => 'Archived';
+
+  @override
+  String get trameArchived => 'Archived';
+
+  @override
+  String trameRefused(String code) {
+    return 'Change refused ($code). Nothing changed.';
+  }
+
+  @override
+  String get trameSelect => 'Choose a plot, a chapter or a milestone.';
+
+  @override
+  String get trameStorylineName => 'Plot name';
+
+  @override
+  String get trameChapterName => 'Chapter name';
+
+  @override
+  String get trameMilestoneName => 'Milestone name';
+
+  @override
+  String get trameAddChapter => 'Add a chapter';
+
+  @override
+  String get trameAddMilestone => 'Add a milestone';
+
+  @override
+  String get trameDiscardStoryline => 'Remove this unsaved plot';
+
+  @override
+  String get trameMoveUp => 'Move up';
+
+  @override
+  String get trameMoveDown => 'Move down';
+
+  @override
+  String get trameMilestoneChapter => 'Chapter';
+
+  @override
+  String get trameMilestoneFacts => 'Landmarks';
+
+  @override
+  String get trameNoMap => 'On no map';
+
+  @override
+  String trameMaps(String maps) {
+    return 'Maps: $maps';
+  }
+
+  @override
+  String trameBehaviourCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count behaviours',
+      one: '1 behaviour',
+      zero: 'No behaviour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String trameCompletion(String fact) {
+    return 'Ends when “$fact” becomes true';
+  }
+
+  @override
+  String get trameNoCompletion => 'No state marks its end';
+
+  @override
+  String trameIssueText(String issue) {
+    String _temp0 = intl.Intl.selectLogic(issue, {
+      'noBehaviour': 'No behaviour moves this milestone forward.',
+      'noCompletionFact': 'No state marks the end of this milestone.',
+      'completionFactShared':
+          'Its completion state is also used by another milestone.',
+      'other': 'Its completion state can go back to false.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get trameStartsWith => 'What starts it';
+
+  @override
+  String get trameNoBehaviour => 'No attached behaviour.';
+
+  @override
+  String trameScene(String scene) {
+    return 'Scene “$scene”';
+  }
+
+  @override
+  String get trameDetach => 'Detach';
+
+  @override
+  String trameSharedScene(int count) {
+    return 'Scene shared by $count behaviours: they all follow this milestone.';
+  }
+
+  @override
+  String get trameAttach => 'Attach a behaviour';
+
+  @override
+  String get trameAttachTo => 'Attach to a milestone';
+
+  @override
+  String trameAttachShared(int count) {
+    return 'Attach to a milestone (scene shared by $count behaviours)';
+  }
+
+  @override
+  String get trameAttachWholeScene => 'Attachment is made by whole scene.';
+
+  @override
+  String get trameNeedsScene => 'First choose a scene for this behaviour.';
+
+  @override
+  String trameBehaviourOption(String name, String map) {
+    return '$name · $map';
+  }
+
+  @override
+  String trameMilestoneOption(String chapter, String milestone) {
+    return '$chapter · $milestone';
+  }
 }

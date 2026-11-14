@@ -4343,6 +4343,360 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'D’après l’index des usages : un comportement apparaît sous chaque état que lui ou sa scène lit ou modifie.'**
   String get behavioursByFactHint;
+
+  /// No description provided for @storyTabTrame.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trame'**
+  String get storyTabTrame;
+
+  /// No description provided for @behavioursFilterOutsideTrame.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hors trame'**
+  String get behavioursFilterOutsideTrame;
+
+  /// No description provided for @storyMilestoneField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jalon de la trame'**
+  String get storyMilestoneField;
+
+  /// No description provided for @storyMilestoneNone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun jalon n’a encore d’état de fin.'**
+  String get storyMilestoneNone;
+
+  /// No description provided for @storyAfterMilestone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Après le jalon « {milestone} »'**
+  String storyAfterMilestone(String milestone);
+
+  /// No description provided for @storyAfterMilestoneAdd.
+  ///
+  /// In fr, this message translates to:
+  /// **'Après le jalon…'**
+  String get storyAfterMilestoneAdd;
+
+  /// No description provided for @trameLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture de la trame…'**
+  String get trameLoading;
+
+  /// No description provided for @trameEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce projet n’a pas encore de trame'**
+  String get trameEmpty;
+
+  /// No description provided for @trameEmptyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'La trame range l’histoire en chapitres et en jalons. Avelune peut en proposer une d’après vos comportements, ou vous pouvez partir d’une trame vide.'**
+  String get trameEmptyHint;
+
+  /// No description provided for @tramePropose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Proposer une trame'**
+  String get tramePropose;
+
+  /// No description provided for @trameProposing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préparation de la proposition…'**
+  String get trameProposing;
+
+  /// No description provided for @trameProposalNone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rien à proposer : aucune scène ne met encore un état à vrai.'**
+  String get trameProposalNone;
+
+  /// No description provided for @trameProposalDraft.
+  ///
+  /// In fr, this message translates to:
+  /// **'Proposition non enregistrée. Gardez-la pour l’ajouter au brouillon, puis enregistrez ; l’écarter n’écrit rien.'**
+  String get trameProposalDraft;
+
+  /// No description provided for @trameProposalKeep.
+  ///
+  /// In fr, this message translates to:
+  /// **'Garder cette trame'**
+  String get trameProposalKeep;
+
+  /// No description provided for @trameProposalDiscard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écarter'**
+  String get trameProposalDiscard;
+
+  /// No description provided for @trameStartEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commencer une trame vide'**
+  String get trameStartEmpty;
+
+  /// No description provided for @trameMainTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Histoire principale'**
+  String get trameMainTitle;
+
+  /// No description provided for @trameNewChapter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau chapitre'**
+  String get trameNewChapter;
+
+  /// No description provided for @trameNewMilestone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau jalon'**
+  String get trameNewMilestone;
+
+  /// No description provided for @trameUnnamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans nom'**
+  String get trameUnnamed;
+
+  /// No description provided for @trameStorylineType.
+  ///
+  /// In fr, this message translates to:
+  /// **'{type, select, main{Histoire principale} sideQuest{Quête annexe} tutorial{Tutoriel} epilogue{Épilogue} episode{Épisode} postGame{Après la fin} other{Événement caché}}'**
+  String trameStorylineType(String type);
+
+  /// No description provided for @trameMilestoneCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun jalon} =1{1 jalon} other{{count} jalons}}'**
+  String trameMilestoneCount(int count);
+
+  /// No description provided for @trameMilestoneSummary.
+  ///
+  /// In fr, this message translates to:
+  /// **'{behaviours, plural, =0{Aucun comportement} =1{1 comportement} other{{behaviours} comportements}}{issues, plural, =0{} =1{ · 1 point à vérifier} other{ · {issues} points à vérifier}}'**
+  String trameMilestoneSummary(int behaviours, int issues);
+
+  /// No description provided for @trameOutside.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hors trame'**
+  String get trameOutside;
+
+  /// No description provided for @trameOutsideCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun comportement} =1{1 comportement} other{{count} comportements}}'**
+  String trameOutsideCount(int count);
+
+  /// No description provided for @trameOutsideEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les comportements sont rattachés à un jalon.'**
+  String get trameOutsideEmpty;
+
+  /// No description provided for @trameOutsideHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comportements dont la scène n’est rattachée à aucun jalon.'**
+  String get trameOutsideHint;
+
+  /// No description provided for @trameArchivedBadge.
+  ///
+  /// In fr, this message translates to:
+  /// **'Archivé'**
+  String get trameArchivedBadge;
+
+  /// No description provided for @trameArchived.
+  ///
+  /// In fr, this message translates to:
+  /// **'Archivé'**
+  String get trameArchived;
+
+  /// No description provided for @trameRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modification refusée ({code}). Rien n’a changé.'**
+  String trameRefused(String code);
+
+  /// No description provided for @trameSelect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez une trame, un chapitre ou un jalon.'**
+  String get trameSelect;
+
+  /// No description provided for @trameStorylineName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom de la trame'**
+  String get trameStorylineName;
+
+  /// No description provided for @trameChapterName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom du chapitre'**
+  String get trameChapterName;
+
+  /// No description provided for @trameMilestoneName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom du jalon'**
+  String get trameMilestoneName;
+
+  /// No description provided for @trameAddChapter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un chapitre'**
+  String get trameAddChapter;
+
+  /// No description provided for @trameAddMilestone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un jalon'**
+  String get trameAddMilestone;
+
+  /// No description provided for @trameDiscardStoryline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer cette trame non enregistrée'**
+  String get trameDiscardStoryline;
+
+  /// No description provided for @trameMoveUp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Monter'**
+  String get trameMoveUp;
+
+  /// No description provided for @trameMoveDown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Descendre'**
+  String get trameMoveDown;
+
+  /// No description provided for @trameMilestoneChapter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chapitre'**
+  String get trameMilestoneChapter;
+
+  /// No description provided for @trameMilestoneFacts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Repères'**
+  String get trameMilestoneFacts;
+
+  /// No description provided for @trameNoMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sur aucune carte'**
+  String get trameNoMap;
+
+  /// No description provided for @trameMaps.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cartes : {maps}'**
+  String trameMaps(String maps);
+
+  /// No description provided for @trameBehaviourCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun comportement} =1{1 comportement} other{{count} comportements}}'**
+  String trameBehaviourCount(int count);
+
+  /// No description provided for @trameCompletion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se termine quand « {fact} » devient vrai'**
+  String trameCompletion(String fact);
+
+  /// No description provided for @trameNoCompletion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun état ne marque sa fin'**
+  String get trameNoCompletion;
+
+  /// No description provided for @trameIssueText.
+  ///
+  /// In fr, this message translates to:
+  /// **'{issue, select, noBehaviour{Aucun comportement ne fait avancer ce jalon.} noCompletionFact{Aucun état ne marque la fin de ce jalon.} completionFactShared{Son état de fin sert aussi à un autre jalon.} other{Son état de fin peut repasser à faux.}}'**
+  String trameIssueText(String issue);
+
+  /// No description provided for @trameStartsWith.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce qui le fait commencer'**
+  String get trameStartsWith;
+
+  /// No description provided for @trameNoBehaviour.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun comportement rattaché.'**
+  String get trameNoBehaviour;
+
+  /// No description provided for @trameScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scène « {scene} »'**
+  String trameScene(String scene);
+
+  /// No description provided for @trameDetach.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détacher'**
+  String get trameDetach;
+
+  /// No description provided for @trameSharedScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scène partagée par {count} comportements : ils suivent tous ce jalon.'**
+  String trameSharedScene(int count);
+
+  /// No description provided for @trameAttach.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rattacher un comportement'**
+  String get trameAttach;
+
+  /// No description provided for @trameAttachTo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rattacher à un jalon'**
+  String get trameAttachTo;
+
+  /// No description provided for @trameAttachShared.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rattacher à un jalon (scène partagée par {count} comportements)'**
+  String trameAttachShared(int count);
+
+  /// No description provided for @trameAttachWholeScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le rattachement se fait par scène entière.'**
+  String get trameAttachWholeScene;
+
+  /// No description provided for @trameNeedsScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez d’abord une scène pour ce comportement.'**
+  String get trameNeedsScene;
+
+  /// No description provided for @trameBehaviourOption.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} · {map}'**
+  String trameBehaviourOption(String name, String map);
+
+  /// No description provided for @trameMilestoneOption.
+  ///
+  /// In fr, this message translates to:
+  /// **'{chapter} · {milestone}'**
+  String trameMilestoneOption(String chapter, String milestone);
 }
 
 class _AppLocalizationsDelegate

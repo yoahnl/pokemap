@@ -43,7 +43,9 @@ List<GameMemoryFactRow> gameMemoryFactRows({
             label: entry?.current?.label ?? title.title,
             category: entry?.current?.category ?? title.category,
             value:
-                entry?.current?.initialValue ?? details[title.id]?.initialValue,
+                entry?.current?.initialValue ??
+                title.value ??
+                details[title.id]?.initialValue,
             unsaved: entry != null,
           ),
     for (final id in draft.touched(kind))

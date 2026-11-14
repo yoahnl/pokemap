@@ -28,6 +28,10 @@ final class MapBuilderStoryMemory implements GameMemoryStaging {
       _story.behaviours.records.rememberRule(rule);
 
   @override
+  void rememberStory(StorylineAsset story) =>
+      _story.behaviours.records.rememberStory(story);
+
+  @override
   void stage(void Function(StoryDraft draft) body) {
     final before = draft.recorded;
     draft.group(() => body(draft));

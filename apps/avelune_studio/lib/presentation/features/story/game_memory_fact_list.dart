@@ -165,7 +165,6 @@ class _GameMemoryFactListState extends State<GameMemoryFactList> {
   Widget _row(BuildContext context, GameMemoryFactRow row) {
     final l10n = context.l10n;
     final memory = widget.memory;
-    if (row.value == null) memory.reveal(row.id);
     final value = row.value;
     return StudioChoice(
       key: ValueKey('memory-fact-${row.id}'),

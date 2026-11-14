@@ -129,6 +129,13 @@ class _Behaviours extends StatelessWidget {
             ),
           ),
           const SizedBox(height: StudioSpacing.m),
+          MapBuilderStoryMilestoneField(
+            key: ValueKey('map-story-milestone-${current.id}'),
+            binding: binding,
+            record: current,
+            editable: editable,
+          ),
+          const SizedBox(height: StudioSpacing.m),
           _Eyebrow(l10n.storyAfter),
           const SizedBox(height: StudioSpacing.xs),
           MapBuilderStoryAfter(

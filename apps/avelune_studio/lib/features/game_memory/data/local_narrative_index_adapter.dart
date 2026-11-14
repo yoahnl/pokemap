@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../../project_session/data/local_workshop_reader.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/narrative_index_port.dart';
+import 'local_narrative_read.dart';
 
 const _usageBatch = 50;
 const _factBatch = 50;
@@ -39,6 +40,13 @@ final class LocalNarrativeIndexAdapter implements NarrativeIndexPort {
                 id: item['id'] as String,
                 title: item['title'] as String,
                 category: item['category'] as String?,
+                value: switch (item['valueKind']) {
+                  final String kind => NarrativeValue.fromJson(
+                    item['initialValue'],
+                    declaredKind: NarrativeValueKind.fromWireName(kind),
+                  ),
+                  _ => null,
+                },
               ),
             );
           }
@@ -146,41 +154,5 @@ final class LocalNarrativeIndexAdapter implements NarrativeIndexPort {
 
   Future<T> _read<T>(
     Future<T> Function(AuthoringReadApi reads, ProjectHandle handle) body,
-  ) async {
-    final policy = await WorkspacePolicy.create(
-      allowedRootPaths: [session.directoryPath],
-      fileReader: reader,
-    );
-    final handles = WorkspaceHandleStore();
-    final opener = ProjectOpenService(
-      policy: policy,
-      fileReader: reader,
-      handles: handles,
-      catalogMetadataFields: const {},
-      workshopScope: true,
-    );
-    final opened = await opener.openProject(session.directoryPath);
-    try {
-      return await body(
-        AuthoringReadApi(
-          openService: opener,
-          snapshotLoader: ProjectSnapshotLoader(handles: handles),
-        ),
-        opened.projectHandle,
-      );
-    } on AuthoringQueryException catch (failure) {
-      throw switch (failure.code) {
-        'query.narrative_titles_preparation_required' =>
-          const NarrativeIndexPreparationRequired('narrativeTitles'),
-        'query.narrative_usages_preparation_required' =>
-          const NarrativeIndexPreparationRequired('narrativeUsages'),
-        'query.narrative_titles_catalog_required' ||
-        'query.narrative_usages_catalog_required' =>
-          const NarrativeIndexUnavailable(),
-        _ => failure,
-      };
-    } finally {
-      opener.closeWorkspace(opened.workspaceHandle);
-    }
-  }
+  ) => readNarrativeIndex(session, reader, body);
 }

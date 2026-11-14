@@ -23,12 +23,12 @@ void main() {
     expect(find.byKey(const ValueKey('studio-story')), findsOneWidget);
     expect(find.text('Mémoire du jeu'), findsOneWidget);
     expect(find.text('Tout le jeu'), findsOneWidget);
-    expect(find.text('Trame'), findsNothing);
+    expect(find.text('Trame'), findsOneWidget);
     expect(find.byKey(const ValueKey('map-space-construction')), findsNothing);
     expect(find.text('Rencontre'), findsOneWidget);
     expect(find.text('Nombre · au départ : 3'), findsOneWidget);
     expect(find.text('Oui / non · au départ : faux'), findsOneWidget);
-    expect(index.factRequests.expand((ids) => ids).toSet(), {'met', 'coins'});
+    expect(index.factRequests, isEmpty);
 
     await tester.tap(find.byKey(const ValueKey('studio-rail-map')));
     await settleMemory(tester);
@@ -39,25 +39,16 @@ void main() {
     );
   });
 
-  testWidgets('only visible fact rows are built and read', (tester) async {
+  testWidgets('only visible fact rows are built, none is read', (tester) async {
     final index = memoryIndex(unrelated: 300);
     await openMemoryStudio(tester, index);
     await openHistoire(tester);
 
     final visible = tester.widgetList(_rows()).length;
     final built = tester.widgetList(_rows(skipOffstage: false)).length;
-    final read = index.factRequests.expand((ids) => ids).toSet();
     expect(visible, inInclusiveRange(5, 30));
     expect(built, lessThan(visible + 15));
-    expect(read.length, inInclusiveRange(built, built + 5));
-    expect(read, {
-      for (final id in [
-        'met',
-        'coins',
-        for (var i = 0; i < 30; i++) 'unused_$i',
-      ])
-        if (read.contains(id)) id,
-    });
+    expect(index.factRequests, isEmpty);
 
     await tester.enterText(
       find.descendant(
@@ -69,7 +60,7 @@ void main() {
     await settleMemory(tester);
     expect(find.text('Inutile 200'), findsOneWidget);
     expect(tester.widgetList(_rows()), hasLength(1));
-    expect(index.factRequests.last, ['unused_200']);
+    expect(index.factRequests, isEmpty);
   });
 
   testWidgets('a fact names who changes and reads it and opens them', (

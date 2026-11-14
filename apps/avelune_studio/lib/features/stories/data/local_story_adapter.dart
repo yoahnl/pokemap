@@ -34,11 +34,17 @@ class LocalStoryAdapter implements StoryPort {
     Set<String> requiredSceneIds = const {},
   }) => _transaction.run(
     actionId: current == null ? 'storyline.delete' : 'storyline.upsert',
-    parameters: (project) {
+    parameters: (_) {
       if ((base != null && base.id != id) ||
           (current != null && current.id != id)) {
         throw const StoryFailure('L’identité de l’histoire a changé.');
       }
+      return current == null
+          ? {'storylineId': id}
+          : {'storyline': current.toJson()};
+    },
+    validateSnapshot: (snapshot) {
+      final project = snapshot.manifest;
       final existing = project.storylines.where((s) => s.id == id).firstOrNull;
       if (existing != base) {
         throw const StoryFailure(
@@ -56,9 +62,6 @@ class LocalStoryAdapter implements StoryPort {
           'Une histoire, un état ou une scène liés a disparu. Le brouillon est conservé.',
         );
       }
-      return current == null
-          ? {'storylineId': id}
-          : {'storyline': current.toJson()};
     },
   );
 

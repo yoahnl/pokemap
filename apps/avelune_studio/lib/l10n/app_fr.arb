@@ -1499,5 +1499,178 @@
   "behavioursToRepair": "À réparer",
   "behavioursRefused": "Ce comportement n’existe plus ou n’est plus sur sa carte : rien n’a été ouvert.",
   "behavioursCoverage": "Recherche par nom, carte et élément. Les noms d’éléments ne sont connus que pour la carte ouverte ; la recherche dans les répliques viendra plus tard.",
-  "behavioursByFactHint": "D’après l’index des usages : un comportement apparaît sous chaque état que lui ou sa scène lit ou modifie."
+  "behavioursByFactHint": "D’après l’index des usages : un comportement apparaît sous chaque état que lui ou sa scène lit ou modifie.",
+  "storyTabTrame": "Trame",
+  "behavioursFilterOutsideTrame": "Hors trame",
+  "storyMilestoneField": "Jalon de la trame",
+  "storyMilestoneNone": "Aucun jalon n’a encore d’état de fin.",
+  "storyAfterMilestone": "Après le jalon « {milestone} »",
+  "@storyAfterMilestone": {
+    "placeholders": {
+      "milestone": {
+        "type": "String"
+      }
+    }
+  },
+  "storyAfterMilestoneAdd": "Après le jalon…",
+  "trameLoading": "Lecture de la trame…",
+  "trameEmpty": "Ce projet n’a pas encore de trame",
+  "trameEmptyHint": "La trame range l’histoire en chapitres et en jalons. Avelune peut en proposer une d’après vos comportements, ou vous pouvez partir d’une trame vide.",
+  "tramePropose": "Proposer une trame",
+  "trameProposing": "Préparation de la proposition…",
+  "trameProposalNone": "Rien à proposer : aucune scène ne met encore un état à vrai.",
+  "trameProposalDraft": "Proposition non enregistrée. Gardez-la pour l’ajouter au brouillon, puis enregistrez ; l’écarter n’écrit rien.",
+  "trameProposalKeep": "Garder cette trame",
+  "trameProposalDiscard": "Écarter",
+  "trameStartEmpty": "Commencer une trame vide",
+  "trameMainTitle": "Histoire principale",
+  "trameNewChapter": "Nouveau chapitre",
+  "trameNewMilestone": "Nouveau jalon",
+  "trameUnnamed": "Sans nom",
+  "trameStorylineType": "{type, select, main{Histoire principale} sideQuest{Quête annexe} tutorial{Tutoriel} epilogue{Épilogue} episode{Épisode} postGame{Après la fin} other{Événement caché}}",
+  "@trameStorylineType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "trameMilestoneCount": "{count, plural, =0{Aucun jalon} =1{1 jalon} other{{count} jalons}}",
+  "@trameMilestoneCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trameMilestoneSummary": "{behaviours, plural, =0{Aucun comportement} =1{1 comportement} other{{behaviours} comportements}}{issues, plural, =0{} =1{ · 1 point à vérifier} other{ · {issues} points à vérifier}}",
+  "@trameMilestoneSummary": {
+    "placeholders": {
+      "behaviours": {
+        "type": "int"
+      },
+      "issues": {
+        "type": "int"
+      }
+    }
+  },
+  "trameOutside": "Hors trame",
+  "trameOutsideCount": "{count, plural, =0{Aucun comportement} =1{1 comportement} other{{count} comportements}}",
+  "@trameOutsideCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trameOutsideEmpty": "Tous les comportements sont rattachés à un jalon.",
+  "trameOutsideHint": "Comportements dont la scène n’est rattachée à aucun jalon.",
+  "trameArchivedBadge": "Archivé",
+  "trameArchived": "Archivé",
+  "trameRefused": "Modification refusée ({code}). Rien n’a changé.",
+  "@trameRefused": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "trameSelect": "Choisissez une trame, un chapitre ou un jalon.",
+  "trameStorylineName": "Nom de la trame",
+  "trameChapterName": "Nom du chapitre",
+  "trameMilestoneName": "Nom du jalon",
+  "trameAddChapter": "Ajouter un chapitre",
+  "trameAddMilestone": "Ajouter un jalon",
+  "trameDiscardStoryline": "Retirer cette trame non enregistrée",
+  "trameMoveUp": "Monter",
+  "trameMoveDown": "Descendre",
+  "trameMilestoneChapter": "Chapitre",
+  "trameMilestoneFacts": "Repères",
+  "trameNoMap": "Sur aucune carte",
+  "trameMaps": "Cartes : {maps}",
+  "@trameMaps": {
+    "placeholders": {
+      "maps": {
+        "type": "String"
+      }
+    }
+  },
+  "trameBehaviourCount": "{count, plural, =0{Aucun comportement} =1{1 comportement} other{{count} comportements}}",
+  "@trameBehaviourCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trameCompletion": "Se termine quand « {fact} » devient vrai",
+  "@trameCompletion": {
+    "placeholders": {
+      "fact": {
+        "type": "String"
+      }
+    }
+  },
+  "trameNoCompletion": "Aucun état ne marque sa fin",
+  "trameIssueText": "{issue, select, noBehaviour{Aucun comportement ne fait avancer ce jalon.} noCompletionFact{Aucun état ne marque la fin de ce jalon.} completionFactShared{Son état de fin sert aussi à un autre jalon.} other{Son état de fin peut repasser à faux.}}",
+  "@trameIssueText": {
+    "placeholders": {
+      "issue": {
+        "type": "String"
+      }
+    }
+  },
+  "trameStartsWith": "Ce qui le fait commencer",
+  "trameNoBehaviour": "Aucun comportement rattaché.",
+  "trameScene": "Scène « {scene} »",
+  "@trameScene": {
+    "placeholders": {
+      "scene": {
+        "type": "String"
+      }
+    }
+  },
+  "trameDetach": "Détacher",
+  "trameSharedScene": "Scène partagée par {count} comportements : ils suivent tous ce jalon.",
+  "@trameSharedScene": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trameAttach": "Rattacher un comportement",
+  "trameAttachTo": "Rattacher à un jalon",
+  "trameAttachShared": "Rattacher à un jalon (scène partagée par {count} comportements)",
+  "@trameAttachShared": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trameAttachWholeScene": "Le rattachement se fait par scène entière.",
+  "trameNeedsScene": "Choisissez d’abord une scène pour ce comportement.",
+  "trameBehaviourOption": "{name} · {map}",
+  "@trameBehaviourOption": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "map": {
+        "type": "String"
+      }
+    }
+  },
+  "trameMilestoneOption": "{chapter} · {milestone}",
+  "@trameMilestoneOption": {
+    "placeholders": {
+      "chapter": {
+        "type": "String"
+      },
+      "milestone": {
+        "type": "String"
+      }
+    }
+  }
 }

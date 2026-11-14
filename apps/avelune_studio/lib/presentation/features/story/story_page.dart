@@ -9,13 +9,15 @@ import 'package:avelune_studio/features/game_behaviours/application/game_behavio
 import 'package:avelune_studio/features/game_memory/application/game_memory_controller.dart';
 import 'package:avelune_studio/features/game_memory/application/game_memory_staging.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
+import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviours_view.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_rule_creation.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_usages.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_view.dart';
+import 'package:avelune_studio/presentation/features/story/trame_view.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
-enum StoryTab { world, memory }
+enum StoryTab { trame, world, memory }
 
 class StoryPage extends StatefulWidget {
   const StoryPage({
@@ -27,6 +29,7 @@ class StoryPage extends StatefulWidget {
     required this.behaviours,
     required this.behaviourSource,
     required this.openMap,
+    required this.trame,
   });
 
   final NarrativeIndexPort? port;
@@ -36,13 +39,15 @@ class StoryPage extends StatefulWidget {
   final GameMemoryBehaviourLink behaviours;
   final GameBehaviourSource behaviourSource;
   final VoidCallback openMap;
+  final StorylineTrameController? trame;
 
   @override
   State<StoryPage> createState() => _StoryPageState();
 }
 
 class _StoryPageState extends State<StoryPage> {
-  var _tab = StoryTab.world;
+  var _tab = StoryTab.trame;
+  final _opened = <StoryTab>{};
   GameMemoryController? _memory;
   GameBehavioursController? _behaviours;
 
@@ -56,13 +61,22 @@ class _StoryPageState extends State<StoryPage> {
       staging: widget.staging,
       changed: _changed,
     )..rules.mapName = _mapName;
-    unawaited(_memory!.open());
     _behaviours = GameBehavioursController(
       port: port,
       source: () => widget.behaviourSource,
       changed: _changed,
     );
-    unawaited(_behaviours!.open());
+  }
+
+  void _openTab(StoryTab tab) {
+    if (!_opened.add(tab)) return;
+    scheduleMicrotask(
+      () => unawaited(switch (tab) {
+        StoryTab.trame => widget.trame?.open() ?? Future<void>.value(),
+        StoryTab.world => _behaviours!.open(),
+        StoryTab.memory => _memory!.open(),
+      }),
+    );
   }
 
   void _changed() {
@@ -82,6 +96,8 @@ class _StoryPageState extends State<StoryPage> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final memory = _memory;
+    final trame = widget.trame;
+    if (memory != null) _openTab(_tab);
     return Column(
       key: const ValueKey('studio-story'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -89,6 +105,11 @@ class _StoryPageState extends State<StoryPage> {
         StudioTabBar<StoryTab>(
           key: const ValueKey('story-tabs'),
           tabs: [
+            StudioTab(
+              key: const ValueKey('story-tab-trame'),
+              value: StoryTab.trame,
+              label: l10n.storyTabTrame,
+            ),
             StudioTab(
               key: const ValueKey('story-tab-world'),
               value: StoryTab.world,
@@ -112,10 +133,21 @@ class _StoryPageState extends State<StoryPage> {
                   description: l10n.memoryUnavailableHint,
                 )
               : switch (_tab) {
+                  StoryTab.trame when trame != null => TrameView(
+                    trame: trame,
+                    source: widget.behaviourSource,
+                    navigate: widget.behaviours.open,
+                  ),
+                  StoryTab.trame => StudioEmptyState(
+                    icon: Icons.inventory_2_outlined,
+                    title: l10n.memoryUnavailable,
+                    description: l10n.memoryUnavailableHint,
+                  ),
                   StoryTab.world => GameBehavioursView(
                     behaviours: _behaviours!,
                     navigate: widget.behaviours.open,
                     openMap: widget.openMap,
+                    trame: trame,
                   ),
                   StoryTab.memory => GameMemoryView(
                     memory: memory,

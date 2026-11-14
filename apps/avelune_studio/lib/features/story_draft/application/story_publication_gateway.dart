@@ -4,6 +4,7 @@ import '../../dialogues/domain/dialogue_port.dart';
 import '../../events/domain/event_port.dart';
 import '../../resources/domain/resource_port.dart';
 import '../../scenes/domain/scene_port.dart';
+import '../../stories/domain/story_port.dart';
 import '../../world/domain/world_port.dart';
 import '../domain/story_dialogue_source.dart';
 import '../domain/story_draft_entry.dart';
@@ -50,6 +51,7 @@ final class StoryPublicationGateway {
     this._dialogues,
     this._facts,
     this._savedDialogues,
+    this._stories,
   });
 
   final StoryDraft _draft;
@@ -58,6 +60,7 @@ final class StoryPublicationGateway {
   final DialoguePort? _dialogues;
   final WorldPort? _facts;
   final StorySavedDialogues? _savedDialogues;
+  final StoryPort? _stories;
 
   bool supports(StoryDraftKind<Object> kind, {required bool deletion}) =>
       switch (kind) {
@@ -65,7 +68,7 @@ final class StoryPublicationGateway {
         StoryDraftKind.scene => _scenes != null && !deletion,
         StoryDraftKind.dialogue => _dialogues != null,
         StoryDraftKind.fact || StoryDraftKind.worldRule => _facts != null,
-        StoryDraftKind.story => false,
+        StoryDraftKind.story => _stories != null,
       };
 
   Future<StoryPublicationProgress> publish(
@@ -132,7 +135,9 @@ final class StoryPublicationGateway {
     StoryDraftKind.worldRule => _writeRule(
       step.entries.single as StoryDraftEntry<WorldRuleDefinition>,
     ),
-    StoryDraftKind.story => throw StateError('unsupported ${step.kind.name}'),
+    StoryDraftKind.story => _writeStory(
+      step.entries.single as StoryDraftEntry<StorylineAsset>,
+    ),
   };
 
   Future<ResourceMutationReceipt> _writeEvents(
@@ -212,4 +217,12 @@ final class StoryPublicationGateway {
     final current? => _facts!.publishRule(base: entry.base, current: current),
     null => _facts!.deleteRule(entry.base!),
   };
+
+  Future<ResourceMutationReceipt> _writeStory(
+    StoryDraftEntry<StorylineAsset> entry,
+  ) => _stories!.publishStory(
+    id: entry.id,
+    base: entry.base,
+    current: entry.current,
+  );
 }

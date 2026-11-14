@@ -8,6 +8,7 @@ import 'dialogue_providers.dart';
 import 'event_providers.dart';
 import 'presentation_providers.dart';
 import 'scene_providers.dart';
+import 'story_providers.dart';
 
 final storyPublicationGatewayProvider = Provider.autoDispose
     .family<StoryPublicationGatewayFactory, ProjectSession>((ref, session) {
@@ -15,6 +16,7 @@ final storyPublicationGatewayProvider = Provider.autoDispose
       final scenes = ref.watch(scenePortProvider(session));
       final dialogues = ref.watch(dialoguePortProvider(session));
       final facts = ref.watch(worldPortProvider(session));
+      final stories = ref.watch(storyPortProvider(session));
       return (draft, saved) => StoryPublicationGateway(
         draft: draft,
         events: events,
@@ -22,6 +24,7 @@ final storyPublicationGatewayProvider = Provider.autoDispose
         dialogues: dialogues,
         facts: facts,
         savedDialogues: saved,
+        stories: stories,
       );
     });
 

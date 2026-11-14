@@ -26,6 +26,7 @@ import '../features/presentations/data/local_presentation_adapter.dart';
 import '../features/verification/data/local_verification_adapter.dart';
 import '../features/world/data/local_world_adapter.dart';
 import '../features/game_memory/data/local_narrative_index_adapter.dart';
+import '../features/storyline/data/local_storyline_read_adapter.dart';
 import '../platform/files/native_presentation_media_picker.dart';
 import '../features/dialogues/data/local_dialogue_adapter.dart';
 import '../features/events/data/local_event_adapter.dart';
@@ -200,6 +201,9 @@ List<Override> studioSessionAdapterOverrides() => [
   ),
   narrativeIndexPortProvider.overrideWith(
     (ref, session) => LocalNarrativeIndexAdapter(session),
+  ),
+  storylineReadPortProvider.overrideWith(
+    (ref, session) => LocalStorylineReadAdapter(session),
   ),
   verificationPortProvider.overrideWith(
     (ref, session) => LocalVerificationAdapter(
