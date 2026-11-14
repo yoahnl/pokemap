@@ -8,24 +8,25 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import '../../transactions/plan_store.dart';
-import '../../workspace/project_snapshot.dart';
 import '../maps/map_lifecycle_adapter.dart';
 import 'dialogue_authoring_service.dart';
 import 'dialogue_source_guards.dart';
 import 'dialogue_source_store.dart';
 import '../assets/project_media_store.dart';
 import 'event_actions.dart';
+import 'fact_rule_actions.dart';
 import 'narrative_action_support.dart';
 import 'scene_actions.dart';
 import 'scene_party_move_catalog.dart';
 import 'narrative_authoring_exception.dart';
+import 'narrative_publication_scope.dart';
 
 class NarrativeDocumentActions {
   const NarrativeDocumentActions();
 
   static final descriptor = narrativeActionDescriptor(
     'narrative.publish_document',
-    'Publish an authoritative map with compiled narrative dependencies',
+    'Publish narrative documents, with an optional authoritative map',
     resourceKinds: const ['project', 'map', 'dialogueSource'],
   );
 
@@ -66,21 +67,31 @@ class NarrativeDocumentActions {
       'cinematics',
       'storylines',
       'events',
+      'worldRules',
     });
     final snapshot = context.snapshot;
     final mediaBytes =
         snapshot.findResourceBytes(projectMediaCatalogResourceIdentity);
     final presentationMediaCatalog =
         mediaBytes == null ? null : decodeProjectMediaCatalogBytes(mediaBytes);
-    final map = MapData.fromJson(narrativeObjectParameter(fields, 'map'));
-    final previousMap = snapshot.mapById(map.id);
-    if (previousMap == null ||
-        narrativeEventBytesFingerprint(
-                snapshot.resourceBytes('map:${map.id}')) !=
-            fields['mapRevision']) {
+    final map = fields['map'] == null
+        ? null
+        : MapData.fromJson(narrativeObjectParameter(fields, 'map'));
+    if (map == null && fields['mapRevision'] != null) {
+      throw ArgumentError.value(
+          fields['mapRevision'], 'mapRevision', 'requires a map');
+    }
+    final previousMap = map == null ? null : snapshot.mapById(map.id);
+    if (map != null &&
+        (previousMap == null ||
+            narrativeEventBytesFingerprint(
+                    snapshot.resourceBytes('map:${map.id}')) !=
+                fields['mapRevision'])) {
       throw StateError('La carte a changé depuis son ouverture.');
     }
-    if (snapshot.availableProjectSections != null &&
+    if (map != null &&
+        previousMap != null &&
+        snapshot.availableProjectSections != null &&
         (map.size != previousMap.size ||
             map.version != previousMap.version ||
             map.spatialScene != previousMap.spatialScene ||
@@ -91,8 +102,9 @@ class NarrativeDocumentActions {
           message:
               'Enregistrez d’abord la géométrie et les connexions dans l’atelier Carte. Le brouillon narratif est conservé.');
     }
-    final entry =
-        snapshot.manifest.maps.singleWhere((entry) => entry.id == map.id);
+    final entry = map == null
+        ? null
+        : snapshot.manifest.maps.singleWhere((entry) => entry.id == map.id);
     final sources = _objects(fields, 'dialogues');
     final dialogues = [
       for (final source in sources)
@@ -109,7 +121,7 @@ class NarrativeDocumentActions {
         _objects(fields, 'storylines').map(StorylineAsset.fromJson).toList();
     final scoped = snapshot.availableProjectSections != null;
     if (scoped) {
-      _requireScopedPublicationSafety(snapshot,
+      requireScopedNarrativePublicationSafety(snapshot,
           facts: facts,
           dialogues: dialogues,
           scenes: scenes,
@@ -134,7 +146,7 @@ class NarrativeDocumentActions {
     }
     final maps = [
       for (final item in snapshot.maps)
-        if (item.id == map.id) map else item
+        if (item.id == map?.id) map! else item
     ];
     if (scenes.isNotEmpty) {
       project = const SceneActions().upsertBatch(project,
@@ -151,6 +163,15 @@ class NarrativeDocumentActions {
           records: events,
           presentationMediaCatalog: presentationMediaCatalog);
     }
+    final rules = _objects(fields, 'worldRules')
+        .map(WorldRuleDefinition.fromJson)
+        .toList();
+    if (rules.isNotEmpty) {
+      project = const FactRuleActions().upsertWorldRuleDefinitions(project,
+          maps: maps,
+          rules: rules,
+          lookupRewardScenes: snapshot.lookupRewardScenes);
+    }
     final registry = project.eventRegistry;
     if (registry != null) {
       final changedSceneIds = scenes.map((scene) => scene.id).toSet();
@@ -158,7 +179,7 @@ class NarrativeDocumentActions {
         for (final event in events) event.id,
         for (final event in registry.records)
           if (event.definitionOrNull case final definition?)
-            if (definition.source.toJson()['mapId'] == map.id ||
+            if (definition.source.toJson()['mapId'] == map?.id ||
                 changedSceneIds.contains(definition.sceneId))
               event.id,
       };
@@ -177,7 +198,7 @@ class NarrativeDocumentActions {
       }
     }
     if (!scoped) ProjectValidator.validate(project, maps: maps);
-    for (final item in scoped ? [map] : maps) {
+    for (final item in scoped ? [if (map != null) map] : maps) {
       MapValidator.validate(item, projectDialogueContext: project);
     }
     final changes = <AuthoringResourceChange>[];
@@ -210,8 +231,10 @@ class NarrativeDocumentActions {
 
     add('project', 'project', 'project', 'project.json',
         encodeProjectAuthoringDocument(snapshot, project));
-    add('map', map.id, 'map:${map.id}', entry.relativePath,
-        encodeMapAuthoringDocument(map));
+    if (map != null) {
+      add('map', map.id, 'map:${map.id}', entry!.relativePath,
+          encodeMapAuthoringDocument(map));
+    }
     for (var index = 0; index < sources.length; index++) {
       final source = sources[index];
       final dialogue = dialogues[index];
@@ -252,71 +275,11 @@ class NarrativeDocumentActions {
             ? AuthoringChangeSet.noChanges()
             : AuthoringChangeSet(changes: changes, diff: AuthoringDiff(diffs)),
         preview: {
-          'mapId': map.id,
+          if (map != null) 'mapId': map.id,
+          if (rules.isNotEmpty)
+            'worldRuleIds': [for (final rule in rules) rule.id],
           'dialogueIds': dialogues.map((e) => e.id).toList()
         });
-  }
-}
-
-void _requireScopedPublicationSafety(
-  ProjectSnapshot snapshot, {
-  required List<NarrativeFactDefinition> facts,
-  required List<ProjectDialogueEntry> dialogues,
-  required List<SceneAsset> scenes,
-  required List<StorylineAsset> storylines,
-}) {
-  Never unsupported(String reason) => throw AuthoringPlanException(
-      code: 'catalog.mutation_scope_required',
-      message:
-          'Narrative publication requires $reason. Preserve the draft and prepare its incoming references explicitly.');
-  for (final fact in facts) {
-    final before = snapshot.manifest.facts
-        .where((value) => value.id == fact.id)
-        .firstOrNull;
-    if (before != null &&
-        (before.valueKind != fact.valueKind ||
-            before.legacyFlagName != fact.legacyFlagName)) {
-      unsupported(
-          'a complete incoming Fact reference index for its type or identity alias');
-    }
-  }
-  for (final entry in dialogues) {
-    final before = snapshot.manifest.dialogues
-        .where((value) => value.id == entry.id)
-        .firstOrNull;
-    if (before != null &&
-        before.declaredOutcomes.any((old) =>
-            !entry.declaredOutcomes.any((next) => next.id == old.id))) {
-      unsupported('a complete incoming dialogue outcome reference index');
-    }
-  }
-  for (final scene in scenes) {
-    final before = snapshot.manifest.scenes
-        .where((value) => value.id == scene.id)
-        .firstOrNull;
-    if (before != null &&
-        before.declaredOutcomes.any((old) =>
-            !scene.declaredOutcomes.any((next) => next.id == old.id))) {
-      unsupported('a complete incoming Scene outcome reference index');
-    }
-  }
-  for (final story in storylines) {
-    final before = snapshot.manifest.storylines
-        .where((value) => value.id == story.id)
-        .firstOrNull;
-    final ids = {
-      for (final chapter in story.chapters) chapter.id,
-      for (final chapter in story.chapters)
-        for (final step in chapter.steps) step.id
-    };
-    if (before != null &&
-        [
-          for (final chapter in before.chapters) chapter.id,
-          for (final chapter in before.chapters)
-            for (final step in chapter.steps) step.id
-        ].any((id) => !ids.contains(id))) {
-      unsupported('a complete incoming chapter and step reference index');
-    }
   }
 }
 

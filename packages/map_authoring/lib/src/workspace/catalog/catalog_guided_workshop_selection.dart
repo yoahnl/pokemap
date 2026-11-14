@@ -62,19 +62,21 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
     final rawMap = parameters['map'];
     final mapId =
         spec?.mapId ?? (rawMap is Map ? rawMap['id'] as String? : null);
-    if (mapId == null) {
+    if (mapId == null && actionId != 'narrative.publish_document') {
       throw const FormatException('catalog.workshop: map identity required');
     }
-    add('maps', [mapId]);
+    if (mapId != null) add('maps', [mapId]);
     var documents = await CatalogMetadataDocuments.readDocuments(
         snapshot: catalog.snapshot, project: base, ids: ids);
     final ownerEntry =
         documents.project.maps.where((entry) => entry.id == mapId).firstOrNull;
-    if (ownerEntry == null) {
+    if (mapId != null && ownerEntry == null) {
       throw const ProjectSnapshotException(
           'project.map_missing', 'The map is not declared.');
     }
-    await readFile('map:$mapId', ownerEntry.relativePath);
+    if (ownerEntry != null) {
+      await readFile('map:$mapId', ownerEntry.relativePath);
+    }
     MapData decodeMap(String id) {
       final value = bytes['map:$id'];
       if (value == null) {
@@ -89,15 +91,16 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
       return map;
     }
 
-    final owner = decodeMap(mapId);
-    final maps = <String, MapData>{mapId: owner};
+    final owner = mapId == null ? null : decodeMap(mapId);
+    final maps = <String, MapData>{if (owner != null) owner.id: owner};
     final candidates = <Object?>[
       parameters,
-      owner.toJson(),
+      if (owner != null) owner.toJson(),
+      ..._guidedRuleDependencies(parameters),
     ];
     final changedSceneIds = <String>{};
     if (spec != null) {
-      final entity = owner.entities
+      final entity = owner!.entities
           .where((entity) => entity.id == spec.entityId)
           .firstOrNull;
       final previousRaw = entity?.properties['standardEventTemplate.v1'];
@@ -131,7 +134,8 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
       'scenes',
       'cinematics',
       'storylines',
-      'eventRegistry'
+      'eventRegistry',
+      if (parameters['worldRules'] is List) 'worldRules',
     };
     for (final field
         in writable.where(CatalogMetadataDocuments.fields.contains)) {

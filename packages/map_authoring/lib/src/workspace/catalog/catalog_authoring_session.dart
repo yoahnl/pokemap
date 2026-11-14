@@ -28,6 +28,7 @@ import 'catalog_workshop_selection.dart';
 import 'catalog_narrative_event_consumers.dart';
 import 'catalog_narrative_titles.dart';
 import 'catalog_narrative_usages.dart';
+import 'catalog_map_directory.dart';
 import 'catalog_resource_usage_index.dart';
 import 'catalog_resource_index_snapshot.dart';
 import 'catalog_scoped_working_mutation.dart';
@@ -488,6 +489,10 @@ final class CatalogAuthoringSession {
     }
     if (scope == CatalogNarrativeUsages.preparationScope) {
       await (await _editing()).prepareNarrativeUsages();
+      return;
+    }
+    if (scope == CatalogMapDirectory.preparationScope) {
+      await (await _editing()).prepareMapDirectory();
       return;
     }
     await preparePendingTransactionJournals(reader.store.gateway);

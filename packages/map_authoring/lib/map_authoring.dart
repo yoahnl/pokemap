@@ -30,6 +30,15 @@ export 'src/api/storyline_outline_query.dart'
         storylineOutlineResourceKind,
         storylineProposalResourceKind,
         storylineReadResourceKinds;
+export 'src/api/map_directory_query.dart' show mapDirectoryResourceKind;
+export 'src/api/scene_document_query.dart' show sceneDocumentResourceKind;
+export 'src/workspace/catalog/catalog_map_directory.dart'
+    show
+        CatalogMapDirectory,
+        CatalogMapDirectoryRead,
+        CatalogMapDirectoryPages,
+        CatalogMapDirectoryPreparationRequired,
+        CatalogMapDirectoryEntries;
 export 'src/workspace/catalog/catalog_narrative_usages.dart'
     show
         CatalogNarrativeUsages,

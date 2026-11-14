@@ -595,6 +595,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/item_authoring.test.ts',
     };
   }
+  if (actionId == 'narrative.publish_document') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/narrative/narrative_publication_without_map_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/narrative_publication_without_map_stdio.test.ts',
+    };
+  }
   if (actionId.startsWith('storyline.chapter.') ||
       actionId.startsWith('storyline.milestone.')) {
     return const {
@@ -1766,7 +1774,9 @@ AuthoringResourceParity _resourceParity(
     'narrativeFactUsers',
     'narrativeMapElementOwners',
     'storylineOutline',
-    'storylineProposal'
+    'storylineProposal',
+    'mapDirectory',
+    'sceneDocument'
   }.contains(kind)) {
     return AuthoringResourceParity(
       resourceKind: kind,
@@ -1798,7 +1808,16 @@ AuthoringResourceParity _resourceParity(
               ),
             _ => AuthoringParityCell.supported(
                 capability: capability,
-                evidence: kind.startsWith('storyline')
+                evidence: kind == 'mapDirectory' || kind == 'sceneDocument'
+                    ? const [
+                        'lib/src/api/map_directory_query.dart',
+                        'lib/src/api/scene_document_query.dart',
+                        'lib/src/workspace/catalog/catalog_map_directory.dart',
+                        'test/workspace/catalog_map_directory_test.dart',
+                        'test/api/scene_document_query_test.dart',
+                        '../../tools/pokemap_mcp/test/scene_document_stdio.test.ts',
+                      ]
+                    : kind.startsWith('storyline')
                     ? const [
                         'lib/src/api/storyline_outline_query.dart',
                         'test/api/storyline_outline_query_test.dart',
@@ -2569,6 +2588,8 @@ const _semanticOwners = <String, String>{
   'narrativeMapElementOwners': 'project',
   'storylineOutline': 'project',
   'storylineProposal': 'project',
+  'mapDirectory': 'project',
+  'sceneDocument': 'project',
   'character': 'campaignContent',
   'characterStudioCatalog': 'project',
   'characterStudioCharacter': 'project',

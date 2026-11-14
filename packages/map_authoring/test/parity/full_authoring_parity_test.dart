@@ -1243,6 +1243,8 @@ final Set<String> _approvedResourceKinds = {
   'narrativeMapElementOwners',
   'storylineOutline',
   'storylineProposal',
+  'mapDirectory',
+  'sceneDocument',
   'character',
   'characterStudioCatalog',
   'characterStudioCharacter',

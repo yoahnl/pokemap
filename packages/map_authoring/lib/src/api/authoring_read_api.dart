@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'narrative_index_query.dart';
 import 'narrative_usage_query.dart';
 import 'storyline_outline_query.dart';
+import 'map_directory_query.dart';
+import 'scene_document_query.dart';
 import 'periodic_reward_choice_query.dart';
 import '../references/exterior_decoration_references.dart';
 import 'resource_pack_transfer_api.dart';
@@ -198,7 +200,15 @@ final class AuthoringReadApi
       metadataFields: periodicRewardChoiceKinds.contains(request.resourceKind) ||
           request.resourceKind == narrativeTitleResourceKind ||
           narrativeUsageResourceKinds.contains(request.resourceKind) ||
-          storylineReadResourceKinds.contains(request.resourceKind) ? const {} : null);
+          storylineReadResourceKinds.contains(request.resourceKind) ||
+          request.resourceKind == mapDirectoryResourceKind ||
+          request.resourceKind == sceneDocumentResourceKind ? const {} : null);
+    if (request.resourceKind == mapDirectoryResourceKind) {
+      return queryMapDirectory(catalog: catalog, request: request);
+    }
+    if (request.resourceKind == sceneDocumentResourceKind) {
+      return querySceneDocument(catalog: catalog, request: request);
+    }
     if (storylineReadResourceKinds.contains(request.resourceKind)) {
       return queryStorylineReads(catalog: catalog, request: request);
     }

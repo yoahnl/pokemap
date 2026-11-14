@@ -500,6 +500,11 @@ void main() {
           expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
           expect(result.error?.details['domainCode'],
               'query.narrative_usage_scope_invalid');
+        } else if (resourceKind == mapDirectoryResourceKind ||
+            resourceKind == sceneDocumentResourceKind) {
+          expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
+          expect(result.error?.details['domainCode'],
+              '${resourceKind == mapDirectoryResourceKind ? 'query.map_directory' : 'query.scene_document'}_scope_invalid');
         } else if (storylineReadResourceKinds.contains(resourceKind)) {
           expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
           expect(result.error?.details['domainCode'],

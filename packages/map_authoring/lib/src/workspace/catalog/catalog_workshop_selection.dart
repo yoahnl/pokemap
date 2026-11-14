@@ -50,7 +50,8 @@ part 'catalog_presentation_reset_selection.dart';
 part 'catalog_scene_workshop_selection.dart';
 part 'catalog_dialogue_creation_selection.dart';
 part 'catalog_model_prune_selection.dart';
-part 'catalog_storyline_scene_selection.dart';
+part 'catalog_storyline_workshop_selection.dart';
+part 'catalog_guided_publication_dependencies.dart';
 
 final class CatalogWorkshopSelection {
   CatalogWorkshopSelection._(

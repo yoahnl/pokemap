@@ -253,11 +253,13 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     };
     if (field != null && source['sourceId'] is String) add(field, [source['sourceId'] as String]);
   }
-  if (conditionRule) {
+  if (conditionRule || guided && parameters['worldRules'] is List) {
     sections.add('worldRules');
     for (final rule in [
       if (parameters['rule'] case final Map rule) rule,
-      if (parameters['rules'] case final List rules) ...rules.whereType<Map>()
+      if (parameters['rules'] case final List rules) ...rules.whereType<Map>(),
+      if (parameters['worldRules'] case final List rules)
+        ...rules.whereType<Map>()
     ]) {
       if (rule['id'] case final String id) add('worldRules', [id]);
       if (rule['source'] case final Map source) {
@@ -453,53 +455,55 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     final rawMap = parameters['map'];
     ownerMapId =
         spec?.mapId ?? (rawMap is Map ? rawMap['id'] as String? : null);
-    if (ownerMapId == null) {
+    if (ownerMapId == null && actionId != 'narrative.publish_document') {
       throw const ProjectSnapshotException(
           'project.map_missing', 'The workshop map identity is required.');
     }
-    add('maps', [ownerMapId]);
+    if (ownerMapId != null) add('maps', [ownerMapId]);
     collect();
-    final ownerEntry = selected['maps']?[ownerMapId];
-    if (ownerEntry == null) {
-      throw const ProjectSnapshotException(
-          'project.map_missing', 'The workshop map is not declared.');
-    }
-    await read(
-        'map:$ownerMapId', ProjectMapEntry.fromJson(ownerEntry).relativePath,
-        required: true);
-    final ownerBytes = resources
-        .firstWhere((entry) => entry.identity == 'map:$ownerMapId')
-        .bytes!;
-    final owner = await loader._decodeExecutor.decodeMap(ownerBytes.bytes);
-    if (owner.id != ownerMapId) {
-      throw const ProjectSnapshotException('project.map_invalid',
-          'The workshop map identity differs from its declaration.');
-    }
-    maps[owner.id] = owner;
-    candidates.add(owner.toJson());
-    if (spec != null) {
-      final entity = owner.entities
-          .where((entity) => entity.id == spec!.entityId)
-          .firstOrNull;
-      final previousRaw = entity?.properties['standardEventTemplate.v1'];
-      final previous = previousRaw is String
-          ? StandardEventTemplateSpec.fromJson(
-              Map<String, dynamic>.from(jsonDecode(previousRaw) as Map))
-          : null;
-      final generation =
-          entity?.properties['standardEventTemplate.sceneGeneration.v1'];
-      if (previous != null) {
-        candidates.add(previous.toJson());
-        add('scenes',
-            standardEventTemplateSceneIds(previous, generation: generation));
+    if (ownerMapId != null) {
+      final ownerEntry = selected['maps']?[ownerMapId];
+      if (ownerEntry == null) {
+        throw const ProjectSnapshotException(
+            'project.map_missing', 'The workshop map is not declared.');
       }
-      final nextGeneration = standardEventTemplateNextSceneGeneration(spec,
-          previous: previous, previousGeneration: generation);
-      final nextScenes =
-          standardEventTemplateSceneIds(spec, generation: nextGeneration);
-      add('scenes', nextScenes);
-      if (previous == null || nextGeneration != generation) {
-        changedSceneIds.addAll(nextScenes);
+      await read(
+          'map:$ownerMapId', ProjectMapEntry.fromJson(ownerEntry).relativePath,
+          required: true);
+      final ownerBytes = resources
+          .firstWhere((entry) => entry.identity == 'map:$ownerMapId')
+          .bytes!;
+      final owner = await loader._decodeExecutor.decodeMap(ownerBytes.bytes);
+      if (owner.id != ownerMapId) {
+        throw const ProjectSnapshotException('project.map_invalid',
+            'The workshop map identity differs from its declaration.');
+      }
+      maps[owner.id] = owner;
+      candidates.add(owner.toJson());
+      if (spec != null) {
+        final entity = owner.entities
+            .where((entity) => entity.id == spec!.entityId)
+            .firstOrNull;
+        final previousRaw = entity?.properties['standardEventTemplate.v1'];
+        final previous = previousRaw is String
+            ? StandardEventTemplateSpec.fromJson(
+                Map<String, dynamic>.from(jsonDecode(previousRaw) as Map))
+            : null;
+        final generation =
+            entity?.properties['standardEventTemplate.sceneGeneration.v1'];
+        if (previous != null) {
+          candidates.add(previous.toJson());
+          add('scenes',
+              standardEventTemplateSceneIds(previous, generation: generation));
+        }
+        final nextGeneration = standardEventTemplateNextSceneGeneration(spec,
+            previous: previous, previousGeneration: generation);
+        final nextScenes =
+            standardEventTemplateSceneIds(spec, generation: nextGeneration);
+        add('scenes', nextScenes);
+        if (previous == null || nextGeneration != generation) {
+          changedSceneIds.addAll(nextScenes);
+        }
       }
     }
     for (final field in const {

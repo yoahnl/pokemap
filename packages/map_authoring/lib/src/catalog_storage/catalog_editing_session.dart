@@ -32,6 +32,7 @@ import '../workspace/catalog/catalog_narrative_event_consumers.dart';
 import '../workspace/catalog/catalog_narrative_event_documents.dart';
 import '../workspace/catalog/catalog_narrative_titles.dart';
 import '../workspace/catalog/catalog_narrative_usages.dart';
+import '../workspace/catalog/catalog_map_directory.dart';
 import '../workspace/catalog/catalog_periodic_reward_consumers.dart';
 import '../workspace/catalog/catalog_resource_positions.dart';
 import '../workspace/catalog/catalog_resource_usage_index.dart';
@@ -449,6 +450,25 @@ final class CatalogEditingSession {
         await _apply(plan);
       });
 
+  Future<void> prepareMapDirectory() => _serialize(() async {
+        _requireOpen();
+        if (await CatalogMapDirectory.prepared(snapshot)) return;
+        final index =
+            await CatalogMapDirectory.prepare(snapshot: snapshot, store: store);
+        await _apply(await _planPatch(
+            upserts: index.units,
+            removals: const [],
+            additionalChanges: const [],
+            workspaceFingerprint: null,
+            publicBaseRevision: index.revision,
+            publicDiff: null,
+            publicPlan: null,
+            currentProjectRevision: index.currentRevision,
+            idempotencyKey: _token('map_directory_prepare_'),
+            request: null,
+            prepareMetadataDocuments: true));
+      });
+
   Future<void> prepareNarrativeTitles() => _serialize(() async {
         _requireOpen();
         await store.requireMetadataIndexAdmission(snapshot);
@@ -675,6 +695,10 @@ final class CatalogEditingSession {
         additionalChanges: additional);
     units.addAll(eventConsumers.upserts);
     deleted.addAll(eventConsumers.removals);
+    final directory = await CatalogMapDirectory.maintain(
+        snapshot: base, additionalChanges: additional);
+    units.addAll(directory.upserts);
+    deleted.addAll(directory.removals);
     final derivable = await CatalogDerivableIndexes.maintain(
         lookup: base.lookup, upserts: units, removals: deleted);
     units.addAll(derivable.upserts);
