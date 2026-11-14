@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'spatial_terrain_surface_editing_commands.dart';
 

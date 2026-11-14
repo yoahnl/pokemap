@@ -1,6 +1,5 @@
 import '../domain/spatial_model_visibility_port.dart';
 import '../../project_visuals/application/project_visuals_controller.dart';
-import 'package:map_core/map_core.dart' show ProjectModel3dEntry, ProjectModel3dEntries, ProjectMapEntries;
 
 import '../../project_visuals/domain/project_visuals_port.dart';
 import 'map_atmosphere_controller.dart';

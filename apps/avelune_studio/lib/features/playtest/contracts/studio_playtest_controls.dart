@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:map_core/map_core.dart' show PlaytestSpeed;
+import 'package:map_core/map_core_domain.dart' show PlaytestSpeed;
 
 class StudioPlaytestStatus {
   const StudioPlaytestStatus({

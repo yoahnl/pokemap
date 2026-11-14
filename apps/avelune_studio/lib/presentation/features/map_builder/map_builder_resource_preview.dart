@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';

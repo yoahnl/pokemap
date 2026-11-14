@@ -1,4 +1,4 @@
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 enum ResourceKind { decors, terrains, images }
 

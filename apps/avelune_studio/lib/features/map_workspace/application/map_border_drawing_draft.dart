@@ -1,5 +1,4 @@
 import 'package:map_core/map_core_domain.dart';
-import 'package:map_core/map_core.dart' show Model3dVector3;
 
 final class MapBorderEraseDraft {
   MapBorderEraseDraft({

@@ -6,7 +6,6 @@ import 'package:map_render_3d/map_render_3d.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
 
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 

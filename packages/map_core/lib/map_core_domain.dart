@@ -5,6 +5,12 @@ export 'src/models/map_editor_state.dart';
 export 'src/catalog_storage/project_catalog_selection.dart';
 
 export 'src/models/model3d_ramp_profile.dart';
+export 'src/models/gen5_battle_source_bundle.dart';
+export 'src/runtime/playtest_speed.dart';
+export 'src/models/project_model3d.dart';
+export 'src/models/project_model3d_entries.dart';
+export 'src/models/project_map_entries.dart';
+export 'src/models/spatial_navigation.dart';
 
 export 'src/models/map_entity_interactive_encounter.dart';
 

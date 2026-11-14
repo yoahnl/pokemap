@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:map_authoring/map_authoring.dart'
     show AvelunePokemonCry, PokemonBattleGifSelection, PokemonPngSelection;
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'pokemon_workspace_models.dart';
 

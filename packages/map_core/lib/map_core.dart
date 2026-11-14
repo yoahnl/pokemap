@@ -1,6 +1,5 @@
 export 'src/models/map_entity_interactive_encounter.dart';
 export 'src/models/battle_move_animation_recipe.dart';
-export 'src/models/gen5_battle_source_bundle.dart';
 export 'src/models/battle_spl_particle_definition.dart';
 export 'src/models/battle_move_recipe_binding.dart';
 export 'src/models/battle_recipe_project_paths.dart';
@@ -13,7 +12,6 @@ export 'src/models/map_entity_field_obstacle.dart';
 export 'src/read_models/field_obstacle_capabilities.dart';
 export 'map_core_domain.dart';
 export 'src/runtime/runtime_resource_budget.dart';
-export 'src/runtime/playtest_speed.dart';
 export 'src/runtime/runtime_prefetch_queue.dart';
 export 'src/models/escape_return_point.dart';
 export 'src/models/map_instance_world_state.dart';
@@ -24,15 +22,11 @@ export 'src/models/scene_actor_route.dart';
 export 'src/operations/tiled_map_import.dart';
 export 'src/operations/tiled_map_compilation.dart';
 
-export 'src/models/project_model3d.dart';
-export 'src/models/project_model3d_entries.dart';
-export 'src/models/project_map_entries.dart';
 export 'src/models/model3d_ramp_profile.dart';
 export 'src/models/model3d_material_animation.dart';
 
 export 'src/operations/spatial_map_operations.dart';
 
-export 'src/models/spatial_navigation.dart';
 export 'src/models/player_spatial_position.dart';
 export 'src/models/spatial_world_state.dart';
 export 'src/models/moving_platform.dart';

@@ -1,4 +1,4 @@
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'resource_catalog.dart';
 import 'resource_terrain_example.dart';

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:ffi';
-import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -76,7 +75,7 @@ ByteConversionSink createNarrativeFingerprintSha256Sink(
   bool? macOS,
   NarrativeFingerprintSha256Bindings Function()? loadBindings,
 }) {
-  if (!(macOS ?? Platform.isMacOS)) {
+  if (!(macOS ?? _macOS)) {
     return portable.createNarrativeFingerprintSha256Sink(output);
   }
   NarrativeFingerprintSha256Bindings? bindings;
@@ -93,6 +92,8 @@ ByteConversionSink createNarrativeFingerprintSha256Sink(
   );
 }
 
+bool get _macOS => const {Abi.macosArm64, Abi.macosX64}.contains(Abi.current());
+
 final NativeFinalizer _systemFinalizer = NativeFinalizer(
   DynamicLibrary.open('/usr/lib/libSystem.B.dylib').lookup('free'),
 );
@@ -101,7 +102,7 @@ final NarrativeFingerprintSha256Bindings? _systemBindings =
     _loadSystemBindings();
 
 NarrativeFingerprintSha256Bindings? _loadSystemBindings() {
-  if (!Platform.isMacOS) return null;
+  if (!_macOS) return null;
   try {
     return loadNarrativeFingerprintSha256Bindings();
   } on Object {

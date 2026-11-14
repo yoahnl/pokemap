@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
 import 'package:map_core/map_core_domain.dart';
 
 final class ResourceImageImport {
