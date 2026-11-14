@@ -154,6 +154,36 @@ void main() {
     expect(staging.facts['met'], index.definitions['met']);
   });
 
+  test('a milestone just created can be renamed before saving', () async {
+    await trame.open();
+    expect(
+      await trame.createMilestone('main', 'chapter_one', 'Nouveau jalon'),
+      isTrue,
+    );
+    final created = trame.view!.milestone('milestone_nouveau_jalon')!;
+    final factId = created.milestone.completionFactId!;
+
+    expect(
+      await trame.renameMilestone(
+        'main',
+        'chapter_one',
+        'milestone_nouveau_jalon',
+        'Jalon A',
+        completionFactId: factId,
+      ),
+      isTrue,
+    );
+
+    expect(trame.refusal, isNull);
+    expect(
+      trame.view!.milestone('milestone_nouveau_jalon')!.milestone.title,
+      'Jalon A',
+    );
+    final fact = staging.draft.entryOf(StoryDraftKind.fact, factId)!;
+    expect((fact.creation, fact.current!.label), (true, 'Jalon A'));
+    expect(index.factRequests, isEmpty);
+  });
+
   test(
     'attaching a shared scene moves it whole; refusals change nothing',
     () async {

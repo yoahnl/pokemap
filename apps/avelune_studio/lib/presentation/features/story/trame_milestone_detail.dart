@@ -68,14 +68,12 @@ class TrameMilestoneDetail extends StatelessWidget {
           value: milestone.title,
           label: l10n.trameMilestoneName,
           enabled: editable,
-          onCommit: (title) => unawaited(
-            trame.renameMilestone(
-              storylineId,
-              chapterId,
-              milestone.id,
-              title,
-              completionFactId: factId,
-            ),
+          onSubmit: (title) => trame.renameMilestone(
+            storylineId,
+            chapterId,
+            milestone.id,
+            title,
+            completionFactId: factId,
           ),
         ),
         StudioToggleRow(

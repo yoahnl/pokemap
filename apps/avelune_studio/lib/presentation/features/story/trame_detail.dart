@@ -74,8 +74,8 @@ class TrameDetail extends StatelessWidget {
             value: chapter.title,
             label: l10n.trameChapterName,
             enabled: editable,
-            onCommit: (title) =>
-                unawaited(trame.renameChapter(storyline.id, chapter.id, title)),
+            onSubmit: (title) =>
+                trame.renameChapter(storyline.id, chapter.id, title),
           ),
           StudioToggleRow(
             key: const ValueKey('trame-chapter-archived'),
@@ -137,8 +137,7 @@ class TrameDetail extends StatelessWidget {
             value: storyline.title,
             label: l10n.trameStorylineName,
             enabled: editable,
-            onCommit: (title) =>
-                unawaited(trame.renameStoryline(storyline.id, title)),
+            onSubmit: (title) => trame.renameStoryline(storyline.id, title),
           ),
           const SizedBox(height: StudioSpacing.m),
           Text(l10n.trameType(storyline.type)),

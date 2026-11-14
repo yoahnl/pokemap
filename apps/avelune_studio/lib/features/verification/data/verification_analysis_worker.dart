@@ -22,6 +22,7 @@ class VerificationAnalysisRequest {
     this.maps,
     this.sources, {
     required this.projectRoot,
+    required this.catalog,
     this.presentationMediaCatalog,
   });
   final SendPort reply;
@@ -29,6 +30,7 @@ class VerificationAnalysisRequest {
   final List<VerificationMapSource> maps;
   final List<VerificationDialogueSource> sources;
   final String projectRoot;
+  final bool catalog;
   final ProjectMediaCatalog? presentationMediaCatalog;
 }
 
@@ -38,10 +40,12 @@ Future<void> verificationAnalysisWorker(
   VerificationAnalysisRequest request,
 ) async {
   try {
-    final maps = [
-      for (final source in request.maps)
-        verificationMap(request.project, source),
-    ];
+    final (:maps, :unreadable) = await verificationMaps(
+      request.project,
+      request.maps,
+      projectRoot: request.projectRoot,
+      catalog: request.catalog,
+    );
     final itemCatalog = await verificationItemCatalog(
       request.project,
       maps,
@@ -55,7 +59,10 @@ Future<void> verificationAnalysisWorker(
           ? null
           : {for (final entry in itemCatalog.entries) entry.id},
     );
-    final validation = _withDialogueSources(canonical, request.sources);
+    final validation = _withUnreadableMaps(
+      _withDialogueSources(canonical, request.sources),
+      unreadable,
+    );
     final symbolic = validation.symbolicReachability;
     final physical = symbolic == null
         ? NarrativeValidationDimensionResult(
@@ -88,6 +95,31 @@ Future<void> verificationAnalysisWorker(
     request.reply.send(failure.toString());
   }
 }
+
+NarrativeProjectValidationReport _withUnreadableMaps(
+  NarrativeProjectValidationReport report,
+  List<ProjectMapEntry> unreadable,
+) => unreadable.isEmpty
+    ? report
+    : NarrativeProjectValidationReport(
+        diagnostics: [
+          for (final entry in unreadable)
+            NarrativeProjectDiagnostic(
+              code: verificationUnreadableMap,
+              severity: NarrativeProjectDiagnosticSeverity.error,
+              domain: NarrativeProjectDiagnosticDomain.map,
+              message:
+                  'La carte « ${entry.name} » est illisible : elle est exclue '
+                  'de la vérification. Ouvrez-la pour voir ce qui la bloque.',
+              path: 'maps.${entry.id}',
+              destination: NarrativeProjectDiagnosticDestination.map,
+              mapId: entry.id,
+            ),
+          ...report.diagnostics,
+        ],
+        mapEventViews: report.mapEventViews,
+        symbolicReachability: report.symbolicReachability,
+      );
 
 NarrativeValidationDimensionResult _physical(
   NarrativePhysicalReachabilityReport report,

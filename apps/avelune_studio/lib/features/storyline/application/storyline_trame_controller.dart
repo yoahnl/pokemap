@@ -167,7 +167,8 @@ final class StorylineTrameController {
       (fact) =>
           beforeFacts[fact.id] != null &&
           beforeFacts[fact.id] != fact &&
-          definitions[fact.id] == null,
+          definitions[fact.id] == null &&
+          !staging.draft.isTouched(StoryDraftKind.fact, fact.id),
     )) {
       refusal = 'factNotLoaded';
       changed();

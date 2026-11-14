@@ -58,7 +58,9 @@ final class ProjectVerificationController {
       final project = await loadProject();
       if (!current()) return;
       if (project == null) {
-        throw const VerificationFailure('project-unavailable');
+        throw const VerificationFailure(
+          'Le projet n’a pas pu être chargé pour la vérification.',
+        );
       }
       enter(ProjectVerificationPhase.maps);
       final maps = await port.readMaps(

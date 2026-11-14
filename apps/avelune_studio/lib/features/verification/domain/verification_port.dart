@@ -1,5 +1,7 @@
 import 'package:map_core/map_core_domain.dart';
 
+const verificationUnreadableMap = 'verification.map_unreadable';
+
 /// How a runtime smoke receipt relates to the version being verified.
 enum VerificationRuntimeState {
   unconfigured,

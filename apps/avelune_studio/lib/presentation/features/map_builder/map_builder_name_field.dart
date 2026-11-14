@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 class MapBuilderNameField extends StatefulWidget {
@@ -5,14 +7,16 @@ class MapBuilderNameField extends StatefulWidget {
     super.key,
     required this.value,
     required this.label,
-    required this.onCommit,
     required this.enabled,
+    this.onCommit,
+    this.onSubmit,
     this.lines = 1,
-  });
+  }) : assert((onCommit == null) != (onSubmit == null));
 
   final String value;
   final String label;
-  final ValueChanged<String> onCommit;
+  final ValueChanged<String>? onCommit;
+  final Future<bool> Function(String name)? onSubmit;
   final bool enabled;
   final int lines;
 
@@ -49,7 +53,19 @@ class _MapBuilderNameFieldState extends State<MapBuilderNameField> {
       _text.text = widget.value;
       return;
     }
-    if (name != widget.value) widget.onCommit(name);
+    if (name == widget.value) return;
+    final submit = widget.onSubmit;
+    if (submit == null) {
+      widget.onCommit!(name);
+      return;
+    }
+    unawaited(
+      submit(name).then((saved) {
+        if (!saved && mounted && _text.text.trim() == name) {
+          _text.text = widget.value;
+        }
+      }),
+    );
   }
 
   @override

@@ -2974,7 +2974,27 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String trameRefused(String code) {
-    return 'Modification refusée ($code). Rien n’a changé.';
+    String _temp0 = intl.Intl.selectLogic(code, {
+      'factNotLoaded':
+          'L’état de fin de ce jalon n’a pas pu être lu. Rien n’a changé.',
+      'stepTitleRequired': 'Un jalon a besoin d’un nom. Rien n’a changé.',
+      'stepNotFound': 'Ce jalon n’existe plus. Rien n’a changé.',
+      'chapterNotFound': 'Ce chapitre n’existe plus. Rien n’a changé.',
+      'storylineNotFound': 'Cette trame n’existe plus. Rien n’a changé.',
+      'sceneNotFound': 'Ce comportement n’existe plus. Rien n’a changé.',
+      'stepIdAlreadyExists':
+          'Un autre jalon porte déjà cet identifiant. Rien n’a changé.',
+      'chapterIdAlreadyExists':
+          'Un autre chapitre porte déjà cet identifiant. Rien n’a changé.',
+      'storylineIdAlreadyExists':
+          'Une autre trame porte déjà cet identifiant. Rien n’a changé.',
+      'chapterContainsSteps':
+          'Ce chapitre contient encore des jalons. Rien n’a changé.',
+      'journalClueFactInvalid': 'Cet indice doit dépendre d’un état vrai ou faux existant. Rien n’a changé.',
+      'journalClueDuplicate': 'Cet indice existe déjà. Rien n’a changé.',
+      'other': 'Cette modification n’a pas pu être appliquée. Rien n’a changé.',
+    });
+    return '$_temp0';
   }
 
   @override

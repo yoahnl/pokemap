@@ -2958,7 +2958,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String trameRefused(String code) {
-    return 'Change refused ($code). Nothing changed.';
+    String _temp0 = intl.Intl.selectLogic(code, {
+      'factNotLoaded':
+          'The end state of this milestone could not be read. Nothing changed.',
+      'stepTitleRequired': 'A milestone needs a name. Nothing changed.',
+      'stepNotFound': 'This milestone no longer exists. Nothing changed.',
+      'chapterNotFound': 'This chapter no longer exists. Nothing changed.',
+      'storylineNotFound': 'This plot no longer exists. Nothing changed.',
+      'sceneNotFound': 'This behaviour no longer exists. Nothing changed.',
+      'stepIdAlreadyExists':
+          'Another milestone already uses this identifier. Nothing changed.',
+      'chapterIdAlreadyExists':
+          'Another chapter already uses this identifier. Nothing changed.',
+      'storylineIdAlreadyExists':
+          'Another plot already uses this identifier. Nothing changed.',
+      'chapterContainsSteps':
+          'This chapter still contains milestones. Nothing changed.',
+      'journalClueFactInvalid': 'This clue must depend on an existing true or false state. Nothing changed.',
+      'journalClueDuplicate': 'This clue already exists. Nothing changed.',
+      'other': 'This change could not be applied. Nothing changed.',
+    });
+    return '$_temp0';
   }
 
   @override

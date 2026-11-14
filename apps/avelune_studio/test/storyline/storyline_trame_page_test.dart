@@ -111,6 +111,46 @@ void main() {
     expect(_status(tester).data, 'Non enregistré');
   });
 
+  testWidgets('a new milestone is named at once; a refusal puts it back', (
+    tester,
+  ) async {
+    final index = memoryIndex();
+    await openTrameStudio(tester, index: index);
+    Finder name(String id) => find.descendant(
+      of: find.byKey(ValueKey('trame-milestone-name-$id')),
+      matching: find.byType(TextField),
+    );
+    String shown(String id) =>
+        tester.widget<TextField>(name(id)).controller!.text;
+
+    await tester.tap(find.byKey(const ValueKey('trame-chapter-chapter_one')));
+    await settleMemory(tester);
+    await tester.tap(find.byKey(const ValueKey('trame-milestone-add')));
+    await settleMemory(tester);
+    await tester.tap(find.text('Nouveau jalon'));
+    await settleMemory(tester);
+    await tester.enterText(name('milestone_nouveau_jalon'), 'Jalon A');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await settleMemory(tester);
+
+    expect(find.byKey(const ValueKey('trame-refusal')), findsNothing);
+    expect(find.text('Jalon A'), findsWidgets);
+
+    index.definitions.remove('met');
+    await tester.tap(find.byKey(const ValueKey('trame-milestone-meet')));
+    await settleMemory(tester);
+    await tester.enterText(name('meet'), 'Retrouver Léo');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await settleMemory(tester);
+
+    final refusal = tester.widget<StudioNotice>(
+      find.byKey(const ValueKey('trame-refusal')),
+    );
+    expect(refusal.message, isNot(contains('factNotLoaded')));
+    expect(refusal.message, contains('Rien n’a changé'));
+    expect(shown('meet'), 'Rencontrer Léo');
+  });
+
   testWidgets('a proposed plot is kept as a draft or discarded', (
     tester,
   ) async {

@@ -137,6 +137,7 @@ class LocalVerificationAdapter implements VerificationPort {
             maps,
             sources,
             projectRoot: session.directoryPath,
+            catalog: session.storage != ProjectSessionStorage.manifest,
             presentationMediaCatalog: presentationMediaCatalog,
           ),
           debugName: verificationWorkerName,

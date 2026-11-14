@@ -103,77 +103,88 @@ final memoryDoorRule = WorldRuleDefinition(
   effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityHidden),
 );
 
-ProjectManifest _project(int unrelated) => ProjectManifest(
-  name: 'Mémoire',
-  maps: [
-    const ProjectMapEntry(
-      id: 'town',
-      name: 'Bourg',
-      relativePath: 'maps/town.json',
-    ),
-    for (var i = 0; i < unrelated; i++)
-      ProjectMapEntry(
-        id: 'unused-map-$i',
-        name: 'Inutile',
-        relativePath: 'maps/unused-$i.json',
-      ),
-  ],
-  tilesets: const [
-    ProjectTilesetEntry(
-      id: 'atlas',
-      name: 'Atlas',
-      relativePath: 'assets/atlas.png',
-    ),
-  ],
-  facts: [
-    NarrativeFactDefinition(id: 'fact_met', label: 'Rencontre'),
-    NarrativeFactDefinition(id: 'fact_door', label: 'Porte ouverte'),
-    NarrativeFactDefinition(
-      id: 'fact_coins',
-      label: 'Pièces',
-      initialValue: NarrativeValue.integer(3),
-    ),
-    for (var i = 0; i < unrelated; i++)
-      NarrativeFactDefinition(id: 'fact_unused_$i', label: 'Inutile $i'),
-  ],
-  scenes: [
-    _scene('gate', read: 'fact_met', written: 'fact_door'),
-    for (var i = 0; i < unrelated; i++) _scene('unused_scene_$i'),
-  ],
-  worldRules: [memoryDoorRule],
-  eventRegistry: NarrativeEventRegistry(
-    schemaVersion: 1,
-    mode: EventSystemMode.v2Only,
-    records: [
-      NarrativeEventRecord.draft(
-        NarrativeEventDraft(
-          id: memoryTalkEvent,
-          name: 'Parler à Léo',
-          source: NarrativeEventSourceRef.entityInteract('town', 'npc'),
-          conditions: [NarrativeEventCondition.fact('fact_met', true)],
-          priority: 0,
-          order: 0,
-        ),
-      ),
-      for (var i = 0; i < unrelated; i++)
-        NarrativeEventRecord.draft(
-          NarrativeEventDraft(
-            id: _unrelatedEvent(i),
-            name: 'Sans rapport $i',
-            conditions: const [],
-            priority: 0,
-            order: i + 1,
+ProjectManifest _project(int unrelated, {bool character = false}) =>
+    ProjectManifest(
+      name: 'Mémoire',
+      characters: [
+        if (character)
+          const ProjectCharacterEntry(
+            id: 'leo',
+            name: 'Léo',
+            tilesetId: 'atlas',
+            frameHeight: 1,
           ),
+      ],
+      maps: [
+        const ProjectMapEntry(
+          id: 'town',
+          name: 'Bourg',
+          relativePath: 'maps/town.json',
         ),
-    ],
-    legacyClaims: const [],
-  ),
-);
+        for (var i = 0; i < unrelated; i++)
+          ProjectMapEntry(
+            id: 'unused-map-$i',
+            name: 'Inutile',
+            relativePath: 'maps/unused-$i.json',
+          ),
+      ],
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'atlas',
+          name: 'Atlas',
+          relativePath: 'assets/atlas.png',
+        ),
+      ],
+      facts: [
+        NarrativeFactDefinition(id: 'fact_met', label: 'Rencontre'),
+        NarrativeFactDefinition(id: 'fact_door', label: 'Porte ouverte'),
+        NarrativeFactDefinition(
+          id: 'fact_coins',
+          label: 'Pièces',
+          initialValue: NarrativeValue.integer(3),
+        ),
+        for (var i = 0; i < unrelated; i++)
+          NarrativeFactDefinition(id: 'fact_unused_$i', label: 'Inutile $i'),
+      ],
+      scenes: [
+        _scene('gate', read: 'fact_met', written: 'fact_door'),
+        for (var i = 0; i < unrelated; i++) _scene('unused_scene_$i'),
+      ],
+      worldRules: [memoryDoorRule],
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.v2Only,
+        records: [
+          NarrativeEventRecord.draft(
+            NarrativeEventDraft(
+              id: memoryTalkEvent,
+              name: 'Parler à Léo',
+              source: NarrativeEventSourceRef.entityInteract('town', 'npc'),
+              conditions: [NarrativeEventCondition.fact('fact_met', true)],
+              priority: 0,
+              order: 0,
+            ),
+          ),
+          for (var i = 0; i < unrelated; i++)
+            NarrativeEventRecord.draft(
+              NarrativeEventDraft(
+                id: _unrelatedEvent(i),
+                name: 'Sans rapport $i',
+                conditions: const [],
+                priority: 0,
+                order: i + 1,
+              ),
+            ),
+        ],
+        legacyClaims: const [],
+      ),
+    );
 
 Future<ProjectSession> openGameMemoryCatalog({
   int unrelated = 0,
   bool prepared = true,
   bool catalog = true,
+  bool character = false,
 }) async {
   final temporary = await Directory.systemTemp.createTemp('game_memory_');
   final root = Directory(await temporary.resolveSymbolicLinks());
@@ -182,11 +193,12 @@ Future<ProjectSession> openGameMemoryCatalog({
     await WorkingProjectCatalog.create(
       store: await CatalogStorageStore.open(projectRoot: root.path),
       projectId: 'game-memory',
-      project: _project(unrelated),
+      project: _project(unrelated, character: character),
     );
   } else {
-    await File('${root.path}/project.json')
-        .writeAsString(jsonEncode(_project(unrelated).toJson()));
+    await File('${root.path}/project.json').writeAsString(
+      jsonEncode(_project(unrelated, character: character).toJson()),
+    );
   }
   final map = MapData(
     id: 'town',
@@ -223,6 +235,16 @@ Future<ProjectSession> openGameMemoryCatalog({
           name: 'Inutile',
           size: const GridSize(width: 2, height: 2),
           layers: const [],
+          entities: [
+            if (character && i == 0)
+              const MapEntity(
+                id: 'passer',
+                name: 'Passant',
+                kind: MapEntityKind.npc,
+                pos: GridPos(x: 0, y: 0),
+                npc: MapEntityNpcData(displayName: 'Léo', characterId: 'leo'),
+              ),
+          ],
         ).toJson(),
       ),
     );
