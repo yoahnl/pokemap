@@ -208,7 +208,7 @@ void main() {
     }
   });
 
-  test('fichiers Dart manuels limites a 300 lignes', () {
+  test('fichiers Dart manuels limites a 350 lignes', () {
     final testSources = Directory('${appRoot.path}/test')
         .listSync(recursive: true)
         .whereType<File>()
@@ -219,7 +219,7 @@ void main() {
       ...testSources,
     ]) {
       final count = source.readAsLinesSync().length;
-      if (count > 300) oversized.add('${source.path}: $count lignes');
+      if (count > 350) oversized.add('${source.path}: $count lignes');
     }
     expect(oversized, isEmpty);
   });

@@ -80,6 +80,8 @@ Preserve the public barrels `lib/<package>.dart` of `map_core`, `map_story`,
   Yoahn asks, then follow policies §Notion; never grow the frozen beta scope.
 - **Docs and code style:** zero new Markdown by default and never at the root;
   no code comments, DartDoc or TODO unless the user asks.
+- **File size:** handwritten Dart files aim at 300 lines, hard limit 350
+  (Studio architecture test); split by responsibility, never mechanically.
 
 ## 4. Player progression saves
 
