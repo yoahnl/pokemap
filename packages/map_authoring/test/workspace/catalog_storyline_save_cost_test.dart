@@ -1,9 +1,8 @@
-import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:test/test.dart';
 
+import '../support/catalog_unit_reads.dart';
 import '../support/narrative_title_fixture.dart';
 import '../support/storyline_trame_fixture.dart';
 
@@ -31,7 +30,7 @@ void main() {
             'storylines',
             'scenes',
             'metadataField',
-            'other',
+            'publication-shell',
           }),
           isEmpty,
           reason: largeWork.action);
@@ -52,18 +51,7 @@ Future<List<_Work>> _measure(int unrelated) async {
   final fixture =
       await NarrativeTitleFixture.create(project: trameProject(unrelated));
   try {
-    final objects = <String, Map<String, Object?>>{};
-    Future<void> index() async {
-      await for (final entity
-          in Directory('${fixture.root.path}/catalog/objects')
-              .list(recursive: true)) {
-        if (entity is File && !objects.containsKey(entity.path)) {
-          objects[entity.path] = Map<String, Object?>.from(
-              jsonDecode(await entity.readAsString()) as Map);
-        }
-      }
-    }
-
+    final counter = CatalogUnitReads(fixture.root);
     final work = <_Work>[];
     for (final (action, parameters) in <(String, Map<String, Object?>)>[
       (
@@ -80,20 +68,9 @@ Future<List<_Work>> _measure(int unrelated) async {
         }
       ),
     ]) {
-      await index();
       final before = await _units(fixture);
-      final read = <String, int>{};
-      final outside = Zone.current;
-      await IOOverrides.runZoned(
-          () => fixture.apply(action, parameters, 'measure-$action'),
-          createFile: (path) {
-        final object = objects[path];
-        if (object != null && object['type'] == 'unit') {
-          final field = _field(object['key']);
-          read[field] = (read[field] ?? 0) + 1;
-        }
-        return outside.run(() => File(path));
-      });
+      final read = await counter
+          .count(() => fixture.apply(action, parameters, 'measure-$action'));
       final after = await _units(fixture);
       work.add((
         action: action,
@@ -115,16 +92,4 @@ Future<Map<String, String>> _units(NarrativeTitleFixture fixture) async => {
         jsonEncode(unit.key.toJson()): jsonEncode(unit.payload)
     };
 
-String _label(String key) => _field(jsonDecode(key));
-
-String _field(Object? key) {
-  final id = (key as Map)['id'] as String;
-  final decoded = id.startsWith('[') ? jsonDecode(id) : null;
-  if (decoded is List && decoded.length >= 2) {
-    final kind = decoded.first as String;
-    if (kind == 'projectDefinition') return 'projectDefinition:${decoded[1]}';
-    if (kind == 'metadataDocument') return decoded[1] as String;
-    return kind;
-  }
-  return 'other';
-}
+String _label(String key) => catalogUnitLabel(jsonDecode(key));

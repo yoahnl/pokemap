@@ -11,7 +11,9 @@ typedef CatalogNarrativeTitle = ({
   String id,
   String title,
   List<String> tags,
-  String? category
+  String? category,
+  String? valueKind,
+  Object? initialValue
 });
 
 sealed class CatalogNarrativeTitleRead {
@@ -52,7 +54,17 @@ final class CatalogNarrativeTitles implements CatalogDerivableIndex {
 
   @override
   List<CatalogDefinitionUnit> initialize(
-      Iterable<CatalogDefinitionUnit> units) {
+          Iterable<CatalogDefinitionUnit> units) =>
+      _rows(
+          units,
+          CatalogNarrativeTitleRows.markerVersion([
+                for (final unit in units)
+                  if (unit.key == markerKey) unit
+              ].firstOrNull) ??
+              CatalogNarrativeTitleRows.version);
+
+  List<CatalogDefinitionUnit> _rows(
+      Iterable<CatalogDefinitionUnit> units, int version) {
     final positions = <String, Map<int, Map<String, Object?>>>{};
     for (final unit in units) {
       final location = CatalogNarrativeTitleRows.definitionLocation(unit.key);
@@ -60,7 +72,7 @@ final class CatalogNarrativeTitles implements CatalogDerivableIndex {
       final at = positions.putIfAbsent(location.$1, () => {});
       if (at.containsKey(location.$2)) _invalid('duplicate_position');
       at[location.$2] = CatalogNarrativeTitleRows.definitionEntry(
-          unit, location.$1, location.$2);
+          unit, location.$1, location.$2, version);
     }
     return CatalogNarrativeTitleRows.rows({
       for (final kind in CatalogNarrativeTitleRows.fieldKinds)
@@ -71,7 +83,7 @@ final class CatalogNarrativeTitles implements CatalogDerivableIndex {
       CatalogNarrativeTitleRows.eventKind:
           CatalogNarrativeTitleRows.eventEntries(
               CatalogNarrativeEventDocuments.decodeRegistry(units)),
-    });
+    }, version);
   }
 
   @override
@@ -87,6 +99,7 @@ final class CatalogNarrativeTitles implements CatalogDerivableIndex {
       }
     }
     units.addAll(await CatalogNarrativeEventDocuments.registryUnits(lookup));
+    if (await lookup(markerKey) case final marker?) units.add(marker);
     return units;
   }
 
@@ -114,10 +127,15 @@ final class CatalogNarrativeTitles implements CatalogDerivableIndex {
   static Future<CatalogNarrativeTitleRead> read(
       CatalogSnapshot snapshot, String kind, int page) async {
     if (!kinds.contains(kind)) _invalid('kind_unsupported');
-    final states =
-        CatalogNarrativeTitleRows.kindStates(await snapshot.lookup(markerKey));
-    if (states == null) {
+    final marker = await snapshot.lookup(markerKey);
+    final states = CatalogNarrativeTitleRows.kindStates(marker);
+    if (marker == null) {
       return CatalogNarrativeTitlesPreparationRequired(kind, 'absent');
+    }
+    if (states == null ||
+        CatalogNarrativeTitleRows.markerVersion(marker) !=
+            CatalogNarrativeTitleRows.version) {
+      return CatalogNarrativeTitlesPreparationRequired(kind, 'stale');
     }
     final count = states[kind]?['count'];
     if (count is! int) {
@@ -134,7 +152,8 @@ final class CatalogNarrativeTitles implements CatalogDerivableIndex {
                 .lookup(CatalogNarrativeTitleRows.pageKey(kind, page)),
             kind,
             page,
-            expectedLength: CatalogNarrativeTitleRows.pageLength(count, page));
+            expectedLength: CatalogNarrativeTitleRows.pageLength(count, page),
+            version: CatalogNarrativeTitleRows.version);
     return CatalogNarrativeTitlePage(kind, page: page, total: count, entries: [
       for (final entry in entries)
         (
@@ -142,6 +161,8 @@ final class CatalogNarrativeTitles implements CatalogDerivableIndex {
           title: entry['title'] as String,
           tags: List<String>.unmodifiable(entry['tags'] as List),
           category: entry['category'] as String?,
+          valueKind: entry['valueKind'] as String?,
+          initialValue: entry['initialValue'],
         )
     ]);
   }
@@ -150,13 +171,16 @@ final class CatalogNarrativeTitles implements CatalogDerivableIndex {
     final previous = await snapshot.lookup(markerKey);
     final states = CatalogNarrativeTitleRows.kindStates(previous);
     if (states != null &&
+        CatalogNarrativeTitleRows.markerVersion(previous) ==
+            CatalogNarrativeTitleRows.version &&
         kinds.every((kind) => states[kind]?['count'] is int)) {
       return (
         upserts: <CatalogDefinitionUnit>[],
         removals: <CatalogDefinitionKey>[]
       );
     }
-    final rows = index.initialize(await index.sources(snapshot.lookup));
+    final rows = index._rows(await index.sources(snapshot.lookup),
+        CatalogNarrativeTitleRows.version);
     final keys = {for (final row in rows) row.key};
     final upserts = <CatalogDefinitionUnit>[];
     for (final row in rows) {

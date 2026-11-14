@@ -500,6 +500,10 @@ void main() {
           expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
           expect(result.error?.details['domainCode'],
               'query.narrative_usage_scope_invalid');
+        } else if (storylineReadResourceKinds.contains(resourceKind)) {
+          expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
+          expect(result.error?.details['domainCode'],
+              'query.storyline_read_scope_invalid');
         } else if (resourceKind == 'narrativeTitle') {
           expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
           expect(result.error?.details['domainCode'],

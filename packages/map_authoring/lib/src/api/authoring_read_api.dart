@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'narrative_index_query.dart';
 import 'narrative_usage_query.dart';
+import 'storyline_outline_query.dart';
 import 'periodic_reward_choice_query.dart';
 import '../references/exterior_decoration_references.dart';
 import 'resource_pack_transfer_api.dart';
@@ -196,7 +197,11 @@ final class AuthoringReadApi
     final catalog = await _openService.catalogProject(projectHandle,
       metadataFields: periodicRewardChoiceKinds.contains(request.resourceKind) ||
           request.resourceKind == narrativeTitleResourceKind ||
-          narrativeUsageResourceKinds.contains(request.resourceKind) ? const {} : null);
+          narrativeUsageResourceKinds.contains(request.resourceKind) ||
+          storylineReadResourceKinds.contains(request.resourceKind) ? const {} : null);
+    if (storylineReadResourceKinds.contains(request.resourceKind)) {
+      return queryStorylineReads(catalog: catalog, request: request);
+    }
     if (request.resourceKind == narrativeTitleResourceKind) {
       return queryNarrativeTitles(catalog: catalog, request: request);
     }

@@ -679,7 +679,9 @@ final class CatalogWorkshopSelection {
                     as Map)),
       );
       final result = CatalogWorkshopSelection._(selected, snapshot,
-          Set.unmodifiable(writable), Map.unmodifiable(revisions));
+          Set.unmodifiable(writable), Map.unmodifiable(revisions),
+          metadataDocuments: await _storylineTrameDocuments(
+              catalog.snapshot, manifest, actionId, parameters));
       await result.requireCurrent();
       return result;
     });

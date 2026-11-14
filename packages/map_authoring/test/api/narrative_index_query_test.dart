@@ -72,6 +72,8 @@ void main() {
         'title': 'Fact 130',
         'tags': <String>[],
         'category': 'quest',
+        'valueKind': 'bool',
+        'initialValue': false,
         'position': 130,
       });
       final second = await query(

@@ -1241,6 +1241,8 @@ final Set<String> _approvedResourceKinds = {
   'narrativeTitle',
   'narrativeFactUsers',
   'narrativeMapElementOwners',
+  'storylineOutline',
+  'storylineProposal',
   'character',
   'characterStudioCatalog',
   'characterStudioCharacter',

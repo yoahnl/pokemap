@@ -25,6 +25,11 @@ export 'src/api/narrative_usage_query.dart'
         narrativeFactUsersResourceKind,
         narrativeMapElementOwnersResourceKind,
         narrativeUsageResourceKinds;
+export 'src/api/storyline_outline_query.dart'
+    show
+        storylineOutlineResourceKind,
+        storylineProposalResourceKind,
+        storylineReadResourceKinds;
 export 'src/workspace/catalog/catalog_narrative_usages.dart'
     show
         CatalogNarrativeUsages,

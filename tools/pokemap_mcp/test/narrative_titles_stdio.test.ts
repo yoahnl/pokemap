@@ -58,7 +58,7 @@ test("narrative titles prepare explicitly and page through live MCP", { timeout:
     const first = await call("pokemap_query", { ...query, filters: { kind: "facts" } });
     assert.equal(first.totalAvailable, 130);
     assert.equal((first.items as JsonRecord[]).length, 100);
-    assert.deepEqual((first.items as JsonRecord[])[0], { kind: "facts", id: "fact_fact_0", title: "Fact 0", tags: ["main"], category: "quest", position: 0 });
+    assert.deepEqual((first.items as JsonRecord[])[0], { kind: "facts", id: "fact_fact_0", title: "Fact 0", tags: ["main"], category: "quest", valueKind: "bool", initialValue: false, position: 0 });
     const second = await call("pokemap_query", { ...query, filters: { kind: "facts" }, cursor: first.nextCursor });
     assert.equal((second.items as JsonRecord[]).length, 30);
     assert.equal(second.nextCursor, undefined);

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 abstract final class CatalogNarrativeTitleRows {
+  static const version = 2;
   static const pageSize = 128;
   static const eventKind = 'narrativeEvents';
   static const fieldKinds = {
@@ -26,11 +27,11 @@ abstract final class CatalogNarrativeTitleRows {
   static int pageCount(int count) => (count + pageSize - 1) ~/ pageSize;
 
   static List<CatalogDefinitionUnit> rows(
-          Map<String, List<Map<String, Object?>>> entries) =>
+          Map<String, List<Map<String, Object?>>> entries, int version) =>
       [
         markerUnit({
           for (final kind in kinds) kind: {'count': entries[kind]!.length}
-        }),
+        }, version),
         for (final kind in kinds)
           for (var page = 0; page < pageCount(entries[kind]!.length); page++)
             pageUnit(
@@ -39,34 +40,40 @@ abstract final class CatalogNarrativeTitleRows {
                 entries[kind]!.sublist(
                     page * pageSize,
                     (page * pageSize +
-                        pageLength(entries[kind]!.length, page)))),
+                        pageLength(entries[kind]!.length, page))),
+                version),
       ];
 
   static CatalogDefinitionUnit markerUnit(
-          Map<String, Map<String, Object?>> states) =>
+          Map<String, Map<String, Object?>> states, int version) =>
       CatalogDefinitionUnit(key: markerKey, payload: {
         'id': markerKey.id,
-        'schemaVersion': 1,
+        'schemaVersion': version,
         'pageSize': pageSize,
         'kinds': {for (final kind in kinds) kind: states[kind]},
       });
 
-  static CatalogDefinitionUnit pageUnit(
-          String kind, int page, List<Map<String, Object?>> entries) =>
+  static CatalogDefinitionUnit pageUnit(String kind, int page,
+          List<Map<String, Object?>> entries, int version) =>
       CatalogDefinitionUnit(key: pageKey(kind, page), payload: {
         'id': pageKey(kind, page).id,
-        'schemaVersion': 1,
+        'schemaVersion': version,
         'kind': kind,
         'page': page,
         'entries': entries,
       });
+
+  static int? markerVersion(CatalogDefinitionUnit? marker) =>
+      kindStates(marker) == null
+          ? null
+          : marker!.payload['schemaVersion'] as int;
 
   static Map<String, Map<String, Object?>>? kindStates(
       CatalogDefinitionUnit? marker) {
     if (marker == null) return null;
     final payload = marker.payload;
     final states = payload['kinds'];
-    if (payload['schemaVersion'] != 1 ||
+    if (!const {1, version}.contains(payload['schemaVersion']) ||
         payload['pageSize'] != pageSize ||
         states is! Map ||
         states.length != kinds.length ||
@@ -87,12 +94,12 @@ abstract final class CatalogNarrativeTitleRows {
 
   static List<Map<String, Object?>> pageEntries(
       CatalogDefinitionUnit? unit, String kind, int page,
-      {required int expectedLength}) {
+      {required int expectedLength, required int version}) {
     final payload = unit?.payload;
     final entries = payload?['entries'];
     if (payload == null ||
         unit!.key != pageKey(kind, page) ||
-        payload['schemaVersion'] != 1 ||
+        payload['schemaVersion'] != version ||
         payload['kind'] != kind ||
         payload['page'] != page ||
         entries is! List ||
@@ -105,7 +112,10 @@ abstract final class CatalogNarrativeTitleRows {
             entry['id'] is String &&
             entry['title'] is String &&
             entry['tags'] is List &&
-            (entry['category'] == null || entry['category'] is String))
+            (entry['category'] == null || entry['category'] is String) &&
+            (version < 2 ||
+                kind != 'facts' ||
+                entry['valueKind'] is String && entry['initialValue'] != null))
           Map<String, Object?>.from(entry)
         else
           _invalid('entry_invalid'),
@@ -129,7 +139,7 @@ abstract final class CatalogNarrativeTitleRows {
   }
 
   static Map<String, Object?> definitionEntry(
-      CatalogDefinitionUnit unit, String field, int position) {
+      CatalogDefinitionUnit unit, String field, int position, int version) {
     final value = unit.payload['value'];
     final definition = value is Map ? value['definition'] : null;
     if (unit.payload['position'] != position ||
@@ -138,7 +148,7 @@ abstract final class CatalogNarrativeTitleRows {
         definition is! Map) {
       _invalid('definition_invalid');
     }
-    return _entry(
+    final entry = _entry(
         definition['id'],
         definition[switch (field) {
           'scenes' || 'dialogues' => 'name',
@@ -151,6 +161,19 @@ abstract final class CatalogNarrativeTitleRows {
           'storylines' => definition['type'],
           _ => null,
         });
+    if (version < 2 || field != 'facts') return entry;
+    final NarrativeFactDefinition fact;
+    try {
+      fact = NarrativeFactDefinition.fromJson(
+          Map<String, dynamic>.from(definition));
+    } on Object {
+      _invalid('definition_invalid');
+    }
+    return {
+      ...entry,
+      'valueKind': fact.valueKind.wireName,
+      'initialValue': fact.initialValue.toJson(),
+    };
   }
 
   static List<Map<String, Object?>> eventEntries(

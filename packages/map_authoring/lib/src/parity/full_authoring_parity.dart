@@ -1761,8 +1761,13 @@ AuthoringResourceParity _resourceParity(
   String owner, {
   required Set<String> queryableResourceKinds,
 }) {
-  if (const {'narrativeTitle', 'narrativeFactUsers', 'narrativeMapElementOwners'}
-      .contains(kind)) {
+  if (const {
+    'narrativeTitle',
+    'narrativeFactUsers',
+    'narrativeMapElementOwners',
+    'storylineOutline',
+    'storylineProposal'
+  }.contains(kind)) {
     return AuthoringResourceParity(
       resourceKind: kind,
       canonicalOwnerKind: owner,
@@ -1793,7 +1798,13 @@ AuthoringResourceParity _resourceParity(
               ),
             _ => AuthoringParityCell.supported(
                 capability: capability,
-                evidence: kind == 'narrativeTitle'
+                evidence: kind.startsWith('storyline')
+                    ? const [
+                        'lib/src/api/storyline_outline_query.dart',
+                        'test/api/storyline_outline_query_test.dart',
+                        '../../tools/pokemap_mcp/test/storyline_outline_stdio.test.ts',
+                      ]
+                    : kind == 'narrativeTitle'
                     ? const [
                         'lib/src/api/narrative_index_query.dart',
                         'lib/src/workspace/catalog/catalog_narrative_titles.dart',
@@ -2556,6 +2567,8 @@ const _semanticOwners = <String, String>{
   'narrativeTitle': 'project',
   'narrativeFactUsers': 'project',
   'narrativeMapElementOwners': 'project',
+  'storylineOutline': 'project',
+  'storylineProposal': 'project',
   'character': 'campaignContent',
   'characterStudioCatalog': 'project',
   'characterStudioCharacter': 'project',

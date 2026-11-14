@@ -84,6 +84,8 @@ Future<AuthoringQueryPage> queryNarrativeTitles({
           'title': entry.title,
           'tags': entry.tags,
           if (entry.category != null) 'category': entry.category,
+          if (entry.valueKind != null) 'valueKind': entry.valueKind,
+          if (entry.initialValue != null) 'initialValue': entry.initialValue,
           'position': position,
         });
       }

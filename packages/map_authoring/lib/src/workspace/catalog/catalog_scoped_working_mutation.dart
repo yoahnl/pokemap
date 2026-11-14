@@ -274,6 +274,10 @@ final class CatalogScopedWorkingMutation {
         for (final entry in afterRows.entries) {
           if (_same(beforeRows[entry.key], entry.value)) continue;
           final existing = original[entry.key];
+          if (existing == null && beforeRows.containsKey(entry.key)) {
+            CatalogWorkshopSelection.unsupported(publicPlan.request.actionId,
+                'the stored document of every changed $field entry');
+          }
           if (existing != null) {
             final value =
                 Map<String, Object?>.from(existing.payload['value'] as Map);

@@ -208,6 +208,8 @@ void main() {
           'smartTilePreset',
           'spatialMapIntegrity',
           'storyline',
+          'storylineOutline',
+          'storylineProposal',
           'surfConfiguration',
           'tileLayer',
           'tileset',

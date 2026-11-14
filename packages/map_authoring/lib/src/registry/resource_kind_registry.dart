@@ -705,6 +705,7 @@ final class AuthoringResourceKindRegistry {
             'scenes', 'dialogues', 'facts', 'worldRules', 'storylines',
             'cinematics', 'presentationCinematics', 'narrativeEvents']}},
           'fields': ['kind', 'id', 'title', 'tags', 'category', 'position'],
+          'factFields': ['valueKind', 'initialValue'],
           'order': 'storedDocumentOrder',
           'cursorBinding': ['projectRevision', 'querySignature'],
           'requiresCatalog': true,
@@ -730,6 +731,26 @@ final class AuthoringResourceKindRegistry {
             'preparationScope': 'narrativeUsages',
             'preparationRequiredCode': 'query.narrative_usages_preparation_required',
             'coverage': 'returnedWithEveryItem',
+          }),
+      for (final kind in ['storylineOutline', 'storylineProposal'])
+        AuthoringResourceKindDescriptor(id: kind, version: 1,
+          displayName: kind == 'storylineOutline' ? 'Storyline outline' : 'Proposed storyline',
+          summary: kind == 'storylineOutline'
+              ? 'Chapters and milestones with attached scenes, their maps from Event V2 sources, completion Facts and diagnostics, plus scenes outside every milestone; maps are not decoded'
+              : 'A draft main storyline from the Facts that behaviours unlock, grouped by Fact category; never persisted, it decodes every Scene and the event registry but no map',
+          extensions: {
+            'operations': ['summary'], 'view': 'summary', 'requiresCatalog': true,
+            if (kind == 'storylineOutline') ...{
+              'fields': ['storylines', 'scenesOutsideStorylines', 'reads'],
+              'milestoneIssues': ['noBehaviour', 'noCompletionFact', 'completionFactShared', 'completionFactCanReset'],
+              'preparationScopes': ['narrativeTitles', 'narrativeUsages', 'default'],
+              'preparationRequiredCodes': ['query.narrative_titles_preparation_required', 'query.narrative_usages_preparation_required', 'query.narrative_events_preparation_required'],
+              'mapsFrom': 'eventV2Sources',
+            } else ...{
+              'fields': ['storyline', 'milestoneCount', 'unlockCount', 'scenesOutsideStoryline', 'persisted'],
+              'onlyWithoutStorylines': true,
+              'persistWith': 'storyline.upsert',
+            },
           }),
       for (final kind in ['periodicRewardScene', 'periodicRewardNode'])
         AuthoringResourceKindDescriptor(id: kind, version: 1,
@@ -1194,6 +1215,8 @@ final class AuthoringResourceKindRegistry {
         'narrativeTitle',
         'narrativeFactUsers',
         'narrativeMapElementOwners',
+        'storylineOutline',
+        'storylineProposal',
         'periodicRewardScene',
         'periodicRewardNode',
         'resourcePackJob',

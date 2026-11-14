@@ -43,9 +43,10 @@ abstract final class CatalogNarrativeTitleMaintenance {
     final eventsChanged = await CatalogNarrativeEventDocuments.registryChanged(
         lookup, pending, removedKeys);
     if (changed.isEmpty && removed.isEmpty && !eventsChanged) return none;
-    final states = CatalogNarrativeTitleRows.kindStates(
-        await lookup(CatalogNarrativeTitleRows.markerKey));
+    final marker = await lookup(CatalogNarrativeTitleRows.markerKey);
+    final states = CatalogNarrativeTitleRows.kindStates(marker);
     if (states == null) return none;
+    final version = CatalogNarrativeTitleRows.markerVersion(marker)!;
     final next = {for (final entry in states.entries) entry.key: entry.value};
     final result = none;
     void record(String kind, _KindPatch? patch, int count) {
@@ -67,7 +68,7 @@ abstract final class CatalogNarrativeTitleMaintenance {
       record(
           kind,
           await _field(lookup, kind, count, changed[kind] ?? const {},
-              removed[kind] ?? const {}),
+              removed[kind] ?? const {}, version),
           count);
     }
     final eventCount = states[CatalogNarrativeTitleRows.eventKind]!['count'];
@@ -86,14 +87,14 @@ abstract final class CatalogNarrativeTitleMaintenance {
       record(
           CatalogNarrativeTitleRows.eventKind,
           before.length == eventCount
-              ? await _lists(
-                  lookup, CatalogNarrativeTitleRows.eventKind, before, after)
+              ? await _lists(lookup, CatalogNarrativeTitleRows.eventKind,
+                  before, after, version)
               : null,
           eventCount);
     }
     if (CatalogNarrativeTitleRows.kinds
         .any((kind) => !_same(states[kind], next[kind]))) {
-      result.upserts.add(CatalogNarrativeTitleRows.markerUnit(next));
+      result.upserts.add(CatalogNarrativeTitleRows.markerUnit(next, version));
     }
     return result;
   }
@@ -103,7 +104,8 @@ abstract final class CatalogNarrativeTitleMaintenance {
       String field,
       int count,
       Map<int, CatalogDefinitionUnit> changes,
-      Set<int> removed) async {
+      Set<int> removed,
+      int version) async {
     final int length;
     if (removed.isNotEmpty) {
       length = removed.reduce(min);
@@ -123,14 +125,14 @@ abstract final class CatalogNarrativeTitleMaintenance {
     final after = <int, Map<String, Object?>>{};
     final before = <int, Map<String, Object?>>{};
     for (final MapEntry(key: position, value: unit) in changes.entries) {
-      final entry =
-          CatalogNarrativeTitleRows.definitionEntry(unit, field, position);
+      final entry = CatalogNarrativeTitleRows.definitionEntry(
+          unit, field, position, version);
       if (position < count) {
         final previous = await lookup(
             CatalogMetadataDocuments.definitionKey(field, position));
         if (previous == null) return null;
         final old = CatalogNarrativeTitleRows.definitionEntry(
-            previous, field, position);
+            previous, field, position, version);
         if (_same(old, entry)) continue;
         before[position] = old;
       }
@@ -145,7 +147,7 @@ abstract final class CatalogNarrativeTitleMaintenance {
     final upserts = <CatalogDefinitionUnit>[];
     for (final page in pages) {
       if (page >= CatalogNarrativeTitleRows.pageCount(length)) continue;
-      final old = await _read(lookup, field, count, page);
+      final old = await _read(lookup, field, count, page, version);
       if (old == null) return null;
       final start = page * CatalogNarrativeTitleRows.pageSize;
       for (final MapEntry(key: position, value: entry) in before.entries) {
@@ -161,7 +163,8 @@ abstract final class CatalogNarrativeTitleMaintenance {
           after[start + i] ?? old[i],
       ];
       if (!_same(entries, old)) {
-        upserts.add(CatalogNarrativeTitleRows.pageUnit(field, page, entries));
+        upserts.add(
+            CatalogNarrativeTitleRows.pageUnit(field, page, entries, version));
       }
     }
     return (
@@ -175,7 +178,8 @@ abstract final class CatalogNarrativeTitleMaintenance {
       CatalogDerivedLookup lookup,
       String kind,
       List<Map<String, Object?>> before,
-      List<Map<String, Object?>> after) async {
+      List<Map<String, Object?>> after,
+      int version) async {
     final pages = <int>{
       for (var i = 0; i < max(before.length, after.length); i++)
         if (i >= before.length ||
@@ -186,7 +190,7 @@ abstract final class CatalogNarrativeTitleMaintenance {
     final upserts = <CatalogDefinitionUnit>[];
     for (final page in pages) {
       if (page >= CatalogNarrativeTitleRows.pageCount(after.length)) continue;
-      final old = await _read(lookup, kind, before.length, page);
+      final old = await _read(lookup, kind, before.length, page, version);
       final start = page * CatalogNarrativeTitleRows.pageSize;
       if (old == null ||
           !_same(
@@ -200,10 +204,9 @@ abstract final class CatalogNarrativeTitleMaintenance {
       upserts.add(CatalogNarrativeTitleRows.pageUnit(
           kind,
           page,
-          after.sublist(
-              start,
-              start +
-                  CatalogNarrativeTitleRows.pageLength(after.length, page))));
+          after.sublist(start,
+              start + CatalogNarrativeTitleRows.pageLength(after.length, page)),
+          version));
     }
     return (
       count: after.length,
@@ -212,15 +215,16 @@ abstract final class CatalogNarrativeTitleMaintenance {
     );
   }
 
-  static Future<List<Map<String, Object?>>?> _read(
-      CatalogDerivedLookup lookup, String kind, int count, int page) async {
+  static Future<List<Map<String, Object?>>?> _read(CatalogDerivedLookup lookup,
+      String kind, int count, int page, int version) async {
     if (page >= CatalogNarrativeTitleRows.pageCount(count)) return const [];
     try {
       return CatalogNarrativeTitleRows.pageEntries(
           await lookup(CatalogNarrativeTitleRows.pageKey(kind, page)),
           kind,
           page,
-          expectedLength: CatalogNarrativeTitleRows.pageLength(count, page));
+          expectedLength: CatalogNarrativeTitleRows.pageLength(count, page),
+          version: version);
     } on FormatException {
       return null;
     }
