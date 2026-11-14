@@ -69,7 +69,7 @@ void main() {
     },
   );
 
-  test('3D soil repaint replaces higher soils locally and preserves paths', () {
+  test('3D soil repaint replaces higher soils and paths locally', () {
     SmartTileLayer surface(String id, SmartTileUsage usage) => SmartTileLayer(
       id: id,
       name: id,
@@ -117,7 +117,8 @@ void main() {
       0,
       0,
     ]);
-    expect(smartTileSemanticCells(map.layers[2] as SmartTileLayer)[0], 1);
+    expect(smartTileSemanticCells(map.layers[2] as SmartTileLayer)[0], 0);
+    paint('path');
     final soil = map.layers[0] as SmartTileLayer;
     final erased = applySmartTileMapMaterialGesture(
       map,

@@ -66,6 +66,22 @@ void main() {
       expect(draft.preview['changedCellCount'], 2);
     });
 
+    test('a 3D ground stroke also clears the paths it covers in one change',
+        () {
+      final fixture = _fixture(spatial: true, road: true);
+      final draft = _build(fixture.snapshot, [
+        _stroke('grass', [(0, 0)]),
+      ]);
+      final painted = _map(draft);
+      expect(smartTileSemanticCells(painted.layers[0] as SmartTileLayer),
+          [1, 0, 0, 0]);
+      expect(smartTileSemanticCells(painted.layers[1] as SmartTileLayer),
+          [0, 1, 1, 1]);
+      expect(draft.changeSet.changes, hasLength(1));
+      expect(draft.changeSet.diff.entries.single.path, '/layers');
+      expect(draft.preview['changedCellCount'], 1);
+    });
+
     test('rejects conflicting materials before creating a draft', () {
       final fixture = _fixture();
       final before = fixture.snapshot.resourceBytes('map:map').toList();
@@ -216,6 +232,7 @@ MapData _map(AuthoringMutationDraft draft) => MapData.fromJson(
   GridSize size = const GridSize(width: 2, height: 2),
   bool spatial = false,
   bool higherSoil = false,
+  bool road = false,
 }) {
   final count = size.width * size.height;
   final map = MapData(
@@ -248,6 +265,14 @@ MapData _map(AuthoringMutationDraft draft) => MapData.fromJson(
             presetId: 'ground-preset',
             usage: SmartTileUsage.terrain,
             materialPalette: const ['', 'grass', 'path'],
+            field: SmartTileField.cell(semanticCells: List.filled(count, 1))),
+      if (road)
+        SmartTileLayer(
+            id: 'road',
+            name: 'Road',
+            presetId: 'road-preset',
+            usage: SmartTileUsage.path,
+            materialPalette: const ['', 'path'],
             field: SmartTileField.cell(semanticCells: List.filled(count, 1))),
       CollisionLayer(
           id: 'collision',
@@ -285,10 +310,14 @@ MapData _map(AuthoringMutationDraft draft) => MapData.fromJson(
               id: id, name: id, connectionGroupId: 'ground')
       ],
       presets: [
+        for (final usage in [
+          SmartTileUsage.terrain,
+          if (road) SmartTileUsage.path,
+        ])
         ProjectSmartTilePreset(
-          id: 'ground-preset',
-          name: 'Ground',
-          usage: SmartTileUsage.terrain,
+          id: usage == SmartTileUsage.path ? 'road-preset' : 'ground-preset',
+          name: usage == SmartTileUsage.path ? 'Road' : 'Ground',
+          usage: usage,
           topology: SmartTileTopology.uniform,
           templateHint: SmartTileTemplateHint.simple,
           status: SmartTilePresetStatus.published,

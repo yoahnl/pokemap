@@ -1144,6 +1144,13 @@ coordonnées, tandis qu’une sélection géométrique peut couvrir toute l’é
 la map. Leur projection reste déterministe et conserve une seule
 transaction/annulation pour tout le geste.
 
+Sur une carte 3D, peindre un matériau dans une couche de sol (`usage: terrain`)
+remplace ce qui le cacherait sur les cellules peintes : les cellules des couches
+de sol placées au-dessus et celles de toutes les couches `path` (chemins, eau,
+rives, plages, hautes herbes) sont effacées, sauf celles qu'un modèle Smart Tile
+remplace. Effacer, peindre un chemin ou peindre une carte 2D ne touche que la
+couche visée. Le geste reste une seule transaction et une seule annulation.
+
 `smart_tile.cell.paint_batch` reçoit `{mapId, layerId, strokes}`, avec chaque
 stroke au format `{materialId, cells: [{x, y}]}`. Le lot porte sur une seule
 couche et accepte de 1 à 4 096 strokes, pour un total de 65 536 coordonnées

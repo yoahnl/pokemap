@@ -645,15 +645,24 @@ MapData applySmartTileMapMaterialGesture(
     return next;
   }
   final index = map.layers.indexWhere((candidate) => candidate.id == layer.id);
-  final higherLayers = mapPaintsFirstLayerInFront(map)
-      ? map.layers.take(index)
-      : map.layers.skip(index + 1);
+  final higherLayerIds = {
+    for (final higher
+        in mapPaintsFirstLayerInFront(map)
+            ? map.layers.take(index)
+            : map.layers.skip(index + 1))
+      higher.id,
+  };
   final replacements = resolveSpatialSmartTileModelProjection(
     map: map,
     catalog: catalog,
   ).groundReplacements;
-  for (final other in higherLayers.whereType<SmartTileLayer>()) {
-    if (other.usage != SmartTileUsage.terrain) continue;
+  for (final other in map.layers.whereType<SmartTileLayer>()) {
+    final covering = switch (other.usage) {
+      SmartTileUsage.path => true,
+      SmartTileUsage.terrain => higherLayerIds.contains(other.id),
+      SmartTileUsage.forestSurface => false,
+    };
+    if (!covering) continue;
     final protectedCells = replacements[other.id];
     final replaceableCells = protectedCells == null
         ? positions
