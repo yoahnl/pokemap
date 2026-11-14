@@ -11,7 +11,7 @@ import 'catalog_narrative_title_rows.dart';
 import 'catalog_narrative_usage_maintenance.dart';
 
 typedef CatalogNarrativeFacets = Iterable<(String, Map<String, Object?>)>
-    Function(CatalogNarrativeOwnerReferences references);
+    Function(CatalogNarrativeOwnerReferences references, int version);
 
 sealed class CatalogNarrativeUsageRead {
   const CatalogNarrativeUsageRead();
@@ -29,10 +29,12 @@ final class CatalogNarrativeUsagesPreparationRequired
 }
 
 final class CatalogNarrativeUsageIndex implements CatalogDerivableIndex {
-  const CatalogNarrativeUsageIndex(this.name, this.buckets, this.facets);
+  const CatalogNarrativeUsageIndex(
+      this.name, this.buckets, this.version, this.facets);
 
   final String name;
   final int buckets;
+  final int version;
   final CatalogNarrativeFacets facets;
 
   @override
@@ -57,10 +59,20 @@ final class CatalogNarrativeUsageIndex implements CatalogDerivableIndex {
 
   @override
   List<CatalogDefinitionUnit> initialize(
-      Iterable<CatalogDefinitionUnit> units) {
+          Iterable<CatalogDefinitionUnit> units) =>
+      _rows(
+          units,
+          storedVersion([
+                for (final unit in units)
+                  if (unit.key == marker) unit
+              ].firstOrNull) ??
+              version);
+
+  List<CatalogDefinitionUnit> _rows(
+      Iterable<CatalogDefinitionUnit> units, int version) {
     final entries = [for (var i = 0; i < buckets; i++) <String, Set<String>>{}];
     void add(CatalogNarrativeOwnerReferences references) {
-      for (final (facet, entry) in facets(references)) {
+      for (final (facet, entry) in facets(references, version)) {
         entries[bucketOf(facet)]
             .putIfAbsent(facet, () => {})
             .add(canonicalAuthoringJson(entry));
@@ -82,8 +94,8 @@ final class CatalogNarrativeUsageIndex implements CatalogDerivableIndex {
           NarrativeEventRecord.fromJson(record)));
     }
     return [
-      markerUnit(),
-      for (var i = 0; i < buckets; i++) bucketUnit(i, entries[i]),
+      markerUnit(version: version),
+      for (var i = 0; i < buckets; i++) bucketUnit(i, entries[i], version),
     ];
   }
 
@@ -100,6 +112,7 @@ final class CatalogNarrativeUsageIndex implements CatalogDerivableIndex {
       }
     }
     units.addAll(await CatalogNarrativeEventDocuments.registryUnits(lookup));
+    if (await lookup(marker) case final state?) units.add(state);
     return units;
   }
 
@@ -126,8 +139,8 @@ final class CatalogNarrativeUsageIndex implements CatalogDerivableIndex {
       return const CatalogNarrativeUsagesPreparationRequired('stale');
     }
     final bucket = bucketOf(facet);
-    final entries =
-        bucketEntries(await snapshot.lookup(bucketKey(bucket)), bucket);
+    final entries = bucketEntries(
+        await snapshot.lookup(bucketKey(bucket)), bucket, version);
     if (entries == null) {
       throw const FormatException('catalog.narrative_usages.bucket_invalid');
     }
@@ -146,7 +159,7 @@ final class CatalogNarrativeUsageIndex implements CatalogDerivableIndex {
       );
     }
     final upserts = <CatalogDefinitionUnit>[];
-    for (final row in initialize(await sources(snapshot.lookup))) {
+    for (final row in _rows(await sources(snapshot.lookup), version)) {
       final existing = await snapshot.lookup(row.key);
       if (existing == null ||
           canonicalAuthoringJson(existing.toJson()) !=
@@ -158,24 +171,33 @@ final class CatalogNarrativeUsageIndex implements CatalogDerivableIndex {
   }
 
   bool ready(CatalogDefinitionUnit state) =>
-      state.key == marker &&
-      state.payload['schemaVersion'] == 1 &&
-      state.payload['buckets'] == buckets &&
-      state.payload['stale'] != true;
+      storedVersion(state) == version && state.payload['stale'] != true;
 
-  CatalogDefinitionUnit markerUnit({bool stale = false}) =>
+  int? storedVersion(CatalogDefinitionUnit? state) {
+    final stored = state?.payload['schemaVersion'];
+    return state?.key == marker &&
+            stored is int &&
+            stored >= 1 &&
+            stored <= version &&
+            state!.payload['buckets'] == buckets
+        ? stored
+        : null;
+  }
+
+  CatalogDefinitionUnit markerUnit(
+          {bool stale = false, required int version}) =>
       CatalogDefinitionUnit(key: marker, payload: {
         'id': marker.id,
-        'schemaVersion': 1,
+        'schemaVersion': version,
         'buckets': buckets,
         if (stale) 'stale': true,
       });
 
   CatalogDefinitionUnit bucketUnit(
-          int bucket, Map<String, Set<String>> entries) =>
+          int bucket, Map<String, Set<String>> entries, int version) =>
       CatalogDefinitionUnit(key: bucketKey(bucket), payload: {
         'id': bucketKey(bucket).id,
-        'schemaVersion': 1,
+        'schemaVersion': version,
         'bucket': bucket,
         'entries': {
           for (final facet in entries.keys.toList()..sort())
@@ -188,11 +210,11 @@ final class CatalogNarrativeUsageIndex implements CatalogDerivableIndex {
       });
 
   Map<String, Set<String>>? bucketEntries(
-      CatalogDefinitionUnit? unit, int bucket) {
+      CatalogDefinitionUnit? unit, int bucket, int version) {
     final payload = unit?.payload;
     final entries = payload?['entries'];
     if (payload == null ||
-        payload['schemaVersion'] != 1 ||
+        payload['schemaVersion'] != version ||
         payload['bucket'] != bucket ||
         entries is! Map) {
       return null;

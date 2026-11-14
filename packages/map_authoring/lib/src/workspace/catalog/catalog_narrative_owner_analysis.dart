@@ -22,8 +22,9 @@ abstract final class CatalogNarrativeOwnerAnalysis {
     RegExp(r'\.consequence\.factId$'),
     RegExp(r'\.consequence\.factIds\[\d+\]$'),
     RegExp(r'\.interactiveCommand\.factId$'),
-    RegExp(r'\.effects\[\d+\]\.targetId$'),
   ];
+
+  static final _unexecutedEffect = RegExp(r'\.effects\[\d+\]\.targetId$');
 
   static CatalogNarrativeOwnerReferences ofDefinition(
       String field, Map definition) {
@@ -56,7 +57,11 @@ abstract final class CatalogNarrativeOwnerAnalysis {
   }
 
   static String role(String path) =>
-      _writes.any((pattern) => pattern.hasMatch(path)) ? 'write' : 'read';
+      _writes.any((pattern) => pattern.hasMatch(path))
+          ? 'write'
+          : _unexecutedEffect.hasMatch(path)
+              ? 'cite'
+              : 'read';
 
   static CatalogNarrativeOwnerReferences _analyse(
       CatalogNarrativeOwner owner, ProjectManifest project) {

@@ -50,6 +50,47 @@ void main() {
     });
   });
 
+  test('an unexecuted outcome effect cannot reset a completion fact', () {
+    final project = _project();
+    final storyline = project.storylines.single;
+    final withEffect = project.copyWith(
+      storylines: [
+        storyline.copyWith(
+          sceneLinks: [
+            StorylineSceneLink(
+              id: 'link_arrive',
+              chapterId: 'act_1',
+              stepId: 'arrive',
+              label: 'Arrive',
+              state: StorylineSceneLinkState.placeholder,
+              role: StorylineSceneLinkRole.primary,
+              order: 0,
+              outcomeLinks: [
+                StorylineSceneOutcomeLink(
+                  id: 'reset_arrive',
+                  outcomeId: 'done',
+                  effects: [
+                    StorylineEffect(
+                      type: StorylineEffectType.emitFact,
+                      targetId: 'fact_arrive',
+                      value: 'false',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    final arrive = projectStorylineOutline(
+      withEffect,
+    ).storylines.single.chapters.first.milestones.first;
+
+    expect(arrive.id, 'arrive');
+    expect(arrive.issues, isEmpty);
+  });
+
   test('scenes attached to no milestone are outside the storyline', () {
     final fromProject = projectStorylineOutline(_project());
     final fromTitles = projectStorylineOutline(

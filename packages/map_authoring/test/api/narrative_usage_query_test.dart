@@ -62,7 +62,7 @@ void main() {
       expect(page.totalAvailable, 2);
       expect(page.items.first['factId'], 'fact_fact_3');
       expect(page.items.first['users'], [
-        {'id': 'main', 'kind': 'storyline', 'role': 'write'},
+        {'id': 'main', 'kind': 'storyline', 'role': 'cite'},
         {'id': 'world_rule_tree', 'kind': 'worldRule', 'role': 'read'},
       ]);
       expect(page.items.last['users'], isEmpty);

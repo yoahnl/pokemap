@@ -54,7 +54,7 @@ test("narrative usages prepare explicitly and answer through live MCP", { timeou
     assert.deepEqual(await readFile(join(root, "catalog/HEAD.json")), head);
     const before = (await call("pokemap_query", facts)).items as JsonRecord[];
     assert.deepEqual(before.map(item => item.users), [[], [
-      { id: "main", kind: "storyline", role: "write" },
+      { id: "main", kind: "storyline", role: "cite" },
       { id: "world_rule_tree", kind: "worldRule", role: "read" },
     ]]);
     assert.ok((record(before[0]?.coverage).notCovered as string[]).includes("maps"));
@@ -71,7 +71,7 @@ test("narrative usages prepare explicitly and answer through live MCP", { timeou
     const after = (await call("pokemap_query", facts)).items as JsonRecord[];
     assert.deepEqual(after.map(item => item.users), [
       [{ id: "world_rule_tree", kind: "worldRule", role: "read" }],
-      [{ id: "main", kind: "storyline", role: "write" }],
+      [{ id: "main", kind: "storyline", role: "cite" }],
     ]);
     const owners = await call("pokemap_query", { projectHandle: opened.projectHandle, resourceKind: "narrativeMapElementOwners",
       operation: "batch_get", filters: { mapId: "town" }, ids: ["tree", "well"] });

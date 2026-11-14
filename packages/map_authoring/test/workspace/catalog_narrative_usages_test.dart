@@ -65,7 +65,7 @@ void main() {
         ['event:$event1:read', 'event:$event2:read', 'scene:gate:write']);
     expect(await _facts(snapshot, 'fact_fact_2'), isEmpty);
     expect(await _facts(snapshot, 'fact_fact_3'),
-        ['storyline:main:write', 'worldRule:world_rule_tree:read']);
+        ['storyline:main:cite', 'worldRule:world_rule_tree:read']);
     expect(await _facts(snapshot, 'unknown'), isEmpty);
     expect(await _owners(snapshot, 'town', 'npc'),
         ['cinematic:arrival:entity', 'event:$event1:entity']);
@@ -100,7 +100,7 @@ void main() {
     expect(await _facts(scene, 'fact_fact_0'), ['storyline:main:read']);
     expect(await _facts(scene, 'fact_fact_3'), [
       'scene:gate:read',
-      'storyline:main:write',
+      'storyline:main:cite',
       'worldRule:world_rule_tree:read'
     ]);
 

@@ -39,7 +39,8 @@ abstract final class CatalogNarrativeUsageMaintenance {
     }
     if (definitions.isEmpty && records.isEmpty) return none;
     final state = await lookup(index.marker);
-    if (state == null || !index.ready(state)) return none;
+    final version = index.storedVersion(state);
+    if (version == null || state!.payload['stale'] == true) return none;
     final pending = {for (final unit in upserts) unit.key: unit};
     Future<CatalogDefinitionUnit?> after(CatalogDefinitionKey key) async =>
         pending[key] ?? await lookup(key);
@@ -84,7 +85,7 @@ abstract final class CatalogNarrativeUsageMaintenance {
     final added = <int, Map<String, Set<String>>>{};
     Set<(String, String)> facetsOf(CatalogNarrativeOwnerReferences? images) => {
           if (images != null)
-            for (final (facet, entry) in index.facets(images))
+            for (final (facet, entry) in index.facets(images, version))
               (facet, canonicalAuthoringJson(entry)),
         };
     for (final owner in {...before.keys, ...next.keys}) {
@@ -103,30 +104,32 @@ abstract final class CatalogNarrativeUsageMaintenance {
       }
     }
     for (final bucket in {...removed.keys, ...added.keys}) {
-      final entries =
-          index.bucketEntries(await lookup(index.bucketKey(bucket)), bucket);
-      if (entries == null) return _stale(index);
+      final entries = index.bucketEntries(
+          await lookup(index.bucketKey(bucket)), bucket, version);
+      if (entries == null) return _stale(index, version);
       for (final MapEntry(key: facet, value: values)
           in (removed[bucket] ?? const <String, Set<String>>{}).entries) {
         final current = entries[facet];
         if (current == null || !current.containsAll(values)) {
-          return _stale(index);
+          return _stale(index, version);
         }
         current.removeAll(values);
       }
       for (final MapEntry(key: facet, value: values)
           in (added[bucket] ?? const <String, Set<String>>{}).entries) {
         final current = entries.putIfAbsent(facet, () => {});
-        if (values.any(current.contains)) return _stale(index);
+        if (values.any(current.contains)) return _stale(index, version);
         current.addAll(values);
       }
-      none.upserts.add(index.bucketUnit(bucket, entries));
+      none.upserts.add(index.bucketUnit(bucket, entries, version));
     }
     return none;
   }
 
-  static CatalogDerivedPatch _stale(CatalogNarrativeUsageIndex index) => (
-        upserts: [index.markerUnit(stale: true)],
+  static CatalogDerivedPatch _stale(
+          CatalogNarrativeUsageIndex index, int version) =>
+      (
+        upserts: [index.markerUnit(stale: true, version: version)],
         removals: <CatalogDefinitionKey>[]
       );
 }

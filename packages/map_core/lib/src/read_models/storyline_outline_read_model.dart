@@ -172,15 +172,6 @@ Set<String> _factsWrittenFalse(ProjectManifest project) => {
           when narrativeValue.kind == NarrativeValueKind.boolean &&
               !narrativeValue.boolValue)
         factId,
-  for (final storyline in project.storylines)
-    for (final link in storyline.sceneLinks)
-      for (final outcome in link.outcomeLinks)
-        for (final effect in outcome.effects)
-          if (effect.type == StorylineEffectType.emitFact &&
-              (effect.value?.trim().toLowerCase() == 'false' ||
-                  effect.factValue?.kind == NarrativeValueKind.boolean &&
-                      effect.factValue?.boolValue == false))
-            effect.targetId,
 };
 
 Map<String, Set<String>> _sceneMapIds(ProjectManifest project) {

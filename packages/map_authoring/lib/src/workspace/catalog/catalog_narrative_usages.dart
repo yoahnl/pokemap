@@ -16,10 +16,10 @@ abstract final class CatalogNarrativeUsages {
   static const preparationScope = 'narrativeUsages';
 
   static const factUsers =
-      CatalogNarrativeUsageIndex('narrativeFactUsers', 64, _factFacets);
+      CatalogNarrativeUsageIndex('narrativeFactUsers', 64, 2, _factFacets);
 
   static const mapElementOwners = CatalogNarrativeUsageIndex(
-      'narrativeMapElementOwners', 128, _mapElementFacets);
+      'narrativeMapElementOwners', 128, 1, _mapElementFacets);
 
   static const indexes = [factUsers, mapElementOwners];
 
@@ -27,7 +27,7 @@ abstract final class CatalogNarrativeUsages {
     'owners': ['scene', 'worldRule', 'storyline', 'cinematic', 'event'],
     'analysis': 'mapCoreNarrativeDependencyIndexPerDocument',
     'factRole':
-        'write for Scene consequence Fact targets, Scene input-to-Fact commands and storyline emitFact effects; read otherwise',
+        'write for Scene consequence Fact targets and Scene input-to-Fact commands; cite for storyline scene-link outcome effects, which neither map_runtime nor map_story executes; read otherwise',
     'notCovered': [
       'maps',
       'mapAppearanceVariants',
@@ -65,7 +65,7 @@ abstract final class CatalogNarrativeUsages {
   }
 
   static Iterable<(String, Map<String, Object?>)> _factFacets(
-          CatalogNarrativeOwnerReferences references) =>
+          CatalogNarrativeOwnerReferences references, int version) =>
       [
         for (final fact in references.facts)
           (
@@ -73,13 +73,13 @@ abstract final class CatalogNarrativeUsages {
             {
               'kind': references.owner.kind,
               'id': references.owner.id,
-              'role': fact.role
+              'role': version < 2 && fact.role == 'cite' ? 'write' : fact.role
             }
           ),
       ];
 
   static Iterable<(String, Map<String, Object?>)> _mapElementFacets(
-          CatalogNarrativeOwnerReferences references) =>
+          CatalogNarrativeOwnerReferences references, int version) =>
       [
         for (final element in references.mapElements)
           (
