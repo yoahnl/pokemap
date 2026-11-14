@@ -31,9 +31,9 @@ class MapBuilderSlopeInspector extends StatelessWidget {
         color: theme.colorScheme.onSurfaceVariant,
       ),
     );
-    return ListView(
+    return Column(
       key: const ValueKey('map-slope-inspector'),
-      padding: const EdgeInsets.all(StudioSpacing.l),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (!stair)
           StudioSection(title: l10n.slopeHelpTitle, children: [help])
@@ -61,7 +61,6 @@ class MapBuilderSlopeInspector extends StatelessWidget {
                       model.levels,
                     ),
                     selected: model.model.id == state.stairModelId,
-                    dense: true,
                     onTap: () => onModel(model),
                   ),
             ],
@@ -79,7 +78,11 @@ class MapBuilderSlopeInspector extends StatelessWidget {
   MapSlopeOutcome? outcome,
 ) {
   final problem = outcome?.problem;
-  if (problem == null) return null;
+  if (problem == null) {
+    return outcome?.mound == true
+        ? (message: l10n.slopeNoticeMound, isError: false)
+        : null;
+  }
   return (
     message: switch (problem) {
       MapSlopeProblem.busy => l10n.slopeProblemBusy,

@@ -170,15 +170,6 @@ class MapBuilderCanvas extends StatelessWidget {
               padding: const EdgeInsets.all(StudioSpacing.l),
               child: StudioNotice(error, isError: true),
             )
-          else if (reliefNotice case final notice?)
-            Padding(
-              padding: const EdgeInsets.all(StudioSpacing.l),
-              child: StudioNotice(
-                notice.message,
-                key: const ValueKey('map-relief-notice'),
-                isError: notice.isError,
-              ),
-            )
           else if (warning != null)
             Padding(
               padding: const EdgeInsets.all(StudioSpacing.l),
@@ -198,7 +189,26 @@ class MapBuilderCanvas extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       ?reliefPalette,
-                      Expanded(child: ClipRect(child: surface)),
+                      Expanded(
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            ClipRect(child: surface),
+                            if (reliefNotice case final notice?
+                                when error == null)
+                              Positioned(
+                                left: StudioSpacing.l,
+                                top: StudioSpacing.l,
+                                right: StudioSpacing.l,
+                                child: StudioNotice(
+                                  notice.message,
+                                  key: const ValueKey('map-relief-notice'),
+                                  isError: notice.isError,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
           ),

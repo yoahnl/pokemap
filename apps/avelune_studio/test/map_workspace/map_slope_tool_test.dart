@@ -57,6 +57,7 @@ void main() {
     );
     expect(outcome.problem, isNull);
     expect(outcome.cutCliffs, 1);
+    expect(outcome.mound, isFalse);
     expect(state.outcome, same(outcome));
     final scene = document.current.spatialScene!;
     expect(scene.terrainSurfaces.surfaces.last.closedFlanks, isTrue);
@@ -64,6 +65,24 @@ void main() {
     expect(document.undoCount, 1);
     document.restore(redo: false);
     expect(document.current, map);
+  });
+
+  test('a slope on flat ground becomes a mound and says so', () {
+    final map = reliefToolMap();
+    final document = reliefDocument(map);
+    final outcome = MapSlopeCommands(document, project).paintSlope(
+      map,
+      const GridPos(x: 3, y: 8),
+      const GridPos(x: 3, y: 5),
+      MapSlopeToolState(),
+    );
+    expect(outcome.problem, isNull);
+    expect(outcome.mound, isTrue);
+    expect(document.undoCount, 1);
+    expect(
+      document.current.spatialScene!.worldHeightAt(3.5, 5.001),
+      closeTo(2, 1e-3),
+    );
   });
 
   test('a stair click needs a chosen model, then snaps and undoes', () {

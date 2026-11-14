@@ -74,20 +74,24 @@ extension _SpatialReliefEditing on _SpatialMapEditingViewportState {
     }
     if (tool != StudioMapTool.relief) return const [];
     final stroke = reliefPaint;
-    final scene = editingDocument.current.spatialScene!;
-    final height =
-        stroke?.targetHeight ?? widget.view.relief.level * scene.levelHeight;
-    final cells =
-        stroke?.contour.map((cell) => (cell.x, cell.y)) ??
-        [if (hover != null) hover!.cell];
+    final pointer = hover;
     return [
-      for (final cell in cells)
+      if (stroke != null)
+        for (final cell in stroke.contour)
+          SpatialCellOverlay(
+            id: 'relief:${cell.x}:${cell.y}',
+            cell: (cell.x, cell.y),
+            kind: SpatialCellOverlayKind.preview,
+            color: colors.primary,
+            targetHeight: stroke.targetHeight,
+          ),
+      if (pointer != null)
         SpatialCellOverlay(
-          id: 'relief:${cell.$1}:${cell.$2}',
-          cell: cell,
+          id: 'relief-cursor',
+          cell: pointer.cell,
           kind: SpatialCellOverlayKind.preview,
-          color: colors.primary,
-          targetHeight: height,
+          color: stroke == null ? colors.primary : colors.outline,
+          targetHeight: pointer.position.y,
         ),
     ];
   }

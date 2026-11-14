@@ -3512,4 +3512,42 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get slopeProblemUnknown =>
       'Impossible de poser cette pente. La carte reste inchangée.';
+
+  @override
+  String get slopeNoticeMound =>
+      'Pente posée sur un sol plat : elle forme une butte sans plateau au sommet. Peignez un relief au niveau supérieur derrière elle pour y accéder.';
+
+  @override
+  String reliefProblemProfileRefused(String style, String reason) {
+    return '« $style » ne se raccorde pas à ce dénivelé : $reason Choisissez un autre style dans Propriétés.';
+  }
+
+  @override
+  String get reliefReasonFaceBase =>
+      'le pied de ses pièces reste au-dessus du sol bas (style trop court pour un niveau).';
+
+  @override
+  String get reliefReasonFaceCrown =>
+      'le haut de ses pièces ne rejoint pas le sol haut.';
+
+  @override
+  String get reliefReasonFaceSide =>
+      'ses parois sont posées du côté haut au lieu du côté bas.';
+
+  @override
+  String get reliefReasonModelMissing =>
+      'une de ses pièces 3D est introuvable dans le projet.';
+
+  @override
+  String get reliefReasonGroundSurface =>
+      'le sol que ses pièces doivent peindre est introuvable ou n’est pas autorisé.';
+
+  @override
+  String get reliefReasonPieces =>
+      'il lui manque une pièce pour ce contour (extrémité, angle ou suite de pièces).';
+
+  @override
+  String reliefReasonOther(String code) {
+    return 'le tracé est refusé ($code).';
+  }
 }

@@ -22,9 +22,9 @@ class MapBuilderReliefInspector extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = context.l10n;
     final failure = state.loadFailure;
-    return ListView(
+    return Column(
       key: const ValueKey('map-relief-inspector'),
-      padding: const EdgeInsets.all(StudioSpacing.l),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StudioSection(
           title: l10n.reliefStyleTitle,
@@ -47,7 +47,6 @@ class MapBuilderReliefInspector extends StatelessWidget {
                       ? l10n.reliefStyleOneLevel
                       : l10n.reliefStyleTwoLevels,
                   selected: profile.id == state.profileId,
-                  dense: true,
                   onTap: () => onProfile(profile),
                 ),
           ],
@@ -70,7 +69,7 @@ class MapBuilderReliefInspector extends StatelessWidget {
 ) {
   final problem = outcome?.problem;
   if (problem != null) {
-    return (message: _problem(l10n, problem), isError: true);
+    return (message: _problem(l10n, problem, outcome!), isError: true);
   }
   final warnings = outcome?.warnings ?? const {};
   if (warnings.isEmpty) return null;
@@ -88,7 +87,14 @@ class MapBuilderReliefInspector extends StatelessWidget {
 String _problem(
   AppLocalizations l10n,
   MapReliefProblem problem,
+  MapReliefOutcome outcome,
 ) => switch (problem) {
+  MapReliefProblem.profileIncompatible
+      when outcome.diagnostics.isNotEmpty && outcome.profileName != null =>
+    l10n.reliefProblemProfileRefused(
+      outcome.profileName!,
+      _reason(l10n, outcome.diagnostics),
+    ),
   MapReliefProblem.noProfile => l10n.reliefProblemNoProfile,
   MapReliefProblem.profileUnavailable => l10n.reliefProblemProfileUnavailable,
   MapReliefProblem.profileLeftHanded => l10n.reliefProblemLeftHanded,
@@ -106,3 +112,36 @@ String _problem(
   MapReliefProblem.busy => l10n.reliefProblemBusy,
   MapReliefProblem.unknown => l10n.reliefProblemUnknown,
 };
+
+String _reason(AppLocalizations l10n, List<String> codes) {
+  bool any(Iterable<String> wanted) => codes.any(wanted.contains);
+  if (any(const ['border.spatial.face_base_mismatch'])) {
+    return l10n.reliefReasonFaceBase;
+  }
+  if (any(const ['border.spatial.face_crown_mismatch'])) {
+    return l10n.reliefReasonFaceCrown;
+  }
+  if (any(const [
+    'border.spatial.face_on_land_side',
+    'border.spatial.face_mass_on_land_side',
+  ])) {
+    return l10n.reliefReasonFaceSide;
+  }
+  if (any(const ['border.spatial.source_model_missing'])) {
+    return l10n.reliefReasonModelMissing;
+  }
+  if (codes.any((code) => code.startsWith('border.spatial.ground_surface_'))) {
+    return l10n.reliefReasonGroundSurface;
+  }
+  if (any(const [
+    'border.spatial.required_roles_missing',
+    'border.spatial.corner_turn_missing',
+    'border.spatial.orientation_missing',
+    'border.spatial.sequence_phase_missing',
+    'border.spatial.sequence_orientation_missing',
+    'border.spatial.sequence_corner_missing',
+  ])) {
+    return l10n.reliefReasonPieces;
+  }
+  return l10n.reliefReasonOther(codes.first);
+}

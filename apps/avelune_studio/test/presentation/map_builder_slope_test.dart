@@ -128,6 +128,15 @@ void main() {
         expect(notice?.message, isNot(contains('spatial.')));
       }
       expect(mapBuilderSlopeNotice(l10n, const MapSlopeOutcome()), isNull);
+      final mound = mapBuilderSlopeNotice(
+        l10n,
+        const MapSlopeOutcome(mound: true),
+      );
+      expect(mound?.isError, isFalse);
+      expect(
+        mound?.message,
+        locale.languageCode == 'fr' ? contains('sol plat') : contains('flat'),
+      );
     }
   });
 }

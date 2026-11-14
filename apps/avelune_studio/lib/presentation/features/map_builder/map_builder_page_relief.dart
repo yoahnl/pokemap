@@ -30,8 +30,9 @@ extension _MapBuilderPageRelief on _MapBuilderPageState {
     final chosen = profiles
         .where((profile) => profile.id == relief.profileId)
         .firstOrNull;
-    if (chosen == null && profiles.isNotEmpty) {
-      await _chooseRelief(view, profiles.first);
+    final fallback = mapReliefDefaultProfile(profiles);
+    if (chosen == null && fallback != null) {
+      await _chooseRelief(view, fallback);
     }
     _changed();
   }

@@ -46,7 +46,11 @@ final class MapReliefCommands {
         twoLevelBlueprintId: profile.twoLevelId,
       );
     } on ValidationException catch (failure) {
-      return MapReliefOutcome(problem: mapReliefProblem(failure));
+      return MapReliefOutcome(
+        problem: mapReliefProblem(failure),
+        diagnostics: mapReliefDiagnostics(failure),
+        profileName: profile.name,
+      );
     }
     if (painted.map == document.current) return const MapReliefOutcome();
     document.commit(painted.map);

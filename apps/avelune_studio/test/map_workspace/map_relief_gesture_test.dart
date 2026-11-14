@@ -5,6 +5,7 @@ import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import '../support/map_workspace_fixture.dart';
@@ -49,6 +50,19 @@ void main() {
     Iterable<SpatialCellOverlay> previews() =>
         canvas().cellOverlays.where((item) => item.id.startsWith('relief:'));
 
+    Iterable<SpatialCellOverlay> cursor() =>
+        canvas().cellOverlays.where((item) => item.id == 'relief-cursor');
+    canvas().onHover!(
+      SpatialSurfaceHit(
+        cell: (3, 2),
+        position: Model3dVector3(x: 3.5, y: 1, z: 2.5),
+      ),
+    );
+    await tester.pump();
+    expect(previews(), isEmpty);
+    expect(cursor().single.cell, (3, 2));
+    expect(cursor().single.targetHeight, 1);
+
     await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
     expect(canvas().onDragStart!(3, 2, null), isTrue);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
@@ -56,6 +70,7 @@ void main() {
     await tester.pump();
     expect(previews().map((item) => item.cell).toSet(), hasLength(12));
     expect(previews().every((item) => item.targetHeight == 2), isTrue);
+    expect(cursor().single.targetHeight, 1);
     expect(document.current, same(map));
     expect(canvas().scene.worldHeightAt(4.5, 3.5), 1);
 

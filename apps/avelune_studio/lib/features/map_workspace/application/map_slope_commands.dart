@@ -54,9 +54,31 @@ final class MapSlopeCommands {
     } on ValidationException catch (failure) {
       return MapSlopeOutcome(problem: mapSlopeProblem(failure));
     }
+    final before = document.current;
     document.commit(result.map);
-    return MapSlopeOutcome(cutCliffs: result.traces.length);
+    return MapSlopeOutcome(
+      cutCliffs: result.traces.length,
+      mound: _withoutPlateau(before, result.plan),
+    );
   }
+}
+
+bool _withoutPlateau(MapData map, TerrainSlopePlan plan) {
+  final scene = map.spatialScene!;
+  return plan.highSide
+      .where(
+        (cell) =>
+            cell.x >= 0 &&
+            cell.y >= 0 &&
+            cell.x < scene.width &&
+            cell.y < scene.depth,
+      )
+      .every(
+        (cell) =>
+            (scene.worldHeightAt(cell.x + .5, cell.y + .5) - plan.upperHeight)
+                .abs() >
+            1e-6,
+      );
 }
 
 TerrainSlopePlan? mapSlopePreview(MapData map, GridPos from, GridPos to) {

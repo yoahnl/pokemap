@@ -1027,5 +1027,14 @@
   "slopeProblemSurfaceLimit": "The map has reached its terrain surface limit.",
   "slopeProblemCliffRefused": "The nearby cliff cannot be cut cleanly here.",
   "slopeProblemBusy": "The map changed during the gesture. Try again.",
-  "slopeProblemUnknown": "This slope cannot be placed. The map is unchanged."
+  "slopeProblemUnknown": "This slope cannot be placed. The map is unchanged.",
+  "slopeNoticeMound": "Slope placed on flat ground: it forms a mound with no plateau at the top. Paint a relief at the upper level behind it to reach it.",
+  "reliefProblemProfileRefused": "“{style}” does not join this height difference: {reason} Choose another style in Properties.",
+  "reliefReasonFaceBase": "the foot of its pieces stays above the lower ground (the style is too short for one level).",
+  "reliefReasonFaceCrown": "the top of its pieces does not reach the upper ground.",
+  "reliefReasonFaceSide": "its walls stand on the high side instead of the low side.",
+  "reliefReasonModelMissing": "one of its 3D pieces is missing from the project.",
+  "reliefReasonGroundSurface": "the ground its pieces paint is missing or not allowed.",
+  "reliefReasonPieces": "it lacks a piece for this contour (end, corner or piece sequence).",
+  "reliefReasonOther": "the trace is refused ({code})."
 }

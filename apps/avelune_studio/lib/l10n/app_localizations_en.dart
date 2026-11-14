@@ -3489,4 +3489,42 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get slopeProblemUnknown =>
       'This slope cannot be placed. The map is unchanged.';
+
+  @override
+  String get slopeNoticeMound =>
+      'Slope placed on flat ground: it forms a mound with no plateau at the top. Paint a relief at the upper level behind it to reach it.';
+
+  @override
+  String reliefProblemProfileRefused(String style, String reason) {
+    return '“$style” does not join this height difference: $reason Choose another style in Properties.';
+  }
+
+  @override
+  String get reliefReasonFaceBase =>
+      'the foot of its pieces stays above the lower ground (the style is too short for one level).';
+
+  @override
+  String get reliefReasonFaceCrown =>
+      'the top of its pieces does not reach the upper ground.';
+
+  @override
+  String get reliefReasonFaceSide =>
+      'its walls stand on the high side instead of the low side.';
+
+  @override
+  String get reliefReasonModelMissing =>
+      'one of its 3D pieces is missing from the project.';
+
+  @override
+  String get reliefReasonGroundSurface =>
+      'the ground its pieces paint is missing or not allowed.';
+
+  @override
+  String get reliefReasonPieces =>
+      'it lacks a piece for this contour (end, corner or piece sequence).';
+
+  @override
+  String reliefReasonOther(String code) {
+    return 'the trace is refused ($code).';
+  }
 }

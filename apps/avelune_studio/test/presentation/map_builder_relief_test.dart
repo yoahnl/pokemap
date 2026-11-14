@@ -139,6 +139,30 @@ void main() {
       expect(notice?.isError, isTrue);
       expect(notice?.message, isNot(contains('spatial.')));
     }
+    expect(
+      mapBuilderReliefNotice(
+        l10n,
+        const MapReliefOutcome(
+          problem: MapReliefProblem.profileIncompatible,
+          diagnostics: ['border.spatial.face_base_mismatch'],
+          profileName: 'Berge de Johto — angles courts',
+        ),
+      )?.message,
+      '« Berge de Johto — angles courts » ne se raccorde pas à ce dénivelé : '
+      'le pied de ses pièces reste au-dessus du sol bas (style trop court '
+      'pour un niveau). Choisissez un autre style dans Propriétés.',
+    );
+    expect(
+      mapBuilderReliefNotice(
+        l10n,
+        const MapReliefOutcome(
+          problem: MapReliefProblem.profileIncompatible,
+          diagnostics: ['border.spatial.instance_limit'],
+          profileName: 'Roche',
+        ),
+      )?.message,
+      contains('(border.spatial.instance_limit)'),
+    );
     await _pump(
       tester,
       const Locale('fr'),

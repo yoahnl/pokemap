@@ -1969,5 +1969,31 @@
   "slopeProblemSurfaceLimit": "La carte a atteint sa limite de surfaces de terrain.",
   "slopeProblemCliffRefused": "La falaise voisine ne peut pas être coupée proprement ici.",
   "slopeProblemBusy": "La carte a changé pendant le geste. Recommencez.",
-  "slopeProblemUnknown": "Impossible de poser cette pente. La carte reste inchangée."
+  "slopeProblemUnknown": "Impossible de poser cette pente. La carte reste inchangée.",
+  "slopeNoticeMound": "Pente posée sur un sol plat : elle forme une butte sans plateau au sommet. Peignez un relief au niveau supérieur derrière elle pour y accéder.",
+  "reliefProblemProfileRefused": "« {style} » ne se raccorde pas à ce dénivelé : {reason} Choisissez un autre style dans Propriétés.",
+  "@reliefProblemProfileRefused": {
+    "placeholders": {
+      "style": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "reliefReasonFaceBase": "le pied de ses pièces reste au-dessus du sol bas (style trop court pour un niveau).",
+  "reliefReasonFaceCrown": "le haut de ses pièces ne rejoint pas le sol haut.",
+  "reliefReasonFaceSide": "ses parois sont posées du côté haut au lieu du côté bas.",
+  "reliefReasonModelMissing": "une de ses pièces 3D est introuvable dans le projet.",
+  "reliefReasonGroundSurface": "le sol que ses pièces doivent peindre est introuvable ou n’est pas autorisé.",
+  "reliefReasonPieces": "il lui manque une pièce pour ce contour (extrémité, angle ou suite de pièces).",
+  "reliefReasonOther": "le tracé est refusé ({code}).",
+  "@reliefReasonOther": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  }
 }

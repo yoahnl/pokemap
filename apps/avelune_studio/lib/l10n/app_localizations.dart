@@ -5501,6 +5501,60 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Impossible de poser cette pente. La carte reste inchangée.'**
   String get slopeProblemUnknown;
+
+  /// No description provided for @slopeNoticeMound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pente posée sur un sol plat : elle forme une butte sans plateau au sommet. Peignez un relief au niveau supérieur derrière elle pour y accéder.'**
+  String get slopeNoticeMound;
+
+  /// No description provided for @reliefProblemProfileRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'« {style} » ne se raccorde pas à ce dénivelé : {reason} Choisissez un autre style dans Propriétés.'**
+  String reliefProblemProfileRefused(String style, String reason);
+
+  /// No description provided for @reliefReasonFaceBase.
+  ///
+  /// In fr, this message translates to:
+  /// **'le pied de ses pièces reste au-dessus du sol bas (style trop court pour un niveau).'**
+  String get reliefReasonFaceBase;
+
+  /// No description provided for @reliefReasonFaceCrown.
+  ///
+  /// In fr, this message translates to:
+  /// **'le haut de ses pièces ne rejoint pas le sol haut.'**
+  String get reliefReasonFaceCrown;
+
+  /// No description provided for @reliefReasonFaceSide.
+  ///
+  /// In fr, this message translates to:
+  /// **'ses parois sont posées du côté haut au lieu du côté bas.'**
+  String get reliefReasonFaceSide;
+
+  /// No description provided for @reliefReasonModelMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'une de ses pièces 3D est introuvable dans le projet.'**
+  String get reliefReasonModelMissing;
+
+  /// No description provided for @reliefReasonGroundSurface.
+  ///
+  /// In fr, this message translates to:
+  /// **'le sol que ses pièces doivent peindre est introuvable ou n’est pas autorisé.'**
+  String get reliefReasonGroundSurface;
+
+  /// No description provided for @reliefReasonPieces.
+  ///
+  /// In fr, this message translates to:
+  /// **'il lui manque une pièce pour ce contour (extrémité, angle ou suite de pièces).'**
+  String get reliefReasonPieces;
+
+  /// No description provided for @reliefReasonOther.
+  ///
+  /// In fr, this message translates to:
+  /// **'le tracé est refusé ({code}).'**
+  String reliefReasonOther(String code);
 }
 
 class _AppLocalizationsDelegate

@@ -5,10 +5,16 @@ final class MapReliefProfile {
     required this.id,
     required this.name,
     this.twoLevelId,
+    this.classified = false,
   });
   final String id, name;
   final String? twoLevelId;
+  final bool classified;
 }
+
+MapReliefProfile? mapReliefDefaultProfile(List<MapReliefProfile> profiles) =>
+    profiles.where((profile) => profile.classified).firstOrNull ??
+    profiles.firstOrNull;
 
 enum MapReliefProblem {
   noProfile,
@@ -32,9 +38,16 @@ enum MapReliefProblem {
 enum MapReliefWarning { unreachable, exteriorDecoration }
 
 final class MapReliefOutcome {
-  const MapReliefOutcome({this.problem, this.warnings = const {}});
+  const MapReliefOutcome({
+    this.problem,
+    this.warnings = const {},
+    this.diagnostics = const [],
+    this.profileName,
+  });
   final MapReliefProblem? problem;
   final Set<MapReliefWarning> warnings;
+  final List<String> diagnostics;
+  final String? profileName;
 }
 
 final class MapReliefPalette {
@@ -112,7 +125,13 @@ final class MapReliefToolState {
   }
 }
 
-typedef _Candidate = ({String id, String name, int span, String? family});
+typedef _Candidate = ({
+  String id,
+  String name,
+  int span,
+  String? family,
+  bool classified,
+});
 
 List<MapReliefProfile> mapReliefProfiles(ProjectManifest project, MapData map) {
   final candidates = [
@@ -147,6 +166,7 @@ MapReliefProfile _profile(_Candidate one, List<_Candidate> others) =>
     MapReliefProfile(
       id: one.id,
       name: one.name,
+      classified: one.classified,
       twoLevelId: one.family == null
           ? null
           : others
@@ -168,7 +188,7 @@ _Candidate? _candidate(
       definition == null ||
       !definition.isSpatial ||
       !definition.followContourDirection ||
-      !_reliefCategory(library, record.id) ||
+      _reliefCategory(library, record.id) == false ||
       !borderTemplateUsesStrokeGeometry(definition.template) ||
       !library.availableForMap('borderBlueprint', record.id, map.id)) {
     return null;
@@ -188,13 +208,14 @@ _Candidate? _candidate(
     name: definition.name,
     span: span,
     family: library.entryFor('borderBlueprint', record.id)?.familyId,
+    classified: _reliefCategory(library, record.id) == true,
   );
 }
 
-bool _reliefCategory(ResourceLibraryCatalog library, String id) {
+bool? _reliefCategory(ResourceLibraryCatalog library, String id) {
   final entry = library.entryFor('borderBlueprint', id);
   final category = library.familyCategory(entry?.familyId) ?? entry?.category;
-  return category == null || category == ResourceUsageCategory.relief;
+  return category == null ? null : category == ResourceUsageCategory.relief;
 }
 
 MapReliefProblem mapReliefProblem(Object failure) => switch (failure) {
@@ -221,9 +242,15 @@ MapReliefProblem mapReliefProblem(Object failure) => switch (failure) {
 };
 
 MapReliefProblem _traceProblem(ValidationException failure) =>
-    (failure.details['diagnostics'] as List?)?.contains(
-          'border.spatial.corner_join_conflict',
-        ) ==
-        true
+    mapReliefDiagnostics(failure)
+        .contains('border.spatial.corner_join_conflict')
     ? MapReliefProblem.narrowCorner
     : MapReliefProblem.profileIncompatible;
+
+List<String> mapReliefDiagnostics(Object failure) => switch (failure) {
+  ValidationException(:final details) => {
+    for (final code in (details['diagnostics'] as List?) ?? const [])
+      if (code is String) code,
+  }.toList(),
+  _ => const [],
+};
