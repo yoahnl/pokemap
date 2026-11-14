@@ -199,6 +199,7 @@ Iterable<SpatialSurfacePatch> _terrainSurfacePatches(
             surface.gradientZ * surface.z,
         gradientX: surface.gradientX,
         gradientZ: surface.gradientZ,
+        surface: surface,
       );
       remaining = [
         for (final piece in remaining)
@@ -221,6 +222,7 @@ Iterable<SpatialSurfacePatch> _terrainPolygonPieces(
   double? height,
   double? gradientX,
   double? gradientZ,
+  SpatialTerrainSurface? surface,
 }) sync* {
   if (polygon.length < 3 || _groundPolygonArea(polygon).abs() <= 1e-12) return;
   final ordered = _groundPolygonArea(polygon) < 0
@@ -246,6 +248,7 @@ Iterable<SpatialSurfacePatch> _terrainPolygonPieces(
       groundGradientX: gradientX ?? patch.groundGradientX,
       groundGradientZ: gradientZ ?? patch.groundGradientZ,
       footprint: piece.length == 3 ? [...piece, piece.last] : piece,
+      terrainSurface: surface ?? patch.terrainSurface,
     );
   }
 }

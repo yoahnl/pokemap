@@ -4,6 +4,7 @@ import 'package:flame_3d/core.dart';
 import 'package:map_core/map_core.dart';
 
 part 'spatial_ground_polygon.dart';
+part 'spatial_terrain_flank_walls.dart';
 
 final class SpatialSurfacePatch {
   const SpatialSurfacePatch({
@@ -18,6 +19,7 @@ final class SpatialSurfacePatch {
     this.groundGradientX = 0,
     this.groundGradientZ = 0,
     this.footprint,
+    this.terrainSurface,
   });
 
   final MapSpatialScene scene;
@@ -28,6 +30,7 @@ final class SpatialSurfacePatch {
   final double groundGradientX;
   final double groundGradientZ;
   final List<BorderGroundPoint>? footprint;
+  final SpatialTerrainSurface? terrainSurface;
 
   double heightAt(double x, double z) => ramp == null
       ? (groundHeight ?? scene.heightAt(cell.$1, cell.$2)) +
@@ -394,8 +397,10 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
               ],
       );
     }
-    if (!scene.generateCliffs) continue;
-    for (final edge in _groundPatchEdges(patch, groundReplacements)) {
+    for (final edge
+        in scene.generateCliffs
+            ? _groundPatchEdges(patch, groundReplacements)
+            : _closedFlankEdges(patch, groundReplacements)) {
       final start = edge.$1, end = edge.$2, normal = edge.$3;
       final midpointX = (start.$1 + end.$1) / 2 + normal.$1 * .000001;
       final midpointZ = (start.$2 + end.$2) / 2 + normal.$2 * .000001;
