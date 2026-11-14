@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 
 import '../support/authoring_fingerprint.dart';
+import '../workspace/catalog/catalog_derivable_indexes.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
 import '../workspace/catalog/catalog_resource_positions.dart';
 import '../workspace/catalog/catalog_narrative_event_documents.dart';
@@ -147,14 +148,15 @@ abstract final class CatalogHistoryCompatibility {
             !CatalogResourcePositions.isSlotKey(unit.key))
           unit.key: unit,
     };
-    if (_matches(actual, expected)) return null;
+    final derived = CatalogDerivableIndexes.expected(units.values);
+    if (_matches(actual, [...expected, ...derived])) return null;
     var supported = false;
     for (final legacyFacts in [false, true]) {
       for (final eventsVersion in [0, 1, 2]) {
         if (!legacyFacts && eventsVersion == 2) continue;
         final candidate = _legacyProjection(
             units.values, expected, legacyFacts, eventsVersion);
-        if (_matches(actual, candidate)) supported = true;
+        if (_matches(actual, [...candidate, ...derived])) supported = true;
       }
     }
     if (!supported) return null;

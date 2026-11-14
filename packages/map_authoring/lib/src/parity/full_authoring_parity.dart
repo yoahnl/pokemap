@@ -1750,6 +1750,50 @@ AuthoringResourceParity _resourceParity(
   String owner, {
   required Set<String> queryableResourceKinds,
 }) {
+  if (kind == 'narrativeTitle') {
+    return AuthoringResourceParity(
+      resourceKind: kind,
+      canonicalOwnerKind: owner,
+      cells: {
+        for (final capability in AuthoringParityCapability.values)
+          capability: switch (capability) {
+            AuthoringParityCapability.mutation ||
+            AuthoringParityCapability.replay ||
+            AuthoringParityCapability.references ||
+            AuthoringParityCapability.visualization ||
+            AuthoringParityCapability.runtime =>
+              AuthoringParityCell.notApplicable(
+                capability: capability,
+                justification:
+                    'narrativeTitle is a read-only derived index. Scenes, dialogues, Facts, world rules, storylines, cinematics and Event V2 records own the persisted data, references and mutations.',
+              ),
+            AuthoringParityCapability.parity =>
+              AuthoringParityCell.notApplicable(
+                capability: capability,
+                justification:
+                    'No Studio surface reads narrative titles yet; the Histoire tab must consume this canonical query when it is rebuilt.',
+              ),
+            AuthoringParityCapability.read
+                when !queryableResourceKinds.contains(kind) =>
+              AuthoringParityCell.missing(
+                capability: capability,
+                justification: 'The narrative title query resource is unpublished.',
+              ),
+            _ => AuthoringParityCell.supported(
+                capability: capability,
+                evidence: const [
+                  'lib/src/api/narrative_index_query.dart',
+                  'lib/src/workspace/catalog/catalog_narrative_titles.dart',
+                  'test/workspace/catalog_narrative_titles_test.dart',
+                  'test/workspace/catalog_narrative_title_history_test.dart',
+                  'test/api/narrative_index_query_test.dart',
+                  '../../tools/pokemap_mcp/test/narrative_titles_stdio.test.ts',
+                ],
+              ),
+          },
+      },
+    );
+  }
   if (kind == 'trainerPokemonStats') {
     return AuthoringResourceParity(
       resourceKind: kind,
@@ -2484,6 +2528,7 @@ const _semanticOwners = <String, String>{
   'badge': 'campaignContent',
   'trainer': 'campaignContent',
   'trainerPokemonStats': 'campaignContent',
+  'narrativeTitle': 'project',
   'character': 'campaignContent',
   'characterStudioCatalog': 'project',
   'characterStudioCharacter': 'project',

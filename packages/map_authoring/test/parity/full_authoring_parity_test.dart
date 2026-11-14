@@ -1238,6 +1238,7 @@ final Set<String> _approvedResourceKinds = {
   'badge',
   'trainer',
   'trainerPokemonStats',
+  'narrativeTitle',
   'character',
   'characterStudioCatalog',
   'characterStudioCharacter',

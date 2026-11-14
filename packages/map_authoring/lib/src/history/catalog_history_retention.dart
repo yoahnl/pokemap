@@ -8,6 +8,7 @@ import '../catalog_storage/catalog_history_compatibility.dart';
 import '../catalog_storage/catalog_storage_store.dart';
 import '../security/authoring_permission.dart';
 import '../support/authoring_fingerprint.dart';
+import '../workspace/catalog/catalog_derivable_indexes.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
 import '../workspace/catalog/catalog_resource_positions.dart';
 import 'authoring_history.dart';
@@ -665,7 +666,10 @@ final class _ValidatedHistoricalGeneration {
 
 bool _metadataPrepared(List<CatalogDefinitionUnit> units) {
   final expected = {
-    for (final unit in CatalogMetadataDocuments.initialize(units))
+    for (final unit in [
+      ...CatalogMetadataDocuments.initialize(units),
+      ...CatalogDerivableIndexes.expected(units),
+    ])
       unit.key: unit
   };
   final actual = {

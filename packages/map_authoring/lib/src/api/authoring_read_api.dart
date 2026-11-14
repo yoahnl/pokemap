@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'narrative_index_query.dart';
 import 'periodic_reward_choice_query.dart';
 import '../references/exterior_decoration_references.dart';
 import 'resource_pack_transfer_api.dart';
@@ -192,7 +193,11 @@ final class AuthoringReadApi
         projectHandle: projectHandle, request: request);
     }
     final catalog = await _openService.catalogProject(projectHandle,
-      metadataFields: periodicRewardChoiceKinds.contains(request.resourceKind) ? const {} : null);
+      metadataFields: periodicRewardChoiceKinds.contains(request.resourceKind) ||
+          request.resourceKind == narrativeTitleResourceKind ? const {} : null);
+    if (request.resourceKind == narrativeTitleResourceKind) {
+      return queryNarrativeTitles(catalog: catalog, request: request);
+    }
     if (periodicRewardChoiceKinds.contains(request.resourceKind)) {
       return queryPeriodicRewardChoices(catalog: catalog, loader: _snapshotLoader,
         projectHandle: projectHandle, request: request);

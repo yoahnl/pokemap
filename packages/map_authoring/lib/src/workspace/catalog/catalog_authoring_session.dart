@@ -26,6 +26,7 @@ import 'catalog_spatial_map_selection.dart';
 import 'catalog_model_source_selection.dart';
 import 'catalog_workshop_selection.dart';
 import 'catalog_narrative_event_consumers.dart';
+import 'catalog_narrative_titles.dart';
 import 'catalog_resource_usage_index.dart';
 import 'catalog_resource_index_snapshot.dart';
 import 'catalog_scoped_working_mutation.dart';
@@ -478,6 +479,10 @@ final class CatalogAuthoringSession {
     }
     if (scope == CatalogNarrativeEventConsumers.preparationScope) {
       await (await _editing()).prepareNarrativeEventConsumers();
+      return;
+    }
+    if (scope == CatalogNarrativeTitles.preparationScope) {
+      await (await _editing()).prepareNarrativeTitles();
       return;
     }
     await preparePendingTransactionJournals(reader.store.gateway);

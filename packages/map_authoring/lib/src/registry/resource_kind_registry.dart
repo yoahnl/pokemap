@@ -696,6 +696,22 @@ final class AuthoringResourceKindRegistry {
           },
         },
       ),
+      AuthoringResourceKindDescriptor(id: 'narrativeTitle', version: 1,
+        displayName: 'Narrative titles',
+        summary: 'Paged titles of one narrative kind from the explicit derived title index, without decoding documents',
+        extensions: {
+          'operations': ['list'], 'view': 'summary', 'pageSizeMaximum': 200,
+          'requiredFilters': {'kind': {'type': 'string', 'enum': [
+            'scenes', 'dialogues', 'facts', 'worldRules', 'storylines',
+            'cinematics', 'presentationCinematics', 'narrativeEvents']}},
+          'fields': ['kind', 'id', 'title', 'tags', 'category', 'position'],
+          'order': 'storedDocumentOrder',
+          'cursorBinding': ['projectRevision', 'querySignature'],
+          'requiresCatalog': true,
+          'preparationScope': 'narrativeTitles',
+          'preparationRequiredCode': 'query.narrative_titles_preparation_required',
+          'internalIndexPageSize': 128,
+        }),
       for (final kind in ['periodicRewardScene', 'periodicRewardNode'])
         AuthoringResourceKindDescriptor(id: kind, version: 1,
           displayName: kind == 'periodicRewardScene' ? 'Published reward Scene choices' : 'Published reward node choices',
@@ -1156,6 +1172,7 @@ final class AuthoringResourceKindRegistry {
           ),
       ].map(_catalogStorageDescriptor),
       queryableResourceKindIds: const {
+        'narrativeTitle',
         'periodicRewardScene',
         'periodicRewardNode',
         'resourcePackJob',

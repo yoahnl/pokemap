@@ -159,6 +159,7 @@ void main() {
           'mapEditor',
           'mapHealth',
           'model3d',
+          'narrativeTitle',
           'partyCompanionConfiguration',
           'periodicRewardNode',
           'periodicRewardScene',

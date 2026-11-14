@@ -170,61 +170,13 @@ abstract final class CatalogNarrativeEventDocuments {
   }) async {
     final pending = {for (final unit in upserts) unit.key: unit};
     final removed = removals.toSet();
-    final shellKey = CatalogDefinitionKey(
-        CatalogDefinitionKind.catalogMetadata, 'publication-shell');
-    var changed = [...pending.keys, ...removed].any(_registryUnit);
-    final nextShell = pending[shellKey];
-    if (!changed && nextShell != null) {
-      final oldShell = await lookup(shellKey);
-      changed = jsonEncode(
-              (nextShell.payload['value'] as Map)['eventRegistry']) !=
-          jsonEncode((oldShell?.payload['value'] as Map?)?['eventRegistry']);
-    }
-    if (!changed) return const [];
+    if (!await registryChanged(lookup, pending, removed)) return const [];
     if ((await lookup(indexKey))?.payload['indexVersion'] != 2) {
       throw const CatalogStorageException('catalog.preparation_required',
           'Prepare narrative event indexes explicitly before changing their registry.');
     }
-    Future<Map<CatalogDefinitionKey, CatalogDefinitionUnit>> capture(
-        bool after) async {
-      final values = <CatalogDefinitionKey, CatalogDefinitionUnit>{};
-      Future<CatalogDefinitionUnit?> read(CatalogDefinitionKey key) async {
-        final unit = after && removed.contains(key)
-            ? null
-            : after && pending.containsKey(key)
-                ? pending[key]
-                : await lookup(key);
-        if (unit != null) values[key] = unit;
-        return unit;
-      }
-
-      await read(shellKey);
-      final header = await read(_aggregateKey('projectAggregateHeader'));
-      if (header != null) {
-        final count = (header.payload['value'] as Map)['chunkCount'] as int;
-        if (count < 1 || count > 512) {
-          throw const FormatException('catalog.events: invalid aggregate size');
-        }
-        for (var i = 0; i < count; i++) {
-          await read(_aggregateKey('projectAggregateChunk', i));
-        }
-      }
-      final boundary = header == null
-          ? 0
-          : (header.payload['value'] as Map)['chunkCount'] as int;
-      await read(_aggregateKey('projectAggregateChunk', boundary));
-      if (after) {
-        for (final entry in pending.entries) {
-          if (_registryUnit(entry.key) && !removed.contains(entry.key)) {
-            values[entry.key] = entry.value;
-          }
-        }
-      }
-      return values;
-    }
-
-    final before = _decode(await capture(false));
-    final after = _decode(await capture(true));
+    final before = _decode(await _capture(lookup, pending, removed, false));
+    final after = _decode(await _capture(lookup, pending, removed, true));
     final beforeRegistry =
         before == null ? null : NarrativeEventRegistry.fromJson(before);
     final afterRegistry =
@@ -265,6 +217,73 @@ abstract final class CatalogNarrativeEventDocuments {
       }
     }
     return next;
+  }
+
+  static final _shellKey = CatalogDefinitionKey(
+      CatalogDefinitionKind.catalogMetadata, 'publication-shell');
+
+  static Map<String, Object?>? decodeRegistry(
+          Iterable<CatalogDefinitionUnit> units) =>
+      _decode({for (final unit in units) unit.key: unit});
+
+  static Future<Iterable<CatalogDefinitionUnit>> registryUnits(
+          Future<CatalogDefinitionUnit?> Function(CatalogDefinitionKey) lookup,
+          {Map<CatalogDefinitionKey, CatalogDefinitionUnit> pending = const {},
+          Set<CatalogDefinitionKey> removed = const {},
+          bool after = false}) async =>
+      (await _capture(lookup, pending, removed, after)).values;
+
+  static Future<bool> registryChanged(
+      Future<CatalogDefinitionUnit?> Function(CatalogDefinitionKey) lookup,
+      Map<CatalogDefinitionKey, CatalogDefinitionUnit> pending,
+      Set<CatalogDefinitionKey> removed) async {
+    if ([...pending.keys, ...removed].any(_registryUnit)) return true;
+    final nextShell = pending[_shellKey];
+    if (nextShell == null) return false;
+    final oldShell = await lookup(_shellKey);
+    return jsonEncode((nextShell.payload['value'] as Map)['eventRegistry']) !=
+        jsonEncode((oldShell?.payload['value'] as Map?)?['eventRegistry']);
+  }
+
+  static Future<Map<CatalogDefinitionKey, CatalogDefinitionUnit>> _capture(
+      Future<CatalogDefinitionUnit?> Function(CatalogDefinitionKey) lookup,
+      Map<CatalogDefinitionKey, CatalogDefinitionUnit> pending,
+      Set<CatalogDefinitionKey> removed,
+      bool after) async {
+    final values = <CatalogDefinitionKey, CatalogDefinitionUnit>{};
+    Future<CatalogDefinitionUnit?> read(CatalogDefinitionKey key) async {
+      final unit = after && removed.contains(key)
+          ? null
+          : after && pending.containsKey(key)
+              ? pending[key]
+              : await lookup(key);
+      if (unit != null) values[key] = unit;
+      return unit;
+    }
+
+    await read(_shellKey);
+    final header = await read(_aggregateKey('projectAggregateHeader'));
+    if (header != null) {
+      final count = (header.payload['value'] as Map)['chunkCount'] as int;
+      if (count < 1 || count > 512) {
+        throw const FormatException('catalog.events: invalid aggregate size');
+      }
+      for (var i = 0; i < count; i++) {
+        await read(_aggregateKey('projectAggregateChunk', i));
+      }
+    }
+    final boundary = header == null
+        ? 0
+        : (header.payload['value'] as Map)['chunkCount'] as int;
+    await read(_aggregateKey('projectAggregateChunk', boundary));
+    if (after) {
+      for (final entry in pending.entries) {
+        if (_registryUnit(entry.key) && !removed.contains(entry.key)) {
+          values[entry.key] = entry.value;
+        }
+      }
+    }
+    return values;
   }
 
   static Future<

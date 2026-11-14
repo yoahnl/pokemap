@@ -484,6 +484,7 @@ void main() {
                 if (mapScoped && firstMapId != null) 'mapId': firstMapId,
                 if (resourceKind == 'periodicRewardNode')
                   'sceneId': rewardSceneId,
+                if (resourceKind == 'narrativeTitle') 'kind': 'scenes',
               },
             ).toJson(),
           },
@@ -495,6 +496,10 @@ void main() {
           expect(result.error?.details['domainCode'],
               endsWith('_map_required'),
               reason: resourceKind);
+        } else if (resourceKind == 'narrativeTitle') {
+          expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
+          expect(result.error?.details['domainCode'],
+              'query.narrative_titles_catalog_required');
         } else if (resourcePackTemporaryKinds.contains(resourceKind)) {
           expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
           expect(result.error?.details['domainCode'], 'worker.command_unsupported');

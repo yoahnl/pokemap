@@ -26,9 +26,11 @@ import '../transactions/journaled_transaction.dart';
 import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
 import '../transactions/revision_set.dart';
+import '../workspace/catalog/catalog_derivable_indexes.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
 import '../workspace/catalog/catalog_narrative_event_consumers.dart';
 import '../workspace/catalog/catalog_narrative_event_documents.dart';
+import '../workspace/catalog/catalog_narrative_titles.dart';
 import '../workspace/catalog/catalog_periodic_reward_consumers.dart';
 import '../workspace/catalog/catalog_resource_positions.dart';
 import '../workspace/catalog/catalog_resource_usage_index.dart';
@@ -446,6 +448,20 @@ final class CatalogEditingSession {
         await _apply(plan);
       });
 
+  Future<void> prepareNarrativeTitles() => _serialize(() async {
+        _requireOpen();
+        await store.requireMetadataIndexAdmission(snapshot);
+        final index = await CatalogNarrativeTitles.prepare(snapshot);
+        if (index.upserts.isEmpty && index.removals.isEmpty) return;
+        final plan = await _planPatch(upserts: index.upserts,
+            removals: index.removals, additionalChanges: const [],
+            workspaceFingerprint: null, publicBaseRevision: null,
+            publicDiff: null, publicPlan: null, currentProjectRevision: null,
+            idempotencyKey: _token('narrative_titles_prepare_'), request: null,
+            prepareMetadataDocuments: true);
+        await _apply(plan);
+      });
+
   Future<void> prepareMetadataDocuments({bool force = false}) =>
       _serialize(() async {
         _requireOpen();
@@ -644,6 +660,10 @@ final class CatalogEditingSession {
         additionalChanges: additional);
     units.addAll(eventConsumers.upserts);
     deleted.addAll(eventConsumers.removals);
+    final derivable = await CatalogDerivableIndexes.maintain(
+        lookup: base.lookup, upserts: units, removals: deleted);
+    units.addAll(derivable.upserts);
+    deleted.addAll(derivable.removals);
     units.addAll(await CatalogResourcePositions.maintain(
         lookup: base.lookup, upserts: units, removals: deleted));
     units.addAll(await CatalogResourceUsageIndex.maintain(
@@ -1293,8 +1313,11 @@ final class CatalogEditingSession {
         return true;
       }
 
-      if (!await matches(settled.upserts, settled.removals) &&
-          !await matches(maintained, const [])) {
+      final derived = await CatalogDerivableIndexes.admitDelta(
+          before: snapshot, next: next, upserts: delta.upserts);
+      if (derived == null ||
+          (!await matches([...settled.upserts, ...derived], settled.removals) &&
+              !await matches([...maintained, ...derived], const []))) {
         throw const CatalogStorageException('catalog.preparation_required',
             'The selected historical document indexes need explicit preparation.');
       }
