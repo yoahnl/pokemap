@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_border_warning.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
@@ -19,6 +20,7 @@ class MapBuilderCanvas extends StatelessWidget {
     required this.inspectorOpen,
     required this.onToggleInspector,
     required this.error,
+    this.borderWarnings = const {},
     required this.surface,
     required this.statusBar,
   });
@@ -31,6 +33,7 @@ class MapBuilderCanvas extends StatelessWidget {
   final bool inspectorOpen;
   final VoidCallback onToggleInspector;
   final String? error;
+  final Set<String> borderWarnings;
   final Widget? surface;
   final Widget statusBar;
 
@@ -41,6 +44,7 @@ class MapBuilderCanvas extends StatelessWidget {
     final divider = BorderSide(color: scheme.outlineVariant);
     final entry = this.entry;
     final error = this.error;
+    final warning = mapBuilderBorderWarning(context.l10n, borderWarnings);
     final surface = this.surface;
     return Material(
       color: scheme.surfaceContainerLowest,
@@ -132,6 +136,14 @@ class MapBuilderCanvas extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(StudioSpacing.l),
               child: StudioNotice(error, isError: true),
+            )
+          else if (warning != null)
+            Padding(
+              padding: const EdgeInsets.all(StudioSpacing.l),
+              child: StudioNotice(
+                warning,
+                key: const ValueKey('map-border-warning'),
+              ),
             ),
           Expanded(
             child: surface == null

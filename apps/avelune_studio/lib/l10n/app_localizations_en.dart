@@ -234,6 +234,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get toolPan => 'Pan view';
 
   @override
+  String get mapBorderWarningBuried =>
+      'This relief is under the ground: there is no height difference here, so it will stay invisible.';
+
+  @override
+  String get mapBorderWarningCrown =>
+      'The top of this relief does not meet the ground here: it may float or sink.';
+
+  @override
+  String get mapBorderWarningOther =>
+      'This relief is placed, but it may not display correctly here.';
+
+  @override
   String get inspectorHide => 'Hide inspector';
 
   @override

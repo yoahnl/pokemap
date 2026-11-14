@@ -50,7 +50,9 @@ final class MapBorderEditingCommands {
           return order != 0 ? order : first.id.compareTo(second.id);
         });
 
-  MapData preview(MapBorderDrawingDraft draft) {
+  MapData preview(MapBorderDrawingDraft draft) => _resolve(draft).map;
+
+  ({MapData map, Set<String> warnings}) _resolve(MapBorderDrawingDraft draft) {
     final map = document.current;
     if (draft.mapId != map.id ||
         draft.mapSize != map.size ||
@@ -126,10 +128,17 @@ final class MapBorderEditingCommands {
           'Cette bordure ne peut pas produire ce tracé (${result.result.diagnostics.first.code}).',
         );
       }
-      return applySpatialBorderFeaturePreview(
-        proposed,
-        manifest: project,
-        proposedResult: result,
+      return (
+        map: applySpatialBorderFeaturePreview(
+          proposed,
+          manifest: project,
+          proposedResult: result,
+        ),
+        warnings: {
+          for (final diagnostic in result.result.diagnostics)
+            if (diagnostic.severity == BorderDiagnosticSeverity.warning)
+              diagnostic.code,
+        },
       );
     }
     final request = BorderResolutionRequest(
@@ -172,10 +181,14 @@ final class MapBorderEditingCommands {
         'La bordure a changé pendant sa préparation. Réessayez.',
       );
     }
-    return completed;
+    return (map: completed, warnings: const {});
   }
 
-  void finish(MapBorderDrawingDraft draft) => document.commit(preview(draft));
+  void finish(MapBorderDrawingDraft draft) {
+    final resolved = _resolve(draft);
+    document.commit(resolved.map);
+    document.borderWarnings = resolved.warnings;
+  }
 
   MapData previewErase(MapBorderEraseDraft draft) {
     if (!draft.validFor(document.current, project)) {

@@ -108,6 +108,7 @@ class EditableMapDocument {
   Future<bool> Function(String instanceId, MapEntityFieldObstacleData? value)? configureSpatialFieldObstacle;
   bool elementOrderSaving = false;
   String? error;
+  Set<String> borderWarnings = const {};
   final _history = const MapHistoryCoordinator();
   List<MapHistoryEntry> _undo = [];
   List<MapHistoryEntry> _redo = [];
@@ -158,6 +159,7 @@ class EditableMapDocument {
     current = next;
     _visibilityPreviewBase = null;
     error = null;
+    borderWarnings = const {};
     _repairSelection();
   }
 
@@ -203,6 +205,7 @@ class EditableMapDocument {
     _undo = result.undoStack;
     _redo = result.redoStack;
     error = null;
+    borderWarnings = const {};
     _repairSelection();
   }
 

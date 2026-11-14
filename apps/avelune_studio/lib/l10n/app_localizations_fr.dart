@@ -234,6 +234,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get toolPan => 'Déplacer la vue';
 
   @override
+  String get mapBorderWarningBuried =>
+      'Ce relief est sous le sol : il n’y a pas de dénivelé ici, il restera invisible.';
+
+  @override
+  String get mapBorderWarningCrown =>
+      'Le haut de ce relief ne rejoint pas le sol ici : il risque de flotter ou de s’enfoncer.';
+
+  @override
+  String get mapBorderWarningOther =>
+      'Ce relief est posé, mais il risque de mal s’afficher à cet endroit.';
+
+  @override
   String get inspectorHide => 'Masquer l’inspecteur';
 
   @override

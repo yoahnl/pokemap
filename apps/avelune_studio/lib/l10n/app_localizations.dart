@@ -494,6 +494,24 @@ abstract class AppLocalizations {
   /// **'Déplacer la vue'**
   String get toolPan;
 
+  /// No description provided for @mapBorderWarningBuried.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce relief est sous le sol : il n’y a pas de dénivelé ici, il restera invisible.'**
+  String get mapBorderWarningBuried;
+
+  /// No description provided for @mapBorderWarningCrown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le haut de ce relief ne rejoint pas le sol ici : il risque de flotter ou de s’enfoncer.'**
+  String get mapBorderWarningCrown;
+
+  /// No description provided for @mapBorderWarningOther.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce relief est posé, mais il risque de mal s’afficher à cet endroit.'**
+  String get mapBorderWarningOther;
+
   /// No description provided for @inspectorHide.
   ///
   /// In fr, this message translates to:

@@ -112,6 +112,8 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                                       _visualsError ??
                                       _resourceProblem() ??
                                       document?.error,
+                                  borderWarnings:
+                                      document?.borderWarnings ?? const {},
                                   surface: _surface(),
                                   statusBar: MapBuilderStatusBar(
                                     toolLabel:
