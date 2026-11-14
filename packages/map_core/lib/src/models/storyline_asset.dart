@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../exceptions/map_exceptions.dart';
 import 'narrative_value.dart';
 import 'script_conditions.dart';
+import 'storyline_journal.dart';
 
 const Object _storylineCopyUnset = Object();
 
@@ -92,10 +93,12 @@ final class StorylineAsset {
     this.legacySource,
     this.authorNotes,
     Map<String, String> metadata = const <String, String>{},
+    List<StorylineJournalClue> journalClues = const <StorylineJournalClue>[],
   })  : chapters = List<StorylineChapter>.unmodifiable(chapters),
         sceneLinks = List<StorylineSceneLink>.unmodifiable(sceneLinks),
         relationships = List<StorylineRelationship>.unmodifiable(relationships),
-        metadata = Map<String, String>.unmodifiable(metadata) {
+        metadata = Map<String, String>.unmodifiable(metadata),
+        journalClues = immutableStorylineJournalClues(journalClues) {
     _requireNotBlank(id, 'StorylineAsset.id');
     if (schemaVersion <= 0) {
       throw const ValidationException(
@@ -166,6 +169,7 @@ final class StorylineAsset {
       ),
       authorNotes: _readOptionalString(json, 'authorNotes'),
       metadata: _readStringMap(json, 'metadata'),
+      journalClues: readStorylineJournalClues(json),
     );
   }
 
@@ -186,6 +190,9 @@ final class StorylineAsset {
       'legacySource': legacySource?.toJson(),
       'authorNotes': authorNotes,
       'metadata': metadata,
+      'journalClues': journalClues.isEmpty
+          ? null
+          : journalClues.map((clue) => clue.toJson()).toList(),
     });
   }
 
@@ -203,6 +210,7 @@ final class StorylineAsset {
   final StorylineLegacySource? legacySource;
   final String? authorNotes;
   final Map<String, String> metadata;
+  final List<StorylineJournalClue> journalClues;
 
   /// Rebuilds this immutable aggregate while allowing nullable authoring fields
   /// to be cleared explicitly through the private sentinel defaults.
@@ -221,6 +229,7 @@ final class StorylineAsset {
     Object? legacySource = _storylineCopyUnset,
     Object? authorNotes = _storylineCopyUnset,
     Map<String, String>? metadata,
+    List<StorylineJournalClue>? journalClues,
   }) {
     return StorylineAsset(
       id: id ?? this.id,
@@ -247,6 +256,7 @@ final class StorylineAsset {
           ? this.authorNotes
           : authorNotes as String?,
       metadata: metadata ?? this.metadata,
+      journalClues: journalClues ?? this.journalClues,
     );
   }
 
@@ -267,7 +277,8 @@ final class StorylineAsset {
           _listEquals(other.relationships, relationships) &&
           other.legacySource == legacySource &&
           other.authorNotes == authorNotes &&
-          _mapEquals(other.metadata, metadata);
+          _mapEquals(other.metadata, metadata) &&
+          _listEquals(other.journalClues, journalClues);
 
   @override
   int get hashCode => Object.hash(
@@ -285,6 +296,7 @@ final class StorylineAsset {
         legacySource,
         authorNotes,
         _mapHash(metadata),
+        Object.hashAll(journalClues),
       );
 
   @override
@@ -432,6 +444,7 @@ final class StorylineStep {
     this.status,
     this.authorNotes,
     Map<String, String> metadata = const <String, String>{},
+    this.journal,
   })  : sceneLinkIds = _immutableNonBlankUniqueStrings(
           sceneLinkIds,
           'StorylineStep.sceneLinkIds',
@@ -461,6 +474,7 @@ final class StorylineStep {
           _readOptionalEnum(StorylineStatus.values, json['status'], 'status'),
       authorNotes: _readOptionalString(json, 'authorNotes'),
       metadata: _readStringMap(json, 'metadata'),
+      journal: readStorylineMilestoneJournal(json),
     );
   }
 
@@ -477,6 +491,7 @@ final class StorylineStep {
       'status': status == null ? null : _enumToJson(status!),
       'authorNotes': authorNotes,
       'metadata': metadata,
+      'journal': journal?.toJson(),
     });
   }
 
@@ -491,6 +506,7 @@ final class StorylineStep {
   final StorylineStatus? status;
   final String? authorNotes;
   final Map<String, String> metadata;
+  final StorylineMilestoneJournal? journal;
 
   /// Rebuilds a Step while allowing nullable authoring fields to be cleared.
   StorylineStep copyWith({
@@ -505,6 +521,7 @@ final class StorylineStep {
     Object? status = _storylineCopyUnset,
     Object? authorNotes = _storylineCopyUnset,
     Map<String, String>? metadata,
+    Object? journal = _storylineCopyUnset,
   }) {
     return StorylineStep(
       id: id ?? this.id,
@@ -528,6 +545,9 @@ final class StorylineStep {
           ? this.authorNotes
           : authorNotes as String?,
       metadata: metadata ?? this.metadata,
+      journal: identical(journal, _storylineCopyUnset)
+          ? this.journal
+          : journal as StorylineMilestoneJournal?,
     );
   }
 
@@ -545,7 +565,8 @@ final class StorylineStep {
           _listEquals(other.expectedOutcomeIds, expectedOutcomeIds) &&
           other.status == status &&
           other.authorNotes == authorNotes &&
-          _mapEquals(other.metadata, metadata);
+          _mapEquals(other.metadata, metadata) &&
+          other.journal == journal;
 
   @override
   int get hashCode => Object.hash(
@@ -560,6 +581,7 @@ final class StorylineStep {
         status,
         authorNotes,
         _mapHash(metadata),
+        journal,
       );
 }
 

@@ -56,6 +56,7 @@ abstract final class AveluneRuntimeCompatibility {
           WorldEnvironmentCapabilities.weatherEpisodesCapabilityId,
           ProjectContactDeviceConfig.capabilityId,
           ProjectBattleSavingsConfig.capabilityId,
+          PlayerJournalCapabilities.capabilityId,
           BattleMoveAnimationRecipe.splV3RuntimeCapability,
           BattleMoveAnimationRecipe.splV4RuntimeCapability,
           BattleMoveAnimationRecipe.splV5RuntimeCapability,

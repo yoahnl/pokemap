@@ -19,6 +19,7 @@ import '../infrastructure/gen5_battle_source_loader.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_host.dart';
 import '../player/runtime_player_pause_data_builder.dart';
+import '../player/runtime_player_journal_pause.dart';
 import '../player/runtime_audio_mixer.dart';
 import '../player/runtime_initial_map_preloader.dart';
 import '../player/runtime_world_service_models.dart';
@@ -123,6 +124,7 @@ final class PlayableMapGameSessionRuntime
   ProjectRegionalMapCatalog? _regionalMap;
   List<BadgeDefinition> _projectBadges = const [];
   List<ProjectCharacterEntry> _projectCharacters = const [];
+  ProjectManifest? _journalProject;
   DateTime? _createdAt;
   String? _saveId;
   int _basePlayTimeSeconds = 0;
@@ -375,6 +377,7 @@ final class PlayableMapGameSessionRuntime
       );
       _pokemonConfig = bundle.manifest.pokemon;
       _projectMaps = List<ProjectMapEntry>.unmodifiable(bundle.manifest.maps);
+      _journalProject = bundle.manifest;
       _regionalMap = bundle.manifest.regionalMap;
       _projectBadges = List<BadgeDefinition>.unmodifiable(
         bundle.manifest.badges,
@@ -577,9 +580,19 @@ final class PlayableMapGameSessionRuntime
       portraitLookup: _pausePortraitResolver?.resolve,
       playtimeSeconds: _basePlayTimeSeconds + _playWatch.elapsed.inSeconds,
     );
+    final journal = _journalProject == null
+        ? null
+        : buildPlayerJournalPauseDetail(
+            project: _journalProject!,
+            state: gameState,
+            locale: _playerPreferences?.locale ?? descriptor.locale,
+          );
     return RuntimePlayerCompanionMenuData(
       pauseMenuState: gameState.pauseMenuState,
-      pauseDetails: details,
+      pauseDetails: {
+        ...details,
+        RuntimePlayerPauseSection.quests: ?journal,
+      },
     );
   }
 

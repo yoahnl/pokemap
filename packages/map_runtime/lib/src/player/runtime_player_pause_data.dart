@@ -271,6 +271,7 @@ final class RuntimePlayerDetailEntrySnapshot {
     this.bagItem,
     this.pokedexEntry,
     this.portraitFilePath,
+    this.body,
   }) {
     if (id.trim().isEmpty || title.trim().isEmpty) {
       throw ArgumentError('Detail entry id and title must not be empty.');
@@ -294,6 +295,7 @@ final class RuntimePlayerDetailEntrySnapshot {
   final RuntimePlayerBagItemSnapshot? bagItem;
   final RuntimePlayerPokedexEntrySnapshot? pokedexEntry;
   final String? portraitFilePath;
+  final String? body;
 
   /// Présente uniquement sur une entrée d'équipe : la fiche canonique que le PC
   /// affiche pour le même individu.

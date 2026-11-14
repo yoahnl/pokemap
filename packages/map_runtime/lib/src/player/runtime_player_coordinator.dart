@@ -677,6 +677,10 @@ final class RuntimePlayerCoordinator {
         _publishPause(RuntimePlayerPauseSection.contacts, logicalSelectionId: 'pause.contacts');
         return const RuntimePlayerCommandResult(status: RuntimePlayerCommandStatus.accepted);
       case RuntimePlayerAction.openQuests:
+        if (_snapshot.pauseDetails.containsKey(RuntimePlayerPauseSection.quests)) {
+          _publishPause(RuntimePlayerPauseSection.quests, logicalSelectionId: 'pause.quests');
+          return const RuntimePlayerCommandResult(status: RuntimePlayerCommandStatus.accepted);
+        }
         return RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.unavailable,
           safeMessage: _questsUnavailableReason,
@@ -2205,10 +2209,13 @@ final class RuntimePlayerCoordinator {
             reason: 'This game does not provide a player map.',
           ),
       if (_isPauseActionVisible(ProjectPauseActionId.quests, pauseMenuState))
-        RuntimePlayerActionAvailability.disabled(
-          RuntimePlayerAction.openQuests,
-          reason: _questsUnavailableReason,
-        ),
+        if (pauseDetails.containsKey(RuntimePlayerPauseSection.quests))
+          const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openQuests)
+        else
+          RuntimePlayerActionAvailability.disabled(
+            RuntimePlayerAction.openQuests,
+            reason: _questsUnavailableReason,
+          ),
       if (_isPauseActionVisible(ProjectPauseActionId.profile, pauseMenuState))
         if (pauseDetails[RuntimePlayerPauseSection.profile]?.profile != null)
           const RuntimePlayerActionAvailability.enabled(

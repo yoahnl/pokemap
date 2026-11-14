@@ -59,6 +59,7 @@ import '../spatial/spatial_trainer_spot_cinematic.dart';
 import '../spatial/spatial_scene_audio_runtime.dart';
 import '../presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import '../player/contact_device_pause.dart';
+import '../player/runtime_player_journal_pause.dart';
 import '../application/dialogue_portrait_resolver.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import 'game_session_contract.dart';
@@ -2580,6 +2581,7 @@ final class SpatialExplorationGameSessionRuntime
           ...details,
           if (buildContactDevicePauseDetail(project: manifest, state: state, portraitLookup: contactPortraits.resolve) case final contactDetail?)
             RuntimePlayerPauseSection.contacts: contactDetail,
+          RuntimePlayerPauseSection.quests: ?buildPlayerJournalPauseDetail(project: manifest, state: state, locale: _preferences?.locale ?? descriptor.locale),
         });
   }
 

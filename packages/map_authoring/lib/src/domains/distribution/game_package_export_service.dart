@@ -457,6 +457,8 @@ final class CanonicalGamePackageExportService {
           ProjectContactDeviceConfig.capabilityId,
         if (projection.project.battleSavings != null)
           ProjectBattleSavingsConfig.capabilityId,
+        if (PlayerJournalCapabilities.requiresCapability(projection.project))
+          PlayerJournalCapabilities.capabilityId,
         if (SurfGameplayCapabilities.requiresCapability(projection.project,
             maps: spatialMaps))
           SurfGameplayCapabilities.capabilityId,

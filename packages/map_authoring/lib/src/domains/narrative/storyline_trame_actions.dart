@@ -8,6 +8,7 @@ import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
+import 'storyline_journal_actions.dart';
 
 final class StorylineTrameActions {
   const StorylineTrameActions();
@@ -45,6 +46,7 @@ final class StorylineTrameActions {
     ])
       narrativeActionDescriptor(id, summary,
           resourceKinds: const ['project', 'storyline']),
+    ...StorylineJournalActions.descriptors,
   ]);
 
   static final Set<String> ids = {
@@ -59,6 +61,12 @@ final class StorylineTrameActions {
     String text(String key) => narrativeStringParameter(p, key);
     StorylineMilestoneMutation wrapped(StorylineMutationResult result) =>
         StorylineMilestoneMutation(result);
+    if (StorylineJournalActions.ids.contains(action)) {
+      return _checked(
+          context,
+          wrapped(StorylineJournalActions.mutate(action, project, p)),
+          storylineId);
+    }
     final keys = switch (action) {
       'storyline.chapter.create' => {'chapterId', 'title', 'index'},
       'storyline.chapter.rename' => {'chapterId', 'title'},
@@ -129,6 +137,11 @@ final class StorylineTrameActions {
           stepId: text('stepId'),
           sceneId: text('sceneId'))),
     };
+    return _checked(context, mutation, storylineId);
+  }
+
+  AuthoringMutationDraft _checked(AuthoringPlanningContext context,
+      StorylineMilestoneMutation mutation, String storylineId) {
     final result = mutation.result;
     if (result.disposition == StorylineMutationDisposition.rejected) {
       throw NarrativeAuthoringException(

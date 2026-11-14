@@ -603,6 +603,17 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/narrative_publication_without_map_stdio.test.ts',
     };
   }
+  if (actionId == 'storyline.milestone.set_journal' ||
+      actionId == 'storyline.clues.set') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/narrative/storyline_journal_actions_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/narrative/storyline_journal_actions_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/storyline_journal_stdio.test.ts',
+    };
+  }
   if (actionId.startsWith('storyline.chapter.') ||
       actionId.startsWith('storyline.milestone.')) {
     return const {
@@ -2499,6 +2510,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['rail_journey.'],
     'test/domains/narrative/rail_journey_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['storyline.milestone.set_journal', 'storyline.clues.'],
+    'test/domains/narrative/storyline_journal_actions_test.dart',
   ),
   _ContractEvidenceRule(
     ['storyline.chapter.', 'storyline.milestone.'],

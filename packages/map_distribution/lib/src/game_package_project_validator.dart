@@ -415,6 +415,11 @@ final class GamePackageProjectValidator {
       if (SpatialGameplayCapabilities.requiresNpcTrade(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.npcTradeCapabilityId)) {
         _fail('NPC trade offers require gameplay.npc-trade@1.');
       }
+      if (PlayerJournalCapabilities.requiresCapability(project)) {
+        if (!packageManifest.compatibility.requiredCapabilities.contains(PlayerJournalCapabilities.capabilityId)) _fail('The player journal requires ${PlayerJournalCapabilities.capabilityId}.');
+        final errors = PlayerJournalCapabilities.referenceErrors(project);
+        if (errors.isNotEmpty) _fail(errors.join('; '));
+      }
       if (project.contactDevice case final device?) {
         if (!spatial) _fail('Contact devices require a 3D project.');
         if (!packageManifest.compatibility.requiredCapabilities.contains(ProjectContactDeviceConfig.capabilityId)) _fail('Contact devices require project.contact-device@1.');

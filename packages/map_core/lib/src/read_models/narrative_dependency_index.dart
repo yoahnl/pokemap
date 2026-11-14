@@ -1934,6 +1934,17 @@ final class _NarrativeDependencyIndexBuilder {
           _collectScriptCondition(condition, owner, '$prefix.condition');
         }
       }
+      for (var index = 0; index < storyline.journalClues.length; index++) {
+        _usage(
+          target: NarrativeDependencyKey(
+            NarrativeDependencyTargetKind.fact,
+            storyline.journalClues[index].factId,
+          ),
+          owner: owner,
+          path: 'storylines[${storyline.id}].journalClues[$index].factId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+      }
       final legacySource = storyline.legacySource;
       if (legacySource != null) {
         _usage(

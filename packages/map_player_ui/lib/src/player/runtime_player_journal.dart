@@ -10,6 +10,7 @@ import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'player_control_profile.dart';
 import 'runtime_player_actions.dart';
+import 'runtime_player_journal_body.dart';
 
 class RuntimePlayerJournal extends StatefulWidget {
   const RuntimePlayerJournal({
@@ -29,6 +30,7 @@ class RuntimePlayerJournal extends StatefulWidget {
 
 class _RuntimePlayerJournalState extends State<RuntimePlayerJournal> {
   final _focusNodes = <String, FocusNode>{};
+  final _detailAnchor = GlobalKey(debugLabel: 'journal-detail-anchor');
   String? _selectedId;
   String? _pendingFocusId;
   double? _detailHeight;
@@ -86,6 +88,17 @@ class _RuntimePlayerJournalState extends State<RuntimePlayerJournal> {
   }
 
   Object? _input(RuntimePlayerLogicalIntent intent) {
+    final detail = _detailAnchor.currentContext;
+    if (detail != null &&
+        (intent.action == PlayerInputAction.left ||
+            intent.action == PlayerInputAction.right)) {
+      return Actions.maybeInvoke(
+        detail,
+        intent.action == PlayerInputAction.right
+            ? const PlayerPageIntent.next()
+            : const PlayerPageIntent.previous(),
+      );
+    }
     final delta = switch (intent.action) {
       PlayerInputAction.down => 1,
       PlayerInputAction.up => -1,
@@ -176,12 +189,15 @@ class _RuntimePlayerJournalState extends State<RuntimePlayerJournal> {
               );
               final detailItems = <Widget>[
                 if (selected != null) ...[
-                  Text(
-                    selected.title,
-                    key: const ValueKey('journal-selected-title'),
-                    style: theme.title.copyWith(
-                      fontSize: companion ? 16 : 20,
-                      height: 1.3,
+                  KeyedSubtree(
+                    key: _detailAnchor,
+                    child: Text(
+                      selected.title,
+                      key: const ValueKey('journal-selected-title'),
+                      style: theme.title.copyWith(
+                        fontSize: companion ? 16 : 20,
+                        height: 1.3,
+                      ),
                     ),
                   ),
                   if (selected.subtitle case final subtitle?)
@@ -206,6 +222,13 @@ class _RuntimePlayerJournalState extends State<RuntimePlayerJournal> {
                       color: theme.accent,
                       backgroundColor: theme.recessed,
                     ),
+                  ...journalBodyParagraphs(
+                    selected.body,
+                    style: theme.body.copyWith(
+                      fontSize: companion ? 13 : 16,
+                      height: 1.4,
+                    ),
+                  ),
                 ],
                 if (widget.detail.message case final message?)
                   Text(message, style: theme.body),

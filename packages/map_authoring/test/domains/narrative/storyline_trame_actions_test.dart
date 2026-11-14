@@ -9,7 +9,7 @@ void main() {
   test('every trame action is a described storyline action', () {
     final ids = StorylineActions.descriptors.map((item) => item.id).toSet();
     expect(ids, containsAll(StorylineTrameActions.ids));
-    expect(StorylineTrameActions.ids, hasLength(9));
+    expect(StorylineTrameActions.ids, hasLength(11));
   });
 
   for (final wire in [false, true]) {

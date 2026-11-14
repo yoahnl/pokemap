@@ -993,6 +993,7 @@ StorylineAsset _copyStorylineWith(
     legacySource: storyline.legacySource,
     authorNotes: storyline.authorNotes,
     metadata: storyline.metadata,
+    journalClues: storyline.journalClues,
   );
 }
 
@@ -1029,6 +1030,7 @@ StorylineStep _copyStepWith(
     status: step.status,
     authorNotes: step.authorNotes,
     metadata: step.metadata,
+    journal: step.journal,
   );
 }
 
@@ -1401,6 +1403,7 @@ StorylineAsset _duplicateStorylineAsset(
                 status: step.status,
                 authorNotes: step.authorNotes,
                 metadata: step.metadata,
+                journal: step.journal,
               ),
           ],
           directSceneLinkIds: chapter.directSceneLinkIds,
@@ -1474,5 +1477,6 @@ StorylineAsset _duplicateStorylineAsset(
           entry.key: entry.value,
       'duplicatedFrom': source.id,
     },
+    journalClues: source.journalClues,
   );
 }

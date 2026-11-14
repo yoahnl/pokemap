@@ -1336,6 +1336,7 @@ StorylineAsset _copyStorylineWith(
     legacySource: storyline.legacySource,
     authorNotes: storyline.authorNotes,
     metadata: storyline.metadata,
+    journalClues: storyline.journalClues,
   );
 }
 

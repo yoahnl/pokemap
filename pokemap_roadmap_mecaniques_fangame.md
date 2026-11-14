@@ -1788,6 +1788,7 @@ Objectif : rendre les mécaniques accessibles au joueur.
 | FG-163 | Runtime Save Menu V0 | `⬜ TODO` | — |
 | FG-164 | Runtime Map / Fast Travel UI V0 | `⬜ TODO` | — |
 | FG-165 | Runtime Input Lock Conventions V0 | `✅ DONE` | `reports/gameplay/fg_165_runtime_input_lock_conventions_v0_revalidation_2026-07-26.md` |
+| FG-166 | Player Journal V0 | `🟡 PARTIAL` — édition Studio à venir | tests `player_journal_*`, `storyline_journal_*`, `storyline_journal_stdio.test.ts` |
 
 ## FG-160 — Pause Menu Complete V0
 
@@ -1847,6 +1848,21 @@ Objectif : rendre les mécaniques accessibles au joueur.
 - [x] Convention unique pour dialogue/menu/battle/overworld.
 - [x] Pas de double input pendant transition.
 - [x] Tests ou doc runtime.
+```
+
+## FG-166 — Player Journal V0
+
+Journal du joueur dans le menu pause, dérivé de la sauvegarde existante (Facts, étapes terminées) : jalon en cours par storyline, jalons terminés, notes d'indices liées à un Fact.
+
+### DoD
+
+```md
+- [x] Données optionnelles : `journal` d'un jalon et `journalClues` d'une storyline, absentes = JSON inchangé.
+- [x] Projection pure map_core et entrée « Journal » activée seulement quand il y a quelque chose à afficher.
+- [x] Capacité `project.player-journal@1` déclarée à l'export et refus clair d'un Player plus ancien.
+- [x] Actions canoniques map_authoring et parité MCP (API directe, JSONL, MCP ; Studio à venir).
+- [x] Rien de nouveau dans la sauvegarde joueur.
+- [ ] Écran d'édition du journal dans le Studio.
 ```
 
 ---
