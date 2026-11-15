@@ -6,6 +6,7 @@ import '../operations/scene_warp_presentation_visual.dart';
 import '../models/project_manifest.dart';
 import '../models/project_trainer.dart';
 import '../models/scene_asset.dart';
+import '../operations/scene_output_ports.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_execution_capabilities.dart';
 import '../models/scene_interactive_command.dart';
@@ -1024,7 +1025,7 @@ void _diagnoseBranchByOutcomeNode(
     );
     return;
   }
-  if (_outcomePortIdsForBranchSource(sourceNode).isEmpty) {
+  if (sceneBranchSourceOutcomePortIds(sourceNode).isEmpty) {
     diagnostics.add(
       SceneDiagnostic(
         code: SceneDiagnosticCode.branchSourceHasNoOutcomes,
@@ -2122,7 +2123,7 @@ void _diagnosePorts(
     if (fromNode == null) {
       continue;
     }
-    final portSpecs = _v0OutputPortSpecsForNode(fromNode, nodeById);
+    final portSpecs = sceneOutputPortSpecsOf(fromNode, nodeById);
     if (portSpecs == null) {
       continue;
     }
@@ -2179,7 +2180,7 @@ void _diagnosePorts(
   }
 
   for (final node in scene.graph.nodes) {
-    final portSpecs = _v0OutputPortSpecsForNode(node, nodeById);
+    final portSpecs = sceneOutputPortSpecsOf(node, nodeById);
     if (portSpecs == null) {
       continue;
     }
@@ -2500,199 +2501,8 @@ void _diagnoseConditionNode(
   }
 }
 
-final class _SceneOutputPortSpec {
-  const _SceneOutputPortSpec({
-    required this.id,
-    required this.edgeKinds,
-    this.required = false,
-  });
-
-  final String id;
-  final Set<SceneEdgeKind> edgeKinds;
-  final bool required;
-}
-
-List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(
-  SceneNode node,
-  Map<String, SceneNode> nodeById,
-) {
-  return switch (node.kind) {
-    SceneNodeKind.start => const [
-      _SceneOutputPortSpec(
-        id: 'completed',
-        edgeKinds: {SceneEdgeKind.defaultFlow},
-        required: true,
-      ),
-    ],
-    SceneNodeKind.condition => const [
-      _SceneOutputPortSpec(
-        id: 'true',
-        edgeKinds: {SceneEdgeKind.conditionTrue},
-        required: true,
-      ),
-      _SceneOutputPortSpec(
-        id: 'false',
-        edgeKinds: {SceneEdgeKind.conditionFalse},
-        required: true,
-      ),
-    ],
-    SceneNodeKind.merge => const [
-      _SceneOutputPortSpec(
-        id: 'completed',
-        edgeKinds: {SceneEdgeKind.defaultFlow},
-        required: true,
-      ),
-    ],
-    SceneNodeKind.yarnDialogue => _yarnDialogueOutputPortSpecs(node),
-    SceneNodeKind.battle => _battleOutputPortSpecs(node),
-    SceneNodeKind.action => _actionOutputPortSpecs(node),
-    SceneNodeKind.cinematic => const [
-      _SceneOutputPortSpec(
-        id: 'completed',
-        edgeKinds: {SceneEdgeKind.cinematicCompleted},
-        required: true,
-      ),
-    ],
-    SceneNodeKind.presentationCinematic => const [
-      _SceneOutputPortSpec(
-        id: 'completed',
-        edgeKinds: {SceneEdgeKind.presentationCompleted},
-        required: true,
-      ),
-    ],
-    SceneNodeKind.end => const [],
-    SceneNodeKind.branchByOutcome => _branchOutputPortSpecs(node, nodeById),
-  };
-}
-
-List<_SceneOutputPortSpec> _actionOutputPortSpecs(SceneNode node) {
-  final payload = node.payload;
-  final interactiveCommand = payload is SceneActionPayload
-      ? payload.interactiveCommand
-      : null;
-  final preSessionInteraction = payload is SceneActionPayload
-      ? payload.preSessionInteraction
-      : null;
-  final outputPortIds =
-      interactiveCommand?.outputPortIds ??
-      preSessionInteraction?.outputPortIds ??
-      const <String>['completed'];
-  return <_SceneOutputPortSpec>[
-    for (final outputPortId in outputPortIds)
-      _SceneOutputPortSpec(
-        id: outputPortId,
-        edgeKinds: const {
-          SceneEdgeKind.defaultFlow,
-          SceneEdgeKind.actionCompleted,
-        },
-        required: true,
-      ),
-  ];
-}
-
-List<_SceneOutputPortSpec> _branchOutputPortSpecs(
-  SceneNode node,
-  Map<String, SceneNode> nodeById,
-) {
-  final payload = node.payload as SceneBranchByOutcomePayload;
-  final sourceNodeId = payload.sourceNodeId;
-  final sourceNode = sourceNodeId == null ? null : nodeById[sourceNodeId];
-  if (sourceNode == null) return const <_SceneOutputPortSpec>[];
-  final sourcePorts = _outcomePortIdsForBranchSource(sourceNode);
-  final exactPortsRequired =
-      payload.fallbackPolicy == SceneBranchOutcomeFallbackPolicy.exact;
-  return <_SceneOutputPortSpec>[
-    for (final portId in sourcePorts)
-      _SceneOutputPortSpec(
-        id: portId,
-        edgeKinds: const {SceneEdgeKind.branchOutcome},
-        required: exactPortsRequired,
-      ),
-    if (payload.fallbackPolicy ==
-            SceneBranchOutcomeFallbackPolicy.defaultRoute &&
-        !sourcePorts.contains('default'))
-      const _SceneOutputPortSpec(
-        id: 'default',
-        edgeKinds: {SceneEdgeKind.branchOutcome},
-        required: true,
-      ),
-    if (payload.fallbackPolicy == SceneBranchOutcomeFallbackPolicy.errorRoute &&
-        !sourcePorts.contains('error'))
-      const _SceneOutputPortSpec(
-        id: 'error',
-        edgeKinds: {SceneEdgeKind.error},
-        required: true,
-      ),
-  ];
-}
-
-List<String> _outcomePortIdsForBranchSource(SceneNode node) {
-  return switch (node.payload) {
-    SceneYarnDialoguePayload(:final expectedOutcomes) => <String>[
-      'completed',
-      for (final outcome in expectedOutcomes)
-        if (outcome != 'completed') outcome,
-    ],
-    SceneBattlePayload(:final declaredOutcomes) =>
-      declaredOutcomes.isEmpty
-          ? const <String>['victory', 'defeat']
-          : declaredOutcomes,
-    SceneConditionPayload() => const <String>['true', 'false'],
-    SceneActionPayload(:final interactiveCommand?) =>
-      interactiveCommand.outputPortIds,
-    SceneActionPayload(:final preSessionInteraction?) =>
-      preSessionInteraction.outputPortIds,
-    SceneStartPayload() ||
-    SceneActionPayload() ||
-    SceneCinematicPayload() ||
-    SceneMergePayload() ||
-    SceneEndPayload() ||
-    SceneBranchByOutcomePayload() => const <String>[],
-    _ => const <String>[],
-  };
-}
-
-List<_SceneOutputPortSpec> _yarnDialogueOutputPortSpecs(SceneNode node) {
-  final payload = node.payload as SceneYarnDialoguePayload;
-  return [
-    const _SceneOutputPortSpec(
-      id: 'completed',
-      edgeKinds: {SceneEdgeKind.defaultFlow},
-      required: true,
-    ),
-    for (final outcomeId in payload.expectedOutcomes)
-      if (outcomeId != 'completed')
-        _SceneOutputPortSpec(
-          id: outcomeId,
-          edgeKinds: const {SceneEdgeKind.dialogueOutcome},
-          required: true,
-        ),
-  ];
-}
-
-List<_SceneOutputPortSpec> _battleOutputPortSpecs(SceneNode node) {
-  final payload = node.payload as SceneBattlePayload;
-  final outcomes = payload.declaredOutcomes.isEmpty
-      ? const ['victory', 'defeat']
-      : payload.declaredOutcomes;
-  return [
-    for (final outcomeId in outcomes)
-      _SceneOutputPortSpec(
-        id: outcomeId,
-        edgeKinds: {
-          switch (outcomeId) {
-            'victory' => SceneEdgeKind.battleVictory,
-            'defeat' => SceneEdgeKind.battleDefeat,
-            _ => SceneEdgeKind.branchOutcome,
-          },
-        },
-        required: true,
-      ),
-  ];
-}
-
-_SceneOutputPortSpec? _findPortSpec(
-  List<_SceneOutputPortSpec> specs,
+SceneOutputPortSpec? _findPortSpec(
+  List<SceneOutputPortSpec> specs,
   String portId,
 ) {
   for (final spec in specs) {

@@ -300,6 +300,7 @@ export 'src/operations/map_collision.dart';
 export 'src/operations/tile_visual_frame_timeline.dart';
 export 'src/operations/tile_visual_frame_vertical_atlas.dart';
 export 'src/diagnostics/scene_diagnostics.dart';
+export 'src/operations/scene_output_ports.dart';
 export 'src/diagnostics/cinematic_diagnostics.dart';
 export 'src/diagnostics/event_scene_link_diagnostics.dart';
 export 'src/diagnostics/storyline_scene_link_diagnostics.dart';
