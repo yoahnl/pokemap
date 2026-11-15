@@ -3016,6 +3016,75 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get sceneFocusGraphTab => 'Graphe';
+
+  @override
+  String get sceneFocusStepsTab => 'Étapes';
+
+  @override
+  String sceneGraphKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'start': 'Début',
+      'end': 'Fin',
+      'yarnDialogue': 'Dialogue',
+      'condition': 'Condition',
+      'action': 'Action',
+      'battle': 'Combat',
+      'cinematic': 'Cinématique',
+      'presentationCinematic': 'Présentation',
+      'branchByOutcome': 'Branchement',
+      'merge': 'Convergence',
+      'other': '$kind',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String sceneGraphPort(String port) {
+    String _temp0 = intl.Intl.selectLogic(port, {
+      'true': 'Oui',
+      'false': 'Non',
+      'completed': 'Continuer',
+      'received': 'Reçu',
+      'alreadyClaimed': 'Déjà reçu aujourd’hui',
+      'bagFull': 'Sac plein',
+      'blocked': 'Indisponible',
+      'victory': 'Victoire',
+      'defeat': 'Défaite',
+      'default': 'Sinon',
+      'error': 'Erreur',
+      'party': 'Dans l’équipe',
+      'pc': 'Au PC',
+      'noCapacity': 'Plus de place',
+      'soundBlocked': 'Son coupé',
+      'cancelled': 'Annulé',
+      'quit': 'Abandon',
+      'failed': 'Échec',
+      'interrupted': 'Interrompu',
+      'other': '$port',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get sceneGraphUnset => 'À régler';
+
+  @override
+  String get sceneGraphMissing => 'Introuvable';
+
+  @override
+  String get sceneGraphFit => 'Tout afficher';
+
+  @override
+  String sceneGraphZoom(int percent) {
+    return '$percent %';
+  }
+
+  @override
+  String get sceneGraphNavigationHint =>
+      'Clic droit glissé ou deux doigts pour se déplacer · molette ou pincement pour zoomer · Maj+clic pour ajouter à la sélection';
+
+  @override
   String trameRefused(String code) {
     String _temp0 = intl.Intl.selectLogic(code, {
       'factNotLoaded':

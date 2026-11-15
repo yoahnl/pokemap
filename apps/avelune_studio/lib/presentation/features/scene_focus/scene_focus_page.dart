@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_steps.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/scene_focus_side.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/scene_focus_workspace.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_states.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
@@ -94,20 +94,11 @@ class SceneFocusPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: ListView(
-                          padding: const EdgeInsets.all(StudioSpacing.l),
-                          children: [
-                            MapBuilderStorySteps(
-                              key: ValueKey('scene-focus-steps-${scene.id}'),
-                              scene: scene,
-                              project: project,
-                              map: map,
-                              enabled:
-                                  focus.draft.editable && !focus.previewing,
-                              highlighted: focus.path?.nodeIds.toSet(),
-                              onChanged: focus.edit,
-                            ),
-                          ],
+                        child: SceneFocusWorkspace(
+                          focus: focus,
+                          scene: scene,
+                          project: project,
+                          map: map,
                         ),
                       ),
                       const VerticalDivider(width: 1),

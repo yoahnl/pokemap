@@ -1675,6 +1675,36 @@
       }
     }
   },
+  "sceneFocusGraphTab": "Graphe",
+  "sceneFocusStepsTab": "Étapes",
+  "sceneGraphKind": "{kind, select, start{Début} end{Fin} yarnDialogue{Dialogue} condition{Condition} action{Action} battle{Combat} cinematic{Cinématique} presentationCinematic{Présentation} branchByOutcome{Branchement} merge{Convergence} other{{kind}}}",
+  "@sceneGraphKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneGraphPort": "{port, select, true{Oui} false{Non} completed{Continuer} received{Reçu} alreadyClaimed{Déjà reçu aujourd’hui} bagFull{Sac plein} blocked{Indisponible} victory{Victoire} defeat{Défaite} default{Sinon} error{Erreur} party{Dans l’équipe} pc{Au PC} noCapacity{Plus de place} soundBlocked{Son coupé} cancelled{Annulé} quit{Abandon} failed{Échec} interrupted{Interrompu} other{{port}}}",
+  "@sceneGraphPort": {
+    "placeholders": {
+      "port": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneGraphUnset": "À régler",
+  "sceneGraphMissing": "Introuvable",
+  "sceneGraphFit": "Tout afficher",
+  "sceneGraphZoom": "{percent} %",
+  "@sceneGraphZoom": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "sceneGraphNavigationHint": "Clic droit glissé ou deux doigts pour se déplacer · molette ou pincement pour zoomer · Maj+clic pour ajouter à la sélection",
   "trameRefused": "{code, select, factNotLoaded{L’état de fin de ce jalon n’a pas pu être lu. Rien n’a changé.} stepTitleRequired{Un jalon a besoin d’un nom. Rien n’a changé.} stepNotFound{Ce jalon n’existe plus. Rien n’a changé.} chapterNotFound{Ce chapitre n’existe plus. Rien n’a changé.} storylineNotFound{Cette trame n’existe plus. Rien n’a changé.} sceneNotFound{Ce comportement n’existe plus. Rien n’a changé.} stepIdAlreadyExists{Un autre jalon porte déjà cet identifiant. Rien n’a changé.} chapterIdAlreadyExists{Un autre chapitre porte déjà cet identifiant. Rien n’a changé.} storylineIdAlreadyExists{Une autre trame porte déjà cet identifiant. Rien n’a changé.} chapterContainsSteps{Ce chapitre contient encore des jalons. Rien n’a changé.} journalClueFactInvalid{Cet indice doit dépendre d’un état vrai ou faux existant. Rien n’a changé.} journalClueDuplicate{Cet indice existe déjà. Rien n’a changé.} other{Cette modification n’a pas pu être appliquée. Rien n’a changé.}}",
   "@trameRefused": {
     "placeholders": {

@@ -2999,6 +2999,75 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sceneFocusGraphTab => 'Graph';
+
+  @override
+  String get sceneFocusStepsTab => 'Steps';
+
+  @override
+  String sceneGraphKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'start': 'Start',
+      'end': 'End',
+      'yarnDialogue': 'Dialogue',
+      'condition': 'Condition',
+      'action': 'Action',
+      'battle': 'Battle',
+      'cinematic': 'Cutscene',
+      'presentationCinematic': 'Presentation',
+      'branchByOutcome': 'Branch',
+      'merge': 'Merge',
+      'other': '$kind',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String sceneGraphPort(String port) {
+    String _temp0 = intl.Intl.selectLogic(port, {
+      'true': 'Yes',
+      'false': 'No',
+      'completed': 'Continue',
+      'received': 'Received',
+      'alreadyClaimed': 'Already received today',
+      'bagFull': 'Bag full',
+      'blocked': 'Unavailable',
+      'victory': 'Victory',
+      'defeat': 'Defeat',
+      'default': 'Otherwise',
+      'error': 'Error',
+      'party': 'In the party',
+      'pc': 'To the PC',
+      'noCapacity': 'No room left',
+      'soundBlocked': 'Sound off',
+      'cancelled': 'Cancelled',
+      'quit': 'Quit',
+      'failed': 'Failed',
+      'interrupted': 'Interrupted',
+      'other': '$port',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get sceneGraphUnset => 'To set';
+
+  @override
+  String get sceneGraphMissing => 'Not found';
+
+  @override
+  String get sceneGraphFit => 'Show all';
+
+  @override
+  String sceneGraphZoom(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String get sceneGraphNavigationHint =>
+      'Right-drag or two fingers to move · wheel or pinch to zoom · Shift+click to add to the selection';
+
+  @override
   String trameRefused(String code) {
     String _temp0 = intl.Intl.selectLogic(code, {
       'factNotLoaded':

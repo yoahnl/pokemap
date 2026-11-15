@@ -4836,6 +4836,60 @@ abstract class AppLocalizations {
   /// **'{step} · {detail}'**
   String sceneFocusPathStepDetail(String step, String detail);
 
+  /// No description provided for @sceneFocusGraphTab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Graphe'**
+  String get sceneFocusGraphTab;
+
+  /// No description provided for @sceneFocusStepsTab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Étapes'**
+  String get sceneFocusStepsTab;
+
+  /// No description provided for @sceneGraphKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, start{Début} end{Fin} yarnDialogue{Dialogue} condition{Condition} action{Action} battle{Combat} cinematic{Cinématique} presentationCinematic{Présentation} branchByOutcome{Branchement} merge{Convergence} other{{kind}}}'**
+  String sceneGraphKind(String kind);
+
+  /// No description provided for @sceneGraphPort.
+  ///
+  /// In fr, this message translates to:
+  /// **'{port, select, true{Oui} false{Non} completed{Continuer} received{Reçu} alreadyClaimed{Déjà reçu aujourd’hui} bagFull{Sac plein} blocked{Indisponible} victory{Victoire} defeat{Défaite} default{Sinon} error{Erreur} party{Dans l’équipe} pc{Au PC} noCapacity{Plus de place} soundBlocked{Son coupé} cancelled{Annulé} quit{Abandon} failed{Échec} interrupted{Interrompu} other{{port}}}'**
+  String sceneGraphPort(String port);
+
+  /// No description provided for @sceneGraphUnset.
+  ///
+  /// In fr, this message translates to:
+  /// **'À régler'**
+  String get sceneGraphUnset;
+
+  /// No description provided for @sceneGraphMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Introuvable'**
+  String get sceneGraphMissing;
+
+  /// No description provided for @sceneGraphFit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout afficher'**
+  String get sceneGraphFit;
+
+  /// No description provided for @sceneGraphZoom.
+  ///
+  /// In fr, this message translates to:
+  /// **'{percent} %'**
+  String sceneGraphZoom(int percent);
+
+  /// No description provided for @sceneGraphNavigationHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clic droit glissé ou deux doigts pour se déplacer · molette ou pincement pour zoomer · Maj+clic pour ajouter à la sélection'**
+  String get sceneGraphNavigationHint;
+
   /// No description provided for @trameRefused.
   ///
   /// In fr, this message translates to:

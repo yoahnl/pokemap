@@ -1,5 +1,6 @@
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/scenes/domain/scene_document.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_card_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -121,7 +122,11 @@ void main() {
 
     expect(_key('scene-focus'), findsOneWidget);
     expect(index.documentRequests, ['gate']);
-    expect(_key('scene-focus-steps-gate'), findsOneWidget);
+    expect(_key('scene-focus-graph-gate'), findsOneWidget);
+    for (final id in ['start', 'check', 'meet', 'end']) {
+      expect(_key('scene-graph-card-$id'), findsOneWidget);
+    }
+    expect(_key('scene-focus-steps-gate'), findsNothing);
     expect(_key('scene-focus-shared'), findsOneWidget);
     expect(_key('scene-focus-launcher-${behaviourId(1)}'), findsOneWidget);
     expect(_key('scene-focus-launcher-${behaviourId(2)}'), findsOneWidget);
@@ -135,13 +140,21 @@ void main() {
     expect(_key('scene-focus-path-end'), findsOneWidget);
     expect(_key('scene-focus-exit-true'), findsNothing);
     expect(
+      tester.widget<SceneGraphCardTile>(_key('scene-graph-card-meet')).onPath,
+      isTrue,
+    );
+    await _tap(tester, 'scene-focus-view-steps');
+    expect(_key('scene-focus-steps-gate'), findsOneWidget);
+    expect(_key('scene-focus-graph-gate'), findsNothing);
+    expect(
       tester.widget<Container>(_key('story-step-meet')).foregroundDecoration,
       isNull,
     );
+    await _tap(tester, 'scene-focus-view-graph');
     await _tap(tester, 'scene-focus-preview');
 
     await _tap(tester, 'scene-focus-detach');
-    expect(_key('scene-focus-steps-gate'), findsNothing);
+    expect(_key('scene-focus-graph-gate'), findsNothing);
     expect(_key('scene-focus-shared'), findsNothing);
     expect(_key('scene-focus-launcher-${behaviourId(1)}'), findsOneWidget);
     expect(_key('scene-focus-launcher-${behaviourId(2)}'), findsNothing);
@@ -171,7 +184,7 @@ void main() {
     await _tap(tester, 'trame-milestone-meet');
     await _tap(tester, 'trame-scene-open-talk');
     expect(_key('scene-focus'), findsOneWidget);
-    expect(_key('scene-focus-steps-talk'), findsOneWidget);
+    expect(_key('scene-focus-graph-talk'), findsOneWidget);
     expect(_key('scene-focus-shared'), findsNothing);
     await _tap(tester, 'scene-focus-close');
     expect(_key('scene-focus'), findsNothing);
@@ -180,7 +193,7 @@ void main() {
     await settleMemory(tester);
     expect(_key('map-story-inspector-entity:guide'), findsOneWidget);
     await _tap(tester, 'map-story-scene-open');
-    expect(_key('scene-focus-steps-talk'), findsOneWidget);
+    expect(_key('scene-focus-graph-talk'), findsOneWidget);
     expect(index.documentRequests, ['talk', 'talk']);
   });
 }
