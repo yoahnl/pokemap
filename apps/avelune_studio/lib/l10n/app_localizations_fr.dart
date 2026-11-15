@@ -2041,28 +2041,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get storyStepsTitle => 'ÉTAPES';
-
-  @override
-  String get storyStepAdd => 'Étape';
-
-  @override
   String get storyStepAdvanced => 'Étape avancée';
 
   @override
   String get storyStepAdvancedHint =>
       'Elle se règle ailleurs et reste conservée telle quelle.';
-
-  @override
-  String get storyStepTrueGraph =>
-      'Cette scène a des chemins qui se croisent : elle se lit ici sans pouvoir être modifiée en liste.';
-
-  @override
-  String get storyStepLoop =>
-      'Cette scène revient en arrière en boucle : elle se lit ici sans pouvoir être modifiée en liste.';
-
-  @override
-  String get storyStepEmpty => 'Aucune étape.';
 
   @override
   String get storyStepIf => 'Si';
@@ -2075,21 +2058,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storyStepMain => 'Si tout se passe bien';
-
-  @override
-  String get storyStepRemove => 'Retirer l’étape';
-
-  @override
-  String get storyStepWrap => 'Mettre dans un « si »';
-
-  @override
-  String get storyStepActions => 'Actions de l’étape';
-
-  @override
-  String get storyStepDrag => 'Glisser pour déplacer';
-
-  @override
-  String get storyStepRefused => 'Cette modification n’est pas possible ici.';
 
   @override
   String get storyStepFactField => 'Fait';
@@ -2139,16 +2107,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String storyStepOtherMap(String map) {
     return 'Sur une autre carte : $map';
-  }
-
-  @override
-  String storyStepOnFailure(String reason) {
-    return 'En cas d’échec · $reason';
-  }
-
-  @override
-  String storyStepOutcome(String outcome) {
-    return 'Si « $outcome »';
   }
 
   @override
@@ -3086,6 +3044,27 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get sceneGraphPreparing => 'Préparation de l’édition…';
+
+  @override
+  String get sceneGraphOpen => 'Ouvrir le graphe';
+
+  @override
+  String sceneGraphPreviewSummary(int steps, int problems) {
+    String _temp0 = intl.Intl.pluralLogic(
+      steps,
+      locale: localeName,
+      other: '$steps étapes',
+      one: '1 étape',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      problems,
+      locale: localeName,
+      other: '$problems problèmes',
+      one: '1 problème',
+      zero: 'aucun problème',
+    );
+    return '$_temp0 · $_temp1';
+  }
 
   @override
   String get sceneGraphSearch => 'Ajouter une étape';

@@ -8,7 +8,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_story_elem
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/scenes/application/scene_path_preview.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_families.dart';
-import 'package:avelune_studio/features/scenes/application/steps/scene_step_projection.dart';
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_ports.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviour_labels.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';

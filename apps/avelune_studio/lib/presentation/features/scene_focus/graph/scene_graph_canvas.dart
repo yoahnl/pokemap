@@ -10,7 +10,7 @@ import 'package:avelune_studio/features/scenes/application/graph/scene_graph_che
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
-import 'package:avelune_studio/features/scenes/application/steps/scene_step_commands.dart';
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_ids.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_templates.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_camera.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_painters.dart';

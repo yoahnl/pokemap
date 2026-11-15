@@ -3409,18 +3409,6 @@ abstract class AppLocalizations {
   /// **'{family, select, rememberFact{Retenir un fait} talk{Parler} showOrHide{Faire apparaître ou disparaître} musicAndSound{Musique et son} battle{Combat} giveItem{Donner un objet} conditions{Conditions} other{Autres}}'**
   String storyStepFamily(String family);
 
-  /// No description provided for @storyStepsTitle.
-  ///
-  /// In fr, this message translates to:
-  /// **'ÉTAPES'**
-  String get storyStepsTitle;
-
-  /// No description provided for @storyStepAdd.
-  ///
-  /// In fr, this message translates to:
-  /// **'Étape'**
-  String get storyStepAdd;
-
   /// No description provided for @storyStepAdvanced.
   ///
   /// In fr, this message translates to:
@@ -3432,24 +3420,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Elle se règle ailleurs et reste conservée telle quelle.'**
   String get storyStepAdvancedHint;
-
-  /// No description provided for @storyStepTrueGraph.
-  ///
-  /// In fr, this message translates to:
-  /// **'Cette scène a des chemins qui se croisent : elle se lit ici sans pouvoir être modifiée en liste.'**
-  String get storyStepTrueGraph;
-
-  /// No description provided for @storyStepLoop.
-  ///
-  /// In fr, this message translates to:
-  /// **'Cette scène revient en arrière en boucle : elle se lit ici sans pouvoir être modifiée en liste.'**
-  String get storyStepLoop;
-
-  /// No description provided for @storyStepEmpty.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucune étape.'**
-  String get storyStepEmpty;
 
   /// No description provided for @storyStepIf.
   ///
@@ -3474,36 +3444,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Si tout se passe bien'**
   String get storyStepMain;
-
-  /// No description provided for @storyStepRemove.
-  ///
-  /// In fr, this message translates to:
-  /// **'Retirer l’étape'**
-  String get storyStepRemove;
-
-  /// No description provided for @storyStepWrap.
-  ///
-  /// In fr, this message translates to:
-  /// **'Mettre dans un « si »'**
-  String get storyStepWrap;
-
-  /// No description provided for @storyStepActions.
-  ///
-  /// In fr, this message translates to:
-  /// **'Actions de l’étape'**
-  String get storyStepActions;
-
-  /// No description provided for @storyStepDrag.
-  ///
-  /// In fr, this message translates to:
-  /// **'Glisser pour déplacer'**
-  String get storyStepDrag;
-
-  /// No description provided for @storyStepRefused.
-  ///
-  /// In fr, this message translates to:
-  /// **'Cette modification n’est pas possible ici.'**
-  String get storyStepRefused;
 
   /// No description provided for @storyStepFactField.
   ///
@@ -3600,18 +3540,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Sur une autre carte : {map}'**
   String storyStepOtherMap(String map);
-
-  /// No description provided for @storyStepOnFailure.
-  ///
-  /// In fr, this message translates to:
-  /// **'En cas d’échec · {reason}'**
-  String storyStepOnFailure(String reason);
-
-  /// No description provided for @storyStepOutcome.
-  ///
-  /// In fr, this message translates to:
-  /// **'Si « {outcome} »'**
-  String storyStepOutcome(String outcome);
 
   /// No description provided for @storyStepFailureReason.
   ///
@@ -4889,6 +4817,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Préparation de l’édition…'**
   String get sceneGraphPreparing;
+
+  /// No description provided for @sceneGraphOpen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir le graphe'**
+  String get sceneGraphOpen;
+
+  /// No description provided for @sceneGraphPreviewSummary.
+  ///
+  /// In fr, this message translates to:
+  /// **'{steps, plural, =1{1 étape} other{{steps} étapes}} · {problems, plural, =0{aucun problème} =1{1 problème} other{{problems} problèmes}}'**
+  String sceneGraphPreviewSummary(int steps, int problems);
 
   /// No description provided for @sceneGraphSearch.
   ///

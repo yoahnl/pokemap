@@ -6,7 +6,7 @@ import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_steps.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_preview.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class MapBuilderStoryLineField extends StatelessWidget {
@@ -88,6 +88,18 @@ class MapBuilderStoryLineField extends StatelessWidget {
         ],
         MapStoryLineState.scene => [
           scenePicker(l10n.storyThenField),
+          if (record.sceneId case final sceneId?)
+            if (binding.sceneOf(sceneId) case final scene?) ...[
+              const SizedBox(height: StudioSpacing.m),
+              SceneGraphPreview(
+                scene: scene,
+                project: binding.maps.project,
+                onOpen: switch (binding.openScene) {
+                  final open? => () => open(sceneId, record.id),
+                  null => null,
+                },
+              ),
+            ],
           if ((binding.openScene, record.sceneId) case (
             final open?,
             final sceneId?,
@@ -97,26 +109,13 @@ class MapBuilderStoryLineField extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: StudioButton(
                 key: const ValueKey('map-story-scene-open'),
-                variant: StudioButtonVariant.quiet,
-                icon: Icons.open_in_full,
-                label: l10n.sceneFocusOpen,
+                variant: StudioButtonVariant.secondary,
+                icon: Icons.account_tree_outlined,
+                label: l10n.sceneGraphOpen,
                 onPressed: () => open(sceneId, record.id),
               ),
             ),
           ],
-          if (binding.maps.project case final project?)
-            if (record.sceneId case final sceneId?)
-              if (binding.sceneOf(sceneId) case final scene?) ...[
-                const SizedBox(height: StudioSpacing.m),
-                MapBuilderStorySteps(
-                  key: ValueKey('map-story-steps-$sceneId'),
-                  scene: scene,
-                  project: project,
-                  map: binding.map,
-                  enabled: editable,
-                  onChanged: (next) => binding.editScene(sceneId, next),
-                ),
-              ],
         ],
       },
     );

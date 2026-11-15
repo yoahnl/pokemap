@@ -1,6 +1,6 @@
 import 'package:map_core/map_core_domain.dart';
 
-import 'steps/scene_step_projection.dart';
+import 'steps/scene_step_ports.dart';
 
 final class ScenePathExit {
   const ScenePathExit(this.portId, this.targetNodeId);

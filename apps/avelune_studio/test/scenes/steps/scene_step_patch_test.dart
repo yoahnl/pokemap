@@ -1,4 +1,5 @@
-import 'package:avelune_studio/features/scenes/application/steps/scene_step_commands.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_patch.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
@@ -72,10 +73,10 @@ SceneAsset applyThroughAuthoring(SceneAsset before, SceneGraphPatch patch) {
 
 void expectPatchMatchesReplacement(
   SceneAsset before,
-  SceneStepEditResult edit,
+  SceneGraphEditResult edit,
 ) {
-  expect(edit, isA<SceneStepEdited>());
-  final edited = edit as SceneStepEdited;
+  expect(edit, isA<SceneGraphEdited>());
+  final edited = edit as SceneGraphEdited;
   final graphOnly = applyThroughAuthoring(
     before,
     patchOf(before, edited.scene),
@@ -90,7 +91,7 @@ void expectPatchMatchesReplacement(
   expect(result, isA<SceneGraphPatchReady>());
   final patch = (result as SceneGraphPatchReady).patch;
   expect(
-    patch.nodeLayouts.map((layout) => layout.nodeId),
+    patch.nodeLayouts.map((layout) => layout.nodeId).toSet(),
     edited.createdNodeIds,
   );
   expect(applyThroughAuthoring(before, patch), edited.scene);
@@ -99,23 +100,21 @@ void expectPatchMatchesReplacement(
 void main() {
   test('the patch only carries what changed, in the canonical shape', () {
     final before = baseScene();
-    final edit = insertSceneStep(
+    final edit = addSceneGraphStep(
       before,
-      at: const SceneStepSlot(index: 1),
       kind: SceneNodeKind.action,
       payload: SceneActionPayload.interactive(
         SceneInteractiveCommand.wait(durationMs: 1),
       ),
+      at: const SceneGraphPoint(900, 300),
+      from: (nodeId: 'a', portId: 'completed'),
       ids: countingIds(),
-    ) as SceneStepEdited;
+    ) as SceneGraphEdited;
     final patch = patchOf(before, edit.scene);
     expect(patch.upsertNodes.map((node) => node.id), ['new_node_1']);
     expect(patch.removeNodeIds, isEmpty);
-    expect(patch.upsertEdges.map((edge) => edge.id), [
-      'a.completed',
-      'new_edge_1',
-    ]);
-    expect(patch.removeEdgeIds, isEmpty);
+    expect(patch.upsertEdges.map((edge) => edge.id), ['new_edge_1']);
+    expect(patch.removeEdgeIds, ['a.completed']);
     final descriptor = SceneActions.descriptors.singleWhere(
       (candidate) => candidate.id == sceneGraphPatchActionId,
     );
@@ -125,52 +124,56 @@ void main() {
     );
   });
 
-  test('an untouched list produces an empty patch', () {
+  test('an untouched scene produces an empty patch', () {
     final before = baseScene();
     final patch = patchOf(before, before);
     expect(patch.isEmpty, isTrue);
     expect(applyThroughAuthoring(before, patch).graph, before.graph);
   });
 
-  test('applying each command patch equals replacing the whole scene', () {
+  test('applying each graph edit as a patch equals replacing the whole '
+      'scene', () {
     final before = baseScene();
     expectPatchMatchesReplacement(
       before,
-      insertSceneStep(
+      addSceneGraphStep(
         before,
-        at: const SceneStepSlot(blockNodeId: 'if', index: 1),
         kind: SceneNodeKind.action,
         payload: SceneActionPayload.interactive(
           SceneInteractiveCommand.openPc(),
         ),
+        at: const SceneGraphPoint(400, 400),
+        from: (nodeId: 'if', portId: 'false'),
         ids: countingIds(),
       ),
     );
     expectPatchMatchesReplacement(
       before,
-      removeSceneStep(before, nodeId: 'if', ids: countingIds()),
+      removeSceneGraphItems(before, nodeIds: {'b'}),
     );
     expectPatchMatchesReplacement(
       before,
-      removeSceneStep(before, nodeId: 'b', ids: countingIds()),
+      removeSceneGraphItems(before, edgeIds: {'c.completed'}),
     );
     expectPatchMatchesReplacement(
       before,
-      moveSceneStep(
+      connectSceneGraphExit(
         before,
-        nodeId: 'a',
-        to: const SceneStepSlot(blockNodeId: 'if', index: 2),
+        from: (nodeId: 'if', portId: 'false'),
+        toNodeId: 'end',
         ids: countingIds(),
       ),
     );
     expectPatchMatchesReplacement(
       before,
-      wrapSceneStepsInCondition(
+      editSceneGraphStep(
         before,
-        from: const SceneStepSlot(blockNodeId: 'if', index: 0),
-        count: 2,
-        condition: weekdayCondition(),
-        ids: countingIds(),
+        SceneNode(
+          id: 'if',
+          kind: SceneNodeKind.condition,
+          title: 'Lundi',
+          payload: weekdayCondition(),
+        ),
       ),
     );
   });

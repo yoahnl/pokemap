@@ -10,8 +10,9 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/features/scenes/application/steps/scene_step_commands.dart';
-import 'package:avelune_studio/features/scenes/application/steps/scene_step_patch.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_ids.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
 import 'package:avelune_studio/features/story_draft/application/story_publication_gateway.dart';
 import 'package:avelune_studio/features/story_draft/domain/story_dialogue_source.dart';
@@ -191,20 +192,32 @@ void main() {
         (node) => node.kind == SceneNodeKind.yarnDialogue,
       );
       var next = 0;
-      final inserted = insertSceneStep(
+      final ids = SceneStepIds(
+        node: () => 'again_${next++}',
+        edge: () => 'again_link_${next++}',
+      );
+      final first = base.graph.edges.singleWhere(
+        (edge) => edge.fromNodeId == base.graph.startNodeId,
+      );
+      final inserted = addSceneGraphStep(
         base,
-        at: const SceneStepSlot(index: 1),
         kind: talk.kind,
         payload: talk.payload,
-        ids: SceneStepIds(
-          node: () => 'again_${next++}',
-          edge: () => 'again_link_${next++}',
-        ),
+        at: const SceneGraphPoint(0, 400),
+        from: (nodeId: base.graph.startNodeId, portId: first.fromPortId),
+        ids: ids,
       );
-      final edited = (inserted as SceneStepEdited).scene;
+      final created = (inserted as SceneGraphEdited).createdNodeIds.single;
+      final edited = (connectSceneGraphExit(
+        inserted.scene,
+        from: (nodeId: created, portId: 'completed'),
+        toNodeId: first.toNodeId,
+        ids: ids,
+      ) as SceneGraphEdited).scene;
       expect(
-        sceneGraphPatchForScenes(base: base, current: edited),
-        isA<SceneGraphPatchReady>(),
+        {for (final layout in edited.layout.nodeLayouts) layout.nodeId},
+        {for (final node in edited.graph.nodes) node.id},
+        reason: 'the first graph edit stores every step where it was shown',
       );
       expect(story.editScene(scene.id, edited), isTrue, reason: story.error);
       operations.clear();

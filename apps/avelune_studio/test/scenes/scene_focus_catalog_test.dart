@@ -5,7 +5,7 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
-import 'package:avelune_studio/features/scenes/application/steps/scene_step_commands.dart';
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_ids.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';

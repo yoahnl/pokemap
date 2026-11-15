@@ -1,7 +1,7 @@
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
-import 'package:avelune_studio/features/scenes/application/steps/scene_step_commands.dart';
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_ids.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 

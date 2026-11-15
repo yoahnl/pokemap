@@ -1106,22 +1106,12 @@
       }
     }
   },
-  "storyStepsTitle": "ÉTAPES",
-  "storyStepAdd": "Étape",
   "storyStepAdvanced": "Étape avancée",
   "storyStepAdvancedHint": "Elle se règle ailleurs et reste conservée telle quelle.",
-  "storyStepTrueGraph": "Cette scène a des chemins qui se croisent : elle se lit ici sans pouvoir être modifiée en liste.",
-  "storyStepLoop": "Cette scène revient en arrière en boucle : elle se lit ici sans pouvoir être modifiée en liste.",
-  "storyStepEmpty": "Aucune étape.",
   "storyStepIf": "Si",
   "storyStepThen": "Alors",
   "storyStepElse": "Sinon",
   "storyStepMain": "Si tout se passe bien",
-  "storyStepRemove": "Retirer l’étape",
-  "storyStepWrap": "Mettre dans un « si »",
-  "storyStepActions": "Actions de l’étape",
-  "storyStepDrag": "Glisser pour déplacer",
-  "storyStepRefused": "Cette modification n’est pas possible ici.",
   "storyStepFactField": "Fait",
   "storyStepValueField": "Valeur",
   "storyStepYes": "Oui",
@@ -1141,22 +1131,6 @@
   "@storyStepOtherMap": {
     "placeholders": {
       "map": {
-        "type": "String"
-      }
-    }
-  },
-  "storyStepOnFailure": "En cas d’échec · {reason}",
-  "@storyStepOnFailure": {
-    "placeholders": {
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
-  "storyStepOutcome": "Si « {outcome} »",
-  "@storyStepOutcome": {
-    "placeholders": {
-      "outcome": {
         "type": "String"
       }
     }
@@ -1705,6 +1679,18 @@
   "sceneGraphNavigationHint": "Clic droit glissé ou deux doigts pour se déplacer · molette ou pincement pour zoomer · Maj+clic pour ajouter à la sélection",
   "sceneGraphEditHint": "Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic pour délier · ⌘C ⌘X ⌘V ⌘D · ⌘Z pour annuler",
   "sceneGraphPreparing": "Préparation de l’édition…",
+  "sceneGraphOpen": "Ouvrir le graphe",
+  "sceneGraphPreviewSummary": "{steps, plural, =1{1 étape} other{{steps} étapes}} · {problems, plural, =0{aucun problème} =1{1 problème} other{{problems} problèmes}}",
+  "@sceneGraphPreviewSummary": {
+    "placeholders": {
+      "steps": {
+        "type": "int"
+      },
+      "problems": {
+        "type": "int"
+      }
+    }
+  },
   "sceneGraphSearch": "Ajouter une étape",
   "sceneGraphNoMatch": "Aucune étape ne correspond.",
   "sceneGraphUnavailable": "Rien à choisir dans ce projet pour l’instant",

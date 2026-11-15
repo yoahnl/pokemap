@@ -652,22 +652,12 @@
       }
     }
   },
-  "storyStepsTitle": "STEPS",
-  "storyStepAdd": "Step",
   "storyStepAdvanced": "Advanced step",
   "storyStepAdvancedHint": "It is set up elsewhere and kept as is.",
-  "storyStepTrueGraph": "This scene has crossing paths: it can be read here but not edited as a list.",
-  "storyStepLoop": "This scene loops back: it can be read here but not edited as a list.",
-  "storyStepEmpty": "No step.",
   "storyStepIf": "If",
   "storyStepThen": "Then",
   "storyStepElse": "Otherwise",
   "storyStepMain": "When it succeeds",
-  "storyStepRemove": "Remove step",
-  "storyStepWrap": "Put inside an “if”",
-  "storyStepActions": "Step actions",
-  "storyStepDrag": "Drag to move",
-  "storyStepRefused": "This change is not possible here.",
   "storyStepFactField": "Fact",
   "storyStepValueField": "Value",
   "storyStepYes": "Yes",
@@ -687,22 +677,6 @@
   "@storyStepOtherMap": {
     "placeholders": {
       "map": {
-        "type": "String"
-      }
-    }
-  },
-  "storyStepOnFailure": "On failure · {reason}",
-  "@storyStepOnFailure": {
-    "placeholders": {
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
-  "storyStepOutcome": "If “{outcome}”",
-  "@storyStepOutcome": {
-    "placeholders": {
-      "outcome": {
         "type": "String"
       }
     }
@@ -926,6 +900,8 @@
   "sceneGraphNavigationHint": "Right-drag or two fingers to move · wheel or pinch to zoom · Shift+click to add to the selection",
   "sceneGraphEditHint": "Drag an exit onto a step to link · right-click to add · Delete to erase · Alt+click to unlink · ⌘C ⌘X ⌘V ⌘D · ⌘Z to undo",
   "sceneGraphPreparing": "Preparing editing…",
+  "sceneGraphOpen": "Open the graph",
+  "sceneGraphPreviewSummary": "{steps, plural, =1{1 step} other{{steps} steps}} · {problems, plural, =0{no problem} =1{1 problem} other{{problems} problems}}",
   "sceneGraphSearch": "Add a step",
   "sceneGraphNoMatch": "No step matches.",
   "sceneGraphUnavailable": "Nothing to choose in this project yet",

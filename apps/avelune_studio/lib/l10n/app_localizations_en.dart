@@ -2029,27 +2029,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get storyStepsTitle => 'STEPS';
-
-  @override
-  String get storyStepAdd => 'Step';
-
-  @override
   String get storyStepAdvanced => 'Advanced step';
 
   @override
   String get storyStepAdvancedHint => 'It is set up elsewhere and kept as is.';
-
-  @override
-  String get storyStepTrueGraph =>
-      'This scene has crossing paths: it can be read here but not edited as a list.';
-
-  @override
-  String get storyStepLoop =>
-      'This scene loops back: it can be read here but not edited as a list.';
-
-  @override
-  String get storyStepEmpty => 'No step.';
 
   @override
   String get storyStepIf => 'If';
@@ -2062,21 +2045,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storyStepMain => 'When it succeeds';
-
-  @override
-  String get storyStepRemove => 'Remove step';
-
-  @override
-  String get storyStepWrap => 'Put inside an “if”';
-
-  @override
-  String get storyStepActions => 'Step actions';
-
-  @override
-  String get storyStepDrag => 'Drag to move';
-
-  @override
-  String get storyStepRefused => 'This change is not possible here.';
 
   @override
   String get storyStepFactField => 'Fact';
@@ -2126,16 +2094,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String storyStepOtherMap(String map) {
     return 'On another map: $map';
-  }
-
-  @override
-  String storyStepOnFailure(String reason) {
-    return 'On failure · $reason';
-  }
-
-  @override
-  String storyStepOutcome(String outcome) {
-    return 'If “$outcome”';
   }
 
   @override
@@ -3069,6 +3027,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sceneGraphPreparing => 'Preparing editing…';
+
+  @override
+  String get sceneGraphOpen => 'Open the graph';
+
+  @override
+  String sceneGraphPreviewSummary(int steps, int problems) {
+    String _temp0 = intl.Intl.pluralLogic(
+      steps,
+      locale: localeName,
+      other: '$steps steps',
+      one: '1 step',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      problems,
+      locale: localeName,
+      other: '$problems problems',
+      one: '1 problem',
+      zero: 'no problem',
+    );
+    return '$_temp0 · $_temp1';
+  }
 
   @override
   String get sceneGraphSearch => 'Add a step';

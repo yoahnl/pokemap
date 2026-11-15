@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_catalog_transaction.dart';
-import 'package:avelune_studio/features/scenes/application/steps/scene_step_commands.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_ids.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_patch.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
 import 'package:avelune_studio/features/scenes/domain/scene_port.dart';
@@ -25,9 +27,16 @@ void main() {
   });
 
   SceneAsset insertRememberedFact(SceneAsset scene) {
-    final edit = insertSceneStep(
+    final next = scene.graph.edges.singleWhere(
+      (edge) => edge.fromNodeId == 'welcome' && edge.fromPortId == 'completed',
+    );
+    var links = 0;
+    final ids = SceneStepIds(
+      node: () => 'remember',
+      edge: () => 'remembered_${links++}',
+    );
+    final added = addSceneGraphStep(
       scene,
-      at: const SceneStepSlot(index: 1),
       kind: SceneNodeKind.action,
       payload: SceneActionPayload.consequence(
         SceneConsequence.setFact(
@@ -35,9 +44,17 @@ void main() {
           value: false,
         ),
       ),
-      ids: SceneStepIds(node: () => 'remember', edge: () => 'remembered'),
+      at: const SceneGraphPoint(0, 400),
+      from: (nodeId: 'welcome', portId: 'completed'),
+      ids: ids,
     );
-    return (edit as SceneStepEdited).scene;
+    final relinked = connectSceneGraphExit(
+      (added as SceneGraphEdited).scene,
+      from: (nodeId: 'remember', portId: 'completed'),
+      toNodeId: next.toNodeId,
+      ids: ids,
+    );
+    return (relinked as SceneGraphEdited).scene;
   }
 
   Future<List<String>> recordedActions(Ui06SceneFixture fixture) async {
@@ -65,11 +82,11 @@ void main() {
     ) as SceneGraphPatchReady).patch;
     expect(patch.upsertNodes.map((node) => node.id), ['remember']);
     expect(patch.upsertEdges.map((edge) => edge.id), [
-      'edge_welcome_completed_pass',
-      'remembered',
+      'remembered_0',
+      'remembered_1',
     ]);
     expect(patch.removeNodeIds, isEmpty);
-    expect(patch.removeEdgeIds, isEmpty);
+    expect(patch.removeEdgeIds, ['edge_welcome_completed_pass']);
     expect(patch.nodeLayouts.single.nodeId, 'remember');
     final patchBytes = utf8.encode(jsonEncode(patch.toParameters())).length;
     final wholeBytes = utf8.encode(jsonEncode(current.toJson())).length;
