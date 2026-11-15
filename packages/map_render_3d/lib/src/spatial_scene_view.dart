@@ -463,6 +463,9 @@ class SpatialSceneController extends ModelPreviewController {
   }
 
   Future<bool> Function(SpatialScenePreparation)? _prepareDestination;
+  Offset? Function(Model3dVector3)? _projectPoint;
+  Offset? projectToViewport(Model3dVector3 point) =>
+      _projectPoint?.call(point);
   SpatialShadowStats Function()? _readShadowStats;
   SpatialDecorationRenderStats Function()? _readDecorationStats;
   SpatialDecorationRenderStats get decorationStats => _readDecorationStats?.call() ?? const SpatialDecorationRenderStats();
@@ -512,7 +515,9 @@ class SpatialSceneView extends StatefulWidget {
     required this.errorBuilder,
     this.selectedCell,
     this.selectedContent,
+    this.additionalSelectedContent = const [],
     this.contentPreview,
+    this.additionalContentPreviews = const [],
     this.placementPreview,
     this.onHover,
     this.onSurfaceTap,
@@ -616,7 +621,9 @@ class SpatialSceneView extends StatefulWidget {
   final Color background, ground, edge;
   final (int, int)? selectedCell;
   final SpatialSceneContentHit? selectedContent;
+  final List<SpatialSceneContentHit> additionalSelectedContent;
   final SpatialSceneContentPreview? contentPreview;
+  final List<SpatialSceneContentPreview> additionalContentPreviews;
   final SpatialModelPlacementPreview? placementPreview;
   final ValueChanged<SpatialSurfaceHit?>? onHover;
   final ValueChanged<SpatialSurfaceHit>? onSurfaceTap;
@@ -678,6 +685,8 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   bool previewStatusUpdateScheduled = false;
   bool draggingContent = false;
   SpatialContentDrag? contentDrag;
+  SpatialDragThreshold? contentDragThreshold;
+  Offset? pressPosition;
   double? contentDragHeight;
   double trackpadScale = 1;
   int? navigationPointer;
@@ -705,6 +714,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     super.initState();
     widget.controller.sceneChanges.addListener(scheduleHoverRefresh);
     widget.controller._prepareDestination = prepareDestination;
+    widget.controller._projectPoint = projectPoint;
     widget.controller._readShadowStats = readShadowStats;
     widget.controller._readDecorationStats = readDecorationStats;
     widget.controller._readActorContactShadowCount =
@@ -714,6 +724,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
 
   Future<bool> prepareDestination(SpatialScenePreparation request) async =>
       mounted ? await game?.prepareDestination(request) ?? false : false;
+
+  Offset? projectPoint(Model3dVector3 point) =>
+      mounted ? game?.projectScenePoint(point) : null;
 
   SpatialDecorationRenderStats readDecorationStats() => game?.decorationStats ?? const SpatialDecorationRenderStats();
 
@@ -812,6 +825,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   }
 
   void pointerDown(PointerDownEvent event) {
+    pressPosition = event.localPosition;
     if (navigationPointer != null) return;
     navigationSequence = false;
     navigationDragged = false;
@@ -906,6 +920,10 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       }
       widget.controller.sceneChanges.addListener(scheduleHoverRefresh);
       widget.controller._prepareDestination = prepareDestination;
+      if (oldWidget.controller._projectPoint == projectPoint) {
+        oldWidget.controller._projectPoint = null;
+      }
+      widget.controller._projectPoint = projectPoint;
       oldWidget.controller._readShadowStats = null;
       oldWidget.controller._readDecorationStats = null;
       oldWidget.controller._readActorContactShadowCount = null;
@@ -986,7 +1004,11 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       game.renderedConfiguration = widget;
       game.syncVisibility();
       game.syncContentSelection(oldWidget, widget);
-      if (!identical(oldWidget.contentPreview, widget.contentPreview)) {
+      if (!identical(oldWidget.contentPreview, widget.contentPreview) ||
+          !identical(
+            oldWidget.additionalContentPreviews,
+            widget.additionalContentPreviews,
+          )) {
         game.syncContentPreview();
       }
       if (!identical(oldWidget.placementPreview, widget.placementPreview) || oldWidget.authoringTarget != widget.authoringTarget) {
@@ -1003,6 +1025,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     widget.controller.sceneChanges.removeListener(scheduleHoverRefresh);
     if (widget.controller._prepareDestination == prepareDestination) {
       widget.controller._prepareDestination = null;
+    }
+    if (widget.controller._projectPoint == projectPoint) {
+      widget.controller._projectPoint = null;
     }
     if (widget.controller._readActorContactShadowCount ==
         readActorContactShadowCount) {
@@ -1105,6 +1130,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
                           pointerOrigin: ground!,
                         )
                       : null;
+                  contentDragThreshold = SpatialDragThreshold(
+                    pressPosition ?? event.localPosition,
+                  );
                   if (!draggingContent) contentDragHeight = null;
                 },
                 onPanEnd: (_) {
@@ -1123,6 +1151,10 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
                   if (navigationSequence) return;
                   hoverAt(event.localPosition);
                   if (draggingContent) {
+                    if (contentDragThreshold?.passed(event.localPosition) ==
+                        false) {
+                      return;
+                    }
                     final cell = contentDragHeight == null
                         ? game.pickCell(event.localPosition)
                         : game.pickPlaneCell(
@@ -2393,7 +2425,11 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       syncLighting();
     }
     syncContentSelection(before, configuration);
-    if (!identical(before.contentPreview, configuration.contentPreview))
+    if (!identical(before.contentPreview, configuration.contentPreview) ||
+        !identical(
+          before.additionalContentPreviews,
+          configuration.additionalContentPreviews,
+        ))
       syncContentPreview();
     if (!identical(before.placementPreview, configuration.placementPreview))
       syncPlacementPreview();
@@ -2776,50 +2812,47 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   final Map<String, List<MeshComponent>> modelSelections = {};
 
   void syncContentSelection(SpatialSceneView? before, SpatialSceneView after) {
-    if (before?.selectedContent?.kind == after.selectedContent?.kind &&
-        before?.selectedContent?.id == after.selectedContent?.id &&
-        before?.selectionColor == after.selectionColor && before?.authoringTarget?.decorationKey == after.authoringTarget?.decorationKey) {
+    final restyled =
+        before?.selectionColor != after.selectionColor ||
+        before?.authoringTarget?.decorationKey !=
+            after.authoringTarget?.decorationKey;
+    if (before != null && !restyled && spatialSameSelection(before, after)) {
       return;
     }
-    final oldId = before?.selectedContent?.kind == SpatialSceneContentKind.model
-        ? before?.selectedContent?.id
-        : null;
-    if (oldId != null) {
-      final previous = modelSelections.remove(oldId);
-      if (previous != null) {
-        for (final component in previous) { component.removeFromParent(); }
+    final models = spatialSelectedIds(after, SpatialSceneContentKind.model);
+    for (final id in [...modelSelections.keys]) {
+      if (!restyled && models.contains(id)) continue;
+      for (final component in modelSelections.remove(id)!) {
+        component.removeFromParent();
       }
     }
-    if (before?.selectedContent?.kind == SpatialSceneContentKind.actor) {
-      final actorId = before!.selectedContent!.id;
-      final previous = actorSelections.remove(actorId);
-      if (previous != null) actors[actorId]?.mesh.removeAll(previous);
+    final actorIds = spatialSelectedIds(after, SpatialSceneContentKind.actor);
+    for (final id in [...actorSelections.keys]) {
+      if (!restyled && actorIds.contains(id)) continue;
+      actors[id]?.mesh.removeAll(actorSelections.remove(id)!);
     }
-    if (after.selectedContent?.kind != SpatialSceneContentKind.model) return;
-    final id = after.selectedContent!.id;
-    final component = _editingModels(after)[id]?.component;
-    if (component == null || !component.sourceGeometryVisible) return;
-    final bounds = component.visibleBounds;
-    final selection = spatialSelectionFrame(
-      Vector3(bounds.min.x, bounds.min.y, bounds.min.z),
-      Vector3(bounds.max.x, bounds.max.y, bounds.max.z),
-      .04 / component.scale.x,
-      after.selectionColor ?? after.edge,
-    );
-    modelSelections[id] = selection;
-    component.addAll(selection);
+    for (final id in models) {
+      if (modelSelections.containsKey(id)) continue;
+      final component = _editingModels(after)[id]?.component;
+      if (component == null || !component.sourceGeometryVisible) continue;
+      final bounds = component.visibleBounds;
+      final selection = spatialSelectionFrame(
+        Vector3(bounds.min.x, bounds.min.y, bounds.min.z),
+        Vector3(bounds.max.x, bounds.max.y, bounds.max.z),
+        .04 / component.scale.x,
+        after.selectionColor ?? after.edge,
+      );
+      modelSelections[id] = selection;
+      component.addAll(selection);
+    }
   }
 
   void syncContentPreview() {
     if (refreshing) return;
-    final preview = visibleConfiguration.contentPreview;
+    final previews = spatialModelPreviews(visibleConfiguration);
     for (final entry in _editingModels(visibleConfiguration).entries) {
       final model = entry.value;
-      final position =
-          preview?.kind == SpatialSceneContentKind.model &&
-              preview?.id == entry.key
-          ? preview!.position
-          : model.anchor;
+      final position = previews[entry.key] ?? model.anchor;
       model.component.position.setValues(
         model.position.x + position.x - model.anchor.x,
         model.position.y + position.y - model.anchor.y,
@@ -3256,9 +3289,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       actor.mesh.scale.y *= frame.height / 1.92;
       final selected =
           actorVisible &&
-          configuration.selectedContent?.kind ==
-              SpatialSceneContentKind.actor &&
-          configuration.selectedContent?.id == entry.key;
+          spatialSelectedIds(
+            configuration,
+            SpatialSceneContentKind.actor,
+          ).contains(entry.key);
       if (selected && !actorSelections.containsKey(entry.key)) {
         final selection = spatialSelectionFrame(
           Vector3(-.96, 0, 0),
@@ -3485,6 +3519,8 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       pickContent(offset)?.cell ?? pickCell(offset);
   SpatialModelInstance? pickModel(Offset offset) {
     if (refreshing) return null;
+    final ray = _cameraRay(offset);
+    if (ray == null) return null;
     final configuration = visibleConfiguration;
     SpatialModelInstance? selected;
     var nearest = double.infinity;
@@ -3523,57 +3559,68 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           ? definition.inspection.bounds
           : modelComponents[instance.id]?.component.visibleBounds;
       if (bounds == null) continue;
-      final angle = instance.rotationDegrees * math.pi / 180;
-      final scale = instance.scale * definition.scale;
-      final projected = <Offset>[];
-      var depth = 0.0;
-      for (final x in [bounds.min.x, bounds.max.x]) {
-        for (final y in [bounds.min.y, bounds.max.y]) {
-          for (final z in [bounds.min.z, bounds.max.z]) {
-            final dx = (x - definition.pivot.x) * scale;
-            final dz = (z - definition.pivot.z) * scale;
-            final worldX =
-                instance.position.x +
-                editingOffset.dx +
-                dx * math.cos(angle) +
-                dz * math.sin(angle);
-            final worldZ =
-                instance.position.z +
-                editingOffset.dy -
-                dx * math.sin(angle) +
-                dz * math.cos(angle);
-            final clip = camera.viewProjectionMatrix.transform(
-              Vector4(
-                worldX,
-                instance.position.y + (y - definition.pivot.y) * scale,
-                worldZ,
-                1,
-              ),
-            );
-            if (clip.w <= 0) continue;
-            projected.add(
-              Offset(
-                (clip.x / clip.w + 1) * size.x / 2,
-                (1 - clip.y / clip.w) * size.y / 2,
-              ),
-            );
-            depth += clip.z / clip.w;
-          }
-        }
-      }
-      if (projected.length != 8) continue;
-      final rect = Rect.fromLTRB(
-        projected.map((point) => point.dx).reduce(math.min),
-        projected.map((point) => point.dy).reduce(math.min),
-        projected.map((point) => point.dx).reduce(math.max),
-        projected.map((point) => point.dy).reduce(math.max),
+      final distance = _modelRayEntry(
+        ray,
+        instance,
+        definition,
+        bounds,
+        editingOffset - configuration.sceneOffset,
       );
-      if (rect.contains(offset) && depth < nearest) {
+      if (distance != null && distance < nearest) {
         selected = instance;
-        nearest = depth;
+        nearest = distance;
       }
     }
-    return selected;
+    if (selected == null || target != null) return selected;
+    final ground = pickSpatialSurface(configuration.scene, ray.$1, ray.$2);
+    if (ground == null) return selected;
+    final point = Vector3(
+      ground.position.x,
+      ground.position.y,
+      ground.position.z,
+    );
+    final groundDistance =
+        (point - ray.$1).dot(ray.$2) / ray.$2.length2;
+    return groundDistance + .000001 < nearest ? null : selected;
+  }
+
+  double? _modelRayEntry(
+    (Vector3, Vector3) ray,
+    SpatialModelInstance instance,
+    ProjectModel3dEntry definition,
+    Model3dBounds bounds,
+    Offset editingOffset,
+  ) {
+    final angle = instance.rotationDegrees * math.pi / 180;
+    final scale = instance.scale * definition.scale;
+    final cosine = math.cos(angle), sine = math.sin(angle);
+    Vector3 local(Vector3 vector) => Vector3(
+      (vector.x * cosine - vector.z * sine) / scale,
+      vector.y / scale,
+      (vector.x * sine + vector.z * cosine) / scale,
+    );
+    final origin = local(
+      ray.$1 -
+          Vector3(
+            instance.position.x + editingOffset.dx,
+            instance.position.y,
+            instance.position.z + editingOffset.dy,
+          ),
+    );
+    return spatialRayBoxEntry(
+      origin,
+      local(ray.$2),
+      Vector3(
+        bounds.min.x - definition.pivot.x,
+        bounds.min.y - definition.pivot.y,
+        bounds.min.z - definition.pivot.z,
+      ),
+      Vector3(
+        bounds.max.x - definition.pivot.x,
+        bounds.max.y - definition.pivot.y,
+        bounds.max.z - definition.pivot.z,
+      ),
+    );
   }
 
   (Vector3, Vector3)? _editingPointerRay(Offset offset) {
@@ -3628,12 +3675,30 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     Offset offset, {
     bool allowStableSurface = false,
   }) {
-    if (!sceneReady || size.x <= 0 || size.y <= 0) return null;
+    if (!sceneReady) return null;
     if (refreshing &&
         (!allowStableSurface ||
             !configuration.surfaceGeometryMatches(visibleConfiguration))) {
       return null;
     }
+    return _cameraRay(offset);
+  }
+
+  Offset? projectScenePoint(Model3dVector3 point) {
+    if (!sceneReady || size.x <= 0 || size.y <= 0) return null;
+    final offset = visibleConfiguration.sceneOffset;
+    final clip = camera.viewProjectionMatrix.transform(
+      Vector4(point.x + offset.dx, point.y, point.z + offset.dy, 1),
+    );
+    if (clip.w <= 0) return null;
+    return Offset(
+      (clip.x / clip.w + 1) * size.x / 2,
+      (1 - clip.y / clip.w) * size.y / 2,
+    );
+  }
+
+  (Vector3, Vector3)? _cameraRay(Offset offset) {
+    if (size.x <= 0 || size.y <= 0) return null;
     final inverse = Matrix4.copy(camera.viewProjectionMatrix);
     if (inverse.invert() == 0) return null;
     final x = offset.dx / size.x * 2 - 1;

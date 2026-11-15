@@ -1,5 +1,12 @@
 part of 'map_workspace_controller.dart';
 
+const _scopedCatalogActions = {
+  'map.create',
+  'map.update_metadata',
+  'map.library.reorganize',
+  'map.duplicate',
+};
+
 extension MapWorkspaceCatalogPreparation on MapWorkspaceController {
   Future<MapCatalogPreparation> prepareCatalog(
     String actionId,
@@ -107,7 +114,9 @@ extension MapWorkspaceCatalogPreparation on MapWorkspaceController {
   }
 
   String? _catalogProblem(String actionId, String? targetId) {
-    if (!hasCompleteProject) {
+    if (!hasCompleteProject &&
+        (project?.settings.dimension != ProjectDimension.threeD ||
+            !_scopedCatalogActions.contains(actionId))) {
       return 'Chargez tous les ateliers avant de modifier le catalogue du projet.';
     }
     if (_disposed ||

@@ -10,19 +10,7 @@ extension _MapElementPlacementCommands on MapEditingCommands {
       return null;
     }
     element = current;
-    var map = document.current;
-    final layer = supportLayer(
-      map,
-      preferredLayerId: element.recommendedLayerId,
-    );
-    if (!map.layers.any((entry) => entry.id == layer.id)) {
-      final layers = [...map.layers];
-      layers.insert(
-        resolveAuthoredLayerInsertIndex(map, activeLayerId: null),
-        layer,
-      );
-      map = map.copyWith(layers: layers);
-    }
+    final (map, layer) = _withSupportLayer(document.current, element);
     final id = _freshElementId(map);
     final instance = MapPlacedElement(
       id: id,
@@ -76,6 +64,23 @@ extension _MapElementPlacementCommands on MapEditingCommands {
     document.stackPosition = copy.pos;
     document.stackPixelPosition = null;
     return id;
+  }
+
+  (MapData, TileLayer) _withSupportLayer(
+    MapData map,
+    ProjectElementEntry element,
+  ) {
+    final layer = supportLayer(
+      map,
+      preferredLayerId: element.recommendedLayerId,
+    );
+    if (map.layers.any((entry) => entry.id == layer.id)) return (map, layer);
+    final layers = [...map.layers];
+    layers.insert(
+      resolveAuthoredLayerInsertIndex(map, activeLayerId: null),
+      layer,
+    );
+    return (map.copyWith(layers: layers), layer);
   }
 
   String _freshElementId(MapData map) {

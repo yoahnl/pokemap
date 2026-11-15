@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'dart:ui' show Offset;
+
 import 'package:flame_3d/core.dart';
 import 'package:map_core/map_core.dart';
 
@@ -114,6 +116,40 @@ SpatialSurfaceHit? pickSpatialSurface(
     }
   }
   return selected;
+}
+
+const spatialContentDragSlop = 4.0;
+
+final class SpatialDragThreshold {
+  SpatialDragThreshold(this.origin, {this.slop = spatialContentDragSlop});
+  final Offset origin;
+  final double slop;
+  bool _passed = false;
+
+  bool passed(Offset pointer) =>
+      _passed = _passed || (pointer - origin).distance >= slop;
+}
+
+double? spatialRayBoxEntry(
+  Vector3 origin,
+  Vector3 direction,
+  Vector3 minimum,
+  Vector3 maximum,
+) {
+  var enter = 0.0, leave = double.infinity;
+  for (var axis = 0; axis < 3; axis++) {
+    if (direction[axis].abs() < .000000001) {
+      if (origin[axis] < minimum[axis] || origin[axis] > maximum[axis]) {
+        return null;
+      }
+      continue;
+    }
+    final first = (minimum[axis] - origin[axis]) / direction[axis];
+    final last = (maximum[axis] - origin[axis]) / direction[axis];
+    enter = math.max(enter, math.min(first, last));
+    leave = math.min(leave, math.max(first, last));
+  }
+  return leave < enter ? null : enter;
 }
 
 final class SpatialContentDrag {

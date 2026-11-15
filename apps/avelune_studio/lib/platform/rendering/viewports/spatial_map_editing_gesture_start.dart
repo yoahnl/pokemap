@@ -1,6 +1,33 @@
 part of 'spatial_map_editing_viewport.dart';
 
 extension _SpatialGestureStart on _SpatialMapEditingViewportState {
+  bool get additivePress {
+    final keys = HardwareKeyboard.instance;
+    return widget.view.tool == StudioMapTool.select &&
+        widget.view.pendingMove == null &&
+        (keys.isShiftPressed || keys.isMetaPressed);
+  }
+
+  bool toggleNonModelHit(
+    SpatialSceneContentHit? hit, {
+    required bool dragging,
+  }) {
+    if (hit == null || dragging || !additivePress) return false;
+    final (family, id) = switch (hit.kind) {
+      SpatialSceneContentKind.actor => (
+        MapSelectionFamily.character,
+        hit.id.startsWith('npc:') ? hit.id.substring(4) : hit.id,
+      ),
+      SpatialSceneContentKind.marker => (MapSelectionFamily.marker, hit.id),
+      SpatialSceneContentKind.warp => (MapSelectionFamily.warp, hit.id),
+      SpatialSceneContentKind.model => (null, hit.id),
+    };
+    if (family == null) return false;
+    widget.view.toggleInSelection(editingDocument, family, id);
+    widget.onChanged();
+    return true;
+  }
+
   bool start(
     int x,
     int z, {
@@ -83,6 +110,7 @@ extension _SpatialGestureStart on _SpatialMapEditingViewportState {
     final document = editingDocument;
     final cell = GridPos(x: x, y: z);
     final commands = SpatialModelEditingCommands(document, widget.project);
+    if (toggleNonModelHit(hit, dragging: dragging)) return false;
     if (const {
       StudioMapTool.relief,
       StudioMapTool.slope,
@@ -186,11 +214,7 @@ extension _SpatialGestureStart on _SpatialMapEditingViewportState {
           widget.onChanged();
           return false;
         }
-        final keys = HardwareKeyboard.instance;
-        if (widget.view.tool == StudioMapTool.select &&
-            armed == null &&
-            !dragging &&
-            (keys.isShiftPressed || keys.isMetaPressed)) {
+        if (armed == null && !dragging && additivePress) {
           widget.view.toggleDecorInSelection(document, instance.id);
         } else if (widget.view.tool != StudioMapTool.select) {
           commands.delete(instance.id);

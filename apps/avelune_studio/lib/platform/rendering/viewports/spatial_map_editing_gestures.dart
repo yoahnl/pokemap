@@ -53,6 +53,8 @@ extension _SpatialGestureFlow on _SpatialMapEditingViewportState {
               reliefStroke!.level == widget.view.spatialTerrainLevel);
 
   SpatialSceneContentPreview? get contentPreview {
+    final gizmo = gizmoPreviews;
+    if (gizmo.isNotEmpty) return gizmo.first;
     if (!contentGestureValid) return null;
     final scene = editingDocument.current.spatialScene!;
     if (modelGesture != null && modelEnd != null) {
@@ -180,7 +182,7 @@ extension _SpatialGestureFlow on _SpatialMapEditingViewportState {
       widget.onChanged();
       return;
     }
-    if (modelGesture != null && modelEnd != null) {
+    if (modelGesture != null && modelEnd != null && modelEnd != modelOrigin) {
       try {
         SpatialModelEditingCommands(editingDocument, widget.project).update(
           modelGesture!,

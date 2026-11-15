@@ -34,12 +34,13 @@ extension _LocalMapCatalogMutation on LocalMapCatalogAdapter {
         'Le catalogue a changé depuis son ouverture. Rien n’a été publié.',
       );
     }
-    if (actionId == 'map.create' &&
+    if (mapCatalogScopedActions.contains(actionId) &&
         session.storage == ProjectSessionStorage.workingCatalog &&
         before.manifest.settings.dimension == ProjectDimension.threeD) {
-      return _createSpatialMap(
+      return _mutateScoped(
         session,
         before,
+        actionId,
         parameters,
         expectedMapRevisions: expectedMapRevisions,
         validateBeforeApply: validateBeforeApply,

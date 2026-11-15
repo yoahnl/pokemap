@@ -60,6 +60,8 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
   int previewGeneration = 0;
   Object? error;
   (EditableMapDocument, String)? previewProblem;
+  SpatialGizmoAxis? gizmoAxis;
+  double gizmoStep = 0;
   String? modelGesture;
   GridPos? modelEnd;
   GridPos? modelOrigin;
@@ -280,7 +282,13 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
         setState(() {});
         if (!focused && nudgeKeys.isNotEmpty) cancel();
       },
-      child: Stack(children: [Positioned.fill(child: sceneView(visuals))]),
+      child: Stack(
+        children: [
+          Positioned.fill(child: sceneView(visuals)),
+          if (gizmoOverlay(context) case final gizmo?)
+            Positioned.fill(child: gizmo),
+        ],
+      ),
     );
   }
 }

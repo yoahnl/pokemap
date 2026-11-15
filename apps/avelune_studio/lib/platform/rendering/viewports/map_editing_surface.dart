@@ -24,6 +24,7 @@ class MapEditingSurface extends StatelessWidget {
     this.onSave,
     this.onUndo,
     this.onRedo,
+    this.onCanvasMenu,
     this.busy = false,
   });
 
@@ -36,8 +37,18 @@ class MapEditingSurface extends StatelessWidget {
   final VoidCallback? onSave;
   final VoidCallback? onUndo;
   final VoidCallback? onRedo;
+  final void Function(GridPos cell, Offset globalPosition)? onCanvasMenu;
   final VoidCallback onChanged;
   final bool busy;
+
+  void _contextMenu(GridPos cell, Offset globalPosition) {
+    final menu = onCanvasMenu;
+    if (menu == null) {
+      input.open(cell);
+    } else if (!busy && input.editingAvailable) {
+      menu(cell, globalPosition);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +98,7 @@ class MapEditingSurface extends StatelessWidget {
                         view: view,
                         onChanged: onChanged,
                         onZoneDrawn: onZoneDrawn,
-                        onContextMenu: (cell, _) => input.open(cell),
+                        onContextMenu: _contextMenu,
                       )
                     : SpatialMapEditingViewport(
                         key: ValueKey(document.base.mapId),
@@ -101,7 +112,7 @@ class MapEditingSurface extends StatelessWidget {
                         exteriorContextReady: neighbors?.ready ?? true,
                         onChanged: onChanged,
                         onZoneDrawn: onZoneDrawn,
-                        onContextMenu: (cell, _) => input.open(cell),
+                        onContextMenu: _contextMenu,
                       ),
               ),
             ),

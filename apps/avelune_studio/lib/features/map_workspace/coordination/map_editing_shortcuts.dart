@@ -1,11 +1,11 @@
 import 'package:avelune_studio/features/map_workspace/coordination/editor_shortcuts.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_selection_shortcuts.dart';
 
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_command_runner.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_deletion_guard.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
@@ -33,11 +33,15 @@ Map<ShortcutActivator, VoidCallback> mapEditingShortcuts(
   final commands = document == null || project == null
       ? null
       : MapEditingCommands(document, project);
-  final characters = document == null || project == null
+  final selection = view == null
       ? null
-      : CharacterEditingCommands(document, project);
+      : MapSelectionActions(controller, view, contextAt: contextAt);
   void delete() {
     if (document == null || project == null) return;
+    if (selection != null && selection.selection.length > 1) {
+      selection.delete();
+      return;
+    }
     final selected = selectedContextTarget(document, project, view);
     if (selected == null) {
       commands?.deleteSelected();
@@ -80,12 +84,18 @@ Map<ShortcutActivator, VoidCallback> mapEditingShortcuts(
 
   final result = <ShortcutActivator, VoidCallback>{
     const SingleActivator(LogicalKeyboardKey.escape): () => guarded(() {
-      if (document != null && view != null) {
+      if (document != null &&
+          view != null &&
+          view.tool == StudioMapTool.select &&
+          view.pendingMove == null) {
+        view.clearSelection(document);
+      } else if (document != null && view != null) {
         cancelMapInput(view);
       } else {
         view?.tool = StudioMapTool.select;
       }
     }),
+    if (selection != null) ...mapSelectionShortcuts(selection, guarded),
     if (onContextMenu != null)
       const SingleActivator(LogicalKeyboardKey.f10, shift: true): () =>
           guarded(onContextMenu),
@@ -128,25 +138,6 @@ Map<ShortcutActivator, VoidCallback> mapEditingShortcuts(
       )] = () =>
           guarded(onCommandPalette);
     }
-    result[SingleActivator(
-      LogicalKeyboardKey.keyD,
-      meta: meta,
-      control: !meta,
-    )] = () => guarded(() {
-      final id = document == null
-          ? null
-          : view?.selectedFor(
-              document.current.id,
-              MapSelectionFamily.character,
-            );
-      if (id != null && characters?.selected(id) != null) {
-        view!.select(
-          document!,
-          MapSelectionFamily.character,
-          characters!.duplicate(id).id,
-        );
-      }
-    });
     result[SingleActivator(
       LogicalKeyboardKey.arrowUp,
       meta: meta,

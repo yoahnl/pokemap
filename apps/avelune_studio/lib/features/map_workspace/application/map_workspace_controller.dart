@@ -20,6 +20,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_element_clipboard.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 
@@ -71,6 +72,7 @@ class MapWorkspaceController {
   final Map<String, int> _mapEpochs = {};
   final Set<void Function()> _listeners = {};
   ProjectManifest? project;
+  MapElementClipboard? clipboard;
   MapWorkspaceProjectScope projectScope;
   final Map<String, MapWorkspaceSelection> _selections = {};
   final _visualScopeMapIds = <String, String>{};

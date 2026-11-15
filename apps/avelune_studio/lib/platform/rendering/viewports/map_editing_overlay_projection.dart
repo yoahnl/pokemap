@@ -40,6 +40,37 @@ MapEditingOverlay buildEditingOverlay({
             view.selectedDecorIds(map.id).contains(element.id))
           element,
     ],
+    extraAreas: [
+      for (final extra in view.selectionIn(map.id).skip(1))
+        ?switch (extra.family) {
+          MapSelectionFamily.character || MapSelectionFamily.marker =>
+            map.entities
+                .where((entity) => entity.id == extra.id)
+                .map((entity) => MapRect(pos: entity.pos, size: entity.size))
+                .firstOrNull,
+          MapSelectionFamily.warp =>
+            map.warps
+                .where((warp) => warp.id == extra.id)
+                .map(
+                  (warp) => MapRect(
+                    pos: warp.pos,
+                    size: const GridSize(width: 1, height: 1),
+                  ),
+                )
+                .firstOrNull,
+          MapSelectionFamily.zone =>
+            map.gameplayZones
+                .where((zone) => zone.id == extra.id)
+                .firstOrNull
+                ?.area,
+          MapSelectionFamily.trigger =>
+            map.triggers
+                .where((trigger) => trigger.id == extra.id)
+                .firstOrNull
+                ?.area,
+          MapSelectionFamily.decor => null,
+        },
+    ],
     selectedEntity: map.entities
         .where(
           (entity) =>

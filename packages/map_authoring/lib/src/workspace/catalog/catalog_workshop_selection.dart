@@ -41,6 +41,7 @@ part 'catalog_audio_media_selection.dart';
 part 'catalog_battle_recipe_selection.dart';
 part 'catalog_gen5_battle_source_selection.dart';
 part 'catalog_map_creation_selection.dart';
+part 'catalog_map_duplicate_selection.dart';
 part 'catalog_map_metadata_selection.dart';
 part 'catalog_contextual_item_scope.dart';
 part 'catalog_asset_import_selection.dart';
@@ -196,7 +197,7 @@ final class CatalogWorkshopSelection {
     Map<String, Object?> parameters = const {},
     Map<String, String> readDependencies = const {},
   }) async {
-    if (actionId != 'map.create' && actionId != 'map.library.reorganize' && !_nativeResourceActions.containsKey(actionId) &&
+    if (actionId != 'map.create' && actionId != 'map.duplicate' && actionId != 'map.library.reorganize' && !_nativeResourceActions.containsKey(actionId) &&
         !const {'model3d.import', 'model3d.import_batch', 'tileset.import_image'}.contains(actionId) &&
         !supports(actionId, parameters: parameters)) {
       unsupported(actionId);
@@ -244,6 +245,10 @@ final class CatalogWorkshopSelection {
     if (const {'model3d.import', 'model3d.import_batch', 'tileset.import_image'}.contains(actionId)) {
       if (readDependencies.isNotEmpty) unsupported(actionId);
       return _readAssetImportWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
+    }
+    if (actionId == 'map.duplicate') {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readMapDuplicateWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters);
     }
     if (actionId == 'map.create') {
       if (readDependencies.isNotEmpty) unsupported(actionId);

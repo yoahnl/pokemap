@@ -3551,4 +3551,304 @@ class AppLocalizationsEn extends AppLocalizations {
   String reliefReasonOther(String code) {
     return 'the trace is refused ($code).';
   }
+
+  @override
+  String get mapLibraryAdd => 'Add a map or a folder';
+
+  @override
+  String get mapLibraryNewMap => 'New map…';
+
+  @override
+  String get mapLibraryNewMapHere => 'New map in this folder…';
+
+  @override
+  String get mapLibraryNewFolder => 'New folder…';
+
+  @override
+  String get mapLibraryNewSubfolder => 'New subfolder…';
+
+  @override
+  String get mapLibraryOpen => 'Open';
+
+  @override
+  String get mapLibraryRename => 'Rename';
+
+  @override
+  String get mapLibraryDuplicate => 'Duplicate';
+
+  @override
+  String get mapLibraryMove => 'Move to…';
+
+  @override
+  String get mapLibraryDelete => 'Delete…';
+
+  @override
+  String get mapLibraryRenameFolder => 'Rename folder';
+
+  @override
+  String get mapLibraryDeleteFolder => 'Delete folder';
+
+  @override
+  String get mapLibraryFolderNotEmpty =>
+      'Empty this folder before deleting it: it still holds maps or subfolders.';
+
+  @override
+  String mapLibraryMapActions(String name) {
+    return 'Actions for map “$name”';
+  }
+
+  @override
+  String mapLibraryFolderActions(String name) {
+    return 'Actions for folder “$name”';
+  }
+
+  @override
+  String mapLibraryCopyName(String name) {
+    return '$name (copy)';
+  }
+
+  @override
+  String get mapLibraryNewMapTitle => 'New map';
+
+  @override
+  String get mapLibraryName => 'Name';
+
+  @override
+  String get mapLibraryWidth => 'Width (cells)';
+
+  @override
+  String get mapLibraryHeight => 'Height (cells)';
+
+  @override
+  String get mapLibraryKind3d => '3D map, like every map of this project.';
+
+  @override
+  String get mapLibraryKind2d => '2D map, like every map of this project.';
+
+  @override
+  String get mapLibraryFolder => 'Folder';
+
+  @override
+  String get mapLibraryNoFolder => 'No folder';
+
+  @override
+  String get mapLibraryCreate => 'Create';
+
+  @override
+  String get mapLibraryCancel => 'Cancel';
+
+  @override
+  String get mapLibraryClose => 'Close';
+
+  @override
+  String mapLibraryMoveTitle(String name) {
+    return 'Move “$name”';
+  }
+
+  @override
+  String get mapLibraryMoveConfirm => 'Move';
+
+  @override
+  String get mapLibraryNewFolderTitle => 'New folder';
+
+  @override
+  String mapLibraryDeleteTitle(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String get mapLibraryDeleteBody =>
+      'No map, scene or rule of the project uses this map. It will leave the library with its file.';
+
+  @override
+  String get mapLibraryDeleteConfirm => 'Delete';
+
+  @override
+  String mapLibraryDeleteAnalyzing(String name) {
+    return 'Looking for the uses of “$name”…';
+  }
+
+  @override
+  String mapLibraryInUseTitle(String name) {
+    return '“$name” is in use';
+  }
+
+  @override
+  String get mapLibraryInUseBody =>
+      'Remove these uses before deleting the map:';
+
+  @override
+  String mapLibraryUsageMap(String name) {
+    return 'Map “$name”: warp, connection or element leading here';
+  }
+
+  @override
+  String get mapLibraryUsageMapUnnamed => 'Another map of the project';
+
+  @override
+  String mapLibraryUsageScene(String name) {
+    return 'Scene “$name”';
+  }
+
+  @override
+  String get mapLibraryUsageSceneUnnamed => 'A scene of the project';
+
+  @override
+  String mapLibraryUsageStoryline(String name) {
+    return 'Story “$name”';
+  }
+
+  @override
+  String get mapLibraryUsageStorylineUnnamed => 'A story of the project';
+
+  @override
+  String mapLibraryUsageWorldRule(String name) {
+    return 'World rule “$name”';
+  }
+
+  @override
+  String get mapLibraryUsageWorldRuleUnnamed => 'A world rule';
+
+  @override
+  String mapLibraryUsageCinematic(String name) {
+    return 'Cutscene “$name”';
+  }
+
+  @override
+  String get mapLibraryUsageCinematicUnnamed => 'A cutscene';
+
+  @override
+  String get mapLibraryUsageEvent => 'A behaviour or an event';
+
+  @override
+  String get mapLibraryUsageNewGame => 'New game: the player’s starting map';
+
+  @override
+  String get mapLibraryUsageRegionalMap => 'Region map (fly)';
+
+  @override
+  String get mapLibraryUsageOther => 'Another part of the project';
+
+  @override
+  String get mapLibraryNameRequired => 'Enter a name.';
+
+  @override
+  String mapLibrarySizeInvalid(int max) {
+    return 'Width and height: 1 to $max cells.';
+  }
+
+  @override
+  String get mapLibraryFolderNameTaken =>
+      'A folder already has this name here.';
+
+  @override
+  String get mapLibraryMissing => 'This item no longer exists in the project.';
+
+  @override
+  String get mapLibraryRefused => 'The operation was refused.';
+
+  @override
+  String mapLibraryPublishedNotIntegrated(String detail) {
+    return 'It is saved on disk, but the library could not reload: $detail';
+  }
+
+  @override
+  String get mapLibraryBusy => 'A map operation is in progress.';
+
+  @override
+  String get mapMenuCut => 'Cut';
+
+  @override
+  String get mapMenuCopy => 'Copy';
+
+  @override
+  String get mapMenuPaste => 'Paste';
+
+  @override
+  String get mapMenuDuplicate => 'Duplicate';
+
+  @override
+  String get mapMenuDelete => 'Delete';
+
+  @override
+  String get mapMenuRotate => 'Rotate 90°';
+
+  @override
+  String get mapMenuProperties => 'Properties';
+
+  @override
+  String get mapMenuMove => 'Move';
+
+  @override
+  String get mapMenuBringForward => 'Bring forward';
+
+  @override
+  String get mapMenuSendBackward => 'Send backward';
+
+  @override
+  String get mapMenuClipboardEmpty => 'Copy or cut an element first.';
+
+  @override
+  String get mapMenuRotateUnavailable => 'Only 3D decors can rotate.';
+
+  @override
+  String get mapLibraryDeleteUnavailable =>
+      'Deleting is not available yet on a catalog project like this one: finding every use of a map needs an index that does not exist yet.';
+
+  @override
+  String get selectionEyebrow => 'SELECTION';
+
+  @override
+  String get selectionKind3d => '3D decor';
+
+  @override
+  String get selectionKindDecor => 'Decor';
+
+  @override
+  String get selectionKindCharacter => 'Character';
+
+  @override
+  String get selectionKindMarker => 'Marker';
+
+  @override
+  String get selectionKindWarp => 'Passage';
+
+  @override
+  String get selectionKindZone => 'Gameplay zone';
+
+  @override
+  String get selectionKindTrigger => 'Story zone';
+
+  @override
+  String get selectionX => 'X';
+
+  @override
+  String get selectionY => 'Y';
+
+  @override
+  String get selectionZ => 'Z (height)';
+
+  @override
+  String get selectionRotation => 'Rotation (°)';
+
+  @override
+  String get selectionScale => 'Scale';
+
+  @override
+  String get selectionAnimations => 'Animations';
+
+  @override
+  String get selectionAnimationsHint => 'Loops the model animation.';
+
+  @override
+  String get selectionInvalidNumber => 'Enter a valid number.';
+
+  @override
+  String selectionCount(int count) {
+    return '$count selected elements';
+  }
+
+  @override
+  String get selectionGroupHint =>
+      'Arrow keys, the 3D axis handle, Copy, Duplicate and Delete act on the whole group.';
 }

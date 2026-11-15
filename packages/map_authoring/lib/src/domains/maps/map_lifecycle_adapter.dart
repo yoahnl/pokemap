@@ -346,7 +346,8 @@ final class MapLifecycleAdapter {
       allowed: const {'sourceMapId', 'targetMapId', 'name', 'groupId'},
     );
     final snapshot = context.snapshot;
-    _requireCompleteMapInventory(snapshot);
+    final targeted = _targetedCatalog(snapshot);
+    if (!targeted) _requireCompleteMapInventory(snapshot);
     _requireManifestOwnership(snapshot.manifest);
     final sourceId = parameters.string('sourceMapId');
     final entry = _requireMapEntry(snapshot.manifest, sourceId);
@@ -395,7 +396,11 @@ final class MapLifecycleAdapter {
         ),
       ],
     );
-    _validateProjected(manifest, [...snapshot.maps, duplicated]);
+    if (targeted) {
+      _validateScopedMap(duplicated);
+    } else {
+      _validateProjected(manifest, [...snapshot.maps, duplicated]);
+    }
     final mapRef = AuthoringResourceRef(kind: 'map', id: targetId);
     final projectRef = _existingResource(snapshot, 'project', 'project');
     return AuthoringMutationDraft(
@@ -869,6 +874,23 @@ AuthoringResourceRef _existingResource(
     );
   }
   return AuthoringResourceRef(kind: kind, id: id, revision: revision);
+}
+
+bool _targetedCatalog(ProjectSnapshot snapshot) =>
+    snapshot.materializedCatalogProject &&
+    snapshot.scopedStorageRevisions != null;
+
+void _validateScopedMap(MapData map) {
+  try {
+    MapValidator.validate(map);
+  } on ValidationException catch (error) {
+    throw _failure(
+      error.code ?? 'map.projected_state_invalid',
+      error.message,
+      details: error.details,
+      remediation: error.remediation,
+    );
+  }
 }
 
 void _validateProjected(ProjectManifest manifest, Iterable<MapData> maps) {

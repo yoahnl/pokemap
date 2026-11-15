@@ -1,8 +1,13 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_map_library_actions.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_map_tree_tiles.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 
@@ -15,12 +20,14 @@ class MapBuilderMapTree extends StatefulWidget {
     required this.maps,
     required this.activeMapId,
     required this.onSelect,
+    this.commands,
   });
 
   final List<ProjectMapGroup> groups;
   final List<ProjectMapEntry> maps;
   final String? activeMapId;
   final ValueChanged<ProjectMapEntry>? onSelect;
+  final MapLibraryCommands? commands;
 
   @override
   State<MapBuilderMapTree> createState() => _MapBuilderMapTreeState();
@@ -28,49 +35,102 @@ class MapBuilderMapTree extends StatefulWidget {
 
 class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
   final _search = TextEditingController();
+  final _focus = FocusNode(debugLabel: 'map-library-tree');
   final _expanded = <String>{};
   String? _revealed;
+  String? _selected;
+  String? _renaming;
+  String? _notice;
+  (String, Duration)? _lastDown;
 
   @override
   void dispose() {
     _search.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
+  MapBuilderMapLibraryActions? get _actions {
+    final commands = widget.commands;
+    if (commands == null) return null;
+    return MapBuilderMapLibraryActions(
+      commands: commands,
+      onOpen: widget.onSelect,
+      onRename: _startRename,
+      onFailure: (message) {
+        if (mounted) setState(() => _notice = message);
+      },
+    );
+  }
+
   String _folderKey(MapLibraryRow row) => row.folderId ?? _unfiledFolder;
+
+  void _startRename(String key) {
+    if (widget.commands == null) return;
+    setState(() {
+      _selected = key;
+      _renaming = key;
+      _notice = null;
+    });
+  }
+
+  void _pointerDown(String key) {
+    final now = Duration(microseconds: DateTime.now().microsecondsSinceEpoch);
+    final last = _lastDown;
+    _lastDown = (key, now);
+    _focus.requestFocus();
+    if (_selected != key) setState(() => _selected = key);
+    if (last != null && last.$1 == key && now - last.$2 < kDoubleTapTimeout) {
+      _lastDown = null;
+      if (key != 'folder:') _startRename(key);
+    }
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    final actions = _actions;
+    if (event is! KeyDownEvent || _renaming != null || actions == null) {
+      return KeyEventResult.ignored;
+    }
+    final key =
+        _selected ??
+        (widget.activeMapId == null ? null : 'map:${widget.activeMapId}');
+    if (key == null || key == 'folder:') return KeyEventResult.ignored;
+    final pressed = event.logicalKey;
+    if (pressed == LogicalKeyboardKey.f2) {
+      _startRename(key);
+      return KeyEventResult.handled;
+    }
+    if (pressed != LogicalKeyboardKey.delete &&
+        pressed != LogicalKeyboardKey.backspace) {
+      return KeyEventResult.ignored;
+    }
+    actions.deleteRow(context, key);
+    return KeyEventResult.handled;
+  }
+
+  void _endRename() {
+    setState(() => _renaming = null);
+    _focus.requestFocus();
+  }
+
+  Future<void> _commitRename(String key, String name) async {
+    final actions = _actions;
+    _endRename();
+    if (actions == null) return;
+    await actions.rename(context, key, name);
+  }
 
   void _revealActive(List<MapLibraryRow> rows) {
     final active = widget.activeMapId;
     if (active == null || active == _revealed) return;
     _revealed = active;
-    final index = rows.indexWhere((row) => row.map?.id == active);
-    if (index < 0) return;
-    var depth = rows[index].depth;
-    for (var i = index - 1; i >= 0 && depth > 0; i--) {
-      if (rows[i].isFolder && rows[i].depth < depth) {
-        _expanded.add(_folderKey(rows[i]));
-        depth = rows[i].depth;
-      }
-    }
-  }
-
-  List<MapLibraryRow> _visible(List<MapLibraryRow> rows, bool searching) {
-    if (searching) return rows;
-    final visible = <MapLibraryRow>[];
-    int? hiddenBelow;
-    for (final row in rows) {
-      if (hiddenBelow != null && row.depth > hiddenBelow) continue;
-      hiddenBelow = null;
-      visible.add(row);
-      if (row.isFolder && !_expanded.contains(_folderKey(row))) {
-        hiddenBelow = row.depth;
-      }
-    }
-    return visible;
+    _expanded.addAll(mapTreeFoldersAbove(rows, active, _folderKey));
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final actions = _actions;
     final query = _search.text.trim();
     final rows = MapLibraryTree(
       groups: widget.groups,
@@ -78,146 +138,163 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
       query: query,
     ).rows;
     _revealActive(rows);
-    final visible = _visible(rows, query.isNotEmpty);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            StudioSpacing.l,
-            StudioSpacing.l,
-            StudioSpacing.l,
-            StudioSpacing.s,
-          ),
-          child: StudioSearchField(
-            key: const ValueKey('map-library-search'),
-            controller: _search,
-            label: context.l10n.mapSearch,
-            onChanged: (_) => setState(() {}),
-          ),
-        ),
-        Expanded(
-          child: visible.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.all(StudioSpacing.xl),
-                  child: StudioEmptyState(
-                    icon: Icons.map_outlined,
-                    title: context.l10n.mapSearchEmpty,
+    final visible = query.isNotEmpty
+        ? rows
+        : mapTreeVisibleRows(rows, _expanded, _folderKey);
+    return Focus(
+      focusNode: _focus,
+      onKeyEvent: _onKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.commands?.busy == true)
+            const LinearProgressIndicator(minHeight: 2)
+          else
+            const SizedBox(height: 2),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              StudioSpacing.l,
+              StudioSpacing.l - 2,
+              StudioSpacing.l,
+              StudioSpacing.s,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: StudioSearchField(
+                    key: const ValueKey('map-library-search'),
+                    controller: _search,
+                    label: l10n.mapSearch,
+                    onChanged: (_) => setState(() {}),
                   ),
+                ),
+                if (actions != null) ...[
+                  const SizedBox(width: StudioSpacing.s),
+                  StudioContextMenuButton(
+                    key: const ValueKey('map-library-add'),
+                    tooltip: l10n.mapLibraryAdd,
+                    icon: Icons.add,
+                    items: () => actions.addItems(context),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (_notice case final notice?)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: StudioSpacing.l),
+              child: GestureDetector(
+                onTap: () => setState(() => _notice = null),
+                child: StudioNotice(
+                  notice,
+                  key: const ValueKey('map-library-notice'),
+                  isError: true,
+                ),
+              ),
+            ),
+          Expanded(
+            child: visible.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(StudioSpacing.xl),
+                    child: StudioEmptyState(
+                      icon: Icons.map_outlined,
+                      title: l10n.mapSearchEmpty,
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(StudioSpacing.m),
+                    itemCount: visible.length,
+                    itemBuilder: (context, index) =>
+                        _row(context, visible[index], query, actions),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(
+    BuildContext context,
+    MapLibraryRow row,
+    String query,
+    MapBuilderMapLibraryActions? actions,
+  ) {
+    final l10n = context.l10n;
+    final map = row.map;
+    if (map == null) {
+      final key = _folderKey(row);
+      final rowKey = 'folder:$key';
+      final open = query.isNotEmpty || _expanded.contains(key);
+      final group = widget.groups
+          .where((g) => g.id == row.folderId)
+          .firstOrNull;
+      final menu = actions == null || group == null
+          ? null
+          : () => actions.folderItems(context, group);
+      return MapBuilderTreeRow(
+        rowKey: rowKey,
+        menu: menu,
+        onPointerDown: _pointerDown,
+        tile: MapBuilderFolderTile(
+          row: row,
+          open: open,
+          selected: _selected == rowKey && group != null,
+          onTap: query.isNotEmpty
+              ? null
+              : () => setState(
+                  () => open ? _expanded.remove(key) : _expanded.add(key),
+                ),
+          rename: _renaming == rowKey && group != null
+              ? MapBuilderRenameField(
+                  initial: group.name,
+                  label: l10n.mapLibraryName,
+                  onCommit: (name) => _commitRename(rowKey, name),
+                  onCancel: _endRename,
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(StudioSpacing.m),
-                  itemCount: visible.length,
-                  itemBuilder: (context, index) {
-                    final row = visible[index];
-                    final map = row.map;
-                    if (map == null) {
-                      final key = _folderKey(row);
-                      final open = query.isNotEmpty || _expanded.contains(key);
-                      return _FolderTile(
-                        row: row,
-                        open: open,
-                        onTap: query.isNotEmpty
-                            ? null
-                            : () => setState(
-                                () => open
-                                    ? _expanded.remove(key)
-                                    : _expanded.add(key),
-                              ),
-                      );
-                    }
-                    return _MapTile(
-                      row: row,
-                      map: map,
-                      active: map.id == widget.activeMapId,
-                      onSelect: widget.onSelect,
-                    );
-                  },
+              : null,
+          trailing: menu == null
+              ? null
+              : StudioContextMenuButton(
+                  key: ValueKey('map-library-folder-menu-${group!.id}'),
+                  tooltip: l10n.mapLibraryFolderActions(group.name),
+                  items: menu,
                 ),
         ),
-      ],
-    );
-  }
-}
-
-class _FolderTile extends StatelessWidget {
-  const _FolderTile({required this.row, required this.open, this.onTap});
-
-  final MapLibraryRow row;
-  final bool open;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return ListTile(
-      key: ValueKey('map-library-folder-${row.folderId ?? 'unfiled'}'),
-      dense: true,
-      contentPadding: EdgeInsets.only(
-        left: StudioSpacing.s + row.depth * StudioSpacing.xl,
-        right: StudioSpacing.m,
+      );
+    }
+    final rowKey = 'map:${map.id}';
+    final active = map.id == widget.activeMapId;
+    final onSelect = widget.onSelect;
+    final menu = actions == null
+        ? null
+        : () => actions.mapItems(context, map, active: active);
+    return MapBuilderTreeRow(
+      rowKey: rowKey,
+      menu: menu,
+      onPointerDown: _pointerDown,
+      tile: MapBuilderMapTile(
+        row: row,
+        mapId: map.id,
+        title: map.name,
+        subtitle: l10n.mapRole(map.role),
+        active: active,
+        onTap: onSelect == null || active ? null : () => onSelect(map),
+        rename: _renaming == rowKey
+            ? MapBuilderRenameField(
+                initial: map.name,
+                label: l10n.mapLibraryName,
+                onCommit: (name) => _commitRename(rowKey, name),
+                onCancel: _endRename,
+              )
+            : null,
+        trailing: menu == null
+            ? null
+            : StudioContextMenuButton(
+                key: ValueKey('map-library-map-menu-${map.id}'),
+                tooltip: l10n.mapLibraryMapActions(map.name),
+                items: menu,
+              ),
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(StudioMetrics.controlRadius),
-      ),
-      leading: Icon(
-        open ? Icons.folder_open_outlined : Icons.folder_outlined,
-        size: 18,
-        color: scheme.onSurfaceVariant,
-      ),
-      title: Text(
-        row.label,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      trailing: Text(
-        '${row.count}',
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: scheme.onSurfaceVariant,
-        ),
-      ),
-      onTap: onTap,
-    );
-  }
-}
-
-class _MapTile extends StatelessWidget {
-  const _MapTile({
-    required this.row,
-    required this.map,
-    required this.active,
-    required this.onSelect,
-  });
-
-  final MapLibraryRow row;
-  final ProjectMapEntry map;
-  final bool active;
-  final ValueChanged<ProjectMapEntry>? onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final onSelect = this.onSelect;
-    return ListTile(
-      key: ValueKey('map-library-map-${map.id}'),
-      dense: true,
-      selected: active,
-      selectedTileColor: scheme.primaryContainer,
-      selectedColor: scheme.onPrimaryContainer,
-      contentPadding: EdgeInsets.only(
-        left: StudioSpacing.s + row.depth * StudioSpacing.xl,
-        right: StudioSpacing.m,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(StudioMetrics.controlRadius),
-      ),
-      leading: const Icon(Icons.map_outlined, size: 18),
-      title: Text(map.name, style: theme.textTheme.bodyMedium),
-      subtitle: Text(context.l10n.mapRole(map.role)),
-      onTap: onSelect == null || active ? null : () => onSelect(map),
     );
   }
 }

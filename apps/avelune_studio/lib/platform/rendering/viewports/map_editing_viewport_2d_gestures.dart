@@ -1,5 +1,7 @@
 part of 'map_editing_viewport_2d.dart';
 
+const _contentDragSlop = 4.0;
+
 extension _MapWorkspaceCanvasGestures on _MapEditingViewport2DState {
   void _cancel() {
     _borderErase = null;
@@ -24,9 +26,20 @@ extension _MapWorkspaceCanvasGestures on _MapEditingViewport2DState {
     _secondaryPan = false;
     _decorDraft = null;
     _decorPointer = null;
+    _decorPress = null;
     _modifierPress = null;
     _nudgeKeys.clear();
     _gestureTool = null;
+  }
+
+  bool _withinPressSlop(PointerMoveEvent event) {
+    final press = _decorPress;
+    if (press == null) return false;
+    if ((event.position - press).distance < _contentDragSlop) {
+      return true;
+    }
+    _decorPress = null;
+    return false;
   }
 
   void _translateViewport(Offset delta) {
@@ -93,6 +106,7 @@ extension _MapWorkspaceCanvasGestures on _MapEditingViewport2DState {
       widget.onChanged();
     }
     if (_decorPointer == event.pointer && _decorDraft != null) {
+      if (_withinPressSlop(event)) return;
       _decorDraft!.move(
         _pixelOffset(event.localPosition),
         precise: HardwareKeyboard.instance.isShiftPressed,
@@ -156,6 +170,7 @@ extension _MapWorkspaceCanvasGestures on _MapEditingViewport2DState {
     }
     final moving = _moving;
     if (moving != null) {
+      if (_withinPressSlop(event)) return;
       _mutateGesture(
         () => _preview = GridPos(
           x: moving.pos.x + cell.x - start.x,

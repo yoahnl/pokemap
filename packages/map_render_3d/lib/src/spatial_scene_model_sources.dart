@@ -62,6 +62,7 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
         before.selectedCell != after.selectedCell ||
         before.visibility != after.visibility ||
         before.selectedContent != after.selectedContent ||
+        !spatialSameSelection(before, after) ||
         before.authoringTarget != after.authoringTarget ||
         before.selectionColor != after.selectionColor ||
         !listEquals(before.cellOverlays, after.cellOverlays) ||
@@ -71,6 +72,10 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
         !identical(before.modelSourceUpdates, after.modelSourceUpdates) ||
         _modelSourceRevisionPending ||
         !identical(before.contentPreview, after.contentPreview) ||
+        !identical(
+          before.additionalContentPreviews,
+          after.additionalContentPreviews,
+        ) ||
         !identical(before.placementPreview, after.placementPreview) ||
         !_sameProjectOutsideModels(before.groundProject, after.groundProject))
       return false;
@@ -377,9 +382,6 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
   Future<bool> _syncModelSourceRevisions() async {
     final before = renderedConfiguration!;
     final snapshot = configuration;
-    final selectedComponent = _editingModels(
-      snapshot,
-    )[snapshot.selectedContent?.id]?.component;
     final revisions = Map<String, String?>.of(_pendingModelSourceRevisions);
     final definitions = Map<String, ProjectModel3dEntry>.of(
       _pendingModelSourceDefinitions,
@@ -510,14 +512,15 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
           anchor: dependent.instance.position,
         );
         component.initialPositionY = next.position.y;
-        final preview = snapshot.contentPreview;
-        if (preview?.kind == SpatialSceneContentKind.model &&
-            preview?.id == dependent.instance.id) {
+        final preview = spatialModelPreviews(
+          snapshot,
+        )[dependent.instance.id];
+        if (preview != null) {
           component.position.add(
             Vector3(
-              preview!.position.x - dependent.instance.position.x,
-              preview.position.y - dependent.instance.position.y,
-              preview.position.z - dependent.instance.position.z,
+              preview.x - dependent.instance.position.x,
+              preview.y - dependent.instance.position.y,
+              preview.z - dependent.instance.position.z,
             ),
           );
         }
@@ -534,11 +537,8 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
           component,
         ))
           modelComponents[dependent.instance.id] = updated;
-        if (identical(selectedComponent, component)) {
-          if (modelSelections.remove(dependent.instance.id)
-              case final selection?)
-            component.removeAll(selection);
-        }
+        if (modelSelections.remove(dependent.instance.id) case final selection?)
+          component.removeAll(selection);
       }
       List<SpatialAuthoredShadowCaster> updateCasters(
         List<SpatialAuthoredShadowCaster> previous,
@@ -644,30 +644,14 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
       modelSourceUpdates++;
       if (changedCasters.isNotEmpty || affectedLights.isNotEmpty)
         syncLighting();
-      final selectedChanged = replacements.any(
-        (entry) => identical(entry.$2.component, selectedComponent),
-      );
-      syncContentSelection(selectedChanged ? null : before, snapshot);
+      syncContentSelection(replacements.isEmpty ? before : null, snapshot);
       if (!identical(before.visibility, snapshot.visibility)) syncVisibility();
-      if (!identical(before.contentPreview, snapshot.contentPreview)) {
-        for (final id in {
-          before.contentPreview?.id,
-          snapshot.contentPreview?.id,
-        }) {
-          final placed = _editingModels(snapshot)[id];
-          if (placed == null) continue;
-          final preview = snapshot.contentPreview;
-          final position =
-              preview?.kind == SpatialSceneContentKind.model &&
-                  preview?.id == id
-              ? preview!.position
-              : placed.anchor;
-          placed.component.position.setValues(
-            placed.position.x + position.x - placed.anchor.x,
-            placed.position.y + position.y - placed.anchor.y,
-            placed.position.z + position.z - placed.anchor.z,
-          );
-        }
+      if (!identical(before.contentPreview, snapshot.contentPreview) ||
+          !identical(
+            before.additionalContentPreviews,
+            snapshot.additionalContentPreviews,
+          )) {
+        syncContentPreview();
       }
       if (snapshot.placementPreview case final preview?) {
         final definition =

@@ -23,8 +23,9 @@ export 'studio_map_tool.dart';
 part 'map_workspace_border_editing_state.dart';
 part 'map_workspace_tool_preparation.dart';
 part 'map_workspace_resource_reconciliation.dart';
+part 'map_workspace_selection.dart';
 
-class MapWorkspaceEditingState {
+class MapWorkspaceEditingState with _MapWorkspaceSelectionState {
   bool highlightTerrain = true;
   bool revealCollisions = false;
   Set<GameplayZoneKind> revealedZones = const {};
@@ -87,13 +88,11 @@ class MapWorkspaceEditingState {
   MapEnvironmentSession? environment;
   String? exteriorEnvironmentPresetId;
 
-  MapSelectionTarget? _target;
-  MapSelectionTarget? get target => _target;
-
   MapSelectionTarget? _pendingMove;
   String? _moveHint;
 
   MapSelectionTarget? get pendingMove => _pendingMove;
+  @override
   set pendingMove(MapSelectionTarget? target) {
     _pendingMove = target;
     _moveHint = null;
@@ -131,115 +130,14 @@ class MapWorkspaceEditingState {
     ).where((pattern) => pattern.id == terrainPatternId).firstOrNull;
   }
 
-  String? selectedFor(String mapId, MapSelectionFamily family) {
-    final target = _target;
-    return target != null && target.mapId == mapId && target.family == family
-        ? target.id
-        : null;
-  }
-
-  bool hasSelectionIn(String mapId) => _target?.mapId == mapId;
-
-  bool isUnavailable(
-    EditableMapDocument document,
-    MapSelectionFamily family,
-    String id,
-  ) {
-    final kind = switch (family) {
-      MapSelectionFamily.decor =>
-        document.current.spatialScene?.instances.any(
-                  (entry) => entry.id == id,
-                ) ==
-                true
-            ? 'model'
-            : 'decor',
-      MapSelectionFamily.character || MapSelectionFamily.marker => 'entity',
-      MapSelectionFamily.warp => 'warp',
-      MapSelectionFamily.zone => 'zone',
-      MapSelectionFamily.trigger => 'trigger',
-    };
-    return document.isElementUnavailable(kind, id);
-  }
-
   void reconcileLocks(EditableMapDocument document) {
-    final target = _target;
-    if (target != null &&
-        target.mapId == document.current.id &&
-        isUnavailable(document, target.family, target.id)) {
-      clearSelection(document);
-    }
+    _pruneUnavailable(document);
     final armed = pendingMove;
     if (armed != null &&
         armed.mapId == document.current.id &&
         isUnavailable(document, armed.family, armed.id)) {
       pendingMove = null;
     }
-  }
-
-  final _extraDecorIds = <String>{};
-  String? _extraDecorMapId;
-
-  Set<String> selectedDecorIds(String mapId) {
-    final target = _target;
-    return {
-      if (target != null &&
-          target.mapId == mapId &&
-          target.family == MapSelectionFamily.decor)
-        target.id,
-      if (_extraDecorMapId == mapId) ..._extraDecorIds,
-    };
-  }
-
-  void toggleDecorInSelection(EditableMapDocument document, String id) {
-    final mapId = document.current.id;
-    final target = _target;
-    if (target == null ||
-        target.mapId != mapId ||
-        target.family != MapSelectionFamily.decor) {
-      select(document, MapSelectionFamily.decor, id);
-      return;
-    }
-    if (isUnavailable(document, MapSelectionFamily.decor, id)) return;
-    if (_extraDecorMapId != mapId) {
-      _extraDecorIds.clear();
-      _extraDecorMapId = mapId;
-    }
-    if (id == target.id) {
-      if (_extraDecorIds.isEmpty) {
-        clearSelection(document);
-        return;
-      }
-      final remaining = _extraDecorIds.toList();
-      select(document, MapSelectionFamily.decor, remaining.removeAt(0));
-      _extraDecorIds.addAll(remaining);
-      _extraDecorMapId = mapId;
-      return;
-    }
-    if (!_extraDecorIds.remove(id)) _extraDecorIds.add(id);
-  }
-
-  void select(
-    EditableMapDocument document,
-    MapSelectionFamily family,
-    String id,
-  ) {
-    if (isUnavailable(document, family, id)) return;
-    _extraDecorIds.clear();
-    _extraDecorMapId = null;
-    _target = MapSelectionTarget(
-      mapId: document.current.id,
-      family: family,
-      id: id,
-    );
-    document.selectedId = family == MapSelectionFamily.decor ? id : null;
-  }
-
-  void clearSelection(EditableMapDocument document) {
-    _target = null;
-    _extraDecorIds.clear();
-    _extraDecorMapId = null;
-    pendingMove = null;
-    document.selectedId = null;
   }
 
   final resourceFilters = ResourceCatalogFilterState();

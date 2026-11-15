@@ -23,6 +23,7 @@ export 'presentation/shared/widgets/layout/studio_action_bar.dart';
 export 'presentation/shared/widgets/layout/studio_asset_preview.dart';
 export 'presentation/shared/widgets/dialogs/studio_review_dialog.dart';
 export 'presentation/shared/widgets/dialogs/studio_save_choice_dialog.dart';
+export 'presentation/shared/widgets/overlay/studio_context_menu.dart';
 export 'presentation/theme/studio_theme.dart';
 export 'presentation/theme/studio_tokens.dart'
     show

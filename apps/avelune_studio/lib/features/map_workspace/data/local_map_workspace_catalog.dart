@@ -123,6 +123,8 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
       previous.root,
       receipt.manifest,
       receipt.revision,
+      complete: previous.complete,
+      metadataFields: previous.metadataFields,
     );
     await _requireRoot(session);
     await _requireProjectRevision(session, next);

@@ -6,6 +6,7 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import 'package:avelune_studio/features/map_workspace/application/map_failure_message.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_selection_context.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
@@ -93,6 +94,7 @@ class _MapEditingViewport2DState extends State<MapEditingViewport2D>
   MapCharacterGesture? _characterGesture;
   MapDecorTransformDraft? _decorDraft;
   int? _decorPointer;
+  Offset? _decorPress;
   ({
     int pointer,
     MapPlacedElement decor,

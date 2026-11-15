@@ -6,6 +6,7 @@ import 'map_failure_message.dart';
 
 part 'spatial_model_binding_commands.dart';
 part 'spatial_model_duplication.dart';
+part 'spatial_model_copy.dart';
 
 class SpatialModelEditingCommands {
   const SpatialModelEditingCommands(this.document, this.project);

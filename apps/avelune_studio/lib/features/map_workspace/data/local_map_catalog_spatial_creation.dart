@@ -1,9 +1,17 @@
 part of 'local_map_catalog_adapter.dart';
 
-extension _LocalMapCatalogSpatialCreation on LocalMapCatalogAdapter {
-  Future<MapCatalogReceipt> _createSpatialMap(
+const mapCatalogScopedActions = {
+  'map.create',
+  'map.update_metadata',
+  'map.library.reorganize',
+  'map.duplicate',
+};
+
+extension _LocalMapCatalogScopedMutation on LocalMapCatalogAdapter {
+  Future<MapCatalogReceipt> _mutateScoped(
     ProjectSession session,
     ({ProjectManifest manifest, String revision}) before,
+    String actionId,
     Map<String, Object?> parameters, {
     required Map<String, String> expectedMapRevisions,
     String? Function()? validateBeforeApply,
@@ -35,7 +43,7 @@ extension _LocalMapCatalogSpatialCreation on LocalMapCatalogAdapter {
       attached = true;
       final snapshot = await api.readWorkshopSnapshot(
         opened.projectHandle,
-        actionId: 'map.create',
+        actionId: actionId,
         parameters: parameters,
       );
       if (await mapAdapter.resourceRevision(session) != before.revision) {
@@ -68,20 +76,19 @@ extension _LocalMapCatalogSpatialCreation on LocalMapCatalogAdapter {
         opened.projectHandle,
         AuthoringRequest(
           requestId: id,
-          actionId: 'map.create',
+          actionId: actionId,
           actionVersion: 1,
           workspaceHandle: opened.workspaceHandle.value,
           parameters: parameters,
           expectedRevision: snapshot.revision,
           idempotencyKey: id,
+          extensions: const {'workshopScope': true},
         ),
       );
-      final selected = planned.projectedProject!;
-      final created = selected.maps.where(
-        (map) => !snapshot.manifest.maps.any((old) => old.id == map.id),
-      );
-      final manifest = before.manifest.copyWith(
-        maps: [...before.manifest.maps, ...created],
+      final manifest = mapCatalogScopedManifest(
+        before.manifest,
+        snapshot.manifest,
+        planned.projectedProject!,
       );
       final head = planned.plan.changeSet.changes.singleWhere(
         (change) => change.storageKey == CatalogStorageStore.headStorageKey,
@@ -94,7 +101,7 @@ extension _LocalMapCatalogSpatialCreation on LocalMapCatalogAdapter {
         before.manifest,
         before.revision,
         planned.plan,
-        'map.create',
+        actionId,
         projectedProject: manifest,
         projectedRevision: studioProjectDocumentRevision(
           descriptorBytes: descriptor,

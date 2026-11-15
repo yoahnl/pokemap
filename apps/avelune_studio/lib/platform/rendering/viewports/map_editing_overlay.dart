@@ -36,6 +36,7 @@ class MapEditingOverlay extends CustomPainter {
     this.collisionColor,
     this.isHidden,
     this.extraSelected = const [],
+    this.extraAreas = const [],
   }) : super(repaint: transform);
   final MapData map;
   final ProjectManifest project;
@@ -61,6 +62,7 @@ class MapEditingOverlay extends CustomPainter {
   final Color? collisionColor;
   final bool Function(String kind, String id)? isHidden;
   final List<MapPlacedElement> extraSelected;
+  final List<MapRect> extraAreas;
   bool get _showLabels =>
       cellWidth * (transform?.value.entry(0, 0).abs() ?? 1) >= 28;
 
@@ -116,17 +118,17 @@ class MapEditingOverlay extends CustomPainter {
                 pos: entityPreview ?? selectedEntity!.pos,
                 size: selectedEntity!.size,
               ));
-    if (area != null) {
+    for (final extra in [?area, ...extraAreas]) {
       paint
         ..color = color
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
       canvas.drawRect(
         Rect.fromLTWH(
-          area.pos.x * cellWidth,
-          area.pos.y * cellHeight,
-          area.size.width * cellWidth,
-          area.size.height * cellHeight,
+          extra.pos.x * cellWidth,
+          extra.pos.y * cellHeight,
+          extra.size.width * cellWidth,
+          extra.size.height * cellHeight,
         ),
         paint,
       );

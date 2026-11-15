@@ -3,6 +3,10 @@ import 'package:flame_3d/components.dart';
 import 'package:flame_3d/game.dart';
 import 'package:flame_3d/resources.dart';
 
+import 'package:map_core/map_core.dart';
+
+import 'spatial_scene_view.dart';
+
 Iterable<(Vector3, Vector3)> spatialSelectionEdges(
   Vector3 minimum,
   Vector3 maximum,
@@ -47,3 +51,33 @@ List<MeshComponent> spatialSelectionFrame(
       ),
   ];
 }
+
+Set<String> spatialSelectedIds(
+  SpatialSceneView view,
+  SpatialSceneContentKind kind,
+) => {
+  for (final hit in [?view.selectedContent, ...view.additionalSelectedContent])
+    if (hit.kind == kind) hit.id,
+};
+
+bool spatialSameSelection(SpatialSceneView before, SpatialSceneView after) {
+  final first = [?before.selectedContent, ...before.additionalSelectedContent];
+  final second = [?after.selectedContent, ...after.additionalSelectedContent];
+  if (first.length != second.length) return false;
+  for (var index = 0; index < first.length; index++) {
+    if (first[index].kind != second[index].kind ||
+        first[index].id != second[index].id) {
+      return false;
+    }
+  }
+  return true;
+}
+
+Map<String, Model3dVector3> spatialModelPreviews(SpatialSceneView view) => {
+  for (final preview in [
+    ?view.contentPreview,
+    ...view.additionalContentPreviews,
+  ])
+    if (preview.kind == SpatialSceneContentKind.model)
+      preview.id: preview.position,
+};

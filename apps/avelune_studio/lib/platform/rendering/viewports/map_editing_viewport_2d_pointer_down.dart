@@ -1,6 +1,36 @@
 part of 'map_editing_viewport_2d.dart';
 
 extension _MapWorkspaceCanvasPointerDown on _MapEditingViewport2DState {
+  bool _toggleNonDecorAt(GridPos cell, Offset local) {
+    final keys = HardwareKeyboard.instance;
+    if (widget.view.tool != StudioMapTool.select ||
+        !(keys.isShiftPressed || keys.isMetaPressed)) {
+      return false;
+    }
+    final target = mapContextTargetsAt(
+      widget.document,
+      widget.project,
+      cell,
+    ).firstOrNull;
+    if (target == null ||
+        target.family == MapContextFamily.decor ||
+        ({
+              MapContextFamily.zone,
+              MapContextFamily.trigger,
+            }.contains(target.family) &&
+            _commands.stackAtPixel(_pixel(local)).isNotEmpty)) {
+      return false;
+    }
+    widget.view.toggleInSelection(
+      widget.document,
+      selectionFamilyOf(target.family),
+      target.id,
+    );
+    _cancel();
+    widget.onChanged();
+    return true;
+  }
+
   void _down(PointerDownEvent event) {
     if (event.kind == PointerDeviceKind.mouse &&
         event.buttons & kSecondaryMouseButton != 0) {
@@ -57,6 +87,7 @@ extension _MapWorkspaceCanvasPointerDown on _MapEditingViewport2DState {
         }
       }
     }
+    if (armed == null && _toggleNonDecorAt(cell, event.localPosition)) return;
     if (armed == null) {
       try {
         _characterGesture = MapCharacterGesture.start(
@@ -176,6 +207,7 @@ extension _MapWorkspaceCanvasPointerDown on _MapEditingViewport2DState {
           MapSelectionFamily.decor,
           moving.id,
         );
+        _decorPress = event.position;
         if (_canTransform(moving)) {
           _beginDecor(moving, event.localPosition);
           _decorPointer = event.pointer;

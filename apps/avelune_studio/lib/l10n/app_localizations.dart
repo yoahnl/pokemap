@@ -5579,6 +5579,534 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'le tracé est refusé ({code}).'**
   String reliefReasonOther(String code);
+
+  /// No description provided for @mapLibraryAdd.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter une carte ou un dossier'**
+  String get mapLibraryAdd;
+
+  /// No description provided for @mapLibraryNewMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle carte…'**
+  String get mapLibraryNewMap;
+
+  /// No description provided for @mapLibraryNewMapHere.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle carte dans ce dossier…'**
+  String get mapLibraryNewMapHere;
+
+  /// No description provided for @mapLibraryNewFolder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau dossier…'**
+  String get mapLibraryNewFolder;
+
+  /// No description provided for @mapLibraryNewSubfolder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau sous-dossier…'**
+  String get mapLibraryNewSubfolder;
+
+  /// No description provided for @mapLibraryOpen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir'**
+  String get mapLibraryOpen;
+
+  /// No description provided for @mapLibraryRename.
+  ///
+  /// In fr, this message translates to:
+  /// **'Renommer'**
+  String get mapLibraryRename;
+
+  /// No description provided for @mapLibraryDuplicate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dupliquer'**
+  String get mapLibraryDuplicate;
+
+  /// No description provided for @mapLibraryMove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplacer vers…'**
+  String get mapLibraryMove;
+
+  /// No description provided for @mapLibraryDelete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer…'**
+  String get mapLibraryDelete;
+
+  /// No description provided for @mapLibraryRenameFolder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Renommer le dossier'**
+  String get mapLibraryRenameFolder;
+
+  /// No description provided for @mapLibraryDeleteFolder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer le dossier'**
+  String get mapLibraryDeleteFolder;
+
+  /// No description provided for @mapLibraryFolderNotEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Videz ce dossier avant de le supprimer : il contient encore des cartes ou des sous-dossiers.'**
+  String get mapLibraryFolderNotEmpty;
+
+  /// No description provided for @mapLibraryMapActions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actions de la carte « {name} »'**
+  String mapLibraryMapActions(String name);
+
+  /// No description provided for @mapLibraryFolderActions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actions du dossier « {name} »'**
+  String mapLibraryFolderActions(String name);
+
+  /// No description provided for @mapLibraryCopyName.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} (copie)'**
+  String mapLibraryCopyName(String name);
+
+  /// No description provided for @mapLibraryNewMapTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle carte'**
+  String get mapLibraryNewMapTitle;
+
+  /// No description provided for @mapLibraryName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom'**
+  String get mapLibraryName;
+
+  /// No description provided for @mapLibraryWidth.
+  ///
+  /// In fr, this message translates to:
+  /// **'Largeur (cases)'**
+  String get mapLibraryWidth;
+
+  /// No description provided for @mapLibraryHeight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hauteur (cases)'**
+  String get mapLibraryHeight;
+
+  /// No description provided for @mapLibraryKind3d.
+  ///
+  /// In fr, this message translates to:
+  /// **'Carte 3D, comme toutes les cartes de ce projet.'**
+  String get mapLibraryKind3d;
+
+  /// No description provided for @mapLibraryKind2d.
+  ///
+  /// In fr, this message translates to:
+  /// **'Carte 2D, comme toutes les cartes de ce projet.'**
+  String get mapLibraryKind2d;
+
+  /// No description provided for @mapLibraryFolder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dossier'**
+  String get mapLibraryFolder;
+
+  /// No description provided for @mapLibraryNoFolder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans dossier'**
+  String get mapLibraryNoFolder;
+
+  /// No description provided for @mapLibraryCreate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer'**
+  String get mapLibraryCreate;
+
+  /// No description provided for @mapLibraryCancel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler'**
+  String get mapLibraryCancel;
+
+  /// No description provided for @mapLibraryClose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer'**
+  String get mapLibraryClose;
+
+  /// No description provided for @mapLibraryMoveTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplacer « {name} »'**
+  String mapLibraryMoveTitle(String name);
+
+  /// No description provided for @mapLibraryMoveConfirm.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplacer'**
+  String get mapLibraryMoveConfirm;
+
+  /// No description provided for @mapLibraryNewFolderTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau dossier'**
+  String get mapLibraryNewFolderTitle;
+
+  /// No description provided for @mapLibraryDeleteTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer « {name} » ?'**
+  String mapLibraryDeleteTitle(String name);
+
+  /// No description provided for @mapLibraryDeleteBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune carte, scène ou règle du projet n’utilise cette carte. Elle quittera la bibliothèque avec son fichier.'**
+  String get mapLibraryDeleteBody;
+
+  /// No description provided for @mapLibraryDeleteConfirm.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get mapLibraryDeleteConfirm;
+
+  /// No description provided for @mapLibraryDeleteAnalyzing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche des usages de « {name} »…'**
+  String mapLibraryDeleteAnalyzing(String name);
+
+  /// No description provided for @mapLibraryInUseTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'« {name} » est utilisée'**
+  String mapLibraryInUseTitle(String name);
+
+  /// No description provided for @mapLibraryInUseBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirez ces usages avant de supprimer la carte :'**
+  String get mapLibraryInUseBody;
+
+  /// No description provided for @mapLibraryUsageMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Carte « {name} » : passage, liaison ou élément vers cette carte'**
+  String mapLibraryUsageMap(String name);
+
+  /// No description provided for @mapLibraryUsageMapUnnamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une autre carte du projet'**
+  String get mapLibraryUsageMapUnnamed;
+
+  /// No description provided for @mapLibraryUsageScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scène « {name} »'**
+  String mapLibraryUsageScene(String name);
+
+  /// No description provided for @mapLibraryUsageSceneUnnamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une scène du projet'**
+  String get mapLibraryUsageSceneUnnamed;
+
+  /// No description provided for @mapLibraryUsageStoryline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Histoire « {name} »'**
+  String mapLibraryUsageStoryline(String name);
+
+  /// No description provided for @mapLibraryUsageStorylineUnnamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une histoire du projet'**
+  String get mapLibraryUsageStorylineUnnamed;
+
+  /// No description provided for @mapLibraryUsageWorldRule.
+  ///
+  /// In fr, this message translates to:
+  /// **'Règle du monde « {name} »'**
+  String mapLibraryUsageWorldRule(String name);
+
+  /// No description provided for @mapLibraryUsageWorldRuleUnnamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une règle du monde'**
+  String get mapLibraryUsageWorldRuleUnnamed;
+
+  /// No description provided for @mapLibraryUsageCinematic.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cinématique « {name} »'**
+  String mapLibraryUsageCinematic(String name);
+
+  /// No description provided for @mapLibraryUsageCinematicUnnamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une cinématique'**
+  String get mapLibraryUsageCinematicUnnamed;
+
+  /// No description provided for @mapLibraryUsageEvent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un comportement ou un événement'**
+  String get mapLibraryUsageEvent;
+
+  /// No description provided for @mapLibraryUsageNewGame.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle partie : carte de départ du joueur'**
+  String get mapLibraryUsageNewGame;
+
+  /// No description provided for @mapLibraryUsageRegionalMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Carte de la région (vol)'**
+  String get mapLibraryUsageRegionalMap;
+
+  /// No description provided for @mapLibraryUsageOther.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un autre élément du projet'**
+  String get mapLibraryUsageOther;
+
+  /// No description provided for @mapLibraryNameRequired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Donnez un nom.'**
+  String get mapLibraryNameRequired;
+
+  /// No description provided for @mapLibrarySizeInvalid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Largeur et hauteur : de 1 à {max} cases.'**
+  String mapLibrarySizeInvalid(int max);
+
+  /// No description provided for @mapLibraryFolderNameTaken.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un dossier porte déjà ce nom à cet endroit.'**
+  String get mapLibraryFolderNameTaken;
+
+  /// No description provided for @mapLibraryMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet élément n’existe plus dans le projet.'**
+  String get mapLibraryMissing;
+
+  /// No description provided for @mapLibraryRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'L’opération a été refusée.'**
+  String get mapLibraryRefused;
+
+  /// No description provided for @mapLibraryPublishedNotIntegrated.
+  ///
+  /// In fr, this message translates to:
+  /// **'C’est enregistré sur le disque, mais la bibliothèque n’a pas pu se relire : {detail}'**
+  String mapLibraryPublishedNotIntegrated(String detail);
+
+  /// No description provided for @mapLibraryBusy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une opération sur les cartes est en cours.'**
+  String get mapLibraryBusy;
+
+  /// No description provided for @mapMenuCut.
+  ///
+  /// In fr, this message translates to:
+  /// **'Couper'**
+  String get mapMenuCut;
+
+  /// No description provided for @mapMenuCopy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Copier'**
+  String get mapMenuCopy;
+
+  /// No description provided for @mapMenuPaste.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coller'**
+  String get mapMenuPaste;
+
+  /// No description provided for @mapMenuDuplicate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dupliquer'**
+  String get mapMenuDuplicate;
+
+  /// No description provided for @mapMenuDelete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get mapMenuDelete;
+
+  /// No description provided for @mapMenuRotate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rotation 90°'**
+  String get mapMenuRotate;
+
+  /// No description provided for @mapMenuProperties.
+  ///
+  /// In fr, this message translates to:
+  /// **'Propriétés'**
+  String get mapMenuProperties;
+
+  /// No description provided for @mapMenuMove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplacer'**
+  String get mapMenuMove;
+
+  /// No description provided for @mapMenuBringForward.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passer devant'**
+  String get mapMenuBringForward;
+
+  /// No description provided for @mapMenuSendBackward.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passer derrière'**
+  String get mapMenuSendBackward;
+
+  /// No description provided for @mapMenuClipboardEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Copiez ou coupez d’abord un élément.'**
+  String get mapMenuClipboardEmpty;
+
+  /// No description provided for @mapMenuRotateUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Seuls les décors 3D peuvent tourner.'**
+  String get mapMenuRotateUnavailable;
+
+  /// No description provided for @mapLibraryDeleteUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'La suppression n’est pas encore disponible sur un projet catalogue comme celui-ci : retrouver tous les usages d’une carte demande un index qui n’existe pas encore.'**
+  String get mapLibraryDeleteUnavailable;
+
+  /// No description provided for @selectionEyebrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'SÉLECTION'**
+  String get selectionEyebrow;
+
+  /// No description provided for @selectionKind3d.
+  ///
+  /// In fr, this message translates to:
+  /// **'Décor 3D'**
+  String get selectionKind3d;
+
+  /// No description provided for @selectionKindDecor.
+  ///
+  /// In fr, this message translates to:
+  /// **'Décor'**
+  String get selectionKindDecor;
+
+  /// No description provided for @selectionKindCharacter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnage'**
+  String get selectionKindCharacter;
+
+  /// No description provided for @selectionKindMarker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Repère'**
+  String get selectionKindMarker;
+
+  /// No description provided for @selectionKindWarp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passage'**
+  String get selectionKindWarp;
+
+  /// No description provided for @selectionKindZone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Zone de jeu'**
+  String get selectionKindZone;
+
+  /// No description provided for @selectionKindTrigger.
+  ///
+  /// In fr, this message translates to:
+  /// **'Zone d’histoire'**
+  String get selectionKindTrigger;
+
+  /// No description provided for @selectionX.
+  ///
+  /// In fr, this message translates to:
+  /// **'X'**
+  String get selectionX;
+
+  /// No description provided for @selectionY.
+  ///
+  /// In fr, this message translates to:
+  /// **'Y'**
+  String get selectionY;
+
+  /// No description provided for @selectionZ.
+  ///
+  /// In fr, this message translates to:
+  /// **'Z (hauteur)'**
+  String get selectionZ;
+
+  /// No description provided for @selectionRotation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rotation (°)'**
+  String get selectionRotation;
+
+  /// No description provided for @selectionScale.
+  ///
+  /// In fr, this message translates to:
+  /// **'Échelle'**
+  String get selectionScale;
+
+  /// No description provided for @selectionAnimations.
+  ///
+  /// In fr, this message translates to:
+  /// **'Animations'**
+  String get selectionAnimations;
+
+  /// No description provided for @selectionAnimationsHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Joue l’animation du modèle en boucle.'**
+  String get selectionAnimationsHint;
+
+  /// No description provided for @selectionInvalidNumber.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez un nombre valide.'**
+  String get selectionInvalidNumber;
+
+  /// No description provided for @selectionCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} éléments sélectionnés'**
+  String selectionCount(int count);
+
+  /// No description provided for @selectionGroupHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les flèches du clavier, la poignée d’axe en 3D, Copier, Dupliquer et Supprimer agissent sur tout le groupe.'**
+  String get selectionGroupHint;
 }
 
 class _AppLocalizationsDelegate

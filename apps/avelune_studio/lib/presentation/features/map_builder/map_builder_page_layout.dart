@@ -159,6 +159,7 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                                   onCollapse: onCollapse,
                                   body:
                                       _constructionInspector(view) ??
+                                      _selectionInspector(view) ??
                                       mapBuilderSpaceInspector(
                                         _space,
                                         _gameplay,
@@ -244,6 +245,7 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
         onSave: () => unawaited(_save()),
         onUndo: () => _historyStep(redo: false)?.call(),
         onRedo: () => _historyStep(redo: true)?.call(),
+        onCanvasMenu: _showCanvasMenu,
         onZoneDrawn: _space == MapBuilderSpace.story ? _story.addZone : null,
         busy: !_editable,
       ),

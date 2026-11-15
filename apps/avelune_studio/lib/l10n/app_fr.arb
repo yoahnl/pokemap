@@ -2013,5 +2013,198 @@
         "type": "String"
       }
     }
-  }
+  },
+  "mapLibraryAdd": "Ajouter une carte ou un dossier",
+  "mapLibraryNewMap": "Nouvelle carte…",
+  "mapLibraryNewMapHere": "Nouvelle carte dans ce dossier…",
+  "mapLibraryNewFolder": "Nouveau dossier…",
+  "mapLibraryNewSubfolder": "Nouveau sous-dossier…",
+  "mapLibraryOpen": "Ouvrir",
+  "mapLibraryRename": "Renommer",
+  "mapLibraryDuplicate": "Dupliquer",
+  "mapLibraryMove": "Déplacer vers…",
+  "mapLibraryDelete": "Supprimer…",
+  "mapLibraryRenameFolder": "Renommer le dossier",
+  "mapLibraryDeleteFolder": "Supprimer le dossier",
+  "mapLibraryFolderNotEmpty": "Videz ce dossier avant de le supprimer : il contient encore des cartes ou des sous-dossiers.",
+  "mapLibraryMapActions": "Actions de la carte « {name} »",
+  "@mapLibraryMapActions": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryFolderActions": "Actions du dossier « {name} »",
+  "@mapLibraryFolderActions": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryCopyName": "{name} (copie)",
+  "@mapLibraryCopyName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryNewMapTitle": "Nouvelle carte",
+  "mapLibraryName": "Nom",
+  "mapLibraryWidth": "Largeur (cases)",
+  "mapLibraryHeight": "Hauteur (cases)",
+  "mapLibraryKind3d": "Carte 3D, comme toutes les cartes de ce projet.",
+  "mapLibraryKind2d": "Carte 2D, comme toutes les cartes de ce projet.",
+  "mapLibraryFolder": "Dossier",
+  "mapLibraryNoFolder": "Sans dossier",
+  "mapLibraryCreate": "Créer",
+  "mapLibraryCancel": "Annuler",
+  "mapLibraryClose": "Fermer",
+  "mapLibraryMoveTitle": "Déplacer « {name} »",
+  "@mapLibraryMoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryMoveConfirm": "Déplacer",
+  "mapLibraryNewFolderTitle": "Nouveau dossier",
+  "mapLibraryDeleteTitle": "Supprimer « {name} » ?",
+  "@mapLibraryDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryDeleteBody": "Aucune carte, scène ou règle du projet n’utilise cette carte. Elle quittera la bibliothèque avec son fichier.",
+  "mapLibraryDeleteConfirm": "Supprimer",
+  "mapLibraryDeleteAnalyzing": "Recherche des usages de « {name} »…",
+  "@mapLibraryDeleteAnalyzing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryInUseTitle": "« {name} » est utilisée",
+  "@mapLibraryInUseTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryInUseBody": "Retirez ces usages avant de supprimer la carte :",
+  "mapLibraryUsageMap": "Carte « {name} » : passage, liaison ou élément vers cette carte",
+  "@mapLibraryUsageMap": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryUsageMapUnnamed": "Une autre carte du projet",
+  "mapLibraryUsageScene": "Scène « {name} »",
+  "@mapLibraryUsageScene": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryUsageSceneUnnamed": "Une scène du projet",
+  "mapLibraryUsageStoryline": "Histoire « {name} »",
+  "@mapLibraryUsageStoryline": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryUsageStorylineUnnamed": "Une histoire du projet",
+  "mapLibraryUsageWorldRule": "Règle du monde « {name} »",
+  "@mapLibraryUsageWorldRule": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryUsageWorldRuleUnnamed": "Une règle du monde",
+  "mapLibraryUsageCinematic": "Cinématique « {name} »",
+  "@mapLibraryUsageCinematic": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryUsageCinematicUnnamed": "Une cinématique",
+  "mapLibraryUsageEvent": "Un comportement ou un événement",
+  "mapLibraryUsageNewGame": "Nouvelle partie : carte de départ du joueur",
+  "mapLibraryUsageRegionalMap": "Carte de la région (vol)",
+  "mapLibraryUsageOther": "Un autre élément du projet",
+  "mapLibraryNameRequired": "Donnez un nom.",
+  "mapLibrarySizeInvalid": "Largeur et hauteur : de 1 à {max} cases.",
+  "@mapLibrarySizeInvalid": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "mapLibraryFolderNameTaken": "Un dossier porte déjà ce nom à cet endroit.",
+  "mapLibraryMissing": "Cet élément n’existe plus dans le projet.",
+  "mapLibraryRefused": "L’opération a été refusée.",
+  "mapLibraryPublishedNotIntegrated": "C’est enregistré sur le disque, mais la bibliothèque n’a pas pu se relire : {detail}",
+  "@mapLibraryPublishedNotIntegrated": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "mapLibraryBusy": "Une opération sur les cartes est en cours.",
+  "mapMenuCut": "Couper",
+  "mapMenuCopy": "Copier",
+  "mapMenuPaste": "Coller",
+  "mapMenuDuplicate": "Dupliquer",
+  "mapMenuDelete": "Supprimer",
+  "mapMenuRotate": "Rotation 90°",
+  "mapMenuProperties": "Propriétés",
+  "mapMenuMove": "Déplacer",
+  "mapMenuBringForward": "Passer devant",
+  "mapMenuSendBackward": "Passer derrière",
+  "mapMenuClipboardEmpty": "Copiez ou coupez d’abord un élément.",
+  "mapMenuRotateUnavailable": "Seuls les décors 3D peuvent tourner.",
+  "mapLibraryDeleteUnavailable": "La suppression n’est pas encore disponible sur un projet catalogue comme celui-ci : retrouver tous les usages d’une carte demande un index qui n’existe pas encore.",
+  "selectionEyebrow": "SÉLECTION",
+  "selectionKind3d": "Décor 3D",
+  "selectionKindDecor": "Décor",
+  "selectionKindCharacter": "Personnage",
+  "selectionKindMarker": "Repère",
+  "selectionKindWarp": "Passage",
+  "selectionKindZone": "Zone de jeu",
+  "selectionKindTrigger": "Zone d’histoire",
+  "selectionX": "X",
+  "selectionY": "Y",
+  "selectionZ": "Z (hauteur)",
+  "selectionRotation": "Rotation (°)",
+  "selectionScale": "Échelle",
+  "selectionAnimations": "Animations",
+  "selectionAnimationsHint": "Joue l’animation du modèle en boucle.",
+  "selectionInvalidNumber": "Saisissez un nombre valide.",
+  "selectionCount": "{count} éléments sélectionnés",
+  "@selectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "selectionGroupHint": "Les flèches du clavier, la poignée d’axe en 3D, Copier, Dupliquer et Supprimer agissent sur tout le groupe."
 }

@@ -63,3 +63,41 @@ MapCatalogReceipt mapCatalogReceipt(
         : null,
   );
 }
+
+ProjectManifest mapCatalogScopedManifest(
+  ProjectManifest before,
+  ProjectManifest selected,
+  ProjectManifest projected,
+) => before.copyWith(
+  maps: _mergeScoped(before.maps, selected.maps, projected.maps, (e) => e.id),
+  groups: _mergeScoped(
+    before.groups,
+    selected.groups,
+    projected.groups,
+    (e) => e.id,
+  ),
+);
+
+List<T> _mergeScoped<T>(
+  List<T> before,
+  List<T> selected,
+  List<T> projected,
+  String Function(T) id,
+) {
+  final selectedById = {for (final entry in selected) id(entry): entry};
+  final projectedById = {for (final entry in projected) id(entry): entry};
+  final removed = selectedById.keys.toSet().difference(
+    projectedById.keys.toSet(),
+  );
+  final kept = <String>{};
+  return [
+    for (final entry in before)
+      if (kept.add(id(entry)) && !removed.contains(id(entry)))
+        switch (projectedById[id(entry)]) {
+          final next? when next != selectedById[id(entry)] => next,
+          _ => entry,
+        },
+    for (final entry in projected)
+      if (!kept.contains(id(entry))) entry,
+  ];
+}

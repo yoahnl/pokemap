@@ -10,6 +10,7 @@ import 'map_decor_order_context.dart';
 part 'map_element_placement_commands.dart';
 part 'map_decor_geometry_commands.dart';
 part 'map_decor_order_commands.dart';
+part 'map_decor_copy_commands.dart';
 
 class MapEditingCommands {
   MapEditingCommands(this.document, this.project);

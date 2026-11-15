@@ -2,6 +2,8 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
+
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_map_tree.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
@@ -17,6 +19,7 @@ class MapBuilderLibrary extends StatefulWidget {
     required this.activeMapId,
     required this.onSelectMap,
     required this.resources,
+    this.mapCommands,
   });
 
   final List<ProjectMapGroup> groups;
@@ -24,6 +27,7 @@ class MapBuilderLibrary extends StatefulWidget {
   final String? activeMapId;
   final ValueChanged<ProjectMapEntry>? onSelectMap;
   final Widget resources;
+  final MapLibraryCommands? mapCommands;
 
   @override
   State<MapBuilderLibrary> createState() => _MapBuilderLibraryState();
@@ -74,6 +78,7 @@ class _MapBuilderLibraryState extends State<MapBuilderLibrary> {
                 maps: widget.maps,
                 activeMapId: widget.activeMapId,
                 onSelect: widget.onSelectMap,
+                commands: widget.mapCommands,
               ),
             },
           ),

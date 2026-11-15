@@ -45,10 +45,12 @@ extension _MapWorkspaceCanvasPointerUp on _MapEditingViewport2DState {
       return;
     }
     if (_decorPointer == event.pointer && _decorDraft != null) {
-      _decorDraft!.move(
-        _pixelOffset(event.localPosition),
-        precise: HardwareKeyboard.instance.isShiftPressed,
-      );
+      if (_decorPress == null) {
+        _decorDraft!.move(
+          _pixelOffset(event.localPosition),
+          precise: HardwareKeyboard.instance.isShiftPressed,
+        );
+      }
       _commitDecor();
       return;
     }

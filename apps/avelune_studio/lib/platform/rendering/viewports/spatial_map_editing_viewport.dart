@@ -23,6 +23,10 @@ import 'package:avelune_studio/features/map_workspace/application/environment_ed
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_failure_message.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_selection_commands.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_transform_gizmo.dart';
+import 'package:avelune_design_system/avelune_design_system.dart'
+    show StudioColors;
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_character_gesture.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
@@ -44,8 +48,10 @@ part 'spatial_map_editing_cell_overlays.dart';
 part 'spatial_map_editing_exterior.dart';
 part 'spatial_map_editing_gesture_start.dart';
 part 'spatial_map_editing_gestures.dart';
+part 'spatial_map_editing_gizmo.dart';
 part 'spatial_map_editing_keyboard.dart';
 part 'spatial_map_editing_scene.dart';
+part 'spatial_map_editing_selection.dart';
 part 'spatial_map_editing_viewport_state.dart';
 
 class SpatialMapEditingViewport extends StatefulWidget {

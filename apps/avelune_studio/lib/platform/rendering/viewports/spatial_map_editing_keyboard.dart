@@ -10,6 +10,8 @@ extension _SpatialKeyboardEditing on _SpatialMapEditingViewportState {
     if (reliefKey(event, key) == KeyEventResult.handled) {
       return KeyEventResult.handled;
     }
+    final grouped =
+        widget.view.selectionIn(editingDocument.current.id).length > 1;
     final delta = switch (key) {
       LogicalKeyboardKey.arrowLeft => (-1, 0),
       LogicalKeyboardKey.arrowRight => (1, 0),
@@ -41,6 +43,7 @@ extension _SpatialKeyboardEditing on _SpatialMapEditingViewportState {
       }
     }
     if (event is KeyDownEvent &&
+        !grouped &&
         (key == LogicalKeyboardKey.delete ||
             key == LogicalKeyboardKey.backspace) &&
         !precision &&
@@ -125,7 +128,9 @@ extension _SpatialKeyboardEditing on _SpatialMapEditingViewportState {
         (contentSource != null && nudgeKeys.isEmpty)) {
       return KeyEventResult.ignored;
     }
-    if (delta == null) return KeyEventResult.ignored;
+    if (delta == null || (grouped && nudgeKeys.isEmpty)) {
+      return KeyEventResult.ignored;
+    }
     if (nudgeKeys.isEmpty) {
       final map = editingDocument.current;
       final modelId = widget.view.selectedFor(map.id, MapSelectionFamily.decor);

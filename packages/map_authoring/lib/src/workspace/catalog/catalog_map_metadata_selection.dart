@@ -5,27 +5,41 @@ Future<CatalogWorkshopSelection> _readMapGroupAdditionsWorkshop({
   required ProjectHandle projectHandle,
   required Map<String, Object?> parameters,
 }) async {
+  final rawAssignments = parameters['assignments'];
+  final rawGroups = parameters['groups'];
   if (parameters.keys.any((key) => key != 'groups' && key != 'assignments') ||
-      parameters['groups'] is! List || parameters['assignments'] is! List ||
-      (parameters['assignments']! as List).isNotEmpty) {
-    CatalogWorkshopSelection.unsupported('map.library.reorganize', 'group additions without map assignments');
+      (parameters.containsKey('groups') && rawGroups is! List) ||
+      rawAssignments is! List) {
+    CatalogWorkshopSelection.unsupported('map.library.reorganize', 'groups and map assignments');
   }
+  final mapIds = {
+    for (final assignment in rawAssignments)
+      if (assignment is Map && assignment['mapId'] is String) assignment['mapId'] as String,
+  };
   final selected = await reader.withMetadataFields({'groups'});
-  final proposed = [for (final value in parameters['groups']! as List) ProjectMapGroup.fromJson(Map<String, dynamic>.from(value as Map))];
   return selected.read((catalog) async {
     final original = catalog.projectMetadata.groups;
-    if (original.any((group) => !proposed.contains(group))) {
-      CatalogWorkshopSelection.unsupported('map.library.reorganize', 'preserved existing groups for the targeted addition scope');
+    final proposed = rawGroups is List
+        ? [for (final value in rawGroups) ProjectMapGroup.fromJson(Map<String, dynamic>.from(value as Map))]
+        : original;
+    final proposedIds = {for (final group in proposed) group.id};
+    if (original.any((group) => !proposedIds.contains(group.id))) {
+      CatalogWorkshopSelection.unsupported('map.library.reorganize', 'map folders kept in the targeted organization');
     }
+    final ids = <String, Set<String>>{
+      'groups': {for (final group in original) group.id, ...proposedIds},
+      if (mapIds.isNotEmpty) 'maps': mapIds,
+    };
     final documents = await CatalogMetadataDocuments.readDocuments(snapshot: catalog.snapshot,
-      project: catalog.projectMetadata, ids: {'groups': {for (final group in proposed) group.id}});
+      project: catalog.projectMetadata.copyWith(maps: const []), ids: ids);
     final bytes = utf8.encode(jsonEncode(documents.project.toJson()));
+    final sections = {'groups', if (mapIds.isNotEmpty) 'maps'};
     final snapshot = ProjectSnapshot(projectHandle: projectHandle, materializedCatalogProject: true,
-      revision: selected.revision, manifest: documents.project, maps: const [], availableProjectSections: const {'groups'},
-      availableProjectDocuments: {'groups': {for (final group in proposed) group.id}}, scopedStorageRevisions: const {},
+      revision: selected.revision, manifest: documents.project, maps: const [], availableProjectSections: sections,
+      availableProjectDocuments: ids, scopedStorageRevisions: const {},
       resourceBytes: {'project': bytes}, resourceStorageKeys: const {'project': 'project.json'},
       resourceFingerprints: {'project': computeAuthoringBytesFingerprint(bytes, logicalName: 'project.json')});
-    final result = CatalogWorkshopSelection._(selected, snapshot, {'groups'}, const {}, metadataDocuments: documents);
+    final result = CatalogWorkshopSelection._(selected, snapshot, sections, const {}, metadataDocuments: documents);
     await result.requireCurrent();
     return result;
   });

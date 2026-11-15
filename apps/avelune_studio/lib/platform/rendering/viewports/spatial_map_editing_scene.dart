@@ -203,6 +203,10 @@ extension _SpatialSceneComposition on _SpatialMapEditingViewportState {
       placementPreview: placementPreview,
       cellOverlays: cellOverlays(colors),
       contentPreview: contentPreview,
+      additionalContentPreviews: switch (gizmoPreviews) {
+        final previews when previews.length > 1 => previews.sublist(1),
+        _ => const [],
+      },
       selectedContent: selectedModel != null
           ? SpatialSceneContentHit(
               kind: SpatialSceneContentKind.model,
@@ -219,6 +223,7 @@ extension _SpatialSceneComposition on _SpatialMapEditingViewportState {
               cell: (selectedActor.pos.x, selectedActor.pos.y),
             )
           : null,
+      additionalSelectedContent: additionalSelection,
       selectionColor: colors.primary,
       onZoom: (delta) {
         final factor =

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
@@ -68,6 +69,7 @@ class MapBuilderSidePanel extends StatelessWidget {
       maps: project?.maps ?? const [],
       activeMapId: mapId,
       onSelectMap: enabled ? (entry) => unawaited(maps.activate(entry)) : null,
+      mapCommands: enabled ? MapLibraryCommands(maps) : null,
       resources: MapBuilderResourcePanel(
         project: resources.catalog,
         mapId: mapId,

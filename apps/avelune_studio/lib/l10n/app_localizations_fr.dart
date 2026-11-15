@@ -3574,4 +3574,307 @@ class AppLocalizationsFr extends AppLocalizations {
   String reliefReasonOther(String code) {
     return 'le tracé est refusé ($code).';
   }
+
+  @override
+  String get mapLibraryAdd => 'Ajouter une carte ou un dossier';
+
+  @override
+  String get mapLibraryNewMap => 'Nouvelle carte…';
+
+  @override
+  String get mapLibraryNewMapHere => 'Nouvelle carte dans ce dossier…';
+
+  @override
+  String get mapLibraryNewFolder => 'Nouveau dossier…';
+
+  @override
+  String get mapLibraryNewSubfolder => 'Nouveau sous-dossier…';
+
+  @override
+  String get mapLibraryOpen => 'Ouvrir';
+
+  @override
+  String get mapLibraryRename => 'Renommer';
+
+  @override
+  String get mapLibraryDuplicate => 'Dupliquer';
+
+  @override
+  String get mapLibraryMove => 'Déplacer vers…';
+
+  @override
+  String get mapLibraryDelete => 'Supprimer…';
+
+  @override
+  String get mapLibraryRenameFolder => 'Renommer le dossier';
+
+  @override
+  String get mapLibraryDeleteFolder => 'Supprimer le dossier';
+
+  @override
+  String get mapLibraryFolderNotEmpty =>
+      'Videz ce dossier avant de le supprimer : il contient encore des cartes ou des sous-dossiers.';
+
+  @override
+  String mapLibraryMapActions(String name) {
+    return 'Actions de la carte « $name »';
+  }
+
+  @override
+  String mapLibraryFolderActions(String name) {
+    return 'Actions du dossier « $name »';
+  }
+
+  @override
+  String mapLibraryCopyName(String name) {
+    return '$name (copie)';
+  }
+
+  @override
+  String get mapLibraryNewMapTitle => 'Nouvelle carte';
+
+  @override
+  String get mapLibraryName => 'Nom';
+
+  @override
+  String get mapLibraryWidth => 'Largeur (cases)';
+
+  @override
+  String get mapLibraryHeight => 'Hauteur (cases)';
+
+  @override
+  String get mapLibraryKind3d =>
+      'Carte 3D, comme toutes les cartes de ce projet.';
+
+  @override
+  String get mapLibraryKind2d =>
+      'Carte 2D, comme toutes les cartes de ce projet.';
+
+  @override
+  String get mapLibraryFolder => 'Dossier';
+
+  @override
+  String get mapLibraryNoFolder => 'Sans dossier';
+
+  @override
+  String get mapLibraryCreate => 'Créer';
+
+  @override
+  String get mapLibraryCancel => 'Annuler';
+
+  @override
+  String get mapLibraryClose => 'Fermer';
+
+  @override
+  String mapLibraryMoveTitle(String name) {
+    return 'Déplacer « $name »';
+  }
+
+  @override
+  String get mapLibraryMoveConfirm => 'Déplacer';
+
+  @override
+  String get mapLibraryNewFolderTitle => 'Nouveau dossier';
+
+  @override
+  String mapLibraryDeleteTitle(String name) {
+    return 'Supprimer « $name » ?';
+  }
+
+  @override
+  String get mapLibraryDeleteBody =>
+      'Aucune carte, scène ou règle du projet n’utilise cette carte. Elle quittera la bibliothèque avec son fichier.';
+
+  @override
+  String get mapLibraryDeleteConfirm => 'Supprimer';
+
+  @override
+  String mapLibraryDeleteAnalyzing(String name) {
+    return 'Recherche des usages de « $name »…';
+  }
+
+  @override
+  String mapLibraryInUseTitle(String name) {
+    return '« $name » est utilisée';
+  }
+
+  @override
+  String get mapLibraryInUseBody =>
+      'Retirez ces usages avant de supprimer la carte :';
+
+  @override
+  String mapLibraryUsageMap(String name) {
+    return 'Carte « $name » : passage, liaison ou élément vers cette carte';
+  }
+
+  @override
+  String get mapLibraryUsageMapUnnamed => 'Une autre carte du projet';
+
+  @override
+  String mapLibraryUsageScene(String name) {
+    return 'Scène « $name »';
+  }
+
+  @override
+  String get mapLibraryUsageSceneUnnamed => 'Une scène du projet';
+
+  @override
+  String mapLibraryUsageStoryline(String name) {
+    return 'Histoire « $name »';
+  }
+
+  @override
+  String get mapLibraryUsageStorylineUnnamed => 'Une histoire du projet';
+
+  @override
+  String mapLibraryUsageWorldRule(String name) {
+    return 'Règle du monde « $name »';
+  }
+
+  @override
+  String get mapLibraryUsageWorldRuleUnnamed => 'Une règle du monde';
+
+  @override
+  String mapLibraryUsageCinematic(String name) {
+    return 'Cinématique « $name »';
+  }
+
+  @override
+  String get mapLibraryUsageCinematicUnnamed => 'Une cinématique';
+
+  @override
+  String get mapLibraryUsageEvent => 'Un comportement ou un événement';
+
+  @override
+  String get mapLibraryUsageNewGame =>
+      'Nouvelle partie : carte de départ du joueur';
+
+  @override
+  String get mapLibraryUsageRegionalMap => 'Carte de la région (vol)';
+
+  @override
+  String get mapLibraryUsageOther => 'Un autre élément du projet';
+
+  @override
+  String get mapLibraryNameRequired => 'Donnez un nom.';
+
+  @override
+  String mapLibrarySizeInvalid(int max) {
+    return 'Largeur et hauteur : de 1 à $max cases.';
+  }
+
+  @override
+  String get mapLibraryFolderNameTaken =>
+      'Un dossier porte déjà ce nom à cet endroit.';
+
+  @override
+  String get mapLibraryMissing => 'Cet élément n’existe plus dans le projet.';
+
+  @override
+  String get mapLibraryRefused => 'L’opération a été refusée.';
+
+  @override
+  String mapLibraryPublishedNotIntegrated(String detail) {
+    return 'C’est enregistré sur le disque, mais la bibliothèque n’a pas pu se relire : $detail';
+  }
+
+  @override
+  String get mapLibraryBusy => 'Une opération sur les cartes est en cours.';
+
+  @override
+  String get mapMenuCut => 'Couper';
+
+  @override
+  String get mapMenuCopy => 'Copier';
+
+  @override
+  String get mapMenuPaste => 'Coller';
+
+  @override
+  String get mapMenuDuplicate => 'Dupliquer';
+
+  @override
+  String get mapMenuDelete => 'Supprimer';
+
+  @override
+  String get mapMenuRotate => 'Rotation 90°';
+
+  @override
+  String get mapMenuProperties => 'Propriétés';
+
+  @override
+  String get mapMenuMove => 'Déplacer';
+
+  @override
+  String get mapMenuBringForward => 'Passer devant';
+
+  @override
+  String get mapMenuSendBackward => 'Passer derrière';
+
+  @override
+  String get mapMenuClipboardEmpty => 'Copiez ou coupez d’abord un élément.';
+
+  @override
+  String get mapMenuRotateUnavailable => 'Seuls les décors 3D peuvent tourner.';
+
+  @override
+  String get mapLibraryDeleteUnavailable =>
+      'La suppression n’est pas encore disponible sur un projet catalogue comme celui-ci : retrouver tous les usages d’une carte demande un index qui n’existe pas encore.';
+
+  @override
+  String get selectionEyebrow => 'SÉLECTION';
+
+  @override
+  String get selectionKind3d => 'Décor 3D';
+
+  @override
+  String get selectionKindDecor => 'Décor';
+
+  @override
+  String get selectionKindCharacter => 'Personnage';
+
+  @override
+  String get selectionKindMarker => 'Repère';
+
+  @override
+  String get selectionKindWarp => 'Passage';
+
+  @override
+  String get selectionKindZone => 'Zone de jeu';
+
+  @override
+  String get selectionKindTrigger => 'Zone d’histoire';
+
+  @override
+  String get selectionX => 'X';
+
+  @override
+  String get selectionY => 'Y';
+
+  @override
+  String get selectionZ => 'Z (hauteur)';
+
+  @override
+  String get selectionRotation => 'Rotation (°)';
+
+  @override
+  String get selectionScale => 'Échelle';
+
+  @override
+  String get selectionAnimations => 'Animations';
+
+  @override
+  String get selectionAnimationsHint => 'Joue l’animation du modèle en boucle.';
+
+  @override
+  String get selectionInvalidNumber => 'Saisissez un nombre valide.';
+
+  @override
+  String selectionCount(int count) {
+    return '$count éléments sélectionnés';
+  }
+
+  @override
+  String get selectionGroupHint =>
+      'Les flèches du clavier, la poignée d’axe en 3D, Copier, Dupliquer et Supprimer agissent sur tout le groupe.';
 }
