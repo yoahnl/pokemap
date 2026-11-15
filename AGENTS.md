@@ -125,6 +125,7 @@ guarantee for saved games.
 | uses Flame APIs or needs PSDK parity | policies §Flame and PSDK |
 | authors projects, uses the PokeMap MCP or needs MCP parity | `skills/using-pokemap-mcp/SKILL.md` |
 | builds 3D reliefs or maps from a reference | `skills/authoring-pokemap-3d-reliefs`, `skills/creating-pokemap-maps-from-reference` |
+| finishes a lot that changes Studio screens, interactions, save, undo or opening | policies §Native Studio verification |
 | debugs a failure / adds behavior / claims completion | `systematic-debugging` / `test-driven-development` / `verification-before-completion` skills |
 
 Open only the triggered sections, not whole files. Clients do not all load
@@ -142,6 +143,10 @@ nested instruction files: before editing under a directory, check for a nearer
 - Use sub-agents only for an independent investigation or a justified review;
   no number of roles is imposed. A second pass by the same agent is not an
   independent review.
+- Green tests are not a finished screen: after a lot that changes the Studio,
+  run it in the real app on a disposable copy, use it as the author would and
+  look for bugs and poor ergonomics; fix what blocks before committing, report
+  the rest (policies §Native Studio verification).
 - Add or adapt tests when behavior changes. Choose validations from the
   affected contracts and consumers, without artificial tests or a ceremonial
   application build for a documentation change.

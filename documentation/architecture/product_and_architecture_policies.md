@@ -376,6 +376,62 @@ is part of finishing it, failed or resumed runs included.
   unique data or a consumer blocks it, report the path, size and reason, and
   say what was left behind.
 
+## Native Studio verification
+
+Tests prove contracts, not usability. In November 2026 every native pass after
+a scene-graph lot found real defects that green suites missed: a save refused
+without a reason, a second save reverting the first, undo crossing scenes,
+shortcuts dead until a first click, raw ids, cut labels, and a project that no
+longer opened after a failed save. Treat this pass as part of the lot.
+
+- **When:** after any lot that changes Studio screens, interactions, save,
+  undo or project opening, before committing it. A lot is not done while its
+  screen has not been used for real.
+- **Build:** Release of `apps/avelune_studio/dev/ui_atlas_main.dart` in an
+  isolated build directory: `XDG_CONFIG_HOME=<qa>/config` whose `settings`
+  sets `build-dir` under `AveluneQA/<task>/build`, pinned engine through
+  `tools/scripts/ensure_studio_qa_engine.py`. Build the working tree as is.
+- **Project:** never the real project. Clone a reference copy with `cp -cR`.
+  The app is sandboxed: the clone and its `captures/` folder live under
+  `~/Library/Containers/com.yoahnl.pokemap.editor/Data/Library/Caches/AveluneQA/<task>/`,
+  the clone is named exactly `project`, `captures/` holds the marker
+  `.avelune-studio-capture-owner` containing `avelune-studio-capture@1`
+  (no newline), and both paths are passed at build time
+  (`AVELUNE_ATLAS_PROJECT_PATH`, `MARIONETTE_CAPTURE_ROOT`). A copy changes
+  the ctime of the authoring history: recompute its fingerprints on the copy
+  only (`computeAuthoringJsonFingerprint`), otherwise the window stays black
+  (`captures/startup-error.txt`, `history.preparation_required`). The first
+  opening of a large catalog project can take 10 to 15 minutes.
+- **Driving:** capture the Studio window only (`screencapture -l <windowId>`),
+  never the full screen. Click with CGEvent (JXA) or MacOS-MCP; Command
+  shortcuts through System Events `keystroke … using command down`;
+  Shift/Command clicks through a posted `flagsChanged` CGEvent; the wheel only
+  through MacOS-MCP Scroll. Time durability by watching file modification
+  times (for example `catalog/HEAD.json`) from the click.
+- **What to look at, with a critical eye:**
+  - each acceptance criterion, PASS or FAIL, with one cropped capture;
+  - the normal path, then edge cases: empty, very large (a 99-step scene),
+    read-only and preview states;
+  - undo and redo, then save, close and reopen;
+  - timings against the 100 ms feedback and 500 ms save targets;
+  - texts: French, no raw ids or codes, no English leftovers, nothing cut or
+    overlapping;
+  - ergonomics: what is confusing, hidden, slow or not discoverable, even
+    when no test fails.
+
+  Separate what you saw from what you infer.
+- **Then:** fix blocking findings in the same lot with a regression test,
+  report the rest to Yoahn, and either re-run the pass after a risky fix or
+  say it was not re-checked.
+- **Cleanup:** quit the Studio you launched by its PID and confirm with `ps`
+  that it is gone: a reported quit has been wrong before, leaving a black
+  window for hours. Remove the task folders in both locations, the admissions
+  your run created under the container's
+  `Data/.avelune/authoring/catalog-admissions`, and restore the container
+  preferences (`defaults import`).
+- A sub-agent may run the pass with this procedure; the lead still reviews the
+  findings and checks that no process was left behind.
+
 ## Reports and Markdown
 
 - A "final report" is the chat response; never write a report file per lot
