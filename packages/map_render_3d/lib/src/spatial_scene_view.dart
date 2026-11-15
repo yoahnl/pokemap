@@ -24,6 +24,7 @@ import 'model_byte_loader.dart';
 import 'model_preview.dart';
 import 'model_playback.dart';
 import 'spatial_picking.dart';
+import 'spatial_model_pick_shape.dart';
 import 'adaptive_camera.dart';
 import 'spatial_scene_height_cache.dart';
 import 'spatial_scene_ground_image_references.dart';
@@ -2835,7 +2836,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       if (modelSelections.containsKey(id)) continue;
       final component = _editingModels(after)[id]?.component;
       if (component == null || !component.sourceGeometryVisible) continue;
-      final bounds = component.visibleBounds;
+      final bounds =
+          spatialModelPickShape(component.model)?.bounds ??
+          component.visibleBounds;
       final selection = spatialSelectionFrame(
         Vector3(bounds.min.x, bounds.min.y, bounds.min.z),
         Vector3(bounds.max.x, bounds.max.y, bounds.max.z),
@@ -3555,6 +3558,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           .where((model) => model.id == instance.modelId)
           .firstOrNull;
       if (definition == null) continue;
+      final shape = component == null
+          ? null
+          : spatialModelPickShape(component.model);
       final bounds = instance.clip == null
           ? definition.inspection.bounds
           : modelComponents[instance.id]?.component.visibleBounds;
@@ -3565,6 +3571,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         definition,
         bounds,
         editingOffset - configuration.sceneOffset,
+        shape,
       );
       if (distance != null && distance < nearest) {
         selected = instance;
@@ -3589,8 +3596,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     SpatialModelInstance instance,
     ProjectModel3dEntry definition,
     Model3dBounds bounds,
-    Offset editingOffset,
-  ) {
+    Offset editingOffset, [
+    SpatialModelPickShape? shape,
+  ]) {
     final angle = instance.rotationDegrees * math.pi / 180;
     final scale = instance.scale * definition.scale;
     final cosine = math.cos(angle), sine = math.sin(angle);
@@ -3607,9 +3615,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             instance.position.z + editingOffset.dy,
           ),
     );
-    return spatialRayBoxEntry(
+    final direction = local(ray.$2);
+    final entry = spatialRayBoxEntry(
       origin,
-      local(ray.$2),
+      direction,
       Vector3(
         bounds.min.x - definition.pivot.x,
         bounds.min.y - definition.pivot.y,
@@ -3620,6 +3629,12 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         bounds.max.y - definition.pivot.y,
         bounds.max.z - definition.pivot.z,
       ),
+    );
+    if (entry == null || shape == null) return entry;
+    final pivot = definition.pivot;
+    return shape.rayDistance(
+      origin + Vector3(pivot.x, pivot.y, pivot.z),
+      direction,
     );
   }
 
