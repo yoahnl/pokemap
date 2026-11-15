@@ -74,6 +74,7 @@ class LocalSceneAdapter implements ScenePort {
           .where((node) => previous[node.id] != node)
           .toList();
       if (changed.length == 1 &&
+          previous.containsKey(changed.single.id) &&
           changed.single.payload is SceneConditionPayload &&
           (changed.single.payload as SceneConditionPayload).conditionSource !=
               null) {

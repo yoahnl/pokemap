@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
@@ -9,6 +10,7 @@ import 'package:avelune_studio/features/scenes/domain/scene_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+
 import '../support/ui06_scene_fixture.dart';
 
 void main() {
@@ -21,9 +23,8 @@ void main() {
       maps: [],
       tilesets: [],
     );
-    await File(
-      '${root.path}/project.json',
-    ).writeAsString(jsonEncode(project.toJson()));
+    await File('${root.path}/project.json')
+        .writeAsString(jsonEncode(project.toJson()));
     final session = ProjectSession(
       sessionId: root.path,
       name: project.name,
@@ -57,56 +58,53 @@ void main() {
     });
     tearDown(() => fixture.dispose());
 
-    test(
-      'target-only save preserves resource published since scene opened and all map bytes',
-      () async {
-        final mapFiles = [
-          for (final entry in fixture.manifest.maps)
-            File('${fixture.directory.path}/${entry.relativePath}'),
-        ];
-        final beforeMaps = [
-          for (final file in mapFiles) await file.readAsBytes(),
-        ];
-        final imported =
-            await LocalResourceAdapter(
-              session: fixture.session,
-              mapAdapter: fixture.maps,
-            ).importImage(
-              ResourceImageImport(
-                sourcePath: '${fixture.directory.path}/assets/atelier.png',
-                name: 'Atlas importé pendant édition',
-                tileWidth: 16,
-                tileHeight: 16,
-              ),
-            );
-        final changed = updateSceneNodeLayout(
-          fixture.scene,
-          nodeId: fixture.scene.graph.nodes.last.id,
-          x: 1000,
-          y: 350,
-        ).updatedScene;
-        final receipt = await port.publishScene(
-          base: fixture.scene,
-          current: changed,
-        );
-        final reopened = await LocalMapWorkspaceAdapter().loadProject(
-          fixture.session,
-        );
-        expect(reopened.scenes.single, changed);
-        expect(
-          reopened.tilesets.firstWhere(
-            (value) => value.id == imported.createdTilesetId,
-          ),
-          imported.manifest.tilesets.firstWhere(
-            (value) => value.id == imported.createdTilesetId,
-          ),
-        );
-        expect(receipt.catalog.changedPaths, ['project.json']);
-        expect([
-          for (final file in mapFiles) await file.readAsBytes(),
-        ], beforeMaps);
-      },
-    );
+    test('target-only save preserves resource published since scene opened and all map bytes', () async {
+      final mapFiles = [
+        for (final entry in fixture.manifest.maps)
+          File('${fixture.directory.path}/${entry.relativePath}'),
+      ];
+      final beforeMaps = [
+        for (final file in mapFiles) await file.readAsBytes(),
+      ];
+      final imported =
+          await LocalResourceAdapter(
+            session: fixture.session,
+            mapAdapter: fixture.maps,
+          ).importImage(
+            ResourceImageImport(
+              sourcePath: '${fixture.directory.path}/assets/atelier.png',
+              name: 'Atlas importé pendant édition',
+              tileWidth: 16,
+              tileHeight: 16,
+            ),
+          );
+      final changed = updateSceneNodeLayout(
+        fixture.scene,
+        nodeId: fixture.scene.graph.nodes.last.id,
+        x: 1000,
+        y: 350,
+      ).updatedScene;
+      final receipt = await port.publishScene(
+        base: fixture.scene,
+        current: changed,
+      );
+      final reopened = await LocalMapWorkspaceAdapter().loadProject(
+        fixture.session,
+      );
+      expect(reopened.scenes.single, changed);
+      expect(
+        reopened.tilesets.firstWhere(
+          (value) => value.id == imported.createdTilesetId,
+        ),
+        imported.manifest.tilesets.firstWhere(
+          (value) => value.id == imported.createdTilesetId,
+        ),
+      );
+      expect(receipt.catalog.changedPaths, ['project.json']);
+      expect([
+        for (final file in mapFiles) await file.readAsBytes(),
+      ], beforeMaps);
+    });
 
     test(
       'stale same-scene base is rejected after internal publication',
@@ -118,9 +116,8 @@ void main() {
           y: 350,
         ).updatedScene;
         await port.publishScene(base: fixture.scene, current: changed);
-        final bytes = await File(
-          '${fixture.directory.path}/project.json',
-        ).readAsBytes();
+        final bytes = await File('${fixture.directory.path}/project.json')
+            .readAsBytes();
         await expectLater(
           port.publishScene(base: fixture.scene, current: fixture.scene),
           throwsA(isA<SceneFailure>()),
@@ -194,9 +191,9 @@ void main() {
         expect(injected, true);
         expect(await file.readAsString(), external);
         expect(
-          (await LocalMapWorkspaceAdapter().loadProject(
-            fixture.session,
-          )).scenes.single,
+          (await LocalMapWorkspaceAdapter().loadProject(fixture.session))
+              .scenes
+              .single,
           fixture.scene,
         );
       },
@@ -233,9 +230,9 @@ void main() {
         expect(interrupted, true);
         expect(receipt.scene, changed);
         expect(
-          (await LocalMapWorkspaceAdapter().loadProject(
-            fixture.session,
-          )).scenes.single,
+          (await LocalMapWorkspaceAdapter().loadProject(fixture.session))
+              .scenes
+              .single,
           changed,
         );
       },

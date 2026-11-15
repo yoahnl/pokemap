@@ -77,7 +77,8 @@ class MapBuilderEncounterZoneForm extends StatelessWidget {
           },
           onChanged: enabled && ready
               ? (value) => binding.editZones(
-                  (commands) => commands.updateEncounter(zone.id, tableId: value),
+                  (commands) =>
+                      commands.updateEncounter(zone.id, tableId: value),
                 )
               : null,
         ),

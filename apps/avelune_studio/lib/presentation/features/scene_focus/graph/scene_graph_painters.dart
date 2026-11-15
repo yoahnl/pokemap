@@ -59,12 +59,14 @@ class SceneGraphWirePainter extends CustomPainter {
     required this.origin,
     required this.pathEdgeIds,
     required this.colors,
+    this.faultyEdgeIds = const {},
   });
 
   final SceneGraphView view;
   final Offset origin;
   final Set<String> pathEdgeIds;
   final SceneGraphWireColors colors;
+  final Set<String> faultyEdgeIds;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -85,6 +87,7 @@ class SceneGraphWirePainter extends CustomPainter {
         ..color = switch (wire) {
           _ when onPath => colors.path,
           SceneGraphWire(loop: true) => colors.loop,
+          _ when faultyEdgeIds.contains(wire.id) => colors.loop,
           SceneGraphWire(declared: false) => colors.undeclared,
           _ => colors.idle,
         };
@@ -103,7 +106,8 @@ class SceneGraphWirePainter extends CustomPainter {
       old.view != view ||
       old.origin != origin ||
       old.colors != colors ||
-      !_sameIds(old.pathEdgeIds, pathEdgeIds);
+      !_sameIds(old.pathEdgeIds, pathEdgeIds) ||
+      !_sameIds(old.faultyEdgeIds, faultyEdgeIds);
 }
 
 Path sceneGraphWirePath(Offset from, Offset to) {

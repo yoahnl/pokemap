@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_metrics.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_labels.dart';
@@ -15,6 +16,7 @@ class SceneGraphCardTile extends StatelessWidget {
     required this.project,
     required this.selected,
     required this.onPath,
+    this.problem,
     this.dialogueNames = const {},
   });
 
@@ -25,6 +27,7 @@ class SceneGraphCardTile extends StatelessWidget {
   final ProjectManifest? project;
   final bool selected;
   final bool onPath;
+  final SceneGraphProblemLevel? problem;
   final Map<String, String> dialogueNames;
 
   @override
@@ -47,7 +50,17 @@ class SceneGraphCardTile extends StatelessWidget {
         ? BorderSide(color: studio.canvasSelection, width: 2)
         : onPath
         ? BorderSide(color: studio.featureAccent, width: 2)
-        : BorderSide(color: scheme.outlineVariant);
+        : switch (problem) {
+            SceneGraphProblemLevel.blocking => BorderSide(
+              color: scheme.error,
+              width: 2,
+            ),
+            SceneGraphProblemLevel.warning => BorderSide(
+              color: studio.warning,
+              width: 2,
+            ),
+            null => BorderSide(color: scheme.outlineVariant),
+          };
     return SizedBox(
       width: SceneGraphMetrics.cardWidth,
       height: card.height,
@@ -154,7 +167,7 @@ class SceneGraphCardTile extends StatelessWidget {
     StudioColors studio,
   ) => switch (port) {
     SceneGraphPort(declared: false) => studio.warning,
-    SceneGraphPort(required: true, connected: false) => scheme.error,
+    SceneGraphPort(required: true, connected: false) => studio.warning,
     _ => idle,
   };
 

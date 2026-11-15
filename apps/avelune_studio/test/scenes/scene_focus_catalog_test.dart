@@ -3,7 +3,9 @@ import 'package:avelune_studio/features/game_memory/data/local_narrative_index_a
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_commands.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
@@ -186,5 +188,52 @@ void main() {
     SceneNodeLayout at(String id) => saved.singleWhere((l) => l.nodeId == id);
     expect((at('hello').x, at('hello').y), (480, 96));
     expect((at('check').x, at('check').y), (800, 96));
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
+  test('a new condition step, both exits to the same end, is saved', () async {
+    final session = await openSceneFocusCatalog();
+    final (:story, :port, reader: _) = await _storyOn(session);
+    final gate = _focus(story, port, 'gate', focusCaveEvent);
+    await gate.open();
+    final check = gate.scene!.graph.nodes.singleWhere((n) => n.id == 'check');
+    var links = 0;
+    final ids = SceneStepIds(
+      node: () => 'new_check',
+      edge: () => 'new_link_${links++}',
+    );
+    SceneAsset edited(SceneGraphEditResult result) =>
+        (result as SceneGraphEdited).scene;
+    var scene = edited(
+      addSceneGraphStep(
+        gate.scene!,
+        kind: SceneNodeKind.condition,
+        payload: check.payload,
+        at: const SceneGraphPoint(900, 0),
+        from: (nodeId: 'open', portId: 'completed'),
+        ids: ids,
+      ),
+    );
+    for (final port in ['true', 'false']) {
+      scene = edited(
+        connectSceneGraphExit(
+          scene,
+          from: (nodeId: 'new_check', portId: port),
+          toNodeId: 'end',
+          ids: ids,
+        ),
+      );
+    }
+
+    expect(checkSceneGraph(scene).problems, isEmpty);
+    expect(gate.edit(scene), isTrue);
+    expect(await story.save(), isTrue, reason: story.error);
+    final saved = (await port.sceneDocument('gate')).scene;
+    expect(saved.graph.nodes.map((n) => n.id), contains('new_check'));
+    expect(
+      saved.graph.edges
+          .where((e) => e.fromNodeId == 'new_check')
+          .map((e) => e.toNodeId),
+      ['end', 'end'],
+    );
   }, timeout: const Timeout(Duration(minutes: 3)));
 }

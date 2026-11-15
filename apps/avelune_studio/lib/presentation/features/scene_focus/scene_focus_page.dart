@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
-import 'package:avelune_studio/presentation/features/scene_focus/scene_focus_side.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/scene_focus_workspace.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_states.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
@@ -90,20 +89,11 @@ class SceneFocusPage extends StatelessWidget {
               Expanded(
                 child: switch ((state, scene, project)) {
                   (final state?, _, _) => state,
-                  (null, final scene?, final project?) => Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: SceneFocusWorkspace(
-                          focus: focus,
-                          scene: scene,
-                          project: project,
-                          map: map,
-                        ),
-                      ),
-                      const VerticalDivider(width: 1),
-                      SizedBox(width: 380, child: SceneFocusSide(focus: focus)),
-                    ],
+                  (null, final scene?, final project?) => SceneFocusWorkspace(
+                    focus: focus,
+                    scene: scene,
+                    project: project,
+                    map: map,
                   ),
                   _ => StudioLoadingState(label: l10n.sceneFocusLoading),
                 },

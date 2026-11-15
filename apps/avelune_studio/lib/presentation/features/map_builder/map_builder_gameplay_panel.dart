@@ -144,68 +144,55 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
     final selectedWarp = binding.selectedWarp?.id;
     final selectedConnection = binding.selectedConnection?.direction;
     return [
-                MenuAnchor(
-                  menuChildren: [
-                    MenuItemButton(
-                      key: const ValueKey('map-gameplay-add-connection'),
-                      leadingIcon: const Icon(Icons.swap_horiz, size: 18),
-                      onPressed: binding.draftConnection,
-                      child: Text(l10n.gameplayLinkNeighbour),
-                    ),
-                    MenuItemButton(
-                      key: const ValueKey('map-gameplay-add-warp'),
-                      leadingIcon: const Icon(
-                        Icons.door_front_door_outlined,
-                        size: 18,
-                      ),
-                      onPressed: binding.draftWarp,
-                      child: Text(l10n.gameplayPlaceWarp),
-                    ),
-                  ],
-                  builder: (context, menu, _) => StudioButton(
-                    key: const ValueKey('map-gameplay-add'),
-                    label: outline.addLabel ?? l10n.gameplayAddFallback,
-                    icon: Icons.add,
-                    onPressed: widget.enabled
-                        ? () => menu.isOpen ? menu.close() : menu.open()
-                        : null,
-                  ),
-                ),
-                _Section(
-                  title: l10n.gameplayNeighbours,
-                  count: connections.length,
-                ),
-                if (connections.isEmpty)
-                  Text(l10n.gameplayNoNeighbour, style: muted),
-                for (final connection in connections)
-                  StudioChoice(
-                    key: ValueKey(
-                      'map-gameplay-connection-${connection.direction.name}',
-                    ),
-                    leading: const Icon(Icons.swap_horiz, size: 18),
-                    label: binding.mapName(connection.targetMapId),
-                    subtitle: l10n.neighbourSubtitle(
-                      l10n.direction(connection.direction).toLowerCase(),
-                      connection.offset,
-                    ),
-                    selected: connection.direction == selectedConnection,
-                    onTap: () => binding.selectConnection(connection.direction),
-                  ),
-                _Section(title: l10n.gameplayPassages, count: passages.length),
-                if (passages.isEmpty)
-                  Text(l10n.gameplayNoPassage, style: muted),
-                for (final warp in passages)
-                  StudioChoice(
-                    key: ValueKey('map-gameplay-warp-${warp.id}'),
-                    leading: const Icon(
-                      Icons.door_front_door_outlined,
-                      size: 18,
-                    ),
-                    label: binding.warpLabel(warp),
-                    subtitle: l10n.warpCell(warp.pos.x, warp.pos.y),
-                    selected: warp.id == selectedWarp,
-                    onTap: () => binding.selectWarp(warp.id),
-                  ),
+      MenuAnchor(
+        menuChildren: [
+          MenuItemButton(
+            key: const ValueKey('map-gameplay-add-connection'),
+            leadingIcon: const Icon(Icons.swap_horiz, size: 18),
+            onPressed: binding.draftConnection,
+            child: Text(l10n.gameplayLinkNeighbour),
+          ),
+          MenuItemButton(
+            key: const ValueKey('map-gameplay-add-warp'),
+            leadingIcon: const Icon(Icons.door_front_door_outlined, size: 18),
+            onPressed: binding.draftWarp,
+            child: Text(l10n.gameplayPlaceWarp),
+          ),
+        ],
+        builder: (context, menu, _) => StudioButton(
+          key: const ValueKey('map-gameplay-add'),
+          label: outline.addLabel ?? l10n.gameplayAddFallback,
+          icon: Icons.add,
+          onPressed: widget.enabled
+              ? () => menu.isOpen ? menu.close() : menu.open()
+              : null,
+        ),
+      ),
+      _Section(title: l10n.gameplayNeighbours, count: connections.length),
+      if (connections.isEmpty) Text(l10n.gameplayNoNeighbour, style: muted),
+      for (final connection in connections)
+        StudioChoice(
+          key: ValueKey('map-gameplay-connection-${connection.direction.name}'),
+          leading: const Icon(Icons.swap_horiz, size: 18),
+          label: binding.mapName(connection.targetMapId),
+          subtitle: l10n.neighbourSubtitle(
+            l10n.direction(connection.direction).toLowerCase(),
+            connection.offset,
+          ),
+          selected: connection.direction == selectedConnection,
+          onTap: () => binding.selectConnection(connection.direction),
+        ),
+      _Section(title: l10n.gameplayPassages, count: passages.length),
+      if (passages.isEmpty) Text(l10n.gameplayNoPassage, style: muted),
+      for (final warp in passages)
+        StudioChoice(
+          key: ValueKey('map-gameplay-warp-${warp.id}'),
+          leading: const Icon(Icons.door_front_door_outlined, size: 18),
+          label: binding.warpLabel(warp),
+          subtitle: l10n.warpCell(warp.pos.x, warp.pos.y),
+          selected: warp.id == selectedWarp,
+          onTap: () => binding.selectWarp(warp.id),
+        ),
     ];
   }
 }

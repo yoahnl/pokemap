@@ -3016,12 +3016,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get sceneFocusGraphTab => 'Graphe';
-
-  @override
-  String get sceneFocusStepsTab => 'Étapes';
-
-  @override
   String sceneGraphKind(String kind) {
     String _temp0 = intl.Intl.selectLogic(kind, {
       'start': 'Début',
@@ -3042,8 +3036,8 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String sceneGraphPort(String port) {
     String _temp0 = intl.Intl.selectLogic(port, {
-      'true': 'Oui',
-      'false': 'Non',
+      'true': 'Alors',
+      'false': 'Sinon',
       'completed': 'Continuer',
       'received': 'Reçu',
       'alreadyClaimed': 'Déjà reçu aujourd’hui',
@@ -3051,6 +3045,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'blocked': 'Indisponible',
       'victory': 'Victoire',
       'defeat': 'Défaite',
+      'captured': 'Capturé',
+      'runaway': 'Fuite',
       'default': 'Sinon',
       'error': 'Erreur',
       'party': 'Dans l’équipe',
@@ -3109,6 +3105,39 @@ class AppLocalizationsFr extends AppLocalizations {
       'startCannotBeRemoved': 'Le début ne peut pas être supprimé.',
       'referencedElsewhere': 'Une autre étape dépend de celle-ci.',
       'other': 'Ce changement rendrait la scène invalide.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String sceneGraphSelectionCount(int count) {
+    return '$count étapes sélectionnées';
+  }
+
+  @override
+  String get sceneGraphChecksTitle => 'Vérification';
+
+  @override
+  String get sceneGraphChecksClear => 'Aucun problème dans cette scène.';
+
+  @override
+  String get sceneGraphBlocking => 'Bloque l’enregistrement';
+
+  @override
+  String sceneGraphProblem(String code) {
+    String _temp0 = intl.Intl.selectLogic(code, {
+      'requiredOutputPortMissing':
+          'Une sortie obligatoire n’est reliée à rien.',
+      'unreachableNode': 'Cette étape n’est jamais atteinte depuis le début.',
+      'unreachableEndNode': 'Cette fin n’est jamais atteinte.',
+      'cycleUnsupported': 'Un lien fait revenir la scène en arrière : les boucles ne sont pas jouables.',
+      'noReachableEnd': 'Aucune fin n’est atteignable depuis le début.',
+      'missingEndNode': 'La scène n’a aucune fin.',
+      'duplicateOutgoingPortEdge': 'Une sortie part vers plusieurs étapes.',
+      'edgeFromPortUnsupported':
+          'Un lien part d’une sortie que cette étape n’a pas.',
+      'emptyGraph': 'La scène est vide.',
+      'other': '$code',
     });
     return '$_temp0';
   }

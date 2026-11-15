@@ -1,6 +1,6 @@
-part of 'map_builder_story_steps.dart';
+part of 'scene_step_form.dart';
 
-Widget? _formOf(_Steps steps, SceneNode node) => switch (node.payload) {
+Widget? _formOf(_Form steps, SceneNode node) => switch (node.payload) {
   SceneActionPayload(consequence: final SceneSetFactConsequence fact)
       when fact.narrativeValue.kind == NarrativeValueKind.boolean =>
     _FactForm(steps: steps, node: node, fact: fact),
@@ -21,7 +21,7 @@ Map<String, Object?> _payloadJson(SceneNode node) =>
     Map<String, Object?>.from(node.toJson()['payload'] as Map);
 
 void _editPayload(
-  _Steps steps,
+  _Form steps,
   SceneNode node,
   Map<String, Object?> Function(Map<String, Object?> payload) change,
 ) => steps.edit(
@@ -46,7 +46,7 @@ class _FactForm extends StatelessWidget {
     required this.fact,
   });
 
-  final _Steps steps;
+  final _Form steps;
   final SceneNode node;
   final SceneSetFactConsequence fact;
 
@@ -94,7 +94,7 @@ class _PresenceForm extends StatelessWidget {
     required this.change,
   });
 
-  final _Steps steps;
+  final _Form steps;
   final SceneNode node;
   final SceneSetNpcPresenceConsequence change;
 
@@ -120,7 +120,7 @@ class _PresenceForm extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (!sameMap)
-          _Caption(
+          SceneStepCaption(
             '${l10n.storyStepOtherMap(change.mapId)} · ${change.entityId}',
           ),
         _Pair(
@@ -159,7 +159,7 @@ class _PresenceForm extends StatelessWidget {
 class _DialogueView extends StatelessWidget {
   const _DialogueView({required this.steps, required this.node});
 
-  final _Steps steps;
+  final _Form steps;
   final SceneNode node;
 
   @override
@@ -172,11 +172,11 @@ class _DialogueView extends StatelessWidget {
       key: ValueKey('story-step-dialogue-${node.id}'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Caption(steps.l10n.storyStepDialogue),
+        SceneStepCaption(steps.l10n.storyStepDialogue),
         Text(dialogue?.name ?? payload.dialogueId),
         if (payload.speakerHints.isNotEmpty) ...[
           const SizedBox(height: StudioSpacing.xs),
-          _Caption(steps.l10n.storyStepSpeaker),
+          SceneStepCaption(steps.l10n.storyStepSpeaker),
           Text(payload.speakerHints.join(', ')),
         ],
       ],
@@ -187,7 +187,7 @@ class _DialogueView extends StatelessWidget {
 class _TrainerForm extends StatelessWidget {
   const _TrainerForm({required this.steps, required this.node});
 
-  final _Steps steps;
+  final _Form steps;
   final SceneNode node;
 
   @override
@@ -214,7 +214,7 @@ class _TrainerForm extends StatelessWidget {
 class _ConditionForm extends StatelessWidget {
   const _ConditionForm({required this.steps, required this.node});
 
-  final _Steps steps;
+  final _Form steps;
   final SceneNode node;
 
   @override
@@ -225,7 +225,7 @@ class _ConditionForm extends StatelessWidget {
     if (source == null ||
         source.sourceKind != SceneConditionSourceKind.fact ||
         source.operator == SceneConditionOperator.equals) {
-      return _Caption(
+      return SceneStepCaption(
         '${l10n.storyStepAdvancedCondition}'
         '${payload.conditionLabel == null ? '' : ' · ${payload.conditionLabel}'}',
       );
@@ -233,7 +233,7 @@ class _ConditionForm extends StatelessWidget {
     void set(String factId, SceneConditionOperator operator) {
       final label = _booleanFacts(steps.project)[factId];
       final updated = updateSceneConditionSource(
-        steps.widget.scene,
+        steps.scene,
         nodeId: node.id,
         source: SceneConditionSource(
           sourceKind: SceneConditionSourceKind.fact,

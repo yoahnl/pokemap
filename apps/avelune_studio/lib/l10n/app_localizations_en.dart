@@ -2999,12 +2999,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get sceneFocusGraphTab => 'Graph';
-
-  @override
-  String get sceneFocusStepsTab => 'Steps';
-
-  @override
   String sceneGraphKind(String kind) {
     String _temp0 = intl.Intl.selectLogic(kind, {
       'start': 'Start',
@@ -3025,8 +3019,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String sceneGraphPort(String port) {
     String _temp0 = intl.Intl.selectLogic(port, {
-      'true': 'Yes',
-      'false': 'No',
+      'true': 'Then',
+      'false': 'Otherwise',
       'completed': 'Continue',
       'received': 'Received',
       'alreadyClaimed': 'Already received today',
@@ -3034,6 +3028,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'blocked': 'Unavailable',
       'victory': 'Victory',
       'defeat': 'Defeat',
+      'captured': 'Caught',
+      'runaway': 'Ran away',
       'default': 'Otherwise',
       'error': 'Error',
       'party': 'In the party',
@@ -3092,6 +3088,39 @@ class AppLocalizationsEn extends AppLocalizations {
       'startCannotBeRemoved': 'Start cannot be deleted.',
       'referencedElsewhere': 'Another step depends on this one.',
       'other': 'This change would make the scene invalid.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String sceneGraphSelectionCount(int count) {
+    return '$count steps selected';
+  }
+
+  @override
+  String get sceneGraphChecksTitle => 'Checks';
+
+  @override
+  String get sceneGraphChecksClear => 'No problem in this scene.';
+
+  @override
+  String get sceneGraphBlocking => 'Blocks saving';
+
+  @override
+  String sceneGraphProblem(String code) {
+    String _temp0 = intl.Intl.selectLogic(code, {
+      'requiredOutputPortMissing': 'A required exit is linked to nothing.',
+      'unreachableNode': 'This step is never reached from Start.',
+      'unreachableEndNode': 'This end is never reached.',
+      'cycleUnsupported':
+          'A link sends the scene backwards: loops are not playable.',
+      'noReachableEnd': 'No end can be reached from Start.',
+      'missingEndNode': 'The scene has no end.',
+      'duplicateOutgoingPortEdge': 'One exit leads to several steps.',
+      'edgeFromPortUnsupported':
+          'A link leaves from an exit this step does not have.',
+      'emptyGraph': 'The scene is empty.',
+      'other': '$code',
     });
     return '$_temp0';
   }

@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+
 import '../../resources/domain/resource_port.dart';
 
 class ScenePublicationReceipt {

@@ -14,9 +14,10 @@ import 'package:avelune_studio/presentation/features/story/game_behaviour_labels
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class SceneFocusSide extends StatelessWidget {
-  const SceneFocusSide({super.key, required this.focus});
+  const SceneFocusSide({super.key, required this.focus, this.leading});
 
   final SceneFocusController focus;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +32,7 @@ class SceneFocusSide extends StatelessWidget {
       padding: const EdgeInsets.all(StudioSpacing.l),
       children: [
         if (path != null) _PathSection(focus: focus, path: path),
+        ?leading,
         StudioSection(
           title: l10n.sceneFocusLaunchedBy,
           children: [

@@ -192,7 +192,9 @@ class _MapBuilderResourcePanelState extends State<MapBuilderResourcePanel> {
                     label: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        context.l10n.resourceFilterMap(count(ResourceCatalogScope.map)),
+                        context.l10n.resourceFilterMap(
+                          count(ResourceCatalogScope.map),
+                        ),
                       ),
                     ),
                   ),

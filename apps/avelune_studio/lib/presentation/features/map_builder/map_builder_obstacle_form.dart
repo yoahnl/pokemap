@@ -148,7 +148,9 @@ class MapBuilderObstaclePlacement extends StatelessWidget {
       formKey: 'map-gameplay-obstacle-placement',
       eyebrow: l10n.obstacleEyebrow,
       title: l10n.obstacleKindName(kind),
-      subtitle: visual == null ? l10n.obstaclePlaceHint : l10n.obstaclePlaceClick,
+      subtitle: visual == null
+          ? l10n.obstaclePlaceHint
+          : l10n.obstaclePlaceClick,
       children: [
         if (visuals.isEmpty)
           StudioNotice(l10n.obstacleNoElement)

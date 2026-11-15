@@ -1675,8 +1675,6 @@
       }
     }
   },
-  "sceneFocusGraphTab": "Graphe",
-  "sceneFocusStepsTab": "Étapes",
   "sceneGraphKind": "{kind, select, start{Début} end{Fin} yarnDialogue{Dialogue} condition{Condition} action{Action} battle{Combat} cinematic{Cinématique} presentationCinematic{Présentation} branchByOutcome{Branchement} merge{Convergence} other{{kind}}}",
   "@sceneGraphKind": {
     "placeholders": {
@@ -1685,7 +1683,7 @@
       }
     }
   },
-  "sceneGraphPort": "{port, select, true{Oui} false{Non} completed{Continuer} received{Reçu} alreadyClaimed{Déjà reçu aujourd’hui} bagFull{Sac plein} blocked{Indisponible} victory{Victoire} defeat{Défaite} default{Sinon} error{Erreur} party{Dans l’équipe} pc{Au PC} noCapacity{Plus de place} soundBlocked{Son coupé} cancelled{Annulé} quit{Abandon} failed{Échec} interrupted{Interrompu} other{{port}}}",
+  "sceneGraphPort": "{port, select, true{Alors} false{Sinon} completed{Continuer} received{Reçu} alreadyClaimed{Déjà reçu aujourd’hui} bagFull{Sac plein} blocked{Indisponible} victory{Victoire} defeat{Défaite} captured{Capturé} runaway{Fuite} default{Sinon} error{Erreur} party{Dans l’équipe} pc{Au PC} noCapacity{Plus de place} soundBlocked{Son coupé} cancelled{Annulé} quit{Abandon} failed{Échec} interrupted{Interrompu} other{{port}}}",
   "@sceneGraphPort": {
     "placeholders": {
       "port": {
@@ -1713,6 +1711,25 @@
   "@sceneGraphRefused": {
     "placeholders": {
       "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneGraphSelectionCount": "{count} étapes sélectionnées",
+  "@sceneGraphSelectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sceneGraphChecksTitle": "Vérification",
+  "sceneGraphChecksClear": "Aucun problème dans cette scène.",
+  "sceneGraphBlocking": "Bloque l’enregistrement",
+  "sceneGraphProblem": "{code, select, requiredOutputPortMissing{Une sortie obligatoire n’est reliée à rien.} unreachableNode{Cette étape n’est jamais atteinte depuis le début.} unreachableEndNode{Cette fin n’est jamais atteinte.} cycleUnsupported{Un lien fait revenir la scène en arrière : les boucles ne sont pas jouables.} noReachableEnd{Aucune fin n’est atteignable depuis le début.} missingEndNode{La scène n’a aucune fin.} duplicateOutgoingPortEdge{Une sortie part vers plusieurs étapes.} edgeFromPortUnsupported{Un lien part d’une sortie que cette étape n’a pas.} emptyGraph{La scène est vide.} other{{code}}}",
+  "@sceneGraphProblem": {
+    "placeholders": {
+      "code": {
         "type": "String"
       }
     }

@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_card_tile.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_painters.dart';
@@ -17,6 +18,7 @@ class SceneGraphWorld extends StatelessWidget {
     required this.pathNodeIds,
     required this.pathEdgeIds,
     required this.dialogueNames,
+    required this.checks,
   });
 
   final SceneGraphView view;
@@ -27,6 +29,7 @@ class SceneGraphWorld extends StatelessWidget {
   final Set<String> pathNodeIds;
   final Set<String> pathEdgeIds;
   final Map<String, String> dialogueNames;
+  final SceneGraphChecks checks;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +53,12 @@ class SceneGraphWorld extends StatelessWidget {
                   view: view,
                   origin: bounds.topLeft,
                   pathEdgeIds: pathEdgeIds,
+                  faultyEdgeIds: {
+                    for (final wire in view.wires)
+                      if (checks.levelOfEdge(wire.id) ==
+                          SceneGraphProblemLevel.blocking)
+                        wire.id,
+                  },
                   colors: SceneGraphWireColors(
                     idle: scheme.onSurfaceVariant,
                     path: studio.featureAccent,
@@ -70,6 +79,7 @@ class SceneGraphWorld extends StatelessWidget {
                   project: project,
                   selected: selected.contains(card.id),
                   onPath: pathNodeIds.contains(card.id),
+                  problem: checks.levelOfNode(card.id),
                   dialogueNames: dialogueNames,
                 ),
               ),

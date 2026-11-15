@@ -159,6 +159,23 @@ SceneGraphEditResult removeSceneGraphItems(
   );
 }
 
+SceneGraphEditResult editSceneGraphStep(SceneAsset scene, SceneNode node) {
+  final previous = _node(scene.graph, node.id);
+  if (previous == null) {
+    return const SceneGraphEditRefused(SceneGraphEditRefusal.unknownStep);
+  }
+  if (previous.kind != node.kind) {
+    return const SceneGraphEditRefused(SceneGraphEditRefusal.invalid);
+  }
+  return _rebuild(
+    scene,
+    nodes: [
+      for (final each in scene.graph.nodes) each.id == node.id ? node : each,
+    ],
+    edges: scene.graph.edges,
+  );
+}
+
 SceneGraphEditResult moveSceneGraphSteps(
   SceneAsset scene,
   Map<String, SceneGraphPoint> positions,

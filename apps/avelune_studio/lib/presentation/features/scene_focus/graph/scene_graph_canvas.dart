@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
@@ -31,6 +32,8 @@ class SceneGraphCanvas extends StatefulWidget {
     this.dialogueNames = const {},
     this.map,
     this.onChanged,
+    this.checks,
+    this.onSelectionChanged,
   });
 
   final SceneAsset scene;
@@ -40,6 +43,8 @@ class SceneGraphCanvas extends StatefulWidget {
   final Map<String, String> dialogueNames;
   final MapData? map;
   final bool Function(SceneAsset scene)? onChanged;
+  final SceneGraphChecks? checks;
+  final ValueChanged<Set<String>>? onSelectionChanged;
 
   @override
   State<SceneGraphCanvas> createState() => SceneGraphCanvasState();
@@ -79,7 +84,11 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
     if (!identical(oldWidget.scene, widget.scene)) {
       _view = projectSceneGraph(widget.scene);
       final ids = {for (final card in _view.cards) card.id};
-      _selected = _selected.where(ids.contains).toSet();
+      final kept = _selected.where(ids.contains).toSet();
+      if (kept.length != _selected.length) {
+        _selected = kept;
+        WidgetsBinding.instance.addPostFrameCallback((_) => _announce());
+      }
       _moved = const {};
     }
   }
@@ -91,7 +100,36 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
     super.dispose();
   }
 
-  void _mutate(VoidCallback change) => setState(change);
+  void _mutate(VoidCallback change) {
+    final before = _selected;
+    setState(change);
+    if (!identical(before, _selected)) _announce();
+  }
+
+  Set<String> _announced = const {};
+
+  void _announce() {
+    if (!mounted) return;
+    if (_announced.length == _selected.length &&
+        _announced.containsAll(_selected)) {
+      return;
+    }
+    _announced = Set.unmodifiable(_selected);
+    widget.onSelectionChanged?.call(_announced);
+  }
+
+  void show(String nodeId) {
+    final card = _view.card(nodeId);
+    final camera = _camera;
+    if (card == null || camera == null) return;
+    camera.value = SceneGraphCamera(
+      pan:
+          _viewport.center(Offset.zero) -
+          sceneGraphCardRect(card).center * camera.value.scale,
+      scale: camera.value.scale,
+    );
+    _mutate(() => _selected = {nodeId});
+  }
 
   void showAll() =>
       _camera?.value = SceneGraphCamera.fit(sceneGraphBounds(_view), _viewport);
@@ -126,6 +164,7 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
       pathNodeIds: widget.pathNodeIds.toSet(),
       pathEdgeIds: _pathEdgeIds,
       dialogueNames: widget.dialogueNames,
+      checks: widget.checks ?? checkSceneGraph(widget.scene),
     );
     return LayoutBuilder(
       builder: (context, constraints) {

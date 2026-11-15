@@ -4836,18 +4836,6 @@ abstract class AppLocalizations {
   /// **'{step} · {detail}'**
   String sceneFocusPathStepDetail(String step, String detail);
 
-  /// No description provided for @sceneFocusGraphTab.
-  ///
-  /// In fr, this message translates to:
-  /// **'Graphe'**
-  String get sceneFocusGraphTab;
-
-  /// No description provided for @sceneFocusStepsTab.
-  ///
-  /// In fr, this message translates to:
-  /// **'Étapes'**
-  String get sceneFocusStepsTab;
-
   /// No description provided for @sceneGraphKind.
   ///
   /// In fr, this message translates to:
@@ -4857,7 +4845,7 @@ abstract class AppLocalizations {
   /// No description provided for @sceneGraphPort.
   ///
   /// In fr, this message translates to:
-  /// **'{port, select, true{Oui} false{Non} completed{Continuer} received{Reçu} alreadyClaimed{Déjà reçu aujourd’hui} bagFull{Sac plein} blocked{Indisponible} victory{Victoire} defeat{Défaite} default{Sinon} error{Erreur} party{Dans l’équipe} pc{Au PC} noCapacity{Plus de place} soundBlocked{Son coupé} cancelled{Annulé} quit{Abandon} failed{Échec} interrupted{Interrompu} other{{port}}}'**
+  /// **'{port, select, true{Alors} false{Sinon} completed{Continuer} received{Reçu} alreadyClaimed{Déjà reçu aujourd’hui} bagFull{Sac plein} blocked{Indisponible} victory{Victoire} defeat{Défaite} captured{Capturé} runaway{Fuite} default{Sinon} error{Erreur} party{Dans l’équipe} pc{Au PC} noCapacity{Plus de place} soundBlocked{Son coupé} cancelled{Annulé} quit{Abandon} failed{Échec} interrupted{Interrompu} other{{port}}}'**
   String sceneGraphPort(String port);
 
   /// No description provided for @sceneGraphUnset.
@@ -4919,6 +4907,36 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{reason, select, unknownStep{Cette étape n’existe plus.} unknownExit{Cette sortie n’existe pas pour cette étape.} startHasNoInput{Le début ne peut pas recevoir de lien.} intoItself{Une étape ne peut pas se relier à elle-même.} wouldLoop{Ce lien ferait revenir la scène en arrière : les boucles ne sont pas jouables.} startCannotBeRemoved{Le début ne peut pas être supprimé.} referencedElsewhere{Une autre étape dépend de celle-ci.} other{Ce changement rendrait la scène invalide.}}'**
   String sceneGraphRefused(String reason);
+
+  /// No description provided for @sceneGraphSelectionCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} étapes sélectionnées'**
+  String sceneGraphSelectionCount(int count);
+
+  /// No description provided for @sceneGraphChecksTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification'**
+  String get sceneGraphChecksTitle;
+
+  /// No description provided for @sceneGraphChecksClear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun problème dans cette scène.'**
+  String get sceneGraphChecksClear;
+
+  /// No description provided for @sceneGraphBlocking.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bloque l’enregistrement'**
+  String get sceneGraphBlocking;
+
+  /// No description provided for @sceneGraphProblem.
+  ///
+  /// In fr, this message translates to:
+  /// **'{code, select, requiredOutputPortMissing{Une sortie obligatoire n’est reliée à rien.} unreachableNode{Cette étape n’est jamais atteinte depuis le début.} unreachableEndNode{Cette fin n’est jamais atteinte.} cycleUnsupported{Un lien fait revenir la scène en arrière : les boucles ne sont pas jouables.} noReachableEnd{Aucune fin n’est atteignable depuis le début.} missingEndNode{La scène n’a aucune fin.} duplicateOutgoingPortEdge{Une sortie part vers plusieurs étapes.} edgeFromPortUnsupported{Un lien part d’une sortie que cette étape n’a pas.} emptyGraph{La scène est vide.} other{{code}}}'**
+  String sceneGraphProblem(String code);
 
   /// No description provided for @trameRefused.
   ///

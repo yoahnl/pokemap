@@ -126,11 +126,16 @@ void main() {
     for (final id in ['start', 'check', 'meet', 'end']) {
       expect(_key('scene-graph-card-$id'), findsOneWidget);
     }
-    expect(_key('scene-focus-steps-gate'), findsNothing);
+    expect(_key('scene-graph-checks'), findsOneWidget);
     expect(_key('scene-focus-shared'), findsOneWidget);
     expect(_key('scene-focus-launcher-${behaviourId(1)}'), findsOneWidget);
     expect(_key('scene-focus-launcher-${behaviourId(2)}'), findsOneWidget);
     expect(_key('scene-focus-fact-met'), findsOneWidget);
+
+    await tester.tap(_key('scene-graph-card-meet'));
+    await settleMemory(tester);
+    expect(_key('scene-graph-inspector-meet'), findsOneWidget);
+    expect(_key('scene-graph-checks'), findsNothing);
 
     await _tap(tester, 'scene-focus-preview');
     expect(_key('scene-focus-path-check'), findsOneWidget);
@@ -143,14 +148,6 @@ void main() {
       tester.widget<SceneGraphCardTile>(_key('scene-graph-card-meet')).onPath,
       isTrue,
     );
-    await _tap(tester, 'scene-focus-view-steps');
-    expect(_key('scene-focus-steps-gate'), findsOneWidget);
-    expect(_key('scene-focus-graph-gate'), findsNothing);
-    expect(
-      tester.widget<Container>(_key('story-step-meet')).foregroundDecoration,
-      isNull,
-    );
-    await _tap(tester, 'scene-focus-view-graph');
     await _tap(tester, 'scene-focus-preview');
 
     await _tap(tester, 'scene-focus-detach');

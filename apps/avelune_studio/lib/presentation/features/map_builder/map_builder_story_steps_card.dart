@@ -112,7 +112,16 @@ class _StepCard extends StatelessWidget {
     final family = current == null
         ? SceneStepFamily.other
         : sceneStepFamilyOfNode(current);
-    final form = current == null ? null : _formOf(steps, current);
+    final form = current == null || !SceneStepForm.covers(current)
+        ? null
+        : SceneStepForm(
+            scene: steps.widget.scene,
+            project: steps.project,
+            map: steps.map,
+            node: current,
+            enabled: steps.editable,
+            onEdit: steps.edit,
+          );
     final title = form == null
         ? l10n.storyStepAdvanced
         : l10n.storyStepFamily(family.name);
@@ -203,7 +212,7 @@ class _StepCard extends StatelessWidget {
             form,
           ] else if (current != null) ...[
             const SizedBox(height: StudioSpacing.xs),
-            _Caption(l10n.storyStepAdvancedHint),
+            SceneStepCaption(l10n.storyStepAdvancedHint),
           ],
         ],
       ),

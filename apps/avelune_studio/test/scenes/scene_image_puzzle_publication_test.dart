@@ -10,7 +10,9 @@ import 'package:map_core/map_core.dart';
 
 void main() {
   test('Studio canonical publication retains unrelated catalog scenes after reopening', () async {
-    final temporary = await Directory.systemTemp.createTemp('puzzle-authoring-');
+    final temporary = await Directory.systemTemp.createTemp(
+      'puzzle-authoring-',
+    );
     addTearDown(() => temporary.delete(recursive: true));
     final root = Directory(await temporary.resolveSymbolicLinks());
     final store = await CatalogStorageStore.open(projectRoot: root.path);

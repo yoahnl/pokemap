@@ -9,10 +9,10 @@ import 'package:avelune_studio/features/scenes/application/steps/scene_step_node
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_projection.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_templates.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/scene_step_form.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 part 'map_builder_story_steps_card.dart';
-part 'map_builder_story_steps_forms.dart';
 part 'map_builder_story_steps_menu.dart';
 
 class MapBuilderStorySteps extends StatelessWidget {
@@ -175,7 +175,7 @@ class _Sequence extends StatelessWidget {
             slot: _slot(items.length),
             name: '$_key-${items.length}',
           ),
-        if (items.isEmpty) _Caption(steps.l10n.storyStepEmpty),
+        if (items.isEmpty) SceneStepCaption(steps.l10n.storyStepEmpty),
         if (steps.editable && open)
           _AddStep(
             key: ValueKey('story-step-add-$_key'),
@@ -215,23 +215,6 @@ class _DropZone extends StatelessWidget {
               : scheme.primaryContainer.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(StudioMetrics.controlRadius),
         ),
-      ),
-    );
-  }
-}
-
-class _Caption extends StatelessWidget {
-  const _Caption(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
       ),
     );
   }
