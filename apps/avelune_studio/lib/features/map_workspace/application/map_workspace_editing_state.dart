@@ -6,6 +6,7 @@ import 'map_border_review.dart';
 import 'editable_map_document.dart';
 import 'environment_editing_commands.dart';
 import 'map_border_drawing_draft.dart';
+import 'map_failure_message.dart';
 import 'map_relief_tool.dart';
 import 'map_slope_tool.dart';
 import 'map_border_editing_commands.dart';

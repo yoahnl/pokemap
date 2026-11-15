@@ -21,6 +21,7 @@ import 'package:avelune_studio/features/map_workspace/application/spatial_terrai
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_surface_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_failure_message.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_character_gesture.dart';

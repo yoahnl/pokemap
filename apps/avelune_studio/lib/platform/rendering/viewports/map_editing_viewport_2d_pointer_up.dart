@@ -9,7 +9,7 @@ extension _MapWorkspaceCanvasPointerUp on _MapEditingViewport2DState {
         _stroke?.paint(cell);
       }
     } on Object catch (error) {
-      widget.document.error = error.toString();
+      widget.document.error = mapFailureMessage(error);
       _cancel();
       widget.onChanged();
     }
@@ -38,7 +38,7 @@ extension _MapWorkspaceCanvasPointerUp on _MapEditingViewport2DState {
           }
         }
       } on Object catch (failure) {
-        widget.document.error = failure.toString();
+        widget.document.error = mapFailureMessage(failure);
       }
       _mutateGesture(_cancel);
       widget.onChanged();
@@ -128,7 +128,7 @@ extension _MapWorkspaceCanvasPointerUp on _MapEditingViewport2DState {
           widget.view.select(widget.document, MapSelectionFamily.zone, zone.id);
         }
       } catch (error) {
-        widget.document.error = error.toString();
+        widget.document.error = mapFailureMessage(error);
       }
     }
     final stroke = _stroke;

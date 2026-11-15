@@ -70,7 +70,7 @@ extension _MapWorkspaceCanvasPointerDown on _MapEditingViewport2DState {
           return;
         }
       } catch (error) {
-        widget.document.error = error.toString();
+        widget.document.error = mapFailureMessage(error);
         widget.onChanged();
         return;
       }
@@ -195,7 +195,7 @@ extension _MapWorkspaceCanvasPointerDown on _MapEditingViewport2DState {
         );
         _refreshGesture();
       } catch (error) {
-        widget.document.error = error.toString();
+        widget.document.error = mapFailureMessage(error);
         _cancel();
         widget.onChanged();
       }

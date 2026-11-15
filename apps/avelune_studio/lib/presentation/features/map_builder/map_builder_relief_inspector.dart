@@ -1,6 +1,7 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
+import 'package:avelune_studio/features/map_workspace/application/map_failure_message.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_relief_tool.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
@@ -58,7 +59,7 @@ class MapBuilderReliefInspector extends StatelessWidget {
               StudioLoadingState(label: l10n.reliefStyleLoading)
             else if (failure != null)
               StudioNotice(
-                l10n.reliefStyleLoadFailed('$failure'),
+                l10n.reliefStyleLoadFailed(mapFailureMessage(failure)),
                 isError: true,
               )
             else if (profiles.isEmpty)

@@ -4,7 +4,7 @@ extension _SpatialPreviewProblems on _SpatialMapEditingViewportState {
   void reportPreviewProblem(Object failure) {
     clearPreviewProblem();
     final message = AppLocalizations.of(context)
-        .mapCharacterPreviewUnavailable('$failure');
+        .mapCharacterPreviewUnavailable(mapFailureMessage(failure));
     previewProblem = (editingDocument, message);
     editingDocument.error = message;
     widget.onChanged();

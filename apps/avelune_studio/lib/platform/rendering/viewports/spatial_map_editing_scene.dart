@@ -62,7 +62,7 @@ extension _SpatialSceneComposition on _SpatialMapEditingViewportState {
       ).placeAt(widget.view.model3d!, positionFor(hit));
       widget.view.select(editingDocument, MapSelectionFamily.decor, item.id);
     } on Object catch (failure) {
-      editingDocument.error = failure.toString();
+      editingDocument.error = mapFailureMessage(failure);
     }
     hover = null;
     widget.onChanged();

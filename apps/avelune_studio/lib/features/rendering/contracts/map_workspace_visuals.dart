@@ -55,7 +55,10 @@ abstract interface class MapWorkspacePreviewVisuals {
 abstract interface class SpatialWorkspaceVisuals {
   Future<Uint8List> readModel(String modelId);
   Future<Uint8List> readGroundImage(String tilesetId);
-  Future<SpatialNpcPreview> spatialPreview(MapData map);
+  Future<SpatialNpcPreview> spatialPreview(
+    MapData map,
+    ProjectManifest project,
+  );
 }
 
 abstract interface class SpatialScopedWorkspaceVisuals {

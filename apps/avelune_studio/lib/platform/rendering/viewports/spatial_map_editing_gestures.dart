@@ -174,7 +174,7 @@ extension _SpatialGestureFlow on _SpatialMapEditingViewportState {
             widget.view.spatialSurfaceId = relief!.surfaceId;
           }
         } on Object catch (failure) {
-          editingDocument.error = failure.toString();
+          editingDocument.error = mapFailureMessage(failure);
         }
       }
       widget.onChanged();
@@ -188,7 +188,7 @@ extension _SpatialGestureFlow on _SpatialMapEditingViewportState {
           z: modelPosition!.z + modelEnd!.y - modelOrigin!.y,
         );
       } on Object catch (failure) {
-        editingDocument.error = failure.toString();
+        editingDocument.error = mapFailureMessage(failure);
       }
       widget.view.pendingMove = null;
     }
@@ -200,7 +200,7 @@ extension _SpatialGestureFlow on _SpatialMapEditingViewportState {
       try {
         gesture?.commit();
       } on Object catch (failure) {
-        editingDocument.error = failure.toString();
+        editingDocument.error = mapFailureMessage(failure);
       }
     } else {
       final area = gesture?.commit();
@@ -242,7 +242,7 @@ extension _SpatialGestureFlow on _SpatialMapEditingViewportState {
       try {
         terrainStroke!.paint(GridPos(x: cell.$1, y: cell.$2));
       } on Object catch (error) {
-        editingDocument.error = error.toString();
+        editingDocument.error = mapFailureMessage(error);
         cancel();
         return;
       }

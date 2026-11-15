@@ -182,7 +182,10 @@ final class ProfiledVisuals extends WorkspaceTestVisuals
   Object? loadFailure;
 
   @override
-  Future<SpatialNpcPreview> spatialPreview(MapData map) {
+  Future<SpatialNpcPreview> spatialPreview(
+    MapData map,
+    ProjectManifest project,
+  ) {
     final result = _load(map);
     pending = result.then<void>(
       (_) {},

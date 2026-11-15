@@ -22,8 +22,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     activeMap: () => _maps.active?.current,
     isActive: () => !_disposed,
     prepared: (_) {},
-    failed: (failure) =>
-        _visualsError = context.l10n.mapResourcesUnavailable('$failure'),
+    failed: (failure) => _visualsError = context.l10n.mapResourcesUnavailable(
+      mapFailureMessage(failure),
+    ),
     changed: _changed,
   );
   late final _resources = MapBuilderResourceBinding(
@@ -146,8 +147,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       _opening.resourcesFailed();
       if (!_disposed) {
         setState(
-          () =>
-              _visualsError = context.l10n.mapResourcesUnavailable('$failure'),
+          () => _visualsError = context.l10n.mapResourcesUnavailable(
+            mapFailureMessage(failure),
+          ),
         );
       }
     }

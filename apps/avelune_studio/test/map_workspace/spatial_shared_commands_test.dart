@@ -221,6 +221,10 @@ void main() {
               .readAsStringSync(),
         ) as Map<String, dynamic>,
       );
+      final withoutHero = project.copyWith(
+        settings: project.settings.copyWith(defaultPlayerCharacterId: null),
+        characters: [],
+      );
       final resources = await StudioMapResources.load(
         ProjectSession(
           sessionId: 'preview',
@@ -230,14 +234,12 @@ void main() {
               .parent
               .path,
         ),
-        project.copyWith(
-          settings: project.settings.copyWith(defaultPlayerCharacterId: null),
-          characters: [],
-        ),
+        withoutHero,
       );
       addTearDown(resources.dispose);
       final preview = await resources.spatialPreview(
         map.copyWith(entities: []),
+        withoutHero,
       );
       expect(preview.frames, isEmpty);
       preview.dispose();

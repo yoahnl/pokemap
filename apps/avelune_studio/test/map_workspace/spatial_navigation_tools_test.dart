@@ -194,6 +194,9 @@ class _Visuals extends WorkspaceTestVisuals implements SpatialWorkspaceVisuals {
   @override
   Future<Uint8List> readModel(String id) async => Uint8List(0);
   @override
-  Future<SpatialNpcPreview> spatialPreview(MapData map) async =>
+  Future<SpatialNpcPreview> spatialPreview(
+    MapData map,
+    ProjectManifest project,
+  ) async =>
       SpatialNpcPreview({}, () {});
 }

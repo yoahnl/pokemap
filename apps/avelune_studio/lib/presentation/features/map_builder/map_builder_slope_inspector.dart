@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/map_workspace/application/map_failure_message.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_slope_tool.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
@@ -45,7 +46,7 @@ class MapBuilderSlopeInspector extends StatelessWidget {
                 StudioLoadingState(label: l10n.stairModelLoading)
               else if (failure != null)
                 StudioNotice(
-                  l10n.stairModelLoadFailed('$failure'),
+                  l10n.stairModelLoadFailed(mapFailureMessage(failure)),
                   isError: true,
                 )
               else if (models.isEmpty)

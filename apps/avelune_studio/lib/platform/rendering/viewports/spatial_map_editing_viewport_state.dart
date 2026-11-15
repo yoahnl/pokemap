@@ -210,7 +210,7 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
       return;
     }
     try {
-      final loaded = await visuals.spatialPreview(map);
+      final loaded = await visuals.spatialPreview(map, widget.project);
       if (!mounted || generation != previewGeneration) {
         loaded.dispose();
         return;

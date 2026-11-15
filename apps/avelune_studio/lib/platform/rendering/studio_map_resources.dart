@@ -80,8 +80,10 @@ final class StudioMapResources
       _readGroundDefinition(tileset);
 
   @override
-  Future<SpatialNpcPreview> spatialPreview(MapData map) =>
-      _spatialPreview(map);
+  Future<SpatialNpcPreview> spatialPreview(
+    MapData map,
+    ProjectManifest project,
+  ) => _spatialPreview(map, project);
 
   @override
   Future<Uint8List> readModel(String modelId) => _readModel(modelId);

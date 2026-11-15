@@ -103,7 +103,7 @@ extension _SpatialBorderEditing on _SpatialMapEditingViewportState {
       widget.view.clearBorderDraftFailure(editingDocument);
       editingDocument.error = null;
     } on Object catch (failure) {
-      editingDocument.error = failure.toString();
+      editingDocument.error = mapFailureMessage(failure);
     }
     widget.onChanged();
   }
@@ -177,7 +177,7 @@ extension _SpatialBorderEditing on _SpatialMapEditingViewportState {
         ).preview(preview);
       }
     } on Object catch (failure) {
-      borderPreviewError = failure.toString();
+      borderPreviewError = mapFailureMessage(failure);
     }
     return borderPreviewMap;
   }

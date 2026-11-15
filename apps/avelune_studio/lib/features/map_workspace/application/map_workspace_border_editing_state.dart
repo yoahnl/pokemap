@@ -6,7 +6,7 @@ extension MapWorkspaceBorderEditingState on MapWorkspaceEditingState {
     EditableMapDocument document,
     Object error,
   ) {
-    final message = error.toString();
+    final message = mapFailureMessage(error);
     document.error = message;
     borderDraftFailure = (draft: draft, message: message);
   }

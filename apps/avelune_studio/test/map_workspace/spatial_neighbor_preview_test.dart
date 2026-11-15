@@ -279,6 +279,8 @@ final class _SpatialVisuals extends WorkspaceTestVisuals
   @override
   Future<Uint8List> readGroundImage(String id) async => Uint8List(0);
   @override
-  Future<SpatialNpcPreview> spatialPreview(MapData map) async =>
-      SpatialNpcPreview({}, () {});
+  Future<SpatialNpcPreview> spatialPreview(
+    MapData map,
+    ProjectManifest project,
+  ) async => SpatialNpcPreview({}, () {});
 }

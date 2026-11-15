@@ -65,7 +65,7 @@ extension _SpatialKeyboardEditing on _SpatialMapEditingViewportState {
               widget.view.clearSelection(editingDocument);
             }
           } on Object catch (failure) {
-            editingDocument.error = failure.toString();
+            editingDocument.error = mapFailureMessage(failure);
           }
           widget.onChanged();
         }

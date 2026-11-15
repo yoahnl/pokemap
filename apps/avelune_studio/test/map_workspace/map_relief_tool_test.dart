@@ -156,7 +156,7 @@ void main() {
       families: {'fence': 'palissade', 'fence-2': 'palissade'},
       cornerJoinCells: 1,
     );
-    MapReliefOutcome terrace(GridPos from, GridPos to) {
+    MapReliefOutcome terrace(GridPos from, GridPos to, {bool drag = false}) {
       final document = reliefDocument(reliefToolMap());
       final state = MapReliefToolState()..profileId = 'fence';
       final commands = MapReliefCommands(document, ranged);
@@ -170,7 +170,15 @@ void main() {
         state,
       );
       expect(plateau.problem, isNull);
-      return commands.apply(_rectangle(document.current, 3, from, to), state);
+      final stroke = drag
+          ? (MapReliefStroke(
+              source: document.current,
+              origin: from,
+              level: 3,
+              rectangle: false,
+            )..paint(to))
+          : _rectangle(document.current, 3, from, to);
+      return commands.apply(stroke, state);
     }
 
     final near = terrace(const GridPos(x: 2, y: 1), const GridPos(x: 4, y: 3));
@@ -183,6 +191,18 @@ void main() {
     expect(
       terrace(const GridPos(x: 1, y: 1), const GridPos(x: 4, y: 3)).problem,
       isNull,
+    );
+    expect(
+      terrace(
+        const GridPos(x: 1, y: 1),
+        const GridPos(x: 4, y: 3),
+        drag: true,
+      ).problem,
+      MapReliefProblem.narrowCorner,
+    );
+    expect(
+      terrace(const GridPos(x: 2, y: 1), const GridPos(x: 3, y: 3)).problem,
+      MapReliefProblem.narrowCorner,
     );
   });
 

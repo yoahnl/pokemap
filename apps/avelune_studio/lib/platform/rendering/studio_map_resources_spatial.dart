@@ -20,27 +20,32 @@ extension StudioMapResourcesSpatial on StudioMapResources {
     );
   }
 
-  Future<SpatialNpcPreview> _spatialPreview(MapData map) async {
+  Future<SpatialNpcPreview> _spatialPreview(
+    MapData map,
+    ProjectManifest project,
+  ) async {
     final frames = <String, SpatialActorVisual>{};
     final images = <String, ui.Image>{};
     if (!map.entities.any((entity) => entity.npc != null)) {
       return SpatialNpcPreview(frames, () {});
     }
-    await initializeSpatialRenderer();
     final paths = await resolveStudioPreviewImagePaths(
       projectRoot: projectRoot,
-      manifest: manifest,
+      manifest: project,
       map: map,
     );
     final resolver = CharacterAnimationSourceResolver();
     final textures = <String, SpatialActorTexture>{};
     try {
       for (final entity in map.entities.where((entity) => entity.npc != null)) {
-        final actor = manifest.characters
+        final actor = project.characters
             .where((actor) => actor.id == entity.npc!.characterId)
             .firstOrNull;
         if (actor == null) {
-          throw StateError('Personnage du PNJ absent : ${entity.name}');
+          throw StateError(
+            'Le personnage choisi pour « ${entity.name} » n’existe plus dans '
+            'le projet.',
+          );
         }
         final animation =
             actor.animations
@@ -58,7 +63,9 @@ extension StudioMapResourcesSpatial on StudioMapResources {
                 )
                 .firstOrNull;
         if (animation == null || animation.frames.isEmpty) {
-          throw StateError('Animation du PNJ absente : ${entity.name}');
+          throw StateError(
+            '« ${entity.name} » n’a aucune animation pour sa direction.',
+          );
         }
         final asset = animation.sourceAssetId?.trim();
         final imageId = asset != null && asset.isNotEmpty
@@ -67,7 +74,9 @@ extension StudioMapResourcesSpatial on StudioMapResources {
         if (!images.containsKey(imageId)) {
           final path = paths[imageId];
           if (path == null) {
-            throw StateError('Image du PNJ absente : ${entity.name}');
+            throw StateError(
+              'L’image du personnage de « ${entity.name} » est introuvable.',
+            );
           }
           final codec = await ui.instantiateImageCodec(
             await File(path).readAsBytes(),
@@ -77,6 +86,7 @@ extension StudioMapResourcesSpatial on StudioMapResources {
           } finally {
             codec.dispose();
           }
+          await initializeSpatialRenderer();
           textures[imageId] = await SpatialActorTexture.fromImage(
             images[imageId]!,
           );
@@ -85,8 +95,8 @@ extension StudioMapResourcesSpatial on StudioMapResources {
           character: actor,
           animation: animation,
           frame: animation.frames.first,
-          tileWidth: manifest.settings.tileWidth,
-          tileHeight: manifest.settings.tileHeight,
+          tileWidth: project.settings.tileWidth,
+          tileHeight: project.settings.tileHeight,
           availableImageIds: images.keys.toSet(),
         );
         final image = images[imageId]!;
@@ -97,7 +107,10 @@ extension StudioMapResourcesSpatial on StudioMapResources {
             source.sourceRect.height <= 0 ||
             source.sourceRect.right > image.width ||
             source.sourceRect.bottom > image.height) {
-          throw StateError('Frame du PNJ invalide : ${entity.name}');
+          throw StateError(
+            'L’image du personnage de « ${entity.name} » ne correspond pas à '
+            'son découpage.',
+          );
         }
         final x = entity.pos.x + .5, z = entity.pos.y + .5;
         frames['npc:${entity.id}'] = SpatialActorVisual(
@@ -108,7 +121,7 @@ extension StudioMapResourcesSpatial on StudioMapResources {
           frame: source.sourceRect,
           contactShadow:
               actor.contactShadow ??
-              manifest.settings.actorContactShadowsByDefault,
+              project.settings.actorContactShadowsByDefault,
         );
       }
       return SpatialNpcPreview(frames, () {

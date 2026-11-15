@@ -55,7 +55,7 @@ extension _MapWorkspaceCanvasBorder on _MapEditingViewport2DState {
       ).previewErase(_borderErase!);
       widget.document.error = null;
     } on Object catch (failure) {
-      widget.document.error = failure.toString();
+      widget.document.error = mapFailureMessage(failure);
       _cancel();
       widget.onChanged();
     }
@@ -126,7 +126,7 @@ extension _MapWorkspaceCanvasBorder on _MapEditingViewport2DState {
           : draft.addAngle(cell);
       widget.document.error = null;
     } catch (error) {
-      widget.document.error = error.toString();
+      widget.document.error = mapFailureMessage(error);
     }
     _refreshGesture();
     widget.onChanged();
@@ -140,7 +140,7 @@ extension _MapWorkspaceCanvasBorder on _MapEditingViewport2DState {
       MapBorderEditingCommands(widget.document, widget.project).finish(draft);
       widget.view.borderDraft = null;
     } catch (error) {
-      widget.document.error = error.toString();
+      widget.document.error = mapFailureMessage(error);
     }
     _refreshGesture();
     widget.onChanged();

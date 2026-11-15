@@ -12,6 +12,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_context_me
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_failure_message.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_selection_context.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 
@@ -73,7 +74,7 @@ Map<ShortcutActivator, VoidCallback> mapEditingShortcuts(
       }
       view?.clearSelection(document);
     } catch (error) {
-      document.error = error.toString();
+      document.error = mapFailureMessage(error);
     }
   }
 

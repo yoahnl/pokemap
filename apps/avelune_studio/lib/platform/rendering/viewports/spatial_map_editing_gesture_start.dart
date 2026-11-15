@@ -222,7 +222,7 @@ extension _SpatialGestureStart on _SpatialMapEditingViewportState {
         return false;
       }
     } on Object catch (failure) {
-      document.error = failure.toString();
+      document.error = mapFailureMessage(failure);
       widget.onChanged();
       return false;
     }

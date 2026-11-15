@@ -95,7 +95,7 @@ extension _SpatialBorderErasing on _SpatialMapEditingViewportState {
       ).previewErase(borderEraseDraft!);
       editingDocument.error = null;
     } on Object catch (failure) {
-      editingDocument.error = failure.toString();
+      editingDocument.error = mapFailureMessage(failure);
       discardBorder();
     }
   }
@@ -112,7 +112,7 @@ extension _SpatialBorderErasing on _SpatialMapEditingViewportState {
           );
         }
       } catch (failure) {
-        editingDocument.error = '$failure';
+        editingDocument.error = mapFailureMessage(failure);
       }
       discardBorder();
       widget.onChanged();
@@ -127,7 +127,7 @@ extension _SpatialBorderErasing on _SpatialMapEditingViewportState {
         widget.view.repairBorderSelection(editingDocument.current);
       }
     } on Object catch (failure) {
-      editingDocument.error = failure.toString();
+      editingDocument.error = mapFailureMessage(failure);
     }
     discardBorder();
     widget.onChanged();
@@ -194,7 +194,7 @@ extension _SpatialBorderErasing on _SpatialMapEditingViewportState {
       _exteriorErasedOwners[this] = preview == null ? next.before.id : null;
       editingDocument.error = null;
     } catch (failure) {
-      editingDocument.error = '$failure';
+      editingDocument.error = mapFailureMessage(failure);
     }
   }
 }

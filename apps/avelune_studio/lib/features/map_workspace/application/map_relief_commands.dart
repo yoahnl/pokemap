@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:map_core/map_core_domain.dart';
 
 import 'editable_map_document.dart';
@@ -49,7 +51,9 @@ final class MapReliefCommands {
       final problem = mapReliefProblem(failure);
       return MapReliefOutcome(
         problem:
-            problem == MapReliefProblem.narrowCorner && _meetsOtherSteps(stroke)
+            problem == MapReliefProblem.narrowCorner &&
+                _wideRectangle(stroke.cells) &&
+                _meetsOtherSteps(stroke)
             ? MapReliefProblem.cornerNearStep
             : problem,
         diagnostics: mapReliefDiagnostics(failure),
@@ -65,6 +69,14 @@ final class MapReliefCommands {
           MapReliefWarning.exteriorDecoration,
       },
     );
+  }
+
+  bool _wideRectangle(Set<GridPos> cells) {
+    if (cells.isEmpty) return false;
+    final xs = cells.map((cell) => cell.x), ys = cells.map((cell) => cell.y);
+    final width = xs.reduce(math.max) - xs.reduce(math.min) + 1;
+    final depth = ys.reduce(math.max) - ys.reduce(math.min) + 1;
+    return width >= 3 && depth >= 3 && cells.length == width * depth;
   }
 
   bool _meetsOtherSteps(MapReliefStroke stroke) {
