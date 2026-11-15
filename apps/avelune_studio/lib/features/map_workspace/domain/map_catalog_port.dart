@@ -15,6 +15,7 @@ final class MapCatalogReceipt {
     this.documents = const {},
     this.createdMapId,
     this.historyEntryId,
+    this.replacesContent = false,
   });
 
   final ProjectManifest before;
@@ -25,6 +26,7 @@ final class MapCatalogReceipt {
   final Map<String, MapWorkspaceDocument> documents;
   final String? createdMapId;
   final String? historyEntryId;
+  final bool replacesContent;
 
   MapCatalogReceipt recordedAs(String? entryId) => MapCatalogReceipt(
     before: before,
@@ -35,6 +37,7 @@ final class MapCatalogReceipt {
     documents: documents,
     createdMapId: createdMapId,
     historyEntryId: entryId,
+    replacesContent: replacesContent,
   );
 }
 

@@ -17,6 +17,15 @@ extension _SpatialSceneComposition on _SpatialMapEditingViewportState {
         StudioMapTool.border,
       }.contains(widget.view.tool);
 
+  void recordPointer(SpatialSurfaceHit? hit) {
+    widget.view.pointer = hit == null
+        ? null
+        : (
+            mapId: editingDocument.current.id,
+            cell: GridPos(x: hit.cell.$1, y: hit.cell.$2),
+          );
+  }
+
   Model3dVector3 positionFor(SpatialSurfaceHit hit) {
     final scene = editingDocument.current.spatialScene!;
     final x = precision
@@ -198,7 +207,11 @@ extension _SpatialSceneComposition on _SpatialMapEditingViewportState {
       canSelectLayer: (id) =>
           !editingDocument.isElementUnavailable('layer', id),
       animationPreview: widget.view.spatialAnimations,
-      onHover: showsHover ? updateHover : null,
+      onHover: showsHover
+          ? updateHover
+          : locked
+          ? null
+          : recordPointer,
       onSurfaceTap: surfaceTap,
       placementPreview: placementPreview,
       cellOverlays: cellOverlays(colors),

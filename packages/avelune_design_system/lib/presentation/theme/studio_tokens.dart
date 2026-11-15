@@ -35,6 +35,7 @@ abstract final class StudioMetrics {
   static const double gap = 12;
   static const double navigationWidth = 176;
   static const double compactNavigationWidth = 104;
+  static const double tooltipMaxWidth = 320;
 }
 
 enum StudioAccent {

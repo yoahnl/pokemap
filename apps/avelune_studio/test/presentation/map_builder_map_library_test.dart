@@ -115,6 +115,42 @@ void main() {
   });
 
   testWidgets(
+    'a double click focuses the rename field so typing replaces the name',
+    (tester) async {
+      final (controller, catalog) = await pumpMapLibrary(tester);
+      expect(controller.active!.base.mapId, 'a');
+      await tester.tap(map('b'));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(map('b'));
+      await tester.pumpAndSettle();
+      expect(controller.active!.base.mapId, 'b');
+      final field = find.descendant(
+        of: find.byKey(const ValueKey('map-library-rename-field')),
+        matching: find.byType(EditableText),
+      );
+      expect(tester.widget<EditableText>(field).focusNode.hasFocus, isTrue);
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(text: 'Jardin du matin'),
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(catalog.calls.single.$2['name'], 'Jardin du matin');
+    },
+  );
+
+  testWidgets('a right click opens the menu without opening the map', (
+    tester,
+  ) async {
+    final (controller, _) = await pumpMapLibrary(tester);
+    expect(controller.active!.base.mapId, 'a');
+    await openMenu(tester, map('b'));
+    expect(controller.active!.base.mapId, 'a');
+    await tester.tap(find.text('Ouvrir'));
+    await tester.pumpAndSettle();
+    expect(controller.active!.base.mapId, 'b');
+  });
+
+  testWidgets(
     'deleting a used map lists its users by name and offers no delete',
     (tester) async {
       final (controller, catalog) = await pumpMapLibrary(tester);

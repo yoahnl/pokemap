@@ -82,14 +82,32 @@ class MapSelectionActions {
     }, guardHistory: _touchesCharacters);
   }
 
-  void paste({GridPos? at}) {
+  Future<void> paste({GridPos? at}) async {
     final clipboard = controller.clipboard;
     final document = controller.active;
-    if (clipboard == null || document == null) return;
+    final project = controller.project;
+    if (clipboard == null || document == null || project == null) return;
+    final missing = [
+      for (final (kind, id) in clipboard.definitions)
+        if (!definesClipboardResource(project, kind, id)) (kind, id),
+    ];
+    if (missing.isNotEmpty) {
+      try {
+        for (final (kind, id) in missing) {
+          await controller.ensureResourceClosure(kind, id);
+        }
+      } catch (failure) {
+        document.error = mapFailureMessage(failure);
+        controller.notify();
+        return;
+      }
+      if (!identical(controller.active, document)) return;
+    }
     final pointer = view.pointer;
     final cell =
         at ?? (pointer?.mapId == document.current.id ? pointer!.cell : null);
     _run((commands) => _select(commands.paste(clipboard, at: cell)));
+    if (missing.isNotEmpty) controller.notify();
   }
 
   void duplicate() {

@@ -64,10 +64,20 @@ class _MapBuilderRenameFieldState extends State<MapBuilderRenameField> {
       baseOffset: 0,
       extentOffset: widget.initial.length,
     );
+  final _focus = FocusNode(debugLabel: 'map-library-rename');
   var _done = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focus.requestFocus();
+    });
+  }
+
+  @override
   void dispose() {
+    _focus.dispose();
     _text.dispose();
     super.dispose();
   }
@@ -86,7 +96,7 @@ class _MapBuilderRenameFieldState extends State<MapBuilderRenameField> {
     child: TextField(
       key: const ValueKey('map-library-rename-field'),
       controller: _text,
-      autofocus: true,
+      focusNode: _focus,
       style: Theme.of(context).textTheme.bodyMedium,
       onSubmitted: (_) => _finish(true),
       onTapOutside: (_) => _finish(true),

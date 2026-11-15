@@ -81,6 +81,7 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
 
   void updateHover(SpatialSurfaceHit? hit) {
     if (!mounted) return;
+    recordPointer(hit);
     if (hit != null && !textEditing) focus.requestFocus();
     if (hover?.cell == hit?.cell && hover?.position == hit?.position) return;
     setState(() {

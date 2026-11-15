@@ -189,6 +189,30 @@ void main() {
     expect(rect.left, greaterThanOrEqualTo(0));
     expect(rect.top, greaterThanOrEqualTo(0));
   });
+  testWidgets('a long disabled reason wraps within the tooltip width', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const reason =
+        'La suppression est indisponible sur ce projet tant que l’index des '
+        'usages entrants n’existe pas : vérifier toutes les cartes prendrait '
+        'plusieurs minutes.';
+    await _openAt(tester, [
+      StudioContextMenuEntry(
+        label: 'Supprimer…',
+        disabledReason: reason,
+        onSelected: () {},
+      ),
+    ]);
+    tester.state<TooltipState>(find.byType(Tooltip)).ensureTooltipVisible();
+    await tester.pumpAndSettle();
+    final text = tester.getSize(find.text(reason));
+    expect(text.width, lessThanOrEqualTo(StudioMetrics.tooltipMaxWidth));
+    expect(text.height, greaterThan(20));
+  });
 }
 
 Future<void> _openAt(

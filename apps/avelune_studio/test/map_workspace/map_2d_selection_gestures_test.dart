@@ -1,6 +1,8 @@
 import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 
 import '../support/map_editing_viewport_fixture.dart';
 
@@ -56,4 +58,20 @@ void main() {
     expect(f.document.current.placedElements, before.placedElements);
     expect(f.document.undoCount, steps);
   }, timeout: const Timeout(Duration(minutes: 3)));
+
+  testWidgets(
+    'hovering the 2D canvas tells paste which cell is under the mouse',
+    (tester) async {
+      final f = await MapEditingViewportFixture.open(tester);
+      final mapId = f.document.current.id;
+      final mouse = TestPointer(7, PointerDeviceKind.mouse);
+      await tester.sendEventToBinding(mouse.hover(f.cellAt(6, 4)));
+      await tester.pump();
+      expect(f.view.pointer, (mapId: mapId, cell: const GridPos(x: 6, y: 4)));
+      await tester.sendEventToBinding(mouse.hover(const Offset(1, 1)));
+      await tester.pump();
+      expect(f.view.pointer, isNull);
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
 }

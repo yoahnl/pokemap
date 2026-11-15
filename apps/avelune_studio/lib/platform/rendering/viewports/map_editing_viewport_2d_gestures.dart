@@ -62,6 +62,14 @@ extension _MapWorkspaceCanvasGestures on _MapEditingViewport2DState {
 
   void _hover(PointerHoverEvent event) {
     final position = _cell(event.localPosition);
+    final size = widget.document.current.size;
+    widget.view.pointer =
+        position.x >= 0 &&
+            position.y >= 0 &&
+            position.x < size.width &&
+            position.y < size.height
+        ? (mapId: widget.document.current.id, cell: position)
+        : null;
     if (widget.view.tool == StudioMapTool.border) {
       if (_borderErase != null) {
         _sampleBorderErase(event.localPosition);

@@ -98,6 +98,9 @@ extension MapWorkspaceLibraryHistory on MapWorkspaceController {
     }
   }
 
+  void recordHistoryStep(MapCatalogReceipt receipt) =>
+      _recordLibraryStep(receipt, active?.base.mapId);
+
   void _recordLibraryStep(MapCatalogReceipt receipt, String? returnMapId) {
     if (receipt.historyEntryId == null || receipt.changedPaths.isEmpty) return;
     libraryHistory.record(

@@ -177,6 +177,9 @@ ThemeData studioTheme() {
     ),
     tooltipTheme: TooltipThemeData(
       waitDuration: const Duration(milliseconds: 400),
+      constraints: const BoxConstraints(
+        maxWidth: StudioMetrics.tooltipMaxWidth,
+      ),
       textStyle: TextStyle(
         fontFamily: 'Helvetica Neue',
         color: colors.onSurface,

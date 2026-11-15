@@ -4,6 +4,7 @@ import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../project_session/domain/project_session.dart';
+import '../domain/map_catalog_port.dart';
 import '../domain/map_connection_port.dart';
 import '../domain/map_dive_pair_port.dart';
 import '../domain/map_workspace_port.dart';
@@ -16,7 +17,7 @@ final class LocalMapConnectionAdapter
   final LocalMapWorkspaceAdapter mapAdapter;
 
   @override
-  Future<List<MapWorkspaceDocument>> link({
+  Future<MapConnectionReceipt> link({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -37,7 +38,7 @@ final class LocalMapConnectionAdapter
   );
 
   @override
-  Future<List<MapWorkspaceDocument>> unlink({
+  Future<MapConnectionReceipt> unlink({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -81,14 +82,14 @@ final class LocalMapConnectionAdapter
     },
   );
 
-  Future<List<MapWorkspaceDocument>> _linkBorders({
+  Future<MapConnectionReceipt> _linkBorders({
     required ProjectSession session,
     required MapData source,
     required MapData? expectedTarget,
     required String action,
     required Map<String, Object?> parameters,
   }) async {
-    await _run(
+    final entryId = await _run(
       session: session,
       source: source,
       expectedTarget: expectedTarget,
@@ -104,14 +105,29 @@ final class LocalMapConnectionAdapter
       session,
       resources: {for (final id in mapIds) (kind: 'map', id: id)},
     );
-    return [
-      for (final id in mapIds)
-        if (await mapAdapter.readSavedMap(session, id) case final document?)
-          document,
+    final documents = [
+      for (final id in mapIds) ?await mapAdapter.readSavedMap(session, id),
     ];
+    final baseline = await mapAdapter.resourceBaseline(session);
+    return MapConnectionReceipt(
+      documents,
+      history: MapCatalogReceipt(
+        before: baseline.manifest,
+        manifest: baseline.manifest,
+        beforeRevision: baseline.revision,
+        revision: baseline.revision,
+        changedPaths: [
+          for (final entry in baseline.manifest.maps)
+            if (mapIds.contains(entry.id)) entry.relativePath,
+        ],
+        documents: {for (final document in documents) document.mapId: document},
+        historyEntryId: entryId,
+        replacesContent: true,
+      ),
+    );
   }
 
-  Future<void> _run({
+  Future<String> _run({
     required ProjectSession session,
     required MapData source,
     required MapData? expectedTarget,
@@ -223,11 +239,11 @@ final class LocalMapConnectionAdapter
         ),
       );
       try {
-        await api.applyMutation(
+        return (await api.applyMutation(
           opened.projectHandle,
           planId: planned.planId,
           operationId: id,
-        );
+        )).receipt.receiptId;
       } on Object catch (failure) {
         try {
           await api.recoverMutation(opened.projectHandle, operationId: id);

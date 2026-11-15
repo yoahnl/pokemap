@@ -70,7 +70,7 @@ final class _MemoryConnections implements MapConnectionPort {
   int writes = 0;
 
   @override
-  Future<List<MapWorkspaceDocument>> link({
+  Future<MapConnectionReceipt> link({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -100,7 +100,7 @@ final class _MemoryConnections implements MapConnectionPort {
   }
 
   @override
-  Future<List<MapWorkspaceDocument>> unlink({
+  Future<MapConnectionReceipt> unlink({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -121,12 +121,12 @@ final class _MemoryConnections implements MapConnectionPort {
     return _saved({source.id, targetId});
   }
 
-  List<MapWorkspaceDocument> _saved(Set<String> ids) => [
+  MapConnectionReceipt _saved(Set<String> ids) => MapConnectionReceipt([
     for (final id in ids)
       MapWorkspaceDocument(
         map: maps.saved[id]!,
         revision: 'linked-$writes',
         mapId: id,
       ),
-  ];
+  ]);
 }

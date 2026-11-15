@@ -105,6 +105,19 @@ void main() {
     },
   );
 
+  test('a redone rename can be undone again', () async {
+    final id = controller.active!.base.mapId;
+    final start = await _files(fixture.root);
+    expect((await commands.renameMap(id, 'Jardin du soir')).ok, isTrue);
+    await undo();
+    await redo();
+    expect(controller.active!.current.name, 'Jardin du soir');
+    await undo();
+    expect(controller.active!.error, isNull);
+    expect(controller.active!.current.name, isNot('Jardin du soir'));
+    expect(await _files(fixture.root), start);
+  });
+
   test('a map saved after its rename refuses the undo in French and writes nothing', () async {
     final document = controller.active!;
     final id = document.base.mapId;

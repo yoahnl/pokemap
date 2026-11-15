@@ -107,7 +107,7 @@ class RecordingConnections implements MapConnectionPort {
   final calls = <String>[];
 
   @override
-  Future<List<MapWorkspaceDocument>> link({
+  Future<MapConnectionReceipt> link({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -131,7 +131,7 @@ class RecordingConnections implements MapConnectionPort {
   }
 
   @override
-  Future<List<MapWorkspaceDocument>> unlink({
+  Future<MapConnectionReceipt> unlink({
     required ProjectSession session,
     required MapData source,
     required MapConnectionDirection direction,
@@ -147,11 +147,11 @@ class RecordingConnections implements MapConnectionPort {
     return _saved(source.id);
   }
 
-  List<MapWorkspaceDocument> _saved(String id) => [
+  MapConnectionReceipt _saved(String id) => MapConnectionReceipt([
     MapWorkspaceDocument(
       map: maps.saved[id]!,
       revision: 'linked-${calls.length}',
       mapId: id,
     ),
-  ];
+  ]);
 }

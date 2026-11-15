@@ -75,6 +75,8 @@ class _MapBuilderNameFieldState extends State<MapBuilderNameField> {
     enabled: widget.enabled,
     minLines: widget.lines,
     maxLines: widget.lines,
+    onEditingComplete: () =>
+        _focus.unfocus(disposition: UnfocusDisposition.previouslyFocusedChild),
     onSubmitted: (_) => _commit(),
     decoration: InputDecoration(isDense: true, labelText: widget.label),
   );

@@ -70,7 +70,31 @@ class MapElementClipboard {
     x: items.map((item) => item.anchor.x).reduce(math.min),
     y: items.map((item) => item.anchor.y).reduce(math.min),
   );
+
+  Set<(String kind, String id)> get definitions => {
+    for (final item in items)
+      ?switch (item) {
+        SpatialModelCopyItem(:final instance) => ('model3d', instance.modelId),
+        PlacedDecorCopyItem(:final element) => ('element', element.elementId),
+        EntityCopyItem(:final entity) => switch (entity.npc?.characterId) {
+          final id? => ('character', id),
+          null => null,
+        },
+        _ => null,
+      },
+  };
 }
+
+bool definesClipboardResource(
+  ProjectManifest project,
+  String kind,
+  String id,
+) => switch (kind) {
+  'model3d' => project.models3d.any((model) => model.id == id),
+  'element' => project.elements.any((element) => element.id == id),
+  'character' => project.characters.any((character) => character.id == id),
+  _ => true,
+};
 
 const mapCopyNameSuffix = ' (copie)';
 

@@ -101,7 +101,8 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
       for (final entry in receipt.documents.entries) {
         final existing = documents[entry.key];
         if (existing == null) continue;
-        if (existing.saved.size != entry.value.map.size) {
+        if (receipt.replacesContent ||
+            existing.saved.size != entry.value.map.size) {
           existing.acceptCatalogContent(entry.value);
         } else {
           existing.acceptCatalogMetadata(entry.value);

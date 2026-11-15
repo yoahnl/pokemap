@@ -27,7 +27,7 @@ extension _LocalMapCatalogHistory on LocalMapCatalogAdapter {
         'Le catalogue a changé depuis son ouverture. Rien n’a été modifié.',
       );
     }
-    final replayedId = await _replayHistory(session, entryId, redo: redo);
+    await _replayHistory(session, entryId, redo: redo);
     final manifest = mapCatalogScopedManifest(
       before.manifest,
       redo ? step.before : step.manifest,
@@ -37,6 +37,10 @@ extension _LocalMapCatalogHistory on LocalMapCatalogAdapter {
     for (final id in {...step.documents.keys, ?step.createdMapId}) {
       final entry = manifest.maps.where((map) => map.id == id).firstOrNull;
       if (entry == null) continue;
+      if (step.replacesContent) {
+        documents[id] = (await mapAdapter.readSavedMap(session, id))!;
+        continue;
+      }
       final bytes = await fileReader.readBytes(
         projectRoot: session.directoryPath,
         relativePath: entry.relativePath,
@@ -51,11 +55,12 @@ extension _LocalMapCatalogHistory on LocalMapCatalogAdapter {
       changedPaths: step.changedPaths,
       documents: Map.unmodifiable(documents),
       createdMapId: redo ? step.createdMapId : null,
-      historyEntryId: redo ? replayedId : entryId,
+      historyEntryId: entryId,
+      replacesContent: step.replacesContent,
     );
   });
 
-  Future<String> _replayHistory(
+  Future<void> _replayHistory(
     ProjectSession session,
     String entryId, {
     required bool redo,
@@ -94,18 +99,19 @@ extension _LocalMapCatalogHistory on LocalMapCatalogAdapter {
       attached = true;
       final key =
           'catalog_history_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}';
-      final result = redo
-          ? await api.redoMutation(
-              opened.projectHandle,
-              entryId: entryId,
-              idempotencyKey: key,
-            )
-          : await api.undoMutation(
-              opened.projectHandle,
-              entryId: entryId,
-              idempotencyKey: key,
-            );
-      return result.receipt.receiptId;
+      if (redo) {
+        await api.redoMutation(
+          opened.projectHandle,
+          entryId: entryId,
+          idempotencyKey: key,
+        );
+      } else {
+        await api.undoMutation(
+          opened.projectHandle,
+          entryId: entryId,
+          idempotencyKey: key,
+        );
+      }
     } on AuthoringHistoryException catch (failure) {
       throw MapWorkspaceFailure(
         MapWorkspaceProblem.conflict,

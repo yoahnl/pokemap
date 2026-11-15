@@ -26,7 +26,7 @@ class MapBuilderStatusBar extends StatelessWidget {
     if (view == null) return;
     if (spatial) {
       view.spatialSceneController?.dolly(
-        closer ? _spatialZoomStep : -_spatialZoomStep,
+        closer ? -_spatialZoomStep : _spatialZoomStep,
       );
     } else {
       view.viewport.zoomBy(closer ? _flatZoomStep : 1 / _flatZoomStep);

@@ -92,7 +92,10 @@ class MapWorkspaceConnectionActions {
               expectedTarget: targetDocument?.current,
             );
       if (!isActive() || controller.isDisposed) return;
-      controller.acceptSavedMaps(saved);
+      controller.acceptSavedMaps(saved.documents);
+      if (saved.history case final history?) {
+        controller.recordHistoryStep(history);
+      }
     } on Object catch (failure) {
       if (isActive() && !controller.isDisposed) {
         error = failure.toString();

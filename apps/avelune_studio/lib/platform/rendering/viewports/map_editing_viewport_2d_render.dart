@@ -99,6 +99,7 @@ extension _MapWorkspaceCanvasRender on _MapEditingViewport2DState {
               },
               child: MouseRegion(
                 onExit: (_) {
+                  widget.view.pointer = null;
                   final draft = widget.view.borderDraft;
                   if (_hoverCell != null || draft?.hover != null) {
                     _mutateGesture(() {

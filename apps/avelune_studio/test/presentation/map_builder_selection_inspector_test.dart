@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -76,5 +77,43 @@ void main() {
     expect(find.byKey(const ValueKey('selection-count')), findsOneWidget);
     expect(find.text('2 éléments sélectionnés'), findsOneWidget);
     expect(find.byKey(const ValueKey('selection-x')), findsNothing);
+  });
+
+  testWidgets('Enter commits a Propriétés field, releases it and ⌘Z undoes', (
+    tester,
+  ) async {
+    final host = await openSelectionHost(tester);
+    await host.click('mill');
+    await _enter(tester, 'selection-x', '6');
+    expect(_instance(host, 'mill').position.x, 6);
+    final focused = FocusManager.instance.primaryFocus?.context;
+    expect(
+      focused?.widget is EditableText ||
+          focused?.findAncestorWidgetOfExactType<EditableText>() != null,
+      isFalse,
+    );
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await host.settle();
+    expect(_instance(host, 'mill').position.x, 8.5);
+  });
+
+  testWidgets('switching map leaves the other map selection behind', (
+    tester,
+  ) async {
+    final host = await openSelectionHost(tester);
+    await host.click('oak_1');
+    await host.click('oak_2', shift: true);
+    expect(find.text('2 éléments sélectionnés'), findsOneWidget);
+    await tester.runAsync(
+      () => host.maps.activate(
+        host.maps.project!.maps.firstWhere((entry) => entry.id == 'b'),
+      ),
+    );
+    await host.settle();
+    expect(host.maps.active!.base.mapId, 'b');
+    expect(find.byKey(const ValueKey('selection-count')), findsNothing);
+    expect(find.byKey(const ValueKey('selection-inspector')), findsNothing);
   });
 }
