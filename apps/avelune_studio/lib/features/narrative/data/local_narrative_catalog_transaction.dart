@@ -11,6 +11,7 @@ import '../../map_workspace/domain/map_workspace_workshop.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
 import '../domain/narrative_catalog_failure.dart';
+import 'catalog_write_failure.dart';
 
 export '../domain/narrative_catalog_failure.dart';
 
@@ -171,8 +172,11 @@ class LocalNarrativeCatalogTransaction {
               operationId: operation,
             );
           } on Object {
-            throw NarrativeCatalogFailure(
-              'Publication interrompue. Journal $operation conservé, brouillon ouvert : $failure',
+            throw await unrecoveredCatalogWrite(
+              api,
+              opened.projectHandle,
+              operationId: operation,
+              failure: failure,
             );
           }
         }

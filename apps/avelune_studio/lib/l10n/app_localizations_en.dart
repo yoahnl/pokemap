@@ -218,6 +218,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openProblemReadFailed => 'The project could not be read.';
 
   @override
+  String get openProblemRecoveryFailed =>
+      'An interrupted save could not be completed. Check that the project folder is writable, then try again. No data was deleted.';
+
+  @override
+  String get openProblemRetry => 'Retry';
+
+  @override
   String notAvailableYet(String label) {
     return '$label — not available yet';
   }

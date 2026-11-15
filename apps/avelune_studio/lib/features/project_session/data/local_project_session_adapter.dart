@@ -4,6 +4,7 @@ import 'package:map_authoring/map_authoring.dart' show WorkspaceAccessException;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:avelune_studio/features/project_session/data/local_project_recovery.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
 final class LocalProjectSessionAdapter implements ProjectSessionPort {
@@ -59,12 +60,16 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
         handles: _handles,
         catalogMetadataFields: const {},
       );
-      final opened = await service.openProject(canonicalPath);
+      final opened = await resumeInterruptedSaves(
+        service: service,
+        policy: policy,
+        handles: _handles,
+        projectRoot: canonicalPath,
+        opened: await service.openProject(canonicalPath),
+      );
       onPhase?.call(ProjectOpeningPhase.workshop);
-      final catalog = opened.recoveryRequired
-          ? null
-          : await service.catalogProject(opened.projectHandle);
-      if (!opened.recoveryRequired && (catalog == null || !catalog.readOnly)) {
+      final catalog = await service.catalogProject(opened.projectHandle);
+      if (catalog == null || !catalog.readOnly) {
         final api = LocalMapAuthoringMutationApi(
           policy: policy,
           snapshotLoader: ProjectSnapshotLoader(handles: _handles),
@@ -103,10 +108,7 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
         sessionId: opened.workspaceHandle.value,
         name: opened.projectName,
         directoryPath: canonicalPath,
-        recoveryOperationIds: List.unmodifiable(opened.recoveryOperationIds),
-        storage: opened.recoveryRequired
-            ? ProjectSessionStorage.workingCatalog
-            : catalog == null
+        storage: catalog == null
             ? ProjectSessionStorage.manifest
             : catalog.readOnly
             ? ProjectSessionStorage.portableCatalog

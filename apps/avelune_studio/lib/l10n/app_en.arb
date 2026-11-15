@@ -76,6 +76,8 @@
   "openProblemManifestInvalid": "The project file is unreadable or incompatible.",
   "openProblemAccessDenied": "The Studio is not allowed to open this folder.",
   "openProblemReadFailed": "The project could not be read.",
+  "openProblemRecoveryFailed": "An interrupted save could not be completed. Check that the project folder is writable, then try again. No data was deleted.",
+  "openProblemRetry": "Retry",
   "notAvailableYet": "{label} — not available yet",
   "notAvailableInNewStudio": "{label} — not available in the new Studio yet",
   "toolSelect": "Select",

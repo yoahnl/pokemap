@@ -4,3 +4,7 @@ class NarrativeCatalogFailure implements Exception {
   @override
   String toString() => message;
 }
+
+final class NarrativeCatalogWriteFailure extends NarrativeCatalogFailure {
+  const NarrativeCatalogWriteFailure(super.message);
+}

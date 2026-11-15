@@ -12,6 +12,7 @@ import '../../map_workspace/domain/map_workspace_workshop.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
 import '../domain/narrative_port.dart';
+import 'catalog_write_failure.dart';
 import 'narrative_publication_baselines.dart';
 
 part 'local_narrative_publication.dart';

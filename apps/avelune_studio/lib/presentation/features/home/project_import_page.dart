@@ -15,12 +15,14 @@ class ProjectImportPage extends StatelessWidget {
     required this.busy,
     required this.pickerError,
     required this.onImport,
+    this.onRetry,
   });
 
   final ProjectSessionState state;
   final bool busy;
   final String? pickerError;
   final VoidCallback onImport;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +60,17 @@ class ProjectImportPage extends StatelessWidget {
                 const SizedBox(height: StudioSpacing.xl),
                 StudioNotice(message, isError: true),
               ],
+              if (problem == ProjectOpenProblem.recoveryFailed &&
+                  onRetry != null) ...[
+                const SizedBox(height: StudioSpacing.l),
+                StudioButton(
+                  key: const ValueKey('studio-home-retry-open'),
+                  label: context.l10n.openProblemRetry,
+                  icon: Icons.refresh,
+                  variant: StudioButtonVariant.secondary,
+                  onPressed: opening ? null : onRetry,
+                ),
+              ],
             ],
           ),
         ),
@@ -78,4 +91,5 @@ String projectOpenProblemMessage(
   ProjectOpenProblem.manifestInvalid => l10n.openProblemManifestInvalid,
   ProjectOpenProblem.accessDenied => l10n.openProblemAccessDenied,
   ProjectOpenProblem.readFailed => l10n.openProblemReadFailed,
+  ProjectOpenProblem.recoveryFailed => l10n.openProblemRecoveryFailed,
 };

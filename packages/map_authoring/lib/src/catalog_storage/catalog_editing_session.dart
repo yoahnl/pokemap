@@ -26,6 +26,7 @@ import '../transactions/journaled_transaction.dart';
 import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
 import '../transactions/revision_set.dart';
+import '../transactions/transaction_journal.dart';
 import '../workspace/catalog/catalog_derivable_indexes.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
 import '../workspace/catalog/catalog_narrative_event_consumers.dart';
@@ -877,9 +878,31 @@ final class CatalogEditingSession {
                   'The history branch changed after this plan was prepared.');
             }
           }
-        });
+        }).onError<Object>(
+        (error, stack) => _rollBackUnpromoted(prepared, error, stack),
+        test: (error) => error is! AuthoringTransactionSimulatedCrash);
     await _refreshAfterApply(prepared);
     return receipt;
+  }
+
+  Future<Never> _rollBackUnpromoted(
+      CatalogEditingPlan prepared, Object error, StackTrace stack) async {
+    try {
+      final journal = await store.gateway.readJournal(prepared.operationId);
+      if (journal != null &&
+          journal.status != AuthoringTransactionStatus.committed &&
+          journal.status != AuthoringTransactionStatus.compensated) {
+        final head = journal.entries.singleWhere(
+            (entry) => entry.storageKey == CatalogStorageStore.headStorageKey);
+        if (await store.gateway.readResourceRevision(head.storageKey) ==
+            head.beforeRevision) {
+          await _reconcile(prepared.operationId, compensate: true);
+        }
+      }
+    } on Object {
+      Error.throwWithStackTrace(error, stack);
+    }
+    Error.throwWithStackTrace(error, stack);
   }
 
   Future<void> _refreshAfterApply(CatalogEditingPlan prepared) async {
@@ -1734,7 +1757,11 @@ final class CatalogEditingSession {
     for (final journal in await readPendingTransactionJournals(store.gateway)) {
       if (journal.operationId != ownOperationId &&
           journal.entries.any((entry) =>
-              entry.storageKey == CatalogStorageStore.headStorageKey)) {
+              entry.storageKey == CatalogStorageStore.headStorageKey) &&
+          (await recovery.inspectOperation(
+                      operationId: journal.operationId, scope: journal.scope))
+                  ?.disposition !=
+              AuthoringRecoveryDisposition.completed) {
         throw const CatalogStorageException('catalog.recovery_required',
             'Recover or discard the pending catalog transaction before editing.');
       }

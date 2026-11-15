@@ -3,6 +3,7 @@ import 'package:map_authoring/map_authoring.dart'
 import 'package:map_core/map_core_domain.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
+import '../../narrative/data/catalog_write_failure.dart';
 import '../../narrative/data/local_narrative_catalog_transaction.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/scene_port.dart';
@@ -57,8 +58,9 @@ class LocalSceneAdapter implements ScenePort {
     } on SceneFailure {
       rethrow;
     } on Object catch (failure) {
-      throw SceneFailure(
-        'Les scènes n’ont pas été enregistrées. Vos brouillons sont conservés : $failure',
+      throw _unsaved(
+        failure,
+        'Les scènes n’ont pas été enregistrées. Vos brouillons sont conservés',
       );
     }
   }
@@ -153,8 +155,9 @@ class LocalSceneAdapter implements ScenePort {
     } on SceneFailure {
       rethrow;
     } on Object catch (failure) {
-      throw SceneFailure(
-        'La scène n’a pas été enregistrée. Le brouillon reste ouvert. Vérifiez ses connexions et références : $failure',
+      throw _unsaved(
+        failure,
+        'La scène n’a pas été enregistrée. Le brouillon reste ouvert. Vérifiez ses connexions et références',
       );
     }
   }
@@ -192,9 +195,16 @@ class LocalSceneAdapter implements ScenePort {
     } on SceneFailure {
       rethrow;
     } on Object catch (failure) {
-      throw SceneFailure(
-        'La scène n’a pas été enregistrée. Le brouillon reste ouvert. Vérifiez ses connexions et références : $failure',
+      throw _unsaved(
+        failure,
+        'La scène n’a pas été enregistrée. Le brouillon reste ouvert. Vérifiez ses connexions et références',
       );
     }
   }
 }
+
+SceneFailure _unsaved(Object failure, String context) =>
+    SceneFailure(switch (failure) {
+      NarrativeCatalogWriteFailure(:final message) => message,
+      _ => catalogWriteFailureMessage(failure) ?? '$context : $failure',
+    });

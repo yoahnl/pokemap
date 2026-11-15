@@ -127,7 +127,12 @@ extension _LocalNarrativePublication on LocalNarrativeAdapter {
               );
             } on Object {
               throw NarrativeFailure(
-                'Publication interrompue. Le journal $operation est conservé et le brouillon reste ouvert : $failure',
+                (await unrecoveredCatalogWrite(
+                  api,
+                  opened.projectHandle,
+                  operationId: operation,
+                  failure: failure,
+                )).message,
               );
             }
           }
@@ -206,7 +211,8 @@ extension _LocalNarrativePublication on LocalNarrativeAdapter {
       rethrow;
     } on Object catch (error) {
       throw NarrativeFailure(
-        'L’histoire n’a pas été enregistrée. Votre travail reste ouvert : $error',
+        catalogWriteFailureMessage(error) ??
+            'L’histoire n’a pas été enregistrée. Votre travail reste ouvert : $error',
       );
     }
   });

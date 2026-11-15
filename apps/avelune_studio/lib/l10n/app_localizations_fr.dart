@@ -218,6 +218,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get openProblemReadFailed => 'Le projet n’a pas pu être lu.';
 
   @override
+  String get openProblemRecoveryFailed =>
+      'Un enregistrement interrompu n’a pas pu être terminé. Vérifiez que le dossier du projet est accessible en écriture, puis réessayez. Aucune donnée n’a été supprimée.';
+
+  @override
+  String get openProblemRetry => 'Réessayer';
+
+  @override
   String notAvailableYet(String label) {
     return '$label — pas encore disponible';
   }

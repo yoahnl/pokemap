@@ -143,6 +143,8 @@
   "openProblemManifestInvalid": "Le fichier du projet est illisible ou incompatible.",
   "openProblemAccessDenied": "Le Studio n’a pas l’autorisation d’ouvrir ce dossier.",
   "openProblemReadFailed": "Le projet n’a pas pu être lu.",
+  "openProblemRecoveryFailed": "Un enregistrement interrompu n’a pas pu être terminé. Vérifiez que le dossier du projet est accessible en écriture, puis réessayez. Aucune donnée n’a été supprimée.",
+  "openProblemRetry": "Réessayer",
   "notAvailableYet": "{label} — pas encore disponible",
   "@notAvailableYet": {
     "placeholders": {

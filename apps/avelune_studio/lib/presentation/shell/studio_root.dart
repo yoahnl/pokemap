@@ -61,6 +61,10 @@ class _StudioRootState extends ConsumerState<StudioRoot> {
         busy: _opening.picking,
         pickerError: _opening.error,
         onImport: () => unawaited(_opening.open(browse: true)),
+        onRetry: switch (state.requestedPath) {
+          final path? => () => unawaited(_opening.open(directoryPath: path)),
+          null => null,
+        },
       );
     }
     return Stack(

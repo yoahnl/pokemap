@@ -6,14 +6,12 @@ class ProjectSession {
     required this.name,
     required this.directoryPath,
     this.storage = ProjectSessionStorage.manifest,
-    this.recoveryOperationIds = const [],
   });
 
   final String sessionId;
   final String name;
   final String directoryPath;
   final ProjectSessionStorage storage;
-  final List<String> recoveryOperationIds;
 }
 
 enum ProjectOpeningPhase {
@@ -44,6 +42,7 @@ enum ProjectOpenProblem {
   manifestInvalid,
   accessDenied,
   readFailed,
+  recoveryFailed,
 }
 
 class ProjectOpenFailure implements Exception {

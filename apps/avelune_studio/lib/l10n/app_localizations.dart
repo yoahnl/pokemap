@@ -470,6 +470,18 @@ abstract class AppLocalizations {
   /// **'Le projet n’a pas pu être lu.'**
   String get openProblemReadFailed;
 
+  /// No description provided for @openProblemRecoveryFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un enregistrement interrompu n’a pas pu être terminé. Vérifiez que le dossier du projet est accessible en écriture, puis réessayez. Aucune donnée n’a été supprimée.'**
+  String get openProblemRecoveryFailed;
+
+  /// No description provided for @openProblemRetry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer'**
+  String get openProblemRetry;
+
   /// No description provided for @notAvailableYet.
   ///
   /// In fr, this message translates to:
