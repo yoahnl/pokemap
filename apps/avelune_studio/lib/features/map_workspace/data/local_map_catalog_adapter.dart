@@ -1,6 +1,7 @@
 import 'dart:math';
 
-import 'package:map_authoring/map_authoring.dart' show MapAuthoringException;
+import 'package:map_authoring/map_authoring.dart'
+    show AuthoringHistoryException, MapAuthoringException;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -12,6 +13,7 @@ import 'local_map_workspace_adapter.dart';
 import 'local_map_catalog_preparation.dart';
 import 'local_map_catalog_receipt.dart';
 
+part 'local_map_catalog_history.dart';
 part 'local_map_catalog_mutation.dart';
 part 'local_map_catalog_spatial_creation.dart';
 
@@ -53,6 +55,19 @@ final class LocalMapCatalogAdapter
       mapAdapter.withResourceMutation(
         () => mapAdapter.acceptCatalogMutation(session, receipt),
       );
+
+  @override
+  Future<MapCatalogReceipt> restoreHistory(
+    ProjectSession session,
+    MapCatalogReceipt receipt, {
+    required bool redo,
+    required ProjectManifest expectedManifest,
+  }) => _restoreHistory(
+    session,
+    receipt,
+    redo: redo,
+    expectedManifest: expectedManifest,
+  );
 
   @override
   Future<MapCatalogPreparation> prepare(

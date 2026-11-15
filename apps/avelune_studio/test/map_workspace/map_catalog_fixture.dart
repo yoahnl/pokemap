@@ -143,6 +143,22 @@ final class ControlledMapCatalogPort
   }
 
   @override
+  Future<MapCatalogReceipt> restoreHistory(
+    ProjectSession session,
+    MapCatalogReceipt receipt, {
+    required bool redo,
+    required ProjectManifest expectedManifest,
+  }) async {
+    mutations++;
+    return delegate.restoreHistory(
+      session,
+      receipt,
+      redo: redo,
+      expectedManifest: expectedManifest,
+    );
+  }
+
+  @override
   Future<MapCatalogPreparation> prepare(
     ProjectSession session,
     String actionId,

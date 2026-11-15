@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
@@ -121,6 +122,64 @@ void main() {
     expect(entries.keys, containsAll(['foreign-0', 'foreign-3']));
   });
 
+  test('the scoped catalog undoes create, rename and move to the exact catalog, then redoes the creation', () async {
+    final folder = await commands.createFolder('Routes', parentId: 'johto');
+    final start = await _catalogFiles(root);
+    final startMetadata = await _reopenedLibrary(session);
+    reader.paths.clear();
+
+    expect(
+      (await commands.createMap(name: 'Route 31', width: 8, height: 6)).ok,
+      isTrue,
+    );
+    final afterCreate = await _catalogFiles(root);
+    expect(
+      (await commands.renameMap('route-31', 'Route trente et un')).ok,
+      isTrue,
+    );
+    expect((await commands.moveMap('route-31', folder.groupId)).ok, isTrue);
+
+    for (var i = 0; i < 3; i++) {
+      await controller.stepHistory(redo: false);
+      expect(controller.error, isNull);
+      expect(controller.active?.error, isNull);
+    }
+    expect(
+      controller.project!.maps.map((map) => map.id),
+      isNot(contains('route-31')),
+    );
+    expect(await _catalogFiles(root), start);
+    expect(await _reopenedLibrary(session), startMetadata);
+
+    await controller.stepHistory(redo: true);
+    expect(controller.active?.error, isNull);
+    expect(controller.active?.base.mapId, 'route-31');
+    expect(await _catalogFiles(root), afterCreate);
+    expect(reader.paths.where((path) => path.contains('foreign-')), isEmpty);
+  });
+
+  test(
+    'returning to an opened map keeps the library current for the next action',
+    () async {
+      final first = controller.active!;
+      final folder = await commands.createFolder('Routes', parentId: 'johto');
+      await commands.createMap(name: 'Route 31', width: 8, height: 6);
+      await controller.activate(
+        controller.project!.maps.singleWhere((m) => m.id == first.base.mapId),
+      );
+      expect(
+        controller.project!.groups.map((g) => g.id),
+        contains(folder.groupId),
+      );
+      final renamed = await commands.renameMap('route-31', 'Autre');
+      expect(renamed.ok, isTrue, reason: renamed.detail);
+      expect(
+        controller.project!.groups.map((g) => g.id),
+        contains(folder.groupId),
+      );
+    },
+  );
+
   test(
     'deletion stays closed on the scoped catalog and writes nothing',
     () async {
@@ -133,4 +192,20 @@ void main() {
       expect(File('${root.path}/maps/foreign-1.json').existsSync(), isTrue);
     },
   );
+}
+
+Future<Map<String, String>> _catalogFiles(Directory root) async => {
+  for (final path in ['project.json', 'catalog/HEAD.json'])
+    path: base64Encode(await File('${root.path}/$path').readAsBytes()),
+  await for (final entity in Directory('${root.path}/maps').list())
+    if (entity is File)
+      entity.uri.pathSegments.last: base64Encode(await entity.readAsBytes()),
+};
+
+Future<String> _reopenedLibrary(ProjectSession session) async {
+  final reopened = await LocalMapWorkspaceAdapter().loadCatalog(session);
+  return jsonEncode({
+    'maps': reopened.metadata.maps,
+    'groups': reopened.metadata.groups,
+  });
 }

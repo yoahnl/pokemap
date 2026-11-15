@@ -108,12 +108,13 @@ extension _LocalMapCatalogScopedMutation on LocalMapCatalogAdapter {
           headBytes: head.afterBytes,
         ),
       );
+      String? entryId;
       try {
         final problem = validateBeforeApply?.call();
         if (problem != null) {
           throw MapWorkspaceFailure(MapWorkspaceProblem.conflict, problem);
         }
-        await api.applyMutation(
+        entryId = (await api.applyMutation(
           opened.projectHandle,
           planId: planned.planId,
           operationId: id,
@@ -121,7 +122,7 @@ extension _LocalMapCatalogScopedMutation on LocalMapCatalogAdapter {
             beforeTransactionPrecondition,
             validateBeforeApply,
           ),
-        );
+        )).receipt.receiptId;
       } on Object catch (failure, stack) {
         late final AuthoringMutationResult recovered;
         try {
@@ -136,6 +137,7 @@ extension _LocalMapCatalogScopedMutation on LocalMapCatalogAdapter {
             recovered.receipt.extensions['recoveryOutcome'] != 'resumed') {
           rethrow;
         }
+        entryId = recovered.receipt.receiptId;
       }
       if (await mapAdapter.resourceRevision(session) != receipt.revision) {
         throw const MapWorkspaceFailure(
@@ -143,7 +145,7 @@ extension _LocalMapCatalogScopedMutation on LocalMapCatalogAdapter {
           'Le catalogue a été publié mais sa révision a changé. Rouvrez le projet sans relancer la publication.',
         );
       }
-      return receipt;
+      return receipt.recordedAs(entryId);
     } finally {
       if (attached) await api.detachWorkspace(opened.workspaceHandle);
       handles.closeWorkspace(opened.workspaceHandle);

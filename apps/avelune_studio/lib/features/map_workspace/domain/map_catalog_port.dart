@@ -14,6 +14,7 @@ final class MapCatalogReceipt {
     required this.changedPaths,
     this.documents = const {},
     this.createdMapId,
+    this.historyEntryId,
   });
 
   final ProjectManifest before;
@@ -23,6 +24,18 @@ final class MapCatalogReceipt {
   final List<String> changedPaths;
   final Map<String, MapWorkspaceDocument> documents;
   final String? createdMapId;
+  final String? historyEntryId;
+
+  MapCatalogReceipt recordedAs(String? entryId) => MapCatalogReceipt(
+    before: before,
+    manifest: manifest,
+    beforeRevision: beforeRevision,
+    revision: revision,
+    changedPaths: changedPaths,
+    documents: documents,
+    createdMapId: createdMapId,
+    historyEntryId: entryId,
+  );
 }
 
 final class MapCatalogResult {
@@ -50,4 +63,11 @@ abstract interface class MapCatalogPort {
   });
 
   Future<void> reconcile(ProjectSession session, MapCatalogReceipt receipt);
+
+  Future<MapCatalogReceipt> restoreHistory(
+    ProjectSession session,
+    MapCatalogReceipt receipt, {
+    required bool redo,
+    required ProjectManifest expectedManifest,
+  });
 }

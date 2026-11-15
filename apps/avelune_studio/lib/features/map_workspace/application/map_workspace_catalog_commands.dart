@@ -16,6 +16,7 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
     if (problem != null || mutations == null) {
       return MapCatalogResult(error: problem);
     }
+    final returnMapId = active?.base.mapId;
     catalogBusy = true;
     _catalogTargetId = targetId;
     notify();
@@ -39,7 +40,9 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
       );
       if (_disposed) return MapCatalogResult(published: true, receipt: receipt);
       pendingCatalogReceipt = receipt;
-      return await _integrateCatalog(mutations, receipt);
+      final result = await _integrateCatalog(mutations, receipt);
+      if (result.integrated) _recordLibraryStep(receipt, returnMapId);
+      return result;
     } on Object catch (failure) {
       final message = failure is MapWorkspaceFailure
           ? failure.message
@@ -75,12 +78,21 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
 
   Future<MapCatalogResult> _integrateCatalog(
     MapCatalogPort mutations,
-    MapCatalogReceipt receipt,
-  ) async {
+    MapCatalogReceipt receipt, {
+    String? reopenMapId,
+  }) async {
     try {
       await mutations.reconcile(session, receipt);
       if (_disposed) return MapCatalogResult(published: true, receipt: receipt);
-      if (project != receipt.before) {
+      final current = project;
+      if (current == null ||
+          (hasCompleteProject
+              ? current != receipt.before
+              : current !=
+                    current.copyWith(
+                      maps: receipt.before.maps,
+                      groups: receipt.before.groups,
+                    ))) {
         throw const MapWorkspaceFailure(
           MapWorkspaceProblem.conflict,
           'Le catalogue ouvert a changé pendant la publication.',
@@ -116,14 +128,24 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
       _loading.removeWhere(
         (id, _) => !retained.contains(id) || changed.contains(id),
       );
-      project = receipt.manifest;
+      project = hasCompleteProject
+          ? receipt.manifest
+          : current.copyWith(
+              maps: receipt.manifest.maps,
+              groups: receipt.manifest.groups,
+            );
       _catalogEpoch++;
       pendingCatalogReceipt = null;
       error = null;
       if (activeId != null &&
           !retained.contains(activeId) &&
           receipt.manifest.maps.isNotEmpty) {
-        await activate(receipt.manifest.maps.first);
+        await activate(
+          receipt.manifest.maps
+                  .where((entry) => entry.id == reopenMapId)
+                  .firstOrNull ??
+              receipt.manifest.maps.first,
+        );
       }
       notify();
       return MapCatalogResult(

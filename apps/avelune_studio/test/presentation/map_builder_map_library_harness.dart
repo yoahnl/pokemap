@@ -79,6 +79,26 @@ final class MemoryMapCatalogPort
       revision: 'r${++_revision}',
       changedPaths: const ['project.json'],
       createdMapId: created,
+      historyEntryId: 'entry-$_revision',
+    );
+  }
+
+  @override
+  Future<MapCatalogReceipt> restoreHistory(
+    ProjectSession session,
+    MapCatalogReceipt receipt, {
+    required bool redo,
+    required ProjectManifest expectedManifest,
+  }) async {
+    calls.add((redo ? 'history.redo' : 'history.undo', const {}));
+    return MapCatalogReceipt(
+      before: manifest,
+      manifest: redo ? receipt.manifest : receipt.before,
+      beforeRevision: 'r$_revision',
+      revision: 'r${++_revision}',
+      changedPaths: receipt.changedPaths,
+      createdMapId: redo ? receipt.createdMapId : null,
+      historyEntryId: redo ? 'entry-$_revision' : receipt.historyEntryId,
     );
   }
 

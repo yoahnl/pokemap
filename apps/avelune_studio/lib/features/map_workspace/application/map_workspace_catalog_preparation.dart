@@ -95,7 +95,11 @@ extension MapWorkspaceCatalogPreparation on MapWorkspaceController {
         );
       }
       pendingCatalogReceipt = receipt;
-      return await _integrateCatalog(catalogPort!, receipt);
+      final result = await _integrateCatalog(catalogPort!, receipt);
+      if (result.integrated && receipt.changedPaths.isNotEmpty) {
+        libraryHistory.clear();
+      }
+      return result;
     } on Object catch (failure) {
       final message = failure is MapWorkspaceFailure
           ? failure.message

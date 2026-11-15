@@ -28,15 +28,22 @@ extension _LocalMapCatalogMutation on LocalMapCatalogAdapter {
       );
     }
     final before = await mapAdapter.resourceBaseline(session);
-    if (expectedManifest != null && before.manifest != expectedManifest) {
+    final scoped =
+        mapCatalogScopedActions.contains(actionId) &&
+        session.storage == ProjectSessionStorage.workingCatalog &&
+        before.manifest.settings.dimension == ProjectDimension.threeD;
+    if (expectedManifest != null &&
+        !mapCatalogLibraryMatches(
+          before.manifest,
+          expectedManifest,
+          libraryOnly: scoped,
+        )) {
       throw const MapWorkspaceFailure(
         MapWorkspaceProblem.conflict,
         'Le catalogue a changé depuis son ouverture. Rien n’a été publié.',
       );
     }
-    if (mapCatalogScopedActions.contains(actionId) &&
-        session.storage == ProjectSessionStorage.workingCatalog &&
-        before.manifest.settings.dimension == ProjectDimension.threeD) {
+    if (scoped) {
       return _mutateScoped(
         session,
         before,
@@ -162,6 +169,7 @@ extension _LocalMapCatalogMutation on LocalMapCatalogAdapter {
             ? studioProjectPlanRevision(snapshot, planned.plan)
             : null,
       );
+      String? entryId;
       try {
         final confirmation = confirmDestructive
             ? await api.confirmMutation(
@@ -173,7 +181,7 @@ extension _LocalMapCatalogMutation on LocalMapCatalogAdapter {
         if (problem != null) {
           throw MapWorkspaceFailure(MapWorkspaceProblem.conflict, problem);
         }
-        await api.applyMutation(
+        entryId = (await api.applyMutation(
           opened.projectHandle,
           planId: planned.planId,
           operationId: id,
@@ -182,7 +190,7 @@ extension _LocalMapCatalogMutation on LocalMapCatalogAdapter {
             beforeTransactionPrecondition,
             validateBeforeApply,
           ),
-        );
+        )).receipt.receiptId;
       } on Object catch (failure, stack) {
         late final AuthoringMutationResult recovered;
         try {
@@ -197,6 +205,7 @@ extension _LocalMapCatalogMutation on LocalMapCatalogAdapter {
             recovered.receipt.extensions['recoveryOutcome'] != 'resumed') {
           rethrow;
         }
+        entryId = recovered.receipt.receiptId;
       }
       if (snapshot.materializedCatalogProject) {
         final after = await snapshots.load(
@@ -211,7 +220,7 @@ extension _LocalMapCatalogMutation on LocalMapCatalogAdapter {
           );
         }
       }
-      return receipt;
+      return receipt.recordedAs(entryId);
     } on MapAuthoringException catch (failure) {
       if (failure.code != 'map.no_change') rethrow;
       await mapAdapter.resourceBaseline(session);

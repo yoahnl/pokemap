@@ -26,8 +26,8 @@ VoidCallback? mapBuilderHistoryStep(
           ? (redo ? story.redo : story.undo)
           : null,
     (null, null) =>
-      (redo ? maps.active?.canRedo : maps.active?.canUndo) == true
-          ? () => maps.restore(redo: redo)
+      maps.canStepHistory(redo: redo)
+          ? () => unawaited(maps.stepHistory(redo: redo))
           : null,
   };
 }

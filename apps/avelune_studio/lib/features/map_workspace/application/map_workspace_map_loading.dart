@@ -110,7 +110,14 @@ extension _MapWorkspaceMapLoading on MapWorkspaceController {
             );
         final selection = _selections[entry.id];
         if (!hasCompleteProject && selection != null) {
-          project = _withWorkshops(_selections[entry.id]!.definitions);
+          final library = project;
+          final definitions = _withWorkshops(selection.definitions);
+          project = library == null
+              ? definitions
+              : definitions.copyWith(
+                  maps: library.maps,
+                  groups: library.groups,
+                );
           projectScope = MapWorkspaceProjectScope.mapSelection;
         }
       }

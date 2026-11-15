@@ -21,11 +21,13 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_element_clipboard.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_library_history.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 
 part 'map_workspace_catalog_commands.dart';
 part 'map_workspace_catalog_preparation.dart';
+part 'map_workspace_library_history.dart';
 part 'map_workspace_history_destinations.dart';
 part 'map_workspace_resource_references.dart';
 part 'map_workspace_element_order.dart';
@@ -67,6 +69,7 @@ class MapWorkspaceController {
   final _fieldTraversalReceipts = <String, Map<Object, FieldTraversalZoneReceipt>>{};
   bool catalogBusy = false;
   MapCatalogReceipt? pendingCatalogReceipt;
+  final libraryHistory = MapLibraryHistory();
   String? _catalogTargetId;
   var _catalogEpoch = 0;
   final Map<String, int> _mapEpochs = {};

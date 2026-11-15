@@ -33,17 +33,8 @@ MapCatalogReceipt mapCatalogReceipt(
   )) {
     final bytes = change.afterBytes;
     if (bytes == null) continue;
-    final map = decodeValidatedMapDocument(
-      bytes,
-      change.storageKey,
-      validateMap: (map) =>
-          MapValidator.validate(map, projectDialogueContext: manifest),
-    );
-    documents[map.id] = MapWorkspaceDocument(
-      map: map,
-      mapId: map.id,
-      revision: narrativeEventBytesFingerprint(bytes),
-    );
+    final document = mapCatalogDocument(bytes, change.storageKey, manifest);
+    documents[document.mapId] = document;
   }
   return MapCatalogReceipt(
     before: before,
@@ -61,6 +52,32 @@ MapCatalogReceipt mapCatalogReceipt(
               .where((id) => !before.maps.any((map) => map.id == id))
               .firstOrNull
         : null,
+  );
+}
+
+bool mapCatalogLibraryMatches(
+  ProjectManifest current,
+  ProjectManifest expected, {
+  required bool libraryOnly,
+}) => libraryOnly
+    ? current == current.copyWith(maps: expected.maps, groups: expected.groups)
+    : current == expected;
+
+MapWorkspaceDocument mapCatalogDocument(
+  List<int> bytes,
+  String storageKey,
+  ProjectManifest manifest,
+) {
+  final map = decodeValidatedMapDocument(
+    bytes,
+    storageKey,
+    validateMap: (map) =>
+        MapValidator.validate(map, projectDialogueContext: manifest),
+  );
+  return MapWorkspaceDocument(
+    map: map,
+    mapId: map.id,
+    revision: narrativeEventBytesFingerprint(bytes),
   );
 }
 
