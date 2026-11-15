@@ -1,9 +1,11 @@
 import 'dart:convert';
+
 import 'package:avelune_studio/features/presentations/data/local_presentation_adapter.dart';
 import 'package:avelune_studio/features/presentations/domain/presentation_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+
 import '../support/cinematic_adapter_fixture.dart';
 
 void main() {
@@ -106,60 +108,57 @@ void main() {
       await port.releaseMedia(media);
     },
   );
-  test(
-    'changed referenced media refuses while independent media import is preserved',
-    () async {
-      final media = await stage('Fond');
-      final asset = _asset('a', media.media.id);
-      final first = await port.publish(
-        asset: asset,
-        base: null,
-        imports: [media],
-      );
-      final secondMedia = await stage('Indépendant');
-      await port.publish(
-        asset: PresentationCinematicAsset(
-          id: 'b',
-          title: 'B',
-          durationUs: 1000000,
-        ),
-        base: null,
-        imports: [secondMedia],
-      );
-      final updated = decodePresentationCinematicAsset({
-        ...encodePresentationCinematicAsset(asset),
-        'title': 'Titre ultérieur',
-      });
-      final saved = await port.publish(asset: updated, base: first.snapshot);
-      expect(
-        saved.snapshot!.projection.mediaCatalog.find(secondMedia.media.id),
-        isNotNull,
-      );
-      final file = f.file('assets/.pokemap-media.json');
-      final catalog = decodeProjectMediaCatalogBytes(await file.readAsBytes());
-      final changed = ProjectMediaCatalog(
-        entries: [
-          for (final item in catalog.entries)
-            if (item.id == media.media.id)
-              ProjectMediaAsset.fromJson({
-                ...item.toJson(),
-                'label': 'Source remplacée',
-              })
-            else
-              item,
-        ],
-      );
-      await file.writeAsString(jsonEncode(changed.toJson()));
-      final bytes = await f.file('project.json').readAsBytes();
-      await expectLater(
-        port.publish(asset: asset, base: saved.snapshot),
-        throwsA(isA<PresentationFailure>()),
-      );
-      expect(await f.file('project.json').readAsBytes(), bytes);
-      await port.releaseMedia(media);
-      await port.releaseMedia(secondMedia);
-    },
-  );
+  test('changed referenced media refuses while independent media import is preserved', () async {
+    final media = await stage('Fond');
+    final asset = _asset('a', media.media.id);
+    final first = await port.publish(
+      asset: asset,
+      base: null,
+      imports: [media],
+    );
+    final secondMedia = await stage('Indépendant');
+    await port.publish(
+      asset: PresentationCinematicAsset(
+        id: 'b',
+        title: 'B',
+        durationUs: 1000000,
+      ),
+      base: null,
+      imports: [secondMedia],
+    );
+    final updated = decodePresentationCinematicAsset({
+      ...encodePresentationCinematicAsset(asset),
+      'title': 'Titre ultérieur',
+    });
+    final saved = await port.publish(asset: updated, base: first.snapshot);
+    expect(
+      saved.snapshot!.projection.mediaCatalog.find(secondMedia.media.id),
+      isNotNull,
+    );
+    final file = f.file('assets/.pokemap-media.json');
+    final catalog = decodeProjectMediaCatalogBytes(await file.readAsBytes());
+    final changed = ProjectMediaCatalog(
+      entries: [
+        for (final item in catalog.entries)
+          if (item.id == media.media.id)
+            ProjectMediaAsset.fromJson({
+              ...item.toJson(),
+              'label': 'Source remplacée',
+            })
+          else
+            item,
+      ],
+    );
+    await file.writeAsString(jsonEncode(changed.toJson()));
+    final bytes = await f.file('project.json').readAsBytes();
+    await expectLater(
+      port.publish(asset: asset, base: saved.snapshot),
+      throwsA(isA<PresentationFailure>()),
+    );
+    expect(await f.file('project.json').readAsBytes(), bytes);
+    await port.releaseMedia(media);
+    await port.releaseMedia(secondMedia);
+  });
 }
 
 PresentationCinematicAsset _asset(String id, String media) =>

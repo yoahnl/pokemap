@@ -58,8 +58,7 @@ class LocalNarrativeCatalogTransaction {
       fileReader: reader,
       handles: handles,
       initializeSceneOwners: false,
-      catalogMetadataFields: scoped ? const {}
-          : null,
+      catalogMetadataFields: scoped ? const {} : null,
       workshopScope: scoped,
     ).openProject(session.directoryPath);
     final snapshots = ProjectSnapshotLoader(handles: handles);

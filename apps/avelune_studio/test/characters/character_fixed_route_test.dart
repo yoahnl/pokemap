@@ -138,7 +138,6 @@ void main() {
       expect(document.undoCount, 5);
     },
   );
-
 }
 
 MapEntityNpcMovementConfig _movement() => MapEntityNpcMovementConfig(

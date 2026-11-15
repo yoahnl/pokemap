@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
@@ -229,7 +228,6 @@ void main() {
       );
     },
   );
-
 }
 
 class _SpatialVisuals extends WorkspaceTestVisuals
@@ -242,6 +240,5 @@ class _SpatialVisuals extends WorkspaceTestVisuals
   Future<SpatialNpcPreview> spatialPreview(
     MapData map,
     ProjectManifest project,
-  ) async =>
-      SpatialNpcPreview({}, () {});
+  ) async => SpatialNpcPreview({}, () {});
 }

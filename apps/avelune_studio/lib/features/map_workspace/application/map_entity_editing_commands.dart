@@ -171,9 +171,8 @@ class MapEntityEditingCommands {
     document.commit(_withDefaultSpawn(document.current, id));
   }
 
-  MapData _withDefaultSpawn(MapData map, String? id) => map.copyWith(
-    mapMetadata: map.mapMetadata.copyWith(defaultSpawnId: id),
-  );
+  MapData _withDefaultSpawn(MapData map, String? id) =>
+      map.copyWith(mapMetadata: map.mapMetadata.copyWith(defaultSpawnId: id));
 
   void rename(String id, String name) => document.commit(
     updateEntityOnMap(document.current, entityId: id, name: name),

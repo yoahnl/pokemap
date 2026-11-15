@@ -5,7 +5,6 @@ import 'package:map_core/map_core.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-
   test('family and text filters combine without hiding the full catalogue', () {
     final project = workspaceProject.copyWith(
       resourceLibraryCatalog: ResourceLibraryCatalog(

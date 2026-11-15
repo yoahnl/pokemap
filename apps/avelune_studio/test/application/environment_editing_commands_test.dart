@@ -3,6 +3,7 @@ import 'package:avelune_studio/features/map_workspace/application/environment_ed
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../support/map_workspace_fixture.dart';
 
 void main() {

@@ -14,8 +14,10 @@ extension EventRecordView on NarrativeEventRecord {
       when(draft: (d) => d.reusePolicy, configured: (d, _) => d.reusePolicy);
   NarrativeEventResetPolicy get resetPolicy =>
       when(draft: (d) => d.resetPolicy, configured: (d, _) => d.resetPolicy);
-  NarrativeEventParallelPolicy? get parallelPolicy =>
-      when(draft: (d) => d.parallelPolicy, configured: (d, _) => d.parallelPolicy);
+  NarrativeEventParallelPolicy? get parallelPolicy => when(
+    draft: (d) => d.parallelPolicy,
+    configured: (d, _) => d.parallelPolicy,
+  );
   int get priority =>
       when(draft: (d) => d.priority, configured: (d, _) => d.priority);
   int get order => when(draft: (d) => d.order, configured: (d, _) => d.order);

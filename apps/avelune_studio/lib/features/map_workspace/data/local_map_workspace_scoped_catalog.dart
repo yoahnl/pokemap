@@ -10,7 +10,9 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     final result = await _readScopedCatalog(session, (catalog, revision) async {
       return MapWorkspaceCatalog(
         metadata: catalog.projectMetadata.copyWith(
-          models3d: ProjectModel3dEntries.prepare(catalog.projectMetadata.models3d),
+          models3d: ProjectModel3dEntries.prepare(
+            catalog.projectMetadata.models3d,
+          ),
         ),
         revision: revision,
       );
@@ -23,7 +25,10 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       metadataFields: _mapCatalogMetadataFields,
       onMapEntryRead: onMapMetadataEntryRead,
     );
-    return MapWorkspaceCatalog(metadata: _project(session).manifest, revision: result.revision);
+    return MapWorkspaceCatalog(
+      metadata: _project(session).manifest,
+      revision: result.revision,
+    );
   }
 
   Future<MapWorkspaceCatalog> _loadWorkshop(
@@ -64,9 +69,12 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     );
     if (workshop == MapWorkspaceWorkshop.dialogue ||
         workshop == MapWorkspaceWorkshop.cinematic) {
-      _workshopCharacterDefinitions[session.sessionId] = projection.metadata.copyWith(
-        models3d: ProjectModel3dEntries.prepare(projection.metadata.models3d),
-      );
+      _workshopCharacterDefinitions[session.sessionId] = projection.metadata
+          .copyWith(
+            models3d: ProjectModel3dEntries.prepare(
+              projection.metadata.models3d,
+            ),
+          );
     }
     final latest = _project(session);
     if (latest.revision != projection.revision) {
@@ -95,56 +103,52 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     CatalogDefinitionKey? root,
   ) async {
     final before = _project(session);
-    final result = await _readScopedCatalog(
-      session,
-      (catalog, revision) async {
-        if (revision != before.revision) {
-          throw const MapWorkspaceFailure(
-            MapWorkspaceProblem.conflict,
-            'Le catalogue a changé avant le chargement de ces ressources.',
-          );
-        }
-        final ProjectManifest manifest;
-        if (root != null) {
-          manifest = await ProjectCatalogSelection(catalog).resolve([root]);
-        } else {
-          final units = <CatalogDefinitionUnit>[];
-          for (final kind in const [
-            CatalogDefinitionKind.borderRecord,
-            CatalogDefinitionKind.resourceFamily,
-          ]) {
-            String? cursor;
-            do {
-              final page = await catalog.snapshot.page(
-                kind: kind,
-                limit: catalog.snapshot.limits.indexPageSize,
-                cursor: cursor,
-              );
-              for (final entry in page.items) {
-                units.add((await catalog.lookup(entry.key))!);
-                if (kind != CatalogDefinitionKind.borderRecord) continue;
-                final classification = await catalog.lookup(
-                  CatalogDefinitionKey(
-                    CatalogDefinitionKind.resourceLibraryEntry,
-                    'borderBlueprint:${entry.key.id}',
-                  ),
-                );
-                if (classification != null) units.add(classification);
-              }
-              cursor = page.nextCursor;
-            } while (cursor != null);
-          }
-          manifest = catalog.projectWithDefinitions(units);
-        }
-        return MapWorkspaceCatalog(
-          metadata: manifest.copyWith(
-            models3d: ProjectModel3dEntries.prepare(manifest.models3d),
-          ),
-          revision: revision,
+    final result = await _readScopedCatalog(session, (catalog, revision) async {
+      if (revision != before.revision) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'Le catalogue a changé avant le chargement de ces ressources.',
         );
-      },
-      metadataFields: const {'settings', 'globalProperties'},
-    );
+      }
+      final ProjectManifest manifest;
+      if (root != null) {
+        manifest = await ProjectCatalogSelection(catalog).resolve([root]);
+      } else {
+        final units = <CatalogDefinitionUnit>[];
+        for (final kind in const [
+          CatalogDefinitionKind.borderRecord,
+          CatalogDefinitionKind.resourceFamily,
+        ]) {
+          String? cursor;
+          do {
+            final page = await catalog.snapshot.page(
+              kind: kind,
+              limit: catalog.snapshot.limits.indexPageSize,
+              cursor: cursor,
+            );
+            for (final entry in page.items) {
+              units.add((await catalog.lookup(entry.key))!);
+              if (kind != CatalogDefinitionKind.borderRecord) continue;
+              final classification = await catalog.lookup(
+                CatalogDefinitionKey(
+                  CatalogDefinitionKind.resourceLibraryEntry,
+                  'borderBlueprint:${entry.key.id}',
+                ),
+              );
+              if (classification != null) units.add(classification);
+            }
+            cursor = page.nextCursor;
+          } while (cursor != null);
+        }
+        manifest = catalog.projectWithDefinitions(units);
+      }
+      return MapWorkspaceCatalog(
+        metadata: manifest.copyWith(
+          models3d: ProjectModel3dEntries.prepare(manifest.models3d),
+        ),
+        revision: revision,
+      );
+    }, metadataFields: const {'settings', 'globalProperties'});
     final latest = _project(session);
     if (latest.revision != result.revision) {
       throw const MapWorkspaceFailure(
@@ -167,4 +171,3 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     return result;
   }
 }
-

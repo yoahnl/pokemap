@@ -35,12 +35,20 @@ void main() {
     expect('"apps/avelune_android/**"'.allMatches(source), hasLength(2));
     expect('"apps/pokemap_hub/lib/**"'.allMatches(source), hasLength(2));
     expect(source, isNot(contains('"apps/pokemap_hub/**"')));
-    expect('working-directory: apps/pokemap_hub'.allMatches(source), hasLength(1));
+    expect(
+      'working-directory: apps/pokemap_hub'.allMatches(source),
+      hasLength(1),
+    );
     expect(source, contains('name: Avelune save compatibility baseline'));
-    expect(source, contains('flutter test --no-pub --no-test-assets --timeout 2m'));
     expect(
       source,
-      contains('test/features/saves/avelune_compatibility_baseline_continue_test.dart'),
+      contains('flutter test --no-pub --no-test-assets --timeout 2m'),
+    );
+    expect(
+      source,
+      contains(
+        'test/features/saves/avelune_compatibility_baseline_continue_test.dart',
+      ),
     );
     expect(
       source,
@@ -54,7 +62,10 @@ void main() {
     expect(source, contains('name: Story engine contracts'));
     expect(source, contains('working-directory: packages/map_story'));
     expect(source, contains('test/map_story_dependency_boundary_test.dart'));
-    expect(source, isNot(contains('narrative_event_runtime_performance_test.dart')));
+    expect(
+      source,
+      isNot(contains('narrative_event_runtime_performance_test.dart')),
+    );
     expect(source, contains('working-directory: apps/avelune_studio'));
     expect(source, contains('test/app/studio_bootstrap_test.dart'));
     expect(source, contains('test/home/recent_projects_test.dart'));

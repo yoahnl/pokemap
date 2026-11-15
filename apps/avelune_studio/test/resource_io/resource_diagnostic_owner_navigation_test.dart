@@ -48,5 +48,4 @@ void main() {
       expect(index.owners['unknown-reference'], isNull);
     },
   );
-
 }

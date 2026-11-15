@@ -62,9 +62,8 @@ void main() {
         ],
       ),
     );
-    final oak = resourceCatalog(
-      project,
-    ).firstWhere((item) => item.model3d?.id == 'oak');
+    final oak = resourceCatalog(project)
+        .firstWhere((item) => item.model3d?.id == 'oak');
     expect(owningBorderNames(project, oak), isEmpty);
     expect(borderPieceIdentities(project.borderCatalog.records.single), {
       'model3d:oak',

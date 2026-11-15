@@ -48,9 +48,8 @@ void main() {
       expect(interrupted, true);
       expect(receipt.savedMap, current);
       expect(
-        (await narrative.readDialogue(
-          receipt.manifest.dialogues.single,
-        )).source,
+        (await narrative.readDialogue(receipt.manifest.dialogues.single))
+            .source,
         source.source,
       );
       expect((await fixture.loadMap()).map, current);
@@ -125,9 +124,8 @@ void main() {
       document.restore(redo: false);
       expect(document.current, snapshot);
       expect(
-        await File(
-          '${fixture.root.path}/${source.entry.relativePath}',
-        ).exists(),
+        await File('${fixture.root.path}/${source.entry.relativePath}')
+            .exists(),
         true,
       );
       await fixture.maps.saveMap(

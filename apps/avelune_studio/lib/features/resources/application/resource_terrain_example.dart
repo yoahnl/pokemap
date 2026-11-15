@@ -76,10 +76,10 @@ List<TileLayerPaletteEntry>? terrainConnectionExample(
         TileLayerPaletteEntry(
           tilesetId: atlas.tilesetId,
           localTileId: regularAtlasLocalTileId(
-          row: frame.row,
-          column: frame.column,
-          source: source,
-        ),
+            row: frame.row,
+            column: frame.column,
+            source: source,
+          ),
           transform: composeSmartTileSpriteTransforms(
             first: part.transform,
             second: resolution.transform,

@@ -5,7 +5,6 @@ import 'package:map_core/map_core.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-
   MapData garden() => workspaceMap('b').copyWith(
     name: 'Jardin',
     entities: const [
@@ -56,5 +55,4 @@ void main() {
       contains('hors de « Jardin » (20 × 16)'),
     );
   });
-
 }

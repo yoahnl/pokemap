@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 Widget _app(Widget child) => MaterialApp(home: Scaffold(body: child));
 
 void main() {
-
   testWidgets('delete and Cmd+K do nothing while a text field is edited', (
     tester,
   ) async {
@@ -45,5 +44,4 @@ void main() {
     await tester.pump();
     expect(deleted, 1);
   });
-
 }

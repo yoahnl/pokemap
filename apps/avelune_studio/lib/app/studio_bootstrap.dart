@@ -1,6 +1,7 @@
 import 'package:avelune_studio/app/di/language_providers.dart';
 import 'package:avelune_studio/features/language/coordination/studio_language_preferences.dart';
 import 'package:avelune_studio/platform/files/local_language_preferences_store.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -34,6 +35,7 @@ import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:avelune_studio/platform/files/native_project_directory_picker.dart';
+
 import 'studio_session_adapter_overrides.dart';
 
 class StudioBootstrap extends StatelessWidget {

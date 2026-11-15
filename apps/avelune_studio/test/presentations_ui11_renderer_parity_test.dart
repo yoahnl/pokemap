@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+
 import 'package:avelune_studio/platform/rendering/presentation_workspace_visuals.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -11,6 +12,7 @@ import 'package:map_player_ui/map_player_ui.dart'
 import 'package:map_player_ui/presentation_renderer.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import 'support/ui11_runtime_fixture.dart';
 
 void main() {
@@ -34,9 +36,8 @@ void main() {
         late ui.Image media;
         await tester.runAsync(() async {
           final codec = await ui.instantiateImageCodec(
-            await File.fromUri(
-              fixture.media.mediaUris[fixture.source.mediaId]!,
-            ).readAsBytes(),
+            await File.fromUri(fixture.media.mediaUris[fixture.source.mediaId]!)
+                .readAsBytes(),
           );
           media = (await codec.getNextFrame()).image;
           codec.dispose();
@@ -74,9 +75,7 @@ void main() {
           await _until(() => runtime.value != null);
         });
         final boundary = GlobalKey();
-        await tester.pumpWidget(
-          _app(boundary, const SizedBox.expand(), media),
-        );
+        await tester.pumpWidget(_app(boundary, const SizedBox.expand(), media));
         final context = tester.element(find.byType(Scaffold));
         await tester.runAsync(() async {
           final uri = fixture.media.mediaUris[fixture.source.mediaId]!;
@@ -211,14 +210,14 @@ Future<Uint8List> _render(
     final image =
         await (key.currentContext!.findRenderObject()! as RenderRepaintBoundary)
             .toImage(pixelRatio: 1);
-    final data = (await image.toByteData(
-      format: ui.ImageByteFormat.rawRgba,
-    ))!.buffer.asUint8List();
+    final data = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!
+        .buffer
+        .asUint8List();
     final directory = Platform.environment['AVELUNE_CAPTURE_DIR'];
     if (directory != null && capture != null) {
-      final bytes = (await image.toByteData(
-        format: ui.ImageByteFormat.png,
-      ))!.buffer.asUint8List();
+      final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!
+          .buffer
+          .asUint8List();
       await Directory(directory).create(recursive: true);
       await File('$directory/$capture.png').writeAsBytes(bytes);
     }

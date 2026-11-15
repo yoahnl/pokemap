@@ -50,7 +50,10 @@ abstract interface class MapWorkspaceScopedPort implements MapWorkspacePort {
 }
 
 abstract interface class MapWorkspacePreviewSelectionPort {
-  Future<MapWorkspaceSelection> loadMapPreviewSelection(ProjectSession session, ProjectMapEntry entry);
+  Future<MapWorkspaceSelection> loadMapPreviewSelection(
+    ProjectSession session,
+    ProjectMapEntry entry,
+  );
 }
 
 abstract interface class MapWorkspaceWorkshopPort

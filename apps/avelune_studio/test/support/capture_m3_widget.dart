@@ -19,9 +19,8 @@ Future<void> captureM3Widget(
     final pixels = await boundary.toImage(pixelRatio: 1);
     final bytes = await pixels.toByteData(format: ui.ImageByteFormat.png);
     await Directory(destination).create(recursive: true);
-    await File(
-      '$destination/$name.png',
-    ).writeAsBytes(bytes!.buffer.asUint8List());
+    await File('$destination/$name.png')
+        .writeAsBytes(bytes!.buffer.asUint8List());
     pixels.dispose();
   });
 }

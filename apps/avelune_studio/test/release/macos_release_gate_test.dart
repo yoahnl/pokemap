@@ -3,32 +3,25 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test(
-    'release signing script seals nested code with one identity',
-    () async {
-      final root = await Directory.systemTemp.createTemp(
-        'pokemap-signing-fixture-',
-      );
-      addTearDown(() => root.delete(recursive: true));
-      final app = Directory('${root.path}/Fixture.app');
-      final macos = Directory('${app.path}/Contents/MacOS');
-      final frameworks = Directory('${app.path}/Contents/Frameworks');
-      await macos.create(recursive: true);
-      await frameworks.create(recursive: true);
-      final executable = await File(
-        '/usr/bin/true',
-      ).copy('${macos.path}/Fixture');
-      final nested = await File(
-        '/usr/bin/true',
-      ).copy('${frameworks.path}/libfixture.dylib');
-      for (final file in <File>[executable, nested]) {
-        final chmod = await Process.run('/bin/chmod', <String>[
-          '755',
-          file.path,
-        ]);
-        expect(chmod.exitCode, 0, reason: '${chmod.stderr}');
-      }
-      await File('${app.path}/Contents/Info.plist').writeAsString('''
+  test('release signing script seals nested code with one identity', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemap-signing-fixture-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final app = Directory('${root.path}/Fixture.app');
+    final macos = Directory('${app.path}/Contents/MacOS');
+    final frameworks = Directory('${app.path}/Contents/Frameworks');
+    await macos.create(recursive: true);
+    await frameworks.create(recursive: true);
+    final executable = await File('/usr/bin/true')
+        .copy('${macos.path}/Fixture');
+    final nested = await File('/usr/bin/true')
+        .copy('${frameworks.path}/libfixture.dylib');
+    for (final file in <File>[executable, nested]) {
+      final chmod = await Process.run('/bin/chmod', <String>['755', file.path]);
+      expect(chmod.exitCode, 0, reason: '${chmod.stderr}');
+    }
+    await File('${app.path}/Contents/Info.plist').writeAsString('''
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -43,38 +36,36 @@ void main() {
 </dict>
 </plist>
 ''');
-      final entitlements = File('${root.path}/Release.entitlements');
-      await entitlements.writeAsString('''
+    final entitlements = File('${root.path}/Release.entitlements');
+    await entitlements.writeAsString('''
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict/></plist>
 ''');
 
-      final signing = await Process.run('/bin/bash', <String>[
-        '../../tools/release/sign_macos_app.sh',
-        '--app',
-        app.path,
-        '--identity',
-        '-',
-        '--entitlements',
-        entitlements.path,
-        '--no-timestamp',
-      ]);
+    final signing = await Process.run('/bin/bash', <String>[
+      '../../tools/release/sign_macos_app.sh',
+      '--app',
+      app.path,
+      '--identity',
+      '-',
+      '--entitlements',
+      entitlements.path,
+      '--no-timestamp',
+    ]);
 
-      expect(signing.exitCode, 0, reason: '${signing.stderr}');
-      expect(signing.stdout, contains('signature_verified=true'));
-      final verification = await Process.run('/usr/bin/codesign', <String>[
-        '--verify',
-        '--deep',
-        '--strict',
-        '--verbose=4',
-        app.path,
-      ]);
-      expect(verification.exitCode, 0, reason: '${verification.stderr}');
-    },
-    skip: !Platform.isMacOS,
-  );
+    expect(signing.exitCode, 0, reason: '${signing.stderr}');
+    expect(signing.stdout, contains('signature_verified=true'));
+    final verification = await Process.run('/usr/bin/codesign', <String>[
+      '--verify',
+      '--deep',
+      '--strict',
+      '--verbose=4',
+      app.path,
+    ]);
+    expect(verification.exitCode, 0, reason: '${verification.stderr}');
+  }, skip: !Platform.isMacOS);
 
   test(
     'release signing expands the bundle identifier in entitlements',
@@ -86,9 +77,8 @@ void main() {
       final app = Directory('${root.path}/Fixture.app');
       final macos = Directory('${app.path}/Contents/MacOS');
       await macos.create(recursive: true);
-      final executable = await File(
-        '/usr/bin/true',
-      ).copy('${macos.path}/Fixture');
+      final executable = await File('/usr/bin/true')
+          .copy('${macos.path}/Fixture');
       final chmod = await Process.run('/bin/chmod', <String>[
         '755',
         executable.path,
@@ -155,7 +145,8 @@ void main() {
   );
 
   test('release signing script enforces Developer ID team coherence', () async {
-    final signing = await File('../../tools/release/sign_macos_app.sh').readAsString();
+    final signing = await File('../../tools/release/sign_macos_app.sh')
+        .readAsString();
 
     expect(signing, contains('Authority=Developer ID Application:'));
     expect(signing, contains('TeamIdentifier='));

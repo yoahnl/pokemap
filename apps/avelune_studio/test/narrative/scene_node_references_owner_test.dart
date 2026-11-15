@@ -23,8 +23,10 @@ void main() {
       ],
     ),
   );
-  SceneNodeReference reference(String nodeId) =>
-      SceneNodeReference(scene, scene.graph.nodes.firstWhere((n) => n.id == nodeId));
+  SceneNodeReference reference(String nodeId) => SceneNodeReference(
+    scene,
+    scene.graph.nodes.firstWhere((n) => n.id == nodeId),
+  );
 
   test('a single reference is chosen without asking', () {
     final only = reference('start');
@@ -33,7 +35,10 @@ void main() {
 
   test('no reference or several references still need a choice', () {
     expect(soleSceneNodeReference(const []), isNull);
-    expect(soleSceneNodeReference([reference('start'), reference('end')]), isNull);
+    expect(
+      soleSceneNodeReference([reference('start'), reference('end')]),
+      isNull,
+    );
   });
 
   test('a reference reads as the scene name and the node name', () {

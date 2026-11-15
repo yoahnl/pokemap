@@ -149,9 +149,11 @@ final class PokemonMoveRecipeImport {
         ]);
       });
 
-  Future<void> prepareBatchProject() => _use(() => mapAdapter.withResourceMutation(
-    () => _api.prepareWorkshopCatalog(_opened.projectHandle),
-  ));
+  Future<void> prepareBatchProject() => _use(
+    () => mapAdapter.withResourceMutation(
+      () => _api.prepareWorkshopCatalog(_opened.projectHandle),
+    ),
+  );
 
   Future<BattleMoveRecipeBatchResult> importBatch({
     required String operationId,
@@ -160,21 +162,24 @@ final class PokemonMoveRecipeImport {
     String? expectedInventoryRevision,
     bool Function()? isCancelled,
     void Function(BattleMoveRecipeBatchEntry entry)? onProgress,
-  }) => _use(() => BattleMoveRecipeBatchImporter(
-        openService: _openService,
-        authoring: _api,
-        media: media,
-        withMutation: mapAdapter.withResourceMutation,
-      ).run(
-        projectHandle: _opened.projectHandle,
-        workspaceHandle: _opened.workspaceHandle,
-        operationId: operationId,
-        startIndex: startIndex,
-        limit: limit,
-        expectedInventoryRevision: expectedInventoryRevision,
-        isCancelled: () => _closed || (isCancelled?.call() ?? false),
-        onProgress: onProgress,
-      ));
+  }) => _use(
+    () =>
+        BattleMoveRecipeBatchImporter(
+          openService: _openService,
+          authoring: _api,
+          media: media,
+          withMutation: mapAdapter.withResourceMutation,
+        ).run(
+          projectHandle: _opened.projectHandle,
+          workspaceHandle: _opened.workspaceHandle,
+          operationId: operationId,
+          startIndex: startIndex,
+          limit: limit,
+          expectedInventoryRevision: expectedInventoryRevision,
+          isCancelled: () => _closed || (isCancelled?.call() ?? false),
+          onProgress: onProgress,
+        ),
+  );
 
   Future<bool> importChoice(
     String projectMoveId,

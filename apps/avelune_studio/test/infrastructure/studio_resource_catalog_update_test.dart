@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/features/rendering/contracts/workspace_resource_diagnostic.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
+
 import '../support/resource_stress_fixture.dart';
 import 'studio_resource_catalog_update_images.dart';
 
@@ -17,7 +19,10 @@ void main() {
   test(
     'scoped catalogue removal retires held images without reading absent paths',
     () async {
-      for (final entry in {'scoped-a': 0xffff0000, 'scoped-b': 0xff0000ff}.entries) {
+      for (final entry in {
+        'scoped-a': 0xffff0000,
+        'scoped-b': 0xff0000ff,
+      }.entries) {
         await File('${fixture.directory.path}/assets/${entry.key}.png')
             .writeAsBytes(await pngBytes(16, 16, entry.value));
       }
@@ -79,53 +84,50 @@ void main() {
     },
   );
 
-  test(
-    'catalogue invalidation still reloads admitted pinned images',
-    () async {
-      final file = File('${fixture.directory.path}/assets/scoped-current.png');
-      await file.writeAsBytes(await pngBytes(16, 16, 0xffff0000));
-      final manifest = ProjectManifest(
-        name: 'Scoped current image',
-        maps: const [],
-        tilesets: const [
-          ProjectTilesetEntry(
-            id: 'current',
-            name: 'Current',
-            relativePath: 'assets/scoped-current.png',
-          ),
-        ],
-      );
-      final resources = await StudioMapResources.load(fixture.session, manifest);
-      final painter = Object();
-      addTearDown(() async {
-        resources.release(painter);
-        await resources.dispose();
-      });
-      resources.retain(painter, {'current'});
-      await resources.settled;
-      final previous = resources.images['current']!;
-      expect(resources.store.decoder.reads, 1);
-      expect(resources.store.decoder.decodes, 1);
-      await file.writeAsBytes(await pngBytes(16, 16, 0xff0000ff));
-
-      await resources.updateCatalog(
-        manifest,
-        changedRelativePaths: {'assets/scoped-current.png'},
-      );
-      await resources.settled;
-
-      final current = resources.images['current']!;
-      expect(current, isNot(same(previous)));
-      expect(await decodedPixel(current), [0, 0, 255, 255]);
-      expect(resources.store.decoder.reads, 2);
-      expect(resources.store.decoder.decodes, 2);
-      expect(resources.diagnostics, isEmpty);
-      expect(previous.debugDisposed, isFalse);
+  test('catalogue invalidation still reloads admitted pinned images', () async {
+    final file = File('${fixture.directory.path}/assets/scoped-current.png');
+    await file.writeAsBytes(await pngBytes(16, 16, 0xffff0000));
+    final manifest = ProjectManifest(
+      name: 'Scoped current image',
+      maps: const [],
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'current',
+          name: 'Current',
+          relativePath: 'assets/scoped-current.png',
+        ),
+      ],
+    );
+    final resources = await StudioMapResources.load(fixture.session, manifest);
+    final painter = Object();
+    addTearDown(() async {
       resources.release(painter);
-      expect(previous.debugDisposed, isTrue);
-      expect(current.debugDisposed, isFalse);
-    },
-  );
+      await resources.dispose();
+    });
+    resources.retain(painter, {'current'});
+    await resources.settled;
+    final previous = resources.images['current']!;
+    expect(resources.store.decoder.reads, 1);
+    expect(resources.store.decoder.decodes, 1);
+    await file.writeAsBytes(await pngBytes(16, 16, 0xff0000ff));
+
+    await resources.updateCatalog(
+      manifest,
+      changedRelativePaths: {'assets/scoped-current.png'},
+    );
+    await resources.settled;
+
+    final current = resources.images['current']!;
+    expect(current, isNot(same(previous)));
+    expect(await decodedPixel(current), [0, 0, 255, 255]);
+    expect(resources.store.decoder.reads, 2);
+    expect(resources.store.decoder.decodes, 2);
+    expect(resources.diagnostics, isEmpty);
+    expect(previous.debugDisposed, isFalse);
+    resources.release(painter);
+    expect(previous.debugDisposed, isTrue);
+    expect(current.debugDisposed, isFalse);
+  });
 
   test(
     'explicit unknown image requests still report unsupported without decoding',
@@ -143,7 +145,10 @@ void main() {
       await resources.settled;
 
       expect(resources.diagnostics.single.resourceId, 'not-in-partial-catalog');
-      expect(resources.diagnostics.single.cause, WorkspaceResourceCause.unsupported);
+      expect(
+        resources.diagnostics.single.cause,
+        WorkspaceResourceCause.unsupported,
+      );
       expect(resources.store.decoder.reads, 0);
       expect(resources.store.decoder.decodes, 0);
     },

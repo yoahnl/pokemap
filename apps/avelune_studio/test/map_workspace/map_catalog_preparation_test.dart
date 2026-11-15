@@ -56,12 +56,14 @@ void main() {
     'a changed closed map invalidates a resize analysis before writing',
     () async {
       final source = fixture.controller.active!;
-      final prepared = await fixture.controller
-          .prepareCatalog('map.resize_apply', {
-            'mapId': source.base.mapId,
-            'width': source.current.size.width + 3,
-            'height': source.current.size.height + 2,
-          });
+      final prepared = await fixture.controller.prepareCatalog(
+        'map.resize_apply',
+        {
+          'mapId': source.base.mapId,
+          'width': source.current.size.width + 3,
+          'height': source.current.size.height + 2,
+        },
+      );
       expect(prepared.canApply, isTrue);
       final neighbour = fixture.controller.project!.maps.last;
       final file = File(p.join(fixture.root.path, neighbour.relativePath));
@@ -186,12 +188,14 @@ void main() {
       final bytes = await file.readAsBytes();
       final inventory = await _files(fixture.root);
       final revision = source.base.revision;
-      final prepared = await fixture.controller
-          .prepareCatalog('map.resize_apply', {
-            'mapId': source.base.mapId,
-            'width': source.current.size.width,
-            'height': source.current.size.height,
-          });
+      final prepared = await fixture.controller.prepareCatalog(
+        'map.resize_apply',
+        {
+          'mapId': source.base.mapId,
+          'width': source.current.size.width,
+          'height': source.current.size.height,
+        },
+      );
       expect(prepared.noChange, isTrue);
       final result = await fixture.controller.applyPreparedCatalog(prepared);
       expect(result.integrated, isTrue, reason: result.error);
@@ -207,12 +211,14 @@ void main() {
     'a stale no-op does not pretend to validate the previous snapshot',
     () async {
       final source = fixture.controller.active!;
-      final prepared = await fixture.controller
-          .prepareCatalog('map.resize_apply', {
-            'mapId': source.base.mapId,
-            'width': source.current.size.width,
-            'height': source.current.size.height,
-          });
+      final prepared = await fixture.controller.prepareCatalog(
+        'map.resize_apply',
+        {
+          'mapId': source.base.mapId,
+          'width': source.current.size.width,
+          'height': source.current.size.height,
+        },
+      );
       expect(prepared.noChange, isTrue);
       final neighbour = fixture.controller.project!.maps.last;
       final file = File(p.join(fixture.root.path, neighbour.relativePath));

@@ -2,7 +2,8 @@ import 'dart:convert';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:map_authoring/map_authoring_editing.dart' show applyTerrainStroke;
+import 'package:map_authoring/map_authoring_editing.dart'
+    show applyTerrainStroke;
 import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_connections.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -66,22 +67,19 @@ ProjectManifest publishFixture(TerrainDraftController draft) {
 }
 
 void main() {
-  test(
-    'source respects rectangular cells, margins, spacing and exact frame pixels',
-    () {
-      final atlas = terrainAtlas(terrainSource, 'bank');
-      expect((atlas.columns, atlas.rows), (4, 4));
-      expect(
-        atlas.sourceRectFor(column: 3, row: 2),
-        const SmartTileSourceRect(x: 57, y: 56, width: 16, height: 24),
-      );
-      expect(() => atlas.sourceRectFor(column: 4, row: 0), throwsRangeError);
-      expect(
-        () => terrainAtlas(workspaceProject.tilesets.first, 'unsupported'),
-        throwsStateError,
-      );
-    },
-  );
+  test('source respects rectangular cells, margins, spacing and exact frame pixels', () {
+    final atlas = terrainAtlas(terrainSource, 'bank');
+    expect((atlas.columns, atlas.rows), (4, 4));
+    expect(
+      atlas.sourceRectFor(column: 3, row: 2),
+      const SmartTileSourceRect(x: 57, y: 56, width: 16, height: 24),
+    );
+    expect(() => atlas.sourceRectFor(column: 4, row: 0), throwsRangeError);
+    expect(
+      () => terrainAtlas(workspaceProject.tilesets.first, 'unsupported'),
+      throwsStateError,
+    );
+  });
 
   test(
     'all 16 native cardinal contexts resolve their own assigned candidate',
@@ -128,27 +126,24 @@ void main() {
     },
   );
 
-  test(
-    'a traced turn, junction and erased branch resolve with the draft being edited',
-    () {
-      final draft = terrainDraft()..clearScratch();
-      assignAll(draft);
-      String? rule(int x, int y) => draft.resolved[y * 17 + x].ruleId;
-      draft.paintLine(const GridPos(x: 3, y: 3), const GridPos(x: 8, y: 3));
-      draft.paintLine(const GridPos(x: 8, y: 3), const GridPos(x: 8, y: 8));
-      draft.paintLine(const GridPos(x: 5, y: 3), const GridPos(x: 5, y: 6));
-      expect(rule(8, 3), 'connection-12');
-      expect(rule(5, 3), 'connection-14');
-      expect(rule(5, 6), 'connection-1');
-      draft.paint(const GridPos(x: 5, y: 4), erase: true);
-      expect(rule(5, 3), 'connection-10');
-      expect(rule(5, 5), 'connection-4');
-      draft.selectedRule = 12;
-      draft.assign(3, 3);
-      expect(draft.resolved[3 * 17 + 8].candidate!.id, 'piece-12');
-      expect(draft.frameFor(12)!.column, 3);
-    },
-  );
+  test('a traced turn, junction and erased branch resolve with the draft being edited', () {
+    final draft = terrainDraft()..clearScratch();
+    assignAll(draft);
+    String? rule(int x, int y) => draft.resolved[y * 17 + x].ruleId;
+    draft.paintLine(const GridPos(x: 3, y: 3), const GridPos(x: 8, y: 3));
+    draft.paintLine(const GridPos(x: 8, y: 3), const GridPos(x: 8, y: 8));
+    draft.paintLine(const GridPos(x: 5, y: 3), const GridPos(x: 5, y: 6));
+    expect(rule(8, 3), 'connection-12');
+    expect(rule(5, 3), 'connection-14');
+    expect(rule(5, 6), 'connection-1');
+    draft.paint(const GridPos(x: 5, y: 4), erase: true);
+    expect(rule(5, 3), 'connection-10');
+    expect(rule(5, 5), 'connection-4');
+    draft.selectedRule = 12;
+    draft.assign(3, 3);
+    expect(draft.resolved[3 * 17 + 8].candidate!.id, 'piece-12');
+    expect(draft.frameFor(12)!.column, 3);
+  });
 
   test(
     'incomplete draft saves through existing contract and resumes unchanged',
@@ -205,82 +200,79 @@ void main() {
     },
   );
 
-  test(
-    'one brush gesture creates support, paints, undoes and reloads same resolution',
-    () {
-      final draft = terrainDraft();
-      assignAll(draft);
-      final manifest = publishFixture(draft);
-      final preset = manifest.smartTileCatalog.presets.single;
-      final original = workspaceMap('a');
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(map: original, revision: 'r1', mapId: 'a'),
-      );
-      final positions = [const GridPos(x: 2, y: 2), const GridPos(x: 3, y: 2)];
-      document.commit(
-        applyTerrainStroke(
-          map: document.current,
-          manifest: manifest,
-          preset: preset,
-          cells: positions,
-        ),
-      );
-      expect(document.undoCount, 1);
-      expect(document.current.layers.whereType<SmartTileLayer>(), hasLength(1));
-      final saved = document.current;
-      final loaded = MapData.fromJson(
-        jsonDecode(jsonEncode(saved.toJson())) as Map<String, dynamic>,
-      );
-      final layer = loaded.layers.whereType<SmartTileLayer>().single;
-      final result = resolveSmartTile(
+  test('one brush gesture creates support, paints, undoes and reloads same resolution', () {
+    final draft = terrainDraft();
+    assignAll(draft);
+    final manifest = publishFixture(draft);
+    final preset = manifest.smartTileCatalog.presets.single;
+    final original = workspaceMap('a');
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(map: original, revision: 'r1', mapId: 'a'),
+    );
+    final positions = [const GridPos(x: 2, y: 2), const GridPos(x: 3, y: 2)];
+    document.commit(
+      applyTerrainStroke(
+        map: document.current,
+        manifest: manifest,
+        preset: preset,
+        cells: positions,
+      ),
+    );
+    expect(document.undoCount, 1);
+    expect(document.current.layers.whereType<SmartTileLayer>(), hasLength(1));
+    final saved = document.current;
+    final loaded = MapData.fromJson(
+      jsonDecode(jsonEncode(saved.toJson())) as Map<String, dynamic>,
+    );
+    final layer = loaded.layers.whereType<SmartTileLayer>().single;
+    final result = resolveSmartTile(
+      preset: preset,
+      materials: manifest.smartTileCatalog.materials,
+      context: smartTileCellContextForLayerCell(
+        layer: layer,
+        map: loaded,
+        preset: preset,
+        x: 2,
+        y: 2,
+      ),
+      x: 2,
+      y: 2,
+    );
+    expect(result.ruleId, 'connection-2');
+    expect(
+      smartTileSemanticCells(layer).where((value) => value != 0),
+      hasLength(2),
+    );
+    document.restore(redo: false);
+    expect(document.current, original);
+    document.restore(redo: true);
+    expect(document.current, saved);
+    document.commit(
+      applyTerrainStroke(
+        map: document.current,
+        manifest: manifest,
+        preset: preset,
+        cells: [positions.last],
+        erase: true,
+      ),
+    );
+    final erased = document.current.layers.whereType<SmartTileLayer>().single;
+    expect(
+      resolveSmartTile(
         preset: preset,
         materials: manifest.smartTileCatalog.materials,
         context: smartTileCellContextForLayerCell(
-          layer: layer,
-          map: loaded,
+          layer: erased,
+          map: document.current,
           preset: preset,
           x: 2,
           y: 2,
         ),
         x: 2,
         y: 2,
-      );
-      expect(result.ruleId, 'connection-2');
-      expect(
-        smartTileSemanticCells(layer).where((value) => value != 0),
-        hasLength(2),
-      );
-      document.restore(redo: false);
-      expect(document.current, original);
-      document.restore(redo: true);
-      expect(document.current, saved);
-      document.commit(
-        applyTerrainStroke(
-          map: document.current,
-          manifest: manifest,
-          preset: preset,
-          cells: [positions.last],
-          erase: true,
-        ),
-      );
-      final erased = document.current.layers.whereType<SmartTileLayer>().single;
-      expect(
-        resolveSmartTile(
-          preset: preset,
-          materials: manifest.smartTileCatalog.materials,
-          context: smartTileCellContextForLayerCell(
-            layer: erased,
-            map: document.current,
-            preset: preset,
-            x: 2,
-            y: 2,
-          ),
-          x: 2,
-          y: 2,
-        ).ruleId,
-        'connection-0',
-      );
-      expect(manifest.smartTileCatalog.presets.single, preset);
-    },
-  );
+      ).ruleId,
+      'connection-0',
+    );
+    expect(manifest.smartTileCatalog.presets.single, preset);
+  });
 }

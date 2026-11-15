@@ -128,11 +128,10 @@ void main() {
       view.selectedFor(document.current.id, MapSelectionFamily.warp),
       other.id,
     );
-    expect(
-      document.current.warps.map((entry) => entry.pos),
-      [const GridPos(x: 7, y: 5), const GridPos(x: 2, y: 2)],
-      reason: 'selecting never moves anything',
-    );
+    expect(document.current.warps.map((entry) => entry.pos), [
+      const GridPos(x: 7, y: 5),
+      const GridPos(x: 2, y: 2),
+    ], reason: 'selecting never moves anything');
     expect(document.undoCount, 2);
     expect(tester.takeException(), isNull);
   });

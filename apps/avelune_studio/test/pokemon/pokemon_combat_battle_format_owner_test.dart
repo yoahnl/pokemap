@@ -7,7 +7,6 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
-
 void main() {
   final shared = jsonDecode(
     File(

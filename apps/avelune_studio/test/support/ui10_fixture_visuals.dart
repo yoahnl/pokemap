@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:map_core/map_core.dart';
 import 'package:image/image.dart' as image;
+
 import 'ui07_story_fixture.dart';
 
 Future<void> seedUi10Visuals(
@@ -191,8 +193,14 @@ List<int> _syntheticAtlas(int width, int height, int seed) {
   final pixels = image.Image(width: width, height: height, numChannels: 4);
   for (var y = 0; y < height; y += 1) {
     for (var x = 0; x < width; x += 1) {
-      pixels.setPixelRgba(x, y, (x * 3 + seed) % 256,
-          (y * 5 + seed) % 256, ((x ~/ 16 + y ~/ 16) * 29 + seed) % 256, 255);
+      pixels.setPixelRgba(
+        x,
+        y,
+        (x * 3 + seed) % 256,
+        (y * 5 + seed) % 256,
+        ((x ~/ 16 + y ~/ 16) * 29 + seed) % 256,
+        255,
+      );
     }
   }
   return image.encodePng(pixels);

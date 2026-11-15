@@ -5,7 +5,6 @@ import 'package:map_core/map_core.dart';
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
-
   test('catalogue keeps 2D and spatial environments eligible only in their dimension', () {
     final spatial = spatialEnvironmentProject();
     final item = resourceCatalog(spatial)

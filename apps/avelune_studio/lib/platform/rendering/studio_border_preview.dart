@@ -33,9 +33,8 @@ final class StudioBorderPreview {
     if (_mapId != map.id) return null;
     final layers = map.layers.whereType<BorderLayer>().toList();
     if (layers.length != _layers.length ||
-        Iterable<int>.generate(
-          layers.length,
-        ).any((index) => !identical(layers[index], _layers[index]))) {
+        Iterable<int>.generate(layers.length)
+            .any((index) => !identical(layers[index], _layers[index]))) {
       return null;
     }
     return assets;
@@ -72,9 +71,8 @@ final class StudioBorderPreview {
         _mapId == map.id &&
         _catalog == manifest.borderCatalog &&
         layers.length == _layers.length &&
-        Iterable<int>.generate(
-          layers.length,
-        ).every((index) => identical(layers[index], _layers[index]))) {
+        Iterable<int>.generate(layers.length)
+            .every((index) => identical(layers[index], _layers[index]))) {
       return;
     }
     if (!force && _mapId != null) {

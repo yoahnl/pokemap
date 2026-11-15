@@ -3,33 +3,30 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
 void main() {
-  test(
-    'canonical clock preserves pauses, exclusive ends and seek without mutation',
-    () {
-      final asset = _asset('a');
-      final bytes = encodePresentationCinematicAsset(asset);
-      final transport = PresentationPreviewTransport()..install(asset);
-      addTearDown(transport.dispose);
-      transport.play();
-      transport.advance(500000);
-      expect(transport.timeUs, 500000);
-      expect(transport.frame!.texts, hasLength(1));
-      transport.pause();
-      transport.advance(100000);
-      expect(transport.timeUs, 500000);
-      transport.play();
-      transport.advance(500000);
-      expect(transport.timeUs, 1000000);
-      expect(transport.frame!.texts, isEmpty);
-      expect(transport.playing, isFalse);
-      transport.seek(250000);
-      expect(transport.frame!.texts, hasLength(1));
-      expect(transport.playing, isFalse);
-      transport.stop();
-      expect(transport.timeUs, 0);
-      expect(encodePresentationCinematicAsset(asset), bytes);
-    },
-  );
+  test('canonical clock preserves pauses, exclusive ends and seek without mutation', () {
+    final asset = _asset('a');
+    final bytes = encodePresentationCinematicAsset(asset);
+    final transport = PresentationPreviewTransport()..install(asset);
+    addTearDown(transport.dispose);
+    transport.play();
+    transport.advance(500000);
+    expect(transport.timeUs, 500000);
+    expect(transport.frame!.texts, hasLength(1));
+    transport.pause();
+    transport.advance(100000);
+    expect(transport.timeUs, 500000);
+    transport.play();
+    transport.advance(500000);
+    expect(transport.timeUs, 1000000);
+    expect(transport.frame!.texts, isEmpty);
+    expect(transport.playing, isFalse);
+    transport.seek(250000);
+    expect(transport.frame!.texts, hasLength(1));
+    expect(transport.playing, isFalse);
+    transport.stop();
+    expect(transport.timeUs, 0);
+    expect(encodePresentationCinematicAsset(asset), bytes);
+  });
 
   test('document replacement and manual scrubs invalidate media epochs', () {
     final transport = PresentationPreviewTransport()..install(_asset('a'));

@@ -6,26 +6,23 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
-  test(
-    'runtime adapter resolves a real local media and releases its driver on restore',
-    () async {
-      final root = await Directory.systemTemp.createTemp('ui10_audio_');
-      addTearDown(() => root.delete(recursive: true));
-      final file = await File('${root.path}/fixture.wav').writeAsBytes([0, 1]);
-      final driver = _AudioDriver();
-      final adapter = StudioCinematicMedia(
-        projectRoot: root.path,
-        assets: [_asset('fixture.wav')],
-        audioDriver: driver,
-      );
-      final checkpoint = await adapter.captureCheckpoint();
-      await adapter.execute(_play());
-      expect(driver.paths, [await file.resolveSymbolicLinks()]);
-      expect(driver.active, 1);
-      await adapter.restore(checkpoint);
-      expect(driver.active, 0);
-    },
-  );
+  test('runtime adapter resolves a real local media and releases its driver on restore', () async {
+    final root = await Directory.systemTemp.createTemp('ui10_audio_');
+    addTearDown(() => root.delete(recursive: true));
+    final file = await File('${root.path}/fixture.wav').writeAsBytes([0, 1]);
+    final driver = _AudioDriver();
+    final adapter = StudioCinematicMedia(
+      projectRoot: root.path,
+      assets: [_asset('fixture.wav')],
+      audioDriver: driver,
+    );
+    final checkpoint = await adapter.captureCheckpoint();
+    await adapter.execute(_play());
+    expect(driver.paths, [await file.resolveSymbolicLinks()]);
+    expect(driver.active, 1);
+    await adapter.restore(checkpoint);
+    expect(driver.active, 0);
+  });
 
   test(
     'outside symlink and missing media fail before starting any driver',

@@ -5,7 +5,6 @@ import 'package:map_core/map_core.dart';
 import '../application/spatial_terrain_draft_test.dart';
 
 void main() {
-
   test('terrain animation choices preserve the selected model transform', () {
     final base = spatialPathDraft();
     final original = base.manifest.models3d.single;

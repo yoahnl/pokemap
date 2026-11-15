@@ -99,8 +99,7 @@ const _map = MapData(
   size: GridSize(width: 1, height: 1),
 );
 final _frame = BorderRuntimeFrameRequest(
-  snapshotId:
-      'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  snapshotId: 'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   frameIndex: 0,
   relativeAssetPath: 'assets/borders/snapshot.png',
   sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 1, height: 1),

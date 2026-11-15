@@ -1,7 +1,9 @@
 import 'dart:io';
+
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:map_core/map_core.dart';
+
 import 'ui06_scene_fixture.dart';
 import 'ui07_story_fixture.dart';
 import 'ui08_event_fixture.dart';

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:path/path.dart' as p;
 
 import 'package:map_authoring/map_authoring.dart'
@@ -25,14 +26,13 @@ Future<Map<String, String>> resolveStudioResourcePaths(
   if (probe.status == ProjectResourceProbeStatus.exists) {
     catalog = AssetCatalog.fromJson(
       jsonDecode(
-            utf8.decode(
-              await reader.readBytes(
-                projectRoot: projectRoot,
-                relativePath: assetCatalogStorageKey,
-              ),
-            ),
-          )
-          as Map<String, dynamic>,
+        utf8.decode(
+          await reader.readBytes(
+            projectRoot: projectRoot,
+            relativePath: assetCatalogStorageKey,
+          ),
+        ),
+      ) as Map<String, dynamic>,
     );
   } else if (probe.status != ProjectResourceProbeStatus.missing) {
     throw StateError('Catalogue: ${probe.status.name}');

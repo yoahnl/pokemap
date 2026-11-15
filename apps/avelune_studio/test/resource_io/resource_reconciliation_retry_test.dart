@@ -29,12 +29,14 @@ void main() {
         ResourceFailure? failure;
         try {
           if (kind == 'manifest') {
-            final prepared = await adapter
-                .prepareOperation('tileset.metadata.update', {
-                  'tilesetId': imported.createdTilesetId,
-                  'name': 'Façades été',
-                  'folderId': null,
-                });
+            final prepared = await adapter.prepareOperation(
+              'tileset.metadata.update',
+              {
+                'tilesetId': imported.createdTilesetId,
+                'name': 'Façades été',
+                'folderId': null,
+              },
+            );
             await adapter.applyPrepared(prepared);
           } else {
             final file = File(

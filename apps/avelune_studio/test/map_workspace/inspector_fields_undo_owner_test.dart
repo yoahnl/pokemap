@@ -66,5 +66,4 @@ void main() {
       expect(commands.selected(second.id)!.sign!.title, 'Second');
     },
   );
-
 }

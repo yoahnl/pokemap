@@ -1,5 +1,6 @@
 import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
 import 'package:map_core/map_core.dart';
+
 import 'ui06_scene_fixture.dart';
 import 'ui07_story_fixture.dart';
 

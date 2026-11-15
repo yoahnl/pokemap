@@ -108,9 +108,8 @@ void main() {
 
     final steps = document.undoCount;
     expect(
-      MapContextCommandRunner(
-        contextAt(document, const GridPos(x: 4, y: 4)),
-      ).run(MapContextCommand.delete, foreign),
+      MapContextCommandRunner(contextAt(document, const GridPos(x: 4, y: 4)))
+          .run(MapContextCommand.delete, foreign),
       contains('n’est plus à cet endroit'),
     );
     expect(document.current.placedElements, hasLength(1));
@@ -170,9 +169,8 @@ void main() {
     expect(orderOf(bottom), lessThan(orderOf(top)));
 
     expect(
-      MapContextCommandRunner(
-        context,
-      ).run(MapContextCommand.bringForward, bottomTarget),
+      MapContextCommandRunner(context)
+          .run(MapContextCommand.bringForward, bottomTarget),
       isNull,
     );
     expect(

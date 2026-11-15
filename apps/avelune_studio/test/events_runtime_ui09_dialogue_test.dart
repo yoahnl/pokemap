@@ -1,7 +1,9 @@
 import 'dart:io';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
+
 import 'support/ui06_scene_fixture.dart';
 import 'support/ui09_runtime_fixture.dart';
 

@@ -141,8 +141,7 @@ class LocalEventAdapter
     try {
       return await _run(actionId, changes);
     } on NarrativeAuthoringException catch (failure) {
-      if (actionId != 'event_v2.delete' ||
-          failure.code != 'eventReferenced') {
+      if (actionId != 'event_v2.delete' || failure.code != 'eventReferenced') {
         rethrow;
       }
       throw EventDeletionRefused.inUse([
@@ -199,7 +198,9 @@ class LocalEventAdapter
               'record': changes.single.current!.toJson(),
             },
             _ => {
-              'records': [for (final change in changes) change.current!.toJson()],
+              'records': [
+                for (final change in changes) change.current!.toJson(),
+              ],
             },
           };
         },

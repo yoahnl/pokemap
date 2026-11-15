@@ -144,18 +144,18 @@ final class LocalResourceAdapter
   @override
   Future<Uint8List> readModel(String modelId) =>
       session.storage == ProjectSessionStorage.workingCatalog
-          ? _readCatalogModelSource(this, modelId)
-          : _readResourceSnapshot(this, (snapshot, _) async {
-        final model = snapshot.manifest.models3d
-            .where((entry) => entry.id == modelId)
-            .firstOrNull;
-        if (model == null) throw const ResourceFailure('Modèle introuvable.');
-        final bytes = await const LocalProjectFileReader().readBytes(
-          projectRoot: session.directoryPath,
-          relativePath: model.relativePath,
-        );
-        return Uint8List.fromList(bytes);
-      });
+      ? _readCatalogModelSource(this, modelId)
+      : _readResourceSnapshot(this, (snapshot, _) async {
+          final model = snapshot.manifest.models3d
+              .where((entry) => entry.id == modelId)
+              .firstOrNull;
+          if (model == null) throw const ResourceFailure('Modèle introuvable.');
+          final bytes = await const LocalProjectFileReader().readBytes(
+            projectRoot: session.directoryPath,
+            relativePath: model.relativePath,
+          );
+          return Uint8List.fromList(bytes);
+        });
 
   @override
   Future<ResourceMutationReceipt> mutate(

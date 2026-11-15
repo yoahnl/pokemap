@@ -124,5 +124,4 @@ void main() {
     expect(harness!.selected(MapSelectionFamily.marker), sign.id);
     expect(harness!.request, isNull);
   });
-
 }

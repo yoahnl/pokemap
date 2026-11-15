@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:archive/archive.dart';
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/data/studio_export_revision.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:path/path.dart' as p;
+
 import '../support/game_export_fixture.dart';
 import '../support/m3_story_fixture.dart';
 import 'studio_project_item_icons_export_support.dart';
@@ -114,13 +116,10 @@ void main() {
         archive.files.where((file) => file.name.endsWith('icons.zip')),
         isEmpty,
       );
-      final assets =
-          jsonDecode(
-                await File(
-                  p.join(source.directory.path, 'assets/.pokemap-assets.json'),
-                ).readAsString(),
-              )
-              as Map;
+      final assets = jsonDecode(
+        await File(p.join(source.directory.path, 'assets/.pokemap-assets.json'))
+            .readAsString(),
+      ) as Map;
       expect(
         (assets['records'] as List).any(
           (entry) =>
@@ -159,9 +158,8 @@ void main() {
         customPixels,
       );
       expect(
-        await File(
-          p.join(source.directory.path, 'assets/.pokemap-assets.json'),
-        ).exists(),
+        await File(p.join(source.directory.path, 'assets/.pokemap-assets.json'))
+            .exists(),
         isFalse,
       );
     },

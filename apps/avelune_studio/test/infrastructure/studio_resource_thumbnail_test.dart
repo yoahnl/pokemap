@@ -78,9 +78,8 @@ void main() {
     ))!;
     await tester.runAsync(() async {
       await Directory('${fixture.directory.path}/assets/pages').create();
-      await File(
-        '${fixture.directory.path}/assets/atelier.png',
-      ).copy('${fixture.directory.path}/assets/pages/rock.png');
+      await File('${fixture.directory.path}/assets/atelier.png')
+          .copy('${fixture.directory.path}/assets/pages/rock.png');
     });
     final manifest = fixture.manifest.copyWith(
       tilesets: [

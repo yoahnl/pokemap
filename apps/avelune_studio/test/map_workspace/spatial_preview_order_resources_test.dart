@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
+
 import 'spatial_preview_order_resources_harness.dart';
 import 'spatial_preview_order_resources_reads.dart';
 
@@ -30,7 +32,10 @@ void main() {
               layers: h.document.current.layers.reversed.toList(),
             );
             await h.pump(tester);
-            expect(tester.state(find.byType(SpatialMapEditingViewport)), same(state));
+            expect(
+              tester.state(find.byType(SpatialMapEditingViewport)),
+              same(state),
+            );
             expect(h.visuals.profiles, hasLength(1));
             expect(h.reads.snapshot, before);
           }

@@ -26,9 +26,8 @@ void main() {
 
   test('maps an undifferentiated filesystem read error honestly', () async {
     await expectLater(
-      LocalProjectSessionAdapter(
-        fileReader: UnavailableProjectReader(),
-      ).open('/example'),
+      LocalProjectSessionAdapter(fileReader: UnavailableProjectReader())
+          .open('/example'),
       throwsA(
         isA<ProjectOpenFailure>().having(
           (error) => error.problem,
@@ -41,9 +40,8 @@ void main() {
 
   test('maps a surfaced native permission error', () async {
     await expectLater(
-      LocalProjectSessionAdapter(
-        fileReader: PermissionProjectReader(),
-      ).open('/example'),
+      LocalProjectSessionAdapter(fileReader: PermissionProjectReader())
+          .open('/example'),
       throwsA(
         isA<ProjectOpenFailure>().having(
           (error) => error.problem,

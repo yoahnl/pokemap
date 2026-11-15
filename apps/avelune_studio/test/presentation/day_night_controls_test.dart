@@ -141,5 +141,4 @@ void main() {
       expect(model.toJson(), before);
     },
   );
-
 }

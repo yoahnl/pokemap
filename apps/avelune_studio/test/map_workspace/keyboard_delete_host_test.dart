@@ -8,7 +8,6 @@ import 'package:map_core/map_core.dart';
 
 import '../support/neutral_map_host_fixture.dart';
 
-
 const free = GridPos(x: 3, y: 12);
 
 void main() {

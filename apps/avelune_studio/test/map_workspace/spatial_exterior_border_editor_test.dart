@@ -1,4 +1,3 @@
-
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_exterior_decoration_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -133,6 +132,5 @@ final class _Visuals extends WorkspaceTestVisuals
   Future<SpatialNpcPreview> spatialPreview(
     MapData map,
     ProjectManifest project,
-  ) async =>
-      SpatialNpcPreview({}, () {});
+  ) async => SpatialNpcPreview({}, () {});
 }

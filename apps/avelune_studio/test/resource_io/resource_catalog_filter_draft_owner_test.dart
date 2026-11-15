@@ -135,23 +135,26 @@ void main() {
     expect(filters.query, 'chêne');
   });
 
-  test('applying a draft only copies the type when the type filter is shown', () {
-    final filters = ResourceCatalogFilterState(
-      familyId: 'famille',
-      usableOnly: true,
-    );
-    final draft = filters.copy()..typeKind = 'element';
-    filters.applyDraft(draft);
-    expect(filters.typeKind, isEmpty);
-    expect(filters.activeFilterCount(showType: true), 0);
-    filters.applyDraft(draft, showType: true);
-    expect(filters.typeKind, 'element');
-    expect(filters.activeFilterCount(showType: true), 1);
-    expect(filters.activeFilterCount(), 0);
-    expect(filters.activeFilterCount(categorySelected: true), 1);
-    filters.resetDraftFields();
-    expect(filters.typeKind, isEmpty);
-    expect(filters.familyId, 'famille');
-    expect(filters.usableOnly, isTrue);
-  });
+  test(
+    'applying a draft only copies the type when the type filter is shown',
+    () {
+      final filters = ResourceCatalogFilterState(
+        familyId: 'famille',
+        usableOnly: true,
+      );
+      final draft = filters.copy()..typeKind = 'element';
+      filters.applyDraft(draft);
+      expect(filters.typeKind, isEmpty);
+      expect(filters.activeFilterCount(showType: true), 0);
+      filters.applyDraft(draft, showType: true);
+      expect(filters.typeKind, 'element');
+      expect(filters.activeFilterCount(showType: true), 1);
+      expect(filters.activeFilterCount(), 0);
+      expect(filters.activeFilterCount(categorySelected: true), 1);
+      filters.resetDraftFields();
+      expect(filters.typeKind, isEmpty);
+      expect(filters.familyId, 'famille');
+      expect(filters.usableOnly, isTrue);
+    },
+  );
 }

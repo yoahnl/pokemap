@@ -56,29 +56,31 @@ ProjectSmartTilePreset _terrainPreset(String atlasId) => ProjectSmartTilePreset(
   ],
 );
 
-ProjectManifest _terrainProject(String ruleAtlasId) => workspaceProject.copyWith(
-  tilesets: [_terrainSheet],
-  smartTileCatalog: ProjectSmartTileCatalog(
-    atlases: [terrainAtlas(_terrainSheet, 'atlas')],
-    materials: [
-      const ProjectSmartTileMaterial(
-        id: 'path',
-        name: 'Chemin',
-        connectionGroupId: 'path',
+ProjectManifest _terrainProject(String ruleAtlasId) =>
+    workspaceProject.copyWith(
+      tilesets: [_terrainSheet],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: [terrainAtlas(_terrainSheet, 'atlas')],
+        materials: [
+          const ProjectSmartTileMaterial(
+            id: 'path',
+            name: 'Chemin',
+            connectionGroupId: 'path',
+          ),
+        ],
+        presets: [_terrainPreset(ruleAtlasId)],
       ),
-    ],
-    presets: [_terrainPreset(ruleAtlasId)],
-  ),
-);
+    );
 
-EnvironmentPreset _environment(EnvironmentPaletteItem item) => EnvironmentPreset(
-  id: 'garden',
-  name: 'Jardin',
-  templateId: 'manual',
-  sortOrder: 0,
-  palette: [item],
-  defaultParams: EnvironmentGenerationParams.standard(),
-);
+EnvironmentPreset _environment(EnvironmentPaletteItem item) =>
+    EnvironmentPreset(
+      id: 'garden',
+      name: 'Jardin',
+      templateId: 'manual',
+      sortOrder: 0,
+      palette: [item],
+      defaultParams: EnvironmentGenerationParams.standard(),
+    );
 
 ResourceItem _environmentItem(EnvironmentPreset preset) => ResourceItem(
   id: preset.id,
@@ -177,9 +179,8 @@ void main() {
 
   test('a terrain previews its connection pattern when asked, else the tile of its first frame', () {
     final project = _terrainProject('atlas');
-    final item = resourceCatalog(
-      project,
-    ).singleWhere((item) => item.terrain != null);
+    final item = resourceCatalog(project)
+        .singleWhere((item) => item.terrain != null);
     final pattern = resourcePreviewSource(item, project, terrainPattern: true);
     expect((pattern as TerrainPatternPreviewSource).preset, item.terrain);
     final frame = resourcePreviewSource(item, project);
@@ -190,9 +191,8 @@ void main() {
 
   test('a terrain whose frames point at an unknown atlas falls back to the generic icon', () {
     final project = _terrainProject('absent');
-    final item = resourceCatalog(
-      project,
-    ).singleWhere((item) => item.terrain != null);
+    final item = resourceCatalog(project)
+        .singleWhere((item) => item.terrain != null);
     expect(resourcePreviewSource(item, project), isA<FallbackPreviewSource>());
     expect(
       resourcePreviewSource(item, project, terrainPattern: true),

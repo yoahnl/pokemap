@@ -42,12 +42,23 @@ extension StudioCinematicSpatialPreview on StudioMapResources {
         }
         textures[id] = await SpatialActorTexture.fromImage(copies[id]!);
       }
-      final atmosphere = await loadSpatialAtmosphereSettings(projectRoot: projectRoot, mapId: map.id);
-      final projectProfile = await loadSpatialVisualProfile(projectRoot: projectRoot);
-      final mapProfile = await loadSpatialVisualProfile(projectRoot: projectRoot, mapId: map.id);
+      final atmosphere = await loadSpatialAtmosphereSettings(
+        projectRoot: projectRoot,
+        mapId: map.id,
+      );
+      final projectProfile = await loadSpatialVisualProfile(
+        projectRoot: projectRoot,
+      );
+      final mapProfile = await loadSpatialVisualProfile(
+        projectRoot: projectRoot,
+        mapId: map.id,
+      );
       final scene = map.spatialScene!;
-      final profile = SpatialVisualPatch.fromScene(camera: scene.camera, atmosphere: atmosphere, cycle: scene.dayNightCycle)
-          .overriddenBy(projectProfile).overriddenBy(mapProfile);
+      final profile = SpatialVisualPatch.fromScene(
+        camera: scene.camera,
+        atmosphere: atmosphere,
+        cycle: scene.dayNightCycle,
+      ).overriddenBy(projectProfile).overriddenBy(mapProfile);
       final resolver = CharacterAnimationSourceResolver();
       return CinematicSpatialPreview(
         (asset, plan, frame, timeMs) {
@@ -170,7 +181,8 @@ extension StudioCinematicSpatialPreview on StudioMapResources {
           }
           release(owner);
         },
-        atmosphere: atmosphere, visualProfile: profile,
+        atmosphere: atmosphere,
+        visualProfile: profile,
       );
     } catch (_) {
       for (final image in copies.values) {

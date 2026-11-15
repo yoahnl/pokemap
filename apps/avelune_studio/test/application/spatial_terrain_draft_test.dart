@@ -1,8 +1,10 @@
 import 'dart:convert';
+
 import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+
 import 'spatial_terrain_draft_fixtures.dart';
 export 'spatial_terrain_draft_fixtures.dart';
 
@@ -87,30 +89,33 @@ void main() {
     );
   });
 
-  test('unit models compile without an atlas and keep their draft through JSON', () {
-    final model = spatialPathDraft();
-    expect(model.uniform, isTrue);
-    expect(model.draft.atlases, isEmpty);
-    expect(model.draft.sourceTilesetIds, isEmpty);
-    expect(model.draft.primaryAtlasId, isNull);
-    expect(model.draft.templateHint, SmartTileTemplateHint.simple);
-    final compilation = compileSmartTileAuthoringDraft(
-      draft: model.draft,
-      catalog: model.manifest.smartTileCatalog,
-      manifest: model.manifest,
-    );
-    expect(
-      compilation,
-      isA<SmartTileDraftCompilationSuccess>(),
-      reason: compilation.toString(),
-    );
-    expect(
-      ProjectSmartTileAuthoringDraft.fromJson(
-        jsonDecode(jsonEncode(model.draft.toJson())) as Map<String, dynamic>,
-      ),
-      model.draft,
-    );
-  });
+  test(
+    'unit models compile without an atlas and keep their draft through JSON',
+    () {
+      final model = spatialPathDraft();
+      expect(model.uniform, isTrue);
+      expect(model.draft.atlases, isEmpty);
+      expect(model.draft.sourceTilesetIds, isEmpty);
+      expect(model.draft.primaryAtlasId, isNull);
+      expect(model.draft.templateHint, SmartTileTemplateHint.simple);
+      final compilation = compileSmartTileAuthoringDraft(
+        draft: model.draft,
+        catalog: model.manifest.smartTileCatalog,
+        manifest: model.manifest,
+      );
+      expect(
+        compilation,
+        isA<SmartTileDraftCompilationSuccess>(),
+        reason: compilation.toString(),
+      );
+      expect(
+        ProjectSmartTileAuthoringDraft.fromJson(
+          jsonDecode(jsonEncode(model.draft.toJson())) as Map<String, dynamic>,
+        ),
+        model.draft,
+      );
+    },
+  );
 
   test(
     'raccords, outer corners and transforms remain undoable and resume exactly',

@@ -95,10 +95,7 @@ void main() {
 
       await refuseWithoutReads(spaced.path);
 
-      expect(
-        await _snapshot(sandbox, includeAuthoringState: false),
-        before,
-      );
+      expect(await _snapshot(sandbox, includeAuthoringState: false), before);
     },
   );
 
@@ -136,9 +133,8 @@ void main() {
     'ordinary symlink to risky root is refused before manifest access',
     () async {
       final (_, spaced) = await neighbors();
-      final alias = await Link(
-        p.join(sandbox.path, 'Alias'),
-      ).create(spaced.path);
+      final alias = await Link(p.join(sandbox.path, 'Alias'))
+          .create(spaced.path);
       final before = await _snapshot(sandbox);
 
       await refuseWithoutReads(alias.path);
@@ -153,9 +149,8 @@ void main() {
     'ordinary symlink to safe root accepts legitimate canonicalization',
     () async {
       final (plain, _) = await neighbors();
-      final alias = await Link(
-        p.join(sandbox.path, 'Alias sûr'),
-      ).create(plain.path);
+      final alias = await Link(p.join(sandbox.path, 'Alias sûr'))
+          .create(plain.path);
       final root = await plain.resolveSymbolicLinks();
       expect(alias.path, isNot(root));
       final before = await _snapshot(sandbox);
@@ -171,10 +166,7 @@ void main() {
       );
       await adapter.close(session);
       expect(await alias.target(), plain.path);
-      expect(
-        await _snapshot(sandbox, includeAuthoringState: false),
-        before,
-      );
+      expect(await _snapshot(sandbox, includeAuthoringState: false), before);
     },
   );
 

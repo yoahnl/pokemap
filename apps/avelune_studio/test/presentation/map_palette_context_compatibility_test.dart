@@ -12,7 +12,6 @@ final _project = workspaceProject.copyWith(
 );
 
 void main() {
-
   test('a model released by a 2D catalogue disarms placement', () {
     final view = MapWorkspaceEditingState()
       ..model3d = spatialEnvironmentProject().models3d.first

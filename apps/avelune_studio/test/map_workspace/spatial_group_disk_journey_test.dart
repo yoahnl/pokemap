@@ -1,4 +1,3 @@
-
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
@@ -37,5 +36,4 @@ void main() {
     );
     expect(copy.visibilityCondition, condition);
   });
-
 }

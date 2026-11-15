@@ -68,10 +68,13 @@ void main() {
     );
     SpatialSceneView scene() =>
         tester.widget<SpatialSceneView>(find.byType(SpatialSceneView));
-    Iterable<SpatialCellOverlay> zone(String id) => scene().cellOverlays
-        .where((cell) => cell.id.startsWith('zone:$id:'));
+    Iterable<SpatialCellOverlay> zone(String id) =>
+        scene().cellOverlays.where((cell) => cell.id.startsWith('zone:$id:'));
 
-    expect(zone('grass').map((cell) => cell.cell), unorderedEquals([(1, 1), (3, 2)]));
+    expect(
+      zone('grass').map((cell) => cell.cell),
+      unorderedEquals([(1, 1), (3, 2)]),
+    );
 
     expect(scene().onDragStart!(6, 2, null), isTrue, reason: document.error);
     scene().onDragUpdate!((7, 3));
@@ -80,9 +83,8 @@ void main() {
     final drawn = document.current.gameplayZones.last;
     expect(drawn.kind, GameplayZoneKind.movement);
     expect(zone(drawn.id), hasLength(4));
-    final colors = Theme.of(
-      tester.element(find.byType(SpatialSceneView)),
-    ).colorScheme;
+    final colors = Theme.of(tester.element(find.byType(SpatialSceneView)))
+        .colorScheme;
     expect(zone(drawn.id).map((cell) => cell.color).toSet(), {colors.primary});
     expect(zone('grass').map((cell) => cell.color).toSet(), {colors.secondary});
 
@@ -192,6 +194,5 @@ class _Visuals extends WorkspaceTestVisuals implements SpatialWorkspaceVisuals {
   Future<SpatialNpcPreview> spatialPreview(
     MapData map,
     ProjectManifest project,
-  ) async =>
-      SpatialNpcPreview({}, () {});
+  ) async => SpatialNpcPreview({}, () {});
 }

@@ -14,9 +14,8 @@ Future<Map<String, List<int>>> _files(Directory root) async => {
     if (entity is File) entity.path: await entity.readAsBytes(),
 };
 
-Future<ResourceOwnerHost> _open() => ResourceOwnerHost.create(
-  configure: (fixture) => seedFreeDecor(fixture),
-);
+Future<ResourceOwnerHost> _open() =>
+    ResourceOwnerHost.create(configure: (fixture) => seedFreeDecor(fixture));
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

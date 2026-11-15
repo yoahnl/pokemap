@@ -1,6 +1,7 @@
 import 'package:map_authoring/map_authoring.dart'
     show AuthoringTransactionFaultInjector;
 import 'package:map_core/map_core_domain.dart';
+
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../narrative/data/local_narrative_catalog_transaction.dart';
 import '../../project_session/domain/project_session.dart';

@@ -38,9 +38,8 @@ void main() {
         projectDirectoryPickerProvider.overrideWithValue(
           () async => exampleA.directoryPath,
         ),
-        mapWorkspacePortProvider(
-          exampleA,
-        ).overrideWithValue(WorkspaceMemoryPort()),
+        mapWorkspacePortProvider(exampleA)
+            .overrideWithValue(WorkspaceMemoryPort()),
         workspaceVisualsLoaderProvider.overrideWithValue(
           (session, manifest) => visuals.future,
         ),

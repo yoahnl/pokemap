@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+
 import 'spatial_model_editing_commands.dart';
 
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
@@ -175,24 +176,15 @@ class MapContextCommandRunner {
           MapEditingCommands(document, project).deleteSelected();
         }
       case MapContextFamily.character:
-        CharacterEditingCommands(
-          document,
-          project,
-        ).delete(target.id);
+        CharacterEditingCommands(document, project).delete(target.id);
       case MapContextFamily.marker:
-        MapEntityEditingCommands(
-          document,
-          project,
-        ).delete(target.id);
+        MapEntityEditingCommands(document, project).delete(target.id);
       case MapContextFamily.warp:
         WarpEditingCommands(document, project).delete(target.id);
       case MapContextFamily.zone:
         GameplayZoneEditingCommands(document, project).delete(target.id);
       case MapContextFamily.trigger:
-        TriggerEditingCommands(
-          document,
-          project,
-        ).delete(target.id);
+        TriggerEditingCommands(document, project).delete(target.id);
       case MapContextFamily.cell:
         return;
     }

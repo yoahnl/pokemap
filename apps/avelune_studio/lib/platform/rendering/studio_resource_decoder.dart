@@ -16,11 +16,10 @@ final class StudioResourceFailure implements Exception {
   final bool retryable;
 }
 
-typedef StudioImageDecoder =
-    Future<RuntimeTilesetImage> Function(
-      Uint8List bytes, {
-      TilesetTransparentColor? transparentColor,
-    });
+typedef StudioImageDecoder = Future<RuntimeTilesetImage> Function(
+  Uint8List bytes, {
+  TilesetTransparentColor? transparentColor,
+});
 
 final class StudioResourceDecoder {
   StudioResourceDecoder({

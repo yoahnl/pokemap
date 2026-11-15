@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:map_core/map_core.dart';
+
 import 'ui06_scene_fixture.dart';
 
 const ui09DialogueId = 'ui09_guichet';

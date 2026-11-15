@@ -1,7 +1,6 @@
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-
 const _items = [
   ResourceItem(
     id: 'birch',
@@ -98,5 +97,4 @@ void main() {
     expect(state.query, '');
     expect(state.reconcileSelection(state.visibleItems(_items)), _items.first);
   });
-
 }

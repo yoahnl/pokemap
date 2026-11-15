@@ -56,9 +56,8 @@ class ResourceStressFixture {
       for (final entry in manifest.maps) {
         maps[entry.id] = MapData.fromJson(
           jsonDecode(
-                await File(p.join(root, entry.relativePath)).readAsString(),
-              )
-              as Map<String, dynamic>,
+            await File(p.join(root, entry.relativePath)).readAsString(),
+          ) as Map<String, dynamic>,
         );
       }
       return ResourceStressFixture._(
@@ -83,9 +82,8 @@ class ResourceStressFixture {
     if (index < 0 || index >= errorCount || index % 3 != 0) {
       throw ArgumentError.value(index, 'index', 'Incident de fichier absent');
     }
-    await File(
-      p.join(directory.path, 'assets', 'absent-$index.png'),
-    ).writeAsBytes(exampleAtlasPng());
+    await File(p.join(directory.path, 'assets', 'absent-$index.png'))
+        .writeAsBytes(exampleAtlasPng());
   }
 
   Future<void> dispose() async {

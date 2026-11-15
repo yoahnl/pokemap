@@ -11,8 +11,11 @@ import 'dart:async';
 import '../domain/map_editor_port.dart';
 import '../domain/spatial_field_obstacle_port.dart';
 import '../domain/field_traversal_zone_port.dart';
-import 'package:map_authoring/map_authoring_editing.dart' show SpatialMapActions, EnvironmentEditing;
+
+import 'package:map_authoring/map_authoring_editing.dart'
+    show SpatialMapActions, EnvironmentEditing;
 import 'package:map_authoring/map_authoring.dart' show TriggerZoneActions;
+
 import '../domain/map_atmosphere_port.dart';
 import '../domain/map_exterior_decoration_port.dart';
 
@@ -59,14 +62,17 @@ class MapWorkspaceController {
   final Map<String, Future<EditableMapDocument>> _loading = {};
   final Map<String, Future<MapData?>> _previews = {};
   final Map<String, ProjectManifest> _previewDefinitions = {};
-  ProjectManifest? previewDefinitionsFor(String mapId) => _previewDefinitions[mapId];
+  ProjectManifest? previewDefinitionsFor(String mapId) =>
+      _previewDefinitions[mapId];
   final Map<String, EditableMapDocument> retiredDocuments = {};
   final _elementOrderReceipts =
       <String, Map<Object, MapElementOrderWorkspaceReceipt>>{};
   final _modelVisibilityReceipts =
       <String, Map<Object, SpatialModelVisibilityReceipt>>{};
-  final _fieldObstacleReceipts = <String, Map<Object, SpatialFieldObstacleReceipt>>{};
-  final _fieldTraversalReceipts = <String, Map<Object, FieldTraversalZoneReceipt>>{};
+  final _fieldObstacleReceipts =
+      <String, Map<Object, SpatialFieldObstacleReceipt>>{};
+  final _fieldTraversalReceipts =
+      <String, Map<Object, FieldTraversalZoneReceipt>>{};
   bool catalogBusy = false;
   MapCatalogReceipt? pendingCatalogReceipt;
   final libraryHistory = MapLibraryHistory();
@@ -82,7 +88,8 @@ class MapWorkspaceController {
 
   final _selectionMapsByModel = <String, Set<String>>{};
   final _previewMapsByModel = <String, Set<String>>{};
-  final _acceptedModelDefinitions = <String, ({int epoch, ProjectModel3dEntry definition})>{};
+  final _acceptedModelDefinitions =
+      <String, ({int epoch, ProjectModel3dEntry definition})>{};
   int _modelSourceEpoch = 0;
   int modelSourceSelectionsVisited = 0;
   int modelSourcePreviewsVisited = 0;
@@ -99,15 +106,19 @@ class MapWorkspaceController {
   ProjectManifest? _combinedVisuals;
   ProjectManifest? _resourceVisualDefinitions;
   ProjectManifest? get visualProject {
-    if (hasCompleteProject) return project == null ? null : _withSurfConfiguration(project!);
+    if (hasCompleteProject)
+      return project == null ? null : _withSurfConfiguration(project!);
     final map = _selections[active?.base.mapId]?.definitions ?? project;
     final family = _resourceVisualDefinitions;
-    if (map == null || family == null) return map == null ? null : _withSurfConfiguration(map);
+    if (map == null || family == null)
+      return map == null ? null : _withSurfConfiguration(map);
     if (!identical(map, _visualMapSource) ||
         !identical(family, _visualFamilySource)) {
       _cacheVisualComposition(map, family);
     }
-    return _combinedVisuals == null ? null : _withSurfConfiguration(_combinedVisuals!);
+    return _combinedVisuals == null
+        ? null
+        : _withSurfConfiguration(_combinedVisuals!);
   }
 
   ProjectSurfSettings? _acceptedSurfConfiguration;
@@ -121,7 +132,8 @@ class MapWorkspaceController {
   EditableMapDocument? active;
   ProjectVisualsController? settingsVisualsOwner;
   SpatialVisualPatch? _projectVisualProfile;
-  SpatialVisualPatch get inheritedVisualProfile => _projectVisualProfile ?? SpatialVisualPatch();
+  SpatialVisualPatch get inheritedVisualProfile =>
+      _projectVisualProfile ?? SpatialVisualPatch();
   final _mapVisualProfiles = <String, SpatialVisualPatch>{};
 
   bool loading = false;
@@ -212,7 +224,9 @@ class MapWorkspaceController {
 
   void restore({required bool redo}) => _restore(redo: redo);
 
-  void acceptResources(ProjectManifest before, ProjectManifest updated, {
+  void acceptResources(
+    ProjectManifest before,
+    ProjectManifest updated, {
     Map<String, ProjectModel3dEntry> changedModels = const {},
   }) => _acceptResources(before, updated, changedModels: changedModels);
 

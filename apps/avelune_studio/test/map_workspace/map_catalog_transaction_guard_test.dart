@@ -83,9 +83,8 @@ void main() {
           expect(result.published, isTrue, reason: result.error);
           expect(result.integrated, isTrue);
           expect(
-            await File(
-              p.join(fixture.root.path, 'maps/locked-copy.json'),
-            ).exists(),
+            await File(p.join(fixture.root.path, 'maps/locked-copy.json'))
+                .exists(),
             isTrue,
           );
         } else {
@@ -93,9 +92,8 @@ void main() {
           expect(result.integrated, isFalse);
           expect(fixture.controller.project, same(manifestBefore));
           expect(
-            await File(
-              p.join(fixture.root.path, 'maps/locked-copy.json'),
-            ).exists(),
+            await File(p.join(fixture.root.path, 'maps/locked-copy.json'))
+                .exists(),
             isFalse,
           );
           expect(await File(targetPath).exists(), isTrue);

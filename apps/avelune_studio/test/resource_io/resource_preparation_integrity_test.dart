@@ -21,12 +21,14 @@ void main() {
       final imported = await fixture.import();
       final tileset = imported.manifest.tilesets.single;
       final before = await _files(fixture.root);
-      final prepared = await fixture.resources
-          .prepareOperation('tileset.metadata.update', {
-            'tilesetId': tileset.id,
-            'name': ' ${tileset.name} ',
-            'folderId': tileset.folderId,
-          });
+      final prepared = await fixture.resources.prepareOperation(
+        'tileset.metadata.update',
+        {
+          'tilesetId': tileset.id,
+          'name': ' ${tileset.name} ',
+          'folderId': tileset.folderId,
+        },
+      );
       expect(prepared.noChange, true);
       expect(await _files(fixture.root), before);
       final result = await fixture.resources.applyPrepared(prepared);
@@ -35,9 +37,8 @@ void main() {
       expect(await fixture.manifestFile.readAsBytes(), before['/project.json']);
       expect(await fixture.mapFile.readAsBytes(), before['/garden.json']);
       expect(
-        await File(
-          '${fixture.root.path}/${tileset.relativePath}',
-        ).readAsBytes(),
+        await File('${fixture.root.path}/${tileset.relativePath}')
+            .readAsBytes(),
         before['/${tileset.relativePath}'],
       );
     },

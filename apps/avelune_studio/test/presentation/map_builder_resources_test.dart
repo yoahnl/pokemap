@@ -94,7 +94,10 @@ void main() {
       tester.getCenter(find.byKey(const ValueKey('map-canvas'))),
     );
     await harness.settle();
-    expect(harness.controller.active!.current.placedElements.length, before + 1);
+    expect(
+      harness.controller.active!.current.placedElements.length,
+      before + 1,
+    );
 
     await tester.tap(find.byKey(const ValueKey('map-inspector-release')));
     await harness.settle();

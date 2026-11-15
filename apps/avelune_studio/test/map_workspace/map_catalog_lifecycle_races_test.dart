@@ -94,42 +94,35 @@ void main() {
     },
   );
 
-  test(
-    'failed refresh retains the duplicate receipt and never replays publication',
-    () async {
-      final prepared = await fixture.controller
-          .prepareCatalog('map.duplicate', {
-            'sourceMapId': fixture.controller.active!.base.mapId,
-            'targetMapId': 'retained-copy',
-            'name': 'Copie',
-          });
-      fixture.catalog.failRefresh = true;
-      final result = await fixture.controller.applyPreparedCatalog(prepared);
-      expect(result.published, isTrue);
-      expect(result.integrated, isFalse);
-      expect(result.receipt!.createdMapId, 'retained-copy');
-      expect(
-        (await fixture.controller.applyPreparedCatalog(prepared)).published,
-        isFalse,
-      );
-      fixture.catalog.failRefresh = false;
-      expect(
-        (await fixture.controller.retryCatalogRefresh()).integrated,
-        isTrue,
-      );
-      expect(fixture.catalog.mutations, 1);
-      final reopened = MapWorkspaceController(
-        fixture.session,
-        LocalMapWorkspaceAdapter(),
-      );
-      addTearDown(reopened.dispose);
-      await reopened.initialize();
-      expect(
-        reopened.project!.maps.where((entry) => entry.id == 'retained-copy'),
-        hasLength(1),
-      );
-    },
-  );
+  test('failed refresh retains the duplicate receipt and never replays publication', () async {
+    final prepared = await fixture.controller.prepareCatalog('map.duplicate', {
+      'sourceMapId': fixture.controller.active!.base.mapId,
+      'targetMapId': 'retained-copy',
+      'name': 'Copie',
+    });
+    fixture.catalog.failRefresh = true;
+    final result = await fixture.controller.applyPreparedCatalog(prepared);
+    expect(result.published, isTrue);
+    expect(result.integrated, isFalse);
+    expect(result.receipt!.createdMapId, 'retained-copy');
+    expect(
+      (await fixture.controller.applyPreparedCatalog(prepared)).published,
+      isFalse,
+    );
+    fixture.catalog.failRefresh = false;
+    expect((await fixture.controller.retryCatalogRefresh()).integrated, isTrue);
+    expect(fixture.catalog.mutations, 1);
+    final reopened = MapWorkspaceController(
+      fixture.session,
+      LocalMapWorkspaceAdapter(),
+    );
+    addTearDown(reopened.dispose);
+    await reopened.initialize();
+    expect(
+      reopened.project!.maps.where((entry) => entry.id == 'retained-copy'),
+      hasLength(1),
+    );
+  });
 
   test(
     'an unrelated neighbour draft survives resizing the active map',
@@ -141,12 +134,14 @@ void main() {
         neighbour.current.copyWith(properties: {'unsavedNeighbour': true}),
       );
       final current = neighbour.current;
-      final prepared = await fixture.controller
-          .prepareCatalog('map.resize_apply', {
-            'mapId': target.base.mapId,
-            'width': target.current.size.width + 1,
-            'height': target.current.size.height + 1,
-          });
+      final prepared = await fixture.controller.prepareCatalog(
+        'map.resize_apply',
+        {
+          'mapId': target.base.mapId,
+          'width': target.current.size.width + 1,
+          'height': target.current.size.height + 1,
+        },
+      );
       expect(
         (await fixture.controller.applyPreparedCatalog(prepared)).integrated,
         isTrue,
@@ -162,12 +157,14 @@ void main() {
   test(
     'same map identity in another project never accepts a prepared operation',
     () async {
-      final prepared = await fixture.controller
-          .prepareCatalog('map.duplicate', {
-            'sourceMapId': fixture.controller.active!.base.mapId,
-            'targetMapId': 'foreign-copy',
-            'name': 'Copie',
-          });
+      final prepared = await fixture.controller.prepareCatalog(
+        'map.duplicate',
+        {
+          'sourceMapId': fixture.controller.active!.base.mapId,
+          'targetMapId': 'foreign-copy',
+          'name': 'Copie',
+        },
+      );
       final other = await MapCatalogFixture.create();
       addTearDown(other.dispose);
       final before = other.controller.project;

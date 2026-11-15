@@ -105,7 +105,8 @@ class EditableMapDocument {
   MapData get spatialPreviewMap => _visibilityPreviewBase ?? current;
   Future<bool> Function(MapData next)? configureFieldTraversal;
   String? Function(String modelId)? modelDeletionProblem;
-  Future<bool> Function(String instanceId, MapEntityFieldObstacleData? value)? configureSpatialFieldObstacle;
+  Future<bool> Function(String instanceId, MapEntityFieldObstacleData? value)?
+  configureSpatialFieldObstacle;
   bool elementOrderSaving = false;
   String? error;
   Set<String> borderWarnings = const {};
@@ -142,7 +143,9 @@ class EditableMapDocument {
       .firstOrNull;
 
   void commit(MapData next) {
-    if (elementOrderSaving || spatialFieldObstacleSaving || fieldTraversalSaving ||
+    if (elementOrderSaving ||
+        spatialFieldObstacleSaving ||
+        fieldTraversalSaving ||
         modelVisibilitySaving) {
       return;
     }

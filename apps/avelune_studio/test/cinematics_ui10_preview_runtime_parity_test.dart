@@ -1,11 +1,15 @@
 import 'dart:math' as math;
+
 import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
+
 import 'support/capture_m3_widget.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/player_component.dart';
+
 import 'support/ui06_scene_fixture.dart';
 import 'support/ui10_cinematic_fixture.dart';
 import 'support/ui10_parity_fixture.dart';

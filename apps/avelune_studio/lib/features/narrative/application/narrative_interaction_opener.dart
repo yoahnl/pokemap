@@ -148,8 +148,7 @@ class NarrativeInteractionOpener {
     }
     final draft = readStudioInteraction(record, project);
     if (draft == null) {
-      controller.error =
-          'Cette interaction avancée reste conservée, mais son édition visuelle n’est pas disponible.';
+      controller.error = 'Cette interaction avancée reste conservée, mais son édition visuelle n’est pas disponible.';
       return false;
     }
     final dialogue = project.dialogues
@@ -210,8 +209,7 @@ class NarrativeInteractionOpener {
     if (!_canOpenScene(id)) return false;
     final stored = project.scenes.where((scene) => scene.id == id).firstOrNull;
     if (session.sceneBaseKnown && stored != session.baseScene) {
-      controller.error =
-          'La scène liée a changé. Ouvrez sa version actuelle ; ce brouillon reste conservé.';
+      controller.error = 'La scène liée a changé. Ouvrez sa version actuelle ; ce brouillon reste conservé.';
       return false;
     }
     return true;
@@ -230,7 +228,9 @@ class NarrativeInteractionOpener {
       final fields = source?.toJson();
       final mapId = fields?['mapId'];
       if (mapId is! String ||
-          (fields?['entityId'] == null && fields?['triggerId'] == null && fields?['instanceId'] == null)) {
+          (fields?['entityId'] == null &&
+              fields?['triggerId'] == null &&
+              fields?['instanceId'] == null)) {
         controller.error =
             source?.when(
               entityAutorun: (_, _) => null,
@@ -239,10 +239,8 @@ class NarrativeInteractionOpener {
               modelInteract: (_, _) => null,
               triggerBump: (_, _) => null,
               triggerEnter: (_, _) => null,
-              mapEnter: (_) =>
-                  'Cette interaction concerne l’arrivée sur une carte, sans point de localisation précis.',
-              outcomeReceived: (_) =>
-                  'Cette interaction réagit à un résultat, sans carte source définie.',
+              mapEnter: (_) => 'Cette interaction concerne l’arrivée sur une carte, sans point de localisation précis.',
+              outcomeReceived: (_) => 'Cette interaction réagit à un résultat, sans carte source définie.',
             ) ??
             'Cette interaction ne définit pas d’emplacement précis sur une carte.';
         return false;

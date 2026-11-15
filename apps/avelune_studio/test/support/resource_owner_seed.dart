@@ -3,7 +3,10 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../resource_io/resource_fixture.dart';
 
-Future<void> seedFreeDecor(ResourceFixture fixture, {bool placed = false}) async {
+Future<void> seedFreeDecor(
+  ResourceFixture fixture, {
+  bool placed = false,
+}) async {
   final project = await fixture.maps.loadProject(fixture.session);
   final tilesetId = project.tilesets.single.id;
   await fixture.resources.mutate('element_category.upsert', {

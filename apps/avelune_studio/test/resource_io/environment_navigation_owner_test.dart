@@ -16,7 +16,10 @@ void main() {
     final scope = await EnvironmentScopeFixture.create(withZones: false);
     addTearDown(scope.dispose);
     final document = scope.workspace.active!;
-    final commands = EnvironmentEditingCommands(document, scope.workspace.project!);
+    final commands = EnvironmentEditingCommands(
+      document,
+      scope.workspace.project!,
+    );
     final session = commands.create(scope.preset);
     final history = document.undoCount;
     commands.paint(session, [
@@ -51,7 +54,11 @@ void main() {
         .content
         .areas
         .single;
-    expect(await scope.workspace.save(document), isTrue, reason: document.error);
+    expect(
+      await scope.workspace.save(document),
+      isTrue,
+      reason: document.error,
+    );
     expect(document.dirty, isFalse);
     final owner = LocalMapWorkspaceAdapter();
     final project = await owner.loadProject(scope.fixture.session);
@@ -191,9 +198,8 @@ void main() {
     final n = scope.navigation;
     final beforeFiles = await scope.files();
     final beforeProject = scope.workspace.project!.toJson();
-    final decor = resourceCatalog(
-      scope.workspace.project!,
-    ).firstWhere((item) => item.element != null);
+    final decor = resourceCatalog(scope.workspace.project!)
+        .firstWhere((item) => item.element != null);
     n.openEnvironment();
     final draft = n.environment!
       ..name = 'Palette conservée'

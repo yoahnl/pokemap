@@ -78,15 +78,18 @@ void main() {
     expect(view.retainedBorderDraftFor('a'), isNull);
   });
 
-  test('a viewport focusing another map parks the draft instead of dropping it', () {
-    final view = _armed(_project());
-    final draft = _draft('a');
-    view.borderDraft = draft;
-    view.focusBorderDraftOn('b');
-    expect(view.borderDraft, isNull);
-    view.focusBorderDraftOn('a');
-    expect(view.borderDraft, same(draft));
-  });
+  test(
+    'a viewport focusing another map parks the draft instead of dropping it',
+    () {
+      final view = _armed(_project());
+      final draft = _draft('a');
+      view.borderDraft = draft;
+      view.focusBorderDraftOn('b');
+      expect(view.borderDraft, isNull);
+      view.focusBorderDraftOn('a');
+      expect(view.borderDraft, same(draft));
+    },
+  );
 
   test('a parked draft is dropped when its map or its border disappears', () {
     final project = _project();

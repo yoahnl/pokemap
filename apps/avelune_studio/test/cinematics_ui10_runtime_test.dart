@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/player_component.dart';
+
 import 'support/ui06_scene_fixture.dart';
 import 'support/ui10_cinematic_fixture.dart';
 
@@ -205,9 +207,9 @@ Future<Uint8List> _capture(
   await tester.pump();
   return (await tester.runAsync(() async {
     final image = await boundary.toImage(pixelRatio: 1);
-    final bytes = (await image.toByteData(
-      format: ui.ImageByteFormat.png,
-    ))!.buffer.asUint8List();
+    final bytes = (await image.toByteData(format: ui.ImageByteFormat.png))!
+        .buffer
+        .asUint8List();
     if (directory != null) {
       await Directory(directory).create(recursive: true);
       await File('$directory/$name').writeAsBytes(bytes);

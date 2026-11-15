@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
+
 import '../support/map_workspace_fixture.dart';
 
 void main() {
@@ -197,6 +198,5 @@ class _Visuals extends WorkspaceTestVisuals implements SpatialWorkspaceVisuals {
   Future<SpatialNpcPreview> spatialPreview(
     MapData map,
     ProjectManifest project,
-  ) async =>
-      SpatialNpcPreview({}, () {});
+  ) async => SpatialNpcPreview({}, () {});
 }

@@ -112,11 +112,13 @@ final class LocalMapWorkspaceAdapter
   final _workshopCharacterDefinitions = <String, ProjectManifest>{};
   final _loadedPaths = <(String, String), String>{};
   Future<void> _writes = Future.value();
-  final _exteriorServices = <String, Future<LocalMapExteriorDecorationAuthoring>>{};
+  final _exteriorServices =
+      <String, Future<LocalMapExteriorDecorationAuthoring>>{};
   var _exteriorOperations = 0;
   final _atmosphereServices = <String, Future<LocalMapAtmosphereAuthoring>>{};
   final _editorServices = <String, Future<LocalMapEditorAuthoring>>{};
-  final _elementOrderServices = <String, Future<LocalMapElementOrderAuthoring>>{};
+  final _elementOrderServices =
+      <String, Future<LocalMapElementOrderAuthoring>>{};
   var _editorOperations = 0;
   var _atmosphereOperations = 0;
 

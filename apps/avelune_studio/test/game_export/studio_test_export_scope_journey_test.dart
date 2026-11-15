@@ -1,9 +1,7 @@
 import 'package:avelune_studio/features/verification/application/studio_failure_diagnosis.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-
 void main() {
-
   test('known export failures name their family and owner', () {
     StudioFailureDiagnosis of(String code, {String? path}) =>
         diagnoseExportFailure(code: code, summary: code, path: path);
@@ -71,5 +69,4 @@ void main() {
     expect(unknown.owner, isNull);
     expect(unknown.detail, contains('moteur'));
   });
-
 }

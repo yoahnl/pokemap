@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:avelune_studio/features/presentations/data/local_presentation_adapter.dart';
 import 'package:map_core/map_core.dart';
+
 import 'cinematic_adapter_fixture.dart';
 
 class Ui11PresentationFixture {

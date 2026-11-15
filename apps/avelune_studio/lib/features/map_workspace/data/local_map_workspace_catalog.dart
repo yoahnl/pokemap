@@ -8,7 +8,12 @@ class _ProjectDocument {
     this.complete = true,
     this.metadataFields,
     void Function()? onMapEntryRead,
-  }) : manifest = manifest.copyWith(maps: ProjectMapEntries.prepare(manifest.maps, onEntryRead: onMapEntryRead));
+  }) : manifest = manifest.copyWith(
+         maps: ProjectMapEntries.prepare(
+           manifest.maps,
+           onEntryRead: onMapEntryRead,
+         ),
+       );
 
   final String root;
   final ProjectManifest manifest;
@@ -82,6 +87,7 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
       );
       return identical(next, entries) ? value : value.copyWith(models3d: next);
     }
+
     final projections = [
       for (final cache in [
         _resourceSelections,

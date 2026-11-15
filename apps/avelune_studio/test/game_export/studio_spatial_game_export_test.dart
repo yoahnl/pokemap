@@ -8,7 +8,6 @@ import 'package:map_authoring/map_authoring.dart';
 import '../support/m3_story_fixture.dart';
 
 void main() {
-
   test('canonical 3D publication refusal is explained in French', () async {
     final source = await M3StoryFixture.create();
     final output = await Directory.systemTemp.createTemp('as-spatial-export-');

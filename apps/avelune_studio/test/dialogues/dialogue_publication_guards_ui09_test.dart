@@ -61,33 +61,30 @@ void main() {
     },
   );
 
-  test(
-    'strict compilation rejects unsupported commands without touching either file',
-    () async {
-      final f = await DialogueAdapterFixture.create();
-      addTearDown(f.dispose);
-      final port = f.adapter();
-      final base = await port.load('gare');
-      final before = await f.file('project.json').readAsBytes();
-      await expectLater(
-        port.publish(
-          id: 'gare',
-          base: base,
-          entry: base.entry.copyWith(name: 'Nom non publié'),
-          source: base.source.replaceFirst('Bonjour !', '<<giveItem potion>>'),
+  test('strict compilation rejects unsupported commands without touching either file', () async {
+    final f = await DialogueAdapterFixture.create();
+    addTearDown(f.dispose);
+    final port = f.adapter();
+    final base = await port.load('gare');
+    final before = await f.file('project.json').readAsBytes();
+    await expectLater(
+      port.publish(
+        id: 'gare',
+        base: base,
+        entry: base.entry.copyWith(name: 'Nom non publié'),
+        source: base.source.replaceFirst('Bonjour !', '<<giveItem potion>>'),
+      ),
+      throwsA(
+        isA<DialogueFailure>().having(
+          (e) => e.details['code'],
+          'code',
+          'dialogue.compile_blocking',
         ),
-        throwsA(
-          isA<DialogueFailure>().having(
-            (e) => e.details['code'],
-            'code',
-            'dialogue.compile_blocking',
-          ),
-        ),
-      );
-      expect(await f.file('project.json').readAsBytes(), before);
-      expect(await f.file(base.entry.relativePath).readAsString(), base.source);
-    },
-  );
+      ),
+    );
+    expect(await f.file('project.json').readAsBytes(), before);
+    expect(await f.file(base.entry.relativePath).readAsString(), base.source);
+  });
 
   test(
     'delete and missing external Yarn entry refuse with consumer paths',

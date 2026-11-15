@@ -11,6 +11,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_sto
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+
 import '../presentation/map_builder_story_support.dart';
 
 String _event(int index) =>
@@ -56,7 +57,13 @@ SceneAsset _scene(String id) => SceneAsset(
   ),
 );
 
-Future<({MapWorkspaceController maps, LocalEventAdapter port, ProjectSession session})>
+Future<
+  ({
+    MapWorkspaceController maps,
+    LocalEventAdapter port,
+    ProjectSession session,
+  })
+>
 _open({required bool prepared, bool openedByStudio = false}) async {
   final qa = Directory(
     '/Users/karim/Library/Caches/AveluneQA/histoire-a2/studio-deletion',
@@ -105,10 +112,7 @@ _open({required bool prepared, bool openedByStudio = false}) async {
       eventRegistry: NarrativeEventRegistry(
         schemaVersion: 1,
         mode: EventSystemMode.v2Only,
-        records: [
-          _behaviour(_free, 'Arrivée'),
-          _behaviour(_ruled, 'Portail'),
-        ],
+        records: [_behaviour(_free, 'Arrivée'), _behaviour(_ruled, 'Portail')],
         legacyClaims: const [],
       ),
     ),
@@ -188,10 +192,11 @@ Future<void> _prepare(String root) async {
   }
 }
 
-NarrativeEventRecord _record(MapWorkspaceController maps, String id) =>
-    maps.project!.eventRegistry!.records.singleWhere(
-      (record) => record.id == id,
-    );
+NarrativeEventRecord _record(MapWorkspaceController maps, String id) => maps
+    .project!
+    .eventRegistry!
+    .records
+    .singleWhere((record) => record.id == id);
 
 void main() {
   test('a project opened by the Studio deletes an unused behaviour', () async {
@@ -203,10 +208,9 @@ void main() {
       current: null,
     );
 
-    expect(
-      receipt.manifest.eventRegistry!.records.map((record) => record.id),
-      [_ruled],
-    );
+    expect(receipt.manifest.eventRegistry!.records.map((record) => record.id), [
+      _ruled,
+    ]);
   });
 
   test('an unused behaviour is deleted and stays gone after reopen', () async {
@@ -218,10 +222,9 @@ void main() {
       current: null,
     );
 
-    expect(
-      receipt.manifest.eventRegistry!.records.map((record) => record.id),
-      [_ruled],
-    );
+    expect(receipt.manifest.eventRegistry!.records.map((record) => record.id), [
+      _ruled,
+    ]);
     final reopened = MapWorkspaceController(
       opened.session,
       LocalMapWorkspaceAdapter(),

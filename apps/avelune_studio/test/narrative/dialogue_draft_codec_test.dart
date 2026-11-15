@@ -62,39 +62,35 @@ void main() {
       expect(decoded.branches.first.lines.single.portraitStateId, isNull);
     },
   );
-  test(
-    'literal text preserves quotes accents newlines and reserved commands',
-    () {
-      const text =
-          ' Éléonore : "oui"\n-> faux choix\n===\n<<jump refuse>>\n<<evil command>>\n  fin ';
-      final encoded = codec.encode(dialogueFixture(text: text));
-      final compiled = const DialogueAuthoringCompiler().compile(
-        entry: encoded.entry,
-        source: encoded.source,
-      );
-      expect(compiled.canPublish, true);
-      expect(
-        (compiled.document!.nodes.first.steps.first as RuntimeDialogueLine)
-            .text,
-        text,
-      );
-      const runtimeCodec = RuntimeDialogueDocumentCodec();
-      expect(
-        runtimeCodec.decodeUtf8(runtimeCodec.encodeUtf8(compiled.document!)),
-        compiled.document,
-      );
-      final accepted = const DialogueSimulationService().simulate(compiled);
-      final refused = const DialogueSimulationService().simulate(
-        compiled,
-        choices: {'start': 1},
-      );
-      expect(accepted.transcript, [text, 'Merci !']);
-      expect(accepted.outcomes, ['accepted']);
-      expect(refused.transcript, [text, 'À bientôt.']);
-      expect(refused.outcomes, isEmpty);
-      expect(codec.encode(codec.decode(encoded)!).source, encoded.source);
-    },
-  );
+  test('literal text preserves quotes accents newlines and reserved commands', () {
+    const text =
+        ' Éléonore : "oui"\n-> faux choix\n===\n<<jump refuse>>\n<<evil command>>\n  fin ';
+    final encoded = codec.encode(dialogueFixture(text: text));
+    final compiled = const DialogueAuthoringCompiler().compile(
+      entry: encoded.entry,
+      source: encoded.source,
+    );
+    expect(compiled.canPublish, true);
+    expect(
+      (compiled.document!.nodes.first.steps.first as RuntimeDialogueLine).text,
+      text,
+    );
+    const runtimeCodec = RuntimeDialogueDocumentCodec();
+    expect(
+      runtimeCodec.decodeUtf8(runtimeCodec.encodeUtf8(compiled.document!)),
+      compiled.document,
+    );
+    final accepted = const DialogueSimulationService().simulate(compiled);
+    final refused = const DialogueSimulationService().simulate(
+      compiled,
+      choices: {'start': 1},
+    );
+    expect(accepted.transcript, [text, 'Merci !']);
+    expect(accepted.outcomes, ['accepted']);
+    expect(refused.transcript, [text, 'À bientôt.']);
+    expect(refused.outcomes, isEmpty);
+    expect(codec.encode(codec.decode(encoded)!).source, encoded.source);
+  });
   test('advanced source even bearing visual tag remains read only', () {
     final encoded = codec.encode(dialogueFixture());
     final advanced = NarrativeDialogueSource(

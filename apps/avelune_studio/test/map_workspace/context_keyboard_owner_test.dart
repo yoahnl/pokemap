@@ -41,5 +41,4 @@ void main() {
     expect(h.request!.targets, isEmpty);
     expect(commands.selected(first.id), isNotNull);
   });
-
 }

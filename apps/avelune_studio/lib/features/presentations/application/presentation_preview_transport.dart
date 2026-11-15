@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:map_core/map_core_domain.dart';
 
 class PresentationPreviewTransport {

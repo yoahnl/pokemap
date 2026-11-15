@@ -14,16 +14,18 @@ import 'studio_export_revision.dart';
 part 'studio_game_export_identity.dart';
 part 'studio_game_export_run.dart';
 
-typedef BuildStudioGamePackage =
-    Future<GamePackageExportArtifact> Function(
-      Directory projectRoot,
-      GamePackageExportProfile profile,
-      GamePackageExportMode mode,
-    );
-typedef WriteStudioGamePackage =
-    Future<void> Function(GamePackageExportArtifact artifact, File outputFile);
-typedef ReadStudioSourceFingerprints =
-    Future<Map<String, String>> Function(String projectRoot);
+typedef BuildStudioGamePackage = Future<GamePackageExportArtifact> Function(
+  Directory projectRoot,
+  GamePackageExportProfile profile,
+  GamePackageExportMode mode,
+);
+typedef WriteStudioGamePackage = Future<void> Function(
+  GamePackageExportArtifact artifact,
+  File outputFile,
+);
+typedef ReadStudioSourceFingerprints = Future<Map<String, String>> Function(
+  String projectRoot,
+);
 typedef CheckStudioExportDestination = Future<bool> Function(File outputFile);
 
 final class StudioGameExportController implements StudioGameExportPort {
@@ -124,6 +126,7 @@ final class StudioGameExportController implements StudioGameExportPort {
     _notify();
     return _identityOf(saved);
   }
+
   final _changes = StreamController<void>.broadcast();
   @override
   Stream<void> get changes => _changes.stream;
@@ -184,8 +187,7 @@ final class StudioGameExportController implements StudioGameExportPort {
     _operation++;
     stage = StudioExportStage.cancelled;
     failure = null;
-    error =
-        'Export abandonné avant l’écriture du fichier. Un enregistrement déjà lancé peut toutefois se terminer.';
+    error = 'Export abandonné avant l’écriture du fichier. Un enregistrement déjà lancé peut toutefois se terminer.';
     _notify();
   }
 

@@ -1,8 +1,10 @@
 import 'dart:io';
+
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/stories/data/local_story_adapter.dart';
 import 'package:map_core/map_core.dart';
+
 import 'ui06_scene_fixture.dart';
 
 class Ui07StoryFixture {

@@ -26,12 +26,14 @@ void main() {
           },
         );
         addTearDown(adapter.dispose);
-        final prepared = await adapter
-            .prepareOperation('tileset.metadata.update', {
-              'tilesetId': imported.createdTilesetId,
-              'name': 'Jamais publié',
-              'folderId': null,
-            });
+        final prepared = await adapter.prepareOperation(
+          'tileset.metadata.update',
+          {
+            'tilesetId': imported.createdTilesetId,
+            'name': 'Jamais publié',
+            'folderId': null,
+          },
+        );
         final before = await fixture.manifestFile.readAsBytes();
         final mapBefore = await fixture.mapFile.readAsBytes();
         final pending = adapter.applyPrepared(
@@ -60,9 +62,10 @@ void main() {
         expect(await fixture.manifestFile.readAsBytes(), before);
         expect(await fixture.mapFile.readAsBytes(), mapBefore);
         expect(
-          (await fixture.maps.loadProject(
-            fixture.session,
-          )).tilesets.single.name,
+          (await fixture.maps.loadProject(fixture.session))
+              .tilesets
+              .single
+              .name,
           'Arbres',
         );
       },

@@ -135,60 +135,52 @@ void main() {
     game.handleRuntimeInputEvent(RuntimeInputEvent.release(control));
   }
 
-  test(
-    'a warp authored in Studio moves the player to the other map',
-    () async {
-      final warpId = await authorWarp(
-        start: const GridPos(x: 4, y: 4),
-        warpCell: const GridPos(x: 4, y: 6),
-      );
-      final game = await bootPlayer();
-      expect(game.debugPlayerGridPosition, const GridPos(x: 4, y: 4));
+  test('a warp authored in Studio moves the player to the other map', () async {
+    final warpId = await authorWarp(
+      start: const GridPos(x: 4, y: 4),
+      warpCell: const GridPos(x: 4, y: 6),
+    );
+    final game = await bootPlayer();
+    expect(game.debugPlayerGridPosition, const GridPos(x: 4, y: 4));
 
-      await walk(
-        game,
-        RuntimeInputControl.down,
-        until: () => game.debugLastCompletedMapActivation?.mapId == arrival,
-      );
+    await walk(
+      game,
+      RuntimeInputControl.down,
+      until: () => game.debugLastCompletedMapActivation?.mapId == arrival,
+    );
 
-      expect(
-        game.debugLastCompletedMapActivation?.mapId,
-        arrival,
-        reason: 'the Player itself loaded and activated the destination map',
-      );
-      expect(
-        game.debugPlayerGridPosition,
-        arrivalCell,
-        reason: 'the player stands where the author set the arrival cell',
-      );
-      expect(warpId, isNotEmpty);
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
+    expect(
+      game.debugLastCompletedMapActivation?.mapId,
+      arrival,
+      reason: 'the Player itself loaded and activated the destination map',
+    );
+    expect(
+      game.debugPlayerGridPosition,
+      arrivalCell,
+      reason: 'the player stands where the author set the arrival cell',
+    );
+    expect(warpId, isNotEmpty);
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
-  test(
-    'a warp saved as bump keeps the player on the departure map',
-    () async {
-      await authorWarp(
-        start: const GridPos(x: 4, y: 4),
-        warpCell: const GridPos(x: 4, y: 6),
-        mode: MapWarpTriggerMode.onBump,
-      );
-      final game = await bootPlayer();
+  test('a warp saved as bump keeps the player on the departure map', () async {
+    await authorWarp(
+      start: const GridPos(x: 4, y: 4),
+      warpCell: const GridPos(x: 4, y: 6),
+      mode: MapWarpTriggerMode.onBump,
+    );
+    final game = await bootPlayer();
 
-      await walk(
-        game,
-        RuntimeInputControl.down,
-        until: () => game.debugLastCompletedMapActivation?.mapId == arrival,
-        frames: 240,
-      );
+    await walk(
+      game,
+      RuntimeInputControl.down,
+      until: () => game.debugLastCompletedMapActivation?.mapId == arrival,
+      frames: 240,
+    );
 
-      expect(
-        game.debugLastCompletedMapActivation?.mapId,
-        isNot(arrival),
-        reason: 'walking onto a bump warp never hands the player over',
-      );
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
+    expect(
+      game.debugLastCompletedMapActivation?.mapId,
+      isNot(arrival),
+      reason: 'walking onto a bump warp never hands the player over',
+    );
+  }, timeout: const Timeout(Duration(minutes: 3)));
 }

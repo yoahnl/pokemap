@@ -13,7 +13,9 @@ Future<void> prepareGameExportFixture(M3StoryFixture source) async {
   );
   final startEntry = project.maps.first;
   final targetEntry = project.maps.last;
-  final startFile = File(p.join(source.directory.path, startEntry.relativePath));
+  final startFile = File(
+    p.join(source.directory.path, startEntry.relativePath),
+  );
   final start = MapData.fromJson(
     jsonDecode(await startFile.readAsString()) as Map<String, dynamic>,
   );
@@ -61,22 +63,25 @@ Future<void> prepareGameExportFixture(M3StoryFixture source) async {
     eventRegistry: NarrativeEventRegistry(
       schemaVersion: 1,
       mode: EventSystemMode.v2Only,
-      records: project.eventRegistry!.records
-          .where((record) => record.id.endsWith('000000000007'))
-          .toList()
-        ..add(NarrativeEventRecord.configuredStructurallyUnchecked(
-          NarrativeEventDefinition(
-            id: 'evt_019abcde-6000-7000-8000-000000000001',
-            name: 'Arrivée dans la clairière',
-            source: NarrativeEventSourceRef.mapEnter(targetEntry.id),
-            conditions: const [],
-            sceneId: 'scene.export.complete',
-            reusePolicy: NarrativeEventReusePolicy.oneShot,
-            priority: 0,
-            order: 0,
-          ),
-          enabled: true,
-        )),
+      records:
+          project.eventRegistry!.records
+              .where((record) => record.id.endsWith('000000000007'))
+              .toList()
+            ..add(
+              NarrativeEventRecord.configuredStructurallyUnchecked(
+                NarrativeEventDefinition(
+                  id: 'evt_019abcde-6000-7000-8000-000000000001',
+                  name: 'Arrivée dans la clairière',
+                  source: NarrativeEventSourceRef.mapEnter(targetEntry.id),
+                  conditions: const [],
+                  sceneId: 'scene.export.complete',
+                  reusePolicy: NarrativeEventReusePolicy.oneShot,
+                  priority: 0,
+                  order: 0,
+                ),
+                enabled: true,
+              ),
+            ),
       legacyClaims: const [],
     ),
     pokemon: const ProjectPokemonConfig(
@@ -109,7 +114,9 @@ SceneAsset _completionScene() => SceneAsset(
             outcome: SceneGameCompletionOutcome.completed,
             result: SceneFinishGameResult(
               title: SceneLocalizedText(fallback: 'Traversée terminée'),
-              summary: SceneLocalizedText(fallback: 'La clairière est atteinte.'),
+              summary: SceneLocalizedText(
+                fallback: 'La clairière est atteinte.',
+              ),
             ),
             postGamePolicy: ScenePostGamePolicy.returnToTitle,
           ),
@@ -122,12 +129,20 @@ SceneAsset _completionScene() => SceneAsset(
       ),
     ],
     edges: [
-      SceneEdge(id: 'start-finish', fromNodeId: 'start',
-        fromPortId: 'completed', toNodeId: 'finish',
-        kind: SceneEdgeKind.defaultFlow),
-      SceneEdge(id: 'finish-end', fromNodeId: 'finish',
-        fromPortId: 'completed', toNodeId: 'end',
-        kind: SceneEdgeKind.defaultFlow),
+      SceneEdge(
+        id: 'start-finish',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'finish',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneEdge(
+        id: 'finish-end',
+        fromNodeId: 'finish',
+        fromPortId: 'completed',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
     ],
   ),
 );

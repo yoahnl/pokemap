@@ -72,9 +72,8 @@ void main() {
       final next = LocalResourceUsageAdapter(session: fixture.session);
       addTearDown(next.dispose);
       expect(
-        (await next.analyze(
-          report.target,
-        )).entries.map((entry) => entry.toJson()),
+        (await next.analyze(report.target)).entries
+            .map((entry) => entry.toJson()),
         report.entries.map((entry) => entry.toJson()),
       );
       await fixture.maps.saveMap(

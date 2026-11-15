@@ -24,11 +24,15 @@ class NarrativeSourceLocation {
     if (fields['mapId'] != document.current.id) return null;
     if (source.kind == NarrativeEventSourceKind.modelInteract) {
       final instance = document.current.spatialScene?.instances
-          .where((instance) => instance.id == fields['instanceId']).firstOrNull;
+          .where((instance) => instance.id == fields['instanceId'])
+          .firstOrNull;
       if (instance == null) return null;
       return NarrativeSourceLocation(
         document: document,
-        position: GridPos(x: instance.position.x.floor(), y: instance.position.z.floor()),
+        position: GridPos(
+          x: instance.position.x.floor(),
+          y: instance.position.z.floor(),
+        ),
         instanceId: instance.id,
       );
     }

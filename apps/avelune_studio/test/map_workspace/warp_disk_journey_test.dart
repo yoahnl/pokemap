@@ -229,48 +229,43 @@ void main() {
     timeout: const Timeout(Duration(minutes: 2)),
   );
 
-  test(
-    'a warp saved as bump does not fire on a plain step',
-    () async {
-      final workspace = await openWorkspace();
-      addTearDown(workspace.dispose);
-      final manifest = workspace.project!;
-      await workspace.activate(
-        manifest.maps.firstWhere((entry) => entry.id == departure),
-      );
-      final document = workspace.active!;
+  test('a warp saved as bump does not fire on a plain step', () async {
+    final workspace = await openWorkspace();
+    addTearDown(workspace.dispose);
+    final manifest = workspace.project!;
+    await workspace.activate(
+      manifest.maps.firstWhere((entry) => entry.id == departure),
+    );
+    final document = workspace.active!;
 
-      final entities = MapEntityEditingCommands(document, manifest);
-      entities.move(entities.playerStart()!.id, const GridPos(x: 4, y: 4));
-      final warps = WarpEditingCommands(document, manifest);
-      final warp = warps.place(
-        manifest.maps.firstWhere((entry) => entry.id == arrival),
-        const GridPos(x: 4, y: 6),
-      );
-      warps.retarget(
-        warp.id,
-        targetPos: const GridPos(x: 7, y: 3),
-        triggerMode: MapWarpTriggerMode.onBump,
-      );
-      expect(await workspace.save(document), isTrue, reason: workspace.error);
+    final entities = MapEntityEditingCommands(document, manifest);
+    entities.move(entities.playerStart()!.id, const GridPos(x: 4, y: 4));
+    final warps = WarpEditingCommands(document, manifest);
+    final warp = warps.place(
+      manifest.maps.firstWhere((entry) => entry.id == arrival),
+      const GridPos(x: 4, y: 6),
+    );
+    warps.retarget(
+      warp.id,
+      targetPos: const GridPos(x: 7, y: 3),
+      triggerMode: MapWarpTriggerMode.onBump,
+    );
+    expect(await workspace.save(document), isTrue, reason: workspace.error);
 
-      final bundle = await loadRuntimeMapBundle(
-        projectFilePath: p.join(directory.path, 'project.json'),
-        mapId: departure,
-      );
-      expect(bundle.map.warps.single.triggerMode, MapWarpTriggerMode.onBump);
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: p.join(directory.path, 'project.json'),
+      mapId: departure,
+    );
+    expect(bundle.map.warps.single.triggerMode, MapWarpTriggerMode.onBump);
 
-      final walk = walkUntilWarp(
-        GameplayWorldState.fromMap(bundle.map, project: bundle.manifest),
-        Direction.south,
-      );
-      expect(
-        walk.result,
-        isNot(isA<WarpTriggered>()),
-        reason:
-            'the mode chosen in the inspector is the one the engine applies',
-      );
-    },
-    timeout: const Timeout(Duration(minutes: 2)),
-  );
+    final walk = walkUntilWarp(
+      GameplayWorldState.fromMap(bundle.map, project: bundle.manifest),
+      Direction.south,
+    );
+    expect(
+      walk.result,
+      isNot(isA<WarpTriggered>()),
+      reason: 'the mode chosen in the inspector is the one the engine applies',
+    );
+  }, timeout: const Timeout(Duration(minutes: 2)));
 }

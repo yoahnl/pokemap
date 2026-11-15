@@ -44,68 +44,62 @@ void main() {
   });
   tearDown(() => maps.dispose());
 
-  test(
-    'advanced interaction warning remains local after map and resource navigation',
-    () async {
-      final original = maps.active!;
-      original.commit(original.current.copyWith(name: 'Carte modifiée'));
-      await narrative.openSource(
-        original,
-        NarrativeEventSourceRef.entityInteract('a', 'other'),
-        'Brouillon conservé',
-      );
-      final draft = narrative.active!;
-      draft.change(
-        interaction: draft.current.interaction.revise(name: 'En cours'),
-      );
-      final snapshot = draft.current;
-      expect(await narrative.openRecord(advanced), false);
-      expect(narrative.error, contains('avancée'));
-      expect(
-        workspaceNarrativeError(narrative, narrativePage: true),
-        contains('avancée'),
-      );
-      expect(workspaceNarrativeError(narrative, narrativePage: false), isNull);
-      await maps.activate(workspaceEntries.last);
-      expect(workspaceNarrativeError(narrative, narrativePage: false), isNull);
-      expect(narrative.sessions.values, contains(draft));
-      expect(draft.current, same(snapshot));
-      expect(draft.dirty, true);
-      expect(original.dirty, true);
-      expect(original.canUndo, true);
-      expect(port.publications, 0);
-    },
-  );
+  test('advanced interaction warning remains local after map and resource navigation', () async {
+    final original = maps.active!;
+    original.commit(original.current.copyWith(name: 'Carte modifiée'));
+    await narrative.openSource(
+      original,
+      NarrativeEventSourceRef.entityInteract('a', 'other'),
+      'Brouillon conservé',
+    );
+    final draft = narrative.active!;
+    draft.change(
+      interaction: draft.current.interaction.revise(name: 'En cours'),
+    );
+    final snapshot = draft.current;
+    expect(await narrative.openRecord(advanced), false);
+    expect(narrative.error, contains('avancée'));
+    expect(
+      workspaceNarrativeError(narrative, narrativePage: true),
+      contains('avancée'),
+    );
+    expect(workspaceNarrativeError(narrative, narrativePage: false), isNull);
+    await maps.activate(workspaceEntries.last);
+    expect(workspaceNarrativeError(narrative, narrativePage: false), isNull);
+    expect(narrative.sessions.values, contains(draft));
+    expect(draft.current, same(snapshot));
+    expect(draft.dirty, true);
+    expect(original.dirty, true);
+    expect(original.canUndo, true);
+    expect(port.publications, 0);
+  });
 
-  test(
-    'failed publication stays visible through consultation until successful retry',
-    () async {
-      final original = maps.active!;
-      narrative.addFact('Aide acceptée');
-      port.fail = true;
-      expect(await narrative.save(), false);
-      expect(
-        workspaceNarrativeError(narrative, narrativePage: false),
-        contains('Conflit'),
-      );
-      expect(await narrative.openRecord(advanced), false);
-      expect(narrative.error, contains('avancée'));
-      expect(
-        workspaceNarrativeError(narrative, narrativePage: false),
-        contains('Conflit'),
-      );
-      await maps.activate(workspaceEntries.last);
-      expect(
-        workspaceNarrativeError(narrative, narrativePage: false),
-        contains('Conflit'),
-      );
-      expect(narrative.pendingFacts, hasLength(1));
-      port.fail = false;
-      expect(await narrative.save(document: original), true);
-      expect(narrative.pendingFacts, isEmpty);
-      expect(workspaceNarrativeError(narrative, narrativePage: false), isNull);
-    },
-  );
+  test('failed publication stays visible through consultation until successful retry', () async {
+    final original = maps.active!;
+    narrative.addFact('Aide acceptée');
+    port.fail = true;
+    expect(await narrative.save(), false);
+    expect(
+      workspaceNarrativeError(narrative, narrativePage: false),
+      contains('Conflit'),
+    );
+    expect(await narrative.openRecord(advanced), false);
+    expect(narrative.error, contains('avancée'));
+    expect(
+      workspaceNarrativeError(narrative, narrativePage: false),
+      contains('Conflit'),
+    );
+    await maps.activate(workspaceEntries.last);
+    expect(
+      workspaceNarrativeError(narrative, narrativePage: false),
+      contains('Conflit'),
+    );
+    expect(narrative.pendingFacts, hasLength(1));
+    port.fail = false;
+    expect(await narrative.save(document: original), true);
+    expect(narrative.pendingFacts, isEmpty);
+    expect(workspaceNarrativeError(narrative, narrativePage: false), isNull);
+  });
 }
 
 class _Port implements NarrativePort {

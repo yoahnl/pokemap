@@ -37,33 +37,30 @@ void main() {
     },
   );
 
-  test(
-    'another session owner cannot refresh a baseline then overwrite old UI groups',
-    () async {
-      final fixture = await MapCatalogFixture.create();
-      addTearDown(fixture.dispose);
-      final old = fixture.controller.project!;
-      final changed = old.copyWith(
-        groups: [
-          const ProjectMapGroup(
-            id: 'retained',
-            name: 'À conserver',
-            type: MapGroupType.city,
-          ),
-        ],
-      );
-      final file = File(p.join(fixture.root.path, 'project.json'));
-      await file.writeAsString(jsonEncode(changed.toJson()));
-      await fixture.adapter.loadProject(fixture.session);
-      final bytes = await file.readAsBytes();
-      final result = await fixture.controller.mutateCatalog(
-        'map.library.reorganize',
-        {'groups': [], 'assignments': []},
-      );
-      expect(result.published, isFalse);
-      expect(result.error, contains('depuis son ouverture'));
-      expect(await file.readAsBytes(), bytes);
-      expect(fixture.controller.project, same(old));
-    },
-  );
+  test('another session owner cannot refresh a baseline then overwrite old UI groups', () async {
+    final fixture = await MapCatalogFixture.create();
+    addTearDown(fixture.dispose);
+    final old = fixture.controller.project!;
+    final changed = old.copyWith(
+      groups: [
+        const ProjectMapGroup(
+          id: 'retained',
+          name: 'À conserver',
+          type: MapGroupType.city,
+        ),
+      ],
+    );
+    final file = File(p.join(fixture.root.path, 'project.json'));
+    await file.writeAsString(jsonEncode(changed.toJson()));
+    await fixture.adapter.loadProject(fixture.session);
+    final bytes = await file.readAsBytes();
+    final result = await fixture.controller.mutateCatalog(
+      'map.library.reorganize',
+      {'groups': [], 'assignments': []},
+    );
+    expect(result.published, isFalse);
+    expect(result.error, contains('depuis son ouverture'));
+    expect(await file.readAsBytes(), bytes);
+    expect(fixture.controller.project, same(old));
+  });
 }

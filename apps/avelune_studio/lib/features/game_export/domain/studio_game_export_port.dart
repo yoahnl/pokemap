@@ -16,8 +16,9 @@ final class StudioGameExportDestination {
   final bool exists;
 }
 
-typedef PickGameExportFile =
-    Future<StudioGameExportDestination?> Function(String suggestedName);
+typedef PickGameExportFile = Future<StudioGameExportDestination?> Function(
+  String suggestedName,
+);
 
 final class StudioGameExportMetadata {
   const StudioGameExportMetadata({

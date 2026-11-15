@@ -8,7 +8,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 
 void main() {
-
   testWidgets(
     'the declared bundle catalogue reaches the creation port through composition',
     (tester) async {
@@ -35,5 +34,4 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
-
 }

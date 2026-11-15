@@ -122,5 +122,4 @@ void main() {
     },
     skip: Platform.environment['AVELUNE_BW2_STUDIO_BUNDLE'] == null,
   );
-
 }

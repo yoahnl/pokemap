@@ -5,13 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-
 import '../support/map_selection_e_shell_owner_fixture.dart';
 import '../support/spatial_border_fixture.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-
   testWidgets(
     'Shift-click on the map adds and removes decors from the selection',
     (tester) async {

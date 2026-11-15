@@ -21,9 +21,8 @@ void main() {
           element.copyWith(frames: [...element.frames, element.frames.first]),
       ],
     );
-    await File(
-      p.join(fixture.root.path, 'project.json'),
-    ).writeAsString(jsonEncode(animated.toJson()));
+    await File(p.join(fixture.root.path, 'project.json'))
+        .writeAsString(jsonEncode(animated.toJson()));
     fixture.controller.dispose();
     controller = MapWorkspaceController(
       fixture.session,

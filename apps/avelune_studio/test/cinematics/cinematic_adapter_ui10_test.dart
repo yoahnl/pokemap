@@ -95,30 +95,29 @@ void main() {
     },
   );
 
-  test(
-    'unclassified existing assets stay readable and are not reclassified by save',
-    () async {
-      final asset = CinematicAdapterFixture.asset('unclassified');
-      final f = await CinematicAdapterFixture.create(cinematics: [asset]);
-      addTearDown(f.dispose);
-      final base = await f.adapter().load(asset.id);
-      expect(base.entry, isNull);
-      final saved = await f.adapter().publish(
-        id: asset.id,
-        base: base,
-        asset: asset.copyWith(notes: 'Notes réelles'),
-      );
-      expect(saved.snapshot!.entry, isNull);
-      expect((await f.readManifest()).cinematicLibraryCatalog.entries, isEmpty);
-    },
-  );
+  test('unclassified existing assets stay readable and are not reclassified by save', () async {
+    final asset = CinematicAdapterFixture.asset('unclassified');
+    final f = await CinematicAdapterFixture.create(cinematics: [asset]);
+    addTearDown(f.dispose);
+    final base = await f.adapter().load(asset.id);
+    expect(base.entry, isNull);
+    final saved = await f.adapter().publish(
+      id: asset.id,
+      base: base,
+      asset: asset.copyWith(notes: 'Notes réelles'),
+    );
+    expect(saved.snapshot!.entry, isNull);
+    expect((await f.readManifest()).cinematicLibraryCatalog.entries, isEmpty);
+  });
 
   test(
     'opening version six refuses before editing without migration or write',
     () async {
       final f = await CinematicAdapterFixture.create();
       addTearDown(f.dispose);
-      await f.writeManifest((await f.readManifest()).copyWith(version: ProjectVersion.v6));
+      await f.writeManifest(
+        (await f.readManifest()).copyWith(version: ProjectVersion.v6),
+      );
       final bytes = await f.file('project.json').readAsBytes();
       await expectLater(
         f.maps.loadProject(f.session),

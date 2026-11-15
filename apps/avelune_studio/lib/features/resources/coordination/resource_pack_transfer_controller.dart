@@ -106,8 +106,11 @@ final class ResourcePackTransferController extends ChangeNotifier {
       phase == ResourcePackTransferPhase.selecting &&
       _releasingInputs == 0 &&
       (!exporting || exportValidation == null);
-  bool get canDiagnose => !operationActive && _selection != null &&
-      phase == ResourcePackTransferPhase.selecting && !_closing;
+  bool get canDiagnose =>
+      !operationActive &&
+      _selection != null &&
+      phase == ResourcePackTransferPhase.selecting &&
+      !_closing;
   bool get canApply =>
       !operationActive &&
       !exporting &&

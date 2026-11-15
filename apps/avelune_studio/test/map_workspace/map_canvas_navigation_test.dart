@@ -235,7 +235,8 @@ void main() {
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: workspaceMap('a'), revision: 'r0', mapId: 'a'),
     );
-    final view = MapEditingViewportSession()..tool = StudioMapTool.collisionPaint;
+    final view = MapEditingViewportSession()
+      ..tool = StudioMapTool.collisionPaint;
     addTearDown(view.dispose);
     await tester.pumpWidget(
       MaterialApp(

@@ -46,9 +46,7 @@ final class LocalRegionalMapAdapter
                       'image/webp',
                       'image/gif',
                     }.contains(asset.artifact.mediaType) &&
-                    ProjectRegionDefinition.acceptsImagePath(
-                      asset.logicalPath,
-                    ))
+                    ProjectRegionDefinition.acceptsImagePath(asset.logicalPath))
                   asset.logicalPath: asset.logicalPath.split('/').last,
             },
           );

@@ -7,7 +7,6 @@ import 'package:map_runtime/map_runtime.dart'
     show MapWarpTransitionPreview, MapWarpTransitionOverlay;
 
 void main() {
-
   testWidgets(
     'shared runtime preview animates and replays without map mutation',
     (tester) async {

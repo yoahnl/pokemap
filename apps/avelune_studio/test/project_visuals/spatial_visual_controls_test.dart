@@ -146,12 +146,15 @@ void main() {
       });
       editing().change(SpatialVisualParameter.weatherDryMinSeconds, 30.0);
       expect(patch.number(SpatialVisualParameter.weatherDryMaxSeconds), 30);
-    final ordered = patch;
-    expect(() => editing().change(SpatialVisualParameter.weatherDryMaxSeconds, 5.0),
-      throwsFormatException);
-    expect(patch, ordered);
-    editing().change(SpatialVisualParameter.weatherDryMaxSeconds, 15.0);
-    expect(patch.number(SpatialVisualParameter.weatherDryMinSeconds), 15);
+      final ordered = patch;
+      expect(
+        () =>
+            editing().change(SpatialVisualParameter.weatherDryMaxSeconds, 5.0),
+        throwsFormatException,
+      );
+      expect(patch, ordered);
+      editing().change(SpatialVisualParameter.weatherDryMaxSeconds, 15.0);
+      expect(patch.number(SpatialVisualParameter.weatherDryMinSeconds), 15);
       final before = patch;
       editing().change(SpatialVisualParameter.weatherStormWeight, 0.0);
       expect(patch, before);

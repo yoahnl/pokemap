@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+
 import 'character_studio_draft.dart';
 
 String? characterStudioFrameBoundsProblem(

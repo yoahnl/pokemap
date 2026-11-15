@@ -9,5 +9,4 @@ void main() {
     expect(specification, isNot(contains('  avelune_studio:')));
     expect(specification, contains('  avelune_design_system:'));
   });
-
 }

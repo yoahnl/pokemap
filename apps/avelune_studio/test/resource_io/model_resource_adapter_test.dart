@@ -52,99 +52,141 @@ void main() {
     },
   );
 
-  test(
-    'Studio imports, configures, reopens and removes a model without changing an open map',
-    () async {
-      final fixture = await ResourceFixture.create();
-      addTearDown(fixture.dispose);
-      final input = File('${fixture.root.path}/source.glb');
-      await input.writeAsBytes(triangleGlb());
-      final mapBefore = await fixture.mapFile.readAsBytes();
-      final imported = await fixture.resources.importModel(
-        sourcePath: input.path,
-        name: 'Maison',
-      );
-      final model = imported.manifest.models3d.single;
-      expect(model.castsShadowsByDefault, isFalse);
-      expect(await fixture.resources.readModel(model.id), triangleGlb());
-      await fixture.resources.mutate('model3d.configure', {
-        'modelId': model.id,
-        'name': 'Maison bleue',
-        'scale': 2,
-        'castsShadowsByDefault': true,
-      });
-      final reopened = await LocalMapWorkspaceAdapter().loadProject(
-        fixture.session,
-      );
-      expect(reopened.models3d.single.name, 'Maison bleue');
-      expect(reopened.models3d.single.scale, 2);
-      expect(reopened.models3d.single.castsShadowsByDefault, isTrue);
-      expect(await fixture.mapFile.readAsBytes(), mapBefore);
-      final nativePath = Platform.environment['AVELUNE_3D_NATIVE_FIXTURE'];
-      if (nativePath != null) {
-        final target = Directory(nativePath);
-        if (await target.exists()) {
-          throw StateError('Native fixture already exists.');
-        }
-        await target.create(recursive: true);
-        await for (final entry in fixture.root.list(
-          recursive: true,
-          followLinks: false,
-        )) {
-          final path =
-              '$nativePath/${entry.path.substring(fixture.root.path.length + 1)}';
-          if (entry is Directory) await Directory(path).create(recursive: true);
-          if (entry is File) {
-            await File(path).parent.create(recursive: true);
-            await entry.copy(path);
-          }
+  test('Studio imports, configures, reopens and removes a model without changing an open map', () async {
+    final fixture = await ResourceFixture.create();
+    addTearDown(fixture.dispose);
+    final input = File('${fixture.root.path}/source.glb');
+    await input.writeAsBytes(triangleGlb());
+    final mapBefore = await fixture.mapFile.readAsBytes();
+    final imported = await fixture.resources.importModel(
+      sourcePath: input.path,
+      name: 'Maison',
+    );
+    final model = imported.manifest.models3d.single;
+    expect(model.castsShadowsByDefault, isFalse);
+    expect(await fixture.resources.readModel(model.id), triangleGlb());
+    await fixture.resources.mutate('model3d.configure', {
+      'modelId': model.id,
+      'name': 'Maison bleue',
+      'scale': 2,
+      'castsShadowsByDefault': true,
+    });
+    final reopened = await LocalMapWorkspaceAdapter().loadProject(
+      fixture.session,
+    );
+    expect(reopened.models3d.single.name, 'Maison bleue');
+    expect(reopened.models3d.single.scale, 2);
+    expect(reopened.models3d.single.castsShadowsByDefault, isTrue);
+    expect(await fixture.mapFile.readAsBytes(), mapBefore);
+    final nativePath = Platform.environment['AVELUNE_3D_NATIVE_FIXTURE'];
+    if (nativePath != null) {
+      final target = Directory(nativePath);
+      if (await target.exists()) {
+        throw StateError('Native fixture already exists.');
+      }
+      await target.create(recursive: true);
+      await for (final entry in fixture.root.list(
+        recursive: true,
+        followLinks: false,
+      )) {
+        final path =
+            '$nativePath/${entry.path.substring(fixture.root.path.length + 1)}';
+        if (entry is Directory) await Directory(path).create(recursive: true);
+        if (entry is File) {
+          await File(path).parent.create(recursive: true);
+          await entry.copy(path);
         }
       }
-      final removed = await fixture.resources.deleteModel(model.id);
-      expect(removed.manifest.models3d, isEmpty);
-      expect(
-        await File('${fixture.root.path}/${model.relativePath}').exists(),
-        isFalse,
-      );
-    },
-  );
+    }
+    final removed = await fixture.resources.deleteModel(model.id);
+    expect(removed.manifest.models3d, isEmpty);
+    expect(
+      await File('${fixture.root.path}/${model.relativePath}').exists(),
+      isFalse,
+    );
+  });
   test('Studio persists and clears collision bounds independently of visual bounds', () async {
     final fixture = await ResourceFixture.create();
     addTearDown(fixture.dispose);
     final input = File('${fixture.root.path}/source.glb');
     await input.writeAsBytes(triangleGlb());
-    final imported = await fixture.resources.importModel(sourcePath: input.path, name: 'Arbre');
+    final imported = await fixture.resources.importModel(
+      sourcePath: input.path,
+      name: 'Arbre',
+    );
     final model = imported.manifest.models3d.single;
     final mapBefore = await fixture.mapFile.readAsBytes();
-    final bounds = {'min': {'x': .1, 'y': 0.0, 'z': .1}, 'max': {'x': .3, 'y': .8, 'z': .3}};
-    await fixture.resources.mutate('model3d.configure', {'modelId': model.id, 'collisionBounds': bounds});
-    final reopened = await LocalMapWorkspaceAdapter().loadProject(fixture.session);
+    final bounds = {
+      'min': {'x': .1, 'y': 0.0, 'z': .1},
+      'max': {'x': .3, 'y': .8, 'z': .3},
+    };
+    await fixture.resources.mutate('model3d.configure', {
+      'modelId': model.id,
+      'collisionBounds': bounds,
+    });
+    final reopened = await LocalMapWorkspaceAdapter().loadProject(
+      fixture.session,
+    );
     expect(reopened.models3d.single.collisionBounds?.toJson(), bounds);
     expect(reopened.models3d.single.inspection.bounds, model.inspection.bounds);
-    await fixture.resources.mutate('model3d.configure', {'modelId': model.id, 'collisionBounds': null});
-    final cleared = await LocalMapWorkspaceAdapter().loadProject(fixture.session);
+    await fixture.resources.mutate('model3d.configure', {
+      'modelId': model.id,
+      'collisionBounds': null,
+    });
+    final cleared = await LocalMapWorkspaceAdapter().loadProject(
+      fixture.session,
+    );
     expect(cleared.models3d.single.collisionBounds, isNull);
     expect(cleared.models3d.single.inspection.bounds, model.inspection.bounds);
     expect(await fixture.mapFile.readAsBytes(), mapBefore);
   });
 
-  test('Studio keeps collision and ramp together after reopening the model', () async {
-    final fixture = await ResourceFixture.create();
-    addTearDown(fixture.dispose);
-    final input = File('${fixture.root.path}/source.glb');
-    await input.writeAsBytes(triangleGlb());
-    final imported = await fixture.resources.importModel(sourcePath: input.path, name: 'Escalier');
-    final model = imported.manifest.models3d.single;
-    final mapBefore = await fixture.mapFile.readAsBytes();
-    final bounds = {'min': {'x': 0.0, 'y': 0.0, 'z': 0.0}, 'max': {'x': .5, 'y': .5, 'z': .5}};
-    final ramp = {'x': 0, 'z': 0, 'width': 1, 'depth': 2, 'lowHeight': 0.0, 'highHeight': 1.0, 'direction': SpatialRampDirection.values.first.name};
-    await fixture.resources.mutate('model3d.configure', {'modelId': model.id, 'collisionBounds': bounds, 'blocksMovementByDefault': false});
-    await fixture.resources.mutate('model3d.configure', {'modelId': model.id, 'rampProfile': ramp});
-    final reopened = (await LocalMapWorkspaceAdapter().loadProject(fixture.session)).models3d.single;
-    expect(reopened.id, model.id);
-    expect(reopened.collisionBounds?.toJson(), bounds);
-    expect(reopened.blocksMovementByDefault, isFalse);
-    expect(reopened.rampProfile?.toJson(), Model3dRampProfile.fromJson(ramp).toJson());
-    expect(await fixture.mapFile.readAsBytes(), mapBefore);
-  });
+  test(
+    'Studio keeps collision and ramp together after reopening the model',
+    () async {
+      final fixture = await ResourceFixture.create();
+      addTearDown(fixture.dispose);
+      final input = File('${fixture.root.path}/source.glb');
+      await input.writeAsBytes(triangleGlb());
+      final imported = await fixture.resources.importModel(
+        sourcePath: input.path,
+        name: 'Escalier',
+      );
+      final model = imported.manifest.models3d.single;
+      final mapBefore = await fixture.mapFile.readAsBytes();
+      final bounds = {
+        'min': {'x': 0.0, 'y': 0.0, 'z': 0.0},
+        'max': {'x': .5, 'y': .5, 'z': .5},
+      };
+      final ramp = {
+        'x': 0,
+        'z': 0,
+        'width': 1,
+        'depth': 2,
+        'lowHeight': 0.0,
+        'highHeight': 1.0,
+        'direction': SpatialRampDirection.values.first.name,
+      };
+      await fixture.resources.mutate('model3d.configure', {
+        'modelId': model.id,
+        'collisionBounds': bounds,
+        'blocksMovementByDefault': false,
+      });
+      await fixture.resources.mutate('model3d.configure', {
+        'modelId': model.id,
+        'rampProfile': ramp,
+      });
+      final reopened = (await LocalMapWorkspaceAdapter().loadProject(
+        fixture.session,
+      )).models3d.single;
+      expect(reopened.id, model.id);
+      expect(reopened.collisionBounds?.toJson(), bounds);
+      expect(reopened.blocksMovementByDefault, isFalse);
+      expect(
+        reopened.rampProfile?.toJson(),
+        Model3dRampProfile.fromJson(ramp).toJson(),
+      );
+      expect(await fixture.mapFile.readAsBytes(), mapBefore);
+    },
+  );
 }

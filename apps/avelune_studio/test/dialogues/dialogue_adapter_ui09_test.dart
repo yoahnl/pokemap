@@ -77,63 +77,57 @@ void main() {
     },
   );
 
-  test(
-    'atomic metadata and source publish declares and emits the same outcome',
-    () async {
-      final f = await DialogueAdapterFixture.create();
-      addTearDown(f.dispose);
-      final port = f.adapter();
-      final base = await port.load('gare');
-      final entry = base.entry.copyWith(
-        declaredOutcomes: const [
-          DialogueDeclaredOutcome(id: 'partir', label: 'Partir'),
-        ],
-      );
-      const source =
-          'title: Accueil\n---\nBonjour !\n-> Partir\n  <<outcome partir>>\n===\n';
-      final saved = await port.publish(
-        id: 'gare',
-        base: base,
-        entry: entry,
-        source: source,
-      );
-      final disk = (await f.readManifest()).dialogues.single;
-      final actual = await f.file(disk.relativePath).readAsString();
-      final compiled = const DialogueAuthoringCompiler().compile(
-        entry: disk,
-        source: actual,
-      );
-      expect(compiled.canPublish, isTrue);
-      expect(compiled.emittedOutcomes, ['partir']);
-      expect(saved.snapshot!.revision, isNot(base.revision));
-      expect(saved.resources.changedPaths.toSet(), {
-        'project.json',
-        'dialogues/gare.yarn',
-      });
-    },
-  );
+  test('atomic metadata and source publish declares and emits the same outcome', () async {
+    final f = await DialogueAdapterFixture.create();
+    addTearDown(f.dispose);
+    final port = f.adapter();
+    final base = await port.load('gare');
+    final entry = base.entry.copyWith(
+      declaredOutcomes: const [
+        DialogueDeclaredOutcome(id: 'partir', label: 'Partir'),
+      ],
+    );
+    const source =
+        'title: Accueil\n---\nBonjour !\n-> Partir\n  <<outcome partir>>\n===\n';
+    final saved = await port.publish(
+      id: 'gare',
+      base: base,
+      entry: entry,
+      source: source,
+    );
+    final disk = (await f.readManifest()).dialogues.single;
+    final actual = await f.file(disk.relativePath).readAsString();
+    final compiled = const DialogueAuthoringCompiler().compile(
+      entry: disk,
+      source: actual,
+    );
+    expect(compiled.canPublish, isTrue);
+    expect(compiled.emittedOutcomes, ['partir']);
+    expect(saved.snapshot!.revision, isNot(base.revision));
+    expect(saved.resources.changedPaths.toSet(), {
+      'project.json',
+      'dialogues/gare.yarn',
+    });
+  });
 
-  test(
-    'source-only receipt changes source revision while preserving manifest bytes',
-    () async {
-      final f = await DialogueAdapterFixture.create();
-      addTearDown(f.dispose);
-      final port = f.adapter();
-      final before = await f.file('project.json').readAsBytes();
-      final base = await port.load('gare');
-      final saved = await port.publish(
-        id: 'gare',
-        base: base,
-        entry: base.entry,
-        source: base.source.replaceFirst('Bonjour', 'Bonsoir'),
-      );
-      expect(await f.file('project.json').readAsBytes(), before);
-      expect(saved.resources.changedPaths, ['dialogues/gare.yarn']);
-      expect(saved.resources.revision, saved.resources.beforeRevision);
-      expect(saved.snapshot!.revision, isNot(base.revision));
-      expect((await port.load('gare')).source, contains('Bonsoir'));
-    },
-  );
+  test('source-only receipt changes source revision while preserving manifest bytes', () async {
+    final f = await DialogueAdapterFixture.create();
+    addTearDown(f.dispose);
+    final port = f.adapter();
+    final before = await f.file('project.json').readAsBytes();
+    final base = await port.load('gare');
+    final saved = await port.publish(
+      id: 'gare',
+      base: base,
+      entry: base.entry,
+      source: base.source.replaceFirst('Bonjour', 'Bonsoir'),
+    );
+    expect(await f.file('project.json').readAsBytes(), before);
+    expect(saved.resources.changedPaths, ['dialogues/gare.yarn']);
+    expect(saved.resources.revision, saved.resources.beforeRevision);
+    expect(saved.snapshot!.revision, isNot(base.revision));
+    expect((await port.load('gare')).source, contains('Bonsoir'));
+  });
 
   test(
     'source and metadata conflicts refuse writes and preserve external edits',

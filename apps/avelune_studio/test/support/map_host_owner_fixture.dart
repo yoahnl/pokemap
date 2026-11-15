@@ -71,20 +71,19 @@ class MapHostOwnerFixture {
       }) ??
       false;
 
-  Future<Map<String, List<int>>> disk() async =>
-      (await RealTestIo.run(
-        tester,
-        () async => {
-          for (final file
-              in await source.directory
-                  .list(recursive: true)
-                  .where(
-                    (file) => file is File && !file.path.contains('/.pokemap/'),
-                  )
-                  .cast<File>()
-                  .toList())
-            file.path.substring(source.directory.path.length): await file
-                .readAsBytes(),
-        },
-      ))!;
+  Future<Map<String, List<int>>> disk() async => (await RealTestIo.run(
+    tester,
+    () async => {
+      for (final file
+          in await source.directory
+              .list(recursive: true)
+              .where(
+                (file) => file is File && !file.path.contains('/.pokemap/'),
+              )
+              .cast<File>()
+              .toList())
+        file.path.substring(source.directory.path.length): await file
+            .readAsBytes(),
+    },
+  ))!;
 }

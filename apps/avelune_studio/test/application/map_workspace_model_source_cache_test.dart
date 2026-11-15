@@ -1,7 +1,9 @@
 import 'dart:collection';
+
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+
 import '../support/scoped_map_workspace_port.dart';
 import 'map_workspace_model_source_cache_fakes.dart';
 
@@ -87,8 +89,9 @@ void main() {
         expect(controller.project, before);
         final replacement = sourceModel('tree', 4);
         final updated = before.copyWith(
-          models3d: (before.models3d as ProjectModel3dEntries)
-              .replaceSelected([replacement]),
+          models3d: (before.models3d as ProjectModel3dEntries).replaceSelected([
+            replacement,
+          ]),
         );
         currentMaps.resetReads();
         receiptMaps.resetReads();
@@ -97,14 +100,8 @@ void main() {
           updated,
           changedModels: {'tree': replacement},
         );
-        expect(
-          (currentMaps.elementReads, receiptMaps.elementReads),
-          (0, 0),
-        );
-        expect(
-          (currentMaps.lengthReads, receiptMaps.lengthReads),
-          (0, 0),
-        );
+        expect((currentMaps.elementReads, receiptMaps.elementReads), (0, 0));
+        expect((currentMaps.lengthReads, receiptMaps.lengthReads), (0, 0));
         expect(controller.project!.models3d.single, same(replacement));
       },
     );
@@ -165,41 +162,49 @@ void main() {
     );
   }
 
-  test('source receipt preserves current fields outside its changed models', () async {
-    final port = ModelSourcePort();
-    final controller = MapWorkspaceController(scopedMapSession, port);
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    await controller.ensureResourceKind('model3d');
-    final before = controller.project!;
-    final replacement = sourceModel('tree', 4);
-    final unrelated = port.other.copyWith(name: 'Current unrelated model');
-    final currentMaps = _CountingMapEntries([
-      for (final map in before.maps) map.copyWith(name: 'Current ${map.name}'),
-    ]);
-    final current = before.copyWith(
-      name: 'Current project',
-      maps: currentMaps,
-      globalProperties: {'current': true},
-      models3d: (before.models3d as ProjectModel3dEntries)
-          .replaceSelected([unrelated]),
-    );
-    controller.project = current;
-    currentMaps.resetReads();
-    controller.acceptResources(
-      before,
-      before.copyWith(models3d: (before.models3d as ProjectModel3dEntries)
-          .replaceSelected([replacement])),
-      changedModels: {'tree': replacement},
-    );
-    expect((currentMaps.elementReads, currentMaps.lengthReads), (0, 0));
-    expect(controller.project!.name, 'Current project');
-    expect(controller.project!.maps, current.maps);
-    expect(controller.project!.globalProperties, current.globalProperties);
-    final models = controller.project!.models3d as ProjectModel3dEntries;
-    expect(models.lookup('tree'), same(replacement));
-    expect(models.lookup('other'), same(unrelated));
-  });
+  test(
+    'source receipt preserves current fields outside its changed models',
+    () async {
+      final port = ModelSourcePort();
+      final controller = MapWorkspaceController(scopedMapSession, port);
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      await controller.ensureResourceKind('model3d');
+      final before = controller.project!;
+      final replacement = sourceModel('tree', 4);
+      final unrelated = port.other.copyWith(name: 'Current unrelated model');
+      final currentMaps = _CountingMapEntries([
+        for (final map in before.maps)
+          map.copyWith(name: 'Current ${map.name}'),
+      ]);
+      final current = before.copyWith(
+        name: 'Current project',
+        maps: currentMaps,
+        globalProperties: {'current': true},
+        models3d: (before.models3d as ProjectModel3dEntries).replaceSelected([
+          unrelated,
+        ]),
+      );
+      controller.project = current;
+      currentMaps.resetReads();
+      controller.acceptResources(
+        before,
+        before.copyWith(
+          models3d: (before.models3d as ProjectModel3dEntries).replaceSelected([
+            replacement,
+          ]),
+        ),
+        changedModels: {'tree': replacement},
+      );
+      expect((currentMaps.elementReads, currentMaps.lengthReads), (0, 0));
+      expect(controller.project!.name, 'Current project');
+      expect(controller.project!.maps, current.maps);
+      expect(controller.project!.globalProperties, current.globalProperties);
+      final models = controller.project!.models3d as ProjectModel3dEntries;
+      expect(models.lookup('tree'), same(replacement));
+      expect(models.lookup('other'), same(unrelated));
+    },
+  );
 }
 
 final class _CountingMapEntries extends ListBase<ProjectMapEntry> {

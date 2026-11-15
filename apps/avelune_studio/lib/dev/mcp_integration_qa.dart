@@ -13,7 +13,9 @@ import '../platform/mcp/studio_mcp_service.dart';
 Future<void> main() async {
   const path = String.fromEnvironment('AVELUNE_MCP_QA_CONNECTION_FILE');
   if (!Platform.isMacOS || path.isEmpty || !File(path).isAbsolute) {
-    throw StateError('The native MCP qualification requires a private connection file.');
+    throw StateError(
+      'The native MCP qualification requires a private connection file.',
+    );
   }
   AveluneWidgetsFlutterBinding.ensureInitialized();
   final output = File(path);
@@ -26,18 +28,20 @@ Future<void> main() async {
     final configuration = service.state == StudioMcpState.ready
         ? service.connection?.clientConfiguration
         : null;
-    updates = updates.then((_) async {
-      if (configuration == null) {
-        if (await output.exists()) await output.delete();
-      } else {
-        await output.parent.create(recursive: true);
-        final staged = File('${output.path}.staged');
-        await staged.writeAsString(configuration, flush: true);
-        await staged.rename(output.path);
-      }
-    }).catchError((Object _) {
-      debugPrint('Native MCP qualification connection export failed.');
-    });
+    updates = updates
+        .then((_) async {
+          if (configuration == null) {
+            if (await output.exists()) await output.delete();
+          } else {
+            await output.parent.create(recursive: true);
+            final staged = File('${output.path}.staged');
+            await staged.writeAsString(configuration, flush: true);
+            await staged.rename(output.path);
+          }
+        })
+        .catchError((Object _) {
+          debugPrint('Native MCP qualification connection export failed.');
+        });
   });
   final catalog = await loadStudioProjectTemplateCatalog();
   runApp(StudioBootstrap(templateCatalog: catalog, mcpService: service));

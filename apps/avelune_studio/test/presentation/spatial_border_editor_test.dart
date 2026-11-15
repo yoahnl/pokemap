@@ -3,6 +3,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_border_edi
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+
 import '../application/spatial_border_commands_test.dart'
     show borderDocument, borderDraft;
 import '../support/spatial_border_fixture.dart';

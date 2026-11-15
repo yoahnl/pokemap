@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:image/image.dart' as image;
 
 Future<void> copyUwU4NativeFixture(Directory source) async {
@@ -27,7 +28,6 @@ Future<void> copyUwU4NativeFixture(Directory source) async {
     y2: 47,
     color: image.ColorRgba8(92, 172, 103, 255),
   );
-  await File(
-    '${target.path}-candidate.png',
-  ).writeAsBytes(image.encodePng(pixels));
+  await File('${target.path}-candidate.png')
+      .writeAsBytes(image.encodePng(pixels));
 }

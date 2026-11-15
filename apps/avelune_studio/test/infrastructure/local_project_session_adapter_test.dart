@@ -24,9 +24,8 @@ void main() {
     () async {
       final project = await createProject(sandbox, 'Exemple réel Studio');
       await Directory(p.join(project.path, 'maps')).create();
-      await File(
-        p.join(project.path, 'maps', 'untouched.json'),
-      ).writeAsString('{"untouched":true}');
+      await File(p.join(project.path, 'maps', 'untouched.json'))
+          .writeAsString('{"untouched":true}');
       final beforeHash = await projectFingerprint(project);
       final beforeEntries = await projectInventory(project);
       final adapter = LocalProjectSessionAdapter();
@@ -97,9 +96,8 @@ void main() {
   });
 
   test('reports a selected file instead of a directory', () async {
-    final file = await File(
-      p.join(sandbox.path, 'selected'),
-    ).writeAsString('x');
+    final file = await File(p.join(sandbox.path, 'selected'))
+        .writeAsString('x');
     await expectLater(
       LocalProjectSessionAdapter().open(file.path),
       failsWith(ProjectOpenProblem.directoryUnavailable),
@@ -123,9 +121,8 @@ void main() {
   test('rejects a manifest symlink escaping the selected root', () async {
     final outside = await createProject(sandbox, 'Exemple externe');
     final selected = await Directory(p.join(sandbox.path, 'selected')).create();
-    await Link(
-      p.join(selected.path, 'project.json'),
-    ).create(p.join(outside.path, 'project.json'));
+    await Link(p.join(selected.path, 'project.json'))
+        .create(p.join(outside.path, 'project.json'));
     final before = await projectFingerprint(outside);
 
     await expectLater(

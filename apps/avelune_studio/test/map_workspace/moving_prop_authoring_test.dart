@@ -57,7 +57,6 @@ void main() {
     document.restore(redo: false);
     expect(document.current, authored);
   });
-
 }
 
 ProjectManifest _project() => const ProjectManifest(

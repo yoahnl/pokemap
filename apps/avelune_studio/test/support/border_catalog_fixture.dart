@@ -9,33 +9,41 @@ ProjectBorderCatalog testBorderCatalog({
       : [
           BorderPrimitiveRole.lineCap,
           BorderPrimitiveRole.lineStraight,
-          if (template != BorderBlueprintTemplate.horizontalFacade) BorderPrimitiveRole.lineCorner,
+          if (template != BorderBlueprintTemplate.horizontalFacade)
+            BorderPrimitiveRole.lineCorner,
         ];
   final primitives = <BorderPublishedPrimitive>[
     for (final role in roles)
-      for (final orientation in nativeOrientations
-          ? BorderPrimitiveOrientation.values.where((v) => v != BorderPrimitiveOrientation.legacyAxis)
-          : [BorderPrimitiveOrientation.legacyAxis])
-      BorderPublishedPrimitive(
-        id: nativeOrientations ? '${role.name}-${orientation.name}' : role.name,
-        sourceElementId: 'test-border',
-        visualSnapshotId: 'border-snapshot-sha256:${'a' * 64}',
-        role: role,
-        authoredOrientation: orientation,
-        weight: 1,
-        anchorPx: const BorderPixelPos(x: 7, y: 7),
-        transforms: BorderTransformPolicy(
-          allowedQuarterTurns: nativeOrientations ? const [0] : const [0, 1, 2, 3],
-          allowFlipX: !nativeOrientations,
+      for (final orientation
+          in nativeOrientations
+              ? BorderPrimitiveOrientation.values.where(
+                  (v) => v != BorderPrimitiveOrientation.legacyAxis,
+                )
+              : [BorderPrimitiveOrientation.legacyAxis])
+        BorderPublishedPrimitive(
+          id: nativeOrientations
+              ? '${role.name}-${orientation.name}'
+              : role.name,
+          sourceElementId: 'test-border',
+          visualSnapshotId: 'border-snapshot-sha256:${'a' * 64}',
+          role: role,
+          authoredOrientation: orientation,
+          weight: 1,
+          anchorPx: const BorderPixelPos(x: 7, y: 7),
+          transforms: BorderTransformPolicy(
+            allowedQuarterTurns: nativeOrientations
+                ? const [0]
+                : const [0, 1, 2, 3],
+            allowFlipX: !nativeOrientations,
+          ),
+          publishedMetrics: BorderPrimitiveAssetMetrics(
+            assetFingerprint: 'test-border',
+            pixelSize: const GridSize(width: 16, height: 16),
+            opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
+            defaultAnchorPx: const BorderPixelPos(x: 7, y: 7),
+            occupancyMaskRle: encodeBorderRleMask(List.filled(256, true)),
+          ),
         ),
-        publishedMetrics: BorderPrimitiveAssetMetrics(
-          assetFingerprint: 'test-border',
-          pixelSize: const GridSize(width: 16, height: 16),
-          opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
-          defaultAnchorPx: const BorderPixelPos(x: 7, y: 7),
-          occupancyMaskRle: encodeBorderRleMask(List.filled(256, true)),
-        ),
-      ),
   ];
   final definition = BorderBlueprintPublishedDefinition(
     name: 'Muret de test',
@@ -49,12 +57,15 @@ ProjectBorderCatalog testBorderCatalog({
       maxOverlapPx: 0,
       gapTolerancePx: 0,
       depthRows: 1,
-      allowAutoRotation: !nativeOrientations && template != BorderBlueprintTemplate.horizontalFacade,
+      allowAutoRotation:
+          !nativeOrientations &&
+          template != BorderBlueprintTemplate.horizontalFacade,
     ),
     sortOrder: 0,
   );
   return ProjectBorderCatalog(
-    formatVersion: nativeOrientations ? ProjectBorderCatalog.formatVersionV4
+    formatVersion: nativeOrientations
+        ? ProjectBorderCatalog.formatVersionV4
         : template == BorderBlueprintTemplate.horizontalFacade
         ? ProjectBorderCatalog.formatVersionV11
         : template == BorderBlueprintTemplate.stoneChainLine

@@ -52,11 +52,9 @@ void main() {
   });
 
   test('only the project maps are offered as destinations', () {
-    expect(
-      commands.destinations().map((entry) => entry.id),
-      ['b'],
-      reason: 'a map never proposes itself as its own destination',
-    );
+    expect(commands.destinations().map((entry) => entry.id), [
+      'b',
+    ], reason: 'a map never proposes itself as its own destination');
     expect(
       () => commands.place(
         const ProjectMapEntry(

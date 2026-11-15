@@ -219,8 +219,11 @@ Future<ResourceMutationReceipt?> _applyScopedClassification(
   } on ResourceFailure {
     rethrow;
   } on Object catch (error) {
-    if (error is CatalogStorageException && error.code == 'catalog.resource_usage.preparation_required') {
-      throw const ResourceFailure('Préparez les usages et les familles depuis « Familles » dans la bibliothèque, puis réessayez. Rien n’a été modifié.');
+    if (error is CatalogStorageException &&
+        error.code == 'catalog.resource_usage.preparation_required') {
+      throw const ResourceFailure(
+        'Préparez les usages et les familles depuis « Familles » dans la bibliothèque, puis réessayez. Rien n’a été modifié.',
+      );
     }
     throw _resourceFailure(error);
   } finally {

@@ -51,41 +51,45 @@ void main() {
     timeout: const Timeout(Duration(seconds: 20)),
   );
 
-  test('contact shadow mutation reuses certified binary fingerprints after commit', () async {
-    final fixture = await ResourceFixture.create();
-    addTearDown(fixture.dispose);
-    await fixture.import();
-    final outside = Zone.current;
-    final storePrefix = '${fixture.root.path}/assets/.pokemap-store/';
-    final observed = <String, _CountingMapFile>{};
-    int streams() =>
-        observed.values.fold(0, (total, file) => total + file.streamReads);
-    int? beforeWrite;
-    int? afterCommit;
-    final adapter = LocalResourceAdapter(
-      session: fixture.session,
-      mapAdapter: fixture.maps,
-      beforeTransactionPrecondition: () async => beforeWrite = streams(),
-      beforeReconciliation: () async => afterCommit = streams(),
-    );
-    addTearDown(adapter.dispose);
-    final receipt = await IOOverrides.runZoned(
-      () => adapter.mutate('project.actor_contact_shadows.configure', {
-        'enabled': true,
-      }),
-      createFile: (path) {
-        final file = outside.run(() => File(path));
-        return file.path.startsWith(storePrefix)
-            ? observed.putIfAbsent(file.path, () => _CountingMapFile(file))
-            : file;
-      },
-    );
-    expect(receipt.manifest.settings.actorContactShadowsByDefault, isTrue);
-    expect(observed, isNotEmpty);
-    expect(beforeWrite, greaterThan(0));
-    expect(afterCommit, beforeWrite);
-    expect(streams(), beforeWrite);
-  }, timeout: const Timeout(Duration(seconds: 20)));
+  test(
+    'contact shadow mutation reuses certified binary fingerprints after commit',
+    () async {
+      final fixture = await ResourceFixture.create();
+      addTearDown(fixture.dispose);
+      await fixture.import();
+      final outside = Zone.current;
+      final storePrefix = '${fixture.root.path}/assets/.pokemap-store/';
+      final observed = <String, _CountingMapFile>{};
+      int streams() =>
+          observed.values.fold(0, (total, file) => total + file.streamReads);
+      int? beforeWrite;
+      int? afterCommit;
+      final adapter = LocalResourceAdapter(
+        session: fixture.session,
+        mapAdapter: fixture.maps,
+        beforeTransactionPrecondition: () async => beforeWrite = streams(),
+        beforeReconciliation: () async => afterCommit = streams(),
+      );
+      addTearDown(adapter.dispose);
+      final receipt = await IOOverrides.runZoned(
+        () => adapter.mutate('project.actor_contact_shadows.configure', {
+          'enabled': true,
+        }),
+        createFile: (path) {
+          final file = outside.run(() => File(path));
+          return file.path.startsWith(storePrefix)
+              ? observed.putIfAbsent(file.path, () => _CountingMapFile(file))
+              : file;
+        },
+      );
+      expect(receipt.manifest.settings.actorContactShadowsByDefault, isTrue);
+      expect(observed, isNotEmpty);
+      expect(beforeWrite, greaterThan(0));
+      expect(afterCommit, beforeWrite);
+      expect(streams(), beforeWrite);
+    },
+    timeout: const Timeout(Duration(seconds: 20)),
+  );
 
   test(
     'contact shadow mutation preserves a concurrent manifest writer',

@@ -1,8 +1,10 @@
 import 'dart:io';
+
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+
 import 'resource_fixture.dart';
 
 void main() {
@@ -36,9 +38,8 @@ void main() {
       expect(receipt.changedPaths, contains('project.json'));
       expect(receipt.changedPaths, isNot(contains('garden.json')));
       expect(
-        await File(
-          '${fixture.root.path}/${tileset.relativePath}',
-        ).readAsBytes(),
+        await File('${fixture.root.path}/${tileset.relativePath}')
+            .readAsBytes(),
         sourceBefore,
       );
       expect(await fixture.source.readAsBytes(), sourceBefore);
@@ -136,26 +137,20 @@ void main() {
     expect(project.borderCatalog.records, isEmpty);
   });
 
-  test(
-    'first decor category and definition commit together; variant preserves original',
-    () async {
-      final imported = await fixture.import();
-      final element = fixture.element(imported.createdTilesetId!);
-      final saved = await fixture.resources.saveElement(element);
-      final original = saved.manifest.elements.single;
-      expect(saved.manifest.elementCategories.single.id, original.categoryId);
-      expect(original.frames, element.frames);
-      final variant = original.copyWith(
-        id: 'tree_variant',
-        name: 'Autre arbre',
-      );
-      final second = await fixture.resources.saveElement(variant);
-      expect(second.manifest.elements, containsAll([original, variant]));
-      final reopened = LocalMapWorkspaceAdapter();
-      expect(
-        (await reopened.loadProject(fixture.session)).elements,
-        second.manifest.elements,
-      );
-    },
-  );
+  test('first decor category and definition commit together; variant preserves original', () async {
+    final imported = await fixture.import();
+    final element = fixture.element(imported.createdTilesetId!);
+    final saved = await fixture.resources.saveElement(element);
+    final original = saved.manifest.elements.single;
+    expect(saved.manifest.elementCategories.single.id, original.categoryId);
+    expect(original.frames, element.frames);
+    final variant = original.copyWith(id: 'tree_variant', name: 'Autre arbre');
+    final second = await fixture.resources.saveElement(variant);
+    expect(second.manifest.elements, containsAll([original, variant]));
+    final reopened = LocalMapWorkspaceAdapter();
+    expect(
+      (await reopened.loadProject(fixture.session)).elements,
+      second.manifest.elements,
+    );
+  });
 }

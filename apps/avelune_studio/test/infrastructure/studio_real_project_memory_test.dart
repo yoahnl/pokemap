@@ -29,9 +29,10 @@ void main() {
       );
       final mapsBySize = manifest.maps.toList()
         ..sort(
-          (a, b) => File('$root/${b.relativePath}').lengthSync().compareTo(
-            File('$root/${a.relativePath}').lengthSync(),
-          ),
+          (a, b) =>
+              File('$root/${b.relativePath}')
+                  .lengthSync()
+                  .compareTo(File('$root/${a.relativePath}').lengthSync()),
         );
       final selected = [
         manifest.maps.first,
@@ -48,9 +49,8 @@ void main() {
           for (final entry in selected) {
             final map = MapData.fromJson(
               jsonDecode(
-                    await File('$root/${entry.relativePath}').readAsString(),
-                  )
-                  as Map<String, dynamic>,
+                await File('$root/${entry.relativePath}').readAsString(),
+              ) as Map<String, dynamic>,
             );
             resources.setActiveMap(map);
             await resources.settled;

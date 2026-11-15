@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
+
 import 'studio_map_resources.dart';
 
 class StudioCharacterThumbnail extends StatefulWidget {

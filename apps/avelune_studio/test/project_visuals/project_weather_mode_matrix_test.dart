@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-
 void main() {
   final modes = <String, SpatialVisualPatch>{
     'fixed': SpatialVisualPatch()
@@ -52,5 +51,4 @@ void main() {
     );
     expect(live.weatherKind, SpatialWeatherKind.snow);
   });
-
 }

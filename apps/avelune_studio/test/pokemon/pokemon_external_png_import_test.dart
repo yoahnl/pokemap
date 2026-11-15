@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_external_import_models.dart';
@@ -9,6 +10,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+
 import '../../../../packages/map_distribution/test/support/spatial_feature_capabilities_fixture.dart';
 import '../support/pokemon_external_source_fixture.dart';
 import 'pokemon_external_png_import_support.dart';
@@ -94,7 +96,10 @@ void main() {
         session: session,
         mapAdapter: maps,
         externalSource: const PokemonExternalSourceFixture(),
-        gen5Source: AveluneGen5BattleSource(client: NoGen5Transport(), release: 'test'),
+        gen5Source: AveluneGen5BattleSource(
+          client: NoGen5Transport(),
+          release: 'test',
+        ),
         pngSource: AvelunePokemonPngSource(
           media: AvelunePokemonMediaSource(client: transport, release: 'test'),
         ),

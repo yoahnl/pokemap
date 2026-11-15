@@ -16,7 +16,6 @@ import '../support/map_workspace_fixture.dart';
 import '../support/spatial_ramp_fixture.dart';
 
 void main() {
-
   testWidgets(
     'scene and ground use qualified preview and Escape or mutations cancel it without changing the map',
     (tester) async {
@@ -107,6 +106,5 @@ class _RampVisuals extends WorkspaceTestVisuals
   Future<SpatialNpcPreview> spatialPreview(
     MapData map,
     ProjectManifest project,
-  ) async =>
-      SpatialNpcPreview({}, () {});
+  ) async => SpatialNpcPreview({}, () {});
 }

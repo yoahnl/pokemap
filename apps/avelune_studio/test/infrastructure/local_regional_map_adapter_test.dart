@@ -11,23 +11,20 @@ import 'package:avelune_studio/features/regional_map/data/local_regional_map_ada
 import 'package:avelune_studio/features/regional_map/domain/regional_map_port.dart';
 
 void main() {
-  test(
-    'regional source offers only region-admissible images and loads map folders',
-    () async {
-      final fixture = await createRegionalFixture(
-        groups: const [
-          ProjectMapGroup(id: 'johto', name: 'Johto', type: MapGroupType.city),
-        ],
-        mapGroupId: 'johto',
-        extraImagePaths: const ['presentation/intro.png', 'data/icon.png'],
-      );
-      addTearDown(() => fixture.root.delete(recursive: true));
-      final source = await fixture.port.load();
-      expect(source.images.keys, ['assets/region.png']);
-      expect(source.project.groups.map((group) => group.id), ['johto']);
-      expect(source.project.maps.single.groupId, 'johto');
-    },
-  );
+  test('regional source offers only region-admissible images and loads map folders', () async {
+    final fixture = await createRegionalFixture(
+      groups: const [
+        ProjectMapGroup(id: 'johto', name: 'Johto', type: MapGroupType.city),
+      ],
+      mapGroupId: 'johto',
+      extraImagePaths: const ['presentation/intro.png', 'data/icon.png'],
+    );
+    addTearDown(() => fixture.root.delete(recursive: true));
+    final source = await fixture.port.load();
+    expect(source.images.keys, ['assets/region.png']);
+    expect(source.project.groups.map((group) => group.id), ['johto']);
+    expect(source.project.maps.single.groupId, 'johto');
+  });
 }
 
 Future<void> seedApiRegionalCatalog(LocalRegionalMapAdapter port) async {

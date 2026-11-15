@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
@@ -220,5 +219,4 @@ void main() {
       'cliff',
     );
   });
-
 }

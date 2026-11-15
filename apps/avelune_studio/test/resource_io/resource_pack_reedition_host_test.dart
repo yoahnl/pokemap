@@ -1,8 +1,10 @@
 import 'dart:io';
+
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+
 import 'resource_pack_reedition_host_support.dart';
 
 void main() {

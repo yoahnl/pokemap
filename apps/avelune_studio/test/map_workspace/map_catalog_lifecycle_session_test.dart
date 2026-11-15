@@ -72,9 +72,8 @@ void main() {
       final entry = fixture.controller.project!.maps.first;
       final disk = MapData.fromJson(
         jsonDecode(
-          await File(
-            p.join(fixture.root.path, entry.relativePath),
-          ).readAsString(),
+          await File(p.join(fixture.root.path, entry.relativePath))
+              .readAsString(),
         ),
       );
       expect(disk, document.current);
@@ -99,9 +98,8 @@ void main() {
       removed.commit(removed.current.copyWith(properties: {'obsolete': true}));
       expect(await fixture.controller.save(removed), isFalse);
       expect(
-        await File(
-          p.join(fixture.root.path, 'maps/${removed.base.mapId}.json'),
-        ).exists(),
+        await File(p.join(fixture.root.path, 'maps/${removed.base.mapId}.json'))
+            .exists(),
         isFalse,
       );
     },

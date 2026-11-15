@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:avelune_studio/features/presentations/data/local_presentation_adapter.dart';
 import 'package:avelune_studio/features/presentations/domain/presentation_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+
 import '../support/cinematic_adapter_fixture.dart';
 
 void main() {
@@ -80,28 +82,22 @@ void main() {
       expect(await f.readManifest(), project);
     },
   );
-  test(
-    'mapless final document and classification are published and independently reopened',
-    () async {
-      final saved = await port.publish(
-        asset: asset('Introduction montée'),
-        base: null,
-      );
-      expect(saved.snapshot!.asset, asset('Introduction montée'));
-      expect(
-        saved.snapshot!.entry!.family,
-        CinematicLibraryFamily.presentation,
-      );
-      expect(
-        (await LocalPresentationAdapter(
-          session: f.session,
-          mapAdapter: f.maps,
-        ).load('intro')).asset,
-        saved.snapshot!.asset,
-      );
-      expect((await f.readManifest()).maps, isEmpty);
-    },
-  );
+  test('mapless final document and classification are published and independently reopened', () async {
+    final saved = await port.publish(
+      asset: asset('Introduction montée'),
+      base: null,
+    );
+    expect(saved.snapshot!.asset, asset('Introduction montée'));
+    expect(saved.snapshot!.entry!.family, CinematicLibraryFamily.presentation);
+    expect(
+      (await LocalPresentationAdapter(
+        session: f.session,
+        mapAdapter: f.maps,
+      ).load('intro')).asset,
+      saved.snapshot!.asset,
+    );
+    expect((await f.readManifest()).maps, isEmpty);
+  });
   test(
     'independent manifest edits survive and conflicting document retains disk',
     () async {
@@ -143,9 +139,11 @@ void main() {
       expect(media.previewBytes, isA<Uint8List>());
       expect(
         media.previewBytes,
-        same(await port.artifacts.read(
-          media.parameters['artifactHandle'] as String,
-        )),
+        same(
+          await port.artifacts.read(
+            media.parameters['artifactHandle'] as String,
+          ),
+        ),
       );
       expect(() => media.previewBytes[0] = 0, throwsUnsupportedError);
       expect(await f.file('project.json').readAsBytes(), before);
@@ -187,56 +185,53 @@ void main() {
     expect(await f.file('assets/.pokemap-media.json').exists(), false);
     expect((await f.readManifest()).presentationCinematics, isEmpty);
   });
-  test(
-    'create and link publishes final content and exact modified scene; stale source refuses',
-    () async {
-      final scene = _scene();
-      await f.writeManifest((await f.readManifest()).copyWith(scenes: [scene]));
-      final changed = SceneAsset.fromJson({
-        ...scene.toJson(),
-        'name': 'Scène modifiée',
-      });
-      final result = await port.publish(
-        asset: asset('Titre final et non le modèle'),
+  test('create and link publishes final content and exact modified scene; stale source refuses', () async {
+    final scene = _scene();
+    await f.writeManifest((await f.readManifest()).copyWith(scenes: [scene]));
+    final changed = SceneAsset.fromJson({
+      ...scene.toJson(),
+      'name': 'Scène modifiée',
+    });
+    final result = await port.publish(
+      asset: asset('Titre final et non le modèle'),
+      base: null,
+      link: PresentationSceneLink(
+        baseScene: scene,
+        scene: changed,
+        nodeId: 'presentation',
+        targetNodeId: 'end',
+      ),
+    );
+    expect(result.snapshot!.asset.title, 'Titre final et non le modèle');
+    final current = (await f.readManifest()).scenes.single;
+    expect(current.name, 'Scène modifiée');
+    expect(
+      current.graph.nodes.singleWhere((n) => n.id == 'presentation').payload,
+      isA<ScenePresentationCinematicPayload>(),
+    );
+    await expectLater(
+      port.delete(result.snapshot!),
+      throwsA(isA<PresentationFailure>()),
+    );
+    await expectLater(
+      port.publish(
+        asset: PresentationCinematicAsset(
+          id: 'other',
+          title: 'Autre',
+          durationUs: 1000000,
+        ),
         base: null,
         link: PresentationSceneLink(
           baseScene: scene,
           scene: changed,
-          nodeId: 'presentation',
+          nodeId: 'other',
           targetNodeId: 'end',
         ),
-      );
-      expect(result.snapshot!.asset.title, 'Titre final et non le modèle');
-      final current = (await f.readManifest()).scenes.single;
-      expect(current.name, 'Scène modifiée');
-      expect(
-        current.graph.nodes.singleWhere((n) => n.id == 'presentation').payload,
-        isA<ScenePresentationCinematicPayload>(),
-      );
-      await expectLater(
-        port.delete(result.snapshot!),
-        throwsA(isA<PresentationFailure>()),
-      );
-      await expectLater(
-        port.publish(
-          asset: PresentationCinematicAsset(
-            id: 'other',
-            title: 'Autre',
-            durationUs: 1000000,
-          ),
-          base: null,
-          link: PresentationSceneLink(
-            baseScene: scene,
-            scene: changed,
-            nodeId: 'other',
-            targetNodeId: 'end',
-          ),
-        ),
-        throwsA(isA<PresentationFailure>()),
-      );
-      expect((await f.readManifest()).presentationCinematics.length, 1);
-    },
-  );
+      ),
+      throwsA(isA<PresentationFailure>()),
+    );
+    expect((await f.readManifest()).presentationCinematics.length, 1);
+  });
   test('archive and delete never remove imported media', () async {
     final saved = await port.publish(asset: asset('Introduction'), base: null);
     final archived = await port.setArchived(saved.snapshot!, true);

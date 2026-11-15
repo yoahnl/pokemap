@@ -146,5 +146,4 @@ void main() {
       expect(fixture.catalog.mutations, 1);
     },
   );
-
 }

@@ -120,11 +120,8 @@ void main() {
     for (final entry in manifest.maps) {
       final map = MapData.fromJson(
         jsonDecode(
-              await File(
-                '${directory.path}/${entry.relativePath}',
-              ).readAsString(),
-            )
-            as Map<String, dynamic>,
+          await File('${directory.path}/${entry.relativePath}').readAsString(),
+        ) as Map<String, dynamic>,
       );
       expect(map.id, entry.id);
       expect(map.layers.whereType<TileLayer>().first.cells, hasLength(384));
@@ -267,13 +264,11 @@ void main() {
   test('resource symlink cannot escape project root', () async {
     final outside = await Directory.systemTemp.createTemp('studio_outside_');
     addTearDown(() => outside.delete(recursive: true));
-    await File(
-      '${directory.path}/assets/atelier.png',
-    ).copy('${outside.path}/atlas.png');
+    await File('${directory.path}/assets/atelier.png')
+        .copy('${outside.path}/atlas.png');
     await File('${directory.path}/assets/atelier.png').delete();
-    await Link(
-      '${directory.path}/assets/atelier.png',
-    ).create('${outside.path}/atlas.png');
+    await Link('${directory.path}/assets/atelier.png')
+        .create('${outside.path}/atlas.png');
     final resources = await StudioMapResources.load(session, manifest);
     addTearDown(resources.dispose);
     resources.setActiveMap(exampleMap('test', 'Test'));

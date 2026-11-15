@@ -28,7 +28,8 @@ void main() {
       }
       if (line.startsWith('cd ')) {
         final path = line.substring(3).split(RegExp(r'\s')).first;
-        final base = path.startsWith('packages/') ||
+        final base =
+            path.startsWith('packages/') ||
                 path.startsWith('apps/') ||
                 path.startsWith('examples/') ||
                 path.startsWith('tools/')
@@ -53,7 +54,8 @@ void main() {
     expect(
       missing,
       isEmpty,
-      reason: 'Missing performance workflow entrypoints:\n${missing.join('\n')}',
+      reason:
+          'Missing performance workflow entrypoints:\n${missing.join('\n')}',
     );
   });
 
@@ -133,8 +135,10 @@ void main() {
       ),
     );
     expect(
-      RegExp(r'^          flutter pub get$', multiLine: true)
-          .allMatches(performanceJob),
+      RegExp(
+        r'^          flutter pub get$',
+        multiLine: true,
+      ).allMatches(performanceJob),
       hasLength(1),
     );
     expect(
@@ -151,7 +155,8 @@ void main() {
     ]) {
       expect(
         RegExp(
-          '^              ${RegExp.escape(flag)} ' r'\\$',
+          '^              ${RegExp.escape(flag)} '
+          r'\\$',
           multiLine: true,
         ).allMatches(performanceJob),
         hasLength(1),
@@ -173,9 +178,9 @@ void main() {
     expect(declaredManifests, orderedEquals(manifests));
     expect(
       manifests.where(
-        (path) => !File(
-          '${repositoryRoot.path}/packages/map_editor/$path',
-        ).existsSync(),
+        (path) =>
+            !File('${repositoryRoot.path}/packages/map_editor/$path')
+                .existsSync(),
       ),
       isEmpty,
     );

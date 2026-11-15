@@ -31,7 +31,10 @@ final _project = workspaceProject.copyWith(
 );
 
 void main() {
-  Future<MapBuilderStoryBinding> open(WidgetTester tester, Locale locale) async {
+  Future<MapBuilderStoryBinding> open(
+    WidgetTester tester,
+    Locale locale,
+  ) async {
     tester.view.physicalSize = const Size(1400, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);

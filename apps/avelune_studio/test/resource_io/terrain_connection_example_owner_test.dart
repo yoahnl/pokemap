@@ -41,7 +41,11 @@ ProjectManifest _terrainProject({
         terrainConnectionRule(
           mask,
           frame?.call(mask) ??
-              SmartTileFrameRef(atlasId: 'atlas', column: mask % 4, row: mask ~/ 4),
+              SmartTileFrameRef(
+                atlasId: 'atlas',
+                column: mask % 4,
+                row: mask ~/ 4,
+              ),
           'path',
         ),
     ],
@@ -68,9 +72,9 @@ ProjectManifest _terrainProject({
 void main() {
   test('terrain example resolves distinct edges using real tile IDs', () {
     final project = _terrainProject();
-    final preset = resourceCatalog(
-      project,
-    ).firstWhere((item) => item.terrain != null).terrain!;
+    final preset = resourceCatalog(project)
+        .firstWhere((item) => item.terrain != null)
+        .terrain!;
     final tiles = terrainConnectionExample(project, preset)!;
     expect(tiles.map((tile) => tile.localTileId), [
       6,
@@ -90,10 +94,7 @@ void main() {
   test('the tile id of a frame is its row times the source columns plus its column', () {
     final source = _source.source as ProjectRegularAtlasTilesetSource;
     expect(source.columns, 4);
-    expect(
-      regularAtlasLocalTileId(row: 0, column: 0, source: source),
-      0,
-    );
+    expect(regularAtlasLocalTileId(row: 0, column: 0, source: source), 0);
     expect(regularAtlasLocalTileId(row: 2, column: 3, source: source), 11);
     expect(regularAtlasLocalTileId(row: 3, column: 1, source: source), 13);
   });

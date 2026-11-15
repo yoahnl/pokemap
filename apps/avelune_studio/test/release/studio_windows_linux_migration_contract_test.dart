@@ -97,9 +97,8 @@ void main() {
     final previous = File(
       '../../packages/map_editor/windows/installer/pokemap.iss',
     ).readAsStringSync();
-    final studio = File(
-      'windows/installer/avelune_studio.iss',
-    ).readAsStringSync();
+    final studio = File('windows/installer/avelune_studio.iss')
+        .readAsStringSync();
 
     for (final setting in [
       'AppId',
@@ -124,25 +123,22 @@ void main() {
       r'..\runner\resources\app_icon.ico',
     );
 
-    final packaging = File(
-      'tool/release/package_windows_manual_release.ps1',
-    ).readAsStringSync();
+    final packaging = File('tool/release/package_windows_manual_release.ps1')
+        .readAsStringSync();
     expect(packaging, contains('windows\\installer\\avelune_studio.iss'));
     expect(packaging, contains('PokeMap-Editor-Setup-\$Version.exe'));
   });
 
   test('Windows runner uses the Studio name and icon', () {
-    final previous = File(
-      '../../packages/map_editor/windows/CMakeLists.txt',
-    ).readAsStringSync();
+    final previous = File('../../packages/map_editor/windows/CMakeLists.txt')
+        .readAsStringSync();
     final studio = File('windows/CMakeLists.txt').readAsStringSync();
     expect(
       _cmakeValue(studio, 'BINARY_NAME'),
       _cmakeValue(previous, 'BINARY_NAME'),
     );
-    final runnerBuild = File(
-      'windows/runner/CMakeLists.txt',
-    ).readAsStringSync();
+    final runnerBuild = File('windows/runner/CMakeLists.txt')
+        .readAsStringSync();
     expect(runnerBuild, isNot(contains('WinSparkle')));
     expect(
       File('windows/runner/editor_updater_bridge.cpp').existsSync(),
@@ -156,17 +152,15 @@ void main() {
     expect(resources, contains('IDI_APP_ICON'));
     expect(resources, contains('resources\\\\app_icon.ico'));
 
-    final icon = File(
-      'windows/runner/resources/app_icon.ico',
-    ).readAsBytesSync();
+    final icon = File('windows/runner/resources/app_icon.ico')
+        .readAsBytesSync();
     expect(icon.length, greaterThan(64));
     expect(icon.sublist(0, 6), [0, 0, 1, 0, 1, 0]);
   });
 
   test('Linux keeps the install identity and displays Avelune Studio', () {
-    final previous = File(
-      '../../packages/map_editor/linux/CMakeLists.txt',
-    ).readAsStringSync();
+    final previous = File('../../packages/map_editor/linux/CMakeLists.txt')
+        .readAsStringSync();
     final studio = File('linux/CMakeLists.txt').readAsStringSync();
     expect(
       _cmakeValue(studio, 'BINARY_NAME'),
@@ -266,7 +260,7 @@ String? _setupValue(String source, String key) {
 }
 
 String? _cmakeValue(String source, String key) {
-  return RegExp(
-    'set\\(${RegExp.escape(key)} "([^"]+)"\\)',
-  ).firstMatch(source)?.group(1);
+  return RegExp('set\\(${RegExp.escape(key)} "([^"]+)"\\)')
+      .firstMatch(source)
+      ?.group(1);
 }

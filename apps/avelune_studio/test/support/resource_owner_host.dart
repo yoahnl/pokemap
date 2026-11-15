@@ -40,9 +40,9 @@ class ResourceOwnerHost {
     return ResourceOwnerHost(fixture, workspace, navigation);
   }
 
-  ResourceItem get item => resourceCatalog(
-    workspace.project!,
-  ).singleWhere((item) => item.tileset != null);
+  ResourceItem get item =>
+      resourceCatalog(workspace.project!)
+          .singleWhere((item) => item.tileset != null);
 
   Future<ProjectManifest> reopen() =>
       LocalMapWorkspaceAdapter().loadProject(fixture.session);

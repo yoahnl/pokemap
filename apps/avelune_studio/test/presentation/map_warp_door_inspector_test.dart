@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 void main() {
-
   test('passive arrival explicitly clears local door', () {
     final document = _document(_boundMap());
     WarpEditingCommands(

@@ -42,12 +42,14 @@ void main() {
         );
         addTearDown(navigation.dispose);
         if (kind == 'prepared metadata') {
-          final preparation = await navigation
-              .prepareOperation('tileset.metadata.update', {
-                'tilesetId': imported.createdTilesetId,
-                'name': 'Publication conservée',
-                'folderId': null,
-              });
+          final preparation = await navigation.prepareOperation(
+            'tileset.metadata.update',
+            {
+              'tilesetId': imported.createdTilesetId,
+              'name': 'Publication conservée',
+              'folderId': null,
+            },
+          );
           await expectLater(
             navigation.applyPrepared(preparation),
             throwsA(isA<ResourceFailure>()),
@@ -55,9 +57,8 @@ void main() {
         } else {
           final assets = AssetCatalog.fromJson(
             jsonDecode(
-              await File(
-                '${fixture.root.path}/assets/.pokemap-assets.json',
-              ).readAsString(),
+              await File('${fixture.root.path}/assets/.pokemap-assets.json')
+                  .readAsString(),
             ),
           );
           await expectLater(

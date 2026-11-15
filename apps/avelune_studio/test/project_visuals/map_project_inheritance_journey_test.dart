@@ -69,7 +69,6 @@ void main() {
     expect(local.preview.value.number(_distance), 10);
     expect(local.dirty, isFalse);
   });
-
 }
 
 final class _Storage extends WorkspaceMemoryPort implements ProjectVisualsPort {

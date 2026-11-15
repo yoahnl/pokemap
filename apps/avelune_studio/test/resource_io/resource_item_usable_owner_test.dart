@@ -14,53 +14,56 @@ ProjectManifest _projectWith(BorderBlueprintRecord record) =>
       ),
     );
 
-ResourceItem _borderItem(ProjectManifest project) => resourceCatalog(
-  project,
-).singleWhere((item) => item.border != null);
+ResourceItem _borderItem(ProjectManifest project) =>
+    resourceCatalog(project).singleWhere((item) => item.border != null);
 
 void main() {
   final published = testBorderCatalog().records.single;
 
-  test('published Borders remain usable when a retired workshop is requested', () {
-    final project = _projectWith(published);
-    final item = _borderItem(project);
-    expect(item.canonicalKind, 'borderBlueprint');
-    expect(item.usableIn(project), isTrue);
-    expect(item.usableIn(project, activeMapId: 'any-map'), isTrue);
-    expect(item.compatibleWith(project.settings.dimension), isTrue);
-  });
+  test(
+    'published Borders remain usable when a retired workshop is requested',
+    () {
+      final project = _projectWith(published);
+      final item = _borderItem(project);
+      expect(item.canonicalKind, 'borderBlueprint');
+      expect(item.usableIn(project), isTrue);
+      expect(item.usableIn(project, activeMapId: 'any-map'), isTrue);
+      expect(item.compatibleWith(project.settings.dimension), isTrue);
+    },
+  );
 
   for (final state in ['unpublished', 'deprecated']) {
-    test('$state Borders keep their placement refusal after workshop retirement', () {
-      final record = switch (state) {
-        'unpublished' => BorderBlueprintRecord(
-          id: published.id,
-          draft: published.draft,
-        ),
-        _ => BorderBlueprintRecord(
-          id: published.id,
-          draft: published.draft,
-          latestPublished: published.latestPublished,
-          isDeprecated: true,
-        ),
-      };
-      final project = _projectWith(record);
-      final item = _borderItem(project);
-      expect(item.usableIn(project), isFalse);
-      expect(item.usableIn(project, activeMapId: 'any-map'), isFalse);
-      expect(
-        filterResourceCatalog(
-          project,
+    test(
+      '$state Borders keep their placement refusal after workshop retirement',
+      () {
+        final record = switch (state) {
+          'unpublished' => BorderBlueprintRecord(
+            id: published.id,
+            draft: published.draft,
+          ),
+          _ => BorderBlueprintRecord(
+            id: published.id,
+            draft: published.draft,
+            latestPublished: published.latestPublished,
+            isDeprecated: true,
+          ),
+        };
+        final project = _projectWith(record);
+        final item = _borderItem(project);
+        expect(item.usableIn(project), isFalse);
+        expect(item.usableIn(project, activeMapId: 'any-map'), isFalse);
+        expect(
+          filterResourceCatalog(project, [
+            item,
+          ], ResourceCatalogFilterState(usableOnly: true)),
+          isEmpty,
+        );
+        expect(
+          filterResourceCatalog(project, [item], ResourceCatalogFilterState()),
           [item],
-          ResourceCatalogFilterState(usableOnly: true),
-        ),
-        isEmpty,
-      );
-      expect(
-        filterResourceCatalog(project, [item], ResourceCatalogFilterState()),
-        [item],
-      );
-    });
+        );
+      },
+    );
   }
 
   test('a resource reserved to another map is not usable there', () {

@@ -1,8 +1,6 @@
-
 import 'package:avelune_studio/features/pokemon/data/pokemon_moves_projection.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-
 
 void main() {
   const catalog = PokemonCatalogFile(
@@ -45,5 +43,4 @@ void main() {
       expect(english.entries.last.name, 'My Growl');
     },
   );
-
 }

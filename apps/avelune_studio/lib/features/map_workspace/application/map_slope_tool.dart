@@ -20,11 +20,7 @@ enum MapSlopeProblem {
 }
 
 final class MapSlopeOutcome {
-  const MapSlopeOutcome({
-    this.problem,
-    this.cutCliffs = 0,
-    this.mound = false,
-  });
+  const MapSlopeOutcome({this.problem, this.cutCliffs = 0, this.mound = false});
   final MapSlopeProblem? problem;
   final int cutCliffs;
   final bool mound;

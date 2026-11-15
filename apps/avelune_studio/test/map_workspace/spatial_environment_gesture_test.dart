@@ -1,4 +1,3 @@
-
 import 'dart:typed_data';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
@@ -17,7 +16,6 @@ import '../support/map_workspace_fixture.dart';
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
-
   testWidgets(
     'spatial strokes preview exact cells, commit once and render generation',
     (tester) async {
@@ -142,6 +140,5 @@ class _SpatialVisuals extends WorkspaceTestVisuals
   Future<SpatialNpcPreview> spatialPreview(
     MapData map,
     ProjectManifest project,
-  ) async =>
-      SpatialNpcPreview({}, () {});
+  ) async => SpatialNpcPreview({}, () {});
 }

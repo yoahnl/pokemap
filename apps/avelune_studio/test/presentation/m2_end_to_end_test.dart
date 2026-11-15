@@ -131,7 +131,8 @@ void main() {
     for (
       var frame = 0;
       frame < 240 &&
-          (!game.isLoaded || game.debugCompletedMapActivationDispatchCount == 0);
+          (!game.isLoaded ||
+              game.debugCompletedMapActivationDispatchCount == 0);
       frame++
     ) {
       await tester.runAsync(

@@ -28,7 +28,8 @@ void main() {
       port: port,
       picker: () async => '/retained.aveluneassets',
       accept: (_) async {
-        if (++accepts <= 2) throw const ResourceFailure('Relecture indisponible');
+        if (++accepts <= 2)
+          throw const ResourceFailure('Relecture indisponible');
       },
     );
     addTearDown(controller.dispose);
@@ -87,8 +88,16 @@ void main() {
 
   test('marks survive a query that hides them and clearMarks empties them', () {
     final state = ResourceLibraryState();
-    const tree = ResourceItem(id: 'tree', name: 'Arbre', kind: ResourceKind.decors);
-    const rock = ResourceItem(id: 'rock', name: 'Rocher', kind: ResourceKind.decors);
+    const tree = ResourceItem(
+      id: 'tree',
+      name: 'Arbre',
+      kind: ResourceKind.decors,
+    );
+    const rock = ResourceItem(
+      id: 'rock',
+      name: 'Rocher',
+      kind: ResourceKind.decors,
+    );
     state
       ..toggleMark(tree)
       ..toggleMark(rock);

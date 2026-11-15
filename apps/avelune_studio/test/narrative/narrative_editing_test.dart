@@ -118,7 +118,6 @@ void main() {
     narrative.active = edit;
   });
   tearDown(() => maps.dispose());
-
 }
 
 class _Port implements NarrativePort {

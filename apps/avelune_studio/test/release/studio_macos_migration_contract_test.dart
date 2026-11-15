@@ -4,31 +4,36 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('Studio can replace the installed PokeMap macOS bundle', () {
-    final config = File(
-      'macos/Runner/Configs/AppInfo.xcconfig',
-    ).readAsStringSync();
+    final config = File('macos/Runner/Configs/AppInfo.xcconfig')
+        .readAsStringSync();
     final plist = File('macos/Runner/Info.plist').readAsStringSync();
-    final entitlements = File(
-      'macos/Runner/Release.entitlements',
-    ).readAsStringSync();
-    final bridge = File(
-      'macos/Runner/StudioUpdaterBridge.swift',
-    ).readAsStringSync();
-    final appDelegate = File('macos/Runner/AppDelegate.swift').readAsStringSync();
-    final xcodeProject = File(
-      'macos/Runner.xcodeproj/project.pbxproj',
-    ).readAsStringSync();
-    final projectAccess = File(
-      'macos/Runner/StudioProjectAccessBridge.swift',
-    ).readAsStringSync();
+    final entitlements = File('macos/Runner/Release.entitlements')
+        .readAsStringSync();
+    final bridge = File('macos/Runner/StudioUpdaterBridge.swift')
+        .readAsStringSync();
+    final appDelegate = File('macos/Runner/AppDelegate.swift')
+        .readAsStringSync();
+    final xcodeProject = File('macos/Runner.xcodeproj/project.pbxproj')
+        .readAsStringSync();
+    final projectAccess = File('macos/Runner/StudioProjectAccessBridge.swift')
+        .readAsStringSync();
 
     expect(config, contains('PRODUCT_NAME = Avelune Studio'));
     expect(config, contains('PRODUCT_MODULE_NAME = Runner'));
     expect(xcodeProject, contains('path = "Avelune Studio.app"'));
     expect(appDelegate, contains('migrateInstalledBundleNameIfNeeded()'));
-    expect(appDelegate, contains('installedBundle.lastPathComponent == "PokeMap.app"'));
-    expect(appDelegate, contains('Bundle.main.bundleIdentifier == "com.yoahnl.pokemap.editor"'));
-    expect(appDelegate, contains('configuration.createsNewApplicationInstance = true'));
+    expect(
+      appDelegate,
+      contains('installedBundle.lastPathComponent == "PokeMap.app"'),
+    );
+    expect(
+      appDelegate,
+      contains('Bundle.main.bundleIdentifier == "com.yoahnl.pokemap.editor"'),
+    );
+    expect(
+      appDelegate,
+      contains('configuration.createsNewApplicationInstance = true'),
+    );
     expect(
       config,
       contains('PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.pokemap.editor'),
@@ -42,9 +47,15 @@ void main() {
       matches(RegExp(r'<key>SUEnableAutomaticChecks</key>\s*<false/>')),
     );
     expect(entitlements, contains('com.apple.security.network.client'));
-    expect(entitlements, contains('com.apple.security.files.user-selected.read-write'));
+    expect(
+      entitlements,
+      contains('com.apple.security.files.user-selected.read-write'),
+    );
     expect(appDelegate, contains('let panel = NSOpenPanel()'));
-    expect(appDelegate, contains('authorizedDirectory.startAccessingSecurityScopedResource()'));
+    expect(
+      appDelegate,
+      contains('authorizedDirectory.startAccessingSecurityScopedResource()'),
+    );
     expect(bridge, contains('map_editor/editor_updates'));
     expect(bridge, contains('respondToRestart'));
     expect(bridge, contains('shouldPostponeRelaunchForUpdate'));
@@ -62,9 +73,8 @@ void main() {
   });
 
   test('the stable workflow packages Studio under the existing update tag', () {
-    final workflow = File(
-      '../../.github/workflows/pokemap_desktop_release.yml',
-    ).readAsStringSync();
+    final workflow = File('../../.github/workflows/pokemap_desktop_release.yml')
+        .readAsStringSync();
     final pubspec = File('pubspec.yaml').readAsStringSync();
     final version = RegExp(
       r'^version: (\d+)\.(\d+)\.(\d+)\+(\d+)$',
@@ -81,7 +91,13 @@ void main() {
     expect(workflow, contains('POKEMAP_SPARKLE_PUBLIC_ED_KEY'));
     expect(workflow, contains('CFBundleIdentifier raw'));
     expect(workflow, contains('com.yoahnl.pokemap.editor'));
-    expect(workflow, contains('build/macos/Build/Products/Release/Avelune Studio.app'));
-    expect(workflow, isNot(contains('build/macos/Build/Products/Release/PokeMap.app')));
+    expect(
+      workflow,
+      contains('build/macos/Build/Products/Release/Avelune Studio.app'),
+    );
+    expect(
+      workflow,
+      isNot(contains('build/macos/Build/Products/Release/PokeMap.app')),
+    );
   });
 }

@@ -149,5 +149,4 @@ void main() {
     expect(slope.action, 'Pente');
     expect(slope.usesPalette, isFalse);
   });
-
 }

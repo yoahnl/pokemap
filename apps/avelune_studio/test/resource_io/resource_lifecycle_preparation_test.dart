@@ -68,31 +68,28 @@ void main() {
     expect(await fixture.mapFile.readAsBytes(), before['/garden.json']);
   });
 
-  test(
-    'released preparation cannot write and preview cancellation changes nothing',
-    () async {
-      final fixture = await ResourceFixture.create();
-      addTearDown(fixture.dispose);
-      final imported = await fixture.import();
-      final before = await files(fixture.root);
-      final preview = await fixture.resources.prepareReplacement(
-        ResourceReplacementRequest(
-          tilesetId: imported.manifest.tilesets.single.id,
-          sourcePath: fixture.source.path,
-          bytes: candidate(),
-        ),
-      );
-      await fixture.resources.releasePreparation(preview.preparation);
-      await expectLater(
-        fixture.resources.applyPrepared(
-          preview.preparation,
-          confirmDestructive: true,
-        ),
-        throwsA(isA<ResourceFailure>()),
-      );
-      expect(await files(fixture.root), before);
-    },
-  );
+  test('released preparation cannot write and preview cancellation changes nothing', () async {
+    final fixture = await ResourceFixture.create();
+    addTearDown(fixture.dispose);
+    final imported = await fixture.import();
+    final before = await files(fixture.root);
+    final preview = await fixture.resources.prepareReplacement(
+      ResourceReplacementRequest(
+        tilesetId: imported.manifest.tilesets.single.id,
+        sourcePath: fixture.source.path,
+        bytes: candidate(),
+      ),
+    );
+    await fixture.resources.releasePreparation(preview.preparation);
+    await expectLater(
+      fixture.resources.applyPrepared(
+        preview.preparation,
+        confirmDestructive: true,
+      ),
+      throwsA(isA<ResourceFailure>()),
+    );
+    expect(await files(fixture.root), before);
+  });
 
   test(
     'wrong dimensions and malformed PNG are refused before staging publication',

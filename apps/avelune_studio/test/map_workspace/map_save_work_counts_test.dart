@@ -1,10 +1,12 @@
 import 'dart:io';
+
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+
 import 'map_save_work_counts_fixture.dart';
 
 void main() {
@@ -27,10 +29,14 @@ void main() {
         expect(controller.error, isNull);
         final document = controller.active!;
         expect(document.base.mapId, 'a');
-        expect(controller.project!.characters.map((entry) => entry.id),
-            contains('trainer-look'));
-        expect(controller.project!.elements.map((entry) => entry.id),
-            contains('trainer-portrait'));
+        expect(
+          controller.project!.characters.map((entry) => entry.id),
+          contains('trainer-look'),
+        );
+        expect(
+          controller.project!.elements.map((entry) => entry.id),
+          contains('trainer-portrait'),
+        );
 
         final gestures = <String, void Function(EditableMapDocument, int)>{
           'presence': _presence,
@@ -130,18 +136,29 @@ void main() {
           catalog.metadata.maps.singleWhere((entry) => entry.id == 'a'),
         );
         expect(reopened.document.map, saved);
-        expect(reopened.definitions.characters.map((entry) => entry.id),
-            contains('trainer-look'));
-        expect(reopened.document.map.entities.single.npc!.trainerId,
-            'guide-trainer');
-        final store = await CatalogStorageStore.open(projectRoot: fixture.root.path);
-        final root = (await store.openRoot((await store.readHead())!)).snapshot;
-        final preserved = await PortableProjectCatalog.fromSnapshot(root,
-            metadataFields: {'trainers'});
-        expect(preserved.projectMetadata.trainers.map((trainer) => trainer.id), [
+        expect(
+          reopened.definitions.characters.map((entry) => entry.id),
+          contains('trainer-look'),
+        );
+        expect(
+          reopened.document.map.entities.single.npc!.trainerId,
           'guide-trainer',
-          for (var i = 0; i < unrelated; i++) 'foreign-trainer-$i',
-        ]);
+        );
+        final store = await CatalogStorageStore.open(
+          projectRoot: fixture.root.path,
+        );
+        final root = (await store.openRoot((await store.readHead())!)).snapshot;
+        final preserved = await PortableProjectCatalog.fromSnapshot(
+          root,
+          metadataFields: {'trainers'},
+        );
+        expect(
+          preserved.projectMetadata.trainers.map((trainer) => trainer.id),
+          [
+            'guide-trainer',
+            for (var i = 0; i < unrelated; i++) 'foreign-trainer-$i',
+          ],
+        );
         expect(
           reopened.document.map.spatialScene!.camera.distance,
           _distance(1),
@@ -172,9 +189,15 @@ void main() {
         final mapBytes = await storedMap.readAsBytes();
         final headBytes = await storedHead.readAsBytes();
         final entity = document.current.entities.single;
-        document.commit(document.current.copyWith(entities: [
-          entity.copyWith(npc: entity.npc!.copyWith(trainerId: 'missing-trainer')),
-        ]));
+        document.commit(
+          document.current.copyWith(
+            entities: [
+              entity.copyWith(
+                npc: entity.npc!.copyWith(trainerId: 'missing-trainer'),
+              ),
+            ],
+          ),
+        );
         expect(await controller.save(document), isFalse);
         expect(document.error, isNotNull);
         expect(await storedMap.readAsBytes(), mapBytes);

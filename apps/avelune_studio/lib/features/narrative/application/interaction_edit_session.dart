@@ -1,6 +1,7 @@
 import '../../map_workspace/application/editable_map_document.dart';
 import '../domain/dialogue_draft.dart';
 import 'narrative_interaction.dart';
+
 import 'package:map_core/map_core_domain.dart';
 
 class InteractionEditState {

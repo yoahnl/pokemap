@@ -38,9 +38,8 @@ void main() {
   }
 
   test('keeping a referenced species can create its missing companion', () {
-    final plan = preview(
-      'custom-learn',
-    ).plan(PokemonExternalConflictPolicy.skipExisting);
+    final plan = preview('custom-learn')
+        .plan(PokemonExternalConflictPolicy.skipExisting);
     expect(plan.created, 1);
     expect(plan.kept, 1);
     expect(plan.excluded, isEmpty);
@@ -54,9 +53,8 @@ void main() {
   });
 
   test('replacement writes the proposed species reference', () {
-    final plan = preview(
-      '',
-    ).plan(PokemonExternalConflictPolicy.overwriteExisting);
+    final plan = preview('')
+        .plan(PokemonExternalConflictPolicy.overwriteExisting);
     expect(plan.overwritten, 1);
     expect(plan.created, 1);
     expect(plan.excluded, isEmpty);

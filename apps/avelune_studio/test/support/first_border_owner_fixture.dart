@@ -9,9 +9,10 @@ import '../resource_io/resource_fixture.dart';
 const firstBorderId = 'garden-fence';
 
 Future<void> seedFirstBorderOverOpaqueGround(ResourceFixture fixture) async {
-  final tilesetId = (await fixture.maps.loadProject(
-    fixture.session,
-  )).tilesets.single.id;
+  final tilesetId = (await fixture.maps.loadProject(fixture.session))
+      .tilesets
+      .single
+      .id;
   for (final (id, x) in [('cap', 0), ('straight', 1), ('corner', 2)]) {
     await fixture.resources.saveElement(
       fixture

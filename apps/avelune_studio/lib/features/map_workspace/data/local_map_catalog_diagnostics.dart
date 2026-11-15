@@ -63,19 +63,15 @@ List<MapCatalogIssue> mapCatalogIssues(
       MapCatalogIssue(
         code: code,
         message: switch (code) {
-          'map.inventory_incomplete' =>
-            'Des documents du projet sont absents ou illisibles. L’analyse des usages est incomplète.',
-          'map.references_blocking' =>
-            'Cette carte est utilisée par le projet. Modifiez ses références avant de la supprimer.',
-          'map.resize_impacts' =>
-            'Ces dimensions retireraient du contenu ou invalideraient une référence. Agrandissez la zone proposée.',
+          'map.inventory_incomplete' => 'Des documents du projet sont absents ou illisibles. L’analyse des usages est incomplète.',
+          'map.references_blocking' => 'Cette carte est utilisée par le projet. Modifiez ses références avant de la supprimer.',
+          'map.resize_impacts' => 'Ces dimensions retireraient du contenu ou invalideraient une référence. Agrandissez la zone proposée.',
           'map.id_exists' => 'Cet identifiant existe déjà dans le projet.',
           'map.group_missing' =>
             'Le dossier choisi n’existe plus. Sélectionnez un autre dossier.',
           'map.request_invalid' =>
             'Vérifiez les informations saisies avant de poursuivre.',
-          _ =>
-            'Cette opération est refusée. Vérifiez les données et les références de la carte.',
+          _ => 'Cette opération est refusée. Vérifiez les données et les références de la carte.',
         },
       ),
     );

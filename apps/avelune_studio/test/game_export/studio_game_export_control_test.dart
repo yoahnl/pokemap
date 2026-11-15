@@ -72,38 +72,53 @@ void main() {
     destinationExists: destinationExists,
   );
 
-  test('a concurrent saved profile is preserved and blocks a stale Studio draft', () async {
-    final store = GamePackageExportProfileStore(projectRoot: source.directory);
-    await store.save(profile);
-    final owner = controller();
-    addTearDown(owner.dispose);
-    await owner.load();
-    final concurrent = profile.copyWith(title: 'Concurrent profile');
-    await store.save(concurrent);
-    final bytes = await store.profileFile.readAsBytes();
-    expect(await run(owner), isFalse);
-    expect(owner.error, contains('profil d’export a changé'));
-    expect(await output.exists(), isFalse);
-    expect(await store.profileFile.readAsBytes(), bytes);
-  });
-
-  test('Studio saves after writing and preserves a profile changed during export', () async {
-    final store = GamePackageExportProfileStore(projectRoot: source.directory);
-    final original = profile.copyWith(title: 'Before export');
-    final concurrent = profile.copyWith(title: 'Concurrent during write');
-    await store.save(original);
-    final owner = controller(write: (artifact, file) async {
-      expect(await store.load(), original);
-      await const CanonicalGamePackageExportService().writeArtifactToFile(artifact: artifact, outputFile: file);
+  test(
+    'a concurrent saved profile is preserved and blocks a stale Studio draft',
+    () async {
+      final store = GamePackageExportProfileStore(
+        projectRoot: source.directory,
+      );
+      await store.save(profile);
+      final owner = controller();
+      addTearDown(owner.dispose);
+      await owner.load();
+      final concurrent = profile.copyWith(title: 'Concurrent profile');
       await store.save(concurrent);
-    });
-    addTearDown(owner.dispose);
-    await owner.load();
-    expect(await run(owner), isTrue);
-    expect(owner.warning, contains('profil d’export n’a pas été mémorisé'));
-    expect(await store.load(), concurrent);
-    expect(await output.exists(), isTrue);
-  });
+      final bytes = await store.profileFile.readAsBytes();
+      expect(await run(owner), isFalse);
+      expect(owner.error, contains('profil d’export a changé'));
+      expect(await output.exists(), isFalse);
+      expect(await store.profileFile.readAsBytes(), bytes);
+    },
+  );
+
+  test(
+    'Studio saves after writing and preserves a profile changed during export',
+    () async {
+      final store = GamePackageExportProfileStore(
+        projectRoot: source.directory,
+      );
+      final original = profile.copyWith(title: 'Before export');
+      final concurrent = profile.copyWith(title: 'Concurrent during write');
+      await store.save(original);
+      final owner = controller(
+        write: (artifact, file) async {
+          expect(await store.load(), original);
+          await const CanonicalGamePackageExportService().writeArtifactToFile(
+            artifact: artifact,
+            outputFile: file,
+          );
+          await store.save(concurrent);
+        },
+      );
+      addTearDown(owner.dispose);
+      await owner.load();
+      expect(await run(owner), isTrue);
+      expect(owner.warning, contains('profil d’export n’a pas été mémorisé'));
+      expect(await store.load(), concurrent);
+      expect(await output.exists(), isTrue);
+    },
+  );
 
   test(
     'invalid preparation preserves the draft and creates no package',
@@ -144,26 +159,32 @@ void main() {
     expect(owner.failure?.detail, contains('assets/atelier.png'));
   });
 
-  test('an unknown build failure names no owner and keeps its detail', () async {
-    final owner = controller(
-      build: (_, _, _) async => throw const FormatException('octet 7'),
-    );
-    addTearDown(owner.dispose);
-    expect(await run(owner), isFalse);
-    expect(owner.failure?.determined, isFalse);
-    expect(owner.failure?.owner, isNull);
-    expect(owner.failure?.detail, contains('octet 7'));
-    expect(owner.error, contains('Export impossible'));
-  });
+  test(
+    'an unknown build failure names no owner and keeps its detail',
+    () async {
+      final owner = controller(
+        build: (_, _, _) async => throw const FormatException('octet 7'),
+      );
+      addTearDown(owner.dispose);
+      expect(await run(owner), isFalse);
+      expect(owner.failure?.determined, isFalse);
+      expect(owner.failure?.owner, isNull);
+      expect(owner.failure?.detail, contains('octet 7'));
+      expect(owner.error, contains('Export impossible'));
+    },
+  );
 
-  test('a destination that appeared is owned by the destination choice', () async {
-    final owner = controller(destinationExists: (_) async => true);
-    addTearDown(owner.dispose);
-    expect(await run(owner), isFalse);
-    expect(owner.failure?.family, StudioCheckFamily.input);
-    expect(owner.failure?.owner, StudioFailureOwner.exportDestination);
-    expect(owner.error, contains('existe désormais'));
-  });
+  test(
+    'a destination that appeared is owned by the destination choice',
+    () async {
+      final owner = controller(destinationExists: (_) async => true);
+      addTearDown(owner.dispose);
+      expect(await run(owner), isFalse);
+      expect(owner.failure?.family, StudioCheckFamily.input);
+      expect(owner.failure?.owner, StudioFailureOwner.exportDestination);
+      expect(owner.error, contains('existe désormais'));
+    },
+  );
 
   test('cancelled build never writes a late result', () async {
     final gate = Completer<GamePackageExportArtifact>();

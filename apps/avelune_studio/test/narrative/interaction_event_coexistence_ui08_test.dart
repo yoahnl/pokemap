@@ -81,47 +81,41 @@ void main() {
     );
   }
 
-  test(
-    'record-only publication invalidates a clean simplified session and reloads new priority',
-    () async {
-      expect(await narrative.openRecord(records.first), true);
-      final old = narrative.active!;
-      final scenes = maps.project!.scenes;
-      final updated = reprioritize(records.first);
-      replaceFirst(updated);
-      expect(maps.project!.scenes, scenes);
-      expect(narrative.sessions.containsKey(records.first.id), false);
-      expect(await narrative.openSession(old), true);
-      expect(narrative.active!.baseEvent, updated);
-      expect(narrative.active!.current.interaction.priority, 42);
-      expect(narrative.active!.dirty, false);
-      expect(port.publications, 0);
-    },
-  );
+  test('record-only publication invalidates a clean simplified session and reloads new priority', () async {
+    expect(await narrative.openRecord(records.first), true);
+    final old = narrative.active!;
+    final scenes = maps.project!.scenes;
+    final updated = reprioritize(records.first);
+    replaceFirst(updated);
+    expect(maps.project!.scenes, scenes);
+    expect(narrative.sessions.containsKey(records.first.id), false);
+    expect(await narrative.openSession(old), true);
+    expect(narrative.active!.baseEvent, updated);
+    expect(narrative.active!.current.interaction.priority, 42);
+    expect(narrative.active!.dirty, false);
+    expect(port.publications, 0);
+  });
 
-  test(
-    'record-only publication preserves dirty simplified draft and explicitly blocks stale save',
-    () async {
-      await narrative.openRecord(records.first);
-      final edit = narrative.active!;
-      edit.change(dialogue: edit.current.dialogue);
-      final snapshot = edit.current;
-      final updated = reprioritize(records.first);
-      replaceFirst(updated);
-      expect(narrative.sessions[records.first.id], same(edit));
-      expect(edit.current, same(snapshot));
-      expect(edit.dirty, true);
-      expect(await narrative.openSession(edit), false);
-      expect(narrative.error, contains('événement'));
-      expect(await narrative.save(document: edit.document), false);
-      expect(port.publications, 0);
-      expect(maps.project!.eventRegistry!.records.first, updated);
-      expect(await narrative.openRecord(records.last), true);
-      expect(narrative.discardInteraction(records.first.id), true);
-      expect(await narrative.openRecord(updated), true);
-      expect(narrative.active!.current.interaction.priority, 42);
-    },
-  );
+  test('record-only publication preserves dirty simplified draft and explicitly blocks stale save', () async {
+    await narrative.openRecord(records.first);
+    final edit = narrative.active!;
+    edit.change(dialogue: edit.current.dialogue);
+    final snapshot = edit.current;
+    final updated = reprioritize(records.first);
+    replaceFirst(updated);
+    expect(narrative.sessions[records.first.id], same(edit));
+    expect(edit.current, same(snapshot));
+    expect(edit.dirty, true);
+    expect(await narrative.openSession(edit), false);
+    expect(narrative.error, contains('événement'));
+    expect(await narrative.save(document: edit.document), false);
+    expect(port.publications, 0);
+    expect(maps.project!.eventRegistry!.records.first, updated);
+    expect(await narrative.openRecord(records.last), true);
+    expect(narrative.discardInteraction(records.first.id), true);
+    expect(await narrative.openRecord(updated), true);
+    expect(narrative.active!.current.interaction.priority, 42);
+  });
 
   test(
     'UI08 draft blocks edits and publication of same simplified event only',

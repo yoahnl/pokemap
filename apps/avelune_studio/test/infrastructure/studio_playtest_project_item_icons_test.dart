@@ -135,11 +135,9 @@ void main() {
       ]);
       final assets = AssetCatalog.fromJson(
         jsonDecode(
-              await File(
-                p.join(session.directoryPath, assetCatalogStorageKey),
-              ).readAsString(),
-            )
-            as Map<String, dynamic>,
+          await File(p.join(session.directoryPath, assetCatalogStorageKey))
+              .readAsString(),
+        ) as Map<String, dynamic>,
       );
       expect(
         assets.findByLogicalPath('data/pokemon/assets/items/potion.png'),

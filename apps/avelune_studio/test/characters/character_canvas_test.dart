@@ -8,6 +8,7 @@ import 'package:avelune_studio/features/map_workspace/coordination/map_editing_v
 import 'package:avelune_studio/features/map_workspace/application/map_character_gesture.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
+
 import '../support/map_workspace_fixture.dart';
 import 'character_editing_test.dart' show guide;
 

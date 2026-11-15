@@ -24,28 +24,46 @@ Future<ResourceMutationReceipt> _importCharacterAnimation(
         'kind': 'animationClip',
         'slotKind': 'system',
         'characterId': request.characterId,
-        'state': CharacterAnimation(state: request.state, direction: request.direction, frames: const []).toJson()['state'],
+        'state': CharacterAnimation(
+          state: request.state,
+          direction: request.direction,
+          frames: const [],
+        ).toJson()['state'],
         'direction': request.direction.name,
-        if (request.state == CharacterAnimationState.surfEnter || request.state == CharacterAnimationState.surfExit) 'loop': false,
+        if (request.state == CharacterAnimationState.surfEnter ||
+            request.state == CharacterAnimationState.surfExit)
+          'loop': false,
         'frames': <Object?>[
-          for (var index = 0; index < (request.state == CharacterAnimationState.bicycle ||
-              request.state == CharacterAnimationState.bicycleIdle ? 4 : 3); index++)
+          for (
+            var index = 0;
+            index <
+                (request.state == CharacterAnimationState.bicycle ||
+                        request.state == CharacterAnimationState.bicycleIdle
+                    ? 4
+                    : 3);
+            index++
+          )
             <String, Object?>{
               'source': <String, int>{
                 'x': index * request.poseWidth,
-                'y': request.state == CharacterAnimationState.bicycle ||
-                    request.state == CharacterAnimationState.bicycleIdle
+                'y':
+                    request.state == CharacterAnimationState.bicycle ||
+                        request.state == CharacterAnimationState.bicycleIdle
                     ? switch (request.direction) {
-                      EntityFacing.south => 0,
-                      EntityFacing.west => request.poseHeight,
-                      EntityFacing.east => request.poseHeight * 2,
-                      EntityFacing.north => request.poseHeight * 3,
-                    } : 0,
+                        EntityFacing.south => 0,
+                        EntityFacing.west => request.poseHeight,
+                        EntityFacing.east => request.poseHeight * 2,
+                        EntityFacing.north => request.poseHeight * 3,
+                      }
+                    : 0,
                 'width': request.poseWidth,
                 'height': request.poseHeight,
               },
-              'durationMs': request.state == CharacterAnimationState.bicycle ||
-                  request.state == CharacterAnimationState.bicycleIdle ? 100 : 150,
+              'durationMs':
+                  request.state == CharacterAnimationState.bicycle ||
+                      request.state == CharacterAnimationState.bicycleIdle
+                  ? 100
+                  : 150,
             },
         ],
       },

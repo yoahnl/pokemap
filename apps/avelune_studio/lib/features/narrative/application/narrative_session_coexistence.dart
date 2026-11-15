@@ -81,8 +81,7 @@ extension NarrativeSessionCoexistence on NarrativeWorkspaceController {
     sessions.removeWhere((_, session) => removed.contains(session));
     if (removed.contains(active)) {
       active = null;
-      error =
-          'L’interaction a changé ou a disparu. Rouvrez sa version actuelle depuis la bibliothèque.';
+      error = 'L’interaction a changé ou a disparu. Rouvrez sa version actuelle depuis la bibliothèque.';
     }
     changed();
   }

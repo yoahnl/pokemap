@@ -35,66 +35,62 @@ void main() {
     },
   );
 
-  test(
-    'small budget evicts unused A and reloads A after B without destroying leases',
-    () async {
-      await File(
-        '${fixture.directory.path}/assets/atelier.png',
-      ).copy('${fixture.directory.path}/assets/other.png');
-      final manifest = fixture.manifest.copyWith(
-        characters: [],
-        tilesets: [
-          const ProjectTilesetEntry(
-            id: 'a',
-            name: 'A',
-            relativePath: 'assets/atelier.png',
-          ),
-          const ProjectTilesetEntry(
-            id: 'b',
-            name: 'B',
-            relativePath: 'assets/other.png',
-          ),
-        ],
-      );
-      final resources = await StudioMapResources.load(
-        fixture.session,
-        manifest,
-        maximumBytes: fixture.decodedAtlasBytes,
-      );
-      addTearDown(resources.dispose);
-      final mapA = MapData(
-        id: 'a',
-        name: 'A',
-        tilesetId: 'a',
-        size: const GridSize(width: 1, height: 1),
-      );
-      final mapB = mapA.copyWith(id: 'b', tilesetId: 'b');
-      resources.setActiveMap(mapA);
-      await resources.settled;
-      final firstA = resources.images['a']!;
-      final painter = Object();
-      resources.retain(painter, {'a'});
-      resources.setActiveMap(mapB);
-      await resources.settled;
-      expect(firstA.debugDisposed, isFalse);
-      expect(
-        resources.diagnostics.single.cause,
-        WorkspaceResourceCause.memoryPressure,
-      );
-      resources.release(painter);
-      await resources.settled;
-      expect(firstA.debugDisposed, isTrue);
-      expect(resources.images.keys, ['b']);
-      resources.setActiveMap(mapA);
-      await resources.settled;
-      expect(resources.images.keys, ['a']);
-      expect(resources.images['a'], isNot(same(firstA)));
-      expect(resources.store.evictions, 2);
-      expect(resources.store.decoder.decodes, 3);
-      expect(resources.decodedBytes, fixture.decodedAtlasBytes);
-      expect(resources.diagnostics, isEmpty);
-    },
-  );
+  test('small budget evicts unused A and reloads A after B without destroying leases', () async {
+    await File('${fixture.directory.path}/assets/atelier.png')
+        .copy('${fixture.directory.path}/assets/other.png');
+    final manifest = fixture.manifest.copyWith(
+      characters: [],
+      tilesets: [
+        const ProjectTilesetEntry(
+          id: 'a',
+          name: 'A',
+          relativePath: 'assets/atelier.png',
+        ),
+        const ProjectTilesetEntry(
+          id: 'b',
+          name: 'B',
+          relativePath: 'assets/other.png',
+        ),
+      ],
+    );
+    final resources = await StudioMapResources.load(
+      fixture.session,
+      manifest,
+      maximumBytes: fixture.decodedAtlasBytes,
+    );
+    addTearDown(resources.dispose);
+    final mapA = MapData(
+      id: 'a',
+      name: 'A',
+      tilesetId: 'a',
+      size: const GridSize(width: 1, height: 1),
+    );
+    final mapB = mapA.copyWith(id: 'b', tilesetId: 'b');
+    resources.setActiveMap(mapA);
+    await resources.settled;
+    final firstA = resources.images['a']!;
+    final painter = Object();
+    resources.retain(painter, {'a'});
+    resources.setActiveMap(mapB);
+    await resources.settled;
+    expect(firstA.debugDisposed, isFalse);
+    expect(
+      resources.diagnostics.single.cause,
+      WorkspaceResourceCause.memoryPressure,
+    );
+    resources.release(painter);
+    await resources.settled;
+    expect(firstA.debugDisposed, isTrue);
+    expect(resources.images.keys, ['b']);
+    resources.setActiveMap(mapA);
+    await resources.settled;
+    expect(resources.images.keys, ['a']);
+    expect(resources.images['a'], isNot(same(firstA)));
+    expect(resources.store.evictions, 2);
+    expect(resources.store.decoder.decodes, 3);
+    expect(resources.decodedBytes, fixture.decodedAtlasBytes);
+    expect(resources.diagnostics, isEmpty);
+  });
 
   test(
     'same source shares concurrent load, transparency variants remain distinct',
@@ -138,41 +134,38 @@ void main() {
     },
   );
 
-  test(
-    'missing and corrupt sources stay distinct, retry clears stale failure and notifies',
-    () async {
-      final resources = await StudioMapResources.load(
-        fixture.session,
-        fixture.manifest,
-      );
-      addTearDown(resources.dispose);
-      var notifications = 0;
-      resources.addListener(() => notifications++);
-      await Future.wait([
-        resources.store.request(stressIncidentId(0)),
-        resources.store.request(stressIncidentId(1)),
-        resources.store.request(stressIncidentId(2)),
-      ]);
-      expect(resources.diagnostics.map((value) => value.cause).toSet(), {
-        WorkspaceResourceCause.missing,
-        WorkspaceResourceCause.decodeFailure,
-        WorkspaceResourceCause.unsupported,
-      });
-      await fixture.makeMissingAvailable();
-      final before = notifications;
-      await resources.retryResources({stressIncidentId(0)});
-      await Future<void>.delayed(Duration.zero);
-      expect(resources.images, contains(stressIncidentId(0)));
-      expect(
-        resources.diagnostics.any(
-          (value) => value.resourceId == stressIncidentId(0),
-        ),
-        isFalse,
-      );
-      expect(resources.diagnostics, hasLength(2));
-      expect(notifications, greaterThan(before));
-    },
-  );
+  test('missing and corrupt sources stay distinct, retry clears stale failure and notifies', () async {
+    final resources = await StudioMapResources.load(
+      fixture.session,
+      fixture.manifest,
+    );
+    addTearDown(resources.dispose);
+    var notifications = 0;
+    resources.addListener(() => notifications++);
+    await Future.wait([
+      resources.store.request(stressIncidentId(0)),
+      resources.store.request(stressIncidentId(1)),
+      resources.store.request(stressIncidentId(2)),
+    ]);
+    expect(resources.diagnostics.map((value) => value.cause).toSet(), {
+      WorkspaceResourceCause.missing,
+      WorkspaceResourceCause.decodeFailure,
+      WorkspaceResourceCause.unsupported,
+    });
+    await fixture.makeMissingAvailable();
+    final before = notifications;
+    await resources.retryResources({stressIncidentId(0)});
+    await Future<void>.delayed(Duration.zero);
+    expect(resources.images, contains(stressIncidentId(0)));
+    expect(
+      resources.diagnostics.any(
+        (value) => value.resourceId == stressIncidentId(0),
+      ),
+      isFalse,
+    );
+    expect(resources.diagnostics, hasLength(2));
+    expect(notifications, greaterThan(before));
+  });
 
   test(
     'closing cancels queued work and disposes late result without notifying',
