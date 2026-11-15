@@ -117,6 +117,7 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
     _bindAtmosphere();
     _bindExterior();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.microtask(claimOpeningFocus);
       if (mounted && identical(widget.view.spatialSceneController, camera)) {
         widget.onChanged();
       }
@@ -275,7 +276,6 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
     }
     updatePreview(visuals as SpatialWorkspaceVisuals);
     return Focus(
-      autofocus: true,
       focusNode: focus,
       onKeyEvent: (_, event) => onKey(event),
       onFocusChange: (focused) {

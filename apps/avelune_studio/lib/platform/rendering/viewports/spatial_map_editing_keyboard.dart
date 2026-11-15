@@ -6,6 +6,12 @@ extension _SpatialKeyboardEditing on _SpatialMapEditingViewportState {
           ?.findAncestorWidgetOfExactType<EditableText>() !=
       null;
 
+  void claimOpeningFocus() {
+    if (mounted && !textEditing && ModalRoute.isCurrentOf(context) != false) {
+      focus.requestFocus();
+    }
+  }
+
   KeyEventResult handleKey(KeyEvent event, LogicalKeyboardKey key) {
     if (reliefKey(event, key) == KeyEventResult.handled) {
       return KeyEventResult.handled;

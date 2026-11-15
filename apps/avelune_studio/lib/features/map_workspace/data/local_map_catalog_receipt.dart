@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_authoring/map_authoring.dart'
+    show AuthoringPlanException, CatalogStorageException, MapAuthoringException;
 import 'package:map_authoring/map_authoring_api.dart';
 import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_core/map_core.dart';
@@ -14,6 +16,7 @@ MapCatalogReceipt mapCatalogReceipt(
   String actionId, {
   ProjectManifest? projectedProject,
   String? projectedRevision,
+  bool partialDefinitions = false,
 }) {
   final changes = plan.changeSet.changes;
   final manifestBytes = changes
@@ -33,7 +36,11 @@ MapCatalogReceipt mapCatalogReceipt(
   )) {
     final bytes = change.afterBytes;
     if (bytes == null) continue;
-    final document = mapCatalogDocument(bytes, change.storageKey, manifest);
+    final document = mapCatalogDocument(
+      bytes,
+      change.storageKey,
+      partialDefinitions ? null : manifest,
+    );
     documents[document.mapId] = document;
   }
   return MapCatalogReceipt(
@@ -66,13 +73,13 @@ bool mapCatalogLibraryMatches(
 MapWorkspaceDocument mapCatalogDocument(
   List<int> bytes,
   String storageKey,
-  ProjectManifest manifest,
+  ProjectManifest? definitions,
 ) {
   final map = decodeValidatedMapDocument(
     bytes,
     storageKey,
     validateMap: (map) =>
-        MapValidator.validate(map, projectDialogueContext: manifest),
+        MapValidator.validate(map, projectDialogueContext: definitions),
   );
   return MapWorkspaceDocument(
     map: map,
@@ -118,3 +125,32 @@ List<T> _mergeScoped<T>(
       if (!kept.contains(id(entry))) entry,
   ];
 }
+
+const _nothingPublished = 'Rien n’a été publié.';
+
+MapWorkspaceFailure mapCatalogFailure(Object failure) => switch (failure) {
+  MapWorkspaceFailure() => failure,
+  MapAuthoringException(code: 'map.name_invalid') => const MapWorkspaceFailure(
+    MapWorkspaceProblem.conflict,
+    'Le nom d’une carte doit contenir de 1 à 160 caractères. $_nothingPublished',
+  ),
+  CatalogStorageException(code: 'catalog.preparation_required') =>
+    const MapWorkspaceFailure(
+      MapWorkspaceProblem.unavailable,
+      'Le catalogue du projet doit être préparé de nouveau : rouvrez le projet. $_nothingPublished',
+    ),
+  ValidationException() => const MapWorkspaceFailure(
+    MapWorkspaceProblem.invalidDocument,
+    'Une carte de la bibliothèque contient une donnée invalide. $_nothingPublished',
+  ),
+  MapAuthoringException(:final code) ||
+  AuthoringPlanException(:final code) ||
+  CatalogStorageException(:final code) => MapWorkspaceFailure(
+    MapWorkspaceProblem.conflict,
+    'La bibliothèque a refusé cette modification ($code). $_nothingPublished',
+  ),
+  _ => const MapWorkspaceFailure(
+    MapWorkspaceProblem.unavailable,
+    'La bibliothèque n’a pas pu traiter cette modification. $_nothingPublished',
+  ),
+};

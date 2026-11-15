@@ -1,6 +1,7 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -31,6 +32,8 @@ Future<void> openGameplay(
   WidgetTester tester, {
   Locale locale = const Locale('fr'),
   ProjectManifest project = workspaceProject,
+  RecordingConnections Function(WorkspaceMemoryPort maps)? links,
+  MapCatalogPort? catalog,
 }) async {
   tester.view.physicalSize = const Size(1920, 1080);
   tester.view.devicePixelRatio = 1;
@@ -55,7 +58,7 @@ Future<void> openGameplay(
       ),
     ],
   );
-  connections = RecordingConnections(maps);
+  connections = links?.call(maps) ?? RecordingConnections(maps);
   container = ProviderContainer(
     overrides: [
       projectSessionPortProvider.overrideWithValue(sessions),
@@ -64,6 +67,8 @@ Future<void> openGameplay(
       ),
       mapWorkspacePortProvider(exampleA).overrideWithValue(maps),
       mapConnectionPortProvider(exampleA).overrideWithValue(connections),
+      if (catalog != null)
+        mapCatalogPortProvider(exampleA).overrideWithValue(catalog),
       workspaceVisualsLoaderProvider.overrideWithValue(
         (session, manifest) async => WorkspaceTestVisuals(),
       ),

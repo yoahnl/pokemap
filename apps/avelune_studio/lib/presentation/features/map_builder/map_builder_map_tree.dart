@@ -11,6 +11,8 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_map
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 
+part 'map_builder_map_tree_rows.dart';
+
 const _unfiledFolder = '';
 
 class MapBuilderMapTree extends StatefulWidget {
@@ -40,8 +42,21 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
   String? _revealed;
   String? _selected;
   String? _renaming;
+  String? _pendingRename;
   String? _notice;
   (String, Duration)? _lastDown;
+
+  @override
+  void didUpdateWidget(MapBuilderMapTree old) {
+    super.didUpdateWidget(old);
+    if (old.activeMapId != widget.activeMapId) _notice = null;
+    final pending = _pendingRename;
+    if (pending != null && widget.commands != null) {
+      _pendingRename = null;
+      _selected = pending;
+      _renaming = pending;
+    }
+  }
 
   @override
   void dispose() {
@@ -66,7 +81,10 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
   String _folderKey(MapLibraryRow row) => row.folderId ?? _unfiledFolder;
 
   void _startRename(String key) {
-    if (widget.commands == null) return;
+    if (widget.commands == null) {
+      _pendingRename = key;
+      return;
+    }
     setState(() {
       _selected = key;
       _renaming = key;
@@ -78,6 +96,7 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
     final now = Duration(microseconds: DateTime.now().microsecondsSinceEpoch);
     final last = _lastDown;
     _lastDown = (key, now);
+    if (_pendingRename != key) _pendingRename = null;
     _focus.requestFocus();
     if (_selected != key) setState(() => _selected = key);
     if (last != null && last.$1 == key && now - last.$2 < kDoubleTapTimeout) {
@@ -107,6 +126,9 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
     actions.deleteRow(context, key);
     return KeyEventResult.handled;
   }
+
+  void _toggleFolder(String key, bool open) =>
+      setState(() => open ? _expanded.remove(key) : _expanded.add(key));
 
   void _endRename() {
     setState(() => _renaming = null);
@@ -209,91 +231,6 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _row(
-    BuildContext context,
-    MapLibraryRow row,
-    String query,
-    MapBuilderMapLibraryActions? actions,
-  ) {
-    final l10n = context.l10n;
-    final map = row.map;
-    if (map == null) {
-      final key = _folderKey(row);
-      final rowKey = 'folder:$key';
-      final open = query.isNotEmpty || _expanded.contains(key);
-      final group = widget.groups
-          .where((g) => g.id == row.folderId)
-          .firstOrNull;
-      final menu = actions == null || group == null
-          ? null
-          : () => actions.folderItems(context, group);
-      return MapBuilderTreeRow(
-        rowKey: rowKey,
-        menu: menu,
-        onPointerDown: _pointerDown,
-        tile: MapBuilderFolderTile(
-          row: row,
-          open: open,
-          selected: _selected == rowKey && group != null,
-          onTap: query.isNotEmpty
-              ? null
-              : () => setState(
-                  () => open ? _expanded.remove(key) : _expanded.add(key),
-                ),
-          rename: _renaming == rowKey && group != null
-              ? MapBuilderRenameField(
-                  initial: group.name,
-                  label: l10n.mapLibraryName,
-                  onCommit: (name) => _commitRename(rowKey, name),
-                  onCancel: _endRename,
-                )
-              : null,
-          trailing: menu == null
-              ? null
-              : StudioContextMenuButton(
-                  key: ValueKey('map-library-folder-menu-${group!.id}'),
-                  tooltip: l10n.mapLibraryFolderActions(group.name),
-                  items: menu,
-                ),
-        ),
-      );
-    }
-    final rowKey = 'map:${map.id}';
-    final active = map.id == widget.activeMapId;
-    final onSelect = widget.onSelect;
-    final menu = actions == null
-        ? null
-        : () => actions.mapItems(context, map, active: active);
-    return MapBuilderTreeRow(
-      rowKey: rowKey,
-      menu: menu,
-      onPointerDown: _pointerDown,
-      tile: MapBuilderMapTile(
-        row: row,
-        mapId: map.id,
-        title: map.name,
-        subtitle: l10n.mapRole(map.role),
-        active: active,
-        onTap: onSelect == null || active ? null : () => onSelect(map),
-        rename: _renaming == rowKey
-            ? MapBuilderRenameField(
-                initial: map.name,
-                label: l10n.mapLibraryName,
-                onCommit: (name) => _commitRename(rowKey, name),
-                onCancel: _endRename,
-              )
-            : null,
-        trailing: menu == null
-            ? null
-            : StudioContextMenuButton(
-                key: ValueKey('map-library-map-menu-${map.id}'),
-                tooltip: l10n.mapLibraryMapActions(map.name),
-                items: menu,
-              ),
       ),
     );
   }

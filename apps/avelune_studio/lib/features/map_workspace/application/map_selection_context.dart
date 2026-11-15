@@ -85,6 +85,19 @@ void armMapContextMove({
   document.stackPosition = anchor;
 }
 
+void pruneMissingMapSelection(
+  Map<String, MapWorkspaceEditingState> views,
+  EditableMapDocument? document,
+) {
+  if (document == null) return;
+  views[document.base.mapId]?.pruneSelection(
+    document,
+    (family, id) =>
+        mapContextAnchorOf(document.current, contextFamilyOf(family), id) ==
+        null,
+  );
+}
+
 void releaseStaleMapMoves(
   Map<String, MapWorkspaceEditingState> views,
   EditableMapDocument? document,

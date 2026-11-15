@@ -15,12 +15,13 @@ extension _LocalMapCatalogHistory on LocalMapCatalogAdapter {
       );
     }
     final before = await mapAdapter.resourceBaseline(session);
+    final scoped =
+        session.storage == ProjectSessionStorage.workingCatalog &&
+        before.manifest.settings.dimension == ProjectDimension.threeD;
     if (!mapCatalogLibraryMatches(
       before.manifest,
       expectedManifest,
-      libraryOnly:
-          session.storage == ProjectSessionStorage.workingCatalog &&
-          before.manifest.settings.dimension == ProjectDimension.threeD,
+      libraryOnly: scoped,
     )) {
       throw const MapWorkspaceFailure(
         MapWorkspaceProblem.conflict,
@@ -45,7 +46,11 @@ extension _LocalMapCatalogHistory on LocalMapCatalogAdapter {
         projectRoot: session.directoryPath,
         relativePath: entry.relativePath,
       );
-      documents[id] = mapCatalogDocument(bytes, entry.relativePath, manifest);
+      documents[id] = mapCatalogDocument(
+        bytes,
+        entry.relativePath,
+        scoped ? null : manifest,
+      );
     }
     return MapCatalogReceipt(
       before: before.manifest,

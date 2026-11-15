@@ -157,6 +157,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
 
   void _changed() {
     if (_disposed) return;
+    pruneMissingMapSelection(_views, _maps.active);
     releaseStaleMapMoves(_views, _maps.active);
     _projection.synchronize(_maps.visualProject);
     _resources.follow(_activeEntry);

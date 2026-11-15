@@ -53,17 +53,23 @@ mixin _MapWorkspaceSelectionState {
     return document.isElementUnavailable(kind, id);
   }
 
-  void _pruneUnavailable(EditableMapDocument document) {
+  void _pruneUnavailable(EditableMapDocument document) => pruneSelection(
+    document,
+    (family, id) => isUnavailable(document, family, id),
+  );
+
+  void pruneSelection(
+    EditableMapDocument document,
+    bool Function(MapSelectionFamily family, String id) stale,
+  ) {
     final mapId = document.current.id;
     _extras.removeWhere(
-      (extra) =>
-          extra.mapId == mapId &&
-          isUnavailable(document, extra.family, extra.id),
+      (extra) => extra.mapId == mapId && stale(extra.family, extra.id),
     );
     final target = _target;
     if (target != null &&
         target.mapId == mapId &&
-        isUnavailable(document, target.family, target.id)) {
+        stale(target.family, target.id)) {
       if (_extras.any((extra) => extra.mapId == mapId)) {
         _promote(
           document,

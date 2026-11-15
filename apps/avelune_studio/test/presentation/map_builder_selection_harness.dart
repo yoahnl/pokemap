@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 import 'package:avelune_studio/presentation/shell/studio_root.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -107,7 +108,10 @@ class SelectionHost {
   }
 }
 
-Future<SelectionHost> openSelectionHost(WidgetTester tester) async {
+Future<SelectionHost> openSelectionHost(
+  WidgetTester tester, {
+  MapCatalogPort? catalog,
+}) async {
   tester.view.physicalSize = const Size(1920, 1080);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -123,6 +127,8 @@ Future<SelectionHost> openSelectionHost(WidgetTester tester) async {
         () async => exampleA.directoryPath,
       ),
       mapWorkspacePortProvider(exampleA).overrideWithValue(port),
+      if (catalog != null)
+        mapCatalogPortProvider(exampleA).overrideWithValue(catalog),
       workspaceVisualsLoaderProvider.overrideWithValue(
         (session, manifest) async => SpatialTestVisuals(),
       ),

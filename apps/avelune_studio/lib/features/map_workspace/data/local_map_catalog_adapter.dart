@@ -41,13 +41,15 @@ final class LocalMapCatalogAdapter
     Map<String, String> expectedMapRevisions = const {},
     bool confirmDestructive = false,
     ProjectManifest? expectedManifest,
-  }) => _mutate(
-    session,
-    actionId,
-    parameters,
-    expectedMapRevisions: expectedMapRevisions,
-    confirmDestructive: confirmDestructive,
-    expectedManifest: expectedManifest,
+  }) => _guarded(
+    () => _mutate(
+      session,
+      actionId,
+      parameters,
+      expectedMapRevisions: expectedMapRevisions,
+      confirmDestructive: confirmDestructive,
+      expectedManifest: expectedManifest,
+    ),
   );
 
   @override
@@ -62,11 +64,13 @@ final class LocalMapCatalogAdapter
     MapCatalogReceipt receipt, {
     required bool redo,
     required ProjectManifest expectedManifest,
-  }) => _restoreHistory(
-    session,
-    receipt,
-    redo: redo,
-    expectedManifest: expectedManifest,
+  }) => _guarded(
+    () => _restoreHistory(
+      session,
+      receipt,
+      redo: redo,
+      expectedManifest: expectedManifest,
+    ),
   );
 
   @override
@@ -107,16 +111,26 @@ final class LocalMapCatalogAdapter
         'Cette analyse appartient à une autre session ou refuse la publication.',
       );
     }
-    return _mutate(
-      session,
-      preparation.actionId,
-      preparation.parameters,
-      expectedMapRevisions: expectedMapRevisions,
-      confirmDestructive: confirmDestructive,
-      expectedManifest: expectedManifest,
-      expectedSnapshotRevision: preparation.snapshotRevision,
-      validateBeforeApply: validateBeforeApply,
-      expectNoChange: preparation.noChange,
+    return _guarded(
+      () => _mutate(
+        session,
+        preparation.actionId,
+        preparation.parameters,
+        expectedMapRevisions: expectedMapRevisions,
+        confirmDestructive: confirmDestructive,
+        expectedManifest: expectedManifest,
+        expectedSnapshotRevision: preparation.snapshotRevision,
+        validateBeforeApply: validateBeforeApply,
+        expectNoChange: preparation.noChange,
+      ),
     );
+  }
+
+  static Future<T> _guarded<T>(Future<T> Function() run) async {
+    try {
+      return await run();
+    } on Object catch (failure, stack) {
+      Error.throwWithStackTrace(mapCatalogFailure(failure), stack);
+    }
   }
 }

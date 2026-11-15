@@ -67,6 +67,7 @@ class WorkspaceMemoryPort implements MapWorkspacePort {
   bool failSave = false;
   String? failedMap;
   Completer<void>? saveGate;
+  Completer<void>? loadGate;
   @override
   Future<ProjectManifest> loadProject(ProjectSession session) async {
     catalogs++;
@@ -79,6 +80,7 @@ class WorkspaceMemoryPort implements MapWorkspacePort {
     ProjectMapEntry entry,
   ) async {
     reads++;
+    if (loadGate case final gate?) await gate.future;
     if (entry.id == failedMap) {
       throw const MapWorkspaceFailure(
         MapWorkspaceProblem.unavailable,

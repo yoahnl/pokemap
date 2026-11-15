@@ -107,6 +107,7 @@ extension _LocalMapCatalogScopedMutation on LocalMapCatalogAdapter {
           descriptorBytes: descriptor,
           headBytes: head.afterBytes,
         ),
+        partialDefinitions: true,
       );
       String? entryId;
       try {

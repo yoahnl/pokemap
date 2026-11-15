@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_connection_actions.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_labels.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
@@ -27,14 +29,41 @@ class MapBuilderConnectionForm extends StatefulWidget {
 class _MapBuilderConnectionFormState extends State<MapBuilderConnectionForm> {
   String? _target;
   MapConnectionDirection? _direction;
-  late final _offset = TextEditingController(
-    text: '${widget.binding.selectedConnection?.offset ?? 0}',
-  );
+  late int? _shownOffset = widget.binding.selectedConnection?.offset;
+  late final _offset = TextEditingController(text: '${_shownOffset ?? 0}');
+  final _offsetFocus = FocusNode();
+
+  @override
+  void didUpdateWidget(MapBuilderConnectionForm old) {
+    super.didUpdateWidget(old);
+    final saved = widget.binding.selectedConnection?.offset;
+    if (saved != _shownOffset) {
+      _shownOffset = saved;
+      _offset.text = '${saved ?? 0}';
+    }
+  }
 
   @override
   void dispose() {
+    _offsetFocus.dispose();
     _offset.dispose();
     super.dispose();
+  }
+
+  KeyEventResult _historyKey(KeyEvent event) {
+    final shortcut = HardwareKeyboard.instance;
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.keyZ ||
+        !(shortcut.isMetaPressed || shortcut.isControlPressed) ||
+        mapConnectionOffset(_offset.text) != (_shownOffset ?? 0)) {
+      return KeyEventResult.ignored;
+    }
+    mapBuilderHistoryStep(
+      widget.binding.maps,
+      redo: shortcut.isShiftPressed,
+      editable: widget.enabled,
+    )?.call();
+    return KeyEventResult.handled;
   }
 
   @override
@@ -119,15 +148,24 @@ class _MapBuilderConnectionFormState extends State<MapBuilderConnectionForm> {
           ],
         ),
         const SizedBox(height: StudioSpacing.l),
-        TextField(
-          key: const ValueKey('map-gameplay-connection-offset'),
-          controller: _offset,
-          keyboardType: const TextInputType.numberWithOptions(signed: true),
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            labelText: l10n.neighbourOffset,
-            suffixText: l10n.cellsUnit,
-            errorText: offset == null ? l10n.integerExpected : null,
+        Focus(
+          canRequestFocus: false,
+          skipTraversal: true,
+          onKeyEvent: (_, event) => _historyKey(event),
+          child: TextField(
+            key: const ValueKey('map-gameplay-connection-offset'),
+            controller: _offset,
+            focusNode: _offsetFocus,
+            keyboardType: const TextInputType.numberWithOptions(signed: true),
+            onChanged: (_) => setState(() {}),
+            onEditingComplete: () => _offsetFocus.unfocus(
+              disposition: UnfocusDisposition.previouslyFocusedChild,
+            ),
+            decoration: InputDecoration(
+              labelText: l10n.neighbourOffset,
+              suffixText: l10n.cellsUnit,
+              errorText: offset == null ? l10n.integerExpected : null,
+            ),
           ),
         ),
         const SizedBox(height: StudioSpacing.l),
