@@ -239,7 +239,7 @@ class _StepActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = steps.l10n;
-    final condition = _defaultCondition(steps.project);
+    final condition = sceneDefaultCondition(steps.project);
     return MenuAnchor(
       menuChildren: [
         MenuItemButton(

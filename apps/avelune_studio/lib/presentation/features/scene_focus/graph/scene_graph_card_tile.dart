@@ -114,7 +114,7 @@ class SceneGraphCardTile extends StatelessWidget {
                         child: _line(
                           l10n.sceneGraphPort(port.id),
                           theme.textTheme.labelSmall?.copyWith(
-                            color: port.declared ? null : studio.warning,
+                            color: _portColor(port, null, scheme, studio),
                           ),
                         ),
                       ),
@@ -134,7 +134,7 @@ class SceneGraphCardTile extends StatelessWidget {
             _dot(
               left: SceneGraphMetrics.cardWidth - portRadius,
               top: SceneGraphMetrics.outputPortY(index) - portRadius,
-              color: port.declared ? accent : studio.warning,
+              color: _portColor(port, accent, scheme, studio) ?? accent,
               filled: port.connected,
             ),
         ],
@@ -146,6 +146,17 @@ class SceneGraphCardTile extends StatelessWidget {
     borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
     child: ColoredBox(color: color, child: child),
   );
+
+  Color? _portColor(
+    SceneGraphPort port,
+    Color? idle,
+    ColorScheme scheme,
+    StudioColors studio,
+  ) => switch (port) {
+    SceneGraphPort(declared: false) => studio.warning,
+    SceneGraphPort(required: true, connected: false) => scheme.error,
+    _ => idle,
+  };
 
   Widget _line(String text, TextStyle? style, {int maxLines = 1}) => Text(
     text,

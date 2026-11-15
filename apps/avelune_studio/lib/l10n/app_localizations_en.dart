@@ -3068,6 +3068,35 @@ class AppLocalizationsEn extends AppLocalizations {
       'Right-drag or two fingers to move · wheel or pinch to zoom · Shift+click to add to the selection';
 
   @override
+  String get sceneGraphEditHint =>
+      'Drag an exit onto a step to link · right-click to add · Delete to erase · Alt+click an exit to unlink it';
+
+  @override
+  String get sceneGraphSearch => 'Add a step';
+
+  @override
+  String get sceneGraphNoMatch => 'No step matches.';
+
+  @override
+  String get sceneGraphUnavailable => 'Nothing to choose in this project yet';
+
+  @override
+  String sceneGraphRefused(String reason) {
+    String _temp0 = intl.Intl.selectLogic(reason, {
+      'unknownStep': 'This step no longer exists.',
+      'unknownExit': 'This step has no such exit.',
+      'startHasNoInput': 'Start cannot receive a link.',
+      'intoItself': 'A step cannot link to itself.',
+      'wouldLoop':
+          'This link would send the scene backwards: loops are not playable.',
+      'startCannotBeRemoved': 'Start cannot be deleted.',
+      'referencedElsewhere': 'Another step depends on this one.',
+      'other': 'This change would make the scene invalid.',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String trameRefused(String code) {
     String _temp0 = intl.Intl.selectLogic(code, {
       'factNotLoaded':

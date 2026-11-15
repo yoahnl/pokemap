@@ -2,6 +2,9 @@ import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
 import 'package:avelune_studio/features/game_memory/data/local_narrative_index_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
 import 'package:avelune_studio/features/stories/data/local_story_adapter.dart';
@@ -11,6 +14,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_sce
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_behaviour_source.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../pokemon/pokemon_scoped_save_counting_reader.dart';
 import 'scene_focus_catalog_fixture.dart';
@@ -21,6 +25,57 @@ Future<void> _until(bool Function() done) async {
   }
   expect(done(), isTrue);
 }
+
+Future<
+  ({
+    MapBuilderStoryBinding story,
+    LocalNarrativeIndexAdapter port,
+    CountingReader reader,
+  })
+>
+_storyOn(ProjectSession session) async {
+  final adapter = LocalMapWorkspaceAdapter();
+  final maps = MapWorkspaceController(session, adapter);
+  addTearDown(maps.dispose);
+  await maps.initialize();
+  await maps.activate(
+    maps.project!.maps.firstWhere((entry) => entry.id == 'town'),
+  );
+  final story = MapBuilderStoryBinding(
+    maps: maps,
+    changed: () {},
+    view: () => null,
+    gateway: (draft, saved) => StoryPublicationGateway(
+      draft: draft,
+      facts: LocalWorldAdapter(session: session, mapAdapter: adapter),
+      stories: LocalStoryAdapter(session: session, mapAdapter: adapter),
+      scenes: LocalSceneAdapter(session: session, mapAdapter: adapter),
+      events: LocalEventAdapter(session: session, mapAdapter: adapter),
+      savedDialogues: saved,
+    ),
+  );
+  await story.prepare();
+  final reader = CountingReader();
+  return (
+    story: story,
+    port: LocalNarrativeIndexAdapter(session, reader: reader),
+    reader: reader,
+  );
+}
+
+SceneFocusController _focus(
+  MapBuilderStoryBinding story,
+  LocalNarrativeIndexAdapter port,
+  String sceneId,
+  String behaviourId,
+) => SceneFocusController(
+  port: port,
+  draft: MapBuilderSceneFocusDraft(story, isEditable: () => true),
+  source: () => MapBuilderStoryBehaviourSource(story),
+  sceneId: sceneId,
+  behaviourId: behaviourId,
+  changed: () {},
+);
 
 void main() {
   test(
@@ -59,38 +114,9 @@ void main() {
   test('the scene view tells who launches it, what it changes, and detaches a '
       'copy for one behaviour through the draft', () async {
     final session = await openSceneFocusCatalog(unrelated: 20);
-    final adapter = LocalMapWorkspaceAdapter();
-    final maps = MapWorkspaceController(session, adapter);
-    addTearDown(maps.dispose);
-    await maps.initialize();
-    await maps.activate(
-      maps.project!.maps.firstWhere((entry) => entry.id == 'town'),
-    );
-    final story = MapBuilderStoryBinding(
-      maps: maps,
-      changed: () {},
-      view: () => null,
-      gateway: (draft, saved) => StoryPublicationGateway(
-        draft: draft,
-        facts: LocalWorldAdapter(session: session, mapAdapter: adapter),
-        stories: LocalStoryAdapter(session: session, mapAdapter: adapter),
-        scenes: LocalSceneAdapter(session: session, mapAdapter: adapter),
-        events: LocalEventAdapter(session: session, mapAdapter: adapter),
-        savedDialogues: saved,
-      ),
-    );
-    await story.prepare();
-    final reader = CountingReader();
-    final port = LocalNarrativeIndexAdapter(session, reader: reader);
+    final (:story, :port, :reader) = await _storyOn(session);
     SceneFocusController focus(String sceneId, String behaviourId) =>
-        SceneFocusController(
-          port: port,
-          draft: MapBuilderSceneFocusDraft(story, isEditable: () => true),
-          source: () => MapBuilderStoryBehaviourSource(story),
-          sceneId: sceneId,
-          behaviourId: behaviourId,
-          changed: () {},
-        );
+        _focus(story, port, sceneId, behaviourId);
     final gate = focus('gate', focusCaveEvent);
 
     await gate.open();
@@ -135,5 +161,30 @@ void main() {
     expect(saved.scene.name, 'Porte du bourg (copie)');
     expect(saved.events.single.id, focusCaveEvent);
     expect((await port.sceneDocument('gate')).events.single.id, focusTownEvent);
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
+  test('after a save the open scene shows what was saved, so the next edit '
+      'keeps the previous one', () async {
+    final session = await openSceneFocusCatalog();
+    final (:story, :port, reader: _) = await _storyOn(session);
+    final gate = _focus(story, port, 'gate', focusCaveEvent);
+    await gate.open();
+    SceneAsset moved(String nodeId, double x) => (moveSceneGraphSteps(
+      gate.scene!,
+      {nodeId: SceneGraphPoint(x, 96)},
+    ) as SceneGraphEdited).scene;
+
+    final first = moved('hello', 480);
+    expect(gate.edit(first), isTrue);
+    expect(await story.save(), isTrue, reason: story.error);
+    expect(gate.scene, first);
+
+    expect(gate.edit(moved('check', 800)), isTrue);
+    expect(await story.save(), isTrue, reason: story.error);
+
+    final saved = (await port.sceneDocument('gate')).scene.layout.nodeLayouts;
+    SceneNodeLayout at(String id) => saved.singleWhere((l) => l.nodeId == id);
+    expect((at('hello').x, at('hello').y), (480, 96));
+    expect((at('check').x, at('check').y), (800, 96));
   }, timeout: const Timeout(Duration(minutes: 3)));
 }

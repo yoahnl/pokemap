@@ -6,11 +6,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_commands.dart';
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_templates.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_camera.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_painters.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_step_menu.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_toolbar.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_world.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+
+part 'scene_graph_canvas_edits.dart';
+part 'scene_graph_canvas_pointer.dart';
 
 class SceneGraphCanvas extends StatefulWidget {
   const SceneGraphCanvas({
@@ -20,6 +29,8 @@ class SceneGraphCanvas extends StatefulWidget {
     this.pathNodeIds = const [],
     this.pathChoices = const {},
     this.dialogueNames = const {},
+    this.map,
+    this.onChanged,
   });
 
   final SceneAsset scene;
@@ -27,6 +38,8 @@ class SceneGraphCanvas extends StatefulWidget {
   final List<String> pathNodeIds;
   final Map<String, String> pathChoices;
   final Map<String, String> dialogueNames;
+  final MapData? map;
+  final bool Function(SceneAsset scene)? onChanged;
 
   @override
   State<SceneGraphCanvas> createState() => SceneGraphCanvasState();
@@ -34,6 +47,9 @@ class SceneGraphCanvas extends StatefulWidget {
 
 class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   static const double _wheelZoomRate = 1 / 400;
+  static const double _dragSlop = 4;
+  static const double _portReach = 10;
+  static const double _snap = 16;
 
   late SceneGraphView _view = projectSceneGraph(widget.scene);
   ValueNotifier<SceneGraphCamera>? _camera;
@@ -45,9 +61,17 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   int? _marqueePointer;
   int? _panPointer;
   double _pinchScale = 1;
+  final _focus = FocusNode(debugLabel: 'scene-graph');
+  ({int pointer, Offset origin, bool moved})? _rightPress;
+  _CardDrag? _drag;
+  Map<String, SceneGraphPoint> _moved = const {};
+  ({int pointer, SceneGraphExit from, Offset end})? _wire;
+  _StepMenu? _menu;
 
   Set<String> get selection => Set.unmodifiable(_selected);
   SceneGraphCamera? get camera => _camera?.value;
+  bool get _editable => widget.onChanged != null;
+  SceneGraphView get _shown => _view.withPositions(_moved);
 
   @override
   void didUpdateWidget(SceneGraphCanvas oldWidget) {
@@ -56,102 +80,21 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
       _view = projectSceneGraph(widget.scene);
       final ids = {for (final card in _view.cards) card.id};
       _selected = _selected.where(ids.contains).toSet();
+      _moved = const {};
     }
   }
 
   @override
   void dispose() {
     _camera?.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
+  void _mutate(VoidCallback change) => setState(change);
+
   void showAll() =>
       _camera?.value = SceneGraphCamera.fit(sceneGraphBounds(_view), _viewport);
-
-  void _down(PointerDownEvent event) {
-    final camera = _camera;
-    if (camera == null) return;
-    if (event.kind == PointerDeviceKind.mouse &&
-        event.buttons & (kSecondaryMouseButton | kMiddleMouseButton) != 0) {
-      _panPointer = event.pointer;
-      return;
-    }
-    if (event.buttons & kPrimaryButton == 0) return;
-    final additive = HardwareKeyboard.instance.isShiftPressed;
-    final hit = sceneGraphCardAt(
-      _view,
-      camera.value.toWorld(event.localPosition),
-    );
-    if (hit != null) {
-      setState(() {
-        _selected = !additive
-            ? {hit.id}
-            : _selected.contains(hit.id)
-            ? (_selected.toSet()..remove(hit.id))
-            : {..._selected, hit.id};
-      });
-      return;
-    }
-    setState(() {
-      _marqueePointer = event.pointer;
-      _marqueeStart = event.localPosition;
-      _marqueeEnd = event.localPosition;
-      _marqueeBase = additive ? _selected : {};
-      _selected = _marqueeBase;
-    });
-  }
-
-  void _move(PointerMoveEvent event) {
-    final camera = _camera;
-    if (camera == null) return;
-    if (event.pointer == _panPointer) {
-      camera.value = camera.value.panBy(event.localDelta);
-      return;
-    }
-    final start = _marqueeStart;
-    if (event.pointer != _marqueePointer || start == null) return;
-    final rect = Rect.fromPoints(
-      camera.value.toWorld(start),
-      camera.value.toWorld(event.localPosition),
-    );
-    setState(() {
-      _marqueeEnd = event.localPosition;
-      _selected = {..._marqueeBase, ...sceneGraphCardsIn(_view, rect)};
-    });
-  }
-
-  void _up(PointerEvent event) {
-    if (event.pointer == _panPointer) _panPointer = null;
-    if (event.pointer != _marqueePointer) return;
-    setState(() {
-      _marqueePointer = null;
-      _marqueeStart = null;
-      _marqueeEnd = null;
-    });
-  }
-
-  void _signal(PointerSignalEvent event) {
-    final camera = _camera;
-    if (event is! PointerScrollEvent || camera == null) return;
-    GestureBinding.instance.pointerSignalResolver.register(event, (_) {
-      camera.value = event.kind == PointerDeviceKind.trackpad
-          ? camera.value.panBy(-event.scrollDelta)
-          : camera.value.zoomAt(
-              event.localPosition,
-              math.exp(-event.scrollDelta.dy * _wheelZoomRate),
-            );
-    });
-  }
-
-  void _pinch(PointerPanZoomUpdateEvent event) {
-    final camera = _camera;
-    if (camera == null) return;
-    final factor = event.scale / _pinchScale;
-    _pinchScale = event.scale;
-    camera.value = camera.value
-        .panBy(event.localPanDelta)
-        .zoomAt(event.localPosition, factor);
-  }
 
   Set<String> get _pathEdgeIds {
     final steps = {
@@ -172,9 +115,10 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final selectionColor = StudioColors.of(context).canvasSelection;
-    final bounds = sceneGraphBounds(_view);
+    final shown = _shown;
+    final bounds = sceneGraphBounds(shown);
     final world = SceneGraphWorld(
-      view: _view,
+      view: shown,
       bounds: bounds,
       scene: widget.scene,
       project: widget.project,
@@ -190,70 +134,117 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
           SceneGraphCamera.opening(bounds, _viewport, _startCentre(bounds)),
         );
         final marquee = (_marqueeStart, _marqueeEnd);
+        final wire = _wire;
+        final menu = _menu;
         return Stack(
           children: [
             Positioned.fill(
-              child: Listener(
-                key: const ValueKey('scene-graph-canvas'),
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: _down,
-                onPointerMove: _move,
-                onPointerUp: _up,
-                onPointerCancel: _up,
-                onPointerSignal: _signal,
-                onPointerPanZoomStart: (_) => _pinchScale = 1,
-                onPointerPanZoomUpdate: _pinch,
-                child: ClipRect(
-                  child: ColoredBox(
-                    color: scheme.surfaceContainerLowest,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: ValueListenableBuilder(
-                            valueListenable: camera,
-                            builder: (context, value, _) => CustomPaint(
-                              painter: SceneGraphGridPainter(
-                                camera: value,
-                                minor: scheme.outlineVariant.withValues(
-                                  alpha: .25,
-                                ),
-                                major: scheme.outlineVariant.withValues(
-                                  alpha: .6,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned.fill(
-                          child: ValueListenableBuilder(
-                            valueListenable: camera,
-                            builder: (context, value, child) => Transform(
-                              transform: _matrix(value, bounds.topLeft),
-                              child: child,
-                            ),
-                            child: IgnorePointer(child: world),
-                          ),
-                        ),
-                        if (marquee case (final start?, final end?))
+              child: Focus(
+                focusNode: _focus,
+                onKeyEvent: _key,
+                child: Listener(
+                  key: const ValueKey('scene-graph-canvas'),
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: _down,
+                  onPointerMove: _move,
+                  onPointerUp: _up,
+                  onPointerCancel: _up,
+                  onPointerSignal: _signal,
+                  onPointerPanZoomStart: (_) => _pinchScale = 1,
+                  onPointerPanZoomUpdate: _pinch,
+                  child: ClipRect(
+                    child: ColoredBox(
+                      color: scheme.surfaceContainerLowest,
+                      child: Stack(
+                        children: [
                           Positioned.fill(
-                            child: CustomPaint(
-                              painter: SceneGraphMarqueePainter(
-                                rect: Rect.fromPoints(start, end),
-                                color: selectionColor,
+                            child: ValueListenableBuilder(
+                              valueListenable: camera,
+                              builder: (context, value, _) => CustomPaint(
+                                painter: SceneGraphGridPainter(
+                                  camera: value,
+                                  minor: scheme.outlineVariant.withValues(
+                                    alpha: .25,
+                                  ),
+                                  major: scheme.outlineVariant.withValues(
+                                    alpha: .6,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                      ],
+                          Positioned.fill(
+                            child: ValueListenableBuilder(
+                              valueListenable: camera,
+                              builder: (context, value, child) => Transform(
+                                transform: _matrix(value, bounds.topLeft),
+                                child: child,
+                              ),
+                              child: IgnorePointer(child: world),
+                            ),
+                          ),
+                          if (marquee case (final start?, final end?))
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: SceneGraphMarqueePainter(
+                                  rect: Rect.fromPoints(start, end),
+                                  color: selectionColor,
+                                ),
+                              ),
+                            ),
+                          if (wire != null)
+                            Positioned.fill(
+                              child: CustomPaint(
+                                key: const ValueKey('scene-graph-draft-wire'),
+                                painter: SceneGraphDraftWirePainter(
+                                  from: camera.value.toScreen(
+                                    sceneGraphOutputAnchor(
+                                      shown.card(wire.from.nodeId)!,
+                                      wire.from.portId,
+                                    ),
+                                  ),
+                                  to: wire.end,
+                                  color: selectionColor,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
+            if (menu != null)
+              Positioned(
+                left: menu.screen.dx
+                    .clamp(
+                      0,
+                      math.max(0, _viewport.width - SceneGraphStepMenu.width),
+                    )
+                    .toDouble(),
+                top: menu.screen.dy
+                    .clamp(0, math.max(0, _viewport.height - 320))
+                    .toDouble(),
+                child: SceneGraphStepMenu(
+                  choices: sceneGraphStepChoices(
+                    context,
+                    widget.project,
+                    widget.map,
+                  ),
+                  onChosen: _addFromMenu,
+                  onDismiss: _closeMenu,
+                ),
+              ),
             Positioned(
               left: StudioSpacing.l,
               right: StudioSpacing.l,
               bottom: StudioSpacing.l,
-              child: SceneGraphToolbar(camera: camera, onShowAll: showAll),
+              child: SceneGraphToolbar(
+                camera: camera,
+                editable: _editable,
+                onShowAll: showAll,
+              ),
             ),
           ],
         );

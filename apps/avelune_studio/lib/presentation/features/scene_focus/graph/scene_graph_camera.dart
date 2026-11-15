@@ -96,6 +96,21 @@ Set<String> sceneGraphCardsIn(SceneGraphView view, Rect world) => {
     if (sceneGraphCardRect(card).overlaps(world)) card.id,
 };
 
+({String nodeId, String portId})? sceneGraphExitAt(
+  SceneGraphView view,
+  Offset world,
+  double radius,
+) {
+  for (final card in view.cards.reversed) {
+    for (final port in card.outputs) {
+      if ((sceneGraphOutputAnchor(card, port.id) - world).distance <= radius) {
+        return (nodeId: card.id, portId: port.id);
+      }
+    }
+  }
+  return null;
+}
+
 Offset sceneGraphOutputAnchor(SceneGraphCard card, String portId) {
   final index = card.outputs.indexWhere((port) => port.id == portId);
   return Offset(

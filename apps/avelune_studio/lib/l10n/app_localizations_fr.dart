@@ -3085,6 +3085,35 @@ class AppLocalizationsFr extends AppLocalizations {
       'Clic droit glissé ou deux doigts pour se déplacer · molette ou pincement pour zoomer · Maj+clic pour ajouter à la sélection';
 
   @override
+  String get sceneGraphEditHint =>
+      'Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic sur une sortie pour la délier';
+
+  @override
+  String get sceneGraphSearch => 'Ajouter une étape';
+
+  @override
+  String get sceneGraphNoMatch => 'Aucune étape ne correspond.';
+
+  @override
+  String get sceneGraphUnavailable =>
+      'Rien à choisir dans ce projet pour l’instant';
+
+  @override
+  String sceneGraphRefused(String reason) {
+    String _temp0 = intl.Intl.selectLogic(reason, {
+      'unknownStep': 'Cette étape n’existe plus.',
+      'unknownExit': 'Cette sortie n’existe pas pour cette étape.',
+      'startHasNoInput': 'Le début ne peut pas recevoir de lien.',
+      'intoItself': 'Une étape ne peut pas se relier à elle-même.',
+      'wouldLoop': 'Ce lien ferait revenir la scène en arrière : les boucles ne sont pas jouables.',
+      'startCannotBeRemoved': 'Le début ne peut pas être supprimé.',
+      'referencedElsewhere': 'Une autre étape dépend de celle-ci.',
+      'other': 'Ce changement rendrait la scène invalide.',
+    });
+    return '$_temp0';
+  }
+
+  @override
   String trameRefused(String code) {
     String _temp0 = intl.Intl.selectLogic(code, {
       'factNotLoaded':

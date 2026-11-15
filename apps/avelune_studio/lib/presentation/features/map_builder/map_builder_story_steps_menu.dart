@@ -1,93 +1,5 @@
 part of 'map_builder_story_steps.dart';
 
-typedef _NewStep = ({SceneNodeKind kind, SceneNodePayload payload});
-
-SceneConditionPayload? _defaultCondition(ProjectManifest project) {
-  final fact = project.facts
-      .where((fact) => fact.initialValue.kind == NarrativeValueKind.boolean)
-      .firstOrNull;
-  if (fact == null) return null;
-  return SceneConditionPayload(
-    conditionLabel: fact.label,
-    conditionRef: fact.id,
-    conditionSource: SceneConditionSource(
-      sourceKind: SceneConditionSourceKind.fact,
-      sourceId: fact.id,
-      operator: SceneConditionOperator.isTrue,
-      label: fact.label,
-    ),
-  );
-}
-
-_NewStep? _newStepOf(SceneStepFamily family, _Steps steps) {
-  final project = steps.project;
-  final map = steps.map;
-  switch (family) {
-    case SceneStepFamily.rememberFact:
-      final factId = _booleanFacts(project).keys.firstOrNull;
-      return factId == null
-          ? null
-          : (
-              kind: SceneNodeKind.action,
-              payload: SceneActionPayload.consequence(
-                SceneConsequence.setFact(factId: factId, value: true),
-              ),
-            );
-    case SceneStepFamily.talk:
-      final dialogue = project.dialogues.firstOrNull;
-      return dialogue == null
-          ? null
-          : (
-              kind: SceneNodeKind.yarnDialogue,
-              payload: SceneYarnDialoguePayload(dialogueId: dialogue.id),
-            );
-    case SceneStepFamily.showOrHide:
-      final entity = map?.entities
-          .where((entity) => entity.npc != null)
-          .firstOrNull;
-      return map == null || entity == null
-          ? null
-          : (
-              kind: SceneNodeKind.action,
-              payload: SceneActionPayload.consequence(
-                SceneConsequence.setNpcPresence(
-                  mapId: map.id,
-                  entityId: entity.id,
-                  present: true,
-                ),
-              ),
-            );
-    case SceneStepFamily.battle:
-      final trainer = project.trainers.firstOrNull;
-      return trainer == null
-          ? null
-          : (
-              kind: SceneNodeKind.battle,
-              payload: SceneBattlePayload(
-                battleKind: 'trainer',
-                trainerId: trainer.id,
-              ),
-            );
-    case SceneStepFamily.conditions:
-      final condition = _defaultCondition(project);
-      return condition == null
-          ? null
-          : (kind: SceneNodeKind.condition, payload: condition);
-    case SceneStepFamily.musicAndSound:
-    case SceneStepFamily.giveItem:
-    case SceneStepFamily.other:
-      return null;
-  }
-}
-
-const _insertableFamilies = [
-  SceneStepFamily.rememberFact,
-  SceneStepFamily.talk,
-  SceneStepFamily.showOrHide,
-  SceneStepFamily.battle,
-  SceneStepFamily.conditions,
-];
-
 class _AddStep extends StatelessWidget {
   const _AddStep({super.key, required this.steps, required this.slot});
 
@@ -101,11 +13,15 @@ class _AddStep extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: MenuAnchor(
         menuChildren: [
-          for (final family in _insertableFamilies)
+          for (final family in sceneInsertableStepFamilies)
             MenuItemButton(
               key: ValueKey('story-step-new-${family.name}'),
               leadingIcon: Icon(_familyIcon(family), size: 18),
-              onPressed: switch (_newStepOf(family, steps)) {
+              onPressed: switch (sceneStepTemplateOf(
+                family,
+                steps.project,
+                steps.map,
+              )) {
                 final step? => () => steps.insert(slot, step),
                 null => null,
               },

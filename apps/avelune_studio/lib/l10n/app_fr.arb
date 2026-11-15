@@ -1705,6 +1705,18 @@
     }
   },
   "sceneGraphNavigationHint": "Clic droit glissé ou deux doigts pour se déplacer · molette ou pincement pour zoomer · Maj+clic pour ajouter à la sélection",
+  "sceneGraphEditHint": "Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic sur une sortie pour la délier",
+  "sceneGraphSearch": "Ajouter une étape",
+  "sceneGraphNoMatch": "Aucune étape ne correspond.",
+  "sceneGraphUnavailable": "Rien à choisir dans ce projet pour l’instant",
+  "sceneGraphRefused": "{reason, select, unknownStep{Cette étape n’existe plus.} unknownExit{Cette sortie n’existe pas pour cette étape.} startHasNoInput{Le début ne peut pas recevoir de lien.} intoItself{Une étape ne peut pas se relier à elle-même.} wouldLoop{Ce lien ferait revenir la scène en arrière : les boucles ne sont pas jouables.} startCannotBeRemoved{Le début ne peut pas être supprimé.} referencedElsewhere{Une autre étape dépend de celle-ci.} other{Ce changement rendrait la scène invalide.}}",
+  "@sceneGraphRefused": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "trameRefused": "{code, select, factNotLoaded{L’état de fin de ce jalon n’a pas pu être lu. Rien n’a changé.} stepTitleRequired{Un jalon a besoin d’un nom. Rien n’a changé.} stepNotFound{Ce jalon n’existe plus. Rien n’a changé.} chapterNotFound{Ce chapitre n’existe plus. Rien n’a changé.} storylineNotFound{Cette trame n’existe plus. Rien n’a changé.} sceneNotFound{Ce comportement n’existe plus. Rien n’a changé.} stepIdAlreadyExists{Un autre jalon porte déjà cet identifiant. Rien n’a changé.} chapterIdAlreadyExists{Un autre chapitre porte déjà cet identifiant. Rien n’a changé.} storylineIdAlreadyExists{Une autre trame porte déjà cet identifiant. Rien n’a changé.} chapterContainsSteps{Ce chapitre contient encore des jalons. Rien n’a changé.} journalClueFactInvalid{Cet indice doit dépendre d’un état vrai ou faux existant. Rien n’a changé.} journalClueDuplicate{Cet indice existe déjà. Rien n’a changé.} other{Cette modification n’a pas pu être appliquée. Rien n’a changé.}}",
   "@trameRefused": {
     "placeholders": {

@@ -265,4 +265,33 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('a required exit left unlinked is shown in the error colour', (
+    tester,
+  ) async {
+    final scene = SceneAsset(
+      id: 'half',
+      name: 'Half',
+      graph: graphOf(
+        [startNode(), conditionNode('check'), endNode('end')],
+        [link('start', 'check'), link('check', 'end', port: 'true')],
+      ),
+    );
+    await _pump(tester, scene: scene);
+
+    Color? colour(String text) => tester
+        .widget<Text>(
+          find.descendant(
+            of: _key('scene-graph-card-check'),
+            matching: find.text(text),
+          ),
+        )
+        .style
+        ?.color;
+    final error = Theme.of(tester.element(_key('scene-graph-canvas')))
+        .colorScheme
+        .error;
+    expect(colour('Non'), error);
+    expect(colour('Oui'), isNot(error));
+  });
 }

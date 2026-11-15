@@ -78,6 +78,27 @@ final class SceneGraphView {
 
   SceneGraphCard? card(String nodeId) =>
       cards.where((card) => card.id == nodeId).firstOrNull;
+
+  SceneGraphView withPositions(Map<String, SceneGraphPoint> moved) =>
+      moved.isEmpty
+      ? this
+      : SceneGraphView(
+          cards: [
+            for (final card in cards)
+              switch (moved[card.id]) {
+                final position? => SceneGraphCard(
+                  node: card.node,
+                  family: card.family,
+                  outputs: card.outputs,
+                  position: position,
+                  storedPosition: true,
+                ),
+                null => card,
+              },
+          ],
+          wires: wires,
+          unreachableNodeIds: unreachableNodeIds,
+        );
 }
 
 SceneGraphFamily sceneGraphFamilyOf(SceneNodeKind kind) => switch (kind) {

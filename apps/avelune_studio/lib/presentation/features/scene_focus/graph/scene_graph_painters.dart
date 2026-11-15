@@ -113,6 +113,30 @@ Path sceneGraphWirePath(Offset from, Offset to) {
     ..cubicTo(from.dx + reach, from.dy, to.dx - reach, to.dy, to.dx, to.dy);
 }
 
+class SceneGraphDraftWirePainter extends CustomPainter {
+  SceneGraphDraftWirePainter({
+    required this.from,
+    required this.to,
+    required this.color,
+  });
+
+  final Offset from, to;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) => canvas.drawPath(
+    sceneGraphWirePath(from, to),
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = color,
+  );
+
+  @override
+  bool shouldRepaint(SceneGraphDraftWirePainter old) =>
+      old.from != from || old.to != to || old.color != color;
+}
+
 class SceneGraphMarqueePainter extends CustomPainter {
   SceneGraphMarqueePainter({required this.rect, required this.color});
 

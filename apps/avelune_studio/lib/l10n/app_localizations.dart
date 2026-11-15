@@ -4890,6 +4890,36 @@ abstract class AppLocalizations {
   /// **'Clic droit glissé ou deux doigts pour se déplacer · molette ou pincement pour zoomer · Maj+clic pour ajouter à la sélection'**
   String get sceneGraphNavigationHint;
 
+  /// No description provided for @sceneGraphEditHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic sur une sortie pour la délier'**
+  String get sceneGraphEditHint;
+
+  /// No description provided for @sceneGraphSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter une étape'**
+  String get sceneGraphSearch;
+
+  /// No description provided for @sceneGraphNoMatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune étape ne correspond.'**
+  String get sceneGraphNoMatch;
+
+  /// No description provided for @sceneGraphUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rien à choisir dans ce projet pour l’instant'**
+  String get sceneGraphUnavailable;
+
+  /// No description provided for @sceneGraphRefused.
+  ///
+  /// In fr, this message translates to:
+  /// **'{reason, select, unknownStep{Cette étape n’existe plus.} unknownExit{Cette sortie n’existe pas pour cette étape.} startHasNoInput{Le début ne peut pas recevoir de lien.} intoItself{Une étape ne peut pas se relier à elle-même.} wouldLoop{Ce lien ferait revenir la scène en arrière : les boucles ne sont pas jouables.} startCannotBeRemoved{Le début ne peut pas être supprimé.} referencedElsewhere{Une autre étape dépend de celle-ci.} other{Ce changement rendrait la scène invalide.}}'**
+  String sceneGraphRefused(String reason);
+
   /// No description provided for @trameRefused.
   ///
   /// In fr, this message translates to:

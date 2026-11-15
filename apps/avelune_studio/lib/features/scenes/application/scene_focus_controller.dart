@@ -19,6 +19,8 @@ abstract interface class SceneFocusDraft {
 
   SceneAsset? touched(String sceneId);
 
+  SceneAsset? current(String sceneId);
+
   bool created(String sceneId);
 
   bool edit(SceneAsset next);
@@ -74,7 +76,7 @@ final class SceneFocusController {
     return port.sceneDocument(sceneId);
   }
 
-  SceneAsset? get scene => draft.touched(sceneId) ?? document.value?.scene;
+  SceneAsset? get scene => draft.current(sceneId) ?? document.value?.scene;
 
   List<NarrativeEventRecord> get launchers {
     final current = source();

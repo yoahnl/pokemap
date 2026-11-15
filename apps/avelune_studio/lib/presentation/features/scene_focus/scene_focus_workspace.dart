@@ -68,6 +68,10 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
                 project: widget.project,
                 pathNodeIds: focus.path?.nodeIds ?? const [],
                 pathChoices: focus.choices,
+                map: widget.map,
+                onChanged: focus.draft.editable && !focus.previewing
+                    ? focus.edit
+                    : null,
                 dialogueNames: {
                   for (final dialogue
                       in focus.document.value?.dialogues ??

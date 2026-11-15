@@ -7,6 +7,7 @@ import 'package:avelune_studio/features/scenes/application/steps/scene_step_fami
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_list.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_node_edit.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_projection.dart';
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_templates.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
@@ -105,7 +106,7 @@ final class _Steps {
     }
   }
 
-  void insert(SceneStepSlot at, _NewStep step) => _apply(
+  void insert(SceneStepSlot at, SceneStepTemplate step) => _apply(
     insertSceneStep(
       widget.scene,
       at: at,

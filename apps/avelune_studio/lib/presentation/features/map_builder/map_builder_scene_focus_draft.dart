@@ -22,6 +22,14 @@ final class MapBuilderSceneFocusDraft implements SceneFocusDraft {
   }
 
   @override
+  SceneAsset? current(String sceneId) {
+    final draft = _story.behaviours.draft;
+    return draft.isLoaded(StoryDraftKind.scene, sceneId)
+        ? draft.currentOf(StoryDraftKind.scene, sceneId)
+        : null;
+  }
+
+  @override
   bool created(String sceneId) =>
       _story.behaviours.draft
           .entryOf(StoryDraftKind.scene, sceneId)
