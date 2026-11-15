@@ -924,7 +924,7 @@
   "sceneGraphFit": "Show all",
   "sceneGraphZoom": "{percent}%",
   "sceneGraphNavigationHint": "Right-drag or two fingers to move · wheel or pinch to zoom · Shift+click to add to the selection",
-  "sceneGraphEditHint": "Drag an exit onto a step to link · right-click to add · Delete to erase · Alt+click an exit to unlink it",
+  "sceneGraphEditHint": "Drag an exit onto a step to link · right-click to add · Delete to erase · Alt+click to unlink · ⌘C ⌘X ⌘V ⌘D · ⌘Z to undo",
   "sceneGraphSearch": "Add a step",
   "sceneGraphNoMatch": "No step matches.",
   "sceneGraphUnavailable": "Nothing to choose in this project yet",

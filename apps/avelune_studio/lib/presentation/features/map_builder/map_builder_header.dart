@@ -14,8 +14,14 @@ VoidCallback? mapBuilderHistoryStep(
   required bool editable,
   MapBuilderAmbianceBinding? ambiance,
   MapBuilderStoryBinding? story,
+  String? sceneId,
 }) {
   if (!editable) return null;
+  if (sceneId != null) {
+    return story != null && story.canStepScene(sceneId, redo: redo)
+        ? (redo ? story.redo : story.undo)
+        : null;
+  }
   return switch ((ambiance, story)) {
     (final ambiance?, _) =>
       (redo ? ambiance.canRedo : ambiance.canUndo)
@@ -46,6 +52,7 @@ class MapBuilderHeader extends StatelessWidget {
     this.ambiance,
     this.story,
     this.history = true,
+    this.sceneId,
   });
 
   final MapWorkspaceController maps;
@@ -59,6 +66,7 @@ class MapBuilderHeader extends StatelessWidget {
   final MapBuilderAmbianceBinding? ambiance;
   final MapBuilderStoryBinding? story;
   final bool history;
+  final String? sceneId;
 
   StudioSaveState get _saveState {
     if (draft.saving) return StudioSaveState.saving;
@@ -80,6 +88,7 @@ class MapBuilderHeader extends StatelessWidget {
         editable: editable && history,
         ambiance: ambiance,
         story: story,
+        sceneId: sceneId,
       ),
       onRedo: mapBuilderHistoryStep(
         maps,
@@ -87,6 +96,7 @@ class MapBuilderHeader extends StatelessWidget {
         editable: editable && history,
         ambiance: ambiance,
         story: story,
+        sceneId: sceneId,
       ),
       saveState: _saveState,
       onSave: editable && draft.unsaved ? onSave : null,

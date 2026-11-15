@@ -55,6 +55,8 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   static const double _dragSlop = 4;
   static const double _portReach = 10;
   static const double _snap = 16;
+  static const double _duplicateShift = 32;
+  static SceneGraphFragment? _clipboard;
 
   late SceneGraphView _view = projectSceneGraph(widget.scene);
   ValueNotifier<SceneGraphCamera>? _camera;
@@ -72,11 +74,20 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   Map<String, SceneGraphPoint> _moved = const {};
   ({int pointer, SceneGraphExit from, Offset end})? _wire;
   _StepMenu? _menu;
+  Offset? _pointer;
 
   Set<String> get selection => Set.unmodifiable(_selected);
   SceneGraphCamera? get camera => _camera?.value;
   bool get _editable => widget.onChanged != null;
   SceneGraphView get _shown => _view.withPositions(_moved);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focus.requestFocus();
+    });
+  }
 
   @override
   void didUpdateWidget(SceneGraphCanvas oldWidget) {
@@ -134,21 +145,6 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   void showAll() =>
       _camera?.value = SceneGraphCamera.fit(sceneGraphBounds(_view), _viewport);
 
-  Set<String> get _pathEdgeIds {
-    final steps = {
-      for (var i = 1; i < widget.pathNodeIds.length; i++)
-        (widget.pathNodeIds[i - 1], widget.pathNodeIds[i]),
-    };
-    return {
-      for (final wire in _view.wires)
-        if (steps.contains((wire.edge.fromNodeId, wire.edge.toNodeId)) &&
-            (widget.pathChoices[wire.edge.fromNodeId] ??
-                    wire.edge.fromPortId) ==
-                wire.edge.fromPortId)
-          wire.id,
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -185,6 +181,7 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
                   key: const ValueKey('scene-graph-canvas'),
                   behavior: HitTestBehavior.opaque,
                   onPointerDown: _down,
+                  onPointerHover: (event) => _pointer = event.localPosition,
                   onPointerMove: _move,
                   onPointerUp: _up,
                   onPointerCancel: _up,

@@ -1,7 +1,11 @@
 import 'dart:ui';
 
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_camera.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core_domain.dart';
+
+import '../steps/scene_step_fixtures.dart';
 
 void main() {
   test('zooming keeps the world point under the pointer in place', () {
@@ -78,5 +82,32 @@ void main() {
       SceneGraphCamera.opening(small, viewport, start),
       SceneGraphCamera.fit(small, viewport),
     );
+  });
+
+  test('a press between two close exits picks the nearest one', () {
+    final view = projectSceneGraph(
+      SceneAsset(
+        id: 'scene',
+        name: 'Scene',
+        graph: graphOf(
+          [startNode(), conditionNode('check'), endNode('end')],
+          [link('start', 'check'), link('check', 'end', port: 'true')],
+        ),
+      ),
+    );
+    final card = view.card('check')!;
+    final yes = sceneGraphOutputAnchor(card, 'true');
+    final no = sceneGraphOutputAnchor(card, 'false');
+    final nearNo = Offset.lerp(yes, no, 0.7)!;
+
+    expect(sceneGraphExitAt(view, nearNo, 100), (
+      nodeId: 'check',
+      portId: 'false',
+    ));
+    expect(
+      sceneGraphExitAt(view, yes + const Offset(0, -1), 100)?.portId,
+      'true',
+    );
+    expect(sceneGraphExitAt(view, nearNo, 1), isNull);
   });
 }

@@ -30,6 +30,9 @@ final class StoryDraft {
   bool get canUndo => _history.canUndo;
   bool get canRedo => _history.canRedo;
 
+  Set<StoryDraftRef> nextStep({required bool redo}) =>
+      _history.next(redo: redo);
+
   int get recorded => _recorded;
 
   int versionOf(StoryDraftKind<Object> kind) => _versions[kind] ?? 0;

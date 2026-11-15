@@ -16,6 +16,10 @@ final class StoryDraftHistory {
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
 
+  Set<StoryDraftRef> next({required bool redo}) => {
+    ...?(redo ? _redo : _undo).lastOrNull?.keys,
+  };
+
   void record(StoryDraftStep step) {
     _undo.add(step);
     if (_undo.length > capacity) _undo.removeAt(0);

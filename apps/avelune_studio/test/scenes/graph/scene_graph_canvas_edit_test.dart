@@ -1,188 +1,77 @@
-import 'package:avelune_design_system/avelune_design_system.dart';
-import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
-import 'package:avelune_studio/l10n/app_localizations.dart';
-import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_camera.dart';
-import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_canvas.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import '../steps/scene_step_fixtures.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
 
-final _initial = SceneAsset(
-  id: 'scene',
-  name: 'Scene',
-  graph: graphOf(
-    [startNode(), conditionNode('check'), waitNode('wait'), endNode('end')],
-    [
-      link('start', 'check'),
-      link('check', 'wait', port: 'true'),
-      link('wait', 'end'),
-    ],
-  ),
-);
-
-final _canvas = GlobalKey<SceneGraphCanvasState>();
-
-class _Host extends StatefulWidget {
-  const _Host({super.key, required this.editable});
-
-  final bool editable;
-
-  @override
-  State<_Host> createState() => _HostState();
-}
-
-class _HostState extends State<_Host> {
-  SceneAsset scene = _initial;
-  var edits = 0;
-
-  @override
-  Widget build(BuildContext context) => SceneGraphCanvas(
-    key: _canvas,
-    scene: scene,
-    project: null,
-    onChanged: widget.editable
-        ? (next) {
-            setState(() {
-              scene = next;
-              edits++;
-            });
-            return true;
-          }
-        : null,
-  );
-}
-
-final _host = GlobalKey<_HostState>();
-
-Future<_HostState> _pump(WidgetTester tester, {bool editable = true}) async {
-  tester.view.physicalSize = const Size(1400, 900);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: studioTheme(),
-      locale: const Locale('fr'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: _Host(key: _host, editable: editable),
-      ),
-    ),
-  );
-  return _host.currentState!;
-}
-
-Finder _key(String key) => find.byKey(ValueKey(key));
-
-Offset _exit(WidgetTester tester, String nodeId, String portId) {
-  final scene = _host.currentState!.scene;
-  final card = projectSceneGraph(scene).card(nodeId)!;
-  final canvas = tester.getTopLeft(_key('scene-graph-canvas'));
-  return canvas +
-      _canvas.currentState!.camera!.toScreen(
-        sceneGraphOutputAnchor(card, portId),
-      );
-}
-
-Offset _centre(WidgetTester tester, String nodeId) =>
-    tester.getCenter(_key('scene-graph-card-$nodeId'));
-
-Offset _void(WidgetTester tester) =>
-    tester.getRect(_key('scene-graph-canvas')).bottomRight -
-    const Offset(40, 140);
-
-Future<void> _drag(WidgetTester tester, Offset from, Offset to) async {
-  final gesture = await tester.startGesture(
-    from,
-    kind: PointerDeviceKind.mouse,
-  );
-  await gesture.moveTo(from + (to - from) / 2);
-  await tester.pump();
-  await gesture.moveTo(to);
-  await tester.pump();
-  await gesture.up();
-  await tester.pumpAndSettle();
-}
-
-Future<void> _rightClick(WidgetTester tester, Offset at) async {
-  final gesture = await tester.startGesture(
-    at,
-    kind: PointerDeviceKind.mouse,
-    buttons: kSecondaryMouseButton,
-  );
-  await gesture.up();
-  await tester.pumpAndSettle();
-}
-
-SceneEdge? _from(SceneAsset scene, String node, String port) => scene
-    .graph
-    .edges
-    .where((edge) => edge.fromNodeId == node && edge.fromPortId == port)
-    .firstOrNull;
+import 'scene_graph_canvas_harness.dart';
 
 void main() {
   testWidgets('dragging an exit onto a step links them', (tester) async {
-    final host = await _pump(tester);
+    final host = await pumpGraph(tester);
 
-    await _drag(
+    await dragGraph(
       tester,
-      _exit(tester, 'check', 'false'),
-      _centre(tester, 'end'),
+      graphExit(tester, 'check', 'false'),
+      graphCentre(tester, 'end'),
     );
 
-    expect(_from(host.scene, 'check', 'false')?.toNodeId, 'end');
-    expect(_key('scene-graph-draft-wire'), findsNothing);
+    expect(edgeFrom(host.scene, 'check', 'false')?.toNodeId, 'end');
+    expect(graphKey('scene-graph-draft-wire'), findsNothing);
   });
 
   testWidgets('dropping a link in the void opens the search and adds the '
       'chosen step there, linked and selected', (tester) async {
-    final host = await _pump(tester);
-    final drop = _void(tester);
+    final host = await pumpGraph(tester);
+    final drop = graphVoid(tester);
 
-    await _drag(tester, _exit(tester, 'check', 'false'), drop);
-    expect(_key('scene-graph-step-menu'), findsOneWidget);
-    await tester.enterText(_key('scene-graph-step-search'), 'fin');
+    await dragGraph(tester, graphExit(tester, 'check', 'false'), drop);
+    expect(graphKey('scene-graph-step-menu'), findsOneWidget);
+    await tester.enterText(graphKey('scene-graph-step-search'), 'fin');
     await tester.pump();
-    expect(_key('scene-graph-step-new-talk'), findsNothing);
-    await tester.tap(_key('scene-graph-step-new-end'));
+    expect(graphKey('scene-graph-step-new-talk'), findsNothing);
+    await tester.tap(graphKey('scene-graph-step-new-end'));
     await tester.pumpAndSettle();
 
-    expect(_key('scene-graph-step-menu'), findsNothing);
-    final created = _from(host.scene, 'check', 'false')!.toNodeId;
+    expect(graphKey('scene-graph-step-menu'), findsNothing);
+    final created = edgeFrom(host.scene, 'check', 'false')!.toNodeId;
     final node = host.scene.graph.nodes.singleWhere((n) => n.id == created);
     expect(node.kind, SceneNodeKind.end);
-    expect(_canvas.currentState!.selection, {created});
+    expect(graphCanvas.currentState!.selection, {created});
     final placed = host.scene.layout.nodeLayouts.singleWhere(
       (layout) => layout.nodeId == created,
     );
-    final canvas = tester.getTopLeft(_key('scene-graph-canvas'));
-    final world = _canvas.currentState!.camera!.toWorld(drop - canvas);
+    final canvas = tester.getTopLeft(graphKey('scene-graph-canvas'));
+    final world = graphCanvas.currentState!.camera!.toWorld(drop - canvas);
     expect((placed.x - world.dx).abs(), lessThanOrEqualTo(8));
     expect((placed.y - world.dy).abs(), lessThanOrEqualTo(8));
   });
 
   testWidgets('dragging cards moves the selection on the grid and stores '
       'every card place', (tester) async {
-    final host = await _pump(tester);
+    final host = await pumpGraph(tester);
     final before = {
-      for (final card in projectSceneGraph(_initial).cards)
+      for (final card in projectSceneGraph(graphInitial).cards)
         card.id: card.position,
     };
 
-    await tester.tapAt(_centre(tester, 'wait'), kind: PointerDeviceKind.mouse);
+    await tester.tapAt(
+      graphCentre(tester, 'wait'),
+      kind: PointerDeviceKind.mouse,
+    );
     await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-    await tester.tapAt(_centre(tester, 'end'), kind: PointerDeviceKind.mouse);
+    await tester.tapAt(
+      graphCentre(tester, 'end'),
+      kind: PointerDeviceKind.mouse,
+    );
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     await tester.pump();
-    final scale = _canvas.currentState!.camera!.scale;
-    await _drag(
+    final scale = graphCanvas.currentState!.camera!.scale;
+    await dragGraph(
       tester,
-      _centre(tester, 'wait'),
-      _centre(tester, 'wait') + Offset(80 * scale, 50 * scale),
+      graphCentre(tester, 'wait'),
+      graphCentre(tester, 'wait') + Offset(80 * scale, 50 * scale),
     );
 
     expect(host.edits, 1);
@@ -199,79 +88,88 @@ void main() {
       expect((y - before[id]!.y - 50).abs(), lessThanOrEqualTo(8), reason: id);
     }
     expect(stored['start'], (before['start']!.x, before['start']!.y));
-    expect(_canvas.currentState!.selection, {'wait', 'end'});
-    expect(host.scene.graph, _initial.graph);
+    expect(graphCanvas.currentState!.selection, {'wait', 'end'});
+    expect(host.scene.graph, graphInitial.graph);
   });
 
   testWidgets('Delete removes the selection; Start and loops are refused '
       'with a message; Alt+click unlinks an exit', (tester) async {
-    final host = await _pump(tester);
+    final host = await pumpGraph(tester);
 
-    await _drag(
+    await dragGraph(
       tester,
-      _exit(tester, 'wait', 'completed'),
-      _centre(tester, 'check'),
+      graphExit(tester, 'wait', 'completed'),
+      graphCentre(tester, 'check'),
     );
     expect(find.textContaining('boucles'), findsOneWidget);
     expect(host.edits, 0);
 
-    await tester.tapAt(_centre(tester, 'start'), kind: PointerDeviceKind.mouse);
+    await tester.tapAt(
+      graphCentre(tester, 'start'),
+      kind: PointerDeviceKind.mouse,
+    );
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
     await tester.pump();
     expect(find.text('Le début ne peut pas être supprimé.'), findsOneWidget);
 
-    await tester.tapAt(_centre(tester, 'wait'), kind: PointerDeviceKind.mouse);
+    await tester.tapAt(
+      graphCentre(tester, 'wait'),
+      kind: PointerDeviceKind.mouse,
+    );
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
     await tester.pump();
     expect(host.scene.graph.nodes.map((n) => n.id), ['start', 'check', 'end']);
-    expect(_from(host.scene, 'check', 'true'), isNull);
-    expect(_canvas.currentState!.selection, isEmpty);
+    expect(edgeFrom(host.scene, 'check', 'true'), isNull);
+    expect(graphCanvas.currentState!.selection, isEmpty);
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
     await tester.tapAt(
-      _exit(tester, 'start', 'completed'),
+      graphExit(tester, 'start', 'completed'),
       kind: PointerDeviceKind.mouse,
     );
     await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
     await tester.pump();
-    expect(_from(host.scene, 'start', 'completed'), isNull);
+    expect(edgeFrom(host.scene, 'start', 'completed'), isNull);
   });
 
   testWidgets('a right click in the void opens the search; Escape closes it', (
     tester,
   ) async {
-    await _pump(tester);
+    await pumpGraph(tester);
 
-    await _rightClick(tester, _void(tester));
-    expect(_key('scene-graph-step-menu'), findsOneWidget);
-    expect(_key('scene-graph-step-new-end'), findsOneWidget);
+    await rightClickGraph(tester, graphVoid(tester));
+    expect(graphKey('scene-graph-step-menu'), findsOneWidget);
+    expect(graphKey('scene-graph-step-new-end'), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
-    expect(_key('scene-graph-step-menu'), findsNothing);
+    expect(graphKey('scene-graph-step-menu'), findsNothing);
   });
 
   testWidgets('a read-only graph ignores links, moves, deletion and the menu', (
     tester,
   ) async {
-    final host = await _pump(tester, editable: false);
-    final camera = _canvas.currentState!.camera!;
+    final host = await pumpGraph(tester, editable: false);
+    final camera = graphCanvas.currentState!.camera!;
 
-    await _drag(
+    await dragGraph(
       tester,
-      _exit(tester, 'check', 'false'),
-      _centre(tester, 'end'),
+      graphExit(tester, 'check', 'false'),
+      graphCentre(tester, 'end'),
     );
-    await tester.tapAt(_centre(tester, 'wait'), kind: PointerDeviceKind.mouse);
-    await _drag(
+    await tester.tapAt(
+      graphCentre(tester, 'wait'),
+      kind: PointerDeviceKind.mouse,
+    );
+    await dragGraph(
       tester,
-      _centre(tester, 'wait'),
-      _centre(tester, 'wait') + const Offset(60, 60),
+      graphCentre(tester, 'wait'),
+      graphCentre(tester, 'wait') + const Offset(60, 60),
     );
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
-    await _rightClick(tester, _void(tester));
+    await rightClickGraph(tester, graphVoid(tester));
 
-    expect(host.scene, same(_initial));
-    expect(_key('scene-graph-step-menu'), findsNothing);
-    expect(_canvas.currentState!.camera, camera);
+    expect(host.scene, same(graphInitial));
+    expect(graphKey('scene-graph-step-menu'), findsNothing);
+    expect(graphCanvas.currentState!.camera, camera);
   });
 }

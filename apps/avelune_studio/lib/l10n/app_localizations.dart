@@ -4881,7 +4881,7 @@ abstract class AppLocalizations {
   /// No description provided for @sceneGraphEditHint.
   ///
   /// In fr, this message translates to:
-  /// **'Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic sur une sortie pour la délier'**
+  /// **'Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic pour délier · ⌘C ⌘X ⌘V ⌘D · ⌘Z pour annuler'**
   String get sceneGraphEditHint;
 
   /// No description provided for @sceneGraphSearch.

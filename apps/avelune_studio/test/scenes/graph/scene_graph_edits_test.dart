@@ -131,7 +131,7 @@ void main() {
       );
 
       final scene = _edited(result);
-      expect((result as SceneGraphEdited).createdNodeId, 'new_node_1');
+      expect((result as SceneGraphEdited).createdNodeIds, {'new_node_1'});
       expect(
         scene.layout.nodeLayouts.singleWhere((l) => l.nodeId == 'new_node_1'),
         SceneNodeLayout(nodeId: 'new_node_1', x: 500, y: 300),

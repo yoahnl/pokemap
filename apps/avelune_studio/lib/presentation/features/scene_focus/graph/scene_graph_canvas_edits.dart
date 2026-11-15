@@ -9,6 +9,21 @@ final class _StepMenu {
 }
 
 extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
+  Set<String> get _pathEdgeIds {
+    final steps = {
+      for (var i = 1; i < widget.pathNodeIds.length; i++)
+        (widget.pathNodeIds[i - 1], widget.pathNodeIds[i]),
+    };
+    return {
+      for (final wire in _view.wires)
+        if (steps.contains((wire.edge.fromNodeId, wire.edge.toNodeId)) &&
+            (widget.pathChoices[wire.edge.fromNodeId] ??
+                    wire.edge.fromPortId) ==
+                wire.edge.fromPortId)
+          wire.id,
+    };
+  }
+
   SceneStepIds get _ids {
     final graph = widget.scene.graph;
     final taken = {
@@ -28,11 +43,11 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
 
   void _apply(SceneGraphEditResult result, {Set<String>? select}) {
     switch (result) {
-      case SceneGraphEdited(:final scene, :final createdNodeId):
+      case SceneGraphEdited(:final scene, :final createdNodeIds):
         final accepted = widget.onChanged?.call(scene) ?? false;
         _mutate(() {
           if (!accepted) _moved = const {};
-          if (accepted && createdNodeId != null) _selected = {createdNodeId};
+          if (accepted && createdNodeIds.isNotEmpty) _selected = createdNodeIds;
           if (accepted && select != null) _selected = select;
         });
       case SceneGraphEditRefused(:final reason):
@@ -84,6 +99,58 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
     removeSceneGraphItems(widget.scene, nodeIds: _selected),
     select: {},
   );
+
+  void _copy() {
+    final fragment = copySceneGraphSteps(widget.scene, _selected);
+    if (fragment != null) SceneGraphCanvasState._clipboard = fragment;
+  }
+
+  void _cut() {
+    _copy();
+    _apply(
+      removeSceneGraphItems(
+        widget.scene,
+        nodeIds: {..._selected}..remove(widget.scene.graph.startNodeId),
+      ),
+      select: {},
+    );
+  }
+
+  void _paste() {
+    final fragment = SceneGraphCanvasState._clipboard;
+    final camera = _camera?.value;
+    if (fragment == null || camera == null) return;
+    final screen = _pointer ?? _viewport.center(Offset.zero);
+    _apply(
+      pasteSceneGraphSteps(
+        widget.scene,
+        fragment,
+        at: _snapped(camera.toWorld(screen)),
+        ids: _ids,
+      ),
+    );
+  }
+
+  void _duplicate() {
+    final fragment = copySceneGraphSteps(widget.scene, _selected);
+    if (fragment == null) return;
+    final origins = [
+      for (final card in _view.cards)
+        if (fragment.offsets.containsKey(card.id)) card.position,
+    ];
+    const shift = SceneGraphCanvasState._duplicateShift;
+    _apply(
+      pasteSceneGraphSteps(
+        widget.scene,
+        fragment,
+        at: SceneGraphPoint(
+          origins.map((p) => p.x).reduce(math.min) + shift,
+          origins.map((p) => p.y).reduce(math.min) + shift,
+        ),
+        ids: _ids,
+      ),
+    );
+  }
 
   void _openMenu(Offset screen, SceneGraphExit? from) {
     final world = _camera!.value.toWorld(screen);

@@ -4,6 +4,8 @@ import '../steps/scene_step_commands.dart';
 import 'scene_graph_layout.dart';
 import 'scene_graph_view.dart';
 
+part 'scene_graph_clipboard.dart';
+
 enum SceneGraphEditRefusal {
   unknownStep,
   unknownExit,
@@ -20,10 +22,10 @@ sealed class SceneGraphEditResult {
 }
 
 final class SceneGraphEdited extends SceneGraphEditResult {
-  const SceneGraphEdited(this.scene, {this.createdNodeId});
+  const SceneGraphEdited(this.scene, {this.createdNodeIds = const {}});
 
   final SceneAsset scene;
-  final String? createdNodeId;
+  final Set<String> createdNodeIds;
 }
 
 final class SceneGraphEditRefused extends SceneGraphEditResult {
@@ -101,7 +103,7 @@ SceneGraphEditResult addSceneGraphStep(
     nodes: [...scene.graph.nodes, node],
     edges: scene.graph.edges,
     positions: {node.id: at},
-    created: node.id,
+    created: {node.id},
   );
   if (from == null || added is! SceneGraphEdited) return added;
   return switch (connectSceneGraphExit(
@@ -112,7 +114,7 @@ SceneGraphEditResult addSceneGraphStep(
   )) {
     SceneGraphEdited(:final scene) => SceneGraphEdited(
       scene,
-      createdNodeId: node.id,
+      createdNodeIds: {node.id},
     ),
     final SceneGraphEditRefused refused => refused,
   };
@@ -196,7 +198,7 @@ SceneGraphEditResult _rebuild(
   required List<SceneNode> nodes,
   required List<SceneEdge> edges,
   Map<String, SceneGraphPoint> positions = const {},
-  String? created,
+  Set<String> created = const {},
 }) {
   final current = {
     for (final card in projectSceneGraph(scene).cards) card.id: card.position,
@@ -233,9 +235,7 @@ SceneGraphEditResult _rebuild(
         declaredOutcomes: scene.declaredOutcomes,
         metadata: scene.metadata,
       ),
-      createdNodeId: created != null && nodeIds.contains(created)
-          ? created
-          : null,
+      createdNodeIds: {...created.where(nodeIds.contains)},
     );
   } on ArgumentError {
     return const SceneGraphEditRefused(SceneGraphEditRefusal.invalid);

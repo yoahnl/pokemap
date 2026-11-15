@@ -3082,7 +3082,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get sceneGraphEditHint =>
-      'Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic sur une sortie pour la délier';
+      'Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic pour délier · ⌘C ⌘X ⌘V ⌘D · ⌘Z pour annuler';
 
   @override
   String get sceneGraphSearch => 'Ajouter une étape';

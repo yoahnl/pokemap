@@ -101,14 +101,18 @@ Set<String> sceneGraphCardsIn(SceneGraphView view, Rect world) => {
   Offset world,
   double radius,
 ) {
-  for (final card in view.cards.reversed) {
+  ({String nodeId, String portId})? nearest;
+  var best = radius;
+  for (final card in view.cards) {
     for (final port in card.outputs) {
-      if ((sceneGraphOutputAnchor(card, port.id) - world).distance <= radius) {
-        return (nodeId: card.id, portId: port.id);
+      final distance = (sceneGraphOutputAnchor(card, port.id) - world).distance;
+      if (distance <= best) {
+        best = distance;
+        nearest = (nodeId: card.id, portId: port.id);
       }
     }
   }
-  return null;
+  return nearest;
 }
 
 Offset sceneGraphOutputAnchor(SceneGraphCard card, String portId) {

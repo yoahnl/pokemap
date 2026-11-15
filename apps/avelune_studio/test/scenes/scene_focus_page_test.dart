@@ -137,6 +137,15 @@ void main() {
     expect(_key('scene-graph-inspector-meet'), findsOneWidget);
     expect(_key('scene-graph-checks'), findsNothing);
 
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await settleMemory(tester);
+    expect(_key('scene-graph-card-meet'), findsNothing);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await settleMemory(tester);
+    expect(_key('scene-graph-card-meet'), findsOneWidget);
+
     await _tap(tester, 'scene-focus-preview');
     expect(_key('scene-focus-path-check'), findsOneWidget);
     expect(_key('scene-focus-exit-true'), findsOneWidget);
@@ -192,5 +201,75 @@ void main() {
     await _tap(tester, 'map-story-scene-open');
     expect(_key('scene-focus-graph-talk'), findsOneWidget);
     expect(index.documentRequests, ['talk', 'talk']);
+  });
+
+  testWidgets('undo in a scene never reaches the edits of another scene', (
+    tester,
+  ) async {
+    final talk = trameScene('talk');
+    final records = [
+      ..._records,
+      behaviour(
+        3,
+        'Parler au facteur',
+        source: NarrativeEventSourceRef.entityInteract('a', 'guide'),
+        enabled: true,
+        sceneId: 'talk',
+      ),
+    ];
+    final project = trameProject.copyWith(
+      scenes: [_gate, talk],
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.v2Only,
+        records: records,
+        legacyClaims: const [],
+      ),
+    );
+    SceneDocument document(
+      SceneAsset scene,
+      List<NarrativeEventRecord> events,
+    ) => SceneDocument(
+      scene: scene,
+      dialogues: const [],
+      missingDialogueIds: const [],
+      events: events,
+      maps: const {},
+      mapReads: 0,
+    );
+    final index = memoryIndex()
+      ..addFacts(trameProject.facts)
+      ..titlesByKind[NarrativeTitleKind.events] = [
+        for (final record in records)
+          NarrativeTitle(id: record.id, title: record.id),
+      ]
+      ..documents['gate'] = document(_gate, _records)
+      ..documents['talk'] = document(talk, [records.last]);
+    await openMemoryStudio(tester, index, project: project);
+    await openWholeGame(tester);
+    Future<void> undo() async {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      await settleMemory(tester);
+    }
+
+    await _tap(tester, 'behaviour-scene-${behaviourId(1)}');
+    await tester.tap(_key('scene-graph-card-meet'));
+    await settleMemory(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await settleMemory(tester);
+    expect(_key('scene-graph-card-meet'), findsNothing);
+    await _tap(tester, 'scene-focus-close');
+
+    await _tap(tester, 'behaviour-scene-${behaviourId(3)}');
+    expect(_key('scene-focus-graph-talk'), findsOneWidget);
+    await undo();
+    await _tap(tester, 'scene-focus-close');
+
+    await _tap(tester, 'behaviour-scene-${behaviourId(1)}');
+    expect(_key('scene-graph-card-meet'), findsNothing);
+    await undo();
+    expect(_key('scene-graph-card-meet'), findsOneWidget);
   });
 }

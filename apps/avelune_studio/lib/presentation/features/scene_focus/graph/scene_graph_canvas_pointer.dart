@@ -21,6 +21,7 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
   void _down(PointerDownEvent event) {
     final camera = _camera;
     if (camera == null) return;
+    _pointer = event.localPosition;
     _focus.requestFocus();
     if (_menu != null) {
       _closeMenu();
@@ -101,6 +102,7 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
   void _move(PointerMoveEvent event) {
     final camera = _camera;
     if (camera == null) return;
+    _pointer = event.localPosition;
     if (event.pointer == _panPointer) {
       final press = _rightPress;
       if (press != null &&
@@ -210,6 +212,30 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
         _editable &&
         _selected.isNotEmpty) {
       _removeSelection();
+      return KeyEventResult.handled;
+    }
+    final command =
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isControlPressed;
+    if (!command || HardwareKeyboard.instance.isShiftPressed) {
+      return KeyEventResult.ignored;
+    }
+    if (key == LogicalKeyboardKey.keyC && _selected.isNotEmpty) {
+      _copy();
+      return KeyEventResult.handled;
+    }
+    if (!_editable) return KeyEventResult.ignored;
+    if (key == LogicalKeyboardKey.keyX && _selected.isNotEmpty) {
+      _cut();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.keyV &&
+        SceneGraphCanvasState._clipboard != null) {
+      _paste();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.keyD && _selected.isNotEmpty) {
+      _duplicate();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;

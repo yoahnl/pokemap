@@ -3065,7 +3065,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sceneGraphEditHint =>
-      'Drag an exit onto a step to link · right-click to add · Delete to erase · Alt+click an exit to unlink it';
+      'Drag an exit onto a step to link · right-click to add · Delete to erase · Alt+click to unlink · ⌘C ⌘X ⌘V ⌘D · ⌘Z to undo';
 
   @override
   String get sceneGraphSearch => 'Add a step';

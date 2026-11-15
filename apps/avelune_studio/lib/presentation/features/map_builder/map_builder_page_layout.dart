@@ -66,9 +66,10 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
             onSave: () => unawaited(_save()),
             onTestMap: () => unawaited(_testMap()),
             testing: _testing,
-            ambiance: _space == MapBuilderSpace.ambiance ? _ambiance : null,
-            story: _space == MapBuilderSpace.story ? _story : null,
-            history: _section == StudioRailSection.map,
+            ambiance: _historyAmbiance,
+            story: _historyStory,
+            history: _historyOpen,
+            sceneId: _sceneFocus?.sceneId,
           ),
           Expanded(
             child: Row(
@@ -259,8 +260,20 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
   VoidCallback? _historyStep({required bool redo}) => mapBuilderHistoryStep(
     _maps,
     redo: redo,
-    editable: _editable && _section == StudioRailSection.map,
-    ambiance: _space == MapBuilderSpace.ambiance ? _ambiance : null,
-    story: _space == MapBuilderSpace.story ? _story : null,
+    editable: _editable && _historyOpen,
+    ambiance: _historyAmbiance,
+    story: _historyStory,
+    sceneId: _sceneFocus?.sceneId,
   );
+
+  bool get _historyOpen =>
+      _sceneFocus != null || _section == StudioRailSection.map;
+
+  MapBuilderAmbianceBinding? get _historyAmbiance =>
+      _sceneFocus == null && _space == MapBuilderSpace.ambiance
+      ? _ambiance
+      : null;
+
+  MapBuilderStoryBinding? get _historyStory =>
+      _sceneFocus != null || _space == MapBuilderSpace.story ? _story : null;
 }
