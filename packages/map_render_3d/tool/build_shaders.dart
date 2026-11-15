@@ -55,6 +55,15 @@ Future<void> main() async {
       'type': 'vertex',
       'file': '${package.path}/shaders/pixel_material.vert',
     },
+    'SelectionOverlayVertex': {
+      'type': 'vertex',
+      'file': '${package.path}/shaders/selection_overlay.vert',
+    },
+    'SelectionOverlayFragment': {
+      'type': 'fragment',
+      'file':
+          '${File.fromUri(flame).parent.parent.path}/shaders/unlit_material.frag',
+    },
     'GroundVertex': {
       'type': 'vertex',
       'file': '${package.path}/shaders/pixel_ground.vert',

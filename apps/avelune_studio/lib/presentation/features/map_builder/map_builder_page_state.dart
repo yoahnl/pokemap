@@ -12,6 +12,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   var _guarded = false;
   Future<bool>? _leaving;
   final _views = <String, MapEditingViewportSession>{};
+  final _mapTreeMemory = MapBuilderMapTreeMemory();
   MapWorkspaceVisuals? _visuals;
   String? _visualsError;
   var _saveFailed = false;

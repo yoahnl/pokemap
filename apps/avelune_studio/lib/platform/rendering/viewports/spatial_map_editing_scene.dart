@@ -213,6 +213,7 @@ extension _SpatialSceneComposition on _SpatialMapEditingViewportState {
           ? null
           : recordPointer,
       onSurfaceTap: surfaceTap,
+      onEmptyTap: clearSelectionOnEmptyTap,
       placementPreview: placementPreview,
       cellOverlays: cellOverlays(colors),
       contentPreview: contentPreview,

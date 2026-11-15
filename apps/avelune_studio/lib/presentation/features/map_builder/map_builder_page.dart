@@ -58,6 +58,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_slo
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_opening.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_side_panel.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_map_tree.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_status_bar.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_playtest_page.dart';

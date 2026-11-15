@@ -111,13 +111,14 @@ class SelectionHost {
 Future<SelectionHost> openSelectionHost(
   WidgetTester tester, {
   MapCatalogPort? catalog,
+  ProjectManifest? manifest,
 }) async {
   tester.view.physicalSize = const Size(1920, 1080);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final sessions = ControlledProjectSessionPort();
-  final port = WorkspaceMemoryPort(manifest: selectionProject())
+  final port = WorkspaceMemoryPort(manifest: manifest ?? selectionProject())
     ..saved['a'] = selectionMap('a')
     ..saved['b'] = selectionMap('b');
   final container = ProviderContainer(

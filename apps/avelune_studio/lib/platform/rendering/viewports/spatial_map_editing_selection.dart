@@ -31,3 +31,18 @@ extension _SpatialSelectionOutlines on _SpatialMapEditingViewportState {
     ];
   }
 }
+
+extension _SpatialEmptyTap on _SpatialMapEditingViewportState {
+  void clearSelectionOnEmptyTap() {
+    final keys = HardwareKeyboard.instance;
+    if (locked ||
+        widget.view.tool != StudioMapTool.select ||
+        widget.view.pendingMove != null ||
+        keys.isShiftPressed ||
+        keys.isMetaPressed) {
+      return;
+    }
+    widget.view.clearSelection(editingDocument);
+    widget.onChanged();
+  }
+}

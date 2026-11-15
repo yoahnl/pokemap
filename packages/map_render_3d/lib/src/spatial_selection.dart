@@ -7,6 +7,9 @@ import 'package:map_core/map_core.dart';
 
 import 'spatial_scene_view.dart';
 
+const _overlayBundle =
+    'packages/map_render_3d/assets/shaders/pixel_material.shaderbundle';
+
 Iterable<(Vector3, Vector3)> spatialSelectionEdges(
   Vector3 minimum,
   Vector3 maximum,
@@ -35,7 +38,17 @@ List<MeshComponent> spatialSelectionFrame(
   double thickness,
   Color color,
 ) {
-  final material = UnlitMaterial(albedoColor: color);
+  final material = UnlitMaterial(albedoColor: color)
+    ..vertexShader = VertexShader.fromAsset(
+      _overlayBundle,
+      entryPoint: 'SelectionOverlayVertex',
+      slots: ['VertexInfo', 'JointMatrices'],
+    )
+    ..fragmentShader = FragmentShader.fromAsset(
+      _overlayBundle,
+      entryPoint: 'SelectionOverlayFragment',
+      slots: ['albedoTexture', 'Material'],
+    );
   return [
     for (final (start, end) in spatialSelectionEdges(
       minimum,

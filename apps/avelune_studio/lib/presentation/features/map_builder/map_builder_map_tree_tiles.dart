@@ -17,14 +17,16 @@ class MapBuilderTreeRow extends StatelessWidget {
   final String rowKey;
   final Widget tile;
   final List<StudioContextMenuItem> Function()? menu;
-  final ValueChanged<String>? onPointerDown;
+  final void Function(String rowKey, Duration timeStamp)? onPointerDown;
 
   @override
   Widget build(BuildContext context) {
     final menu = this.menu;
     return Listener(
       onPointerDown: (event) {
-        if (event.buttons == kPrimaryButton) onPointerDown?.call(rowKey);
+        if (event.buttons == kPrimaryButton) {
+          onPointerDown?.call(rowKey, event.timeStamp);
+        }
       },
       child: GestureDetector(
         onSecondaryTapUp: menu == null

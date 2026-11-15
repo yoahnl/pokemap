@@ -9,6 +9,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_amb
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_gameplay_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_map_tree.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
@@ -29,6 +30,7 @@ class MapBuilderSidePanel extends StatelessWidget {
     required this.maps,
     required this.visuals,
     required this.enabled,
+    required this.mapTreeMemory,
   });
 
   final MapBuilderSpace space;
@@ -39,6 +41,7 @@ class MapBuilderSidePanel extends StatelessWidget {
   final MapWorkspaceController maps;
   final MapWorkspaceVisuals? visuals;
   final bool enabled;
+  final MapBuilderMapTreeMemory mapTreeMemory;
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +73,7 @@ class MapBuilderSidePanel extends StatelessWidget {
       activeMapId: mapId,
       onSelectMap: enabled ? (entry) => unawaited(maps.activate(entry)) : null,
       mapCommands: enabled ? MapLibraryCommands(maps) : null,
+      mapTreeMemory: mapTreeMemory,
       resources: MapBuilderResourcePanel(
         project: resources.catalog,
         mapId: mapId,

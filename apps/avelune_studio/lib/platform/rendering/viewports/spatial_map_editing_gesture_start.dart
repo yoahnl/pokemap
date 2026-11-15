@@ -75,6 +75,7 @@ extension _SpatialGestureStart on _SpatialMapEditingViewportState {
             widget.view.tool == StudioMapTool.select &&
             hit == null) ||
         widget.view.tool == StudioMapTool.pan) {
+      if (!dragging && hit == null) clearSelectionOnEmptyTap();
       return false;
     }
     widget.view.rampPreview = null;
@@ -287,6 +288,9 @@ extension _SpatialGestureStart on _SpatialMapEditingViewportState {
         widget.view.tool == StudioMapTool.select) {
       contentSource = document.current;
       contentProject = widget.project;
+    }
+    if (gesture == null && hit == null && !dragging) {
+      clearSelectionOnEmptyTap();
     }
     widget.onChanged();
     return gesture != null;

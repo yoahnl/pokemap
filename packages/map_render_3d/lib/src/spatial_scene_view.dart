@@ -522,6 +522,7 @@ class SpatialSceneView extends StatefulWidget {
     this.placementPreview,
     this.onHover,
     this.onSurfaceTap,
+    this.onEmptyTap,
     this.cellOverlays = const [],
     this.selectionColor,
     this.actorFrames,
@@ -594,6 +595,7 @@ class SpatialSceneView extends StatefulWidget {
   final VoidCallback? onReady;
   final ValueChanged<Set<String>>? onVisibleMapsChanged;
   final ValueChanged<SpatialSceneContentHit>? onContent;
+  final VoidCallback? onEmptyTap;
   final bool selectContent;
   final bool Function(SpatialSceneContentKind kind, String id)?
   canSelectContent;
@@ -1198,7 +1200,11 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
                     return;
                   }
                   final cell = surface?.cell;
-                  if (cell != null) widget.onCell(cell.$1, cell.$2);
+                  if (cell != null) {
+                    widget.onCell(cell.$1, cell.$2);
+                  } else {
+                    widget.onEmptyTap?.call();
+                  }
                 },
                 child: Stack(
                   children: [

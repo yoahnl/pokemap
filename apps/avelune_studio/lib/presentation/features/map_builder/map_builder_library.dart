@@ -20,6 +20,7 @@ class MapBuilderLibrary extends StatefulWidget {
     required this.onSelectMap,
     required this.resources,
     this.mapCommands,
+    this.mapTreeMemory,
   });
 
   final List<ProjectMapGroup> groups;
@@ -28,6 +29,7 @@ class MapBuilderLibrary extends StatefulWidget {
   final ValueChanged<ProjectMapEntry>? onSelectMap;
   final Widget resources;
   final MapLibraryCommands? mapCommands;
+  final MapBuilderMapTreeMemory? mapTreeMemory;
 
   @override
   State<MapBuilderLibrary> createState() => _MapBuilderLibraryState();
@@ -79,6 +81,7 @@ class _MapBuilderLibraryState extends State<MapBuilderLibrary> {
                 activeMapId: widget.activeMapId,
                 onSelect: widget.onSelectMap,
                 commands: widget.mapCommands,
+                memory: widget.mapTreeMemory,
               ),
             },
           ),

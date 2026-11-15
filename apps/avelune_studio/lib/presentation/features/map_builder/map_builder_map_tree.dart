@@ -15,6 +15,11 @@ part 'map_builder_map_tree_rows.dart';
 
 const _unfiledFolder = '';
 
+class MapBuilderMapTreeMemory {
+  final expanded = <String>{};
+  String? revealed;
+}
+
 class MapBuilderMapTree extends StatefulWidget {
   const MapBuilderMapTree({
     super.key,
@@ -23,6 +28,7 @@ class MapBuilderMapTree extends StatefulWidget {
     required this.activeMapId,
     required this.onSelect,
     this.commands,
+    this.memory,
   });
 
   final List<ProjectMapGroup> groups;
@@ -30,6 +36,7 @@ class MapBuilderMapTree extends StatefulWidget {
   final String? activeMapId;
   final ValueChanged<ProjectMapEntry>? onSelect;
   final MapLibraryCommands? commands;
+  final MapBuilderMapTreeMemory? memory;
 
   @override
   State<MapBuilderMapTree> createState() => _MapBuilderMapTreeState();
@@ -38,8 +45,8 @@ class MapBuilderMapTree extends StatefulWidget {
 class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
   final _search = TextEditingController();
   final _focus = FocusNode(debugLabel: 'map-library-tree');
-  final _expanded = <String>{};
-  String? _revealed;
+  final _searchFocus = FocusNode(debugLabel: 'map-library-search');
+  late final _memory = widget.memory ?? MapBuilderMapTreeMemory();
   String? _selected;
   String? _renaming;
   String? _pendingRename;
@@ -61,6 +68,7 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
   @override
   void dispose() {
     _search.dispose();
+    _searchFocus.dispose();
     _focus.dispose();
     super.dispose();
   }
@@ -92,8 +100,10 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
     });
   }
 
-  void _pointerDown(String key) {
-    final now = Duration(microseconds: DateTime.now().microsecondsSinceEpoch);
+  void _pointerDown(String key, Duration timeStamp) {
+    final now = timeStamp == Duration.zero
+        ? Duration(microseconds: DateTime.now().microsecondsSinceEpoch)
+        : timeStamp;
     final last = _lastDown;
     _lastDown = (key, now);
     if (_pendingRename != key) _pendingRename = null;
@@ -127,6 +137,16 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
     return KeyEventResult.handled;
   }
 
+  Set<String> get _expanded => _memory.expanded;
+
+  void _escapeSearch() {
+    if (_search.text.isEmpty) {
+      _focus.requestFocus();
+      return;
+    }
+    setState(_search.clear);
+  }
+
   void _toggleFolder(String key, bool open) =>
       setState(() => open ? _expanded.remove(key) : _expanded.add(key));
 
@@ -144,8 +164,8 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
 
   void _revealActive(List<MapLibraryRow> rows) {
     final active = widget.activeMapId;
-    if (active == null || active == _revealed) return;
-    _revealed = active;
+    if (active == null || active == _memory.revealed) return;
+    _memory.revealed = active;
     _expanded.addAll(mapTreeFoldersAbove(rows, active, _folderKey));
   }
 
@@ -183,11 +203,18 @@ class _MapBuilderMapTreeState extends State<MapBuilderMapTree> {
             child: Row(
               children: [
                 Expanded(
-                  child: StudioSearchField(
-                    key: const ValueKey('map-library-search'),
-                    controller: _search,
-                    label: l10n.mapSearch,
-                    onChanged: (_) => setState(() {}),
+                  child: CallbackShortcuts(
+                    bindings: {
+                      const SingleActivator(LogicalKeyboardKey.escape):
+                          _escapeSearch,
+                    },
+                    child: StudioSearchField(
+                      key: const ValueKey('map-library-search'),
+                      controller: _search,
+                      focusNode: _searchFocus,
+                      label: l10n.mapSearch,
+                      onChanged: (_) => setState(() {}),
+                    ),
                   ),
                 ),
                 if (actions != null) ...[

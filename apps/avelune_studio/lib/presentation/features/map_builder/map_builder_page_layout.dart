@@ -99,6 +99,7 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                                 maps: _maps,
                                 visuals: _visuals,
                                 enabled: _editable,
+                                mapTreeMemory: _mapTreeMemory,
                               ),
                               Expanded(
                                 child: MapBuilderCanvas(
@@ -211,7 +212,10 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
             _stepHistory(redo: true),
       },
     }),
-    child: Focus(focusNode: _pageFocus, child: child),
+    child: FocusScope(
+      autofocus: true,
+      child: Focus(focusNode: _pageFocus, child: child),
+    ),
   );
 
   void _stepHistory({required bool redo}) {
