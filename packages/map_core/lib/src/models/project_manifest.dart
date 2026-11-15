@@ -49,6 +49,7 @@ import 'storyline_asset.dart';
 import 'tileset_transparent_color.dart';
 import 'visual_frame_json.dart';
 import 'world_rule.dart';
+import '../dialogue/dialogue_localization.dart';
 
 import '../exceptions/map_exceptions.dart';
 import '../operations/environment_preset_json_codec.dart';
@@ -922,6 +923,7 @@ abstract class ProjectDialogueEntry with _$ProjectDialogueEntry {
     /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
     String? folderId,
     @Default(0) int sortOrder,
+    @JsonKey(includeIfNull: false) DialogueLocalization? localization,
   }) = _ProjectDialogueEntry;
 
   factory ProjectDialogueEntry.fromJson(Map<String, dynamic> json) =>

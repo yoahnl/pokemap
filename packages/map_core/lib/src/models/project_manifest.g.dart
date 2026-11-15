@@ -530,6 +530,11 @@ _ProjectDialogueEntry _$ProjectDialogueEntryFromJson(
   defaultStartNode: json['defaultStartNode'] as String?,
   folderId: json['folderId'] as String?,
   sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+  localization: json['localization'] == null
+      ? null
+      : DialogueLocalization.fromJson(
+          json['localization'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectDialogueEntryToJson(
@@ -544,6 +549,7 @@ Map<String, dynamic> _$ProjectDialogueEntryToJson(
   'defaultStartNode': instance.defaultStartNode,
   'folderId': instance.folderId,
   'sortOrder': instance.sortOrder,
+  'localization': ?instance.localization?.toJson(),
 };
 
 _ProjectTilesetFolder _$ProjectTilesetFolderFromJson(

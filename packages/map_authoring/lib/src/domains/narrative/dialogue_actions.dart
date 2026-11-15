@@ -7,6 +7,7 @@ import '../../contracts/artifact_ref.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/resource_ref.dart';
 import '../../dialogue/dialogue_line_text_edit.dart';
+import '../../dialogue/dialogue_localization_schema.dart';
 import '../../ports/project_file_reader.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
@@ -17,6 +18,7 @@ import 'dialogue_authoring_service.dart';
 import 'dialogue_line_text_reconciliation.dart';
 import 'dialogue_source_store.dart';
 import 'dialogue_source_guards.dart';
+import 'dialogue_localization_guards.dart';
 import 'narrative_authoring_exception.dart';
 
 final class DialogueActions {
@@ -130,6 +132,13 @@ final class DialogueActions {
           outcomeReplacements: replacements,
         );
         final before = _requireDialogue(context.snapshot.manifest, entry.id);
+        if (entry.localization != before.localization &&
+            !context.request.parameters.containsKey('source')) {
+          _requirePublishable(compiler.compile(
+              entry: entry,
+              source: _decodeSource(context.snapshot
+                  .resourceBytes(dialogueSourceResourceIdentity(entry.id)))));
+        }
         if (context.request.parameters.containsKey('source')) {
           final source = parameters.text('source');
           final compiled = compiler.compile(entry: entry, source: source);
@@ -420,6 +429,12 @@ final class DialogueActions {
     Map<String, String> outcomeReplacements = const {},
   }) {
     final before = _requireDialogue(manifest, entry.id);
+    requireDialogueLocalizationIdentities(
+        before.localization, entry.localization);
+    if (before.localization != null && entry.localization == null) {
+      throw NarrativeAuthoringException('dialogue.localization_required',
+          'A localized dialogue must retain its text identities and variants.');
+    }
     if (before.relativePath != entry.relativePath) {
       throw NarrativeAuthoringException(
         'dialogue.path_change_requires_migration',
@@ -521,7 +536,20 @@ AuthoringActionDescriptor _descriptor(
       outputSchemaId: 'pokemap.authoring/$id.output.v1',
       riskLevel: risk,
       resourceKinds: const ['project', 'dialogue'],
-      extensions: extensions ?? _textEditActionExtensions(id),
+      extensions: {
+        ...extensions ?? _textEditActionExtensions(id),
+        if (id == 'dialogue.create' ||
+            id == 'dialogue.create_batch' ||
+            id == 'dialogue.update')
+          'localizationContract': {
+            'format': 1,
+            'storage': 'entry.localization',
+            'sourcePreserved': true,
+            'runtimeCapability': dialogueLocalizationCapability,
+            'runtimeExportSupported': false,
+            'schema': dialogueLocalizationSchema,
+          },
+      },
       capabilityIds: const ['authoring.narrative.dialogue'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
       guarantees: const [
@@ -694,7 +722,12 @@ Map<String, Object?> _textEditActionExtensions(String id) {
       'required': update ? ['entry'] : ['dialogueId', 'source'],
       'properties': {
         if (update)
-          'entry': {'type': 'object'}
+          'entry': {
+            'type': 'object',
+            'properties': {
+              'localization': dialogueLocalizationSchema,
+            }
+          }
         else
           'dialogueId': {'type': 'string', 'minLength': 1},
         if (update)

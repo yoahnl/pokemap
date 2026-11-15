@@ -300,6 +300,14 @@ final class RuntimeProjectProjectionBuilder {
     final compiledEntries = <ProjectDialogueEntry>[];
     final compiledPaths = <String>{};
     for (final entry in authorProject.dialogues) {
+      if (entry.localization != null) {
+        throw GamePackageExportException(
+          code: 'dialogueLocalizationRuntimeUnsupported',
+          path: entry.relativePath,
+          message:
+              'Localized dialogues require $dialogueLocalizationCapability support in the export and Player.',
+        );
+      }
       final sourcePath = _normalizeRelative(entry.relativePath);
       dialogueSources.add(sourcePath);
       final extension = p.extension(sourcePath).toLowerCase();

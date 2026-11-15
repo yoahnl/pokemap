@@ -2456,7 +2456,7 @@ mixin _$ProjectDialogueEntry {
  String get id; String get name;/// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
  String get relativePath; List<String> get tags; String get description; List<DialogueDeclaredOutcome> get declaredOutcomes;/// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
  String? get defaultStartNode;/// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
- String? get folderId; int get sortOrder;
+ String? get folderId; int get sortOrder;@JsonKey(includeIfNull: false) DialogueLocalization? get localization;
 /// Create a copy of ProjectDialogueEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2469,16 +2469,16 @@ $ProjectDialogueEntryCopyWith<ProjectDialogueEntry> get copyWith => _$ProjectDia
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectDialogueEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.declaredOutcomes, declaredOutcomes)&&(identical(other.defaultStartNode, defaultStartNode) || other.defaultStartNode == defaultStartNode)&&(identical(other.folderId, folderId) || other.folderId == folderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectDialogueEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.declaredOutcomes, declaredOutcomes)&&(identical(other.defaultStartNode, defaultStartNode) || other.defaultStartNode == defaultStartNode)&&(identical(other.folderId, folderId) || other.folderId == folderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.localization, localization) || other.localization == localization));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,relativePath,const DeepCollectionEquality().hash(tags),description,const DeepCollectionEquality().hash(declaredOutcomes),defaultStartNode,folderId,sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,relativePath,const DeepCollectionEquality().hash(tags),description,const DeepCollectionEquality().hash(declaredOutcomes),defaultStartNode,folderId,sortOrder,localization);
 
 @override
 String toString() {
-  return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, declaredOutcomes: $declaredOutcomes, defaultStartNode: $defaultStartNode, folderId: $folderId, sortOrder: $sortOrder)';
+  return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, declaredOutcomes: $declaredOutcomes, defaultStartNode: $defaultStartNode, folderId: $folderId, sortOrder: $sortOrder, localization: $localization)';
 }
 
 
@@ -2489,7 +2489,7 @@ abstract mixin class $ProjectDialogueEntryCopyWith<$Res>  {
   factory $ProjectDialogueEntryCopyWith(ProjectDialogueEntry value, $Res Function(ProjectDialogueEntry) _then) = _$ProjectDialogueEntryCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String relativePath, List<String> tags, String description, List<DialogueDeclaredOutcome> declaredOutcomes, String? defaultStartNode, String? folderId, int sortOrder
+ String id, String name, String relativePath, List<String> tags, String description, List<DialogueDeclaredOutcome> declaredOutcomes, String? defaultStartNode, String? folderId, int sortOrder,@JsonKey(includeIfNull: false) DialogueLocalization? localization
 });
 
 
@@ -2506,7 +2506,7 @@ class _$ProjectDialogueEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectDialogueEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? relativePath = null,Object? tags = null,Object? description = null,Object? declaredOutcomes = null,Object? defaultStartNode = freezed,Object? folderId = freezed,Object? sortOrder = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? relativePath = null,Object? tags = null,Object? description = null,Object? declaredOutcomes = null,Object? defaultStartNode = freezed,Object? folderId = freezed,Object? sortOrder = null,Object? localization = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -2517,7 +2517,8 @@ as String,declaredOutcomes: null == declaredOutcomes ? _self.declaredOutcomes : 
 as List<DialogueDeclaredOutcome>,defaultStartNode: freezed == defaultStartNode ? _self.defaultStartNode : defaultStartNode // ignore: cast_nullable_to_non_nullable
 as String?,folderId: freezed == folderId ? _self.folderId : folderId // ignore: cast_nullable_to_non_nullable
 as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
-as int,
+as int,localization: freezed == localization ? _self.localization : localization // ignore: cast_nullable_to_non_nullable
+as DialogueLocalization?,
   ));
 }
 
@@ -2602,10 +2603,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String relativePath,  List<String> tags,  String description,  List<DialogueDeclaredOutcome> declaredOutcomes,  String? defaultStartNode,  String? folderId,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String relativePath,  List<String> tags,  String description,  List<DialogueDeclaredOutcome> declaredOutcomes,  String? defaultStartNode,  String? folderId,  int sortOrder, @JsonKey(includeIfNull: false)  DialogueLocalization? localization)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectDialogueEntry() when $default != null:
-return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.description,_that.declaredOutcomes,_that.defaultStartNode,_that.folderId,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.description,_that.declaredOutcomes,_that.defaultStartNode,_that.folderId,_that.sortOrder,_that.localization);case _:
   return orElse();
 
 }
@@ -2623,10 +2624,10 @@ return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.descript
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String relativePath,  List<String> tags,  String description,  List<DialogueDeclaredOutcome> declaredOutcomes,  String? defaultStartNode,  String? folderId,  int sortOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String relativePath,  List<String> tags,  String description,  List<DialogueDeclaredOutcome> declaredOutcomes,  String? defaultStartNode,  String? folderId,  int sortOrder, @JsonKey(includeIfNull: false)  DialogueLocalization? localization)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectDialogueEntry():
-return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.description,_that.declaredOutcomes,_that.defaultStartNode,_that.folderId,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.description,_that.declaredOutcomes,_that.defaultStartNode,_that.folderId,_that.sortOrder,_that.localization);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2643,10 +2644,10 @@ return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.descript
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String relativePath,  List<String> tags,  String description,  List<DialogueDeclaredOutcome> declaredOutcomes,  String? defaultStartNode,  String? folderId,  int sortOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String relativePath,  List<String> tags,  String description,  List<DialogueDeclaredOutcome> declaredOutcomes,  String? defaultStartNode,  String? folderId,  int sortOrder, @JsonKey(includeIfNull: false)  DialogueLocalization? localization)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectDialogueEntry() when $default != null:
-return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.description,_that.declaredOutcomes,_that.defaultStartNode,_that.folderId,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.description,_that.declaredOutcomes,_that.defaultStartNode,_that.folderId,_that.sortOrder,_that.localization);case _:
   return null;
 
 }
@@ -2658,7 +2659,7 @@ return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.descript
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectDialogueEntry implements ProjectDialogueEntry {
-  const _ProjectDialogueEntry({required this.id, required this.name, required this.relativePath, final  List<String> tags = const [], this.description = '', final  List<DialogueDeclaredOutcome> declaredOutcomes = const [], this.defaultStartNode, this.folderId, this.sortOrder = 0}): _tags = tags,_declaredOutcomes = declaredOutcomes;
+  const _ProjectDialogueEntry({required this.id, required this.name, required this.relativePath, final  List<String> tags = const [], this.description = '', final  List<DialogueDeclaredOutcome> declaredOutcomes = const [], this.defaultStartNode, this.folderId, this.sortOrder = 0, @JsonKey(includeIfNull: false) this.localization}): _tags = tags,_declaredOutcomes = declaredOutcomes;
   factory _ProjectDialogueEntry.fromJson(Map<String, dynamic> json) => _$ProjectDialogueEntryFromJson(json);
 
 @override final  String id;
@@ -2685,6 +2686,7 @@ class _ProjectDialogueEntry implements ProjectDialogueEntry {
 /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
 @override final  String? folderId;
 @override@JsonKey() final  int sortOrder;
+@override@JsonKey(includeIfNull: false) final  DialogueLocalization? localization;
 
 /// Create a copy of ProjectDialogueEntry
 /// with the given fields replaced by the non-null parameter values.
@@ -2699,16 +2701,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectDialogueEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._declaredOutcomes, _declaredOutcomes)&&(identical(other.defaultStartNode, defaultStartNode) || other.defaultStartNode == defaultStartNode)&&(identical(other.folderId, folderId) || other.folderId == folderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectDialogueEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._declaredOutcomes, _declaredOutcomes)&&(identical(other.defaultStartNode, defaultStartNode) || other.defaultStartNode == defaultStartNode)&&(identical(other.folderId, folderId) || other.folderId == folderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.localization, localization) || other.localization == localization));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,relativePath,const DeepCollectionEquality().hash(_tags),description,const DeepCollectionEquality().hash(_declaredOutcomes),defaultStartNode,folderId,sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,relativePath,const DeepCollectionEquality().hash(_tags),description,const DeepCollectionEquality().hash(_declaredOutcomes),defaultStartNode,folderId,sortOrder,localization);
 
 @override
 String toString() {
-  return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, declaredOutcomes: $declaredOutcomes, defaultStartNode: $defaultStartNode, folderId: $folderId, sortOrder: $sortOrder)';
+  return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, declaredOutcomes: $declaredOutcomes, defaultStartNode: $defaultStartNode, folderId: $folderId, sortOrder: $sortOrder, localization: $localization)';
 }
 
 
@@ -2719,7 +2721,7 @@ abstract mixin class _$ProjectDialogueEntryCopyWith<$Res> implements $ProjectDia
   factory _$ProjectDialogueEntryCopyWith(_ProjectDialogueEntry value, $Res Function(_ProjectDialogueEntry) _then) = __$ProjectDialogueEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String relativePath, List<String> tags, String description, List<DialogueDeclaredOutcome> declaredOutcomes, String? defaultStartNode, String? folderId, int sortOrder
+ String id, String name, String relativePath, List<String> tags, String description, List<DialogueDeclaredOutcome> declaredOutcomes, String? defaultStartNode, String? folderId, int sortOrder,@JsonKey(includeIfNull: false) DialogueLocalization? localization
 });
 
 
@@ -2736,7 +2738,7 @@ class __$ProjectDialogueEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectDialogueEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? relativePath = null,Object? tags = null,Object? description = null,Object? declaredOutcomes = null,Object? defaultStartNode = freezed,Object? folderId = freezed,Object? sortOrder = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? relativePath = null,Object? tags = null,Object? description = null,Object? declaredOutcomes = null,Object? defaultStartNode = freezed,Object? folderId = freezed,Object? sortOrder = null,Object? localization = freezed,}) {
   return _then(_ProjectDialogueEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -2747,7 +2749,8 @@ as String,declaredOutcomes: null == declaredOutcomes ? _self._declaredOutcomes :
 as List<DialogueDeclaredOutcome>,defaultStartNode: freezed == defaultStartNode ? _self.defaultStartNode : defaultStartNode // ignore: cast_nullable_to_non_nullable
 as String?,folderId: freezed == folderId ? _self.folderId : folderId // ignore: cast_nullable_to_non_nullable
 as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
-as int,
+as int,localization: freezed == localization ? _self.localization : localization // ignore: cast_nullable_to_non_nullable
+as DialogueLocalization?,
   ));
 }
 

@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+import '../../dialogue/dialogue_localization_document.dart';
 
 enum NarrativeAuthoringDiagnosticSeverity { warning, error }
 
@@ -89,6 +90,18 @@ final class DialogueAuthoringCompiler {
   }) {
     final diagnostics = <DialogueAuthoringDiagnostic>[];
     final lines = source.split('\n');
+    if (entry.localization case final localization?) {
+      try {
+        validateDialogueLocalizationSource(localization, source);
+      } on FormatException catch (error) {
+        diagnostics.add(DialogueAuthoringDiagnostic(
+          code: 'dialogue.localization_source_mismatch',
+          severity: NarrativeAuthoringDiagnosticSeverity.error,
+          message: error.message.toString(),
+          path: '/dialogues/${entry.id}/localization',
+        ));
+      }
+    }
     final commandPattern = RegExp(r'<<\s*([^\s>]+)');
     for (var index = 0; index < lines.length; index++) {
       final literal = lines[index].trim();

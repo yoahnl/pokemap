@@ -1,4 +1,5 @@
 export 'src/models/map_entity_interactive_encounter.dart';
+export 'src/dialogue/dialogue_localization.dart';
 export 'src/models/battle_move_animation_recipe.dart';
 export 'src/models/battle_spl_particle_definition.dart';
 export 'src/models/battle_move_recipe_binding.dart';
