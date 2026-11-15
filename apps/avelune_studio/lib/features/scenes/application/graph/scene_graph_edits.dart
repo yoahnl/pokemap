@@ -2,6 +2,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../steps/scene_step_commands.dart';
 import 'scene_graph_layout.dart';
+import 'scene_graph_metrics.dart';
 import 'scene_graph_view.dart';
 
 part 'scene_graph_clipboard.dart';

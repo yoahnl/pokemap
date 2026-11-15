@@ -88,6 +88,7 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
               },
               onChanged: _editable ? focus.edit : null,
               onSelectionChanged: (ids) => setState(() => _selection = ids),
+              preparing: focus.draft.preparing,
             ),
           ),
         ),

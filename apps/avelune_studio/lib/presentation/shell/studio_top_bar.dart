@@ -109,8 +109,7 @@ class StudioTopBar extends StatelessWidget {
             key: const ValueKey('studio-save'),
             label: context.l10n.topBarSave,
             variant: StudioButtonVariant.secondary,
-            loading: saveState == StudioSaveState.saving,
-            onPressed: onSave,
+            onPressed: saveState == StudioSaveState.saving ? null : onSave,
           ),
           const SizedBox(width: StudioSpacing.m),
           StudioButton(
@@ -252,6 +251,9 @@ class _SaveStatus extends StatelessWidget {
         theme.colorScheme.error,
       ),
     };
+    final style = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
     return Row(
       key: const ValueKey('studio-save-status'),
       mainAxisSize: MainAxisSize.min,
@@ -262,13 +264,31 @@ class _SaveStatus extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: StudioSpacing.s),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+        SizedBox(
+          width: _widest(context, style, [
+            context.l10n.saveStateSaved,
+            context.l10n.saveStateUnsaved,
+            context.l10n.saveStateSaving,
+            context.l10n.saveStateFailed,
+          ]),
+          child: Text(label, maxLines: 1, style: style),
         ),
       ],
     );
   }
+}
+
+double _widest(BuildContext context, TextStyle? style, List<String> labels) {
+  var widest = 0.0;
+  for (final label in labels) {
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    if (painter.width > widest) widest = painter.width;
+    painter.dispose();
+  }
+  return widest.ceilToDouble();
 }

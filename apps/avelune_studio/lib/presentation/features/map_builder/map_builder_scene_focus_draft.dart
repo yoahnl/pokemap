@@ -14,6 +14,9 @@ final class MapBuilderSceneFocusDraft implements SceneFocusDraft {
   bool get editable => isEditable() && _story.ready && !_story.publishing;
 
   @override
+  bool get preparing => isEditable() && !_story.ready;
+
+  @override
   SceneAsset? touched(String sceneId) {
     final draft = _story.behaviours.draft;
     return draft.isTouched(StoryDraftKind.scene, sceneId)

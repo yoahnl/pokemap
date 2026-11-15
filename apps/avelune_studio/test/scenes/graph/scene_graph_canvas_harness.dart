@@ -26,9 +26,10 @@ final graphInitial = SceneAsset(
 final graphCanvas = GlobalKey<SceneGraphCanvasState>();
 
 class GraphHost extends StatefulWidget {
-  const GraphHost({super.key, required this.editable});
+  const GraphHost({super.key, required this.editable, this.preparing = false});
 
   final bool editable;
+  final bool preparing;
 
   @override
   State<GraphHost> createState() => GraphHostState();
@@ -43,6 +44,7 @@ class GraphHostState extends State<GraphHost> {
     key: graphCanvas,
     scene: scene,
     project: null,
+    preparing: widget.preparing,
     onChanged: widget.editable
         ? (next) {
             setState(() {
@@ -60,6 +62,7 @@ final graphHost = GlobalKey<GraphHostState>();
 Future<GraphHostState> pumpGraph(
   WidgetTester tester, {
   bool editable = true,
+  bool preparing = false,
 }) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1;
@@ -71,7 +74,11 @@ Future<GraphHostState> pumpGraph(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
-        body: GraphHost(key: graphHost, editable: editable),
+        body: GraphHost(
+          key: graphHost,
+          editable: editable,
+          preparing: preparing,
+        ),
       ),
     ),
   );

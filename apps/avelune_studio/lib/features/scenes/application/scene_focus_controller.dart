@@ -17,6 +17,8 @@ typedef SceneOpener = void Function(String sceneId, String? behaviourId);
 abstract interface class SceneFocusDraft {
   bool get editable;
 
+  bool get preparing;
+
   SceneAsset? touched(String sceneId);
 
   SceneAsset? current(String sceneId);

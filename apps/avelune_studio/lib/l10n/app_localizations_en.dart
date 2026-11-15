@@ -3068,6 +3068,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Drag an exit onto a step to link · right-click to add · Delete to erase · Alt+click to unlink · ⌘C ⌘X ⌘V ⌘D · ⌘Z to undo';
 
   @override
+  String get sceneGraphPreparing => 'Preparing editing…';
+
+  @override
   String get sceneGraphSearch => 'Add a step';
 
   @override

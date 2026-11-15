@@ -6,15 +6,17 @@ import 'package:avelune_studio/features/scenes/application/graph/scene_graph_vie
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_families.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 
+final _commands = NarrativeCommandCatalog.canonical();
+
 Color sceneGraphFamilyColor(BuildContext context, SceneGraphFamily family) =>
     switch (family) {
-      SceneGraphFamily.start => StudioAccent.firefly.color(context),
+      SceneGraphFamily.start ||
+      SceneGraphFamily.end => StudioAccent.firefly.color(context),
       SceneGraphFamily.dialogue => StudioAccent.water.color(context),
       SceneGraphFamily.condition => StudioAccent.halo.color(context),
       SceneGraphFamily.action => StudioAccent.fog.color(context),
       SceneGraphFamily.battle => StudioAccent.window.color(context),
       SceneGraphFamily.cinematic => StudioAccent.daylight.color(context),
-      SceneGraphFamily.end ||
       SceneGraphFamily.flow => Theme.of(context).colorScheme.outline,
     };
 
@@ -41,7 +43,10 @@ String? sceneGraphCardDetail(
     project?.cinematics.where((c) => c.id == cinematicId).firstOrNull?.title ??
         l10n.sceneGraphMissing,
   SceneActionPayload() => switch (sceneStepFamilyOfNode(node)) {
-    SceneStepFamily.other => sceneStepCommandIdOf(node),
+    SceneStepFamily.other => switch (sceneStepCommandIdOf(node)) {
+      final id? => _commands.byId(id)?.label ?? id,
+      null => null,
+    },
     final family => l10n.storyStepFamily(family.name),
   },
   _ => node.description?.trim().isEmpty ?? true ? null : node.description,

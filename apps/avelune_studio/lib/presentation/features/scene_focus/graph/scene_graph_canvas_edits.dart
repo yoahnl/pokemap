@@ -120,12 +120,19 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
     final fragment = SceneGraphCanvasState._clipboard;
     final camera = _camera?.value;
     if (fragment == null || camera == null) return;
-    final screen = _pointer ?? _viewport.center(Offset.zero);
+    final pointer = camera.toWorld(_pointer ?? _viewport.center(Offset.zero));
+    final floor = camera
+        .toWorld(
+          Offset(0, _viewport.height - SceneGraphCanvasState._toolbarReserve),
+        )
+        .dy;
     _apply(
       pasteSceneGraphSteps(
         widget.scene,
         fragment,
-        at: _snapped(camera.toWorld(screen)),
+        at: _snapped(
+          Offset(pointer.dx, math.min(pointer.dy, floor - fragment.height)),
+        ),
         ids: _ids,
       ),
     );

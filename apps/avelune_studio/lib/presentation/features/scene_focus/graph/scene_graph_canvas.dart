@@ -34,6 +34,7 @@ class SceneGraphCanvas extends StatefulWidget {
     this.onChanged,
     this.checks,
     this.onSelectionChanged,
+    this.preparing = false,
   });
 
   final SceneAsset scene;
@@ -45,6 +46,7 @@ class SceneGraphCanvas extends StatefulWidget {
   final bool Function(SceneAsset scene)? onChanged;
   final SceneGraphChecks? checks;
   final ValueChanged<Set<String>>? onSelectionChanged;
+  final bool preparing;
 
   @override
   State<SceneGraphCanvas> createState() => SceneGraphCanvasState();
@@ -56,6 +58,7 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   static const double _portReach = 10;
   static const double _snap = 16;
   static const double _duplicateShift = 32;
+  static const double _toolbarReserve = 96;
   static SceneGraphFragment? _clipboard;
 
   late SceneGraphView _view = projectSceneGraph(widget.scene);
@@ -279,6 +282,7 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
               child: SceneGraphToolbar(
                 camera: camera,
                 editable: _editable,
+                preparing: widget.preparing,
                 onShowAll: showAll,
               ),
             ),

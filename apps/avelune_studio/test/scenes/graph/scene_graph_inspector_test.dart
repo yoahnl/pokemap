@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_inspector.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/scene_focus_workspace.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -37,15 +38,18 @@ Future<void> _pump(
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: SingleChildScrollView(
-        child: SceneGraphInspector(
-          scene: scene,
-          project: _project,
-          map: null,
-          selection: selection,
-          checks: checkSceneGraph(scene),
-          editable: editable,
-          onEdit: onEdit ?? (_) {},
-          onShow: onShow ?? (_) {},
+        child: SizedBox(
+          width: SceneFocusWorkspace.sideWidth,
+          child: SceneGraphInspector(
+            scene: scene,
+            project: _project,
+            map: null,
+            selection: selection,
+            checks: checkSceneGraph(scene),
+            editable: editable,
+            onEdit: onEdit ?? (_) {},
+            onShow: onShow ?? (_) {},
+          ),
         ),
       ),
     ),
@@ -74,6 +78,7 @@ void main() {
       find.text('Cette étape n’est jamais atteinte depuis le début.'),
     );
     expect(shown, ['alone']);
+    expect(find.text('Action'), findsOneWidget, reason: 'the step is named');
   });
 
   testWidgets('a sound scene says it has no problem', (tester) async {
@@ -96,6 +101,11 @@ void main() {
 
     expect(_key('scene-graph-inspector-remember'), findsOneWidget);
     expect(_key('scene-graph-checks'), findsNothing);
+    expect(
+      tester.getTopLeft(_key('story-step-value-remember')).dy,
+      greaterThan(tester.getBottomLeft(_key('story-step-fact-remember')).dy),
+      reason: 'a narrow inspector stacks the fact and its value',
+    );
     tester.widget<StudioSelect>(_key('story-step-fact-remember')).onChanged!(
       'seen',
     );

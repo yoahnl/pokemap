@@ -1704,6 +1704,7 @@
   },
   "sceneGraphNavigationHint": "Clic droit glissé ou deux doigts pour se déplacer · molette ou pincement pour zoomer · Maj+clic pour ajouter à la sélection",
   "sceneGraphEditHint": "Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic pour délier · ⌘C ⌘X ⌘V ⌘D · ⌘Z pour annuler",
+  "sceneGraphPreparing": "Préparation de l’édition…",
   "sceneGraphSearch": "Ajouter une étape",
   "sceneGraphNoMatch": "Aucune étape ne correspond.",
   "sceneGraphUnavailable": "Rien à choisir dans ce projet pour l’instant",

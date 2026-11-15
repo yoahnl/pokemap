@@ -191,6 +191,17 @@ ThemeData studioTheme() {
         borderRadius: BorderRadius.circular(4),
       ),
     ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: colors.surfaceContainerHigh,
+      contentTextStyle: text.bodyMedium?.copyWith(color: colors.onSurface),
+      actionTextColor: colors.primary,
+      behavior: SnackBarBehavior.floating,
+      width: 520,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
+        side: BorderSide(color: colors.outline),
+      ),
+    ),
     dialogTheme: DialogThemeData(
       backgroundColor: colors.surface,
       surfaceTintColor: colors.surface,

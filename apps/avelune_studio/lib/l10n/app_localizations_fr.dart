@@ -3085,6 +3085,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic pour délier · ⌘C ⌘X ⌘V ⌘D · ⌘Z pour annuler';
 
   @override
+  String get sceneGraphPreparing => 'Préparation de l’édition…';
+
+  @override
   String get sceneGraphSearch => 'Ajouter une étape';
 
   @override

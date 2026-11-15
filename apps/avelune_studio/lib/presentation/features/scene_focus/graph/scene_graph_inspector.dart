@@ -110,6 +110,7 @@ class SceneGraphInspector extends StatelessWidget {
           _Problem(
             key: ValueKey('scene-graph-problem-$index'),
             problem: problem,
+            step: _stepName(l10n, problem.nodeId),
             onTap: switch (problem.nodeId) {
               final id? => () => onShow(id),
               null => null,
@@ -120,11 +121,28 @@ class SceneGraphInspector extends StatelessWidget {
   }
 }
 
+extension on SceneGraphInspector {
+  String? _stepName(AppLocalizations l10n, String? nodeId) {
+    final node = scene.graph.nodes.where((n) => n.id == nodeId).firstOrNull;
+    if (node == null) return null;
+    final title = node.title?.trim();
+    return title == null || title.isEmpty
+        ? l10n.sceneGraphKind(node.kind.name)
+        : title;
+  }
+}
+
 class _Problem extends StatelessWidget {
-  const _Problem({super.key, required this.problem, required this.onTap});
+  const _Problem({
+    super.key,
+    required this.problem,
+    required this.onTap,
+    this.step,
+  });
 
   final SceneGraphProblem problem;
   final VoidCallback? onTap;
+  final String? step;
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +150,10 @@ class _Problem extends StatelessWidget {
     final blocking = problem.level == SceneGraphProblemLevel.blocking;
     return StudioChoice(
       label: sceneGraphProblemText(l10n, problem),
-      subtitle: blocking ? l10n.sceneGraphBlocking : null,
+      subtitle: switch ([?step, if (blocking) l10n.sceneGraphBlocking]) {
+        [] => null,
+        final parts => parts.join(' · '),
+      },
       maxLines: 3,
       tone: blocking ? StudioTone.danger : StudioTone.warning,
       onTap: onTap,

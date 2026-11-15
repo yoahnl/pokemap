@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'scene_graph_canvas_harness.dart';
 
@@ -91,6 +92,66 @@ void main() {
     expect(
       host.scene.graph.nodes,
       hasLength(graphInitial.graph.nodes.length + 1),
+    );
+  });
+
+  testWidgets('a paste near the bottom stays above the help bar', (
+    tester,
+  ) async {
+    await pumpGraph(tester);
+    final canvas = tester.getRect(graphKey('scene-graph-canvas'));
+
+    await tester.tapAt(
+      graphCentre(tester, 'wait'),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.tapAt(
+      Offset(canvas.center.dx, canvas.bottom - 100),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyV);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pumpAndSettle();
+
+    final pasted = graphCanvas.currentState!.selection.single;
+    final card = tester.getRect(graphKey('scene-graph-card-$pasted'));
+    expect(card.bottom, lessThanOrEqualTo(canvas.bottom - 96 + 16));
+  });
+
+  testWidgets('while editing is being prepared the help bar says so', (
+    tester,
+  ) async {
+    await pumpGraph(tester, editable: false, preparing: true);
+
+    expect(find.textContaining('Préparation de l’édition…'), findsOneWidget);
+    expect(find.textContaining('Glisser une sortie'), findsNothing);
+  });
+
+  testWidgets('an advanced action is named by the engine catalog, not its id', (
+    tester,
+  ) async {
+    await pumpGraph(tester);
+
+    expect(
+      find.descendant(
+        of: graphKey('scene-graph-card-wait'),
+        matching: find.text('wait'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: graphKey('scene-graph-card-wait'),
+        matching: find.text(
+          NarrativeCommandCatalog.canonical().byId('wait')!.label,
+        ),
+      ),
+      findsOneWidget,
     );
   });
 }

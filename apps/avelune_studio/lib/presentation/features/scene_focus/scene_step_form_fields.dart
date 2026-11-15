@@ -278,13 +278,26 @@ class _Pair extends StatelessWidget {
   final Widget first;
   final Widget second;
 
+  static const double _sideBySide = 420;
+
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(child: first),
-      const SizedBox(width: StudioSpacing.m),
-      Expanded(child: second),
-    ],
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => constraints.maxWidth < _sideBySide
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              first,
+              const SizedBox(height: StudioSpacing.m),
+              second,
+            ],
+          )
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: first),
+              const SizedBox(width: StudioSpacing.m),
+              Expanded(child: second),
+            ],
+          ),
   );
 }

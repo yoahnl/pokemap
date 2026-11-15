@@ -11,11 +11,13 @@ class SceneGraphToolbar extends StatelessWidget {
     required this.camera,
     required this.onShowAll,
     this.editable = false,
+    this.preparing = false,
   });
 
   final ValueListenable<SceneGraphCamera> camera;
   final VoidCallback onShowAll;
   final bool editable;
+  final bool preparing;
 
   @override
   Widget build(BuildContext context) {
@@ -42,9 +44,13 @@ class SceneGraphToolbar extends StatelessWidget {
         const SizedBox(width: StudioSpacing.l),
         Expanded(
           child: Text(
-            editable
-                ? '${l10n.sceneGraphEditHint}\n${l10n.sceneGraphNavigationHint}'
-                : l10n.sceneGraphNavigationHint,
+            switch ((editable, preparing)) {
+              (true, _) =>
+                '${l10n.sceneGraphEditHint}\n${l10n.sceneGraphNavigationHint}',
+              (false, true) =>
+                '${l10n.sceneGraphPreparing}\n${l10n.sceneGraphNavigationHint}',
+              (false, false) => l10n.sceneGraphNavigationHint,
+            },
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(

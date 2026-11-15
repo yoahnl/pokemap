@@ -12,6 +12,17 @@ final class SceneGraphFragment {
   final List<SceneNode> nodes;
   final List<SceneEdge> edges;
   final Map<String, SceneGraphPoint> offsets;
+
+  double get height {
+    final byId = {for (final node in nodes) node.id: node};
+    var bottom = 0.0;
+    for (final node in nodes) {
+      final exits = sceneOutputPortSpecsOf(node, byId)?.length ?? 0;
+      final end = offsets[node.id]!.y + SceneGraphMetrics.cardHeight(exits);
+      if (end > bottom) bottom = end;
+    }
+    return bottom;
+  }
 }
 
 const _nodeReferenceKeys = {'sourceNodeId', 'awaitableNodeId'};

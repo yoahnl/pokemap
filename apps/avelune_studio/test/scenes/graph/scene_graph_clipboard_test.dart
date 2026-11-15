@@ -1,5 +1,6 @@
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_metrics.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_commands.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -78,5 +79,11 @@ void main() {
       isEmpty,
       reason: 'links from outside the copy are not duplicated',
     );
+  });
+
+  test('a copied fragment knows how tall it is', () {
+    final fragment = copySceneGraphSteps(_scene, {'wait'})!;
+
+    expect(fragment.height, SceneGraphMetrics.cardHeight(1));
   });
 }

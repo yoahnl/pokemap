@@ -4884,6 +4884,12 @@ abstract class AppLocalizations {
   /// **'Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic pour délier · ⌘C ⌘X ⌘V ⌘D · ⌘Z pour annuler'**
   String get sceneGraphEditHint;
 
+  /// No description provided for @sceneGraphPreparing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préparation de l’édition…'**
+  String get sceneGraphPreparing;
+
   /// No description provided for @sceneGraphSearch.
   ///
   /// In fr, this message translates to:
