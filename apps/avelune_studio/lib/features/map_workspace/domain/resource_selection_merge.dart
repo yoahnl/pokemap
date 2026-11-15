@@ -53,6 +53,10 @@ ProjectManifest combineResourceVisuals(
     for (final value in after) key(value): value,
   }.values.toList();
   return map.copyWith(
+    resourceLibraryCatalog: mergeResourceLibraryCatalogs(
+      map.resourceLibraryCatalog,
+      family.resourceLibraryCatalog,
+    ),
     tilesets: union(map.tilesets, family.tilesets, (value) => value.id),
     elements: union(map.elements, family.elements, (value) => value.id),
     models3d: union(map.models3d, family.models3d, (value) => value.id),

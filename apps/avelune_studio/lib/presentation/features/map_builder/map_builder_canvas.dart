@@ -194,8 +194,7 @@ class MapBuilderCanvas extends StatelessWidget {
                           fit: StackFit.expand,
                           children: [
                             ClipRect(child: surface),
-                            if (reliefNotice case final notice?
-                                when error == null)
+                            if (reliefNotice case final notice?)
                               Positioned(
                                 left: StudioSpacing.l,
                                 top: StudioSpacing.l,

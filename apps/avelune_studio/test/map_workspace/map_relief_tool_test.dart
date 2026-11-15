@@ -94,6 +94,98 @@ void main() {
     expect(mapReliefProfiles(leftHandedReliefProject(), map), isEmpty);
   });
 
+  test('only styles classified in Reliefs et parois are offered', () {
+    final map = reliefToolMap();
+    final ranged = reliefRangeProject(
+      families: {'fence': null, 'fence-copy': null, 'fence-2': null},
+      classified: {'fence-copy'},
+    );
+    expect(mapReliefProfiles(ranged, map).map((p) => p.id), ['fence-copy']);
+    expect(mapReliefProfile(ranged, map, 'fence'), isNull);
+    expect(mapReliefProfile(ranged, map, 'fence-copy')?.id, 'fence-copy');
+  });
+
+  test(
+    'styles with the same name keep one order whatever the catalog order',
+    () {
+      final map = reliefToolMap();
+      final forward = reliefRangeProject(
+        families: {'fence': 'relief', 'fence-copy': 'relief'},
+      );
+      final backward = forward.copyWith(
+        borderCatalog: ProjectBorderCatalog(
+          formatVersion: forward.borderCatalog.formatVersion,
+          records: forward.borderCatalog.records.reversed.toList(),
+        ),
+      );
+      expect(
+        mapReliefProfiles(forward, map).map((p) => p.name).toSet(),
+        hasLength(1),
+      );
+      expect(mapReliefProfiles(forward, map).map((p) => p.id), [
+        'fence',
+        'fence-copy',
+      ]);
+      expect(mapReliefProfiles(backward, map).map((p) => p.id), [
+        'fence',
+        'fence-copy',
+      ]);
+    },
+  );
+
+  test(
+    'the two-level variant comes from the style range, not a shared family',
+    () {
+      final map = reliefToolMap();
+      final shared = reliefRangeProject(
+        families: {'fence': 'relief', 'fence-2': 'relief'},
+      );
+      expect(mapReliefProfiles(shared, map).single.twoLevelId, isNull);
+      expect(mapReliefProfile(shared, map, 'fence')?.twoLevelId, isNull);
+
+      final ranged = reliefRangeProject(
+        families: {'fence': 'palissade', 'fence-2': 'palissade'},
+      );
+      expect(mapReliefProfiles(ranged, map).single.twoLevelId, 'fence-2');
+      expect(mapReliefProfile(ranged, map, 'fence')?.twoLevelId, 'fence-2');
+    },
+  );
+
+  test('a terrace one cell from a plateau corner names the step limit', () {
+    final ranged = reliefRangeProject(
+      families: {'fence': 'palissade', 'fence-2': 'palissade'},
+      cornerJoinCells: 1,
+    );
+    MapReliefOutcome terrace(GridPos from, GridPos to) {
+      final document = reliefDocument(reliefToolMap());
+      final state = MapReliefToolState()..profileId = 'fence';
+      final commands = MapReliefCommands(document, ranged);
+      final plateau = commands.apply(
+        _rectangle(
+          document.current,
+          2,
+          const GridPos(x: 1, y: 1),
+          const GridPos(x: 8, y: 7),
+        ),
+        state,
+      );
+      expect(plateau.problem, isNull);
+      return commands.apply(_rectangle(document.current, 3, from, to), state);
+    }
+
+    final near = terrace(const GridPos(x: 2, y: 1), const GridPos(x: 4, y: 3));
+    expect(near.problem, MapReliefProblem.cornerNearStep);
+    expect(near.diagnostics, ['border.spatial.corner_join_conflict']);
+    expect(
+      terrace(const GridPos(x: 3, y: 1), const GridPos(x: 5, y: 3)).problem,
+      isNull,
+    );
+    expect(
+      terrace(const GridPos(x: 1, y: 1), const GridPos(x: 4, y: 3)).problem,
+      isNull,
+    );
+  });
+
   test('the palette, the eyedropper and the level keys share one level', () {
     final map = reliefToolMap();
     final state = MapReliefToolState()..level = 0;

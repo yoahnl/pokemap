@@ -38,6 +38,74 @@ ProjectManifest reliefToolProject() {
         ),
       ],
     ),
+    resourceLibraryCatalog: ResourceLibraryCatalog(
+      entries: [
+        ResourceLibraryEntry(
+          resourceKind: 'borderBlueprint',
+          resourceId: 'fence',
+          familyId: 'relief',
+        ),
+      ],
+    ),
+  );
+}
+
+ProjectManifest reliefRangeProject({
+  required Map<String, String?> families,
+  Set<String>? classified,
+  int cornerJoinCells = 0,
+}) {
+  final base = reliefToolProject();
+  final fence = base.borderCatalog.records.single;
+  final format = base.borderCatalog.formatVersion;
+  BorderBlueprintRecord copy(String id, {String? model}) {
+    final raw = encodeBorderBlueprintRecordJson(fence, formatVersion: format);
+    raw['id'] = id;
+    for (final key in ['draft', 'latestPublished']) {
+      final definition = (raw[key] as Map)['definition'] as Map;
+      for (final primitive in (definition['primitives'] as List).cast<Map>()) {
+        if (model != null) primitive['sourceModelId'] = model;
+        if (primitive['role'] == 'lineCorner' && cornerJoinCells > 0) {
+          primitive['cornerJoinCells'] = cornerJoinCells;
+        }
+      }
+    }
+    return decodeBorderBlueprintRecordJson(raw, formatVersion: format);
+  }
+
+  final oak = base.models3d.singleWhere((model) => model.id == 'oak');
+  return base.copyWith(
+    models3d: [...base.models3d, _face(oak, depth: -2).copyWithId('oak-2')],
+    borderCatalog: ProjectBorderCatalog(
+      formatVersion: format,
+      records: [
+        for (final id in families.keys)
+          id == 'fence' && cornerJoinCells == 0
+              ? fence
+              : copy(id, model: id.endsWith('-2') ? 'oak-2' : null),
+      ],
+    ),
+    resourceLibraryCatalog: ResourceLibraryCatalog(
+      families: {
+        for (final family in families.values)
+          if (family != null &&
+              !ResourceLibraryCatalog.predefinedFamilies.any(
+                (predefined) => predefined.id == family,
+              ))
+            family,
+      }.map((id) => ResourceFamily(id: id, name: id)),
+      entries: [
+        for (final MapEntry(key: id, value: family) in families.entries)
+          ResourceLibraryEntry(
+            resourceKind: 'borderBlueprint',
+            resourceId: id,
+            familyId: family,
+            category: classified == null || classified.contains(id)
+                ? ResourceUsageCategory.relief
+                : null,
+          ),
+      ],
+    ),
   );
 }
 
@@ -69,6 +137,16 @@ List<String> reliefFeatures(MapData map) => [
     for (final feature in layer.content.features)
       if (feature.materialization != null) feature.id,
 ];
+
+extension on ProjectModel3dEntry {
+  ProjectModel3dEntry copyWithId(String value) => ProjectModel3dEntry(
+    id: value,
+    name: value,
+    sourceAssetId: '$value-source',
+    relativePath: 'assets/models3d/$value.glb',
+    inspection: inspection,
+  );
+}
 
 ProjectModel3dEntry _face(
   ProjectModel3dEntry model, {

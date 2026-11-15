@@ -54,6 +54,23 @@ Future<Map<String, String>> resolveStudioResourcePaths(
   return paths;
 }
 
+Future<Map<String, String>> resolveStudioPreviewImagePaths({
+  required String projectRoot,
+  required ProjectManifest manifest,
+  required MapData map,
+}) {
+  final characters = {
+    for (final entity in map.entities) ?entity.npc?.characterId,
+  };
+  final tilesets = {for (final tileset in manifest.tilesets) tileset.id};
+  return resolveStudioResourcePaths(projectRoot, manifest, {
+    for (final character in manifest.characters)
+      if (characters.contains(character.id) &&
+          tilesets.contains(character.tilesetId))
+        character.tilesetId,
+  });
+}
+
 Set<String> changedStudioResourceIds({
   required String root,
   required Map<String, String> before,

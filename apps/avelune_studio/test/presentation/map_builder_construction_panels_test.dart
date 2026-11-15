@@ -38,25 +38,26 @@ Widget _inspector(Widget body) => Row(
   ],
 );
 
-Widget _canvas(({String message, bool isError})? notice) => MapBuilderCanvas(
-  space: MapBuilderSpace.construction,
-  onSpace: (_) {},
-  entry: null,
-  tool: StudioMapTool.relief,
-  onTool: (_) {},
-  inspectorOpen: false,
-  onToggleInspector: () {},
-  error: null,
-  reliefAvailable: true,
-  reliefPalette: MapBuilderReliefPalette(
-    palette: const MapReliefPalette(levels: [3, 2, 1, 0], ground: 1),
-    level: 2,
-    onLevel: (_) {},
-  ),
-  reliefNotice: notice,
-  surface: const SizedBox.expand(key: ValueKey('surface')),
-  statusBar: const SizedBox(),
-);
+Widget _canvas(({String message, bool isError})? notice, {String? error}) =>
+    MapBuilderCanvas(
+      space: MapBuilderSpace.construction,
+      onSpace: (_) {},
+      entry: null,
+      tool: StudioMapTool.relief,
+      onTool: (_) {},
+      inspectorOpen: false,
+      onToggleInspector: () {},
+      error: error,
+      reliefAvailable: true,
+      reliefPalette: MapBuilderReliefPalette(
+        palette: const MapReliefPalette(levels: [3, 2, 1, 0], ground: 1),
+        level: 2,
+        onLevel: (_) {},
+      ),
+      reliefNotice: notice,
+      surface: const SizedBox.expand(key: ValueKey('surface')),
+      statusBar: const SizedBox(),
+    );
 
 TerrainStairModel _stair(String id, String name) => TerrainStairModel(
   model: ProjectModel3dEntry(
@@ -149,5 +150,20 @@ void main() {
     expect(find.byKey(const ValueKey('map-relief-notice')), findsOneWidget);
     expect(find.text('Ce style ne convient pas.'), findsOneWidget);
     expect((tester.getTopLeft(level), tester.getRect(surface)), before);
+  });
+
+  testWidgets('a map banner does not hide the relief refusal', (tester) async {
+    await _pump(
+      tester,
+      _canvas((
+        message: 'Coin trop étroit.',
+        isError: true,
+      ), error: 'Aperçu des personnages indisponible : Léo'),
+    );
+    expect(
+      find.text('Aperçu des personnages indisponible : Léo'),
+      findsOneWidget,
+    );
+    expect(find.text('Coin trop étroit.'), findsOneWidget);
   });
 }

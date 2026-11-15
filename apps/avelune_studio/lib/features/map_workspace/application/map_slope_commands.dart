@@ -33,7 +33,7 @@ final class MapSlopeCommands {
         problem: MapSlopeProblem.noStairModel,
       );
     }
-    return state.outcome = _apply(
+    final outcome = _apply(
       document.current,
       () => placeTerrainStair(
         manifest: project,
@@ -42,6 +42,11 @@ final class MapSlopeCommands {
         modelId: modelId,
       ).slope,
     );
+    return state.outcome =
+        outcome.problem == MapSlopeProblem.noCliff &&
+            _handPlacedCliffNear(project, document.current, cell)
+        ? const MapSlopeOutcome(problem: MapSlopeProblem.handPlacedCliff)
+        : outcome;
   }
 
   MapSlopeOutcome _apply(MapData source, TerrainSlopePaint Function() edit) {
@@ -61,6 +66,44 @@ final class MapSlopeCommands {
       mound: _withoutPlateau(before, result.plan),
     );
   }
+}
+
+bool _handPlacedCliffNear(ProjectManifest project, MapData map, GridPos cell) {
+  final scene = map.spatialScene!;
+  final near = {
+    for (final instance in scene.instances)
+      if ((instance.position.x.floor() - cell.x).abs() <= 1 &&
+          (instance.position.z.floor() - cell.y).abs() <= 1)
+        instance.id,
+  };
+  if (near.isEmpty) return false;
+  final library = project.resourceLibraryCatalog;
+  bool cliff(String blueprintId) {
+    final entry = library.entryFor('borderBlueprint', blueprintId);
+    final category = library.familyCategory(entry?.familyId) ?? entry?.category;
+    final definition = project.borderCatalog
+        .recordById(blueprintId)
+        ?.latestPublished
+        ?.definition;
+    return category == ResourceUsageCategory.relief ||
+        (definition != null &&
+            spatialBorderProfileLevelSpan(
+                  definition,
+                  project,
+                  scene.levelHeight,
+                ) >=
+                1);
+  }
+
+  return map.layers.whereType<BorderLayer>().any(
+    (layer) => layer.content.features.any(
+      (feature) =>
+          (feature.materialization?.spatialPlacements ?? const []).any(
+            (placement) => near.contains(placement.instanceId),
+          ) &&
+          cliff(feature.blueprintId),
+    ),
+  );
 }
 
 bool _withoutPlateau(MapData map, TerrainSlopePlan plan) {

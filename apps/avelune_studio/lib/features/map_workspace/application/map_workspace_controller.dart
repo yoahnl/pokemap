@@ -184,6 +184,8 @@ class MapWorkspaceController {
   final _externalConflicts = <String>{};
 
   final _startedSaves = <Future<void>>{};
+  final _savedSelectionTickets = <String, int>{};
+  Future<void> get savesSettled => Future.wait(_startedSaves.toList());
 
   Future<bool> save(EditableMapDocument document) {
     final operation = _save(document);

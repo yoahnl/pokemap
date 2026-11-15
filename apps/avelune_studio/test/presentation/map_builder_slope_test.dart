@@ -98,7 +98,7 @@ void main() {
       ),
     );
     expect(find.text('Modèle d’escalier'), findsOneWidget);
-    expect(find.text('3 × 1 cases · monte de 1 niveau(x)'), findsNWidgets(2));
+    expect(find.text('3 × 1 cases · monte de 1 niveau'), findsNWidgets(2));
     await tester.tap(find.text('Grotte'));
     expect(chosen?.model.id, 'cave');
     await _pump(

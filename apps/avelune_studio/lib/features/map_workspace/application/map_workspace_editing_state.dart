@@ -27,7 +27,15 @@ class MapWorkspaceEditingState {
   bool highlightTerrain = true;
   bool revealCollisions = false;
   Set<GameplayZoneKind> revealedZones = const {};
-  StudioMapTool tool = StudioMapTool.select;
+  StudioMapTool _tool = StudioMapTool.select;
+  StudioMapTool get tool => _tool;
+  set tool(StudioMapTool value) {
+    if (value != _tool) {
+      relief.outcome = null;
+      slope.outcome = null;
+    }
+    _tool = value;
+  }
 
   final relief = MapReliefToolState();
   final slope = MapSlopeToolState();

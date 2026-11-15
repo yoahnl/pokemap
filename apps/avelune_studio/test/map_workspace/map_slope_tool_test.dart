@@ -1,5 +1,6 @@
 import 'package:avelune_studio/features/map_workspace/application/map_relief_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_slope_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -109,6 +110,29 @@ void main() {
     expect(document.current, map);
   });
 
+  test('a stair on a hand-placed cliff without a terrain step says why', () {
+    final plateau = _plateau(project);
+    final flat = reliefToolMap();
+    final handPlaced = plateau.copyWith(
+      spatialScene: flat.spatialScene!.copyWith(
+        instances: plateau.spatialScene!.instances,
+      ),
+    );
+    final document = reliefDocument(handPlaced);
+    final state = MapSlopeToolState()..stairModelId = 'stone-stair';
+    final commands = MapSlopeCommands(document, project);
+
+    expect(
+      commands.placeStair(const GridPos(x: 5, y: 5), state).problem,
+      MapSlopeProblem.handPlacedCliff,
+    );
+    expect(
+      commands.placeStair(const GridPos(x: 10, y: 8), state).problem,
+      MapSlopeProblem.noCliff,
+    );
+    expect(document.current, same(handPlaced));
+  });
+
   test('refusals become French problems and leave the map unchanged', () {
     final map = _plateau(project);
     final document = reliefDocument(map);
@@ -186,5 +210,22 @@ void main() {
       mapStairPreview(project, map, const GridPos(x: 5, y: 5), null),
       isNull,
     );
+  });
+
+  test('changing tool clears the previous tool notice', () {
+    final view = MapWorkspaceEditingState()..tool = StudioMapTool.slope;
+    view.slope.outcome = const MapSlopeOutcome(
+      problem: MapSlopeProblem.groundNotFlat,
+    );
+    view.relief.outcome = const MapReliefOutcome(
+      problem: MapReliefProblem.narrowCorner,
+    );
+
+    view.tool = StudioMapTool.slope;
+    expect(view.slope.outcome?.problem, MapSlopeProblem.groundNotFlat);
+
+    view.tool = StudioMapTool.stair;
+    expect(view.slope.outcome, isNull);
+    expect(view.relief.outcome, isNull);
   });
 }

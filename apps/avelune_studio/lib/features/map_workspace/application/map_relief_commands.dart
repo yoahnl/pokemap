@@ -46,8 +46,12 @@ final class MapReliefCommands {
         twoLevelBlueprintId: profile.twoLevelId,
       );
     } on ValidationException catch (failure) {
+      final problem = mapReliefProblem(failure);
       return MapReliefOutcome(
-        problem: mapReliefProblem(failure),
+        problem:
+            problem == MapReliefProblem.narrowCorner && _meetsOtherSteps(stroke)
+            ? MapReliefProblem.cornerNearStep
+            : problem,
         diagnostics: mapReliefDiagnostics(failure),
         profileName: profile.name,
       );
@@ -61,6 +65,27 @@ final class MapReliefCommands {
           MapReliefWarning.exteriorDecoration,
       },
     );
+  }
+
+  bool _meetsOtherSteps(MapReliefStroke stroke) {
+    final scene = document.current.spatialScene!;
+    final steps = <int>{};
+    for (final cell in stroke.contour) {
+      for (final (dx, dy) in const [(1, 0), (-1, 0), (0, 1), (0, -1)]) {
+        final x = cell.x + dx, y = cell.y + dy;
+        if (x < 0 ||
+            y < 0 ||
+            x >= scene.width ||
+            y >= scene.depth ||
+            stroke.cells.contains(GridPos(x: x, y: y))) {
+          continue;
+        }
+        final level = (scene.worldHeightAt(x + .5, y + .5) / scene.levelHeight)
+            .round();
+        if (level != stroke.level) steps.add(level);
+      }
+    }
+    return steps.length > 1;
   }
 
   bool _nearExteriorBorder(Set<GridPos> cells) {

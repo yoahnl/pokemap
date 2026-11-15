@@ -178,4 +178,62 @@ void main() {
     expect(find.byKey(const ValueKey('map-relief-notice')), findsOneWidget);
     expect(find.textContaining('Coin trop étroit'), findsOneWidget);
   });
+
+  testWidgets('styles with the same name say what differs and show it whole', (
+    tester,
+  ) async {
+    const long =
+        'Relief rocheux de Johto — 1 niveau(x) — contacts précis — terre à droite';
+    await _pump(
+      tester,
+      const Locale('fr'),
+      SizedBox(
+        width: 280,
+        child: MapBuilderReliefInspector(
+          state: MapReliefToolState(),
+          profiles: const [
+            MapReliefProfile(id: 'rocheux-contacts', name: long),
+            MapReliefProfile(id: 'rocheux-compacts', name: long),
+            MapReliefProfile(id: 'herbe', name: 'Herbe'),
+          ],
+          onProfile: (_) {},
+        ),
+      ),
+    );
+    expect(find.textContaining('rocheux-contacts'), findsOneWidget);
+    expect(find.textContaining('rocheux-compacts'), findsOneWidget);
+    expect(find.textContaining('herbe ·'), findsNothing);
+    final tooltips = tester.widgetList<Tooltip>(find.byType(Tooltip));
+    expect(
+      tooltips.map((tooltip) => tooltip.message),
+      contains(contains(long)),
+    );
+    final label = tester.widget<Text>(find.text(long).first);
+    expect(label.maxLines, greaterThanOrEqualTo(3));
+  });
+
+  testWidgets('without a classified style the inspector says how to get one', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      const Locale('fr'),
+      MapBuilderReliefInspector(
+        state: MapReliefToolState(),
+        profiles: const [],
+        onProfile: (_) {},
+      ),
+    );
+    expect(find.textContaining('« Reliefs et parois »'), findsOneWidget);
+    expect(find.textContaining('Gérer les ressources'), findsOneWidget);
+  });
+
+  testWidgets('stair sizes say niveau or niveaux', (tester) async {
+    final fr = await AppLocalizations.delegate.load(const Locale('fr'));
+    final en = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(fr.stairModelSize(3, 1, 1), '3 × 1 cases · monte de 1 niveau');
+    expect(fr.stairModelSize(3, 2, 2), '3 × 2 cases · monte de 2 niveaux');
+    expect(en.stairModelSize(3, 1, 1), contains('1 level'));
+    expect(en.stairModelSize(3, 1, 2), contains('2 levels'));
+  });
 }

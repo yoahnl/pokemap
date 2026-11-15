@@ -67,6 +67,29 @@ extension _LocalResourceFamilies on LocalMapWorkspaceAdapter {
     }
   }
 
+  void _carryResourceKindReads(
+    ProjectSession session, {
+    required String from,
+    required String to,
+  }) {
+    final reads = _resourceKindReads[session.sessionId];
+    if (reads == null || from == to) return;
+    for (final MapEntry(:key, :value) in reads.entries.toList()) {
+      if (value.revision != from) continue;
+      final read = value.read.then(
+        (catalog) =>
+            MapWorkspaceCatalog(metadata: catalog.metadata, revision: to),
+      );
+      reads[key] = (revision: to, read: read);
+      read.then<void>(
+        (_) {},
+        onError: (Object _) {
+          if (identical(reads[key]?.read, read)) reads.remove(key);
+        },
+      );
+    }
+  }
+
   Future<MapWorkspaceCatalog> _familyRead(
     ProjectSession session,
     String canonicalKind,

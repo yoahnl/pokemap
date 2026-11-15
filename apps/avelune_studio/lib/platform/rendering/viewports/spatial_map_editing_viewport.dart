@@ -30,8 +30,10 @@ import 'package:avelune_studio/features/map_workspace/coordination/map_editing_v
 
 import 'package:avelune_studio/features/rendering/contracts/map_canvas_readiness.dart';
 import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/l10n/app_localizations.dart';
 
 part 'spatial_map_editing_overlays.dart';
+part 'spatial_map_editing_preview.dart';
 part 'spatial_map_editing_relief.dart';
 part 'spatial_map_editing_environment.dart';
 part 'spatial_map_editing_borders.dart';

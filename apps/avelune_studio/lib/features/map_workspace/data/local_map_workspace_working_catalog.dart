@@ -128,11 +128,16 @@ extension _LocalMapWorkingCatalog on LocalMapWorkspaceAdapter {
         Error.throwWithStackTrace(failure, stack);
       }
     }
-    if (project.complete ||
-        !ProjectCatalogSelection.sameMapDependencies(base.map, current)) {
-      return _reloadSavedWorkingMap(session, project, current);
+    if (project.complete) {
+      return _reloadSavedWorkingMap(session, current);
     }
-    return _acceptSavedWorkingMap(session, current);
+    final revision = await _acceptSavedWorkingMap(session, current);
+    _carryResourceKindReads(
+      session,
+      from: project.revision,
+      to: _project(session).revision,
+    );
+    return revision;
   });
 
   Future<String> _acceptSavedWorkingMap(
@@ -167,14 +172,9 @@ extension _LocalMapWorkingCatalog on LocalMapWorkspaceAdapter {
 
   Future<String> _reloadSavedWorkingMap(
     ProjectSession session,
-    _ProjectDocument project,
     MapData current,
   ) async {
-    if (project.complete) {
-      _projects[session.sessionId] = await _readCatalogProject(session);
-    } else {
-      await _loadScopedCatalog(session);
-    }
+    _projects[session.sessionId] = await _readCatalogProject(session);
     final entry = _project(session).manifest.maps
         .singleWhere((entry) => entry.id == current.id);
     final reopenedSelection = await _loadScopedMapSelection(session, entry);

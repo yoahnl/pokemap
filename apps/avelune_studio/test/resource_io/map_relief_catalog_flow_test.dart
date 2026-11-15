@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/map_relief_commands.dart';
@@ -9,11 +8,10 @@ import 'package:avelune_studio/features/project_session/data/local_project_sessi
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
-import '../../tool/create_example_project.dart';
 import '../map_workspace/map_relief_fixture.dart';
+import 'map_relief_catalog_fixture.dart';
 
 void main() {
   late Directory root;
@@ -24,53 +22,7 @@ void main() {
   setUp(() async {
     root = await Directory.systemTemp.createTemp('studio_relief_flow_');
     sessions = LocalProjectSessionAdapter();
-    await writeExampleProject(root);
-    for (final id in ['jardin', 'clairiere']) {
-      final file = File('${root.path}/maps/$id.json');
-      final map = MapData.fromJson(
-        jsonDecode(await file.readAsString()) as Map<String, dynamic>,
-      );
-      await file.writeAsString(
-        jsonEncode(
-          reliefToolMap().copyWith(id: map.id, name: map.name).toJson(),
-        ),
-      );
-    }
-    final file = File('${root.path}/project.json');
-    final source = ProjectManifest.fromJson(
-      jsonDecode(await file.readAsString()) as Map<String, dynamic>,
-    );
-    await file.delete();
-    final relief = reliefToolProject();
-    await WorkingProjectCatalog.create(
-      store: await CatalogStorageStore.open(projectRoot: root.path),
-      projectId: 'relief-flow-test',
-      project: source.copyWith(
-        version: ProjectVersion.v9,
-        settings: ProjectSettings(
-          dimension: ProjectDimension.threeD,
-          spatialCamera: SpatialCameraProfile(),
-        ),
-        models3d: [...relief.models3d, _bank(relief.models3d.single)],
-        borderCatalog: ProjectBorderCatalog(
-          formatVersion: relief.borderCatalog.formatVersion,
-          records: [
-            relief.borderCatalog.records.single,
-            _berge(relief.borderCatalog),
-          ],
-        ),
-        resourceLibraryCatalog: ResourceLibraryCatalog(
-          entries: [
-            ResourceLibraryEntry(
-              resourceKind: 'borderBlueprint',
-              resourceId: 'fence',
-              familyId: 'relief',
-              category: ResourceUsageCategory.relief,
-            ),
-          ],
-        ),
-      ),
-    );
+    await writeReliefCatalogProject(root);
     session = await sessions.open(await root.resolveSymbolicLinks());
     expect(session.storage, ProjectSessionStorage.workingCatalog);
     workspace = MapWorkspaceController(session, LocalMapWorkspaceAdapter());
@@ -105,7 +57,7 @@ void main() {
       workspace.project!,
       workspace.active!.current,
     );
-    expect(profiles.map((profile) => profile.id), ['berge', 'fence']);
+    expect(profiles.map((profile) => profile.id), ['fence', 'berge']);
     final chosen = mapReliefDefaultProfile(profiles)!;
     state.profileId = chosen.id;
     await workspace.ensureBorderBlueprint(chosen.id);
@@ -152,48 +104,10 @@ void main() {
       final outcome = paint(state);
 
       expect(outcome.problem, MapReliefProblem.profileIncompatible);
-      expect(outcome.profileName, 'Berge — angles courts');
+      expect(outcome.profileName, 'Talus — angles courts');
       expect(outcome.diagnostics, ['border.spatial.face_base_mismatch']);
       expect(workspace.active!.current, same(before));
     },
     timeout: const Timeout(Duration(minutes: 2)),
-  );
-}
-
-ProjectModel3dEntry _bank(ProjectModel3dEntry face) => ProjectModel3dEntry(
-  id: 'bank',
-  name: 'Berge basse',
-  sourceAssetId: 'bank-source',
-  relativePath: 'assets/models3d/bank.glb',
-  inspection: Model3dInspection(
-    bounds: Model3dBounds(
-      min: Model3dVector3(
-        x: face.inspection.bounds.min.x,
-        y: -.6,
-        z: face.inspection.bounds.min.z,
-      ),
-      max: face.inspection.bounds.max,
-    ),
-    meshCount: 1,
-    triangleCount: 1,
-  ),
-);
-
-BorderBlueprintRecord _berge(ProjectBorderCatalog catalog) {
-  final raw = encodeBorderBlueprintRecordJson(
-    catalog.records.single,
-    formatVersion: catalog.formatVersion,
-  );
-  raw['id'] = 'berge';
-  for (final key in ['draft', 'latestPublished']) {
-    final definition = (raw[key] as Map)['definition'] as Map;
-    definition['name'] = 'Berge — angles courts';
-    for (final primitive in (definition['primitives'] as List).cast<Map>()) {
-      primitive['sourceModelId'] = 'bank';
-    }
-  }
-  return decodeBorderBlueprintRecordJson(
-    raw,
-    formatVersion: catalog.formatVersion,
   );
 }

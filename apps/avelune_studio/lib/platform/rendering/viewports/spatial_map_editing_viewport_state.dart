@@ -59,6 +59,7 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
   (bool, String, String, SpatialRampDirection, bool)? terrainSurfaceOptions;
   int previewGeneration = 0;
   Object? error;
+  (EditableMapDocument, String)? previewProblem;
   String? modelGesture;
   GridPos? modelEnd;
   GridPos? modelOrigin;
@@ -205,6 +206,7 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
     if (map.entities.isEmpty) {
       preview?.dispose();
       preview = null;
+      clearPreviewProblem();
       return;
     }
     try {
@@ -219,14 +221,11 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
         error = null;
       });
       previous?.dispose();
+      clearPreviewProblem();
     } on Object catch (failure) {
       if (mounted && generation == previewGeneration) {
-        setState(() {
-          error = failure;
-          editingDocument.error =
-              'Aperçu des personnages indisponible : $failure';
-        });
-        widget.onChanged();
+        setState(() => error = failure);
+        reportPreviewProblem(failure);
       }
     }
   }

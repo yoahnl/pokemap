@@ -228,6 +228,14 @@
   "contextExterior": "Extérieur",
   "contextUnspecified": "Non renseigné",
   "mapResourcesUnavailable": "Les ressources de la carte ne peuvent pas être chargées : {error}",
+  "mapCharacterPreviewUnavailable": "Aperçu des personnages indisponible : {error}",
+  "@mapCharacterPreviewUnavailable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "@mapResourcesUnavailable": {
     "placeholders": {
       "error": {
@@ -1894,7 +1902,7 @@
   },
   "reliefStyleTitle": "Style des falaises",
   "reliefStyleLoading": "Chargement des reliefs…",
-  "reliefStyleEmpty": "Aucun relief droitier sur un niveau n’est publié dans « Reliefs et parois » pour cette carte.",
+  "reliefStyleEmpty": "Aucun style de falaise n’est rangé dans « Reliefs et parois » pour cette carte. Dans Gérer les ressources, rangez dans cette catégorie un style de falaise sur un niveau, terre à droite, pour le proposer ici.",
   "reliefStyleLoadFailed": "Impossible de charger les reliefs : {error}",
   "@reliefStyleLoadFailed": {
     "placeholders": {
@@ -1905,6 +1913,14 @@
   },
   "reliefStyleTwoLevels": "Variante sur deux niveaux disponible",
   "reliefStyleOneLevel": "Un niveau seulement",
+  "reliefStyleReference": "Réf. {id}",
+  "@reliefStyleReference": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "reliefShortcuts": "Glisser : peindre · Maj+glisser : rectangle · Alt+clic : prendre la hauteur · + / − : changer de niveau. Une hauteur plus basse creuse.",
   "reliefProblemNoProfile": "Choisissez d’abord un style de falaise dans le panneau Propriétés.",
   "reliefProblemProfileUnavailable": "Ce style de falaise n’est plus disponible sur cette carte. Choisissez-en un autre.",
@@ -1916,6 +1932,7 @@
   "reliefProblemStepTooHigh": "Ce dénivelé dépasse deux niveaux. Peignez des paliers intermédiaires.",
   "reliefProblemAmbiguous": "Deux reliefs se touchent par un coin : le contour est ambigu. Élargissez ou séparez les zones.",
   "reliefProblemNarrowCorner": "Coin trop étroit pour ce style de falaise : laissez au moins trois cases entre deux angles.",
+  "reliefProblemCornerNearStep": "Ce palier change la hauteur de la falaise à une case d’un angle du plateau : les angles de ce style débordent d’une case sur la paroi voisine et n’ont pas la place de finir avant le changement de hauteur. Arrêtez le palier au moins deux cases avant l’angle, ou prolongez-le jusqu’à l’angle. Un style dont les angles tiennent dans leur propre case n’a pas cette limite.",
   "reliefProblemProfileIncompatible": "Ce style de falaise ne se raccorde pas proprement à ce dénivelé.",
   "reliefProblemSurfaceLimit": "La carte a atteint sa limite de surfaces de terrain. Fusionnez des zones de même hauteur.",
   "reliefProblemFootprintLimit": "Cette forme est trop découpée pour une seule surface. Simplifiez le contour.",
@@ -1940,7 +1957,7 @@
       }
     }
   },
-  "stairModelSize": "{across} × {along} cases · monte de {levels} niveau(x)",
+  "stairModelSize": "{across} × {along} cases · monte de {levels, plural, one{{levels} niveau} other{{levels} niveaux}}",
   "@stairModelSize": {
     "placeholders": {
       "across": {
@@ -1960,6 +1977,7 @@
   "slopeProblemDownhill": "Glissez du bas vers le haut : le départ doit être le côté bas.",
   "slopeProblemGroundNotFlat": "Une pente se pose sur un sol plat au niveau bas, contre un plateau aussi large qu’elle.",
   "slopeProblemNoCliff": "Cliquez sur le bord d’une falaise.",
+  "slopeProblemHandPlacedCliff": "Cette falaise a été posée à la main sans marche de terrain : le sol est à la même hauteur des deux côtés, l’escalier ne peut pas s’y accrocher. Peignez la falaise avec l’outil Relief pour y poser un escalier.",
   "slopeProblemEdgeAmbiguous": "Cette case touche plusieurs dénivelés : cliquez sur une partie droite de la falaise.",
   "slopeProblemHeightMismatch": "Ce modèle d’escalier ne monte pas de la hauteur de cette falaise. Choisissez-en un autre.",
   "slopeProblemNoRoom": "Pas assez de place : il faut un sol plat devant une falaise droite aussi large que l’escalier.",

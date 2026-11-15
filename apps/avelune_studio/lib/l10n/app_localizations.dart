@@ -896,6 +896,12 @@ abstract class AppLocalizations {
   /// **'Les ressources de la carte ne peuvent pas être chargées : {error}'**
   String mapResourcesUnavailable(String error);
 
+  /// No description provided for @mapCharacterPreviewUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aperçu des personnages indisponible : {error}'**
+  String mapCharacterPreviewUnavailable(String error);
+
   /// No description provided for @resourcesUnavailable.
   ///
   /// In fr, this message translates to:
@@ -5211,7 +5217,7 @@ abstract class AppLocalizations {
   /// No description provided for @reliefStyleEmpty.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun relief droitier sur un niveau n’est publié dans « Reliefs et parois » pour cette carte.'**
+  /// **'Aucun style de falaise n’est rangé dans « Reliefs et parois » pour cette carte. Dans Gérer les ressources, rangez dans cette catégorie un style de falaise sur un niveau, terre à droite, pour le proposer ici.'**
   String get reliefStyleEmpty;
 
   /// No description provided for @reliefStyleLoadFailed.
@@ -5231,6 +5237,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Un niveau seulement'**
   String get reliefStyleOneLevel;
+
+  /// No description provided for @reliefStyleReference.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réf. {id}'**
+  String reliefStyleReference(String id);
 
   /// No description provided for @reliefShortcuts.
   ///
@@ -5297,6 +5309,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Coin trop étroit pour ce style de falaise : laissez au moins trois cases entre deux angles.'**
   String get reliefProblemNarrowCorner;
+
+  /// No description provided for @reliefProblemCornerNearStep.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce palier change la hauteur de la falaise à une case d’un angle du plateau : les angles de ce style débordent d’une case sur la paroi voisine et n’ont pas la place de finir avant le changement de hauteur. Arrêtez le palier au moins deux cases avant l’angle, ou prolongez-le jusqu’à l’angle. Un style dont les angles tiennent dans leur propre case n’a pas cette limite.'**
+  String get reliefProblemCornerNearStep;
 
   /// No description provided for @reliefProblemProfileIncompatible.
   ///
@@ -5403,7 +5421,7 @@ abstract class AppLocalizations {
   /// No description provided for @stairModelSize.
   ///
   /// In fr, this message translates to:
-  /// **'{across} × {along} cases · monte de {levels} niveau(x)'**
+  /// **'{across} × {along} cases · monte de {levels, plural, one{{levels} niveau} other{{levels} niveaux}}'**
   String stairModelSize(int across, int along, int levels);
 
   /// No description provided for @stairHelp.
@@ -5441,6 +5459,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Cliquez sur le bord d’une falaise.'**
   String get slopeProblemNoCliff;
+
+  /// No description provided for @slopeProblemHandPlacedCliff.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette falaise a été posée à la main sans marche de terrain : le sol est à la même hauteur des deux côtés, l’escalier ne peut pas s’y accrocher. Peignez la falaise avec l’outil Relief pour y poser un escalier.'**
+  String get slopeProblemHandPlacedCliff;
 
   /// No description provided for @slopeProblemEdgeAmbiguous.
   ///

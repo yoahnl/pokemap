@@ -84,16 +84,7 @@ extension MapWorkspaceSaving on MapWorkspaceController {
                   before,
                   snapshot,
                 ))) {
-          final entry = project!.maps.singleWhere(
-            (entry) => entry.id == document.base.mapId,
-          );
-          final sourceEpoch = _modelSourceEpoch;
-          final selection = await source.loadMapSelection(session, entry);
-          if (_disposed) return false;
-          _cacheSelection(entry.id, selection, sourceEpoch);
-          if (identical(active, document)) {
-            project = _withWorkshops(_selections[entry.id]!.definitions);
-          }
+          _refreshSavedSelection(document, source);
         }
         return true;
       } catch (failure) {
@@ -104,6 +95,37 @@ extension MapWorkspaceSaving on MapWorkspaceController {
       document.saving = false;
       notify();
     }
+  }
+
+  void _refreshSavedSelection(
+    EditableMapDocument document,
+    MapWorkspaceScopedPort source,
+  ) {
+    final entry = project!.maps.singleWhere(
+      (entry) => entry.id == document.base.mapId,
+    );
+    final ticket = (_savedSelectionTickets[entry.id] ?? 0) + 1;
+    _savedSelectionTickets[entry.id] = ticket;
+    final sourceEpoch = _modelSourceEpoch;
+    final refresh = source
+        .loadMapSelection(session, entry)
+        .then(
+          (selection) {
+            if (_disposed || _savedSelectionTickets[entry.id] != ticket) return;
+            _cacheSelection(entry.id, selection, sourceEpoch);
+            if (identical(active, document)) {
+              project = _withWorkshops(_selections[entry.id]!.definitions);
+            }
+            notify();
+          },
+          onError: (Object failure) {
+            if (_disposed || _savedSelectionTickets[entry.id] != ticket) return;
+            document.error = _message(failure);
+            notify();
+          },
+        );
+    _startedSaves.add(refresh);
+    unawaited(refresh.whenComplete(() => _startedSaves.remove(refresh)));
   }
 
   void _restore({required bool redo}) {

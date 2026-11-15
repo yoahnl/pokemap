@@ -115,6 +115,7 @@ void main() {
           ),
         );
         expect(await controller.save(document), isTrue, reason: document.error);
+        await controller.savesSettled;
         expect(
           controller.project!.models3d.map((model) => model.id),
           contains('pine'),

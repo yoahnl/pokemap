@@ -443,6 +443,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String mapCharacterPreviewUnavailable(String error) {
+    return 'Aperçu des personnages indisponible : $error';
+  }
+
+  @override
   String resourcesUnavailable(String error) {
     return 'Ces ressources ne peuvent pas être chargées : $error';
   }
@@ -3324,7 +3329,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get reliefStyleEmpty =>
-      'Aucun relief droitier sur un niveau n’est publié dans « Reliefs et parois » pour cette carte.';
+      'Aucun style de falaise n’est rangé dans « Reliefs et parois » pour cette carte. Dans Gérer les ressources, rangez dans cette catégorie un style de falaise sur un niveau, terre à droite, pour le proposer ici.';
 
   @override
   String reliefStyleLoadFailed(String error) {
@@ -3336,6 +3341,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get reliefStyleOneLevel => 'Un niveau seulement';
+
+  @override
+  String reliefStyleReference(String id) {
+    return 'Réf. $id';
+  }
 
   @override
   String get reliefShortcuts =>
@@ -3380,6 +3390,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get reliefProblemNarrowCorner =>
       'Coin trop étroit pour ce style de falaise : laissez au moins trois cases entre deux angles.';
+
+  @override
+  String get reliefProblemCornerNearStep =>
+      'Ce palier change la hauteur de la falaise à une case d’un angle du plateau : les angles de ce style débordent d’une case sur la paroi voisine et n’ont pas la place de finir avant le changement de hauteur. Arrêtez le palier au moins deux cases avant l’angle, ou prolongez-le jusqu’à l’angle. Un style dont les angles tiennent dans leur propre case n’a pas cette limite.';
 
   @override
   String get reliefProblemProfileIncompatible =>
@@ -3448,7 +3462,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String stairModelSize(int across, int along, int levels) {
-    return '$across × $along cases · monte de $levels niveau(x)';
+    String _temp0 = intl.Intl.pluralLogic(
+      levels,
+      locale: localeName,
+      other: '$levels niveaux',
+      one: '$levels niveau',
+    );
+    return '$across × $along cases · monte de $_temp0';
   }
 
   @override
@@ -3472,6 +3492,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get slopeProblemNoCliff => 'Cliquez sur le bord d’une falaise.';
+
+  @override
+  String get slopeProblemHandPlacedCliff =>
+      'Cette falaise a été posée à la main sans marche de terrain : le sol est à la même hauteur des deux côtés, l’escalier ne peut pas s’y accrocher. Peignez la falaise avec l’outil Relief pour y poser un escalier.';
 
   @override
   String get slopeProblemEdgeAmbiguous =>

@@ -36,19 +36,6 @@ part 'studio_cinematic_spatial_preview.dart';
 part 'studio_map_resources_catalog.dart';
 part 'studio_map_resources_spatial.dart';
 
-Future<RuntimeMapBundle> loadStudioPreviewBundle({
-  required String projectRoot,
-  required ProjectManifest manifest,
-  required MapData map,
-}) => loadRuntimeMapBundle(
-  projectFilePath: '$projectRoot/project.json',
-  mapId: map.id,
-  preloadedManifest: manifest,
-  additionalCharacterIds: {
-    for (final entity in map.entities) ?entity.npc?.characterId,
-  },
-);
-
 final class StudioMapResources
     implements
         MapWorkspaceVisuals,

@@ -27,7 +27,7 @@ extension StudioMapResourcesSpatial on StudioMapResources {
       return SpatialNpcPreview(frames, () {});
     }
     await initializeSpatialRenderer();
-    final bundle = await loadStudioPreviewBundle(
+    final paths = await resolveStudioPreviewImagePaths(
       projectRoot: projectRoot,
       manifest: manifest,
       map: map,
@@ -65,7 +65,7 @@ extension StudioMapResourcesSpatial on StudioMapResources {
             ? characterAnimationRuntimeImageId(asset)
             : actor.tilesetId;
         if (!images.containsKey(imageId)) {
-          final path = bundle.runtimeImageAbsolutePathsById[imageId];
+          final path = paths[imageId];
           if (path == null) {
             throw StateError('Image du PNJ absente : ${entity.name}');
           }

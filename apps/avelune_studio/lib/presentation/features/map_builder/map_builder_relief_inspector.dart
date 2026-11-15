@@ -17,6 +17,31 @@ class MapBuilderReliefInspector extends StatelessWidget {
   final List<MapReliefProfile> profiles;
   final ValueChanged<MapReliefProfile> onProfile;
 
+  bool _sharesName(MapReliefProfile profile) => profiles.any(
+    (other) => other.id != profile.id && other.name == profile.name,
+  );
+
+  Widget _choice(
+    AppLocalizations l10n,
+    MapReliefProfile profile,
+    bool sharesName,
+  ) => Tooltip(
+    message: sharesName ? '${profile.name}\n${profile.id}' : profile.name,
+    child: StudioChoice(
+      key: ValueKey('map-relief-profile-${profile.id}'),
+      label: profile.name,
+      maxLines: 3,
+      subtitle: [
+        profile.twoLevelId == null
+            ? l10n.reliefStyleOneLevel
+            : l10n.reliefStyleTwoLevels,
+        if (sharesName) l10n.reliefStyleReference(profile.id),
+      ].join(' · '),
+      selected: profile.id == state.profileId,
+      onTap: () => onProfile(profile),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -40,15 +65,7 @@ class MapBuilderReliefInspector extends StatelessWidget {
               StudioNotice(l10n.reliefStyleEmpty)
             else
               for (final profile in profiles)
-                StudioChoice(
-                  key: ValueKey('map-relief-profile-${profile.id}'),
-                  label: profile.name,
-                  subtitle: profile.twoLevelId == null
-                      ? l10n.reliefStyleOneLevel
-                      : l10n.reliefStyleTwoLevels,
-                  selected: profile.id == state.profileId,
-                  onTap: () => onProfile(profile),
-                ),
+                _choice(l10n, profile, _sharesName(profile)),
           ],
         ),
         const SizedBox(height: StudioSpacing.l),
@@ -105,6 +122,7 @@ String _problem(
   MapReliefProblem.stepTooHigh => l10n.reliefProblemStepTooHigh,
   MapReliefProblem.ambiguous => l10n.reliefProblemAmbiguous,
   MapReliefProblem.narrowCorner => l10n.reliefProblemNarrowCorner,
+  MapReliefProblem.cornerNearStep => l10n.reliefProblemCornerNearStep,
   MapReliefProblem.profileIncompatible => l10n.reliefProblemProfileIncompatible,
   MapReliefProblem.surfaceLimit => l10n.reliefProblemSurfaceLimit,
   MapReliefProblem.footprintLimit => l10n.reliefProblemFootprintLimit,

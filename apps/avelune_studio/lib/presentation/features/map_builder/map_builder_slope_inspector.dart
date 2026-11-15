@@ -91,6 +91,7 @@ class MapBuilderSlopeInspector extends StatelessWidget {
       MapSlopeProblem.downhill => l10n.slopeProblemDownhill,
       MapSlopeProblem.groundNotFlat => l10n.slopeProblemGroundNotFlat,
       MapSlopeProblem.noCliff => l10n.slopeProblemNoCliff,
+      MapSlopeProblem.handPlacedCliff => l10n.slopeProblemHandPlacedCliff,
       MapSlopeProblem.edgeAmbiguous => l10n.slopeProblemEdgeAmbiguous,
       MapSlopeProblem.heightMismatch => l10n.slopeProblemHeightMismatch,
       MapSlopeProblem.noRoom => l10n.slopeProblemNoRoom,

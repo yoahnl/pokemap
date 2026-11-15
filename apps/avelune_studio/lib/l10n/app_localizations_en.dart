@@ -443,6 +443,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String mapCharacterPreviewUnavailable(String error) {
+    return 'Character preview unavailable: $error';
+  }
+
+  @override
   String resourcesUnavailable(String error) {
     return 'These resources cannot be loaded: $error';
   }
@@ -3304,7 +3309,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reliefStyleEmpty =>
-      'No right-handed one-level relief is published in “Reliefs and walls” for this map.';
+      'No cliff style is classified in “Reliefs and walls” for this map. In Manage resources, put a one-level, right-handed cliff style in that category to offer it here.';
 
   @override
   String reliefStyleLoadFailed(String error) {
@@ -3316,6 +3321,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reliefStyleOneLevel => 'One level only';
+
+  @override
+  String reliefStyleReference(String id) {
+    return 'Ref. $id';
+  }
 
   @override
   String get reliefShortcuts =>
@@ -3359,6 +3369,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reliefProblemNarrowCorner =>
       'Corner too narrow for this cliff style: leave at least three cells between two corners.';
+
+  @override
+  String get reliefProblemCornerNearStep =>
+      'This terrace changes the cliff height one cell away from a plateau corner: this style\'s corners overlap one cell of the next wall and have no room to finish before the height change. Stop the terrace at least two cells before the corner, or extend it to the corner. A style whose corners fit in their own cell has no such limit.';
 
   @override
   String get reliefProblemProfileIncompatible =>
@@ -3426,7 +3440,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String stairModelSize(int across, int along, int levels) {
-    return '$across × $along cells · climbs $levels level(s)';
+    String _temp0 = intl.Intl.pluralLogic(
+      levels,
+      locale: localeName,
+      other: '$levels levels',
+      one: '$levels level',
+    );
+    return '$across × $along cells · climbs $_temp0';
   }
 
   @override
@@ -3449,6 +3469,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get slopeProblemNoCliff => 'Click the edge of a cliff.';
+
+  @override
+  String get slopeProblemHandPlacedCliff =>
+      'This cliff was placed by hand without a terrain step: the ground is at the same height on both sides, so stairs cannot attach to it. Paint the cliff with the Relief tool to add stairs.';
 
   @override
   String get slopeProblemEdgeAmbiguous =>

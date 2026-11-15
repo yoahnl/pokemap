@@ -7,6 +7,7 @@ enum MapSlopeProblem {
   downhill,
   groundNotFlat,
   noCliff,
+  handPlacedCliff,
   edgeAmbiguous,
   heightMismatch,
   noRoom,

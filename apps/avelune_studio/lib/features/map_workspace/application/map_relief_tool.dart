@@ -5,15 +5,12 @@ final class MapReliefProfile {
     required this.id,
     required this.name,
     this.twoLevelId,
-    this.classified = false,
   });
   final String id, name;
   final String? twoLevelId;
-  final bool classified;
 }
 
 MapReliefProfile? mapReliefDefaultProfile(List<MapReliefProfile> profiles) =>
-    profiles.where((profile) => profile.classified).firstOrNull ??
     profiles.firstOrNull;
 
 enum MapReliefProblem {
@@ -27,6 +24,7 @@ enum MapReliefProblem {
   stepTooHigh,
   ambiguous,
   narrowCorner,
+  cornerNearStep,
   profileIncompatible,
   surfaceLimit,
   footprintLimit,
@@ -125,13 +123,7 @@ final class MapReliefToolState {
   }
 }
 
-typedef _Candidate = ({
-  String id,
-  String name,
-  int span,
-  String? family,
-  bool classified,
-});
+typedef _Candidate = ({String id, String name, int span, String? family});
 
 List<MapReliefProfile> mapReliefProfiles(ProjectManifest project, MapData map) {
   final candidates = [
@@ -141,7 +133,12 @@ List<MapReliefProfile> mapReliefProfiles(ProjectManifest project, MapData map) {
   return [
     for (final one in candidates)
       if (one.span == 1) _profile(one, candidates),
-  ]..sort((a, b) => a.name.compareTo(b.name));
+  ]..sort(
+    (a, b) => switch (a.name.compareTo(b.name)) {
+      0 => a.id.compareTo(b.id),
+      final order => order,
+    },
+  );
 }
 
 MapReliefProfile? mapReliefProfile(
@@ -162,18 +159,23 @@ MapReliefProfile? mapReliefProfile(
   ]);
 }
 
-MapReliefProfile _profile(_Candidate one, List<_Candidate> others) =>
-    MapReliefProfile(
-      id: one.id,
-      name: one.name,
-      classified: one.classified,
-      twoLevelId: one.family == null
-          ? null
-          : others
-                .where((two) => two.span == 2 && two.family == one.family)
-                .firstOrNull
-                ?.id,
-    );
+MapReliefProfile _profile(_Candidate one, List<_Candidate> others) {
+  final family = one.family;
+  final variants = family == null || _sharedFamily(family)
+      ? const <String>{}
+      : {
+          for (final two in others)
+            if (two.span == 2 && two.family == family) two.id,
+        };
+  return MapReliefProfile(
+    id: one.id,
+    name: one.name,
+    twoLevelId: variants.length == 1 ? variants.single : null,
+  );
+}
+
+bool _sharedFamily(String id) =>
+    ResourceLibraryCatalog.predefinedFamilies.any((family) => family.id == id);
 
 _Candidate? _candidate(
   ProjectManifest project,
@@ -188,7 +190,7 @@ _Candidate? _candidate(
       definition == null ||
       !definition.isSpatial ||
       !definition.followContourDirection ||
-      _reliefCategory(library, record.id) == false ||
+      !_reliefCategory(library, record.id) ||
       !borderTemplateUsesStrokeGeometry(definition.template) ||
       !library.availableForMap('borderBlueprint', record.id, map.id)) {
     return null;
@@ -208,14 +210,13 @@ _Candidate? _candidate(
     name: definition.name,
     span: span,
     family: library.entryFor('borderBlueprint', record.id)?.familyId,
-    classified: _reliefCategory(library, record.id) == true,
   );
 }
 
-bool? _reliefCategory(ResourceLibraryCatalog library, String id) {
+bool _reliefCategory(ResourceLibraryCatalog library, String id) {
   final entry = library.entryFor('borderBlueprint', id);
   final category = library.familyCategory(entry?.familyId) ?? entry?.category;
-  return category == null ? null : category == ResourceUsageCategory.relief;
+  return category == ResourceUsageCategory.relief;
 }
 
 MapReliefProblem mapReliefProblem(Object failure) => switch (failure) {

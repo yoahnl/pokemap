@@ -22,7 +22,7 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
     MapCatalogReceipt? receipt;
     try {
       if (_startedSaves.isNotEmpty) {
-        await Future.wait(_startedSaves.toList());
+        await savesSettled;
         if (_disposed) {
           return const MapCatalogResult(
             error: 'Cette session de projet est fermée.',
