@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../game_behaviours/game_behaviour_fakes.dart';
 import '../presentation/story_memory_harness.dart';
+import '../storyline/storyline_fakes.dart';
 import '../storyline/storyline_widget_support.dart';
 import 'verification_fakes.dart';
 
@@ -42,6 +43,36 @@ Future<void> _verify(WidgetTester tester, FakeVerificationPort port) async {
 }
 
 void main() {
+  testWidgets('global verification reads saved data and keeps the plot draft', (
+    tester,
+  ) async {
+    final saved = trameProject.copyWith(storylines: [mainStoryline()]);
+    final port = FakeVerificationPort();
+    await openTrameStudio(tester, project: saved, verification: port);
+    await tester.tap(find.byKey(const ValueKey('trame-storyline-main')));
+    await settleMemory(tester);
+    await tester.tap(find.byKey(const ValueKey('trame-chapter-add')));
+    await settleMemory(tester);
+    expect(find.text('Nouveau chapitre'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('story-tab-verify')));
+    await settleMemory(tester);
+    expect(port.analyses, 0);
+    expect(find.byKey(const ValueKey('verification-unsaved')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('verification-start')));
+    await settleMemory(tester);
+
+    expect(port.analyses, 1);
+    expect(port.analysedProject!.storylines, saved.storylines);
+    expect(port.analysedProject!.storylines.single.chapters, hasLength(2));
+    expect(find.byKey(const ValueKey('verification-unsaved')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('story-tab-trame')));
+    await settleMemory(tester);
+    expect(find.text('Nouveau chapitre'), findsOneWidget);
+    expect(saved.storylines.single.chapters, hasLength(2));
+  });
+
   testWidgets('a verification lists problems and opens each place', (
     tester,
   ) async {

@@ -35,6 +35,7 @@ final class FakeVerificationPort implements VerificationPort {
   Completer<VerificationAnalysis>? gate;
   var analyses = 0;
   var cancels = 0;
+  ProjectManifest? analysedProject;
   final dialogueReads = <List<String>>[];
 
   @override
@@ -83,6 +84,7 @@ final class FakeVerificationPort implements VerificationPort {
     required List<VerificationDialogueSource> sources,
   }) {
     analyses++;
+    analysedProject = project;
     final completer = gate ?? Completer<VerificationAnalysis>();
     if (gate == null) {
       completer.complete(

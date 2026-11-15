@@ -58,6 +58,43 @@ String _json(NarrativeEventConditionExpression expression) =>
     jsonEncode(expression.toJson());
 
 void main() {
+  test(
+    'renaming preserves a complex expression through history and save',
+    () async {
+      final expression = NarrativeEventConditionExpression.all([
+        _fixedAny,
+        NarrativeEventConditionExpression.not(_fixedCompare),
+      ]);
+      final fixture = await openStory(
+        facts: [_met, _count],
+        records: [storyRecord(1, expression: expression)],
+      );
+      final story = fixture.story;
+      final record = storyCurrent(fixture, storyEventId(1));
+
+      expect(story.renameBehaviour(record, 'Accueil conditionnel'), isTrue);
+      final renamed = storyCurrent(fixture, record.id);
+      expect(renamed.name, 'Accueil conditionnel');
+      expect(_json(renamed.expression), _json(expression));
+      expect(fixture.maps.project!.eventRegistry!.records.single, record);
+
+      story.undo();
+      expect(storyCurrent(fixture, record.id), record);
+      story.redo();
+      expect(storyCurrent(fixture, record.id).name, 'Accueil conditionnel');
+      expect(
+        _json(storyCurrent(fixture, record.id).expression),
+        _json(expression),
+      );
+
+      expect(await story.save(), isTrue, reason: story.error);
+      final saved = fixture.maps.project!.eventRegistry!.records.single;
+      expect(saved.name, 'Accueil conditionnel');
+      expect(_json(saved.expression), _json(expression));
+      expect(story.dirty, isFalse);
+    },
+  );
+
   test('editing a condition keeps the other forms byte for byte', () async {
     final fixture = await _open();
     final story = fixture.story;

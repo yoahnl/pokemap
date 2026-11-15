@@ -42,6 +42,61 @@ void main() {
     );
   });
 
+  test('chapter and milestone order determine the current journal entry', () {
+    final manifest = _project().copyWith(
+      storylines: [
+        StorylineAsset(
+          id: 'main',
+          type: StorylineType.main,
+          title: 'Trame',
+          chapters: [
+            StorylineChapter(
+              id: 'later',
+              title: 'Suite',
+              order: 1,
+              steps: [_step('later_step', 0)],
+            ),
+            StorylineChapter(
+              id: 'first',
+              title: 'Départ',
+              order: 0,
+              steps: [_step('second_step', 1), _step('first_step', 0)],
+            ),
+          ],
+        ),
+      ],
+    );
+    expect(_ids(project(manifest), PlayerJournalEntryKind.inProgress), [
+      'step:main:first_step',
+    ]);
+
+    final reorderedSteps = reorderStorylineSteps(
+      manifest,
+      storylineId: 'main',
+      chapterId: 'first',
+      orderedStepIds: ['second_step', 'first_step'],
+    );
+    expect(reorderedSteps.isApplied, isTrue);
+    expect(
+      _ids(project(reorderedSteps.after), PlayerJournalEntryKind.inProgress),
+      ['step:main:second_step'],
+    );
+
+    final reorderedChapters = reorderStorylineChapters(
+      reorderedSteps.after,
+      storylineId: 'main',
+      orderedChapterIds: ['later', 'first'],
+    );
+    expect(reorderedChapters.isApplied, isTrue);
+    expect(
+      _ids(project(reorderedChapters.after), PlayerJournalEntryKind.inProgress),
+      ['step:main:later_step'],
+    );
+    expect(_ids(project(manifest), PlayerJournalEntryKind.inProgress), [
+      'step:main:first_step',
+    ]);
+  });
+
   test('a milestone recorded as completed in the save is completed', () {
     final journal = project(_project(), completedStepIds: ['s1']);
 
