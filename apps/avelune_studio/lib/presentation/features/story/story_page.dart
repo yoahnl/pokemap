@@ -17,6 +17,8 @@ import 'package:avelune_studio/features/verification/application/project_verific
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/scenes/application/scene_catalog_controller.dart';
 import 'package:avelune_studio/features/verification/application/verification_problems.dart';
+import 'package:avelune_studio/features/dialogues/domain/dialogue_catalog_port.dart';
+import 'package:avelune_studio/features/dialogues/application/dialogue_catalog_controller.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviours_view.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_rule_creation.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_usages.dart';
@@ -25,7 +27,7 @@ import 'package:avelune_studio/presentation/features/story/trame_view.dart';
 import 'package:avelune_studio/presentation/features/story/verification_view.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
-import 'story_dialogue_links.dart';
+import 'dialogues/story_dialogues_view.dart';
 import 'story_behaviour_context.dart';
 import '../map_builder/map_builder_story_catalog_binding.dart';
 import '../map_builder/map_builder_story_binding.dart';
@@ -33,6 +35,8 @@ import 'scenes/scene_catalog_view.dart';
 import 'story_workspace.dart';
 
 part 'story_page_navigation.dart';
+part 'story_page_dialogues.dart';
+part 'story_page_body.dart';
 
 class StoryPage extends StatefulWidget {
   const StoryPage({
@@ -55,6 +59,8 @@ class StoryPage extends StatefulWidget {
     this.onHistoryScopeChanged,
     this.catalog,
     this.behaviourCatalog,
+    this.dialoguePort,
+    this.dialogueRequest,
   });
 
   final NarrativeIndexPort? port;
@@ -75,6 +81,8 @@ class StoryPage extends StatefulWidget {
   final ValueChanged<StoryHistoryScope>? onHistoryScopeChanged;
   final SceneCatalogController? catalog;
   final MapBuilderStoryCatalogBinding? behaviourCatalog;
+  final DialogueCatalogPort? dialoguePort;
+  final ({String id, int token})? dialogueRequest;
 
   @override
   State<StoryPage> createState() => _StoryPageState();
@@ -86,9 +94,36 @@ class _StoryPageState extends State<StoryPage> {
   GameMemoryController? _memory;
   GameBehavioursController? _behaviours;
   SceneCatalogController? _catalog;
+  DialogueCatalogController? _dialogues;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.dialogueRequest != null) {
+      _workspace = _workspace.select(StorySection.dialogues);
+      scheduleMicrotask(_consumeDialogueRequest);
+    }
+  }
+
+  @override
+  void didUpdateWidget(StoryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.dialogueRequest != widget.dialogueRequest) {
+      scheduleMicrotask(_consumeDialogueRequest);
+    }
+  }
 
   void _openSection(StorySection section) {
     final port = widget.port;
+    if (section == StorySection.dialogues && port != null) {
+      _dialogues ??= DialogueCatalogController(
+        index: port,
+        port: widget.dialoguePort,
+        draft: widget.staging.draft,
+        revision: () => widget.behaviourSource.revision,
+        changed: _changed,
+      );
+    }
     if (port != null) {
       if (section == StorySection.scenes) {
         _catalog ??=
@@ -126,6 +161,7 @@ class _StoryPageState extends State<StoryPage> {
         StorySection.trame => widget.trame?.open() ?? Future<void>.value(),
         StorySection.behaviours => _behaviours?.open() ?? Future<void>.value(),
         StorySection.scenes => _catalog?.open() ?? Future<void>.value(),
+        StorySection.dialogues => _dialogues?.open() ?? Future<void>.value(),
         StorySection.facts => _memory?.open() ?? Future<void>.value(),
         StorySection.rules => _openRules(),
         _ => Future<void>.value(),
@@ -187,6 +223,12 @@ class _StoryPageState extends State<StoryPage> {
             null => null,
           });
     }
+    if (_dialogues?.selectedId case final id?) {
+      _workspace = _workspace.selectItem(StorySection.dialogues, (
+        kind: StoryDraftKind.dialogue,
+        id: id,
+      ));
+    }
     _notifyScope();
     setState(() {});
   }
@@ -197,6 +239,7 @@ class _StoryPageState extends State<StoryPage> {
   @override
   void dispose() {
     _memory?.dispose();
+    _dialogues?.dispose();
     if (!identical(_catalog, widget.catalog)) _catalog?.dispose();
     super.dispose();
   }
@@ -209,6 +252,7 @@ class _StoryPageState extends State<StoryPage> {
       onSelected: _select,
       editable: widget.staging.editable,
       saveError: widget.saveError,
+      inspectorAvailable: _workspace.section != StorySection.dialogues,
       builder: (panels) => IndexedStack(
         index: _workspace.section.index,
         children: [
@@ -230,103 +274,5 @@ class _StoryPageState extends State<StoryPage> {
         ],
       ),
     );
-  }
-
-  Widget _body(StorySection section, StoryPanelBuilder panels) {
-    final l10n = context.l10n;
-    final empty = StudioEmptyState(
-      icon: Icons.touch_app_outlined,
-      title: l10n.storySelectItem,
-    );
-    final unavailable = StudioEmptyState(
-      key: const ValueKey('memory-unavailable'),
-      icon: Icons.inventory_2_outlined,
-      title: l10n.memoryUnavailable,
-      description: l10n.memoryUnavailableHint,
-    );
-    return switch (section) {
-      StorySection.trame when widget.trame != null => TrameView(
-        trame: widget.trame!,
-        source: widget.behaviourSource,
-        navigate: widget.behaviours.open,
-        openScene: widget.openScene,
-        panels: panels,
-        onSelected: (id) => _selectItem(
-          StorySection.trame,
-          id == null ? null : (kind: StoryDraftKind.story, id: id),
-        ),
-      ),
-      StorySection.behaviours when _behaviours != null => panels(
-        GameBehavioursView(
-          behaviours: _behaviours!,
-          navigate: widget.behaviourCatalog == null
-              ? widget.behaviours.open
-              : _openCatalogBehaviour,
-          openMap: widget.openMap,
-          trame: widget.trame,
-          simulate: widget.behaviourCatalog == null
-              ? widget.simulate
-              : (id) => _openCatalogBehaviour(id, simulate: true),
-          openScene: widget.openScene,
-        ),
-        widget.behaviourCatalog != null
-            ? StoryBehaviourContext(
-                catalog: widget.behaviourCatalog!,
-                openMap: widget.behaviours.open,
-                retry: _openCatalogBehaviour,
-                editable: widget.staging.editable,
-                onSelected: (id) => _selectItem(
-                  StorySection.behaviours,
-                  id == null ? null : (kind: StoryDraftKind.event, id: id),
-                ),
-              )
-            : StudioEmptyState(
-                icon: Icons.people_outline,
-                title: l10n.storyBehavioursHint,
-                description: l10n.storyBehavioursOpenHint,
-              ),
-      ),
-      StorySection.facts ||
-      StorySection.rules when _memory != null => GameMemoryView(
-        memory: _memory!,
-        maps: widget.maps,
-        loadMap: widget.loadMap,
-        behaviours: widget.behaviours,
-        panels: panels,
-        section: section == StorySection.facts
-            ? GameMemorySection.facts
-            : GameMemorySection.rules,
-      ),
-      StorySection.scenes when _catalog != null => SceneCatalogView(
-        catalog: _catalog!,
-        openScene: widget.openScene,
-        panels: panels,
-        onSelected: (id) => _selectItem(
-          StorySection.scenes,
-          id == null ? null : (kind: StoryDraftKind.scene, id: id),
-        ),
-      ),
-      StorySection.dialogues => panels(
-        StoryDialogueLinks(onSelected: _select),
-        StudioEmptyState(
-          icon: Icons.chat_bubble_outline,
-          title: l10n.storyDialoguesHint,
-          description: l10n.storyDialoguesEditingHint,
-        ),
-      ),
-      StorySection.verification => panels(
-        VerificationView(
-          verification: widget.verification,
-          unsaved: widget.unsaved,
-          destination: _destination,
-        ),
-        StudioEmptyState(
-          icon: Icons.fact_check_outlined,
-          title: l10n.storyVerificationHint,
-          description: l10n.verificationScope,
-        ),
-      ),
-      _ => panels(unavailable, empty),
-    };
   }
 }

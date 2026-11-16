@@ -7,6 +7,7 @@ enum NarrativeTitleKind {
   facts('facts'),
   worldRules('worldRules'),
   scenes('scenes'),
+  dialogues('dialogues'),
   storylines('storylines'),
   cinematics('cinematics'),
   events('narrativeEvents');

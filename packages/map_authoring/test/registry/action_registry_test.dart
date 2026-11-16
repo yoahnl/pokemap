@@ -139,6 +139,7 @@ void main() {
           'cinematicMediaAsset',
           'contactDeviceConfiguration',
           'dialogue',
+          'dialogueDocument',
           'dialogueSource',
           'element',
           'elementCategory',

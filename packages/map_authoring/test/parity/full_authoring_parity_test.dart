@@ -1245,6 +1245,7 @@ final Set<String> _approvedResourceKinds = {
   'storylineProposal',
   'mapDirectory',
   'sceneDocument',
+  'dialogueDocument',
   'character',
   'characterStudioCatalog',
   'characterStudioCharacter',

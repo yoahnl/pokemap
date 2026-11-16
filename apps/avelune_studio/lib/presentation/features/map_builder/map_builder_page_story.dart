@@ -35,6 +35,8 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       trame: _story.trame,
       catalog: _stories.scenes,
       behaviourCatalog: _stories.catalog,
+      dialoguePort: _stories.dialogues,
+      dialogueRequest: _dialogueRequest,
       openMap: () {
         _rememberStoryOrigin();
         _setSection(StudioRailSection.map, navigation: true);
@@ -79,6 +81,15 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
   Future<ProjectManifest?> _verificationProject() async {
     await _maps.ensureWorkshop(MapWorkspaceWorkshop.verification);
     return _maps.project;
+  }
+
+  Future<void> _openDialogue(String id) async {
+    await _commitTyping();
+    if (!mounted || _disposed) return;
+    _rememberStoryOrigin();
+    _setSection(StudioRailSection.story, navigation: true);
+    _dialogueRequest = (id: id, token: ++_storyNavigation);
+    _changed();
   }
 
   (ProjectMapEntry, MapStoryElementTarget, String)? _behaviourEntry(

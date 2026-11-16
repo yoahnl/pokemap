@@ -10,6 +10,7 @@ import 'package:avelune_studio/features/world/domain/world_port.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_services.dart';
 import 'package:avelune_studio/presentation/features/story/story_page.dart';
+import 'package:avelune_studio/presentation/features/story/story_dialogue_link.dart';
 import 'package:avelune_studio/features/story_workspace/application/story_history_scope.dart';
 import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';

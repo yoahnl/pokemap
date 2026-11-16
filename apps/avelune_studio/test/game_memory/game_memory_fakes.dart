@@ -18,6 +18,7 @@ final class FakeNarrativeIndex implements NarrativeIndexPort {
   final owners = <String, NarrativeUsages>{};
   var rules = <WorldRuleDefinition>[];
   Object? titleFailure;
+  Future<List<NarrativeTitle>> Function(NarrativeTitleKind kind)? titleLoader;
   Object? usageFailure;
   final titleRequests = <NarrativeTitleKind>[];
   final factRequests = <List<String>>[];
@@ -49,6 +50,7 @@ final class FakeNarrativeIndex implements NarrativeIndexPort {
   Future<List<NarrativeTitle>> titles(NarrativeTitleKind kind) async {
     titleRequests.add(kind);
     if (titleFailure case final failure?) throw failure;
+    if (titleLoader case final load?) return load(kind);
     return titlesByKind[kind] ?? const [];
   }
 

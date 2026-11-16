@@ -1,4 +1,5 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter/material.dart';
@@ -155,7 +156,9 @@ void main() {
       await section(tester, 'scenes');
       await tester.tap(find.byKey(const ValueKey('story-scene-gate')));
       await settleMemory(tester);
-      final requests = index.titleRequests.length;
+      final requests = index.titleRequests
+          .where((kind) => kind == NarrativeTitleKind.scenes)
+          .length;
       await section(tester, 'dialogues');
       await section(tester, 'scenes');
       expect(
@@ -167,7 +170,12 @@ void main() {
         isTrue,
       );
       expect(find.byKey(const ValueKey('story-scene-open')), findsOneWidget);
-      expect(index.titleRequests.length, requests);
+      expect(
+        index.titleRequests
+            .where((kind) => kind == NarrativeTitleKind.scenes)
+            .length,
+        requests,
+      );
       expect(index.documentRequests, ['gate']);
       expect(
         find.byKey(const ValueKey('scene-graph-preview-gate')),

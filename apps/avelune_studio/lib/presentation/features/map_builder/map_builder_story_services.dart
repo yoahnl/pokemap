@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/app/di/game_memory_providers.dart';
+import 'package:avelune_studio/app/di/dialogue_providers.dart';
+import 'package:avelune_studio/features/dialogues/domain/dialogue_catalog_port.dart';
 import 'package:avelune_studio/app/di/presentation_providers.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -35,6 +37,10 @@ final class MapBuilderStoryServices {
          (_, _) {},
        ),
        _world = ref.listenManual(worldPortProvider(session), (_, _) {}),
+       _dialogues = ref.listenManual(
+         dialogueCatalogPortProvider(session),
+         (_, _) {},
+       ),
        _storylines = ref.listenManual(
          storylineReadPortProvider(session),
          (_, _) {},
@@ -92,12 +98,14 @@ final class MapBuilderStoryServices {
   final MapBuilderStoryMemory memory;
   final ProviderSubscription<NarrativeIndexPort?> _narrative;
   final ProviderSubscription<WorldPort?> _world;
+  final ProviderSubscription<DialogueCatalogPort?> _dialogues;
   final ProviderSubscription<StorylineReadPort?> _storylines;
   final ProviderSubscription<VerificationPort?> _verification;
 
   NarrativeIndexPort? get narrative => _narrative.read();
 
   WorldPort? get world => _world.read();
+  DialogueCatalogPort? get dialogues => _dialogues.read();
 
   MapBuilderStoryBehaviourSource get behaviours =>
       MapBuilderStoryBehaviourSource(story);
@@ -107,6 +115,7 @@ final class MapBuilderStoryServices {
     scenes?.dispose();
     _narrative.close();
     _world.close();
+    _dialogues.close();
     _storylines.close();
     verification?.cancel();
     _verification.close();

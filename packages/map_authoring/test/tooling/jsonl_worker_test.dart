@@ -500,6 +500,10 @@ void main() {
           expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
           expect(result.error?.details['domainCode'],
               'query.narrative_usage_scope_invalid');
+        } else if (resourceKind == dialogueDocumentResourceKind) {
+          expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
+          expect(result.error?.details['domainCode'],
+              'query.dialogue_document_scope_invalid');
         } else if (resourceKind == mapDirectoryResourceKind ||
             resourceKind == sceneDocumentResourceKind) {
           expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);

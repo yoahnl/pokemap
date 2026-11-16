@@ -8,6 +8,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_nam
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_preview.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+import 'package:avelune_studio/presentation/features/story/story_dialogue_link.dart';
 
 class MapBuilderStoryLineField extends StatelessWidget {
   const MapBuilderStoryLineField({
@@ -58,7 +59,10 @@ class MapBuilderStoryLineField extends StatelessWidget {
           const SizedBox(height: StudioSpacing.s),
           scenePicker(l10n.storyLineOrScene),
         ],
-        MapStoryLineState.line => [field()],
+        MapStoryLineState.line => [
+          field(),
+          if (line.line?.dialogueId case final id?) StoryDialogueLink(id: id),
+        ],
         MapStoryLineState.shared => [
           StudioNotice(
             l10n.storyLineShared(line.sharedWith.join(', ')),
@@ -66,6 +70,7 @@ class MapBuilderStoryLineField extends StatelessWidget {
           ),
           const SizedBox(height: StudioSpacing.s),
           Text(line.text, style: theme.textTheme.bodyMedium),
+          if (line.line?.dialogueId case final id?) StoryDialogueLink(id: id),
           const SizedBox(height: StudioSpacing.s),
           Align(
             alignment: Alignment.centerLeft,

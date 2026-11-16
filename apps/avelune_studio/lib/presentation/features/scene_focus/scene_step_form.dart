@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+import 'package:avelune_studio/presentation/features/story/story_dialogue_link.dart';
 
 part 'scene_step_form_fields.dart';
 

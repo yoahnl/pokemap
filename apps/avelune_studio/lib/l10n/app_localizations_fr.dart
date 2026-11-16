@@ -4025,7 +4025,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storyScenesHint => 'Suites d’étapes et dialogues à choix';
 
   @override
-  String get storyDialoguesHint => 'Les textes de votre jeu';
+  String get storyDialoguesHint => 'Les documents de dialogue et leurs langues';
 
   @override
   String get storyFactsHint => 'Les états de la progression';
@@ -4047,24 +4047,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get storyBehavioursOpenHint =>
       'Sélectionnez un comportement pour le modifier ici. L’onglet Carte conserve son contexte.';
-
-  @override
-  String get storyDialoguesEditingHint =>
-      'Les répliques simples s’éditent dans les comportements ; les dialogues à choix s’éditent dans leurs scènes.';
-
-  @override
-  String get storyBehaviourLines => 'Répliques des comportements';
-
-  @override
-  String get storyBehaviourLinesHint =>
-      'Retrouver une phrase simple sur une carte.';
-
-  @override
-  String get storySceneDialogues => 'Dialogues des scènes';
-
-  @override
-  String get storySceneDialoguesHint =>
-      'Ouvrir le graphe d’un dialogue à choix.';
 
   @override
   String get storyScenesLoading => 'Chargement des titres de scènes…';
@@ -4387,4 +4369,126 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get dialogueCatalogSource => 'Source';
+
+  @override
+  String get dialogueCatalogTranslated => 'Traduit';
+
+  @override
+  String get dialogueCatalogMissing => 'Manquant';
+
+  @override
+  String get dialogueCatalogNeedsReview => 'À revoir';
+
+  @override
+  String get dialogueCatalogUnlocalized => 'Langue non renseignée';
+
+  @override
+  String get dialogueCatalogUnsupported => 'Aperçu indisponible';
+
+  @override
+  String get dialogueCatalogDeleted => 'Retiré du brouillon';
+
+  @override
+  String get dialogueCatalogReadFailed => 'Impossible de lire cet aperçu';
+
+  @override
+  String get dialogueCatalogLoadingPreview => 'Chargement de l’aperçu…';
+
+  @override
+  String get dialogueCatalogNoText => 'Aucun texte à prévisualiser.';
+
+  @override
+  String get dialogueCatalogUnnamed => 'Dialogue sans nom';
+
+  @override
+  String dialogueCatalogSceneCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count scènes connues',
+      one: '1 scène connue',
+      zero: 'Aucune scène connue',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialogueCatalogLoading => 'Chargement des dialogues…';
+
+  @override
+  String get dialogueCatalogOwnership =>
+      'Les scènes utilisent ces documents. Un dialogue partagé conserve les mêmes textes et traductions dans toutes ses scènes.';
+
+  @override
+  String get dialogueCatalogSearch => 'Nom du dialogue';
+
+  @override
+  String get dialogueCatalogPreviewLanguage => 'Langue d’aperçu';
+
+  @override
+  String get dialogueCatalogSourceText => 'Texte source';
+
+  @override
+  String get dialogueCatalogBack => 'Tous les dialogues';
+
+  @override
+  String get dialogueCatalogStale =>
+      'Le projet a changé. Actualisez la bibliothèque pour retrouver les documents enregistrés à jour.';
+
+  @override
+  String get dialogueCatalogLanguagesUnavailable =>
+      'Les langues du jeu sont indisponibles. Les langues déclarées dans les dialogues restent consultables.';
+
+  @override
+  String dialogueCatalogResults(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count documents de dialogue',
+      one: '1 document de dialogue',
+      zero: '0 documents de dialogue',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialogueCatalogEmpty => 'Aucun document de dialogue';
+
+  @override
+  String get dialogueCatalogNoResults =>
+      'Aucun dialogue ne correspond à cette recherche.';
+
+  @override
+  String get dialogueCatalogSearchHint =>
+      'Recherchez par nom ou ouvrez un dialogue depuis sa scène.';
+
+  @override
+  String dialogueCatalogFallback(String locales) {
+    return 'Repli : $locales';
+  }
+
+  @override
+  String get dialogueCatalogReadOnlyPreview =>
+      'Aperçu des répliques et des choix du document. Les scènes conservent leurs références.';
+
+  @override
+  String get dialogueCatalogUsageCoverage =>
+      'Usages partiels : les scènes connues couvrent leurs appels directs de dialogue. Les dialogues de combat ou alternatifs, les anciennes interactions et les cinématiques ne sont pas comptés.';
+
+  @override
+  String get dialogueCatalogOpen => 'Consulter le dialogue';
+
+  @override
+  String get dialogueCatalogUsagesUnavailable =>
+      'Les appels de scènes ne sont pas couverts : leurs usages doivent être préparés dans l’atelier. Ce dialogue peut être utilisé même si aucune scène connue n’est affichée.';
+
+  @override
+  String get dialogueCatalogUnsupportedHint =>
+      'Ce document ne peut pas être prévisualisé ici. Vous pouvez consulter sa source sans la modifier.';
+
+  @override
+  String get dialogueCatalogShowSource => 'Consulter le document source';
 }

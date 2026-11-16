@@ -4,6 +4,7 @@ import 'narrative_usage_query.dart';
 import 'storyline_outline_query.dart';
 import 'map_directory_query.dart';
 import 'scene_document_query.dart';
+import 'dialogue_document_query.dart';
 import 'periodic_reward_choice_query.dart';
 import '../references/exterior_decoration_references.dart';
 import 'resource_pack_transfer_api.dart';
@@ -202,12 +203,16 @@ final class AuthoringReadApi
           narrativeUsageResourceKinds.contains(request.resourceKind) ||
           storylineReadResourceKinds.contains(request.resourceKind) ||
           request.resourceKind == mapDirectoryResourceKind ||
-          request.resourceKind == sceneDocumentResourceKind ? const {} : null);
+          request.resourceKind == sceneDocumentResourceKind ||
+          request.resourceKind == dialogueDocumentResourceKind ? const {} : null);
     if (request.resourceKind == mapDirectoryResourceKind) {
       return queryMapDirectory(catalog: catalog, request: request);
     }
     if (request.resourceKind == sceneDocumentResourceKind) {
       return querySceneDocument(catalog: catalog, request: request);
+    }
+    if (request.resourceKind == dialogueDocumentResourceKind) {
+      return queryDialogueDocument(catalog: catalog, request: request);
     }
     if (storylineReadResourceKinds.contains(request.resourceKind)) {
       return queryStorylineReads(catalog: catalog, request: request);

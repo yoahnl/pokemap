@@ -1,5 +1,7 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/app/di/game_memory_providers.dart';
+import 'package:avelune_studio/app/di/dialogue_providers.dart';
+import 'package:avelune_studio/features/dialogues/domain/dialogue_catalog_port.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/presentation_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
@@ -124,6 +126,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   ProjectManifest? project,
   StorylineReadPort? storylines,
   VerificationPort? verification,
+  DialogueCatalogPort? dialogueCatalog,
 }) async {
   final opened = session ?? memorySession;
   tester.view.physicalSize = const Size(1920, 1080);
@@ -154,6 +157,8 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
         (session, manifest) async => WorkspaceTestVisuals(),
       ),
       narrativeIndexPortProvider(opened).overrideWithValue(index),
+      if (dialogueCatalog != null)
+        dialogueCatalogPortProvider(opened).overrideWithValue(dialogueCatalog),
       if (storylines != null)
         storylineReadPortProvider(opened).overrideWithValue(storylines),
       if (verification != null)

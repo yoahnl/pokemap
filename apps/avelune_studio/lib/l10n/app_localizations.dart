@@ -6231,7 +6231,7 @@ abstract class AppLocalizations {
   /// No description provided for @storyDialoguesHint.
   ///
   /// In fr, this message translates to:
-  /// **'Les textes de votre jeu'**
+  /// **'Les documents de dialogue et leurs langues'**
   String get storyDialoguesHint;
 
   /// No description provided for @storyFactsHint.
@@ -6269,36 +6269,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Sélectionnez un comportement pour le modifier ici. L’onglet Carte conserve son contexte.'**
   String get storyBehavioursOpenHint;
-
-  /// No description provided for @storyDialoguesEditingHint.
-  ///
-  /// In fr, this message translates to:
-  /// **'Les répliques simples s’éditent dans les comportements ; les dialogues à choix s’éditent dans leurs scènes.'**
-  String get storyDialoguesEditingHint;
-
-  /// No description provided for @storyBehaviourLines.
-  ///
-  /// In fr, this message translates to:
-  /// **'Répliques des comportements'**
-  String get storyBehaviourLines;
-
-  /// No description provided for @storyBehaviourLinesHint.
-  ///
-  /// In fr, this message translates to:
-  /// **'Retrouver une phrase simple sur une carte.'**
-  String get storyBehaviourLinesHint;
-
-  /// No description provided for @storySceneDialogues.
-  ///
-  /// In fr, this message translates to:
-  /// **'Dialogues des scènes'**
-  String get storySceneDialogues;
-
-  /// No description provided for @storySceneDialoguesHint.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ouvrir le graphe d’un dialogue à choix.'**
-  String get storySceneDialoguesHint;
 
   /// No description provided for @storyScenesLoading.
   ///
@@ -6761,6 +6731,192 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{count, plural, =1{+ 1 autre emplacement} other{+ {count} autres emplacements}}'**
   String sceneCatalogOtherPlaces(int count);
+
+  /// No description provided for @dialogueCatalogSource.
+  ///
+  /// In fr, this message translates to:
+  /// **'Source'**
+  String get dialogueCatalogSource;
+
+  /// No description provided for @dialogueCatalogTranslated.
+  ///
+  /// In fr, this message translates to:
+  /// **'Traduit'**
+  String get dialogueCatalogTranslated;
+
+  /// No description provided for @dialogueCatalogMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Manquant'**
+  String get dialogueCatalogMissing;
+
+  /// No description provided for @dialogueCatalogNeedsReview.
+  ///
+  /// In fr, this message translates to:
+  /// **'À revoir'**
+  String get dialogueCatalogNeedsReview;
+
+  /// No description provided for @dialogueCatalogUnlocalized.
+  ///
+  /// In fr, this message translates to:
+  /// **'Langue non renseignée'**
+  String get dialogueCatalogUnlocalized;
+
+  /// No description provided for @dialogueCatalogUnsupported.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aperçu indisponible'**
+  String get dialogueCatalogUnsupported;
+
+  /// No description provided for @dialogueCatalogDeleted.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retiré du brouillon'**
+  String get dialogueCatalogDeleted;
+
+  /// No description provided for @dialogueCatalogReadFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de lire cet aperçu'**
+  String get dialogueCatalogReadFailed;
+
+  /// No description provided for @dialogueCatalogLoadingPreview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement de l’aperçu…'**
+  String get dialogueCatalogLoadingPreview;
+
+  /// No description provided for @dialogueCatalogNoText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun texte à prévisualiser.'**
+  String get dialogueCatalogNoText;
+
+  /// No description provided for @dialogueCatalogUnnamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dialogue sans nom'**
+  String get dialogueCatalogUnnamed;
+
+  /// No description provided for @dialogueCatalogSceneCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune scène connue} =1{1 scène connue} other{{count} scènes connues}}'**
+  String dialogueCatalogSceneCount(int count);
+
+  /// No description provided for @dialogueCatalogLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement des dialogues…'**
+  String get dialogueCatalogLoading;
+
+  /// No description provided for @dialogueCatalogOwnership.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les scènes utilisent ces documents. Un dialogue partagé conserve les mêmes textes et traductions dans toutes ses scènes.'**
+  String get dialogueCatalogOwnership;
+
+  /// No description provided for @dialogueCatalogSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom du dialogue'**
+  String get dialogueCatalogSearch;
+
+  /// No description provided for @dialogueCatalogPreviewLanguage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Langue d’aperçu'**
+  String get dialogueCatalogPreviewLanguage;
+
+  /// No description provided for @dialogueCatalogSourceText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Texte source'**
+  String get dialogueCatalogSourceText;
+
+  /// No description provided for @dialogueCatalogBack.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les dialogues'**
+  String get dialogueCatalogBack;
+
+  /// No description provided for @dialogueCatalogStale.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet a changé. Actualisez la bibliothèque pour retrouver les documents enregistrés à jour.'**
+  String get dialogueCatalogStale;
+
+  /// No description provided for @dialogueCatalogLanguagesUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les langues du jeu sont indisponibles. Les langues déclarées dans les dialogues restent consultables.'**
+  String get dialogueCatalogLanguagesUnavailable;
+
+  /// No description provided for @dialogueCatalogResults.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{0 documents de dialogue} =1{1 document de dialogue} other{{count} documents de dialogue}}'**
+  String dialogueCatalogResults(int count);
+
+  /// No description provided for @dialogueCatalogEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun document de dialogue'**
+  String get dialogueCatalogEmpty;
+
+  /// No description provided for @dialogueCatalogNoResults.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun dialogue ne correspond à cette recherche.'**
+  String get dialogueCatalogNoResults;
+
+  /// No description provided for @dialogueCatalogSearchHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherchez par nom ou ouvrez un dialogue depuis sa scène.'**
+  String get dialogueCatalogSearchHint;
+
+  /// No description provided for @dialogueCatalogFallback.
+  ///
+  /// In fr, this message translates to:
+  /// **'Repli : {locales}'**
+  String dialogueCatalogFallback(String locales);
+
+  /// No description provided for @dialogueCatalogReadOnlyPreview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aperçu des répliques et des choix du document. Les scènes conservent leurs références.'**
+  String get dialogueCatalogReadOnlyPreview;
+
+  /// No description provided for @dialogueCatalogUsageCoverage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Usages partiels : les scènes connues couvrent leurs appels directs de dialogue. Les dialogues de combat ou alternatifs, les anciennes interactions et les cinématiques ne sont pas comptés.'**
+  String get dialogueCatalogUsageCoverage;
+
+  /// No description provided for @dialogueCatalogOpen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consulter le dialogue'**
+  String get dialogueCatalogOpen;
+
+  /// No description provided for @dialogueCatalogUsagesUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les appels de scènes ne sont pas couverts : leurs usages doivent être préparés dans l’atelier. Ce dialogue peut être utilisé même si aucune scène connue n’est affichée.'**
+  String get dialogueCatalogUsagesUnavailable;
+
+  /// No description provided for @dialogueCatalogUnsupportedHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce document ne peut pas être prévisualisé ici. Vous pouvez consulter sa source sans la modifier.'**
+  String get dialogueCatalogUnsupportedHint;
+
+  /// No description provided for @dialogueCatalogShowSource.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consulter le document source'**
+  String get dialogueCatalogShowSource;
 }
 
 class _AppLocalizationsDelegate

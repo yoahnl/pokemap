@@ -18,12 +18,14 @@ class StoryWorkspace extends StatefulWidget {
     required this.editable,
     required this.builder,
     this.saveError,
+    this.inspectorAvailable = true,
   });
 
   final StorySection section;
   final ValueChanged<StorySection> onSelected;
   final bool editable;
   final String? saveError;
+  final bool inspectorAvailable;
   final Widget Function(StoryPanelBuilder panels) builder;
 
   @override
@@ -58,13 +60,18 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
                   compact: true,
                   alignActionsToEnd: true,
                   actions: [
-                    StudioButton(
-                      key: const ValueKey('story-toggle-inspector'),
-                      label: visible ? l10n.inspectorHide : l10n.inspectorShow,
-                      icon: visible ? Icons.chevron_right : Icons.chevron_left,
-                      variant: StudioButtonVariant.quiet,
-                      onPressed: () => setState(() => _inspector = !visible),
-                    ),
+                    if (widget.inspectorAvailable)
+                      StudioButton(
+                        key: const ValueKey('story-toggle-inspector'),
+                        label: visible
+                            ? l10n.inspectorHide
+                            : l10n.inspectorShow,
+                        icon: visible
+                            ? Icons.chevron_right
+                            : Icons.chevron_left,
+                        variant: StudioButtonVariant.quiet,
+                        onPressed: () => setState(() => _inspector = !visible),
+                      ),
                   ],
                 ),
                 if (!widget.editable)
@@ -88,45 +95,50 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
                   ),
                 Expanded(
                   child: widget.builder(
-                    (content, inspector) => LayoutBuilder(
-                      builder: (context, area) => Stack(
-                        children: [
-                          Positioned.fill(
-                            right: inline && visible ? 320 : 0,
-                            child: Offstage(
-                              offstage: !inline && visible,
-                              child: TooltipVisibility(
-                                visible:
-                                    TooltipVisibility.of(context) &&
-                                    (inline || !visible),
-                                child: content,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            bottom: 0,
-                            width: inline ? 320 : area.maxWidth,
-                            child: Offstage(
-                              offstage: !visible,
-                              child: TooltipVisibility(
-                                visible:
-                                    TooltipVisibility.of(context) && visible,
-                                child: TickerMode(
-                                  enabled: visible,
-                                  child: StoryInspector(
-                                    key: const ValueKey('story-inspector'),
-                                    width: double.infinity,
-                                    child: inspector,
+                    (content, inspector) => !widget.inspectorAvailable
+                        ? content
+                        : LayoutBuilder(
+                            builder: (context, area) => Stack(
+                              children: [
+                                Positioned.fill(
+                                  right: inline && visible ? 320 : 0,
+                                  child: Offstage(
+                                    offstage: !inline && visible,
+                                    child: TooltipVisibility(
+                                      visible:
+                                          TooltipVisibility.of(context) &&
+                                          (inline || !visible),
+                                      child: content,
+                                    ),
                                   ),
                                 ),
-                              ),
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  width: inline ? 320 : area.maxWidth,
+                                  child: Offstage(
+                                    offstage: !visible,
+                                    child: TooltipVisibility(
+                                      visible:
+                                          TooltipVisibility.of(context) &&
+                                          visible,
+                                      child: TickerMode(
+                                        enabled: visible,
+                                        child: StoryInspector(
+                                          key: const ValueKey(
+                                            'story-inspector',
+                                          ),
+                                          width: double.infinity,
+                                          child: inspector,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
               ],

@@ -1812,7 +1812,8 @@ AuthoringResourceParity _resourceParity(
     'storylineOutline',
     'storylineProposal',
     'mapDirectory',
-    'sceneDocument'
+    'sceneDocument',
+    'dialogueDocument'
   }.contains(kind)) {
     return AuthoringResourceParity(
       resourceKind: kind,
@@ -1830,7 +1831,7 @@ AuthoringResourceParity _resourceParity(
                 justification:
                     '$kind is a read-only derived index. Scenes, dialogues, Facts, world rules, storylines, cinematics and Event V2 records own the persisted data, references and mutations.',
               ),
-            AuthoringParityCapability.parity =>
+            AuthoringParityCapability.parity when kind != 'dialogueDocument' =>
               AuthoringParityCell.notApplicable(
                 capability: capability,
                 justification:
@@ -1844,7 +1845,15 @@ AuthoringResourceParity _resourceParity(
               ),
             _ => AuthoringParityCell.supported(
                 capability: capability,
-                evidence: kind == 'mapDirectory' || kind == 'sceneDocument'
+                evidence: kind == 'dialogueDocument'
+                    ? const [
+                        'lib/src/api/dialogue_document_query.dart',
+                        'test/api/dialogue_document_query_test.dart',
+                        '../../tools/pokemap_mcp/test/dialogue_document_stdio.test.ts',
+                        '../../apps/avelune_studio/lib/features/dialogues/data/local_dialogue_catalog_adapter.dart',
+                        '../../apps/avelune_studio/test/presentation/story_dialogues_navigation_test.dart',
+                      ]
+                    : kind == 'mapDirectory' || kind == 'sceneDocument'
                     ? const [
                         'lib/src/api/map_directory_query.dart',
                         'lib/src/api/scene_document_query.dart',
@@ -2637,6 +2646,7 @@ const _semanticOwners = <String, String>{
   'storylineProposal': 'project',
   'mapDirectory': 'project',
   'sceneDocument': 'project',
+  'dialogueDocument': 'project',
   'character': 'campaignContent',
   'characterStudioCatalog': 'project',
   'characterStudioCharacter': 'project',

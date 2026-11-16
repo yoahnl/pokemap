@@ -113,23 +113,25 @@ void main() {
     },
   );
 
-  testWidgets('the dialogue page reaches both existing text editing paths', (
-    tester,
-  ) async {
-    final index = memoryIndex();
-    await openMemoryStudio(tester, index);
-    await openTrame(tester);
-    await tester.tap(find.byKey(const ValueKey('story-section-dialogues')));
-    await settleMemory(tester);
-    expect(index.titleRequests, isEmpty);
-    await tester.tap(find.byKey(const ValueKey('story-dialogue-behaviours')));
-    await settleMemory(tester);
-    expect(find.byKey(const ValueKey('behaviours-view')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('story-section-dialogues')));
-    await settleMemory(tester);
-    await tester.tap(find.byKey(const ValueKey('story-dialogue-scenes')));
-    await settleMemory(tester);
-    expect(find.byKey(const ValueKey('story-scenes-list')), findsOneWidget);
-    expect(index.documentRequests, isEmpty);
-  });
+  testWidgets(
+    'the dialogue library loads its own titles without changing section',
+    (tester) async {
+      final index = memoryIndex();
+      await openMemoryStudio(tester, index);
+      await openTrame(tester);
+      await tester.tap(find.byKey(const ValueKey('story-section-dialogues')));
+      await settleMemory(tester);
+      expect(index.titleRequests, [NarrativeTitleKind.dialogues]);
+      expect(
+        find.byKey(const ValueKey('story-dialogue-catalog')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('story-dialogue-behaviours')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('story-dialogue-scenes')), findsNothing);
+      expect(index.documentRequests, isEmpty);
+    },
+  );
 }

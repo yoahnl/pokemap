@@ -32,6 +32,7 @@ export 'src/api/storyline_outline_query.dart'
         storylineReadResourceKinds;
 export 'src/api/map_directory_query.dart' show mapDirectoryResourceKind;
 export 'src/api/scene_document_query.dart' show sceneDocumentResourceKind;
+export 'src/api/dialogue_document_query.dart' show dialogueDocumentResourceKind;
 export 'src/workspace/catalog/catalog_map_directory.dart'
     show
         CatalogMapDirectory,

@@ -24,6 +24,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   final _storyOrigins = <_StoryOrigin>[];
   var _storyNavigation = 0;
   String? _storyNavigationProblem;
+  ({String id, int token})? _dialogueRequest;
 
   SceneFocusController? get _activeScene => _sceneShown ? _sceneFocus : null;
   late final _projection = WorkspaceVisualProjectionQueue(
@@ -301,10 +302,13 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     return Scaffold(
       key: const ValueKey('map-builder'),
       body: _keyboard(
-        _layout(
-          onToggleInspector: () =>
-              setState(() => _inspectorOpen = !_inspectorOpen),
-          onCollapse: () => setState(() => _inspectorOpen = false),
+        StoryDialogueNavigation(
+          open: _openDialogue,
+          child: _layout(
+            onToggleInspector: () =>
+                setState(() => _inspectorOpen = !_inspectorOpen),
+            onCollapse: () => setState(() => _inspectorOpen = false),
+          ),
         ),
       ),
     );

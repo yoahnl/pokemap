@@ -174,6 +174,8 @@ class _DialogueView extends StatelessWidget {
       children: [
         SceneStepCaption(steps.l10n.storyStepDialogue),
         Text(dialogue?.name ?? payload.dialogueId),
+        const SizedBox(height: StudioSpacing.s),
+        StoryDialogueLink(id: payload.dialogueId),
         if (payload.speakerHints.isNotEmpty) ...[
           const SizedBox(height: StudioSpacing.xs),
           SceneStepCaption(steps.l10n.storyStepSpeaker),

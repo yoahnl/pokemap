@@ -3999,7 +3999,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyScenesHint => 'Sequences and choice dialogues';
 
   @override
-  String get storyDialoguesHint => 'The text in your game';
+  String get storyDialoguesHint => 'Dialogue documents and their languages';
 
   @override
   String get storyFactsHint => 'Progression states';
@@ -4020,22 +4020,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storyBehavioursOpenHint =>
       'Select a behaviour to edit it here. The Map tab keeps its context.';
-
-  @override
-  String get storyDialoguesEditingHint =>
-      'Simple lines are edited in behaviours; choice dialogues are edited in their scenes.';
-
-  @override
-  String get storyBehaviourLines => 'Behaviour lines';
-
-  @override
-  String get storyBehaviourLinesHint => 'Find a simple line on a map.';
-
-  @override
-  String get storySceneDialogues => 'Scene dialogues';
-
-  @override
-  String get storySceneDialoguesHint => 'Open the graph of a choice dialogue.';
 
   @override
   String get storyScenesLoading => 'Loading scene titles…';
@@ -4356,4 +4340,124 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get dialogueCatalogSource => 'Source';
+
+  @override
+  String get dialogueCatalogTranslated => 'Translated';
+
+  @override
+  String get dialogueCatalogMissing => 'Missing';
+
+  @override
+  String get dialogueCatalogNeedsReview => 'Needs review';
+
+  @override
+  String get dialogueCatalogUnlocalized => 'Language unspecified';
+
+  @override
+  String get dialogueCatalogUnsupported => 'Preview unavailable';
+
+  @override
+  String get dialogueCatalogDeleted => 'Removed from draft';
+
+  @override
+  String get dialogueCatalogReadFailed => 'Unable to read this preview';
+
+  @override
+  String get dialogueCatalogLoadingPreview => 'Loading preview…';
+
+  @override
+  String get dialogueCatalogNoText => 'No text to preview.';
+
+  @override
+  String get dialogueCatalogUnnamed => 'Unnamed dialogue';
+
+  @override
+  String dialogueCatalogSceneCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count known scenes',
+      one: '1 known scene',
+      zero: 'No known scenes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialogueCatalogLoading => 'Loading dialogues…';
+
+  @override
+  String get dialogueCatalogOwnership =>
+      'Scenes use these documents. A shared dialogue keeps the same text and translations in every scene that uses it.';
+
+  @override
+  String get dialogueCatalogSearch => 'Dialogue name';
+
+  @override
+  String get dialogueCatalogPreviewLanguage => 'Preview language';
+
+  @override
+  String get dialogueCatalogSourceText => 'Source text';
+
+  @override
+  String get dialogueCatalogBack => 'All dialogues';
+
+  @override
+  String get dialogueCatalogStale =>
+      'The project changed. Refresh the library to see the current saved documents.';
+
+  @override
+  String get dialogueCatalogLanguagesUnavailable =>
+      'Game languages are unavailable. Languages declared in dialogue documents remain available.';
+
+  @override
+  String dialogueCatalogResults(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dialogue documents',
+      one: '1 dialogue document',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialogueCatalogEmpty => 'No dialogue documents';
+
+  @override
+  String get dialogueCatalogNoResults => 'No dialogue matches this search.';
+
+  @override
+  String get dialogueCatalogSearchHint =>
+      'Search by name or open a dialogue from its scene.';
+
+  @override
+  String dialogueCatalogFallback(String locales) {
+    return 'Fallback: $locales';
+  }
+
+  @override
+  String get dialogueCatalogReadOnlyPreview =>
+      'Preview of the document’s lines and choices. Scenes keep their references.';
+
+  @override
+  String get dialogueCatalogUsageCoverage =>
+      'Partial usages: known scenes cover direct dialogue calls. Battle and alternative dialogues, legacy interactions and cinematics are not counted.';
+
+  @override
+  String get dialogueCatalogOpen => 'View dialogue';
+
+  @override
+  String get dialogueCatalogUsagesUnavailable =>
+      'Scene calls are not covered: prepare their usages in the workshop. This dialogue may be used even when no known scene is shown.';
+
+  @override
+  String get dialogueCatalogUnsupportedHint =>
+      'This document cannot be previewed here. You can view its source without changing it.';
+
+  @override
+  String get dialogueCatalogShowSource => 'View source document';
 }

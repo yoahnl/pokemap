@@ -6,8 +6,9 @@ import '../domain/narrative_index_port.dart';
 Future<T> readNarrativeIndex<T>(
   ProjectSession session,
   ProjectFileReader reader,
-  Future<T> Function(AuthoringReadApi reads, ProjectHandle handle) body,
-) async {
+  Future<T> Function(AuthoringReadApi reads, ProjectHandle handle) body, {
+  bool initializeSceneOwners = true,
+}) async {
   final policy = await WorkspacePolicy.create(
     allowedRootPaths: [session.directoryPath],
     fileReader: reader,
@@ -17,6 +18,7 @@ Future<T> readNarrativeIndex<T>(
     policy: policy,
     fileReader: reader,
     handles: handles,
+    initializeSceneOwners: initializeSceneOwners,
     catalogMetadataFields: const {},
     workshopScope: true,
   );
@@ -37,6 +39,8 @@ Future<T> readNarrativeIndex<T>(
         const NarrativeIndexPreparationRequired('narrativeUsages'),
       'query.narrative_events_preparation_required' =>
         const NarrativeIndexPreparationRequired('narrativeEvents'),
+      'query.dialogue_document_preparation_required' =>
+        const NarrativeIndexPreparationRequired('default'),
       'query.map_directory_preparation_required' =>
         const NarrativeIndexPreparationRequired('mapDirectory'),
       'query.narrative_titles_catalog_required' ||
@@ -44,6 +48,8 @@ Future<T> readNarrativeIndex<T>(
       'query.storyline_read_catalog_required' ||
       'query.map_directory_catalog_required' ||
       'query.scene_document_catalog_required' =>
+        const NarrativeIndexUnavailable(),
+      'query.dialogue_document_catalog_required' =>
         const NarrativeIndexUnavailable(),
       _ => failure,
     };
