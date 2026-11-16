@@ -1,11 +1,16 @@
 part of 'map_builder_page.dart';
 
 extension _MapBuilderPageStory on _MapBuilderPageState {
-  void _setSection(StudioRailSection section) {
-    if (section == _section) return;
-    _commitTyping();
+  void _setSection(StudioRailSection section, {bool navigation = false}) {
+    if (!navigation) {
+      _storyNavigation++;
+      _storyOrigins.clear();
+      _storyNavigationProblem = null;
+    }
+    if (section == _section && !_sceneShown) return;
+    unawaited(_commitTyping());
     if (section != StudioRailSection.map) _resources.release();
-    _sceneFocus = null;
+    _sceneShown = false;
     _section = section;
     _storyShown |= section == StudioRailSection.story;
     _changed();
@@ -29,7 +34,8 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       behaviourSource: _stories.behaviours,
       trame: _story.trame,
       openMap: () {
-        _setSection(StudioRailSection.map);
+        _rememberStoryOrigin();
+        _setSection(StudioRailSection.map, navigation: true);
         _setSpace(MapBuilderSpace.story);
       },
       verification: _stories.verification,
@@ -42,6 +48,12 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
         _ => null,
       },
       openScene: _openScene,
+      beforeNavigation: _commitTyping,
+      onHistoryScopeChanged: (scope) {
+        if (scope == _storyScope) return;
+        _storyScope = scope;
+        _changed();
+      },
       simulate: (id) async {
         final opened = await _openBehaviour(id);
         if (opened) _story.toggleSimulation(id);
@@ -51,8 +63,11 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
         final entry = _maps.project?.maps
             .where((entry) => entry.id == mapId)
             .firstOrNull;
-        if (entry == null || !_editable) return false;
-        _setSection(StudioRailSection.map);
+        if (entry == null) return false;
+        await _commitTyping();
+        if (_disposed) return false;
+        _rememberStoryOrigin();
+        _setSection(StudioRailSection.map, navigation: true);
         if (_maps.active?.base.mapId != entry.id) await _maps.activate(entry);
         return true;
       },
@@ -79,20 +94,33 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
   }
 
   Future<bool> _openBehaviour(String eventId) async {
+    await _commitTyping();
+    if (!mounted || _disposed) return false;
     final target = _behaviourEntry(eventId);
-    if (target == null || !_editable) return false;
+    if (target == null) {
+      _storyNavigationProblem = context.l10n.storyDestinationUnavailable;
+      _changed();
+      return false;
+    }
     final (entry, kind, id) = target;
-    _setSection(StudioRailSection.map);
+    if (_activeScene != null || _section == StudioRailSection.story) {
+      _rememberStoryOrigin();
+    }
+    final navigation = ++_storyNavigation;
+    _setSection(StudioRailSection.map, navigation: true);
     _setSpace(MapBuilderSpace.story);
     if (_maps.active?.base.mapId != entry.id) await _maps.activate(entry);
     await _story.prepare();
-    if (_disposed || _maps.active?.base.mapId != entry.id) return false;
+    if (_disposed || navigation != _storyNavigation) return false;
+    if (_maps.active?.base.mapId != entry.id ||
+        _behaviourEntry(eventId) == null) {
+      return _storyDestinationUnavailable();
+    }
     final element = _story.elements?.byKey('${kind.name}:$id');
     final index =
         element?.behaviours.indexWhere((item) => item.id == eventId) ?? -1;
     if (element == null || index < 0) {
-      _setSection(StudioRailSection.story);
-      return false;
+      return _storyDestinationUnavailable();
     }
     _story
       ..select(element)

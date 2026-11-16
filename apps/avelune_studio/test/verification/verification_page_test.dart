@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/scenes/domain/scene_document.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -43,6 +44,44 @@ Future<void> _verify(WidgetTester tester, FakeVerificationPort port) async {
 }
 
 void main() {
+  testWidgets('a scene diagnostic opens the scene without choosing a carrier', (
+    tester,
+  ) async {
+    final port = FakeVerificationPort(
+      diagnostics: [
+        verificationDiagnostic(
+          'scene',
+          NarrativeProjectDiagnosticDestination.scene,
+          sceneId: 'gate',
+        ),
+      ],
+    );
+    final index = memoryIndex()
+      ..documents['gate'] = SceneDocument(
+        scene: trameProject.scenes.last,
+        dialogues: const [],
+        missingDialogueIds: const [],
+        events: [trameRecords.last],
+        maps: const {},
+        mapReads: 0,
+      );
+    await openTrameStudio(tester, verification: port, index: index);
+    await tester.tap(find.byKey(const ValueKey('story-section-verification')));
+    await settleMemory(tester);
+    await tester.tap(find.byKey(const ValueKey('verification-start')));
+    await settleMemory(tester);
+    await tester.tap(find.byKey(const ValueKey('verification-open-0')));
+    await settleMemory(tester);
+    expect(
+      find.byKey(const ValueKey('scene-focus-graph-gate')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('map-story-inspector-map:a')),
+      findsNothing,
+    );
+  });
+
   testWidgets('global verification reads saved data and keeps the plot draft', (
     tester,
   ) async {

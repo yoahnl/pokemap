@@ -7,6 +7,8 @@ import 'package:avelune_studio/features/project_session/application/project_draf
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_ambiance_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:avelune_studio/presentation/shell/studio_top_bar.dart';
+import 'package:avelune_studio/features/story_workspace/application/story_history_scope.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 VoidCallback? mapBuilderHistoryStep(
   MapWorkspaceController maps, {
@@ -14,11 +16,11 @@ VoidCallback? mapBuilderHistoryStep(
   required bool editable,
   MapBuilderAmbianceBinding? ambiance,
   MapBuilderStoryBinding? story,
-  String? sceneId,
+  StoryHistoryScope? scope,
 }) {
   if (!editable) return null;
-  if (sceneId != null) {
-    return story != null && story.canStepScene(sceneId, redo: redo)
+  if (scope != null) {
+    return story != null && story.canStepScope(scope, redo: redo)
         ? (redo ? story.redo : story.undo)
         : null;
   }
@@ -52,7 +54,9 @@ class MapBuilderHeader extends StatelessWidget {
     this.ambiance,
     this.story,
     this.history = true,
-    this.sceneId,
+    this.scope,
+    this.pendingInput = false,
+    this.onHistoryStep,
   });
 
   final MapWorkspaceController maps;
@@ -66,7 +70,9 @@ class MapBuilderHeader extends StatelessWidget {
   final MapBuilderAmbianceBinding? ambiance;
   final MapBuilderStoryBinding? story;
   final bool history;
-  final String? sceneId;
+  final StoryHistoryScope? scope;
+  final bool pendingInput;
+  final ValueChanged<bool>? onHistoryStep;
 
   StudioSaveState get _saveState {
     if (draft.saving) return StudioSaveState.saving;
@@ -74,32 +80,46 @@ class MapBuilderHeader extends StatelessWidget {
     return draft.unsaved ? StudioSaveState.unsaved : StudioSaveState.saved;
   }
 
+  String? _unavailableReason(BuildContext context, {required bool redo}) {
+    final story = this.story;
+    final scope = this.scope;
+    if (story == null ||
+        scope == null ||
+        !(redo ? story.canRedo : story.canUndo) ||
+        story.canStepScope(scope, redo: redo)) {
+      return null;
+    }
+    return context.l10n.storyHistoryOtherContext;
+  }
+
   @override
   Widget build(BuildContext context) {
     final document = maps.active;
+    VoidCallback? historyStep(bool redo) {
+      final step = mapBuilderHistoryStep(
+        maps,
+        redo: redo,
+        editable: editable && history,
+        ambiance: ambiance,
+        story: story,
+        scope: scope,
+      );
+      return step == null || onHistoryStep == null
+          ? step
+          : () => onHistoryStep!(redo);
+    }
+
     return StudioTopBar(
       projectName: projectName,
       maps: maps.project?.maps ?? const [],
       activeMapId: document?.base.mapId,
       onSelectMap: editable ? (entry) => unawaited(maps.activate(entry)) : null,
-      onUndo: mapBuilderHistoryStep(
-        maps,
-        redo: false,
-        editable: editable && history,
-        ambiance: ambiance,
-        story: story,
-        sceneId: sceneId,
-      ),
-      onRedo: mapBuilderHistoryStep(
-        maps,
-        redo: true,
-        editable: editable && history,
-        ambiance: ambiance,
-        story: story,
-        sceneId: sceneId,
-      ),
+      onUndo: historyStep(false),
+      onRedo: historyStep(true),
       saveState: _saveState,
-      onSave: editable && draft.unsaved ? onSave : null,
+      undoUnavailableReason: _unavailableReason(context, redo: false),
+      redoUnavailableReason: _unavailableReason(context, redo: true),
+      onSave: editable && (draft.unsaved || pendingInput) ? onSave : null,
       onTestMap: editable && document != null && !testing ? onTestMap : null,
       testing: testing,
     );

@@ -95,7 +95,12 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
                             right: inline && visible ? 320 : 0,
                             child: Offstage(
                               offstage: !inline && visible,
-                              child: content,
+                              child: TooltipVisibility(
+                                visible:
+                                    TooltipVisibility.of(context) &&
+                                    (inline || !visible),
+                                child: content,
+                              ),
                             ),
                           ),
                           Positioned(
@@ -105,10 +110,14 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
                             width: inline ? 320 : area.maxWidth,
                             child: Offstage(
                               offstage: !visible,
-                              child: StoryInspector(
-                                key: const ValueKey('story-inspector'),
-                                width: double.infinity,
-                                child: inspector,
+                              child: TooltipVisibility(
+                                visible:
+                                    TooltipVisibility.of(context) && visible,
+                                child: StoryInspector(
+                                  key: const ValueKey('story-inspector'),
+                                  width: double.infinity,
+                                  child: inspector,
+                                ),
                               ),
                             ),
                           ),

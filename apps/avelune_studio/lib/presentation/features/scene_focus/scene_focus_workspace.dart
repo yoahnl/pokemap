@@ -17,6 +17,7 @@ class SceneFocusWorkspace extends StatefulWidget {
     required this.scene,
     required this.project,
     required this.map,
+    this.onOpenBehaviour,
   });
 
   static const double sideWidth = 380;
@@ -25,6 +26,7 @@ class SceneFocusWorkspace extends StatefulWidget {
   final SceneAsset scene;
   final ProjectManifest project;
   final MapData? map;
+  final Future<bool> Function(String eventId)? onOpenBehaviour;
 
   @override
   State<SceneFocusWorkspace> createState() => _SceneFocusWorkspaceState();
@@ -35,6 +37,19 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
   Set<String> _selection = const {};
   SceneAsset? _checked;
   late SceneGraphChecks _checks;
+  var _active = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final active = TickerMode.valuesOf(context).enabled;
+    if (active && !_active) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _active) _canvas.currentState?.requestFocus();
+      });
+    }
+    _active = active;
+  }
 
   SceneGraphChecks get _currentChecks {
     if (!identical(_checked, widget.scene)) {
@@ -97,6 +112,7 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
           width: SceneFocusWorkspace.sideWidth,
           child: SceneFocusSide(
             focus: focus,
+            onOpenBehaviour: widget.onOpenBehaviour,
             leading: SceneGraphInspector(
               scene: scene,
               project: widget.project,

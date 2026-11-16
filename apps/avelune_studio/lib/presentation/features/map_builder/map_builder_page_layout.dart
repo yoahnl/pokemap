@@ -69,8 +69,11 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
             ambiance: _historyAmbiance,
             story: _historyStory,
             history: _historyOpen,
-            sceneId: _sceneFocus?.sceneId,
+            scope: _historyScope,
+            pendingInput: _typing || _textTransactions.pending,
+            onHistoryStep: (redo) => unawaited(_stepHistory(redo: redo)),
           ),
+          ?_storyReturnBar(),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -88,92 +91,103 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                         index: _section.index,
                         sizing: StackFit.expand,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              MapBuilderSidePanel(
-                                space: _space,
-                                story: _story,
-                                gameplay: _gameplay,
-                                ambiance: _ambiance,
-                                resources: _resources,
-                                maps: _maps,
-                                visuals: _visuals,
-                                enabled: _editable,
-                                mapTreeMemory: _mapTreeMemory,
-                              ),
-                              Expanded(
-                                child: MapBuilderCanvas(
+                          _retainedSurface(
+                            visible:
+                                _section == StudioRailSection.map &&
+                                !_sceneShown,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                MapBuilderSidePanel(
                                   space: _space,
-                                  onSpace: _setSpace,
-                                  entry: entry,
-                                  tool: view?.tool ?? StudioMapTool.select,
-                                  onTool: _setTool,
-                                  inspectorOpen: _inspectorOpen,
-                                  onToggleInspector: onToggleInspector,
-                                  error:
-                                      _maps.error ??
-                                      _visualsError ??
-                                      _resourceProblem() ??
-                                      document?.error,
-                                  borderWarnings:
-                                      document?.borderWarnings ?? const {},
-                                  reliefAvailable: _reliefAvailable,
-                                  reliefPalette: _reliefPalette(view),
-                                  reliefNotice: _constructionNotice(view),
-                                  surface: _surface(),
-                                  statusBar: MapBuilderStatusBar(
-                                    toolLabel:
-                                        _resources.armed != null ||
-                                            _gameplay.placing ||
-                                            const {
-                                              StudioMapTool.relief,
-                                              StudioMapTool.slope,
-                                              StudioMapTool.stair,
-                                            }.contains(view?.tool)
-                                        ? toolLabel ??
-                                              context.l10n.statusBuilding
-                                        : view?.tool == StudioMapTool.pan
-                                        ? context.l10n.toolPan
-                                        : context.l10n.toolSelect,
-                                    view: view,
-                                    spatial:
-                                        document?.current.spatialScene != null,
-                                    onChanged: _changed,
+                                  story: _story,
+                                  gameplay: _gameplay,
+                                  ambiance: _ambiance,
+                                  resources: _resources,
+                                  maps: _maps,
+                                  visuals: _visuals,
+                                  enabled: _editable,
+                                  mapTreeMemory: _mapTreeMemory,
+                                ),
+                                Expanded(
+                                  child: MapBuilderCanvas(
+                                    space: _space,
+                                    onSpace: _setSpace,
+                                    entry: entry,
+                                    tool: view?.tool ?? StudioMapTool.select,
+                                    onTool: _setTool,
+                                    inspectorOpen: _inspectorOpen,
+                                    onToggleInspector: onToggleInspector,
+                                    error:
+                                        _maps.error ??
+                                        _visualsError ??
+                                        _resourceProblem() ??
+                                        document?.error,
+                                    borderWarnings:
+                                        document?.borderWarnings ?? const {},
+                                    reliefAvailable: _reliefAvailable,
+                                    reliefPalette: _reliefPalette(view),
+                                    reliefNotice: _constructionNotice(view),
+                                    surface: _surface(),
+                                    statusBar: MapBuilderStatusBar(
+                                      toolLabel:
+                                          _resources.armed != null ||
+                                              _gameplay.placing ||
+                                              const {
+                                                StudioMapTool.relief,
+                                                StudioMapTool.slope,
+                                                StudioMapTool.stair,
+                                              }.contains(view?.tool)
+                                          ? toolLabel ??
+                                                context.l10n.statusBuilding
+                                          : view?.tool == StudioMapTool.pan
+                                          ? context.l10n.toolPan
+                                          : context.l10n.toolSelect,
+                                      view: view,
+                                      spatial:
+                                          document?.current.spatialScene !=
+                                          null,
+                                      onChanged: _changed,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              if (_inspectorOpen)
-                                MapBuilderInspector(
-                                  entry: entry,
-                                  projectName:
-                                      project?.name ?? widget.session.name,
-                                  space: _space,
-                                  armed: _resources.armed,
-                                  toolLabel: toolLabel,
-                                  toolHint: view == null
-                                      ? null
-                                      : context.l10n.toolHint(
-                                          view,
-                                          armed: intent?.armed ?? false,
+                                if (_inspectorOpen)
+                                  MapBuilderInspector(
+                                    entry: entry,
+                                    projectName:
+                                        project?.name ?? widget.session.name,
+                                    space: _space,
+                                    armed: _resources.armed,
+                                    toolLabel: toolLabel,
+                                    toolHint: view == null
+                                        ? null
+                                        : context.l10n.toolHint(
+                                            view,
+                                            armed: intent?.armed ?? false,
+                                          ),
+                                    onRelease: _resources.release,
+                                    onCollapse: onCollapse,
+                                    body:
+                                        _constructionInspector(view) ??
+                                        _selectionInspector(view) ??
+                                        mapBuilderSpaceInspector(
+                                          _space,
+                                          _gameplay,
+                                          _ambiance,
+                                          context.l10n,
+                                          enabled: _editable,
+                                          story: _story,
                                         ),
-                                  onRelease: _resources.release,
-                                  onCollapse: onCollapse,
-                                  body:
-                                      _constructionInspector(view) ??
-                                      _selectionInspector(view) ??
-                                      mapBuilderSpaceInspector(
-                                        _space,
-                                        _gameplay,
-                                        _ambiance,
-                                        context.l10n,
-                                        enabled: _editable,
-                                        story: _story,
-                                      ),
-                                ),
-                            ],
+                                  ),
+                              ],
+                            ),
                           ),
-                          _storyPage(),
+                          _retainedSurface(
+                            visible:
+                                _section == StudioRailSection.story &&
+                                !_sceneShown,
+                            child: _storyPage(),
+                          ),
                         ],
                       ),
                       ?_scenePage(),
@@ -187,6 +201,15 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
       ),
     );
   }
+
+  Widget _retainedSurface({required bool visible, required Widget child}) =>
+      TickerMode(
+        enabled: visible,
+        child: TooltipVisibility(
+          visible: visible && TooltipVisibility.of(context),
+          child: child,
+        ),
+      );
 
   Widget _keyboard(Widget child) => CallbackShortcuts(
     bindings: textAwareEditorShortcuts({
@@ -213,13 +236,18 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
             _stepHistory(redo: true),
       },
     }),
-    child: FocusScope(
-      autofocus: true,
-      child: Focus(focusNode: _pageFocus, child: child),
+    child: EditorTextTransactionsScope(
+      transactions: _textTransactions,
+      child: FocusScope(
+        autofocus: true,
+        child: Focus(focusNode: _pageFocus, child: child),
+      ),
     ),
   );
 
-  void _stepHistory({required bool redo}) {
+  Future<void> _stepHistory({required bool redo}) async {
+    await _commitTyping();
+    if (_disposed) return;
     final step = _historyStep(redo: redo);
     if (step == null) return;
     step();
@@ -248,8 +276,8 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
         input: _input,
         onChanged: _changed,
         onSave: () => unawaited(_save()),
-        onUndo: () => _historyStep(redo: false)?.call(),
-        onRedo: () => _historyStep(redo: true)?.call(),
+        onUndo: () => unawaited(_stepHistory(redo: false)),
+        onRedo: () => unawaited(_stepHistory(redo: true)),
         onCanvasMenu: _showCanvasMenu,
         onZoneDrawn: _space == MapBuilderSpace.story ? _story.addZone : null,
         busy: !_editable,
@@ -263,17 +291,33 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
     editable: _editable && _historyOpen,
     ambiance: _historyAmbiance,
     story: _historyStory,
-    sceneId: _sceneFocus?.sceneId,
+    scope: _historyScope,
   );
 
   bool get _historyOpen =>
-      _sceneFocus != null || _section == StudioRailSection.map;
+      _activeScene != null ||
+      _section == StudioRailSection.map ||
+      _section == StudioRailSection.story;
+
+  StoryHistoryScope? get _historyScope => switch (_activeScene) {
+    final focus? => StoryHistoryScope({
+      (kind: StoryDraftKind.scene, id: focus.sceneId),
+      if (focus.behaviourId case final id?)
+        (kind: StoryDraftKind.event, id: id),
+    }),
+    null when _section == StudioRailSection.story => _storyScope,
+    _ => null,
+  };
 
   MapBuilderAmbianceBinding? get _historyAmbiance =>
-      _sceneFocus == null && _space == MapBuilderSpace.ambiance
+      _activeScene == null && _space == MapBuilderSpace.ambiance
       ? _ambiance
       : null;
 
   MapBuilderStoryBinding? get _historyStory =>
-      _sceneFocus != null || _space == MapBuilderSpace.story ? _story : null;
+      _activeScene != null ||
+          _section == StudioRailSection.story ||
+          _space == MapBuilderSpace.story
+      ? _story
+      : null;
 }

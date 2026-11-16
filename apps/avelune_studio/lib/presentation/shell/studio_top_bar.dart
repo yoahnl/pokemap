@@ -24,6 +24,8 @@ class StudioTopBar extends StatelessWidget {
     required this.onSave,
     required this.onTestMap,
     this.testing = false,
+    this.undoUnavailableReason,
+    this.redoUnavailableReason,
   });
 
   final String projectName;
@@ -33,6 +35,8 @@ class StudioTopBar extends StatelessWidget {
   final VoidCallback? onUndo, onRedo, onSave, onTestMap;
   final StudioSaveState saveState;
   final bool testing;
+  final String? undoUnavailableReason;
+  final String? redoUnavailableReason;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -80,12 +84,16 @@ class StudioTopBar extends StatelessWidget {
           ),
           const Spacer(),
           _BarIcon(
-            label: context.l10n.topBarUndo,
+            label: onUndo == null
+                ? undoUnavailableReason ?? context.l10n.topBarUndo
+                : context.l10n.topBarUndo,
             icon: Icons.undo,
             onPressed: onUndo,
           ),
           _BarIcon(
-            label: context.l10n.topBarRedo,
+            label: onRedo == null
+                ? redoUnavailableReason ?? context.l10n.topBarRedo
+                : context.l10n.topBarRedo,
             icon: Icons.redo,
             onPressed: onRedo,
           ),

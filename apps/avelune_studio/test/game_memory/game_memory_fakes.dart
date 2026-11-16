@@ -29,6 +29,7 @@ final class FakeNarrativeIndex implements NarrativeIndexPort {
   final characterRequests = <List<String>>[];
   final documents = <String, SceneDocument>{};
   final documentRequests = <String>[];
+  Future<SceneDocument> Function(String sceneId)? documentLoader;
 
   void addFacts(Iterable<NarrativeFactDefinition> facts) {
     for (final fact in facts) {
@@ -99,6 +100,7 @@ final class FakeNarrativeIndex implements NarrativeIndexPort {
   @override
   Future<SceneDocument> sceneDocument(String sceneId) async {
     documentRequests.add(sceneId);
+    if (documentLoader case final load?) return load(sceneId);
     return documents[sceneId] ?? (throw StateError('Unknown scene $sceneId'));
   }
 }

@@ -84,6 +84,8 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   bool get _editable => widget.onChanged != null;
   SceneGraphView get _shown => _view.withPositions(_moved);
 
+  void requestFocus() => _focus.requestFocus();
+
   @override
   void initState() {
     super.initState();

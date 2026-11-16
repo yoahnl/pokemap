@@ -17,6 +17,7 @@ final class StoryDraft {
     (kind) => _versions[kind] ?? 0,
   );
   StoryDraftStep? _open;
+  Set<StoryDraftIdentityChange>? _openIdentities;
   int _recorded = 0;
 
   NarrativeEventRegistry? get eventRegistryShell => _eventRegistryShell;
@@ -32,6 +33,20 @@ final class StoryDraft {
 
   Set<StoryDraftRef> nextStep({required bool redo}) =>
       _history.next(redo: redo);
+
+  Iterable<StoryDraftEntry<Object>> nextStepEntries({required bool redo}) =>
+      _history.nextEntries(redo: redo);
+
+  Set<StoryDraftIdentityChange> nextStepIdentities({required bool redo}) =>
+      _history.nextIdentities(redo: redo);
+
+  void followIdentity(StoryDraftKind<Object> kind, String from, String to) {
+    final identities = _openIdentities;
+    if (identities == null) {
+      throw StateError('Identity changes require an open transaction.');
+    }
+    identities.add((from: (kind: kind, id: from), to: (kind: kind, id: to)));
+  }
 
   int get recorded => _recorded;
 
@@ -93,6 +108,7 @@ final class StoryDraft {
       return;
     }
     final step = _open = {};
+    final identities = _openIdentities = {};
     try {
       body();
     } on Object {
@@ -100,10 +116,11 @@ final class StoryDraft {
       rethrow;
     } finally {
       _open = null;
+      _openIdentities = null;
     }
     step.removeWhere((_, change) => change.before == change.after);
     if (step.isEmpty) return;
-    _history.record(step);
+    _history.record(step, identities: identities);
     _recorded++;
   }
 

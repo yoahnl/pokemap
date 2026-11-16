@@ -2281,5 +2281,9 @@
   "storyScenesEmpty": "Aucune scène pour l’instant",
   "storyScenesEmptyHint": "Créez une scène depuis un comportement sur une carte.",
   "storySelectScene": "Sélectionnez une scène pour l’ouvrir.",
-  "storyUnnamedScene": "Scène sans nom"
+  "storyUnnamedScene": "Scène sans nom",
+  "storyReturnScene": "Retour à la scène",
+  "storyReturnHistory": "Retour à Histoire",
+  "storyDestinationUnavailable": "Cet élément n’est plus disponible. Votre brouillon est conservé.",
+  "storyHistoryOtherContext": "La prochaine modification concerne un autre contexte. Retrouvez-le pour l’annuler ou la rétablir."
 }

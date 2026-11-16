@@ -52,18 +52,15 @@ extension MapStoryHistory on MapBuilderStoryBinding {
     }
   }
 
-  bool canStepScene(String sceneId, {required bool redo}) {
+  bool canStepScope(StoryHistoryScope scope, {required bool redo}) {
     final stack = redo ? _undone : _done;
     final step = stack.lastWhere(
       (step) => _matches(step, undo: !redo),
       orElse: () => (_StorySide.map, null),
     );
     if (step.$1 != _StorySide.behaviours) return false;
-    final refs = behaviours.draft.nextStep(redo: redo);
-    return refs.isNotEmpty &&
-        refs.every(
-          (ref) => ref.kind == StoryDraftKind.scene && ref.id == sceneId,
-        );
+    return scope.decision(behaviours.draft, redo: redo) ==
+        StoryHistoryDecision.allowed;
   }
 
   void recordBehaviourStep() => _record(_StorySide.behaviours, null);

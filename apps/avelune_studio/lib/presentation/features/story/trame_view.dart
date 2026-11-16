@@ -26,6 +26,7 @@ class TrameView extends StatefulWidget {
     required this.navigate,
     required this.panels,
     this.openScene,
+    this.onSelected,
   });
 
   final StorylineTrameController trame;
@@ -33,6 +34,7 @@ class TrameView extends StatefulWidget {
   final Future<bool> Function(String eventId) navigate;
   final SceneOpener? openScene;
   final StoryPanelBuilder panels;
+  final ValueChanged<String?>? onSelected;
 
   @override
   State<TrameView> createState() => _TrameViewState();
@@ -80,6 +82,9 @@ class _TrameViewState extends State<TrameView> {
           chapterId: at.chapter.id,
           milestoneId: id,
         );
+        scheduleMicrotask(() {
+          if (mounted) widget.onSelected?.call(at.storyline.id);
+        });
       }
     }
     if (view.outline.storylines.isEmpty) {
@@ -219,7 +224,10 @@ class _TrameViewState extends State<TrameView> {
         selected: _selected == key,
         tone: warning ? StudioTone.warning : null,
         trailing: archived ? StudioBadge(l10n.trameArchivedBadge) : null,
-        onTap: () => setState(() => _selected = key),
+        onTap: () {
+          setState(() => _selected = key);
+          widget.onSelected?.call(key.storylineId);
+        },
       ),
     );
   }

@@ -9,6 +9,8 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   late final StudioExitGuard _exitGuard;
   late final _draft = ProjectDraft([MapWorkspaceDraft(_maps), _story]);
   final _pageFocus = FocusNode(debugLabel: 'map-builder', skipTraversal: true);
+  late final _textTransactions = EditorTextTransactions(_changed);
+  var _hadTyping = false;
   var _guarded = false;
   Future<bool>? _leaving;
   final _views = <String, MapEditingViewportSession>{};
@@ -18,6 +20,12 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   var _saveFailed = false;
   var _testing = false;
   SceneFocusController? _sceneFocus;
+  var _sceneShown = false;
+  final _storyOrigins = <_StoryOrigin>[];
+  var _storyNavigation = 0;
+  String? _storyNavigationProblem;
+
+  SceneFocusController? get _activeScene => _sceneShown ? _sceneFocus : null;
   late final _projection = WorkspaceVisualProjectionQueue(
     currentVisuals: () => _visuals,
     activeMap: () => _maps.active?.current,
@@ -85,6 +93,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   );
   var _section = StudioRailSection.map;
   var _storyShown = false;
+  var _storyScope = const StoryHistoryScope.empty();
   var _space = MapBuilderSpace.construction;
   var _inspectorOpen = true;
   var _disposed = false;
@@ -171,11 +180,15 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   }
 
   void _focusChanged() {
-    if (_typing) _protect();
+    final typing = _typing;
+    if (typing) _protect();
+    if (_hadTyping == typing) return;
+    _hadTyping = typing;
+    _changed();
   }
 
   Future<bool> _save() async {
-    _commitTyping();
+    await _commitTyping();
     if (_disposed) return false;
     setState(() => _saveFailed = false);
     final saved = await _draft.save();
@@ -190,7 +203,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     final document = _maps.active;
     final entry = _activeEntry;
     if (document == null || entry == null || _testing) return;
-    _commitTyping();
+    await _commitTyping();
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _testing = true;

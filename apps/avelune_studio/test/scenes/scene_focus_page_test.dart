@@ -132,7 +132,7 @@ void main() {
     expect(_key('scene-focus-launcher-${behaviourId(2)}'), findsOneWidget);
     expect(_key('scene-focus-fact-met'), findsOneWidget);
 
-    await tester.tap(_key('scene-graph-card-meet'));
+    await tester.tapAt(tester.getCenter(_key('scene-graph-card-meet')));
     await settleMemory(tester);
     expect(_key('scene-graph-inspector-meet'), findsOneWidget);
     expect(_key('scene-graph-checks'), findsNothing);
@@ -255,7 +255,7 @@ void main() {
     }
 
     await _tap(tester, 'behaviour-scene-${behaviourId(1)}');
-    await tester.tap(_key('scene-graph-card-meet'));
+    await tester.tapAt(tester.getCenter(_key('scene-graph-card-meet')));
     await settleMemory(tester);
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
     await settleMemory(tester);

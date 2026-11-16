@@ -8,9 +8,10 @@ import 'package:avelune_studio/features/game_behaviours/application/game_behavio
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviours_controller.dart';
 import 'package:avelune_studio/features/game_memory/application/game_memory_controller.dart';
 import 'package:avelune_studio/features/game_memory/application/game_memory_staging.dart';
-import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/story_workspace/application/story_workspace_state.dart';
+import 'package:avelune_studio/features/story_workspace/application/story_history_scope.dart';
+import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/features/verification/application/project_verification_controller.dart';
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
@@ -46,6 +47,8 @@ class StoryPage extends StatefulWidget {
     required this.unsaved,
     this.saveError,
     this.openScene,
+    this.beforeNavigation,
+    this.onHistoryScopeChanged,
   });
 
   final NarrativeIndexPort? port;
@@ -62,6 +65,8 @@ class StoryPage extends StatefulWidget {
   final bool unsaved;
   final String? saveError;
   final SceneOpener? openScene;
+  final Future<void> Function()? beforeNavigation;
+  final ValueChanged<StoryHistoryScope>? onHistoryScopeChanged;
 
   @override
   State<StoryPage> createState() => _StoryPageState();
@@ -114,10 +119,22 @@ class _StoryPageState extends State<StoryPage> {
     await memory.rules.open();
   }
 
-  void _select(StorySection section) {
+  Future<void> _select(StorySection section) async {
+    await widget.beforeNavigation?.call();
+    if (!mounted) return;
     _openSection(section);
     setState(() => _workspace = _workspace.select(section));
+    _notifyScope();
   }
+
+  void _selectItem(StorySection section, StoryDraftRef? ref) {
+    _workspace = _workspace.selectItem(section, ref);
+    _notifyScope();
+  }
+
+  void _notifyScope() => widget.onHistoryScopeChanged?.call(
+    StoryHistoryScope([?_workspace.selection]),
+  );
 
   void _changed() {
     if (!mounted) return;
@@ -129,6 +146,18 @@ class _StoryPageState extends State<StoryPage> {
             : StorySection.facts,
       );
     }
+    if (_memory case final memory?) {
+      _workspace = _workspace
+          .selectItem(StorySection.facts, switch (memory.selectedFact) {
+            final id? => (kind: StoryDraftKind.fact, id: id),
+            null => null,
+          })
+          .selectItem(StorySection.rules, switch (memory.rules.selected) {
+            final id? => (kind: StoryDraftKind.worldRule, id: id),
+            null => null,
+          });
+    }
+    _notifyScope();
     setState(() {});
   }
 
@@ -149,11 +178,30 @@ class _StoryPageState extends State<StoryPage> {
       onSelected: _select,
       editable: widget.staging.editable,
       saveError: widget.saveError,
-      builder: _body,
+      builder: (panels) => IndexedStack(
+        index: _workspace.section.index,
+        children: [
+          for (final section in StorySection.values)
+            TooltipVisibility(
+              visible:
+                  TooltipVisibility.of(context) &&
+                  section == _workspace.section,
+              child: TickerMode(
+                enabled: section == _workspace.section,
+                child: _opened.contains(section)
+                    ? KeyedSubtree(
+                        key: ValueKey(section),
+                        child: _body(section, panels),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
-  Widget _body(StoryPanelBuilder panels) {
+  Widget _body(StorySection section, StoryPanelBuilder panels) {
     final l10n = context.l10n;
     final empty = StudioEmptyState(
       icon: Icons.touch_app_outlined,
@@ -165,13 +213,17 @@ class _StoryPageState extends State<StoryPage> {
       title: l10n.memoryUnavailable,
       description: l10n.memoryUnavailableHint,
     );
-    return switch (_workspace.section) {
+    return switch (section) {
       StorySection.trame when widget.trame != null => TrameView(
         trame: widget.trame!,
         source: widget.behaviourSource,
         navigate: widget.behaviours.open,
         openScene: widget.openScene,
         panels: panels,
+        onSelected: (id) => _selectItem(
+          StorySection.trame,
+          id == null ? null : (kind: StoryDraftKind.story, id: id),
+        ),
       ),
       StorySection.behaviours when _behaviours != null => panels(
         GameBehavioursView(
@@ -195,11 +247,18 @@ class _StoryPageState extends State<StoryPage> {
         loadMap: widget.loadMap,
         behaviours: widget.behaviours,
         panels: panels,
+        section: section == StorySection.facts
+            ? GameMemorySection.facts
+            : GameMemorySection.rules,
       ),
       StorySection.scenes when widget.port != null => StorySceneList(
         port: widget.port!,
         openScene: widget.openScene,
         panels: panels,
+        onSelected: (id) => _selectItem(StorySection.scenes, (
+          kind: StoryDraftKind.scene,
+          id: id,
+        )),
       ),
       StorySection.dialogues => panels(
         StoryDialogueLinks(onSelected: _select),

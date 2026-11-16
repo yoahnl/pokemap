@@ -18,15 +18,17 @@ extension _MapBuilderPageLeaveGuard on _MapBuilderPageState {
         );
   }
 
-  void _commitTyping() {
-    if (!_typing) return;
+  Future<void> _commitTyping() {
+    if (!_typing) return _textTransactions.finish();
+    final pending = MapBuilderNameField.commitFocused();
     _pageFocus.requestFocus();
     FocusManager.instance.applyFocusChangesIfNeeded();
+    return Future.wait([pending, _textTransactions.finish()]).then((_) {});
   }
 
   Future<bool> _askToLeave() async {
-    _commitTyping();
-    if (_disposed || !_draft.unsaved) return true;
+    await _commitTyping();
+    if (!mounted || _disposed || !_draft.unsaved) return true;
     final l10n = context.l10n;
     final choice = await showStudioSaveChoiceDialog(
       context,

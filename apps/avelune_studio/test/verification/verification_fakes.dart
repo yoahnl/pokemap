@@ -9,6 +9,7 @@ NarrativeProjectDiagnostic verificationDiagnostic(
   NarrativeProjectDiagnosticSeverity severity =
       NarrativeProjectDiagnosticSeverity.error,
   String? eventId,
+  String? sceneId,
   String? stepId,
   String? factId,
   String? worldRuleId,
@@ -21,6 +22,7 @@ NarrativeProjectDiagnostic verificationDiagnostic(
   path: code,
   destination: destination,
   eventId: eventId,
+  sceneId: sceneId,
   stepId: stepId,
   factId: factId,
   worldRuleId: worldRuleId,

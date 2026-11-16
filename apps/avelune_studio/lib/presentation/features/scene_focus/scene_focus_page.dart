@@ -16,6 +16,7 @@ class SceneFocusPage extends StatelessWidget {
     required this.map,
     required this.onClose,
     required this.onDetached,
+    this.onOpenBehaviour,
   });
 
   final SceneFocusController focus;
@@ -23,6 +24,7 @@ class SceneFocusPage extends StatelessWidget {
   final MapData? map;
   final VoidCallback onClose;
   final ValueChanged<String> onDetached;
+  final Future<bool> Function(String eventId)? onOpenBehaviour;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +96,7 @@ class SceneFocusPage extends StatelessWidget {
                     scene: scene,
                     project: project,
                     map: map,
+                    onOpenBehaviour: onOpenBehaviour,
                   ),
                   _ => StudioLoadingState(label: l10n.sceneFocusLoading),
                 },

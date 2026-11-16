@@ -34,6 +34,7 @@ String? followDraftFactName(
   );
   if (canonical == id) return null;
   draft.group(() {
+    draft.followIdentity(StoryDraftKind.fact, id, canonical);
     for (final kind in StoryDraftKind.values) {
       if (kind == StoryDraftKind.fact) continue;
       for (final touched in draft.touched(kind).toList()) {

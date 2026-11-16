@@ -4081,4 +4081,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storyUnnamedScene => 'Scène sans nom';
+
+  @override
+  String get storyReturnScene => 'Retour à la scène';
+
+  @override
+  String get storyReturnHistory => 'Retour à Histoire';
+
+  @override
+  String get storyDestinationUnavailable =>
+      'Cet élément n’est plus disponible. Votre brouillon est conservé.';
+
+  @override
+  String get storyHistoryOtherContext =>
+      'La prochaine modification concerne un autre contexte. Retrouvez-le pour l’annuler ou la rétablir.';
 }

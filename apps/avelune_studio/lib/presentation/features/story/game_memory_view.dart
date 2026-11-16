@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/game_memory/application/game_memory_controller.dart';
+import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_fact_detail.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_fact_list.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_rule_creation.dart';
@@ -23,6 +24,7 @@ class GameMemoryView extends StatefulWidget {
     required this.loadMap,
     required this.behaviours,
     required this.panels,
+    this.section,
   });
 
   final GameMemoryController memory;
@@ -30,6 +32,7 @@ class GameMemoryView extends StatefulWidget {
   final GameMemoryMapLoader? loadMap;
   final GameMemoryBehaviourLink behaviours;
   final StoryPanelBuilder panels;
+  final GameMemorySection? section;
 
   @override
   State<GameMemoryView> createState() => _GameMemoryViewState();
@@ -54,7 +57,7 @@ class _GameMemoryViewState extends State<GameMemoryView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: memory.section == GameMemorySection.facts
+            child: (widget.section ?? memory.section) == GameMemorySection.facts
                 ? GameMemoryFactList(memory: memory)
                 : GameMemoryRuleList(
                     memory: memory,
@@ -72,8 +75,17 @@ class _GameMemoryViewState extends State<GameMemoryView> {
   Widget _detail(BuildContext context) {
     final l10n = context.l10n;
     final memory = widget.memory;
-    if (memory.section == GameMemorySection.facts) {
+    if ((widget.section ?? memory.section) == GameMemorySection.facts) {
       final id = memory.selectedFact;
+      if (id != null &&
+          memory.staging.draft.isLoaded(StoryDraftKind.fact, id) &&
+          memory.staging.draft.currentOf(StoryDraftKind.fact, id) == null) {
+        return StudioEmptyState(
+          key: const ValueKey('memory-fact-unavailable'),
+          icon: Icons.info_outline,
+          title: l10n.storyDestinationUnavailable,
+        );
+      }
       return id == null
           ? StudioEmptyState(
               icon: Icons.touch_app_outlined,

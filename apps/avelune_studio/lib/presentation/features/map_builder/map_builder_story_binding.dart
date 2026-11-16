@@ -33,6 +33,7 @@ import 'package:avelune_studio/features/story_draft/application/story_publicatio
 import 'package:avelune_studio/features/story_draft/application/story_saved_dialogues.dart';
 import 'package:avelune_studio/features/story_draft/domain/story_dialogue_source.dart';
 import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dart';
+import 'package:avelune_studio/features/story_workspace/application/story_history_scope.dart';
 
 part 'map_builder_input_session.dart';
 part 'map_builder_story_additions.dart';

@@ -1151,5 +1151,9 @@
   "storyScenesEmpty": "No scenes yet",
   "storyScenesEmptyHint": "Create a scene from a behaviour on a map.",
   "storySelectScene": "Select a scene to open it.",
-  "storyUnnamedScene": "Untitled scene"
+  "storyUnnamedScene": "Untitled scene",
+  "storyReturnScene": "Back to the scene",
+  "storyReturnHistory": "Back to Story",
+  "storyDestinationUnavailable": "This item is no longer available. Your draft has been preserved.",
+  "storyHistoryOtherContext": "The next change belongs to another context. Return there to undo or redo it."
 }

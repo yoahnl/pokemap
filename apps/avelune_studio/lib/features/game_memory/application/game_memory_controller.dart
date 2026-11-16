@@ -49,6 +49,7 @@ final class GameMemoryController {
   }
 
   void sync() {
+    _followSelectedIdentity();
     final revision = staging.revision;
     if (identical(revision, _revision)) return;
     _revision = revision;
@@ -66,6 +67,32 @@ final class GameMemoryController {
       unawaited(_selectUsages(id));
     }
     if (rules.saved.ready) unawaited(rules.retry());
+  }
+
+  void _followSelectedIdentity() {
+    final id = selectedFact;
+    final draft = staging.draft;
+    if (id == null || current(id) != null) return;
+    for (final identity in {
+      ...draft.nextStepIdentities(redo: false),
+      ...draft.nextStepIdentities(redo: true),
+    }) {
+      final other = identity.from.id == id
+          ? identity.to
+          : identity.to.id == id
+          ? identity.from
+          : null;
+      if (other == null ||
+          other.kind != StoryDraftKind.fact ||
+          draft.currentOf(StoryDraftKind.fact, other.id) == null) {
+        continue;
+      }
+      selectedFact = other.id;
+      reveal(other.id);
+      unawaited(_selectUsages(other.id));
+      changed();
+      return;
+    }
   }
 
   Future<void> retry() => facts.load(
@@ -146,8 +173,10 @@ final class GameMemoryController {
     changed();
   }
 
-  NarrativeFactDefinition? current(String id) =>
-      staging.draft.entryOf(StoryDraftKind.fact, id)?.current ?? details[id];
+  NarrativeFactDefinition? current(String id) {
+    final entry = staging.draft.entryOf(StoryDraftKind.fact, id);
+    return entry == null ? details[id] : entry.current;
+  }
 
   void select(String id) {
     selectedFact = id;

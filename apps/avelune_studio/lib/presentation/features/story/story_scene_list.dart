@@ -17,11 +17,13 @@ class StorySceneList extends StatefulWidget {
     required this.port,
     required this.openScene,
     required this.panels,
+    this.onSelected,
   });
 
   final NarrativeIndexPort port;
   final SceneOpener? openScene;
   final StoryPanelBuilder panels;
+  final ValueChanged<String>? onSelected;
 
   @override
   State<StorySceneList> createState() => _StorySceneListState();
@@ -71,7 +73,10 @@ class _StorySceneListState extends State<StorySceneList> {
                       key: ValueKey('story-scene-${title.id}'),
                       label: _label(title),
                       selected: title.id == selected?.id,
-                      onTap: () => setState(() => _selected = title),
+                      onTap: () {
+                        setState(() => _selected = title);
+                        widget.onSelected?.call(title.id);
+                      },
                     );
                   },
                 )),

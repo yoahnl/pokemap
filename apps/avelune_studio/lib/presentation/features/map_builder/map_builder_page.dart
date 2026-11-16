@@ -7,8 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:avelune_studio/app/di/event_providers.dart';
 import 'package:avelune_studio/features/world/domain/world_port.dart';
+import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_services.dart';
 import 'package:avelune_studio/presentation/features/story/story_page.dart';
+import 'package:avelune_studio/features/story_workspace/application/story_history_scope.dart';
+import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/narrative_providers.dart';
@@ -34,6 +37,7 @@ import 'package:avelune_studio/features/rendering/contracts/map_workspace_visual
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
 import 'package:avelune_studio/presentation/shell/studio_rail.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_canvas.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_canvas_menu.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_selection_inspector.dart';
@@ -65,6 +69,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_pla
 import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/minimum_size_viewport.dart';
+import 'package:avelune_studio/presentation/shared/widgets/editor_text_transactions.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_tool_labels.dart';
 
@@ -75,6 +80,7 @@ part 'map_builder_page_relief.dart';
 part 'map_builder_page_scene.dart';
 part 'map_builder_page_state.dart';
 part 'map_builder_page_story.dart';
+part 'map_builder_page_story_navigation.dart';
 
 const mapBuilderMinimumSize = Size(1280, 720);
 

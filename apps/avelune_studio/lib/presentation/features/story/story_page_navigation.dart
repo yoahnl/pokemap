@@ -7,14 +7,9 @@ extension _StoryPageNavigation on _StoryPageState {
         id != null && behaviours.available(id)
         ? () => unawaited(behaviours.open(id))
         : null;
-    VoidCallback? scene(String? id) => id == null
+    VoidCallback? scene(String? id) => id == null || widget.openScene == null
         ? null
-        : behaviour(
-            widget.behaviourSource.registry?.records
-                .where((record) => record.sceneId == id)
-                .firstOrNull
-                ?.id,
-          );
+        : () => widget.openScene!(id, null);
     VoidCallback? step(String? id) {
       final trame = widget.trame;
       if (id == null || trame?.view?.milestone(id) == null) return null;
@@ -51,7 +46,9 @@ extension _StoryPageNavigation on _StoryPageState {
         map(problem.mapId);
   }
 
-  void _show(StorySection section, void Function() select) {
+  Future<void> _show(StorySection section, void Function() select) async {
+    await widget.beforeNavigation?.call();
+    if (!mounted) return;
     _openSection(section);
     _workspace = _workspace.select(section);
     select();

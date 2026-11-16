@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:avelune_studio/presentation/shared/widgets/editor_text_transactions.dart';
 
 class MapBuilderNameField extends StatefulWidget {
   const MapBuilderNameField({
@@ -20,6 +21,14 @@ class MapBuilderNameField extends StatefulWidget {
   final bool enabled;
   final int lines;
 
+  static Future<void> commitFocused() {
+    final context = FocusManager.instance.primaryFocus?.context;
+    return context
+            ?.findAncestorStateOfType<_MapBuilderNameFieldState>()
+            ?._commit() ??
+        Future<void>.value();
+  }
+
   @override
   State<MapBuilderNameField> createState() => _MapBuilderNameFieldState();
 }
@@ -27,6 +36,8 @@ class MapBuilderNameField extends StatefulWidget {
 class _MapBuilderNameFieldState extends State<MapBuilderNameField> {
   late final _text = TextEditingController(text: widget.value);
   late final _focus = FocusNode()..addListener(_leave);
+  Future<void>? _pending;
+  String? _pendingName;
 
   @override
   void didUpdateWidget(MapBuilderNameField old) {
@@ -44,28 +55,37 @@ class _MapBuilderNameFieldState extends State<MapBuilderNameField> {
   }
 
   void _leave() {
-    if (!_focus.hasFocus) _commit();
+    if (!_focus.hasFocus) unawaited(_commit());
   }
 
-  void _commit() {
+  Future<void> _commit() {
     final name = _text.text.trim();
+    if (name == _pendingName && _pending != null) return _pending!;
     if (name.isEmpty) {
       _text.text = widget.value;
-      return;
+      return Future<void>.value();
     }
-    if (name == widget.value) return;
+    if (name == widget.value) return Future<void>.value();
     final submit = widget.onSubmit;
     if (submit == null) {
       widget.onCommit!(name);
-      return;
+      return Future<void>.value();
     }
-    unawaited(
-      submit(name).then((saved) {
-        if (!saved && mounted && _text.text.trim() == name) {
-          _text.text = widget.value;
-        }
-      }),
-    );
+    _pendingName = name;
+    final task = submit(name)
+        .then((saved) {
+          if (!saved && mounted && _text.text.trim() == name) {
+            _text.text = widget.value;
+          }
+        })
+        .whenComplete(() {
+          if (_pendingName == name) {
+            _pending = null;
+            _pendingName = null;
+          }
+        });
+    return _pending =
+        EditorTextTransactionsScope.maybeOf(context)?.track(task) ?? task;
   }
 
   @override
@@ -77,7 +97,12 @@ class _MapBuilderNameFieldState extends State<MapBuilderNameField> {
     maxLines: widget.lines,
     onEditingComplete: () =>
         _focus.unfocus(disposition: UnfocusDisposition.previouslyFocusedChild),
-    onSubmitted: (_) => _commit(),
+    onSubmitted: (_) => unawaited(_commit()),
+    onTapOutside: (_) {
+      unawaited(_commit());
+      _focus.unfocus();
+      FocusManager.instance.applyFocusChangesIfNeeded();
+    },
     decoration: InputDecoration(isDense: true, labelText: widget.label),
   );
 }

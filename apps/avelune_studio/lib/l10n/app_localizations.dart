@@ -6329,6 +6329,30 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Scène sans nom'**
   String get storyUnnamedScene;
+
+  /// No description provided for @storyReturnScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour à la scène'**
+  String get storyReturnScene;
+
+  /// No description provided for @storyReturnHistory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour à Histoire'**
+  String get storyReturnHistory;
+
+  /// No description provided for @storyDestinationUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet élément n’est plus disponible. Votre brouillon est conservé.'**
+  String get storyDestinationUnavailable;
+
+  /// No description provided for @storyHistoryOtherContext.
+  ///
+  /// In fr, this message translates to:
+  /// **'La prochaine modification concerne un autre contexte. Retrouvez-le pour l’annuler ou la rétablir.'**
+  String get storyHistoryOtherContext;
 }
 
 class _AppLocalizationsDelegate

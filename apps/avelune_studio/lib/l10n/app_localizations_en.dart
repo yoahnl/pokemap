@@ -4052,4 +4052,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storyUnnamedScene => 'Untitled scene';
+
+  @override
+  String get storyReturnScene => 'Back to the scene';
+
+  @override
+  String get storyReturnHistory => 'Back to Story';
+
+  @override
+  String get storyDestinationUnavailable =>
+      'This item is no longer available. Your draft has been preserved.';
+
+  @override
+  String get storyHistoryOtherContext =>
+      'The next change belongs to another context. Return there to undo or redo it.';
 }

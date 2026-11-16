@@ -14,10 +14,16 @@ import 'package:avelune_studio/presentation/features/story/game_behaviour_labels
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class SceneFocusSide extends StatelessWidget {
-  const SceneFocusSide({super.key, required this.focus, this.leading});
+  const SceneFocusSide({
+    super.key,
+    required this.focus,
+    this.leading,
+    this.onOpenBehaviour,
+  });
 
   final SceneFocusController focus;
   final Widget? leading;
+  final Future<bool> Function(String eventId)? onOpenBehaviour;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +58,17 @@ class SceneFocusSide extends StatelessWidget {
                       style: theme.textTheme.labelLarge,
                     ),
                     Text(_place(l10n, focus.place(record)), style: small),
+                    if (onOpenBehaviour != null &&
+                        focus.place(record).target != null)
+                      StudioButton(
+                        key: ValueKey(
+                          'scene-focus-open-behaviour-${record.id}',
+                        ),
+                        label: l10n.behavioursOpenMap,
+                        icon: Icons.open_in_new,
+                        variant: StudioButtonVariant.quiet,
+                        onPressed: () => onOpenBehaviour!(record.id),
+                      ),
                     Text(
                       l10n.behaviourSummary(
                         summarizeGameBehaviour(
