@@ -93,7 +93,7 @@ class MapBuilderStoryLineField extends StatelessWidget {
               const SizedBox(height: StudioSpacing.m),
               SceneGraphPreview(
                 scene: scene,
-                project: binding.maps.project,
+                project: binding.project,
                 onOpen: switch (binding.openScene) {
                   final open? => () => open(sceneId, record.id),
                   null => null,

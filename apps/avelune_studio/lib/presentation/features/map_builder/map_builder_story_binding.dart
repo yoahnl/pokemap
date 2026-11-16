@@ -16,6 +16,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_context_me
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
+import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_editing.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_behaviours.dart';
@@ -54,12 +55,6 @@ enum MapStoryAddition { character, sign, zone }
 
 enum _StorySide { map, behaviours }
 
-final class _StoryRefused implements Exception {
-  const _StoryRefused(this.problem);
-
-  final String problem;
-}
-
 class MapBuilderStoryBinding implements ProjectDraftPart {
   MapBuilderStoryBinding({
     required this.maps,
@@ -72,7 +67,11 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
     this.loadMedia,
     this.gateway,
     this.loadDialogue,
+    this.editing,
+    this.onBehaviourRecorded,
+    this.publicationBlocked,
   }) : _zoneName = zoneName ?? (() => 'Zone'),
+       behaviours = editing?.behaviours ?? MapStoryBehaviours(),
        _behaviourName = behaviourName ?? ((index) => 'Comportement $index'),
        _conflictMessage =
            conflictMessage ?? ((names) => '$conflict${names.join(', ')}'),
@@ -85,6 +84,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   final MapEditingViewportSession? Function() view;
   final String Function() _zoneName;
   final String Function(int index) _behaviourName;
+  String behaviourName(int index) => _behaviourName(index);
   final String Function(List<String> names) _conflictMessage;
   final String Function(String name, List<String> behaviours) _deletionRefusal;
   final Future<ProjectMediaCatalog?> Function(ProjectManifest project)?
@@ -95,7 +95,13 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   StorylineTrameController? trame;
   String? simulating;
   void Function(String sceneId, String? behaviourId)? openScene;
-  final behaviours = MapStoryBehaviours();
+  final MapStoryBehaviours behaviours;
+  final GameBehaviourEditing? editing;
+  final void Function()? onBehaviourRecorded;
+  final bool Function()? publicationBlocked;
+  ProjectManifest? get project => editing?.project ?? maps.project;
+  bool get carrierEditable => editing == null;
+  bool get editingBlocked => publishing || publicationBlocked?.call() == true;
   final _lines = _StoryLines();
   final _triggers = _StoryTriggers();
   BehaviourAfter? pendingAfter;
@@ -107,11 +113,17 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   bool preparing = false;
 
   bool get ready =>
+      editing != null ||
       maps.hasWorkshop(MapWorkspaceWorkshop.events) &&
-      (loadMedia == null || _mediaLoaded);
+          (loadMedia == null || _mediaLoaded);
 
-  Future<void> prepare() async {
-    if (ready || preparing) return;
+  Future<void>? _preparation;
+
+  Future<void> prepare() =>
+      _preparation ??= _prepare().whenComplete(() => _preparation = null);
+
+  Future<void> _prepare() async {
+    if (ready) return;
     preparing = true;
     changed();
     try {
@@ -132,11 +144,8 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
     final load = loadMedia;
     final project = maps.project;
     if (load == null || project == null || _mediaLoaded) return;
-    try {
-      behaviours.media = await load(project);
-    } finally {
-      _mediaLoaded = true;
-    }
+    behaviours.media = await load(project);
+    _mediaLoaded = true;
   }
 
   NarrativeEventRegistry? _registry;
@@ -158,12 +167,12 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   MapData? _source;
   ProjectManifest? _project;
 
-  MapData? get map => maps.active?.current;
+  MapData? get map => editing?.map ?? maps.active?.current;
 
   MapStoryElements? get elements {
     final map = this.map;
     if (map == null) return null;
-    final project = maps.project;
+    final project = this.project;
     final registry = project == null ? null : behaviours.registry(project);
     var index = _index;
     if (index == null ||

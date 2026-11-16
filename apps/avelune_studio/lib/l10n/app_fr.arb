@@ -2271,7 +2271,7 @@
   "storyVerificationHint": "Contrôler la version enregistrée",
   "storyReadOnly": "Consultation seule : les modifications de ce projet sont désactivées.",
   "storySelectItem": "Sélectionnez un élément pour afficher ses propriétés.",
-  "storyBehavioursOpenHint": "Ouvrez un comportement pour le retrouver sur sa carte et le modifier.",
+  "storyBehavioursOpenHint": "Sélectionnez un comportement pour le modifier ici. L’onglet Carte conserve son contexte.",
   "storyDialoguesEditingHint": "Les répliques simples s’éditent dans les comportements ; les dialogues à choix s’éditent dans leurs scènes.",
   "storyBehaviourLines": "Répliques des comportements",
   "storyBehaviourLinesHint": "Retrouver une phrase simple sur une carte.",

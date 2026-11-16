@@ -124,6 +124,7 @@ extension MapStoryElementEditing on MapBuilderStoryBinding {
   bool _edit(
     bool Function(EditableMapDocument document, ProjectManifest project) change,
   ) {
+    if (!carrierEditable) return false;
     final document = maps.active;
     final project = maps.project;
     if (document == null || project == null || document.saving) return false;

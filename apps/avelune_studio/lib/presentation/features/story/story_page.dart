@@ -26,6 +26,9 @@ import 'package:avelune_studio/presentation/features/story/verification_view.dar
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 import 'story_dialogue_links.dart';
+import 'story_behaviour_context.dart';
+import '../map_builder/map_builder_story_catalog_binding.dart';
+import '../map_builder/map_builder_story_binding.dart';
 import 'scenes/scene_catalog_view.dart';
 import 'story_workspace.dart';
 
@@ -51,6 +54,7 @@ class StoryPage extends StatefulWidget {
     this.beforeNavigation,
     this.onHistoryScopeChanged,
     this.catalog,
+    this.behaviourCatalog,
   });
 
   final NarrativeIndexPort? port;
@@ -70,6 +74,7 @@ class StoryPage extends StatefulWidget {
   final Future<void> Function()? beforeNavigation;
   final ValueChanged<StoryHistoryScope>? onHistoryScopeChanged;
   final SceneCatalogController? catalog;
+  final MapBuilderStoryCatalogBinding? behaviourCatalog;
 
   @override
   State<StoryPage> createState() => _StoryPageState();
@@ -148,9 +153,18 @@ class _StoryPageState extends State<StoryPage> {
     _notifyScope();
   }
 
-  void _notifyScope() => widget.onHistoryScopeChanged?.call(
-    StoryHistoryScope([?_workspace.selection]),
-  );
+  void _notifyScope() {
+    final id = widget.behaviourCatalog?.editor?.selectedBehaviour?.id;
+    if (id != null) {
+      _workspace = _workspace.selectItem(StorySection.behaviours, (
+        kind: StoryDraftKind.event,
+        id: id,
+      ));
+    }
+    widget.onHistoryScopeChanged?.call(
+      StoryHistoryScope([?_workspace.selection]),
+    );
+  }
 
   void _changed() {
     if (!mounted) return;
@@ -245,17 +259,32 @@ class _StoryPageState extends State<StoryPage> {
       StorySection.behaviours when _behaviours != null => panels(
         GameBehavioursView(
           behaviours: _behaviours!,
-          navigate: widget.behaviours.open,
+          navigate: widget.behaviourCatalog == null
+              ? widget.behaviours.open
+              : _openCatalogBehaviour,
           openMap: widget.openMap,
           trame: widget.trame,
-          simulate: widget.simulate,
+          simulate: widget.behaviourCatalog == null
+              ? widget.simulate
+              : (id) => _openCatalogBehaviour(id, simulate: true),
           openScene: widget.openScene,
         ),
-        StudioEmptyState(
-          icon: Icons.people_outline,
-          title: l10n.storyBehavioursHint,
-          description: l10n.storyBehavioursOpenHint,
-        ),
+        widget.behaviourCatalog != null
+            ? StoryBehaviourContext(
+                catalog: widget.behaviourCatalog!,
+                openMap: widget.behaviours.open,
+                retry: _openCatalogBehaviour,
+                editable: widget.staging.editable,
+                onSelected: (id) => _selectItem(
+                  StorySection.behaviours,
+                  id == null ? null : (kind: StoryDraftKind.event, id: id),
+                ),
+              )
+            : StudioEmptyState(
+                icon: Icons.people_outline,
+                title: l10n.storyBehavioursHint,
+                description: l10n.storyBehavioursOpenHint,
+              ),
       ),
       StorySection.facts ||
       StorySection.rules when _memory != null => GameMemoryView(

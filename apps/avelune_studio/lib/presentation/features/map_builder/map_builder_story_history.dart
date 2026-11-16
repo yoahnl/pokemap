@@ -66,6 +66,10 @@ extension MapStoryHistory on MapBuilderStoryBinding {
   void recordBehaviourStep() => _record(_StorySide.behaviours, null);
 
   void _record(_StorySide side, Object? token) {
+    if (side == _StorySide.behaviours && onBehaviourRecorded != null) {
+      onBehaviourRecorded!();
+      return;
+    }
     _done.add((side, token));
     _undone.clear();
   }

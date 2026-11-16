@@ -1,6 +1,19 @@
 part of 'story_page.dart';
 
 extension _StoryPageNavigation on _StoryPageState {
+  Future<bool> _openCatalogBehaviour(String id, {bool simulate = false}) async {
+    await widget.beforeNavigation?.call();
+    if (!mounted) return false;
+    _selectItem(StorySection.behaviours, (kind: StoryDraftKind.event, id: id));
+    final opened = await widget.behaviourCatalog!.open(id);
+    if (!mounted) return false;
+    if (opened && simulate) {
+      widget.behaviourCatalog!.editor!.toggleSimulation(id);
+    }
+    _changed();
+    return opened;
+  }
+
   VoidCallback? _destination(VerificationProblem problem) {
     final behaviours = widget.behaviours;
     VoidCallback? behaviour(String? id) =>

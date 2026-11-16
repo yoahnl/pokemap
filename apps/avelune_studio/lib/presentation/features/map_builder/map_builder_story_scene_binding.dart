@@ -2,7 +2,7 @@ part of 'map_builder_story_binding.dart';
 
 extension MapStorySceneEditing on MapBuilderStoryBinding {
   String? detachScene(String eventId, String name) {
-    final project = maps.project;
+    final project = this.project;
     final record = project == null
         ? null
         : behaviours

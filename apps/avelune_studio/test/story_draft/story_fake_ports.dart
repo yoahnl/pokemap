@@ -16,6 +16,7 @@ final class StoryFakePorts
 
   final ProjectManifest Function() read;
   final calls = <String>[];
+  final dialogueReads = <String>[];
   final sources = <String, DialogueSourceSnapshot>{};
   Object? Function(String call)? refuse;
   Completer<void>? reading;
@@ -81,6 +82,7 @@ final class StoryFakePorts
 
   @override
   Future<DialogueSourceSnapshot> load(String id) async {
+    dialogueReads.add(id);
     await reading?.future;
     return sources[id] ?? (throw const DialogueFailure('absent'));
   }

@@ -27,7 +27,7 @@ final class _StoryLines {
 
 extension MapStoryLineEditing on MapBuilderStoryBinding {
   SceneAsset? sceneOf(String sceneId) {
-    final project = maps.project;
+    final project = this.project;
     if (project == null || !ready) return null;
     return behaviours.draft.effective(
       StoryDraftKind.scene,
@@ -54,13 +54,13 @@ extension MapStoryLineEditing on MapBuilderStoryBinding {
   ) => draft.load(
     kind,
     id,
-    behaviours.saved(maps.project!).read(kind, id) as T?,
+    behaviours.saved(project!).read(kind, id) as T?,
   );
 
   MapStoryLine lineOf(NarrativeEventRecord record) {
     final sceneId = record.sceneId;
     if (sceneId == null) return MapStoryLine(MapStoryLineState.empty);
-    final project = maps.project;
+    final project = this.project;
     final scene = sceneOf(sceneId);
     final dialogueId = scene == null ? null : behaviourLineDialogueId(scene);
     if (project == null || scene == null || dialogueId == null) {
@@ -139,6 +139,7 @@ extension MapStoryLineEditing on MapBuilderStoryBinding {
           BehaviourLineAccepted(:final value) => _operate(
             const [],
             const [],
+            expected: [record],
             stage: (draft) {
               _load(draft, StoryDraftKind.dialogue, line.dialogueId);
               draft.put(
@@ -177,6 +178,7 @@ extension MapStoryLineEditing on MapBuilderStoryBinding {
     return _operate(
       const [],
       const [],
+      expected: [record],
       stage: (draft) {
         final dialogue = detached.line.dialogue;
         draft.load(StoryDraftKind.dialogue, dialogue.entry.id, null);
@@ -230,7 +232,7 @@ extension MapStoryLineEditing on MapBuilderStoryBinding {
   }
 
   BehaviourLineIds _lineIds() {
-    final staged = behaviours.project(maps.project!);
+    final staged = behaviours.project(project!);
     return _lines.ids.generate(
       sceneIds: {for (final scene in staged.scenes) scene.id},
       dialogueIds: {for (final dialogue in staged.dialogues) dialogue.id},

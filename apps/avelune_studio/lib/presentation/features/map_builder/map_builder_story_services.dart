@@ -13,6 +13,7 @@ import 'package:avelune_studio/features/verification/domain/verification_port.da
 import 'package:avelune_studio/features/world/domain/world_port.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_behaviour_source.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_catalog_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_memory.dart';
 
 final class MapBuilderStoryServices {
@@ -47,9 +48,17 @@ final class MapBuilderStoryServices {
   final Future<ProjectManifest?> Function() _verificationProject;
   ProjectVerificationController? verification;
   SceneCatalogController? scenes;
+  MapBuilderStoryCatalogBinding? catalog;
 
   void attach() {
     story.narrative = narrative;
+    if (world case final WorldMapSelectionPort port) {
+      catalog = MapBuilderStoryCatalogBinding(
+        story: story,
+        maps: port,
+        changed: _changed,
+      );
+    }
     final storylines = _storylines.read();
     final index = narrative;
     if (index != null) {
@@ -94,6 +103,7 @@ final class MapBuilderStoryServices {
       MapBuilderStoryBehaviourSource(story);
 
   void close() {
+    catalog?.dispose();
     scenes?.dispose();
     _narrative.close();
     _world.close();

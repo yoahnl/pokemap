@@ -83,26 +83,28 @@ class MapBuilderStoryInspector extends StatelessWidget {
           style: muted,
         ),
         const SizedBox(height: StudioSpacing.l),
-        SegmentedButton<MapStoryTab>(
-          key: const ValueKey('map-story-tabs'),
-          showSelectedIcon: false,
-          segments: [
-            ButtonSegment(
-              value: MapStoryTab.behaviour,
-              label: Text(l10n.storyTabBehaviour),
-            ),
-            ButtonSegment(
-              value: MapStoryTab.properties,
-              label: Text(l10n.storyTabProperties),
-            ),
-          ],
-          selected: {binding.tab},
-          onSelectionChanged: (value) => binding.openTab(value.single),
-        ),
+        if (binding.carrierEditable)
+          SegmentedButton<MapStoryTab>(
+            key: const ValueKey('map-story-tabs'),
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(
+                value: MapStoryTab.behaviour,
+                label: Text(l10n.storyTabBehaviour),
+              ),
+              ButtonSegment(
+                value: MapStoryTab.properties,
+                label: Text(l10n.storyTabProperties),
+              ),
+            ],
+            selected: {binding.tab},
+            onSelectionChanged: (value) => binding.openTab(value.single),
+          ),
         const SizedBox(height: StudioSpacing.l),
         KeyedSubtree(
           key: ValueKey('map-story-attempt-${binding.attempts}'),
-          child: binding.tab == MapStoryTab.behaviour
+          child:
+              !binding.carrierEditable || binding.tab == MapStoryTab.behaviour
               ? _Behaviours(
                   binding: binding,
                   element: element,

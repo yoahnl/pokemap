@@ -16,14 +16,18 @@ class _Behaviours extends StatelessWidget {
     final l10n = context.l10n;
     final behaviours = element.behaviours;
     final current = binding.selectedBehaviour;
-    final editable = enabled && !binding.publishing && binding.ready;
-    final scenes = [...?binding.maps.project?.scenes]
+    final editable =
+        enabled &&
+        !binding.editingBlocked &&
+        binding.ready &&
+        binding.editing?.problem == null;
+    final scenes = [...?binding.project?.scenes]
       ..sort((a, b) => a.name.compareTo(b.name));
     return Column(
       key: const ValueKey('map-story-behaviours'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (binding.error case final error?) ...[
+        if (binding.error ?? binding.editing?.problem case final error?) ...[
           StudioNotice(mapBuilderStoryError(error, l10n), isError: true),
           const SizedBox(height: StudioSpacing.m),
         ],

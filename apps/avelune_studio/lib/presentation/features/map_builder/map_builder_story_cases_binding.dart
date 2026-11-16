@@ -88,7 +88,7 @@ extension MapStoryCaseEditing on MapBuilderStoryBinding {
   }
 
   MapStoryCases casesOf(MapStoryElement element) {
-    final project = maps.project;
+    final project = this.project;
     final registry = project == null ? null : behaviours.registry(project);
     final groups = behaviourCaseGroups(
       element.behaviours,

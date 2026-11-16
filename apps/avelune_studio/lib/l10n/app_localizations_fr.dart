@@ -4046,7 +4046,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storyBehavioursOpenHint =>
-      'Ouvrez un comportement pour le retrouver sur sa carte et le modifier.';
+      'Sélectionnez un comportement pour le modifier ici. L’onglet Carte conserve son contexte.';
 
   @override
   String get storyDialoguesEditingHint =>

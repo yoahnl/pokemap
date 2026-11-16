@@ -5,7 +5,7 @@ extension MapStoryConditionEditing on MapBuilderStoryBinding {
       readBehaviourConditions(record);
 
   List<NarrativeFactDefinition> get conditionFacts {
-    final project = maps.project;
+    final project = this.project;
     if (project == null) return const [];
     final facts = behaviours.project(project).facts;
     final cached = _lines.facts;
@@ -21,7 +21,7 @@ extension MapStoryConditionEditing on MapBuilderStoryBinding {
   }
 
   NarrativeFactDefinition? conditionFact(String id) {
-    final project = maps.project;
+    final project = this.project;
     return project == null
         ? null
         : behaviours.draft.effective(
@@ -39,7 +39,7 @@ extension MapStoryConditionEditing on MapBuilderStoryBinding {
     String label,
     NarrativeValueKind kind,
   ) {
-    final project = maps.project;
+    final project = this.project;
     if (project == null || label.trim().isEmpty) return false;
     final fact = addNarrativeFact(
       behaviours.project(project),

@@ -60,30 +60,31 @@ class _MapBuilderNameFieldState extends State<MapBuilderNameField> {
 
   Future<void> _commit() {
     final name = _text.text.trim();
-    if (name == _pendingName && _pending != null) return _pending!;
+    if (name == _pendingName) return _pending ?? Future<void>.value();
     if (name.isEmpty) {
       _text.text = widget.value;
       return Future<void>.value();
     }
     if (name == widget.value) return Future<void>.value();
     final submit = widget.onSubmit;
-    if (submit == null) {
-      widget.onCommit!(name);
-      return Future<void>.value();
-    }
     _pendingName = name;
-    final task = submit(name)
-        .then((saved) {
-          if (!saved && mounted && _text.text.trim() == name) {
-            _text.text = widget.value;
-          }
-        })
-        .whenComplete(() {
-          if (_pendingName == name) {
-            _pending = null;
-            _pendingName = null;
-          }
-        });
+    final task =
+        Future<bool>.sync(() {
+              if (submit != null) return submit(name);
+              widget.onCommit!(name);
+              return true;
+            })
+            .then((saved) {
+              if (!saved && mounted && _text.text.trim() == name) {
+                _text.text = widget.value;
+              }
+            })
+            .whenComplete(() {
+              if (_pendingName == name) {
+                _pending = null;
+                _pendingName = null;
+              }
+            });
     return _pending =
         EditorTextTransactionsScope.maybeOf(context)?.track(task) ?? task;
   }

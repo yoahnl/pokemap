@@ -4,10 +4,16 @@ extension MapStorySimulation on MapBuilderStoryBinding {
   NarrativeEventSimulationReport? simulate(
     NarrativeEventSimulationInput input,
   ) {
-    final project = maps.project;
+    final project = this.project;
     final map = this.map;
     if (project == null || map == null || !ready) return null;
-    return behaviours.simulate(project, map, input);
+    return (editing ??
+            GameBehaviourEditing(
+              project: project,
+              map: map,
+              behaviours: behaviours,
+            ))
+        .simulate(input);
   }
 
   void toggleSimulation(String eventId) {

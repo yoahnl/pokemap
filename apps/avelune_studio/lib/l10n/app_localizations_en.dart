@@ -4019,7 +4019,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storyBehavioursOpenHint =>
-      'Open a behaviour to find and edit it on its map.';
+      'Select a behaviour to edit it here. The Map tab keeps its context.';
 
   @override
   String get storyDialoguesEditingHint =>

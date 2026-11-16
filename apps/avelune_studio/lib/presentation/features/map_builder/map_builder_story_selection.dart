@@ -12,6 +12,7 @@ extension MapStorySelection on MapBuilderStoryBinding {
   }
 
   MapStoryElement? get selected {
+    if (!carrierEditable) return this.elements?.byKey(_mapSelection);
     final map = this.map;
     final session = view();
     if (map == null || session == null) return null;
@@ -37,6 +38,12 @@ extension MapStorySelection on MapBuilderStoryBinding {
   }
 
   void select(MapStoryElement element) {
+    if (!carrierEditable) {
+      behaviour = 0;
+      _mapSelection = element.key;
+      changed();
+      return;
+    }
     final document = maps.active;
     final session = view();
     if (document == null || session == null) return;

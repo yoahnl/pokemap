@@ -22,7 +22,7 @@ extension MapStoryBehaviourEditing on MapBuilderStoryBinding {
   }
 
   List<NarrativeEventSourceKind> triggerKinds(MapStoryElement element) {
-    final project = maps.project;
+    final project = this.project;
     final map = this.map;
     return project == null || map == null
         ? const []
@@ -69,15 +69,18 @@ extension MapStoryBehaviourEditing on MapBuilderStoryBinding {
     return applied;
   }
 
-  bool renameBehaviour(NarrativeEventRecord record, String name) =>
-      _operate(const [], [
-        (c) => renameNarrativeEvent(
-          context: c,
-          expectedRevision: c.revision,
-          eventId: record.id,
-          name: name,
-        ),
-      ]);
+  bool renameBehaviour(NarrativeEventRecord record, String name) => _operate(
+    const [],
+    [
+      (c) => renameNarrativeEvent(
+        context: c,
+        expectedRevision: c.revision,
+        eventId: record.id,
+        name: name,
+      ),
+    ],
+    expected: [record],
+  );
 
   bool setTrigger(
     MapStoryElement element,
@@ -145,26 +148,29 @@ extension MapStoryBehaviourEditing on MapBuilderStoryBinding {
     ],
   );
 
-  bool setActive(NarrativeEventRecord record, bool active) =>
-      _operate(const [], [
-        if (active && record.draftOrNull != null)
-          (c) => publishNarrativeEvent(
-            context: c,
-            expectedRevision: c.revision,
-            eventId: record.id,
-          ),
-        (c) => active
-            ? activateNarrativeEvent(
-                context: c,
-                expectedRevision: c.revision,
-                eventId: record.id,
-              )
-            : deactivateNarrativeEvent(
-                context: c,
-                expectedRevision: c.revision,
-                eventId: record.id,
-              ),
-      ]);
+  bool setActive(NarrativeEventRecord record, bool active) => _operate(
+    const [],
+    [
+      if (active && record.draftOrNull != null)
+        (c) => publishNarrativeEvent(
+          context: c,
+          expectedRevision: c.revision,
+          eventId: record.id,
+        ),
+      (c) => active
+          ? activateNarrativeEvent(
+              context: c,
+              expectedRevision: c.revision,
+              eventId: record.id,
+            )
+          : deactivateNarrativeEvent(
+              context: c,
+              expectedRevision: c.revision,
+              eventId: record.id,
+            ),
+    ],
+    expected: [record],
+  );
 
   bool reassign(NarrativeEventRecord record, MapStoryElement element) {
     final kinds = triggerKinds(element);
@@ -193,20 +199,24 @@ extension MapStoryBehaviourEditing on MapBuilderStoryBinding {
   }
 
   bool deleteBehaviour(NarrativeEventRecord record) {
-    final project = maps.project;
+    final project = this.project;
     final map = this.map;
     if (project == null || map == null) return false;
-    final applied = _operate(const [], [
-      (c) => deleteNarrativeEvent(
-        context: c,
-        expectedRevision: c.revision,
-        eventId: record.id,
-        dependencyIndex: buildNarrativeDependencyIndex(
-          project: behaviours.project(project),
-          maps: [map],
+    final applied = _operate(
+      const [],
+      [
+        (c) => deleteNarrativeEvent(
+          context: c,
+          expectedRevision: c.revision,
+          eventId: record.id,
+          dependencyIndex: buildNarrativeDependencyIndex(
+            project: behaviours.project(project),
+            maps: [map],
+          ),
         ),
-      ),
-    ]);
+      ],
+      expected: [record],
+    );
     if (applied) behaviour = 0;
     return applied;
   }
@@ -214,69 +224,37 @@ extension MapStoryBehaviourEditing on MapBuilderStoryBinding {
   bool _operate(
     List<NarrativeEventRecord> active,
     List<MapStoryBehaviourOperation> operations, {
+    List<NarrativeEventRecord> expected = const [],
     void Function(StoryDraft draft)? stage,
   }) {
-    final project = maps.project;
+    final project = this.project;
     final map = this.map;
-    if (project == null || map == null || publishing || !ready) return false;
+    if (project == null || map == null || editingBlocked || !ready) {
+      return false;
+    }
     attempts++;
     repairError = null;
-    final enabled = [
-      for (final record in active)
-        if (record.enabledOrNull == true) record.id,
-    ];
-    final wrapped = [
-      for (final id in enabled)
-        (NarrativeEventAuthoringContext c) => deactivateNarrativeEvent(
-          context: c,
-          expectedRevision: c.revision,
-          eventId: id,
-        ),
-      ...operations,
-    ];
-    final draft = behaviours.draft;
-    final recorded = draft.recorded;
-    String? problem;
-    String? notice;
-    try {
-      draft.group(() {
-        stage?.call(draft);
-        var result = behaviours.apply(project, map, [
-          ...wrapped,
-          for (final id in enabled)
-            (NarrativeEventAuthoringContext c) => activateNarrativeEvent(
-              context: c,
-              expectedRevision: c.revision,
-              eventId: id,
-            ),
-        ]);
-        if (result.problem != null && enabled.isNotEmpty) {
-          notice = result.problem;
-          result = behaviours.apply(project, map, wrapped);
-        }
-        if (result.problem case final refused?) throw _StoryRefused(refused);
-      });
-    } on _StoryRefused catch (refused) {
-      problem = refused.problem;
-    } on Object catch (failure) {
-      problem = failure is StateError ? failure.message : '$failure';
-    }
-    final records = {
-      for (final record
-          in behaviours.registry(project)?.records ??
-              const <NarrativeEventRecord>[])
-        record.id: record,
-    };
-    final dropped = enabled.any(
-      (id) => records[id] != null && records[id]!.enabledOrNull != true,
-    );
+    final result =
+        (editing ??
+                GameBehaviourEditing(
+                  project: project,
+                  map: map,
+                  behaviours: behaviours,
+                ))
+            .apply(
+              active: active,
+              expected: expected,
+              operations: operations,
+              stage: stage,
+            );
+    final notice = result.deactivated;
     error =
-        problem ??
-        (dropped
-            ? '${MapBuilderStoryBinding.deactivated}${notice?.trim().isNotEmpty == true ? ' $notice' : ''}'
+        result.problem ??
+        (notice != null
+            ? '${MapBuilderStoryBinding.deactivated}${notice.trim().isNotEmpty ? ' $notice' : ''}'
             : null);
-    if (draft.recorded != recorded) _record(_StorySide.behaviours, null);
+    if (result.recorded) _record(_StorySide.behaviours, null);
     changed();
-    return problem == null;
+    return result.applied;
   }
 }

@@ -1141,7 +1141,7 @@
   "storyVerificationHint": "Check the saved version",
   "storyReadOnly": "Read only: changes to this project are disabled.",
   "storySelectItem": "Select an item to view its properties.",
-  "storyBehavioursOpenHint": "Open a behaviour to find and edit it on its map.",
+  "storyBehavioursOpenHint": "Select a behaviour to edit it here. The Map tab keeps its context.",
   "storyDialoguesEditingHint": "Simple lines are edited in behaviours; choice dialogues are edited in their scenes.",
   "storyBehaviourLines": "Behaviour lines",
   "storyBehaviourLinesHint": "Find a simple line on a map.",

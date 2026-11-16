@@ -34,6 +34,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       behaviourSource: _stories.behaviours,
       trame: _story.trame,
       catalog: _stories.scenes,
+      behaviourCatalog: _stories.catalog,
       openMap: () {
         _rememberStoryOrigin();
         _setSection(StudioRailSection.map, navigation: true);
@@ -84,9 +85,10 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     String eventId,
   ) {
     final project = _maps.project;
-    final record = project?.eventRegistry?.records
-        .where((record) => record.id == eventId)
-        .firstOrNull;
+    final record =
+        (project == null ? null : _story.behaviours.registry(project))?.records
+            .where((record) => record.id == eventId)
+            .firstOrNull;
     final at = record == null ? null : mapStoryLocation(record);
     final entry = at == null
         ? null
@@ -112,7 +114,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     _setSpace(MapBuilderSpace.story);
     if (_maps.active?.base.mapId != entry.id) await _maps.activate(entry);
     await _story.prepare();
-    if (_disposed || navigation != _storyNavigation) return false;
+    if (!mounted || _disposed || navigation != _storyNavigation) return false;
     if (_maps.active?.base.mapId != entry.id ||
         _behaviourEntry(eventId) == null) {
       return _storyDestinationUnavailable();
@@ -121,7 +123,9 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     final index =
         element?.behaviours.indexWhere((item) => item.id == eventId) ?? -1;
     if (element == null || index < 0) {
-      return _storyDestinationUnavailable();
+      _storyNavigationProblem = context.l10n.storyDestinationUnavailable;
+      _changed();
+      return false;
     }
     _story
       ..select(element)
