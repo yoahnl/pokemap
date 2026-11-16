@@ -53,27 +53,30 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                StoryBreadcrumb(section: widget.section),
-                StudioPageHeader(
-                  title: storySectionLabel(context, widget.section),
-                  description: storySectionHint(context, widget.section),
-                  compact: true,
-                  alignActionsToEnd: true,
-                  actions: [
-                    if (widget.inspectorAvailable)
-                      StudioButton(
-                        key: const ValueKey('story-toggle-inspector'),
-                        label: visible
-                            ? l10n.inspectorHide
-                            : l10n.inspectorShow,
-                        icon: visible
-                            ? Icons.chevron_right
-                            : Icons.chevron_left,
-                        variant: StudioButtonVariant.quiet,
-                        onPressed: () => setState(() => _inspector = !visible),
-                      ),
-                  ],
-                ),
+                if (widget.section != StorySection.behaviours) ...[
+                  StoryBreadcrumb(section: widget.section),
+                  StudioPageHeader(
+                    title: storySectionLabel(context, widget.section),
+                    description: storySectionHint(context, widget.section),
+                    compact: true,
+                    alignActionsToEnd: true,
+                    actions: [
+                      if (widget.inspectorAvailable)
+                        StudioButton(
+                          key: const ValueKey('story-toggle-inspector'),
+                          label: visible
+                              ? l10n.inspectorHide
+                              : l10n.inspectorShow,
+                          icon: visible
+                              ? Icons.chevron_right
+                              : Icons.chevron_left,
+                          variant: StudioButtonVariant.quiet,
+                          onPressed: () =>
+                              setState(() => _inspector = !visible),
+                        ),
+                    ],
+                  ),
+                ],
                 if (!widget.editable)
                   Padding(
                     padding: const EdgeInsets.symmetric(

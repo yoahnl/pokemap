@@ -9,6 +9,7 @@ class StudioPageHeader extends StatelessWidget {
     this.alignActionsToEnd = false,
     this.prominent = false,
     this.compact = false,
+    this.titleMaxLines,
   });
   final String title;
   final String? description;
@@ -16,6 +17,7 @@ class StudioPageHeader extends StatelessWidget {
   final bool alignActionsToEnd;
   final bool prominent;
   final bool compact;
+  final int? titleMaxLines;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -28,6 +30,8 @@ class StudioPageHeader extends StatelessWidget {
           children: [
             Text(
               title,
+              maxLines: titleMaxLines,
+              overflow: titleMaxLines == null ? null : TextOverflow.ellipsis,
               style: prominent
                   ? Theme.of(context).textTheme.headlineMedium
                   : Theme.of(context).textTheme.titleLarge,

@@ -1,4 +1,5 @@
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_groups.dart';
+import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_rows.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviours_controller.dart';
 import 'package:avelune_studio/features/game_memory/application/game_memory_resource.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
@@ -56,6 +57,48 @@ void main() {
   });
 
   Future<void> flush() => Future<void>.delayed(Duration.zero);
+
+  test(
+    'repair filtering follows scene changes without replacing its event',
+    () async {
+      await behaviours.open();
+      behaviours.toggle(GameBehaviourFilter.toRepair);
+      expect(
+        behaviours.groups().expand((group) => group.rows).map((row) => row.id),
+        contains(behaviourId(1)),
+      );
+      source = FakeBehaviourSource(
+        records: source.registry!.records,
+        maps: source.maps,
+        scenes: [
+          SceneAsset(
+            id: 'talk',
+            name: 'Scène restaurée',
+            graph: SceneGraph(
+              startNodeId: 'start',
+              nodes: [
+                SceneNode(id: 'start', kind: SceneNodeKind.start),
+                SceneNode(id: 'end', kind: SceneNodeKind.end),
+              ],
+              edges: [
+                SceneEdge(
+                  id: 'flow',
+                  fromNodeId: 'start',
+                  fromPortId: 'completed',
+                  toNodeId: 'end',
+                  kind: SceneEdgeKind.defaultFlow,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      expect(
+        behaviours.groups().expand((group) => group.rows).map((row) => row.id),
+        isNot(contains(behaviourId(1))),
+      );
+    },
+  );
 
   test('opening reads the behaviour and state title pages only', () async {
     await behaviours.open();

@@ -44,7 +44,7 @@ class StoryNavigation extends StatelessWidget {
   Widget build(BuildContext context) => FocusTraversalGroup(
     policy: WidgetOrderTraversalPolicy(),
     child: StudioSidebar(
-      width: 240,
+      width: selected == StorySection.behaviours ? 190 : 240,
       child: ListView(
         key: const ValueKey('story-navigation'),
         children: [
@@ -61,7 +61,7 @@ class StoryNavigation extends StatelessWidget {
                 detail: storySectionHint(context, section),
                 icon: switch (section) {
                   StorySection.trame => Icons.auto_stories_outlined,
-                  StorySection.behaviours => Icons.people_outline,
+                  StorySection.behaviours => Icons.bolt_outlined,
                   StorySection.scenes => Icons.account_tree_outlined,
                   StorySection.dialogues => Icons.chat_bubble_outline,
                   StorySection.facts => Icons.flag_outlined,

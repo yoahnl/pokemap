@@ -119,7 +119,9 @@ List<GameBehaviourRow> gameBehaviourRows({
   }
 
   return [
-    for (final title in saved) row(title.id, records[title.id]),
+    for (final title in saved)
+      if (records.containsKey(title.id) || !source.touched(title.id))
+        row(title.id, records[title.id]),
     for (final record in records.values)
       if (!titles.containsKey(record.id)) row(record.id, record),
   ];
@@ -128,20 +130,25 @@ List<GameBehaviourRow> gameBehaviourRows({
 List<GameBehaviourRow> filterGameBehaviours(
   List<GameBehaviourRow> rows, {
   String query = '',
+  String? mapId,
   Set<GameBehaviourFilter> filters = const {},
   String Function(GameBehaviourRow row)? elementLabel,
   bool Function(GameBehaviourRow row)? outside,
+  bool Function(GameBehaviourRow row)? repairable,
 }) {
   final needle = query.trim().toLowerCase();
   bool keeps(GameBehaviourRow row, GameBehaviourFilter filter) =>
-      filter == GameBehaviourFilter.outsideTrame
-      ? outside?.call(row) ?? false
-      : row.matches(filter);
+      switch (filter) {
+        GameBehaviourFilter.outsideTrame => outside?.call(row) ?? false,
+        GameBehaviourFilter.toRepair => repairable?.call(row) ?? row.toRepair,
+        _ => row.matches(filter),
+      };
   bool found(String? value) =>
       value != null && value.toLowerCase().contains(needle);
   return [
     for (final row in rows)
-      if (filters.every((filter) => keeps(row, filter)) &&
+      if ((mapId == null || row.mapId == mapId) &&
+          filters.every((filter) => keeps(row, filter)) &&
           (needle.isEmpty ||
               found(row.name) ||
               found(row.mapName) ||

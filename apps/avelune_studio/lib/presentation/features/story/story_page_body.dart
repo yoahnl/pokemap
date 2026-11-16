@@ -3,6 +3,7 @@ part of 'story_page.dart';
 extension _StoryPageBody on _StoryPageState {
   Widget _body(StorySection section, StoryPanelBuilder panels) {
     final l10n = context.l10n;
+    final trameView = widget.trame?.view;
     final empty = StudioEmptyState(
       icon: Icons.touch_app_outlined,
       title: l10n.storySelectItem,
@@ -25,36 +26,58 @@ extension _StoryPageBody on _StoryPageState {
           id == null ? null : (kind: StoryDraftKind.story, id: id),
         ),
       ),
-      StorySection.behaviours when _behaviours != null => panels(
-        GameBehavioursView(
-          behaviours: _behaviours!,
-          navigate: widget.behaviourCatalog == null
-              ? widget.behaviours.open
-              : _openCatalogBehaviour,
-          openMap: widget.openMap,
-          trame: widget.trame,
-          simulate: widget.behaviourCatalog == null
-              ? widget.simulate
-              : (id) => _openCatalogBehaviour(id, simulate: true),
-          openScene: widget.openScene,
-        ),
-        widget.behaviourCatalog != null
-            ? StoryBehaviourContext(
-                catalog: widget.behaviourCatalog!,
-                openMap: widget.behaviours.open,
-                retry: _openCatalogBehaviour,
-                editable: widget.staging.editable,
-                onSelected: (id) => _selectItem(
-                  StorySection.behaviours,
-                  id == null ? null : (kind: StoryDraftKind.event, id: id),
+      StorySection.behaviours when _behaviours != null =>
+        GameBehaviourWorkspace(
+          list: GameBehavioursView(
+            compact: true,
+            selectedId:
+                widget.behaviourCatalog?.editor?.selectedBehaviour?.id ??
+                widget.behaviourCatalog?.selectedId,
+            behaviours: _behaviours!,
+            navigate: widget.behaviourCatalog == null
+                ? widget.behaviours.open
+                : _openCatalogBehaviour,
+            openMap: widget.openMap,
+            trame: widget.trame,
+            simulate: widget.behaviourCatalog == null
+                ? widget.simulate
+                : (id) => _openCatalogBehaviour(id, simulate: true),
+            openScene: widget.openScene,
+          ),
+          editor: widget.behaviourCatalog != null
+              ? StoryBehaviourContext(
+                  catalog: widget.behaviourCatalog!,
+                  openMap: widget.behaviours.open,
+                  retry: _openCatalogBehaviour,
+                  editable: widget.staging.editable,
+                  filtered: switch (widget
+                          .behaviourCatalog
+                          ?.editor
+                          ?.selectedBehaviour
+                          ?.id ??
+                      widget.behaviourCatalog?.selectedId) {
+                    final id? => !_behaviours!.includes(
+                      id,
+                      elementLabel: l10n.behaviourElement,
+                      outside: trameView == null
+                          ? null
+                          : (row) =>
+                                row.record != null &&
+                                trameView.outside(row.record!),
+                    ),
+                    _ => false,
+                  },
+                  onSelected: (id) => _selectItem(
+                    StorySection.behaviours,
+                    id == null ? null : (kind: StoryDraftKind.event, id: id),
+                  ),
+                )
+              : StudioEmptyState(
+                  icon: Icons.people_outline,
+                  title: l10n.storyBehavioursHint,
+                  description: l10n.storyBehavioursOpenHint,
                 ),
-              )
-            : StudioEmptyState(
-                icon: Icons.people_outline,
-                title: l10n.storyBehavioursHint,
-                description: l10n.storyBehavioursOpenHint,
-              ),
-      ),
+        ),
       StorySection.facts ||
       StorySection.rules when _memory != null => GameMemoryView(
         memory: _memory!,

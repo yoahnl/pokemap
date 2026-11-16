@@ -24,12 +24,7 @@ void main() {
     expect(find.text('Clairière · 1'), findsOneWidget);
     final row = _row(tester, guideTalk);
     expect(row.label, 'Parler au guide');
-    expect(
-      row.subtitle,
-      'Clairière · Guide\n'
-      'Quand : Le joueur interagit · Si : Toujours · '
-      'Alors : Aucune scène choisie · Après : À définir',
-    );
+    expect(row.subtitle, 'Guide\nÀ compléter');
     expect(index.factRequests, isEmpty);
     expect(index.userRequests, isEmpty);
 
@@ -53,7 +48,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('behaviour-$guideTalk')),
-        matching: find.text('Supprimé ailleurs'),
+        matching: find.textContaining('Supprimé ailleurs'),
       ),
       findsOneWidget,
     );
@@ -136,17 +131,18 @@ void main() {
         .length;
     expect(built, inInclusiveRange(3, 40));
     expect(find.text('Sans carte · 300'), findsOneWidget);
-    expect(
-      _row(tester, behaviourId(1)).subtitle,
-      contains('Si : « Rencontre » est vrai'),
-    );
+    expect(_row(tester, behaviourId(1)).subtitle, contains('Sans carte'));
 
+    await tester.tap(find.byKey(const ValueKey('behaviours-grouping')));
+    await settleMemory(tester);
     await tester.tap(find.byKey(const ValueKey('behaviours-filter-disabled')));
     await settleMemory(tester);
     expect(find.byKey(const ValueKey('behaviours-no-match')), findsOneWidget);
     await tester.tap(find.text('Tout afficher'));
     await settleMemory(tester);
 
+    await tester.tap(find.byKey(const ValueKey('behaviours-grouping')));
+    await settleMemory(tester);
     await tester.tap(find.text('Par état'));
     await settleMemory(tester);
     expect(index.userRequests, hasLength(1));

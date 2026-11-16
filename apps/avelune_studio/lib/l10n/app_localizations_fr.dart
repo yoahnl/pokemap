@@ -1101,8 +1101,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'COMPORTEMENTS · $count',
-      zero: 'COMPORTEMENTS',
+      other: 'DÉCLENCHEURS · $count',
+      zero: 'DÉCLENCHEURS',
     );
     return '$_temp0';
   }
@@ -1284,10 +1284,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get storyAddBehaviour => 'Ajouter un comportement';
+  String get storyAddBehaviour => 'Ajouter un déclencheur';
 
   @override
-  String get storyDeleteBehaviour => 'Supprimer le comportement';
+  String get storyDeleteBehaviour => 'Supprimer le déclencheur';
 
   @override
   String storyDeleteInUse(String users) {
@@ -1342,10 +1342,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Suppression refusée : les usages des comportements de ce projet ne sont pas encore recensés, Avelune ne peut donc pas prouver que celui-ci est inutilisé. Rien n’a été modifié.';
 
   @override
-  String get storyBehaviourNameField => 'Nom du comportement';
+  String get storyBehaviourNameField => 'Nom du déclencheur';
 
   @override
-  String get storyBehaviourActive => 'Comportement actif';
+  String get storyBehaviourActive => 'Déclencheur actif';
 
   @override
   String get storyWhenField => 'Quand';
@@ -2592,23 +2592,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get behavioursFilterDisabled => 'Désactivés';
 
   @override
-  String get behavioursLoading => 'Lecture des comportements…';
+  String get behavioursLoading => 'Lecture des déclencheurs…';
 
   @override
   String get behavioursFactsLoading => 'Lecture des états et de leurs usages…';
 
   @override
-  String get behavioursEmpty => 'Aucun comportement dans ce projet';
+  String get behavioursEmpty => 'Aucun déclencheur dans ce projet';
 
   @override
   String get behavioursEmptyHint =>
-      'Un comportement se crée sur un élément d’une carte, dans l’espace Histoire de la carte.';
+      'Un déclencheur se crée sur un élément d’une carte, dans l’espace Histoire de la carte.';
 
   @override
   String get behavioursOpenMap => 'Aller à la carte';
 
   @override
-  String get behavioursNoMatch => 'Aucun comportement ne correspond';
+  String get behavioursNoMatch => 'Aucun déclencheur ne correspond';
 
   @override
   String behavioursGroupHeader(String group, int count) {
@@ -2641,7 +2641,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get behavioursCharactersLoading => 'Lecture des éléments des cartes…';
 
   @override
-  String get behavioursUnnamed => 'Comportement sans nom';
+  String get behavioursUnnamed => 'Déclencheur sans nom';
 
   @override
   String behavioursElementKind(String kind) {
@@ -4001,7 +4001,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storyWorkspaceHint => 'Donnez vie à votre jeu.';
 
   @override
-  String get storySectionBehaviours => 'Comportements';
+  String get storySectionBehaviours => 'Déclencheurs';
 
   @override
   String get storySectionScenes => 'Scènes';
@@ -4019,7 +4019,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storyTrameHint => 'Histoires, chapitres et jalons';
 
   @override
-  String get storyBehavioursHint => 'Sur toutes les cartes';
+  String get storyBehavioursHint => 'Quand lancer les scènes';
 
   @override
   String get storyScenesHint => 'Suites d’étapes et dialogues à choix';
@@ -4046,7 +4046,41 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storyBehavioursOpenHint =>
-      'Sélectionnez un comportement pour le modifier ici. L’onglet Carte conserve son contexte.';
+      'Sélectionnez un déclencheur pour le modifier ici. L’onglet Carte conserve son contexte.';
+
+  @override
+  String get triggersSearch => 'Nom, personnage, carte…';
+
+  @override
+  String get triggersAllMaps => 'Toutes les cartes';
+
+  @override
+  String get triggersGrouping => 'Filtres et regroupements';
+
+  @override
+  String get triggersIncomplete => 'À compléter';
+
+  @override
+  String get triggersUnavailable => 'Référence indisponible';
+
+  @override
+  String get triggersEditorHint =>
+      'Un événement, des conditions, une scène à lancer.';
+
+  @override
+  String get triggersContext => 'Contexte du déclencheur';
+
+  @override
+  String get triggersRepeat => 'RÉPÉTITION';
+
+  @override
+  String triggersPriority(int priority) {
+    return 'Priorité : $priority';
+  }
+
+  @override
+  String get triggersSelectionFiltered =>
+      'Le déclencheur sélectionné est hors du filtre. Son édition reste ouverte.';
 
   @override
   String get storyScenesLoading => 'Chargement des titres de scènes…';

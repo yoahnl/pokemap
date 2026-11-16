@@ -14,6 +14,8 @@ import 'package:avelune_studio/presentation/features/story/game_behaviour_row.da
 import 'package:avelune_studio/presentation/features/story/game_memory_states.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
+import 'behaviours/game_behaviour_list.dart';
+
 class GameBehavioursView extends StatefulWidget {
   const GameBehavioursView({
     super.key,
@@ -23,6 +25,8 @@ class GameBehavioursView extends StatefulWidget {
     this.trame,
     this.simulate,
     this.openScene,
+    this.compact = false,
+    this.selectedId,
   });
 
   final GameBehavioursController behaviours;
@@ -31,6 +35,8 @@ class GameBehavioursView extends StatefulWidget {
   final StorylineTrameController? trame;
   final Future<bool> Function(String eventId)? simulate;
   final SceneOpener? openScene;
+  final bool compact;
+  final String? selectedId;
 
   @override
   State<GameBehavioursView> createState() => _GameBehavioursViewState();
@@ -52,6 +58,14 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
     final behaviours = widget.behaviours;
     if (TickerMode.valuesOf(context).enabled) {
       scheduleMicrotask(behaviours.sync);
+    }
+    if (widget.compact) {
+      return GameBehaviourList(
+        behaviours: behaviours,
+        search: _search,
+        trame: widget.trame,
+        child: _body(context),
+      );
     }
     return Material(
       color: theme.colorScheme.surfaceContainerLowest,
@@ -242,6 +256,7 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
             for (final filter in [...behaviours.filters]) {
               behaviours.toggle(filter);
             }
+            behaviours.filterMap(null);
           },
         ),
       );
@@ -256,6 +271,8 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
       itemBuilder: (context, index) => switch (entries[index]) {
         final GameBehaviourGroup group => _Header(group),
         final GameBehaviourRow row => GameBehaviourRowTile(
+          compact: widget.compact,
+          selected: widget.selectedId == row.id,
           row: row,
           summary: behaviours.summary(row),
           factName: behaviours.factName,

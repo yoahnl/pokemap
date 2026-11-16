@@ -27,13 +27,14 @@ final class GameBehavioursController {
   final characters = GameMemoryResource<Map<String, String>>();
   var grouping = GameBehaviourGrouping.map;
   var query = '';
+  String? mapId;
   final filters = <GameBehaviourFilter>{};
   final refused = <String>{};
   Object? _revision;
   (Object?, Object?, Object?, Object?, List<GameBehaviourRow>)? _rows;
   (Object?, Map<String, SceneAsset>)? _scenes;
   (Object?, Map<String, String>)? _factNames;
-  final _summaries = Expando<GameBehaviourSummary>();
+  final _summaries = Expando<(Object?, GameBehaviourSummary)>();
 
   Future<void> open() {
     _revision = source().revision;
@@ -128,9 +129,11 @@ final class GameBehavioursController {
     final visible = filterGameBehaviours(
       rows,
       query: query,
+      mapId: mapId,
       filters: filters,
       elementLabel: elementLabel,
       outside: outside,
+      repairable: _repairable,
     );
     return switch (grouping) {
       GameBehaviourGrouping.map => groupGameBehavioursByMap(visible, [
@@ -151,7 +154,17 @@ final class GameBehavioursController {
   GameBehaviourSummary? summary(GameBehaviourRow row) {
     final record = row.record;
     if (record == null) return null;
-    return _summaries[record] ??= summarizeGameBehaviour(record, _scene);
+    final scenes = source().scenes;
+    final cached = _summaries[record];
+    if (cached != null && identical(cached.$1, scenes)) return cached.$2;
+    final value = summarizeGameBehaviour(record, _scene);
+    _summaries[record] = (scenes, value);
+    return value;
+  }
+
+  bool _repairable(GameBehaviourRow row) {
+    final value = summary(row);
+    return row.toRepair || (value?.sceneChosen == true && value?.scene == null);
   }
 
   SceneAsset? _scene(String id) {
@@ -167,6 +180,25 @@ final class GameBehavioursController {
     query = value;
     changed();
   }
+
+  void filterMap(String? value) {
+    mapId = value;
+    changed();
+  }
+
+  bool includes(
+    String id, {
+    String Function(GameBehaviourRow row)? elementLabel,
+    bool Function(GameBehaviourRow row)? outside,
+  }) => filterGameBehaviours(
+    rows.where((row) => row.id == id).toList(),
+    query: query,
+    mapId: mapId,
+    filters: filters,
+    elementLabel: elementLabel,
+    outside: outside,
+    repairable: _repairable,
+  ).isNotEmpty;
 
   void toggle(GameBehaviourFilter filter) {
     if (!filters.remove(filter)) filters.add(filter);

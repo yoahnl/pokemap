@@ -105,7 +105,7 @@ class MapBuilderStoryInspector extends StatelessWidget {
           key: ValueKey('map-story-attempt-${binding.attempts}'),
           child:
               !binding.carrierEditable || binding.tab == MapStoryTab.behaviour
-              ? _Behaviours(
+              ? MapBuilderStoryBehaviourEditor(
                   binding: binding,
                   element: element,
                   enabled: enabled,

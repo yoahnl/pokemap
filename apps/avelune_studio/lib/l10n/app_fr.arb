@@ -601,7 +601,7 @@
   },
   "storyTabBehaviour": "Comportement",
   "storyTabProperties": "Propriétés",
-  "storyBehavioursTitle": "{count, plural, =0{COMPORTEMENTS} other{COMPORTEMENTS · {count}}}",
+  "storyBehavioursTitle": "{count, plural, =0{DÉCLENCHEURS} other{DÉCLENCHEURS · {count}}}",
   "@storyBehavioursTitle": {
     "placeholders": {
       "count": {
@@ -684,8 +684,8 @@
       }
     }
   },
-  "storyAddBehaviour": "Ajouter un comportement",
-  "storyDeleteBehaviour": "Supprimer le comportement",
+  "storyAddBehaviour": "Ajouter un déclencheur",
+  "storyDeleteBehaviour": "Supprimer le déclencheur",
   "storyDeleteInUse": "Suppression refusée : ce comportement est encore utilisé par {users}. Retirez ces usages, puis réessayez.",
   "@storyDeleteInUse": {
     "placeholders": {
@@ -745,8 +745,8 @@
     }
   },
   "storyDeleteCoverageUnknown": "Suppression refusée : les usages des comportements de ce projet ne sont pas encore recensés, Avelune ne peut donc pas prouver que celui-ci est inutilisé. Rien n’a été modifié.",
-  "storyBehaviourNameField": "Nom du comportement",
-  "storyBehaviourActive": "Comportement actif",
+  "storyBehaviourNameField": "Nom du déclencheur",
+  "storyBehaviourActive": "Déclencheur actif",
   "storyWhenField": "Quand",
   "storyThenField": "Alors · scène à déclencher",
   "storyAfterField": "Après le déclenchement",
@@ -1440,12 +1440,12 @@
   "behavioursFilterWithoutMap": "Sans carte",
   "behavioursFilterToRepair": "À réparer",
   "behavioursFilterDisabled": "Désactivés",
-  "behavioursLoading": "Lecture des comportements…",
+  "behavioursLoading": "Lecture des déclencheurs…",
   "behavioursFactsLoading": "Lecture des états et de leurs usages…",
-  "behavioursEmpty": "Aucun comportement dans ce projet",
-  "behavioursEmptyHint": "Un comportement se crée sur un élément d’une carte, dans l’espace Histoire de la carte.",
+  "behavioursEmpty": "Aucun déclencheur dans ce projet",
+  "behavioursEmptyHint": "Un déclencheur se crée sur un élément d’une carte, dans l’espace Histoire de la carte.",
   "behavioursOpenMap": "Aller à la carte",
-  "behavioursNoMatch": "Aucun comportement ne correspond",
+  "behavioursNoMatch": "Aucun déclencheur ne correspond",
   "behavioursGroupHeader": "{group} · {count}",
   "@behavioursGroupHeader": {
     "placeholders": {
@@ -1465,7 +1465,7 @@
   "behavioursWithoutCharacter": "Sans personnage",
   "behavioursUnnamedCharacter": "Personnage sans nom",
   "behavioursCharactersLoading": "Lecture des éléments des cartes…",
-  "behavioursUnnamed": "Comportement sans nom",
+  "behavioursUnnamed": "Déclencheur sans nom",
   "behavioursElementKind": "{kind, select, entity{un personnage ou un panneau} model{un objet du décor} trigger{une zone} other{toute la carte}}",
   "@behavioursElementKind": {
     "placeholders": {
@@ -2257,13 +2257,13 @@
   "selectionGroupHint": "Les flèches du clavier, la poignée d’axe en 3D, Copier, Dupliquer et Supprimer agissent sur tout le groupe.",
   "storyWorkspaceTitle": "Histoire",
   "storyWorkspaceHint": "Donnez vie à votre jeu.",
-  "storySectionBehaviours": "Comportements",
+  "storySectionBehaviours": "Déclencheurs",
   "storySectionScenes": "Scènes",
   "storySectionDialogues": "Dialogues",
   "storySectionFacts": "Faits",
   "storySectionVerification": "Vérification",
   "storyTrameHint": "Histoires, chapitres et jalons",
-  "storyBehavioursHint": "Sur toutes les cartes",
+  "storyBehavioursHint": "Quand lancer les scènes",
   "storyScenesHint": "Suites d’étapes et dialogues à choix",
   "storyDialoguesHint": "Les documents de dialogue et leurs langues",
   "storyFactsHint": "Les états de la progression",
@@ -2271,7 +2271,18 @@
   "storyVerificationHint": "Contrôler la version enregistrée",
   "storyReadOnly": "Consultation seule : les modifications de ce projet sont désactivées.",
   "storySelectItem": "Sélectionnez un élément pour afficher ses propriétés.",
-  "storyBehavioursOpenHint": "Sélectionnez un comportement pour le modifier ici. L’onglet Carte conserve son contexte.",
+  "storyBehavioursOpenHint": "Sélectionnez un déclencheur pour le modifier ici. L’onglet Carte conserve son contexte.",
+  "triggersSearch": "Nom, personnage, carte…",
+  "triggersAllMaps": "Toutes les cartes",
+  "triggersGrouping": "Filtres et regroupements",
+  "triggersIncomplete": "À compléter",
+  "triggersUnavailable": "Référence indisponible",
+  "triggersEditorHint": "Un événement, des conditions, une scène à lancer.",
+  "triggersContext": "Contexte du déclencheur",
+  "triggersRepeat": "RÉPÉTITION",
+  "triggersPriority": "Priorité : {priority}",
+  "@triggersPriority": {"placeholders": {"priority": {"type": "int"}}},
+  "triggersSelectionFiltered": "Le déclencheur sélectionné est hors du filtre. Son édition reste ouverte.",
   "storyScenesLoading": "Chargement des titres de scènes…",
   "storyScenesEmpty": "Aucune scène pour l’instant",
   "storyScenesEmptyHint": "Créez une scène depuis un comportement sur une carte.",

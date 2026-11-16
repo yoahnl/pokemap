@@ -15,6 +15,8 @@ class GameBehaviourRowTile extends StatelessWidget {
     required this.onTap,
     this.onSimulate,
     this.onOpenScene,
+    this.compact = false,
+    this.selected = false,
   });
 
   final GameBehaviourRow row;
@@ -23,6 +25,8 @@ class GameBehaviourRowTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onSimulate;
   final VoidCallback? onOpenScene;
+  final bool compact;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +41,21 @@ class GameBehaviourRowTile extends StatelessWidget {
         l10n.behavioursNotLoadedBadge,
         StudioTone.warning,
       ),
+      _ when summary?.sceneChosen == true && summary?.scene == null => (
+        l10n.triggersUnavailable,
+        StudioTone.warning,
+      ),
       GameBehaviourRow(unsaved: true) => (l10n.memoryUnsaved, StudioTone.info),
       GameBehaviourRow(elementMissing: true) => (
         l10n.behavioursElementMissing,
         StudioTone.warning,
       ),
+      GameBehaviourRow(mapId: String(), mapName: null) => (
+        l10n.behavioursMissingMap,
+        StudioTone.warning,
+      ),
       GameBehaviourRow(toRepair: true) => (
-        l10n.behavioursToRepair,
+        l10n.triggersIncomplete,
         StudioTone.warning,
       ),
       GameBehaviourRow(disabled: true) => (
@@ -53,6 +65,9 @@ class GameBehaviourRowTile extends StatelessWidget {
       GameBehaviourRow(record: final record?)
           when record.enabledOrNull == null =>
         (l10n.storyDraft, StudioTone.neutral),
+      GameBehaviourRow(record: final record?)
+          when record.enabledOrNull == true =>
+        (l10n.storyActive, StudioTone.success),
       _ => null,
     };
     final place = l10n.behaviourPlace(row);
@@ -77,21 +92,36 @@ class GameBehaviourRowTile extends StatelessWidget {
     return StudioChoice(
       key: ValueKey('behaviour-${row.id}'),
       label: l10n.behaviourName(row),
-      subtitle: summary == null
+      selected: selected,
+      leading: compact ? const Icon(Icons.bolt_outlined, size: 18) : null,
+      subtitle: compact
+          ? '${l10n.behaviourElement(row)}${badge == null ? '' : '\n${badge.$1}'}'
+          : summary == null
           ? place
           : '$place\n${l10n.behaviourSummary(summary, factName)}',
       maxLines: 1,
-      trailing: switch ((badge, actions.isEmpty)) {
-        (null, true) => null,
-        (final badge?, true) => StudioBadge(badge.$1, tone: badge.$2),
-        _ => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (badge != null) StudioBadge(badge.$1, tone: badge.$2),
-            ...actions,
-          ],
-        ),
-      },
+      trailing: compact
+          ? badge == null
+                ? null
+                : Tooltip(
+                    message: badge.$1,
+                    child: Icon(
+                      Icons.circle,
+                      size: 7,
+                      color: badge.$2.color(context),
+                    ),
+                  )
+          : switch ((badge, actions.isEmpty)) {
+              (null, true) => null,
+              (final badge?, true) => StudioBadge(badge.$1, tone: badge.$2),
+              _ => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (badge != null) StudioBadge(badge.$1, tone: badge.$2),
+                  ...actions,
+                ],
+              ),
+            },
       onTap: onTap,
     );
   }

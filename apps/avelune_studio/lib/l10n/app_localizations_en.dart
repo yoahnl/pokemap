@@ -1095,8 +1095,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'BEHAVIOURS · $count',
-      zero: 'BEHAVIOURS',
+      other: 'TRIGGERS · $count',
+      zero: 'TRIGGERS',
     );
     return '$_temp0';
   }
@@ -1278,10 +1278,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get storyAddBehaviour => 'Add a behaviour';
+  String get storyAddBehaviour => 'Add a trigger';
 
   @override
-  String get storyDeleteBehaviour => 'Delete the behaviour';
+  String get storyDeleteBehaviour => 'Delete the trigger';
 
   @override
   String storyDeleteInUse(String users) {
@@ -1336,10 +1336,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Deletion refused: the behaviour uses of this project are not indexed yet, so Avelune cannot prove this one is unused. Nothing was changed.';
 
   @override
-  String get storyBehaviourNameField => 'Behaviour name';
+  String get storyBehaviourNameField => 'Trigger name';
 
   @override
-  String get storyBehaviourActive => 'Behaviour enabled';
+  String get storyBehaviourActive => 'Trigger enabled';
 
   @override
   String get storyWhenField => 'When';
@@ -2582,17 +2582,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get behavioursFactsLoading => 'Reading states and their usages…';
 
   @override
-  String get behavioursEmpty => 'No behaviour in this project';
+  String get behavioursEmpty => 'No trigger in this project';
 
   @override
   String get behavioursEmptyHint =>
-      'A behaviour is created on a map element, in the map’s Story space.';
+      'A trigger is created on a map element, in the map’s Story space.';
 
   @override
   String get behavioursOpenMap => 'Go to the map';
 
   @override
-  String get behavioursNoMatch => 'No behaviour matches';
+  String get behavioursNoMatch => 'No trigger matches';
 
   @override
   String behavioursGroupHeader(String group, int count) {
@@ -2625,7 +2625,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get behavioursCharactersLoading => 'Reading map elements…';
 
   @override
-  String get behavioursUnnamed => 'Unnamed behaviour';
+  String get behavioursUnnamed => 'Unnamed trigger';
 
   @override
   String behavioursElementKind(String kind) {
@@ -3975,7 +3975,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyWorkspaceHint => 'Bring your game to life.';
 
   @override
-  String get storySectionBehaviours => 'Behaviours';
+  String get storySectionBehaviours => 'Triggers';
 
   @override
   String get storySectionScenes => 'Scenes';
@@ -3993,7 +3993,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyTrameHint => 'Stories, chapters and milestones';
 
   @override
-  String get storyBehavioursHint => 'Across all maps';
+  String get storyBehavioursHint => 'When to launch scenes';
 
   @override
   String get storyScenesHint => 'Sequences and choice dialogues';
@@ -4019,7 +4019,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storyBehavioursOpenHint =>
-      'Select a behaviour to edit it here. The Map tab keeps its context.';
+      'Select a trigger to edit it here. The Map tab keeps its context.';
+
+  @override
+  String get triggersSearch => 'Name, character, map…';
+
+  @override
+  String get triggersAllMaps => 'All maps';
+
+  @override
+  String get triggersGrouping => 'Filters and groups';
+
+  @override
+  String get triggersIncomplete => 'To complete';
+
+  @override
+  String get triggersUnavailable => 'Reference unavailable';
+
+  @override
+  String get triggersEditorHint => 'An event, conditions, a scene to launch.';
+
+  @override
+  String get triggersContext => 'Trigger context';
+
+  @override
+  String get triggersRepeat => 'REPEAT';
+
+  @override
+  String triggersPriority(int priority) {
+    return 'Priority: $priority';
+  }
+
+  @override
+  String get triggersSelectionFiltered =>
+      'The selected trigger is outside the filter. Its editor stays open.';
 
   @override
   String get storyScenesLoading => 'Loading scene titles…';

@@ -58,7 +58,7 @@ void main() {
     expect(view.selectedFor('a', MapSelectionFamily.character), 'luth');
     expect(find.text('PERSONNAGE'), findsOneWidget);
     expect(find.text('a · X 3 · Y 2'), findsOneWidget);
-    expect(find.text('COMPORTEMENTS · 2'), findsOneWidget);
+    expect(find.text('DÉCLENCHEURS · 2'), findsOneWidget);
     expect(find.text('Le joueur interagit'), findsOneWidget);
     expect(find.text('Une seule fois'), findsOneWidget);
     expect(find.text('Scène scene-meeting'), findsOneWidget);

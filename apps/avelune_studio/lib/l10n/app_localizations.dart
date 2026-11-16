@@ -1913,7 +1913,7 @@ abstract class AppLocalizations {
   /// No description provided for @storyBehavioursTitle.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =0{COMPORTEMENTS} other{COMPORTEMENTS · {count}}}'**
+  /// **'{count, plural, =0{DÉCLENCHEURS} other{DÉCLENCHEURS · {count}}}'**
   String storyBehavioursTitle(int count);
 
   /// No description provided for @storyNoBehaviour.
@@ -2201,13 +2201,13 @@ abstract class AppLocalizations {
   /// No description provided for @storyAddBehaviour.
   ///
   /// In fr, this message translates to:
-  /// **'Ajouter un comportement'**
+  /// **'Ajouter un déclencheur'**
   String get storyAddBehaviour;
 
   /// No description provided for @storyDeleteBehaviour.
   ///
   /// In fr, this message translates to:
-  /// **'Supprimer le comportement'**
+  /// **'Supprimer le déclencheur'**
   String get storyDeleteBehaviour;
 
   /// No description provided for @storyDeleteInUse.
@@ -2279,13 +2279,13 @@ abstract class AppLocalizations {
   /// No description provided for @storyBehaviourNameField.
   ///
   /// In fr, this message translates to:
-  /// **'Nom du comportement'**
+  /// **'Nom du déclencheur'**
   String get storyBehaviourNameField;
 
   /// No description provided for @storyBehaviourActive.
   ///
   /// In fr, this message translates to:
-  /// **'Comportement actif'**
+  /// **'Déclencheur actif'**
   String get storyBehaviourActive;
 
   /// No description provided for @storyWhenField.
@@ -4180,7 +4180,7 @@ abstract class AppLocalizations {
   /// No description provided for @behavioursLoading.
   ///
   /// In fr, this message translates to:
-  /// **'Lecture des comportements…'**
+  /// **'Lecture des déclencheurs…'**
   String get behavioursLoading;
 
   /// No description provided for @behavioursFactsLoading.
@@ -4192,13 +4192,13 @@ abstract class AppLocalizations {
   /// No description provided for @behavioursEmpty.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun comportement dans ce projet'**
+  /// **'Aucun déclencheur dans ce projet'**
   String get behavioursEmpty;
 
   /// No description provided for @behavioursEmptyHint.
   ///
   /// In fr, this message translates to:
-  /// **'Un comportement se crée sur un élément d’une carte, dans l’espace Histoire de la carte.'**
+  /// **'Un déclencheur se crée sur un élément d’une carte, dans l’espace Histoire de la carte.'**
   String get behavioursEmptyHint;
 
   /// No description provided for @behavioursOpenMap.
@@ -4210,7 +4210,7 @@ abstract class AppLocalizations {
   /// No description provided for @behavioursNoMatch.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun comportement ne correspond'**
+  /// **'Aucun déclencheur ne correspond'**
   String get behavioursNoMatch;
 
   /// No description provided for @behavioursGroupHeader.
@@ -4270,7 +4270,7 @@ abstract class AppLocalizations {
   /// No description provided for @behavioursUnnamed.
   ///
   /// In fr, this message translates to:
-  /// **'Comportement sans nom'**
+  /// **'Déclencheur sans nom'**
   String get behavioursUnnamed;
 
   /// No description provided for @behavioursElementKind.
@@ -6183,7 +6183,7 @@ abstract class AppLocalizations {
   /// No description provided for @storySectionBehaviours.
   ///
   /// In fr, this message translates to:
-  /// **'Comportements'**
+  /// **'Déclencheurs'**
   String get storySectionBehaviours;
 
   /// No description provided for @storySectionScenes.
@@ -6219,7 +6219,7 @@ abstract class AppLocalizations {
   /// No description provided for @storyBehavioursHint.
   ///
   /// In fr, this message translates to:
-  /// **'Sur toutes les cartes'**
+  /// **'Quand lancer les scènes'**
   String get storyBehavioursHint;
 
   /// No description provided for @storyScenesHint.
@@ -6267,8 +6267,68 @@ abstract class AppLocalizations {
   /// No description provided for @storyBehavioursOpenHint.
   ///
   /// In fr, this message translates to:
-  /// **'Sélectionnez un comportement pour le modifier ici. L’onglet Carte conserve son contexte.'**
+  /// **'Sélectionnez un déclencheur pour le modifier ici. L’onglet Carte conserve son contexte.'**
   String get storyBehavioursOpenHint;
+
+  /// No description provided for @triggersSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom, personnage, carte…'**
+  String get triggersSearch;
+
+  /// No description provided for @triggersAllMaps.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes les cartes'**
+  String get triggersAllMaps;
+
+  /// No description provided for @triggersGrouping.
+  ///
+  /// In fr, this message translates to:
+  /// **'Filtres et regroupements'**
+  String get triggersGrouping;
+
+  /// No description provided for @triggersIncomplete.
+  ///
+  /// In fr, this message translates to:
+  /// **'À compléter'**
+  String get triggersIncomplete;
+
+  /// No description provided for @triggersUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Référence indisponible'**
+  String get triggersUnavailable;
+
+  /// No description provided for @triggersEditorHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un événement, des conditions, une scène à lancer.'**
+  String get triggersEditorHint;
+
+  /// No description provided for @triggersContext.
+  ///
+  /// In fr, this message translates to:
+  /// **'Contexte du déclencheur'**
+  String get triggersContext;
+
+  /// No description provided for @triggersRepeat.
+  ///
+  /// In fr, this message translates to:
+  /// **'RÉPÉTITION'**
+  String get triggersRepeat;
+
+  /// No description provided for @triggersPriority.
+  ///
+  /// In fr, this message translates to:
+  /// **'Priorité : {priority}'**
+  String triggersPriority(int priority);
+
+  /// No description provided for @triggersSelectionFiltered.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le déclencheur sélectionné est hors du filtre. Son édition reste ouverte.'**
+  String get triggersSelectionFiltered;
 
   /// No description provided for @storyScenesLoading.
   ///

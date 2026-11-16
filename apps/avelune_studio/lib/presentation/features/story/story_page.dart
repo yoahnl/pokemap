@@ -21,6 +21,7 @@ import 'package:avelune_studio/features/dialogues/domain/dialogue_catalog_port.d
 import 'package:avelune_studio/features/dialogues/application/dialogue_catalog_controller.dart';
 import 'package:avelune_studio/features/dialogues/application/dialogue_draft_host.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviours_view.dart';
+import 'package:avelune_studio/presentation/features/story/game_behaviour_labels.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_rule_creation.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_usages.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_view.dart';
@@ -29,6 +30,7 @@ import 'package:avelune_studio/presentation/features/story/verification_view.dar
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 import 'dialogues/story_dialogues_view.dart';
+import 'behaviours/game_behaviour_workspace.dart';
 import 'story_behaviour_context.dart';
 import '../map_builder/map_builder_story_catalog_binding.dart';
 import '../map_builder/map_builder_story_binding.dart';
@@ -256,7 +258,10 @@ class _StoryPageState extends State<StoryPage> {
       onSelected: _select,
       editable: widget.staging.editable,
       saveError: widget.saveError,
-      inspectorAvailable: _workspace.section != StorySection.dialogues,
+      inspectorAvailable: !{
+        StorySection.dialogues,
+        StorySection.behaviours,
+      }.contains(_workspace.section),
       builder: (panels) => IndexedStack(
         index: _workspace.section.index,
         children: [
