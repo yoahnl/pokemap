@@ -9,14 +9,14 @@ import 'package:avelune_studio/features/game_behaviours/application/game_behavio
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_source.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
-import 'package:avelune_studio/presentation/features/story/game_memory_states.dart';
-import 'package:avelune_studio/presentation/features/story/trame_detail.dart';
-import 'package:avelune_studio/presentation/features/story/trame_labels.dart';
-import 'package:avelune_studio/presentation/features/story/trame_selection.dart';
-import 'package:avelune_studio/presentation/features/story/trame_start.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
+import 'game_memory_states.dart';
 import 'story_workspace.dart';
+import 'trame_detail.dart';
+import 'trame_outline.dart';
+import 'trame_selection.dart';
+import 'trame_start.dart';
 
 class TrameView extends StatefulWidget {
   const TrameView({
@@ -42,6 +42,7 @@ class TrameView extends StatefulWidget {
 
 class _TrameViewState extends State<TrameView> {
   TrameSelection? _selected;
+  var _showArchived = false;
   (Object?, List<GameBehaviourRow>)? _rows;
 
   List<GameBehaviourRow> get _behaviours {
@@ -58,6 +59,11 @@ class _TrameViewState extends State<TrameView> {
     );
     _rows = (registry, rows);
     return rows;
+  }
+
+  void _select(TrameSelection selection) {
+    setState(() => _selected = selection);
+    widget.onSelected?.call(selection.storylineId);
   }
 
   @override
@@ -82,8 +88,36 @@ class _TrameViewState extends State<TrameView> {
           chapterId: at.chapter.id,
           milestoneId: id,
         );
+        if (at.storyline.status == StorylineStatus.archived ||
+            at.chapter.status == StorylineStatus.archived ||
+            at.milestone.status == StorylineStatus.archived) {
+          _showArchived = true;
+        }
         scheduleMicrotask(() {
           if (mounted) widget.onSelected?.call(at.storyline.id);
+        });
+      }
+    }
+    final selectedId = _selected?.milestoneId;
+    if (_selected?.item == TrameItem.milestone && selectedId != null) {
+      if (view.milestone(selectedId) case final at?) {
+        _selected = (
+          item: TrameItem.milestone,
+          storylineId: at.storyline.id,
+          chapterId: at.chapter.id,
+          milestoneId: selectedId,
+        );
+      }
+    }
+    if (!_showArchived) {
+      final previous = _selected;
+      _selected = visibleTrameSelection(view.outline, previous);
+      if (previous?.storylineId != _selected?.storylineId) {
+        final selected = _selected;
+        scheduleMicrotask(() {
+          if (mounted && selected == _selected) {
+            widget.onSelected?.call(selected?.storylineId);
+          }
         });
       }
     }
@@ -93,97 +127,15 @@ class _TrameViewState extends State<TrameView> {
     if (view.milestones.any((at) => at.milestone.completionFactId != null)) {
       scheduleMicrotask(trame.ensureFactNames);
     }
-    final entries = <(TrameSelection, Widget)>[];
-    for (final storyline in view.outline.storylines) {
-      final key = (
-        item: TrameItem.storyline,
-        storylineId: storyline.id,
-        chapterId: null,
-        milestoneId: null,
-      );
-      entries.add((
-        key,
-        _entry(
-          key,
-          l10n.trameName(storyline.title, l10n.trameUnnamed),
-          l10n.trameType(storyline.type),
-          0,
-          archived: trameArchived(storyline.status),
-        ),
-      ));
-      for (final chapter in storyline.chapters) {
-        final chapterKey = (
-          item: TrameItem.chapter,
-          storylineId: storyline.id,
-          chapterId: chapter.id,
-          milestoneId: null,
-        );
-        entries.add((
-          chapterKey,
-          _entry(
-            chapterKey,
-            l10n.trameName(chapter.title, l10n.trameUnnamed),
-            l10n.trameMilestoneCount(chapter.milestones.length),
-            1,
-            archived: trameArchived(chapter.status),
-          ),
-        ));
-        for (final milestone in chapter.milestones) {
-          final milestoneKey = (
-            item: TrameItem.milestone,
-            storylineId: storyline.id,
-            chapterId: chapter.id,
-            milestoneId: milestone.id,
-          );
-          entries.add((
-            milestoneKey,
-            _entry(
-              milestoneKey,
-              l10n.trameName(milestone.title, l10n.trameUnnamed),
-              l10n.trameMilestoneSummary(
-                view.behavioursOf(milestone).length,
-                milestone.issues.length,
-              ),
-              2,
-              archived: trameArchived(milestone.status),
-              warning: milestone.issues.isNotEmpty,
-            ),
-          ));
-        }
-      }
-    }
-    entries.add((
-      trameOutside,
-      _entry(
-        trameOutside,
-        l10n.trameOutside,
-        l10n.trameOutsideCount(view.outsideBehaviours.length),
-        0,
-      ),
-    ));
+    scheduleMicrotask(trame.ensureSceneNames);
     return widget.panels(
-      Column(
-        key: const ValueKey('trame-outline'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (trame.refusal case final code?)
-            Padding(
-              padding: const EdgeInsets.all(StudioSpacing.l),
-              child: StudioNotice(
-                key: const ValueKey('trame-refusal'),
-                l10n.trameRefused(code),
-                isError: true,
-              ),
-            ),
-          Expanded(
-            child: ListView.builder(
-              key: const ValueKey('trame-list'),
-              padding: const EdgeInsets.all(StudioSpacing.l),
-              itemCount: entries.length,
-              itemBuilder: (context, index) => entries[index].$2,
-            ),
-          ),
-        ],
+      TrameOutline(
+        trame: trame,
+        view: view,
+        selection: _selected,
+        showArchived: _showArchived,
+        onShowArchived: (value) => setState(() => _showArchived = value),
+        onSelected: _select,
       ),
       TrameDetail(
         trame: trame,
@@ -203,32 +155,4 @@ class _TrameViewState extends State<TrameView> {
       title: context.l10n.trameSelect,
     ),
   );
-
-  Widget _entry(
-    TrameSelection key,
-    String label,
-    String subtitle,
-    int depth, {
-    bool archived = false,
-    bool warning = false,
-  }) {
-    final l10n = context.l10n;
-    return Padding(
-      padding: EdgeInsets.only(left: depth * StudioSpacing.xl),
-      child: StudioChoice(
-        key: ValueKey(
-          'trame-${key.item.name}-${key.milestoneId ?? key.chapterId ?? key.storylineId ?? 'outside'}',
-        ),
-        label: label,
-        subtitle: subtitle,
-        selected: _selected == key,
-        tone: warning ? StudioTone.warning : null,
-        trailing: archived ? StudioBadge(l10n.trameArchivedBadge) : null,
-        onTap: () {
-          setState(() => _selected = key);
-          widget.onSelected?.call(key.storylineId);
-        },
-      ),
-    );
-  }
 }

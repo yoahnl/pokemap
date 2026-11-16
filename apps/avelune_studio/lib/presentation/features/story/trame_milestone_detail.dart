@@ -4,13 +4,13 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
-import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_rows.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_edits.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_view.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
-import 'package:avelune_studio/presentation/features/story/trame_behaviours.dart';
+import 'package:avelune_studio/presentation/features/story/trame_scene_links.dart';
+import 'package:avelune_studio/presentation/features/story/trame_conditions.dart';
 import 'package:avelune_studio/presentation/features/story/trame_journal.dart';
 import 'package:avelune_studio/presentation/features/story/trame_labels.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
@@ -45,12 +45,6 @@ class TrameMilestoneDetail extends StatelessWidget {
     final maps = {for (final map in trame.source().maps) map.id: map.name};
     final factId = milestone.completionFactId;
     final factName = factId == null ? null : trame.factName(factId);
-    final outside = [
-      for (final row in behaviours)
-        if (row.record case final record?
-            when view.outside(record) && record.sceneId != null)
-          row,
-    ];
     void move(String targetChapterId, int targetIndex) => unawaited(
       trame.moveMilestone(
         storylineId,
@@ -142,6 +136,7 @@ class TrameMilestoneDetail extends StatelessWidget {
             ),
           ],
         ),
+        TrameConditions(trame: trame, at: at),
         StudioSection(
           title: l10n.trameMilestoneFacts,
           children: [
@@ -169,7 +164,17 @@ class TrameMilestoneDetail extends StatelessWidget {
                 l10n.trameIssue(issue),
               ),
             ],
+            if (milestone.issues.isNotEmpty)
+              Text(l10n.trameEditorialHint, style: theme.textTheme.bodySmall),
           ],
+        ),
+        TrameSceneLinks(
+          trame: trame,
+          view: view,
+          at: at,
+          behaviours: behaviours,
+          navigate: navigate,
+          openScene: openScene,
         ),
         TrameMilestoneJournal(
           trame: trame,
@@ -177,64 +182,6 @@ class TrameMilestoneDetail extends StatelessWidget {
           chapterId: chapterId,
           milestoneId: milestone.id,
           milestoneTitle: milestone.title,
-        ),
-        StudioSection(
-          title: l10n.trameStartsWith,
-          children: [
-            if (milestone.sceneIds.isEmpty)
-              Text(l10n.trameNoBehaviour, style: theme.textTheme.bodySmall),
-            for (final sceneId in milestone.sceneIds)
-              TrameSceneGroup(
-                trame: trame,
-                view: view,
-                sceneId: sceneId,
-                behaviours: behaviours,
-                navigate: navigate,
-                onOpen: openScene == null
-                    ? null
-                    : () => openScene!(sceneId, null),
-                onDetach: editable
-                    ? () => unawaited(
-                        trame.detachScene(
-                          storylineId,
-                          chapterId,
-                          milestone.id,
-                          sceneId,
-                        ),
-                      )
-                    : null,
-              ),
-            const SizedBox(height: StudioSpacing.m),
-            if (outside.isNotEmpty)
-              KeyedSubtree(
-                key: const ValueKey('trame-attach'),
-                child: StudioSelect(
-                  label: l10n.trameAttach,
-                  value: null,
-                  options: {
-                    for (final row in outside)
-                      row.id: l10n.trameBehaviourOption(
-                        row.name,
-                        row.mapName ?? l10n.behavioursWithoutMap,
-                      ),
-                  },
-                  onChanged: editable
-                      ? (id) => unawaited(
-                          trame.attachScene(
-                            storylineId,
-                            chapterId,
-                            milestone.id,
-                            outside
-                                .firstWhere((row) => row.id == id)
-                                .record!
-                                .sceneId!,
-                          ),
-                        )
-                      : null,
-                ),
-              ),
-            Text(l10n.trameAttachWholeScene, style: theme.textTheme.bodySmall),
-          ],
         ),
       ],
     );

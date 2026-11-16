@@ -49,7 +49,16 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('trame-milestone-meet')));
     await settleMemory(tester);
-    await tester.ensureVisible(find.text('Parler au guide'));
+    await tester.scrollUntilVisible(
+      find.text('Parler au guide'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('story-inspector')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await settleMemory(tester);
     expect(find.text('Parler au guide').hitTestable(), findsOneWidget);
     await tester.tap(find.text('Parler au guide'));

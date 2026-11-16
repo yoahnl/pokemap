@@ -28,6 +28,7 @@ final class StorylineTrameController {
   final outline = GameMemoryResource<StorylineOutline>();
   final saved = GameMemoryResource<List<StorylineAsset>>();
   final facts = GameMemoryResource<List<NarrativeTitle>>();
+  final sceneTitles = GameMemoryResource<List<NarrativeTitle>>();
   final proposal = GameMemoryResource<StorylineProposalRead>();
   final definitions = <String, NarrativeFactDefinition>{};
   String? refusal;
@@ -62,7 +63,24 @@ final class StorylineTrameController {
 
   void ensureFactNames() => unawaited(_loadFacts());
 
+  void ensureSceneNames() => unawaited(
+    sceneTitles.load(() => index.titles(NarrativeTitleKind.scenes), changed),
+  );
+
+  String? sceneName(String id) =>
+      source().scenes.where((scene) => scene.id == id).firstOrNull?.name ??
+      sceneTitles.value?.where((scene) => scene.id == id).firstOrNull?.title;
+
   String? factName(String id) {
+    final draft = staging.draft;
+    if (draft.isTouched(StoryDraftKind.fact, id)) {
+      final name = draft
+          .entryOf(StoryDraftKind.fact, id)
+          ?.current
+          ?.label
+          .trim();
+      return name == null || name.isEmpty ? null : name;
+    }
     final title = facts.value?.where((fact) => fact.id == id).firstOrNull;
     final name = title?.title.trim();
     return name == null || name.isEmpty ? null : name;

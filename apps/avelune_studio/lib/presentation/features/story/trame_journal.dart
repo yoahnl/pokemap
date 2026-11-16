@@ -29,9 +29,13 @@ class TrameMilestoneJournal extends StatefulWidget {
   State<TrameMilestoneJournal> createState() => _TrameMilestoneJournalState();
 }
 
-class _TrameMilestoneJournalState extends State<TrameMilestoneJournal> {
+class _TrameMilestoneJournalState extends State<TrameMilestoneJournal>
+    with AutomaticKeepAliveClientMixin {
   String? _title;
   String? _text;
+
+  @override
+  bool get wantKeepAlive => true;
 
   StorylineTrameController get _trame => widget.trame;
 
@@ -67,6 +71,7 @@ class _TrameMilestoneJournalState extends State<TrameMilestoneJournal> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final state = gameMemoryResourceState(
@@ -147,6 +152,20 @@ class _TrameMilestoneJournalState extends State<TrameMilestoneJournal> {
                 ),
             ],
           ),
+          if (changed && (journal != null || text.isNotEmpty)) ...[
+            const SizedBox(height: StudioSpacing.s),
+            Text(l10n.trameJournalUnapplied, style: theme.textTheme.bodySmall),
+          ],
+          if (journal != null)
+            StudioSection(
+              key: const ValueKey('trame-journal-preview'),
+              title: l10n.trameJournalPreview,
+              children: [
+                Text(journal.title.fallback, style: theme.textTheme.titleSmall),
+                const SizedBox(height: StudioSpacing.s),
+                Text(journal.text.fallback),
+              ],
+            ),
         ],
       ],
     );

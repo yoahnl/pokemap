@@ -4095,4 +4095,155 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get storyHistoryOtherContext =>
       'La prochaine modification concerne un autre contexte. Retrouvez-le pour l’annuler ou la rétablir.';
+
+  @override
+  String get trameCreateStory => 'Créer une histoire';
+
+  @override
+  String get trameConditionEdit => 'Modifier';
+
+  @override
+  String get trameConditionDone => 'Terminer';
+
+  @override
+  String get trameOtherStories => 'Autres histoires';
+
+  @override
+  String get trameStoryTypeLabel => 'Type d’histoire';
+
+  @override
+  String get trameFirstChapter => 'Premier chapitre';
+
+  @override
+  String get trameShowArchived => 'Afficher les archives';
+
+  @override
+  String get trameNoActiveStory => 'Aucune histoire active';
+
+  @override
+  String get trameChapters => 'Chapitres';
+
+  @override
+  String get trameChaptersHint =>
+      'Sélectionnez un chapitre pour voir ses jalons.';
+
+  @override
+  String get trameNoChapter => 'Cette histoire n’a pas encore de chapitre.';
+
+  @override
+  String get trameNoMilestone => 'Ce chapitre n’a pas encore de jalon.';
+
+  @override
+  String get trameNoLinkedScene => 'Aucune scène liée';
+
+  @override
+  String get trameEditorial => 'À vérifier dans la trame';
+
+  @override
+  String get trameOrganizationHint =>
+      'La trame organise vos scènes. Les comportements exécutés sur les cartes les déclenchent ; l’ordre des jalons détermine celui du journal.';
+
+  @override
+  String trameChapterCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chapitres',
+      one: '1 chapitre',
+      zero: 'Aucun chapitre',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trameEntryConditions => 'Conditions d’entrée';
+
+  @override
+  String get trameCompletionConditions => 'Conditions de fin';
+
+  @override
+  String get trameConditionScopeHint =>
+      'Une condition d’entrée ne masque pas automatiquement le jalon en cours dans le journal et ne verrouille pas à elle seule le jeu.';
+
+  @override
+  String get trameConditionComplex =>
+      'Expression composée ou avancée conservée. Ce formulaire ne la remplace pas.';
+
+  @override
+  String get trameConditionAlways => 'Toujours disponible';
+
+  @override
+  String get trameConditionNotSet => 'Aucune condition déclarée';
+
+  @override
+  String get trameConditionFact => 'État de progression';
+
+  @override
+  String get trameConditionExpected => 'Valeur attendue';
+
+  @override
+  String get trameConditionTrue => 'Vrai';
+
+  @override
+  String get trameConditionFalse => 'Faux';
+
+  @override
+  String get trameConditionRemove => 'Retirer cette condition';
+
+  @override
+  String get trameConditionAll => 'Toutes ces conditions';
+
+  @override
+  String get trameConditionAny => 'Au moins une de ces conditions';
+
+  @override
+  String get trameConditionNot => 'Inverse de';
+
+  @override
+  String trameConditionKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'flagIsSet': 'Interrupteur actif',
+      'flagIsUnset': 'Interrupteur inactif',
+      'factEquals': 'État égal à',
+      'stepCompleted': 'Jalon terminé',
+      'badgeOwned': 'Badge possédé',
+      'itemQuantityAtLeast': 'Quantité d’objet minimale',
+      'moneyAtLeast': 'Argent minimum',
+      'variableEquals': 'Variable égale à',
+      'variableGreaterThan': 'Variable supérieure à',
+      'variableLessThan': 'Variable inférieure à',
+      'fieldAbilityUnlocked': 'Capacité de terrain débloquée',
+      'partyHasMove': 'Capacité présente dans l’équipe',
+      'partyHasUsableMove': 'Capacité utilisable dans l’équipe',
+      'eventIsConsumed': 'Comportement consommé',
+      'playerOnMap': 'Joueur sur la carte',
+      'other': 'Condition conservée',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get trameLinkScene => 'Lier une scène';
+
+  @override
+  String get trameMoveSceneTitle => 'Déplacer le rattachement de la scène ?';
+
+  @override
+  String get trameMoveSceneConfirm => 'Déplacer la scène';
+
+  @override
+  String trameMoveSceneHint(String sources, String target) {
+    return 'La scène sera retirée de « $sources » pour être liée à « $target ». Annuler rétablira tous les rattachements concernés.';
+  }
+
+  @override
+  String get trameJournalPreview => 'Aperçu du journal dans le brouillon';
+
+  @override
+  String get trameJournalUnapplied =>
+      'Les changements de saisie ne sont pas encore appliqués au brouillon.';
+
+  @override
+  String get trameEditorialHint =>
+      'Ces repères concernent l’organisation du récit ; ils ne signalent pas un blocage du moteur.';
 }

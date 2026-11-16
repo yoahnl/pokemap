@@ -2285,5 +2285,67 @@
   "storyReturnScene": "Retour à la scène",
   "storyReturnHistory": "Retour à Histoire",
   "storyDestinationUnavailable": "Cet élément n’est plus disponible. Votre brouillon est conservé.",
-  "storyHistoryOtherContext": "La prochaine modification concerne un autre contexte. Retrouvez-le pour l’annuler ou la rétablir."
+  "storyHistoryOtherContext": "La prochaine modification concerne un autre contexte. Retrouvez-le pour l’annuler ou la rétablir.",
+  "trameCreateStory": "Créer une histoire",
+  "trameConditionEdit": "Modifier",
+  "trameConditionDone": "Terminer",
+  "trameOtherStories": "Autres histoires",
+  "trameStoryTypeLabel": "Type d’histoire",
+  "trameFirstChapter": "Premier chapitre",
+  "trameShowArchived": "Afficher les archives",
+  "trameNoActiveStory": "Aucune histoire active",
+  "trameChapters": "Chapitres",
+  "trameChaptersHint": "Sélectionnez un chapitre pour voir ses jalons.",
+  "trameNoChapter": "Cette histoire n’a pas encore de chapitre.",
+  "trameNoMilestone": "Ce chapitre n’a pas encore de jalon.",
+  "trameNoLinkedScene": "Aucune scène liée",
+  "trameEditorial": "À vérifier dans la trame",
+  "trameOrganizationHint": "La trame organise vos scènes. Les comportements exécutés sur les cartes les déclenchent ; l’ordre des jalons détermine celui du journal.",
+  "trameChapterCount": "{count, plural, =0{Aucun chapitre} =1{1 chapitre} other{{count} chapitres}}",
+  "@trameChapterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trameEntryConditions": "Conditions d’entrée",
+  "trameCompletionConditions": "Conditions de fin",
+  "trameConditionScopeHint": "Une condition d’entrée ne masque pas automatiquement le jalon en cours dans le journal et ne verrouille pas à elle seule le jeu.",
+  "trameConditionComplex": "Expression composée ou avancée conservée. Ce formulaire ne la remplace pas.",
+  "trameConditionAlways": "Toujours disponible",
+  "trameConditionNotSet": "Aucune condition déclarée",
+  "trameConditionFact": "État de progression",
+  "trameConditionExpected": "Valeur attendue",
+  "trameConditionTrue": "Vrai",
+  "trameConditionFalse": "Faux",
+  "trameConditionRemove": "Retirer cette condition",
+  "trameConditionAll": "Toutes ces conditions",
+  "trameConditionAny": "Au moins une de ces conditions",
+  "trameConditionNot": "Inverse de",
+  "trameConditionKind": "{kind, select, flagIsSet{Interrupteur actif} flagIsUnset{Interrupteur inactif} factEquals{État égal à} stepCompleted{Jalon terminé} badgeOwned{Badge possédé} itemQuantityAtLeast{Quantité d’objet minimale} moneyAtLeast{Argent minimum} variableEquals{Variable égale à} variableGreaterThan{Variable supérieure à} variableLessThan{Variable inférieure à} fieldAbilityUnlocked{Capacité de terrain débloquée} partyHasMove{Capacité présente dans l’équipe} partyHasUsableMove{Capacité utilisable dans l’équipe} eventIsConsumed{Comportement consommé} playerOnMap{Joueur sur la carte} other{Condition conservée}}",
+  "@trameConditionKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "trameLinkScene": "Lier une scène",
+  "trameMoveSceneTitle": "Déplacer le rattachement de la scène ?",
+  "trameMoveSceneConfirm": "Déplacer la scène",
+  "trameMoveSceneHint": "La scène sera retirée de « {sources} » pour être liée à « {target} ». Annuler rétablira tous les rattachements concernés.",
+  "@trameMoveSceneHint": {
+    "placeholders": {
+      "sources": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "trameJournalPreview": "Aperçu du journal dans le brouillon",
+  "trameJournalUnapplied": "Les changements de saisie ne sont pas encore appliqués au brouillon.",
+  "trameEditorialHint": "Ces repères concernent l’organisation du récit ; ils ne signalent pas un blocage du moteur."
 }

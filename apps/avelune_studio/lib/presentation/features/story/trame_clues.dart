@@ -238,6 +238,10 @@ class _TrameClueRowState extends State<_TrameClueRow> {
               ),
             ],
           ),
+          Text(
+            clue.text.fallback,
+            key: ValueKey('trame-clue-${clue.id}-preview'),
+          ),
         ],
       ),
     );

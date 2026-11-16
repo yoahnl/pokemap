@@ -7,6 +7,8 @@ import 'package:avelune_studio/features/stories/data/local_story_adapter.dart';
 import 'package:avelune_studio/features/story_draft/application/story_publication_gateway.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_edits.dart';
+import 'package:avelune_studio/features/storyline/application/storyline_condition_edits.dart';
+import 'package:avelune_studio/features/storyline/application/storyline_journal_edits.dart';
 import 'package:avelune_studio/features/storyline/data/local_storyline_read_adapter.dart';
 import 'package:avelune_studio/features/world/data/local_world_adapter.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_behaviour_source.dart';
@@ -46,7 +48,7 @@ _openTrame() async {
   final reader = CountingReader();
   final trame = StorylineTrameController(
     port: LocalStorylineReadAdapter(session, reader: reader),
-    index: LocalNarrativeIndexAdapter(session),
+    index: LocalNarrativeIndexAdapter(session, reader: reader),
     staging: MapBuilderStoryMemory(story, editable: () => true),
     source: () => MapBuilderStoryBehaviourSource(story),
     changed: () {},
@@ -55,6 +57,97 @@ _openTrame() async {
 }
 
 void main() {
+  test('chapter and journal metadata stay targeted and conditions reopen from the catalog', () async {
+    final (session: session, story: story, trame: initial, reader: reader) =
+        await _openTrame();
+    await initial.open();
+    expect(
+      await initial.startStoryline(
+        StorylineType.sideQuest,
+        'La lettre',
+        'Livraison',
+      ),
+      isTrue,
+    );
+    final storylineId = initial.view!.outline.storylines.single.id;
+    final chapterId =
+        initial.view!.outline.storylines.single.chapters.single.id;
+    expect(
+      await initial.createMilestone(storylineId, chapterId, 'Porter la lettre'),
+      isTrue,
+    );
+    final stepId = initial.view!.milestones.single.milestone.id;
+    expect(await story.save(), isTrue, reason: story.error);
+    final trame = StorylineTrameController(
+      port: LocalStorylineReadAdapter(session, reader: reader),
+      index: LocalNarrativeIndexAdapter(session, reader: reader),
+      staging: MapBuilderStoryMemory(story, editable: () => true),
+      source: () => MapBuilderStoryBehaviourSource(story),
+      changed: () {},
+    );
+    await trame.open();
+    expect(await trame.prepare(), isTrue);
+    reader.clear();
+    expect(
+      await trame.renameChapter(storylineId, chapterId, 'Une livraison'),
+      isTrue,
+    );
+    expect(
+      await trame.setMilestoneJournal(
+        storylineId,
+        chapterId,
+        stepId,
+        journal: (title: 'La lettre', text: 'Retrouver le destinataire.'),
+      ),
+      isTrue,
+    );
+    expect(
+      await trame.setSimpleCondition(
+        storylineId,
+        chapterId,
+        stepId,
+        entry: true,
+        factId: 'fact_met',
+      ),
+      isTrue,
+    );
+    expect(
+      await trame.addJournalClue(
+        storylineId,
+        text: 'Le guide connaît le chemin.',
+        factId: 'fact_met',
+      ),
+      isTrue,
+    );
+    expect(reader.paths.where((path) => path.startsWith('maps/')), isEmpty);
+    expect(reader.unitKeys.where((key) => key.startsWith('map')), isEmpty);
+    expect(reader.definitions, isEmpty);
+    expect(await story.save(), isTrue, reason: story.error);
+    final fresh = CountingReader();
+    final saved = (await LocalStorylineReadAdapter(
+      session,
+      reader: fresh,
+    ).storylines()).single;
+    expect(saved.type, StorylineType.sideQuest);
+    expect(saved.chapters.single.title, 'Une livraison');
+    expect(
+      saved.chapters.single.steps.single.entryCondition,
+      ScriptConditionFactory.factEquals(
+        'fact_met',
+        const NarrativeValue.boolean(true),
+      ),
+    );
+    expect(
+      saved.chapters.single.steps.single.journal!.text.fallback,
+      'Retrouver le destinataire.',
+    );
+    expect(
+      saved.journalClues.single.text.fallback,
+      'Le guide connaît le chemin.',
+    );
+    expect(fresh.paths.where((path) => path.startsWith('maps/')), isEmpty);
+  }, timeout: const Timeout(Duration(minutes: 3)));
+
   test(
     'the Trame opens from the outline and saves through the story draft',
     () async {

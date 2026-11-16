@@ -4066,4 +4066,154 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get storyHistoryOtherContext =>
       'The next change belongs to another context. Return there to undo or redo it.';
+
+  @override
+  String get trameCreateStory => 'Create a story';
+
+  @override
+  String get trameConditionEdit => 'Edit';
+
+  @override
+  String get trameConditionDone => 'Done';
+
+  @override
+  String get trameOtherStories => 'Other stories';
+
+  @override
+  String get trameStoryTypeLabel => 'Story type';
+
+  @override
+  String get trameFirstChapter => 'First chapter';
+
+  @override
+  String get trameShowArchived => 'Show archived items';
+
+  @override
+  String get trameNoActiveStory => 'No active story';
+
+  @override
+  String get trameChapters => 'Chapters';
+
+  @override
+  String get trameChaptersHint => 'Select a chapter to see its milestones.';
+
+  @override
+  String get trameNoChapter => 'This story has no chapters yet.';
+
+  @override
+  String get trameNoMilestone => 'This chapter has no milestones yet.';
+
+  @override
+  String get trameNoLinkedScene => 'No linked scene';
+
+  @override
+  String get trameEditorial => 'Story organization check';
+
+  @override
+  String get trameOrganizationHint =>
+      'The plot organizes your scenes. Behaviours running on maps trigger them; milestone order determines journal order.';
+
+  @override
+  String trameChapterCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chapters',
+      one: '1 chapter',
+      zero: 'No chapters',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get trameEntryConditions => 'Entry conditions';
+
+  @override
+  String get trameCompletionConditions => 'Completion conditions';
+
+  @override
+  String get trameConditionScopeHint =>
+      'An entry condition does not automatically hide the current journal milestone or lock the game.';
+
+  @override
+  String get trameConditionComplex =>
+      'Composite or advanced expression preserved. This form does not replace it.';
+
+  @override
+  String get trameConditionAlways => 'Always available';
+
+  @override
+  String get trameConditionNotSet => 'No declared condition';
+
+  @override
+  String get trameConditionFact => 'Progression fact';
+
+  @override
+  String get trameConditionExpected => 'Expected value';
+
+  @override
+  String get trameConditionTrue => 'True';
+
+  @override
+  String get trameConditionFalse => 'False';
+
+  @override
+  String get trameConditionRemove => 'Remove this condition';
+
+  @override
+  String get trameConditionAll => 'All these conditions';
+
+  @override
+  String get trameConditionAny => 'At least one of these conditions';
+
+  @override
+  String get trameConditionNot => 'Opposite of';
+
+  @override
+  String trameConditionKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'flagIsSet': 'Flag enabled',
+      'flagIsUnset': 'Flag disabled',
+      'factEquals': 'Fact equals',
+      'stepCompleted': 'Milestone complete',
+      'badgeOwned': 'Badge owned',
+      'itemQuantityAtLeast': 'Minimum item quantity',
+      'moneyAtLeast': 'Minimum money',
+      'variableEquals': 'Variable equals',
+      'variableGreaterThan': 'Variable greater than',
+      'variableLessThan': 'Variable less than',
+      'fieldAbilityUnlocked': 'Field ability unlocked',
+      'partyHasMove': 'Party has move',
+      'partyHasUsableMove': 'Party has usable move',
+      'eventIsConsumed': 'Behaviour consumed',
+      'playerOnMap': 'Player on map',
+      'other': 'Preserved condition',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get trameLinkScene => 'Link a scene';
+
+  @override
+  String get trameMoveSceneTitle => 'Move this scene link?';
+
+  @override
+  String get trameMoveSceneConfirm => 'Move the scene';
+
+  @override
+  String trameMoveSceneHint(String sources, String target) {
+    return 'The scene will be removed from “$sources” and linked to “$target”. Undo restores all affected links.';
+  }
+
+  @override
+  String get trameJournalPreview => 'Journal preview from the draft';
+
+  @override
+  String get trameJournalUnapplied =>
+      'Your input changes have not yet been applied to the draft.';
+
+  @override
+  String get trameEditorialHint =>
+      'These checks concern story organization; they do not indicate an engine blocker.';
 }

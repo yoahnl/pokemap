@@ -76,8 +76,9 @@ Future<FakeStorylineRead> openTrameStudio(
   VerificationPort? verification,
   ProjectManifest? project,
   FakeNarrativeIndex? index,
+  FakeStorylineRead? reads,
 }) async {
-  final reads = trameReads(empty: empty);
+  reads ??= trameReads(empty: empty);
   await openMemoryStudio(
     tester,
     (index ?? memoryIndex())

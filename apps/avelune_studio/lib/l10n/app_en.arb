@@ -1155,5 +1155,67 @@
   "storyReturnScene": "Back to the scene",
   "storyReturnHistory": "Back to Story",
   "storyDestinationUnavailable": "This item is no longer available. Your draft has been preserved.",
-  "storyHistoryOtherContext": "The next change belongs to another context. Return there to undo or redo it."
+  "storyHistoryOtherContext": "The next change belongs to another context. Return there to undo or redo it.",
+  "trameCreateStory": "Create a story",
+  "trameConditionEdit": "Edit",
+  "trameConditionDone": "Done",
+  "trameOtherStories": "Other stories",
+  "trameStoryTypeLabel": "Story type",
+  "trameFirstChapter": "First chapter",
+  "trameShowArchived": "Show archived items",
+  "trameNoActiveStory": "No active story",
+  "trameChapters": "Chapters",
+  "trameChaptersHint": "Select a chapter to see its milestones.",
+  "trameNoChapter": "This story has no chapters yet.",
+  "trameNoMilestone": "This chapter has no milestones yet.",
+  "trameNoLinkedScene": "No linked scene",
+  "trameEditorial": "Story organization check",
+  "trameOrganizationHint": "The plot organizes your scenes. Behaviours running on maps trigger them; milestone order determines journal order.",
+  "trameChapterCount": "{count, plural, =0{No chapters} =1{1 chapter} other{{count} chapters}}",
+  "@trameChapterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trameEntryConditions": "Entry conditions",
+  "trameCompletionConditions": "Completion conditions",
+  "trameConditionScopeHint": "An entry condition does not automatically hide the current journal milestone or lock the game.",
+  "trameConditionComplex": "Composite or advanced expression preserved. This form does not replace it.",
+  "trameConditionAlways": "Always available",
+  "trameConditionNotSet": "No declared condition",
+  "trameConditionFact": "Progression fact",
+  "trameConditionExpected": "Expected value",
+  "trameConditionTrue": "True",
+  "trameConditionFalse": "False",
+  "trameConditionRemove": "Remove this condition",
+  "trameConditionAll": "All these conditions",
+  "trameConditionAny": "At least one of these conditions",
+  "trameConditionNot": "Opposite of",
+  "trameConditionKind": "{kind, select, flagIsSet{Flag enabled} flagIsUnset{Flag disabled} factEquals{Fact equals} stepCompleted{Milestone complete} badgeOwned{Badge owned} itemQuantityAtLeast{Minimum item quantity} moneyAtLeast{Minimum money} variableEquals{Variable equals} variableGreaterThan{Variable greater than} variableLessThan{Variable less than} fieldAbilityUnlocked{Field ability unlocked} partyHasMove{Party has move} partyHasUsableMove{Party has usable move} eventIsConsumed{Behaviour consumed} playerOnMap{Player on map} other{Preserved condition}}",
+  "@trameConditionKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "trameLinkScene": "Link a scene",
+  "trameMoveSceneTitle": "Move this scene link?",
+  "trameMoveSceneConfirm": "Move the scene",
+  "trameMoveSceneHint": "The scene will be removed from “{sources}” and linked to “{target}”. Undo restores all affected links.",
+  "@trameMoveSceneHint": {
+    "placeholders": {
+      "sources": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "trameJournalPreview": "Journal preview from the draft",
+  "trameJournalUnapplied": "Your input changes have not yet been applied to the draft.",
+  "trameEditorialHint": "These checks concern story organization; they do not indicate an engine blocker."
 }

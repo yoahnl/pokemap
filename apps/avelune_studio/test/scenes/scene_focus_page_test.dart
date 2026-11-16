@@ -188,6 +188,16 @@ void main() {
     await openTrameStudio(tester, index: index);
 
     await _tap(tester, 'trame-milestone-meet');
+    await tester.scrollUntilVisible(
+      _key('trame-scene-open-talk'),
+      200,
+      scrollable: find
+          .descendant(
+            of: _key('story-inspector'),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await _tap(tester, 'trame-scene-open-talk');
     expect(_key('scene-focus'), findsOneWidget);
     expect(_key('scene-focus-graph-talk'), findsOneWidget);

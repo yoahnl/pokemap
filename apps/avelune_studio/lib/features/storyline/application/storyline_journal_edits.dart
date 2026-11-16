@@ -22,8 +22,13 @@ extension StorylineJournalEdits on StorylineTrameController {
   ) => _step(fullStoryline(storylineId), chapterId, stepId);
 
   List<NarrativeTitle> get booleanFacts => [
-    for (final fact in facts.value ?? const <NarrativeTitle>[])
-      if (fact.value?.kind == NarrativeValueKind.boolean) fact,
+    for (final fact in working().facts)
+      if (fact.initialValue.kind == NarrativeValueKind.boolean)
+        NarrativeTitle(
+          id: fact.id,
+          title: fact.label,
+          value: fact.initialValue,
+        ),
   ];
 
   Future<bool> setMilestoneJournal(

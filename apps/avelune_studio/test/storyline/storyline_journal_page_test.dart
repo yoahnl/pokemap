@@ -30,11 +30,65 @@ String _status(WidgetTester tester) => tester
     .data!;
 
 void main() {
+  testWidgets(
+    'unfinished journal input survives scrolling away from the inspector section',
+    (tester) async {
+      await openTrameStudio(tester);
+      await _tap(tester, find.byKey(const ValueKey('trame-milestone-meet')));
+      final scroll = find
+          .descendant(
+            of: find.byKey(const ValueKey('story-inspector')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      for (final slot in ['entry', 'completion']) {
+        await tester.scrollUntilVisible(
+          find.byKey(ValueKey('trame-condition-$slot-edit')),
+          150,
+          scrollable: scroll,
+        );
+        await _tap(tester, find.byKey(ValueKey('trame-condition-$slot-edit')));
+      }
+      await tester.scrollUntilVisible(
+        _field('trame-journal-text'),
+        200,
+        scrollable: scroll,
+      );
+      await tester.enterText(
+        _field('trame-journal-text'),
+        'Une piste encore en cours',
+      );
+      FocusManager.instance.primaryFocus?.unfocus();
+      await settleMemory(tester);
+      final name = find.byKey(const ValueKey('trame-milestone-name-meet'));
+      await tester.scrollUntilVisible(name, -250, scrollable: scroll);
+      await settleMemory(tester);
+      await tester.scrollUntilVisible(
+        _field('trame-journal-text'),
+        250,
+        scrollable: scroll,
+      );
+      expect(
+        tester.widget<TextField>(_field('trame-journal-text')).controller!.text,
+        'Une piste encore en cours',
+      );
+    },
+  );
   testWidgets('a milestone journal is written into the draft', (tester) async {
     final reads = await openTrameStudio(tester);
     expect(reads.storylineReads, 0);
 
     await _tap(tester, find.byKey(const ValueKey('trame-milestone-meet')));
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('trame-journal-title')),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('story-inspector')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     expect(reads.storylineReads, 1);
     expect(_button(tester, 'trame-journal-apply').label, 'Ajouter au journal');
     expect(_button(tester, 'trame-journal-apply').onPressed, isNull);
@@ -52,6 +106,22 @@ void main() {
     );
     expect(_button(tester, 'trame-journal-apply').onPressed, isNull);
     expect(find.byKey(const ValueKey('trame-journal-remove')), findsOneWidget);
+    final preview = find.byKey(const ValueKey('trame-journal-preview'));
+    expect(preview, findsOneWidget);
+    expect(
+      find.descendant(of: preview, matching: find.text('Léo attend au nord.')),
+      findsOneWidget,
+    );
+    await tester.enterText(_field('trame-journal-text'), 'Texte non appliqué');
+    await settleMemory(tester);
+    expect(
+      find.descendant(of: preview, matching: find.text('Léo attend au nord.')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: preview, matching: find.text('Texte non appliqué')),
+      findsNothing,
+    );
   });
 
   testWidgets('a clue note is added to the storyline draft', (tester) async {

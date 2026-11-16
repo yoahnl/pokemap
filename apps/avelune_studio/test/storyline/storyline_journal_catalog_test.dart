@@ -88,6 +88,7 @@ void main() {
       expect(trame.booleanFacts.map((fact) => fact.id), {
         'fact_met',
         'fact_door',
+        'fact_ouvrir_la_porte',
       });
 
       expect(await story.save(), isTrue, reason: story.error);

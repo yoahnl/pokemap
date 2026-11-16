@@ -6353,6 +6353,234 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'La prochaine modification concerne un autre contexte. Retrouvez-le pour l’annuler ou la rétablir.'**
   String get storyHistoryOtherContext;
+
+  /// No description provided for @trameCreateStory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer une histoire'**
+  String get trameCreateStory;
+
+  /// No description provided for @trameConditionEdit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier'**
+  String get trameConditionEdit;
+
+  /// No description provided for @trameConditionDone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminer'**
+  String get trameConditionDone;
+
+  /// No description provided for @trameOtherStories.
+  ///
+  /// In fr, this message translates to:
+  /// **'Autres histoires'**
+  String get trameOtherStories;
+
+  /// No description provided for @trameStoryTypeLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type d’histoire'**
+  String get trameStoryTypeLabel;
+
+  /// No description provided for @trameFirstChapter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Premier chapitre'**
+  String get trameFirstChapter;
+
+  /// No description provided for @trameShowArchived.
+  ///
+  /// In fr, this message translates to:
+  /// **'Afficher les archives'**
+  String get trameShowArchived;
+
+  /// No description provided for @trameNoActiveStory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune histoire active'**
+  String get trameNoActiveStory;
+
+  /// No description provided for @trameChapters.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chapitres'**
+  String get trameChapters;
+
+  /// No description provided for @trameChaptersHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sélectionnez un chapitre pour voir ses jalons.'**
+  String get trameChaptersHint;
+
+  /// No description provided for @trameNoChapter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette histoire n’a pas encore de chapitre.'**
+  String get trameNoChapter;
+
+  /// No description provided for @trameNoMilestone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce chapitre n’a pas encore de jalon.'**
+  String get trameNoMilestone;
+
+  /// No description provided for @trameNoLinkedScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune scène liée'**
+  String get trameNoLinkedScene;
+
+  /// No description provided for @trameEditorial.
+  ///
+  /// In fr, this message translates to:
+  /// **'À vérifier dans la trame'**
+  String get trameEditorial;
+
+  /// No description provided for @trameOrganizationHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'La trame organise vos scènes. Les comportements exécutés sur les cartes les déclenchent ; l’ordre des jalons détermine celui du journal.'**
+  String get trameOrganizationHint;
+
+  /// No description provided for @trameChapterCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun chapitre} =1{1 chapitre} other{{count} chapitres}}'**
+  String trameChapterCount(int count);
+
+  /// No description provided for @trameEntryConditions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Conditions d’entrée'**
+  String get trameEntryConditions;
+
+  /// No description provided for @trameCompletionConditions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Conditions de fin'**
+  String get trameCompletionConditions;
+
+  /// No description provided for @trameConditionScopeHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une condition d’entrée ne masque pas automatiquement le jalon en cours dans le journal et ne verrouille pas à elle seule le jeu.'**
+  String get trameConditionScopeHint;
+
+  /// No description provided for @trameConditionComplex.
+  ///
+  /// In fr, this message translates to:
+  /// **'Expression composée ou avancée conservée. Ce formulaire ne la remplace pas.'**
+  String get trameConditionComplex;
+
+  /// No description provided for @trameConditionAlways.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toujours disponible'**
+  String get trameConditionAlways;
+
+  /// No description provided for @trameConditionNotSet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune condition déclarée'**
+  String get trameConditionNotSet;
+
+  /// No description provided for @trameConditionFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'État de progression'**
+  String get trameConditionFact;
+
+  /// No description provided for @trameConditionExpected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur attendue'**
+  String get trameConditionExpected;
+
+  /// No description provided for @trameConditionTrue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vrai'**
+  String get trameConditionTrue;
+
+  /// No description provided for @trameConditionFalse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Faux'**
+  String get trameConditionFalse;
+
+  /// No description provided for @trameConditionRemove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer cette condition'**
+  String get trameConditionRemove;
+
+  /// No description provided for @trameConditionAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes ces conditions'**
+  String get trameConditionAll;
+
+  /// No description provided for @trameConditionAny.
+  ///
+  /// In fr, this message translates to:
+  /// **'Au moins une de ces conditions'**
+  String get trameConditionAny;
+
+  /// No description provided for @trameConditionNot.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inverse de'**
+  String get trameConditionNot;
+
+  /// No description provided for @trameConditionKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, flagIsSet{Interrupteur actif} flagIsUnset{Interrupteur inactif} factEquals{État égal à} stepCompleted{Jalon terminé} badgeOwned{Badge possédé} itemQuantityAtLeast{Quantité d’objet minimale} moneyAtLeast{Argent minimum} variableEquals{Variable égale à} variableGreaterThan{Variable supérieure à} variableLessThan{Variable inférieure à} fieldAbilityUnlocked{Capacité de terrain débloquée} partyHasMove{Capacité présente dans l’équipe} partyHasUsableMove{Capacité utilisable dans l’équipe} eventIsConsumed{Comportement consommé} playerOnMap{Joueur sur la carte} other{Condition conservée}}'**
+  String trameConditionKind(String kind);
+
+  /// No description provided for @trameLinkScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lier une scène'**
+  String get trameLinkScene;
+
+  /// No description provided for @trameMoveSceneTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplacer le rattachement de la scène ?'**
+  String get trameMoveSceneTitle;
+
+  /// No description provided for @trameMoveSceneConfirm.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplacer la scène'**
+  String get trameMoveSceneConfirm;
+
+  /// No description provided for @trameMoveSceneHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'La scène sera retirée de « {sources} » pour être liée à « {target} ». Annuler rétablira tous les rattachements concernés.'**
+  String trameMoveSceneHint(String sources, String target);
+
+  /// No description provided for @trameJournalPreview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aperçu du journal dans le brouillon'**
+  String get trameJournalPreview;
+
+  /// No description provided for @trameJournalUnapplied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les changements de saisie ne sont pas encore appliqués au brouillon.'**
+  String get trameJournalUnapplied;
+
+  /// No description provided for @trameEditorialHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ces repères concernent l’organisation du récit ; ils ne signalent pas un blocage du moteur.'**
+  String get trameEditorialHint;
 }
 
 class _AppLocalizationsDelegate

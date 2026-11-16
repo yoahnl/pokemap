@@ -55,11 +55,6 @@ class TrameSceneGroup extends StatelessWidget {
     final records = {
       for (final record in view.behavioursOfScene(sceneId)) record.id,
     };
-    final scene = trame
-        .source()
-        .scenes
-        .where((scene) => scene.id == sceneId)
-        .firstOrNull;
     return Padding(
       key: ValueKey('trame-scene-$sceneId'),
       padding: const EdgeInsets.only(bottom: StudioSpacing.m),
@@ -70,7 +65,9 @@ class TrameSceneGroup extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  l10n.trameScene(scene?.name ?? l10n.behavioursSceneNotFound),
+                  l10n.trameScene(
+                    trame.sceneName(sceneId) ?? l10n.behavioursSceneNotFound,
+                  ),
                   style: theme.textTheme.labelLarge,
                 ),
               ),

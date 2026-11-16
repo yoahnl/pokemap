@@ -9,6 +9,8 @@ import 'package:avelune_studio/features/storyline/application/storyline_trame_ed
 import 'package:avelune_studio/presentation/features/story/game_memory_states.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
+import 'trame_create_story.dart';
+
 class TrameStart extends StatefulWidget {
   const TrameStart({super.key, required this.trame});
 
@@ -36,17 +38,10 @@ class _TrameStartState extends State<TrameStart> {
     final proposal = trame.proposal;
     final empty = StudioButton(
       key: const ValueKey('trame-start-empty'),
-      label: l10n.trameStartEmpty,
+      label: l10n.trameCreateStory,
       icon: Icons.add,
-      variant: StudioButtonVariant.secondary,
       onPressed: editable
-          ? () => unawaited(
-              trame.startStoryline(
-                StorylineType.main,
-                l10n.trameMainTitle,
-                l10n.trameNewChapter,
-              ),
-            )
+          ? () => unawaited(showTrameCreateStory(context, trame))
           : null,
     );
     if (proposal.value == null &&
@@ -62,13 +57,14 @@ class _TrameStartState extends State<TrameStart> {
           runSpacing: StudioSpacing.s,
           alignment: WrapAlignment.center,
           children: [
+            empty,
             StudioButton(
               key: const ValueKey('trame-propose'),
               label: l10n.tramePropose,
               icon: Icons.auto_awesome_outlined,
+              variant: StudioButtonVariant.secondary,
               onPressed: () => unawaited(trame.loadProposal()),
             ),
-            empty,
           ],
         ),
       );
