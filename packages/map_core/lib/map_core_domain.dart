@@ -390,6 +390,7 @@ export 'src/runtime/cinematic_timeline_schedule.dart';
 export 'src/dialogue/runtime_dialogue_document.dart';
 export 'src/dialogue/dialogue_fact_references.dart';
 export 'src/dialogue/yarn_dialogue_compiler.dart';
+export 'src/dialogue/yarn_dialogue_line_literal.dart';
 export 'src/read_models/cinematic_timeline_time_layout_read_model.dart';
 export 'src/read_models/cinematic_actor_display_preview_model.dart';
 export 'src/read_models/cinematic_preview_playback_plan.dart';

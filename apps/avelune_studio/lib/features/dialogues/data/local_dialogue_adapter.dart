@@ -17,6 +17,7 @@ import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/dialogue_port.dart';
 import 'local_dialogue_transaction.dart';
+import '../../narrative/data/local_narrative_catalog_session.dart';
 
 class LocalDialogueAdapter implements DialoguePort, DialoguePortraitPort {
   const LocalDialogueAdapter({
@@ -24,12 +25,14 @@ class LocalDialogueAdapter implements DialoguePort, DialoguePortraitPort {
     required this.mapAdapter,
     this.reader = const LocalProjectFileReader(),
     this.faultInjector,
+    this.publicationSession,
   });
 
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   final ProjectFileReader reader;
   final AuthoringTransactionFaultInjector? faultInjector;
+  final LocalNarrativeCatalogSession? publicationSession;
 
   @override
   Future<Uint8List?> readPortrait(String characterId, String stateId) async {
@@ -125,6 +128,7 @@ class LocalDialogueAdapter implements DialoguePort, DialoguePortraitPort {
         session: session,
         mapAdapter: mapAdapter,
         faultInjector: faultInjector,
+        publicationSession: publicationSession,
       ).run(
         id: id,
         base: base,

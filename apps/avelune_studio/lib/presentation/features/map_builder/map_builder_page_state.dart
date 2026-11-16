@@ -3,6 +3,7 @@ part of 'map_builder_page.dart';
 class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   late final ProviderSubscription<MapWorkspaceController> _subscription;
   late final ProviderSubscription<MapConnectionPort> _connections;
+  late final ProviderSubscription<StoryPublicationGatewayFactory> _publications;
   ProviderSubscription<StudioRuntimeBuilder>? _runtime;
   late final MapWorkspaceController _maps;
   late final MapEditingInputSession _input;
@@ -68,8 +69,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       behaviours.length,
       behaviours.join(', '),
     ),
-    gateway: (draft, saved) =>
-        ref.read(storyPublicationGatewayProvider(widget.session))(draft, saved),
+    gateway: (draft, saved) => _publications.read()(draft, saved),
     loadDialogue: ref.read(storyDialogueLoaderProvider(widget.session)),
     loadMedia: (project) async =>
         switch (ref.read(eventPortProvider(widget.session))) {
@@ -107,6 +107,10 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       (_, _) {},
     );
     _maps = _subscription.read();
+    _publications = ref.listenManual(
+      storyPublicationGatewayProvider(widget.session),
+      (_, _) {},
+    );
     _maps.modelDeletionGuard = _story.modelDeletionProblem;
     _stories.attach();
     _story.openScene = _openScene;
@@ -270,6 +274,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     }
     _runtime?.close();
     _stories.close();
+    _publications.close();
     _connections.close();
     _subscription.close();
     super.dispose();

@@ -654,7 +654,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return {
       AuthoringTransport.directApi: 'test/domains/maps/border_actions_test.dart',
       AuthoringTransport.cli: 'test/tooling/jsonl_border_catalog_flow_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/border_drawing_host_owner_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/border_catalog_server.test.ts',
     };
   }
@@ -836,7 +836,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli:
           'test/domains/narrative/dialogue_line_text_edits_test.dart',
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/dialogues/dialogue_line_text_edit_publication_test.dart',
+          '../../apps/avelune_studio/test/story_draft/story_dialogue_scene_publication_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/scene_dialogue_feedback_stdio.test.ts',
     };

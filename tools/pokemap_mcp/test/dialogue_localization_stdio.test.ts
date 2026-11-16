@@ -42,6 +42,7 @@ test("MCP discovers, publishes and protects localized dialogue identities", { ti
     assert.equal(contract.storage, "entry.localization");
     assert.equal(contract.runtimeCapability, "project.dialogue-localization@1");
     assert.equal(contract.runtimeExportSupported, false);
+    assert.equal(record(record(action.extensions).sourceTextContract).explicitLineCommand, "line_v1");
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const localized = { ...entry, localization: { format: 1, sourceLocale: "fr", units: [{
       id: "greeting", binding: "/Start/0", kind: "line", source: "Bonjour",
@@ -62,6 +63,21 @@ test("MCP discovers, publishes and protects localized dialogue identities", { ti
     const persisted = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
       actionId: "dialogue.update", parameters: { entry: localized } });
     assert.deepEqual(record((record(persisted.project).dialogues as JsonRecord[])[0]).localization, localized.localization);
+    assert.equal(await readFile(join(root, entry.relativePath), "utf8"), source);
+    const explicitText = "Locuteur : (Bonjour)\n<<jump Start>>";
+    const explicitSource = `title: Start\n---\n<<line_v1 ${JSON.stringify({ text: explicitText, speaker: null })}>>\n===\n`;
+    const updated = { ...localized, localization: { ...localized.localization,
+      units: localized.localization.units.map(unit => ({ ...unit, source: explicitText })) } };
+    const explicitPlan = await plan({ entry: updated, source: explicitSource,
+      lineTextEdits: [{ nodeName: "Start", lineIndex: 0, beforeText: "Bonjour", afterText: explicitText }] }, "explicit-line");
+    const explicitApplied = await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
+      planId: explicitPlan.planId, operationId: "explicit-line" });
+    const explicitRead = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
+      actionId: "dialogue.update", parameters: { entry: updated } });
+    assert.deepEqual(record((record(explicitRead.project).dialogues as JsonRecord[])[0]).localization, updated.localization);
+    assert.equal(await readFile(join(root, entry.relativePath), "utf8"), explicitSource);
+    await call("pokemap_history", { operation: "undo", projectHandle: opened.projectHandle,
+      entryId: record(explicitApplied.receipt).receiptId, idempotencyKey: "undo-explicit-line" });
     assert.equal(await readFile(join(root, entry.relativePath), "utf8"), source);
     const before = await readFile(join(root, "project.json"));
     const headBefore = await readFile(join(root, "catalog/HEAD.json"));

@@ -15,7 +15,8 @@ void main() {
       addTearDown(f.dispose);
       final request = await f.request('dialogue.source_update',
           f.parameters('dialogue.source_update',
-              source: f.sourceText.replaceFirst(_beforeText, _afterText),
+              source: f.sourceText.replaceFirst(_beforeText, _afterText)
+                  .replaceFirst('YES', 'OUI'),
               edits: [_edit()]));
       if (jsonl) {
         final worker = JsonlWorker(api: f.readApi, mutations: f.api);
@@ -37,6 +38,8 @@ void main() {
             planId: plan.planId, operationId: 'inline-edit');
       }
       final after = await f.loader.load(f.opened.projectHandle);
+      expect(await f.sourceFile.readAsString(),
+          f.sourceText.replaceFirst(_beforeText, _afterText).replaceFirst('YES', 'OUI'));
       expect(after.manifest.scenes.single, _replaceSceneText(f.project.scenes.single));
       final feedback = _payload(after.manifest.scenes.single).linePolicies.single.feedback;
       expect(feedback.audioCue!.revealOffset, 6);
@@ -285,13 +288,12 @@ void main() {
     }
   });
 
-  test('bounded edits reject changed choices commands and line topology',
+  test('bounded edits reject changed outcomes commands and line topology',
       () async {
     final f = await _Fixture.create();
     addTearDown(f.dispose);
     final edited = f.sourceText.replaceFirst(_beforeText, _afterText);
     for (final source in [
-      edited.replaceFirst('YES', 'OUI'),
       edited.replaceFirst('choice_0', 'choice_1'),
       edited.replaceFirst('---\n', '---\nInserted\n'),
       edited.replaceFirst('---\n', '---\n<<speaker Changed>>\n'),

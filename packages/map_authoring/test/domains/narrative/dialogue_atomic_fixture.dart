@@ -22,8 +22,10 @@ class DialogueAtomicFixture {
       defaultStartNode: 'Accueil');
   static const sourceText = 'title: Accueil\n---\nBonjour !\n===\n';
 
-  static Future<DialogueAtomicFixture> create({bool catalog = false}) async {
-    final directory = await Directory.systemTemp.createTemp('dialogue_atomic_');
+  static Future<DialogueAtomicFixture> create(
+      {bool catalog = false, Directory? qaRoot}) async {
+    final directory =
+        await (qaRoot ?? Directory.systemTemp).createTemp('dialogue_atomic_');
     await Directory('${directory.path}/dialogues').create();
     await File('${directory.path}/${entry.relativePath}')
         .writeAsString(sourceText);

@@ -105,6 +105,7 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
       const edits = record(record(schema.properties).lineTextEdits);
       assert.equal(edits.type, "array");
       assert.equal(record(edits.items).type, "object");
+      assert.equal(record(extensions.lineTextEditContract).choiceLabelChanges, true);
     }
     const cueContract = record(record(record(actions.get(feedbackAction)!.extensions).linePolicy).audioCue);
     assert.equal(cueContract.cardinality, "atMostOnePerLine");
@@ -238,10 +239,10 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
       lineTextEdits: [secondEdit, secondEdit] }, true);
     assert.equal(duplicate.domainCode, "dialogue.line_text_edits_invalid");
     const structural = await plan("dialogue.source_update", { dialogueId: "choice",
-      source: publishedSource.replace("Trouvé !", "Objet trouvé !").replace("-> Yes", "-> Oui"),
+      source: publishedSource.replace("Trouvé !", "Objet trouvé !").replace("<<outcome yes>>", "<<outcome no>>"),
       lineTextEdits: [secondEdit] }, true);
     assert.equal(structural.domainCode, "dialogue.line_text_edits_structure_changed");
-    publishedSource = publishedSource.replace("Trouvé !", "Objet trouvé !");
+    publishedSource = publishedSource.replace("Trouvé !", "Objet trouvé !").replace("-> Yes", "-> Oui");
     await mutate("dialogue.update", {
       entry: { ...(original.dialogues as JsonRecord[])[0], name: "Translated choice" },
       source: publishedSource, lineTextEdits: [secondEdit],
@@ -270,7 +271,7 @@ test("live MCP routes scoped choice cancellation and line feedback through canon
     assert.equal(media.kind, "sound"); assert.equal(media.durationMs, 1000);
     assert.notEqual(media.loopByDefault, true);
     assert.ok(JSON.stringify(actions.get("dialogue.source_update")).includes("{{ fact.<id> }}"));
-    publishedSource = publishedSource.replace("-> Yes", "-> {{ fact.score }} points");
+    publishedSource = publishedSource.replace("-> Oui", "-> {{ fact.score }} points");
     await mutate("dialogue.source_update", { dialogueId: "choice", source: publishedSource });
     assert.equal(await readFile(sourcePath, "utf8"), publishedSource);
     const missingFact = await plan("dialogue.source_update", { dialogueId: "choice",

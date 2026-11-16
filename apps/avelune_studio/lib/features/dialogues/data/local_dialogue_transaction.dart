@@ -10,6 +10,7 @@ import 'package:map_core/map_core.dart';
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../narrative/data/local_narrative_catalog_transaction.dart';
+import '../../narrative/data/local_narrative_catalog_session.dart';
 import '../domain/dialogue_port.dart';
 
 class LocalDialogueTransaction {
@@ -17,11 +18,13 @@ class LocalDialogueTransaction {
     required this.session,
     required this.mapAdapter,
     this.faultInjector,
+    this.publicationSession,
   });
 
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   final AuthoringTransactionFaultInjector? faultInjector;
+  final LocalNarrativeCatalogSession? publicationSession;
 
   Future<DialoguePublicationReceipt> run({
     required String id,
@@ -43,6 +46,7 @@ class LocalDialogueTransaction {
           session: session,
           mapAdapter: mapAdapter,
           faultInjector: faultInjector,
+          reusableSession: publicationSession,
         ).run(
           actionId: action,
           refreshCatalog: true,

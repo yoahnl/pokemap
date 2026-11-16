@@ -105,7 +105,11 @@ final class DialogueAuthoringCompiler {
     final commandPattern = RegExp(r'<<\s*([^\s>]+)');
     for (var index = 0; index < lines.length; index++) {
       final literal = lines[index].trim();
-      if (literal.startsWith(r'\"') || literal.startsWith(r'-> \"')) continue;
+      if (literal.startsWith(r'\"') ||
+          literal.startsWith(r'-> \"') ||
+          YarnDialogueLineLiteral.matches(literal)) {
+        continue;
+      }
       for (final match in commandPattern.allMatches(lines[index])) {
         final command = match.group(1) ?? '';
         if (command == 'outcome' &&

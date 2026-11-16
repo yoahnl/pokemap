@@ -1,4 +1,5 @@
 import 'package:map_authoring/map_authoring_dialogue.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 const source = '// A preserved author note\r\n'
@@ -21,6 +22,101 @@ const source = '// A preserved author note\r\n'
     '===\r\n';
 
 void main() {
+  for (final body in [
+    'Locuteur : texte',
+    '(Ceci reste une réplique.)',
+    'Étiquette: {{ fact.name }}\n<<jump End>>',
+  ]) {
+    test('ambiguous line text preserves its kind and source bytes: $body', () {
+      final opened = readLocalizedDialogue(source: source, sourceLocale: 'fr');
+      final line =
+          opened.document.nodes.last.steps.whereType<DeLineStep>().single;
+      final previous = opened.localization.translate(line.id, 'en', 'Goodbye.');
+      line.body = body;
+      final changed =
+          writeLocalizedDialogue(opened.document, previous: previous);
+      final reopened = readLocalizedDialogue(
+        source: changed.source,
+        sourceLocale: 'fr',
+        localization: changed.localization,
+      );
+      final read =
+          reopened.document.nodes.last.steps.whereType<DeLineStep>().single;
+      expect(read.body, body);
+      expect(read.speaker, isNull);
+      expect(read.id, line.id);
+      final compiled = const YarnDialogueCompiler().compile(changed.source);
+      expect(
+          (compiled.nodes.last.steps.single as RuntimeDialogueLine).text, body);
+      expect(reopened.localization.unit(line.id).translations,
+          previous.unit(line.id).translations);
+      expect(changed.source.split('title: End').first,
+          source.split('title: End').first);
+      read.body = 'Au revoir.';
+      final second = writeLocalizedDialogue(reopened.document,
+          previous: reopened.localization);
+      expect(
+          readLocalizedDialogue(
+                  source: second.source,
+                  sourceLocale: 'fr',
+                  localization: second.localization)
+              .localization
+              .unit(line.id)
+              .source,
+          'Au revoir.');
+    });
+  }
+
+  test('ordinary edits retain the exact historical speaker prefix', () {
+    const original = 'title: Start\r\n---\r\nLuth :   Bonjour !  \r\n===\r\n';
+    final opened = readLocalizedDialogue(source: original, sourceLocale: 'fr');
+    opened.document.nodes.single.steps.whereType<DeLineStep>().single.body =
+        '  Bonsoir !';
+    final changed =
+        writeLocalizedDialogue(opened.document, previous: opened.localization);
+    expect(changed.source, original.replaceFirst('Bonjour', 'Bonsoir'));
+    final reopened = readLocalizedDialogue(
+        source: changed.source,
+        sourceLocale: 'fr',
+        localization: changed.localization);
+    expect(
+        reopened.document.nodes.single.steps
+            .whereType<DeLineStep>()
+            .single
+            .speaker,
+        'Luth');
+  });
+
+  test('an explicit line inside a choice retains portrait and outcome', () {
+    const original = 'title: Start\n---\n-> Oui\n  <<outcome yes>>\n'
+        '  <<portrait hero happy>>\n  Bonjour\n===\n';
+    final opened = readLocalizedDialogue(source: original, sourceLocale: 'fr');
+    final branch = opened.document.nodes.single.steps
+        .whereType<DeChoiceStep>()
+        .single
+        .branches
+        .single;
+    final line = branch.steps.single as DeLineStep;
+    line.body = '(Une réplique : sans narrateur.)';
+    final changed =
+        writeLocalizedDialogue(opened.document, previous: opened.localization);
+    final reopened = readLocalizedDialogue(
+        source: changed.source,
+        sourceLocale: 'fr',
+        localization: changed.localization);
+    final next = reopened.document.nodes.single.steps
+        .whereType<DeChoiceStep>()
+        .single
+        .branches
+        .single;
+    expect(next.outcomeId, 'yes');
+    final read = next.steps.single as DeLineStep;
+    expect(read.body, line.body);
+    expect(read.characterId, 'hero');
+    expect(read.portraitStateId, 'happy');
+    expect(read.speaker, isNull);
+  });
+
   test('structural changes still use the canonical writer', () {
     final document = parseYarnToDocument(source);
     document.nodes.last.steps

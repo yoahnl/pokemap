@@ -656,6 +656,8 @@ final class CatalogAuthoringSession {
           workspaceFingerprint: mutation.workspaceFingerprint,
           publicBaseRevision: publicRevision,
           publicDiff: mutation.diff, publicPlan: publicPlan,
+          objectWriteConcurrency: const {'dialogue.update', 'dialogue.source_update'}
+              .contains(request.actionId) ? 16 : 1,
           currentProjectRevision: currentRevision,
           idempotencyKey: request.idempotencyKey!, request: request);
       _plans[prepared.plan.planId] = prepared;
@@ -919,6 +921,8 @@ final class CatalogAuthoringSession {
       canonicalAuthoringJson({'actionId': actionId, 'parameters': parameters});
 
   static const _reusableWorkshopActions = {
+    'dialogue.update',
+    'dialogue.source_update',
     'event_v2.record_upsert',
     'event_v2.record_upsert_batch',
     'event_v2.delete',

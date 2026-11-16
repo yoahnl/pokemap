@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'runtime_dialogue_document.dart';
+import 'yarn_dialogue_line_literal.dart';
 
 final class YarnDialogueFormatException extends FormatException {
   YarnDialogueFormatException(
@@ -115,6 +116,21 @@ final class YarnDialogueCompiler {
       );
     }
 
+    RuntimeDialogueLine explicitLine(String source, int lineNumber) {
+      try {
+        return dialogueLine(
+          YarnDialogueLineLiteral.parse(source).displayedText,
+          literal: true,
+        );
+      } on FormatException catch (error) {
+        throw YarnDialogueFormatException(
+          error.message.toString(),
+          lineNumber: lineNumber,
+          sourceLine: source,
+        );
+      }
+    }
+
     void closeChoiceOption() {
       if (currentChoiceText != null) {
         currentChoices.add(
@@ -197,7 +213,9 @@ final class YarnDialogueCompiler {
             'Indented Yarn content must belong to a choice.',
           );
         }
-        if (trimmed.startsWith(r'\"')) {
+        if (YarnDialogueLineLiteral.matches(trimmed)) {
+          currentChoiceSteps.add(explicitLine(trimmed, lineNumber));
+        } else if (trimmed.startsWith(r'\"')) {
           currentChoiceSteps.add(
             dialogueLine(_literal(trimmed), literal: true),
           );
@@ -233,6 +251,9 @@ final class YarnDialogueCompiler {
         currentChoiceText = choiceText.startsWith(r'\"')
             ? _literal(choiceText)
             : choiceText;
+      } else if (YarnDialogueLineLiteral.matches(trimmed)) {
+        if (inChoiceBlock) closeChoiceBlock();
+        rootSteps.add(explicitLine(trimmed, lineNumber));
       } else if (trimmed.startsWith(r'\"')) {
         if (inChoiceBlock) closeChoiceBlock();
         rootSteps.add(dialogueLine(_literal(trimmed), literal: true));

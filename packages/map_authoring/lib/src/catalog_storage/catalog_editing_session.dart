@@ -596,6 +596,7 @@ final class CatalogEditingSession {
     Future<String> Function()? currentProjectRevision,
     required String idempotencyKey,
     AuthoringRequest? request,
+    int objectWriteConcurrency = 1,
   }) =>
       _serialize(() => _planPatch(
           upserts: upserts,
@@ -607,6 +608,7 @@ final class CatalogEditingSession {
           publicDiff: publicDiff,
           publicPlan: publicPlan,
           currentProjectRevision: currentProjectRevision,
+          objectWriteConcurrency: objectWriteConcurrency,
           request: request,
           idempotencyKey: idempotencyKey));
 

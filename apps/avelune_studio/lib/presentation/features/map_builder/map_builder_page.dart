@@ -17,6 +17,7 @@ import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/narrative_providers.dart';
 import 'package:avelune_studio/app/di/story_draft_providers.dart';
+import 'package:avelune_studio/features/story_draft/application/story_publication_gateway.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_failure_message.dart';

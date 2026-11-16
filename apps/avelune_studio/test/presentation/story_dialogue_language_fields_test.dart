@@ -52,7 +52,7 @@ void main() {
     },
   );
   testWidgets(
-    'an unrepresentable input stays recoverable and Cancel leaves no draft',
+    'an empty source stays recoverable and Cancel leaves no draft',
     (tester) async {
       final h = DialogueCatalogHarness(count: 1);
       final maps = await openMemoryStudio(
@@ -71,15 +71,15 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('dialogue-document-edit')));
       await tester.pumpAndSettle();
       final field = find.byKey(const ValueKey('dialogue-editor-source'));
-      await tester.enterText(field, 'Nouveau locuteur : texte');
+      await tester.enterText(field, '   ');
       await tester.tap(find.byKey(const ValueKey('confirm-reviewed-plan')));
       await tester.pumpAndSettle();
       expect(
         tester.widget<StudioDraftField>(field).value,
-        'Nouveau locuteur : texte',
+        '   ',
       );
       expect(
-        find.textContaining('Ce texte changerait le locuteur'),
+        find.textContaining('Impossible d’appliquer ces textes'),
         findsOneWidget,
       );
       await tester.tap(find.text('Annuler').last);
@@ -160,7 +160,7 @@ void main() {
         tester.widget<StudioDraftField>(translation).value,
         'Hello world.',
       );
-      await tester.enterText(source, 'Salut le monde.');
+      await tester.enterText(source, 'Nouveau locuteur : (Salut le monde.)');
       await settleMemory(tester);
       expect(find.text('À revoir'), findsWidgets);
       await tester.tap(find.byKey(const ValueKey('dialogue-editor-language')));
@@ -184,7 +184,7 @@ void main() {
         find.byKey(const ValueKey('dialogue-editor-source')),
         findsNothing,
       );
-      expect(find.text('Salut le monde.'), findsOneWidget);
+      expect(find.text('Nouveau locuteur : (Salut le monde.)'), findsOneWidget);
       expect(maps.writes, 0);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
       await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);

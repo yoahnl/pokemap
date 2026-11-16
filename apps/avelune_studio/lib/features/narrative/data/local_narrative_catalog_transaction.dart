@@ -12,6 +12,7 @@ import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
 import '../domain/narrative_catalog_failure.dart';
 import 'catalog_write_failure.dart';
+import 'local_narrative_catalog_session.dart';
 
 export '../domain/narrative_catalog_failure.dart';
 
@@ -20,10 +21,12 @@ class LocalNarrativeCatalogTransaction {
     required this.session,
     required this.mapAdapter,
     this.faultInjector,
+    this.reusableSession,
   });
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   final AuthoringTransactionFaultInjector? faultInjector;
+  final LocalNarrativeCatalogSession? reusableSession;
 
   Future<ResourceMutationReceipt> run({
     required String actionId,
@@ -48,34 +51,26 @@ class LocalNarrativeCatalogTransaction {
       refreshCatalog: refreshCatalog,
     );
     final fields = parameters(baseline.manifest);
-    const reader = LocalProjectFileReader();
-    final policy = await WorkspacePolicy.create(
-      allowedRootPaths: [session.directoryPath],
-      fileReader: reader,
-    );
-    final handles = WorkspaceHandleStore();
-    final opened = await ProjectOpenService(
-      policy: policy,
-      fileReader: reader,
-      handles: handles,
-      initializeSceneOwners: false,
-      catalogMetadataFields: scoped ? const {} : null,
-      workshopScope: scoped,
-    ).openProject(session.directoryPath);
-    final snapshots = ProjectSnapshotLoader(handles: handles);
-    final api = LocalMapAuthoringMutationApi(
-      policy: policy,
-      snapshotLoader: snapshots,
-      faultInjector: faultInjector,
-    );
-    var attached = false;
-    try {
-      await api.attachProject(
-        projectRootPath: session.directoryPath,
-        workspaceHandle: opened.workspaceHandle,
-        projectHandle: opened.projectHandle,
+    final reusable = reusableSession;
+    if (reusable != null &&
+        (reusable.session.sessionId != session.sessionId ||
+            reusable.session.directoryPath != session.directoryPath ||
+            !identical(reusable.mapAdapter, mapAdapter))) {
+      throw StateError(
+        'The narrative connection belongs to another project session.',
       );
-      attached = true;
+    }
+    final context = reusable == null
+        ? await LocalNarrativeCatalogContext.open(
+            session: session,
+            scoped: scoped,
+            faultInjector: faultInjector,
+          )
+        : await reusable.obtain(baseline.revision);
+    final opened = context.opened;
+    final snapshots = context.snapshots;
+    final api = context.api;
+    try {
       final snapshot = scoped
           ? await api.readWorkshopSnapshot(
               opened.projectHandle,
@@ -229,10 +224,13 @@ class LocalNarrativeCatalogTransaction {
             : const {},
       );
       await mapAdapter.acceptResourceMutation(session, receipt);
+      reusable?.acceptRevision(actualRevision);
       return receipt;
+    } on Object {
+      if (reusable != null) await reusable.discard();
+      rethrow;
     } finally {
-      if (attached) await api.detachWorkspace(opened.workspaceHandle);
-      handles.closeWorkspace(opened.workspaceHandle);
+      if (reusable == null) await context.close();
     }
   });
 }

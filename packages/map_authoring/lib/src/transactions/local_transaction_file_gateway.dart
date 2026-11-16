@@ -19,6 +19,7 @@ final class LocalTransactionFileGateway
     implements
         TransactionFileGateway,
         StreamingTransactionFileGateway,
+        ImmutableResourceFileGateway,
         TransactionStagedArtifactProbe,
         PendingTransactionJournalGateway {
   LocalTransactionFileGateway._(
@@ -207,6 +208,41 @@ final class LocalTransactionFileGateway
             byteLength: before.byteLength,
             resourceRevision: before.resourceRevision);
       });
+
+  @override
+  Future<void> publishImmutableResource({
+    required String operationId,
+    required AuthoringPayload payload,
+  }) => _guardIo(() async {
+    final path = payload.storageKey;
+    final existing = await readResourceRevision(path);
+    if (existing != null) {
+      if (existing == payload.resourceRevision) return;
+      throw const TransactionFileGatewayException('transaction.immutable_conflict',
+          'An immutable resource already exists with different content.');
+    }
+    final paths = await _payloadPaths(operationId, path,
+        TransactionPayloadKind.after, createOperation: true);
+    try {
+      await _writePayloadAtomic(paths.payload, payload, suffix: 'immutable');
+      final target = await _resourceFile(path, createParents: true);
+      final current = await readResourceRevision(path);
+      if (current != null) {
+        if (current == payload.resourceRevision) return;
+        throw const TransactionFileGatewayException('transaction.immutable_conflict',
+            'The immutable resource changed before publication.');
+      }
+      await paths.payload.rename(target.path);
+      if ((await _inspectFile(target, path,
+              expectedStagedRevision: payload.resourceRevision)).resourceRevision !=
+          payload.resourceRevision) {
+        throw const TransactionFileGatewayException('transaction.promotion_unverified',
+            'The immutable resource failed publication verification.');
+      }
+    } finally {
+      await _deleteIfExists(paths.payload);
+    }
+  });
 
   @override
   Future<void> stagePayload(

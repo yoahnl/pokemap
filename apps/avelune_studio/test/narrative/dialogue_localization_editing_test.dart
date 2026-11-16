@@ -59,18 +59,25 @@ void main() {
     expect(saved.source, source);
   });
 
-  test(
-    'text that would change its speaker is refused with the input intact',
-    () {
-      final saved = original();
-      final form = DialogueLocalizationEditing(saved);
-      final id = form.localization.units.last.id;
-      form.writeSource(id, 'Changement de locuteur : texte');
-      expect(form.build, throwsA(isA<DialogueTextUnrepresentable>()));
-      expect(form.sourceText(id), 'Changement de locuteur : texte');
-      expect(saved.source, source);
-    },
-  );
+  test('ambiguous text remains a line without a speaker after reopening', () {
+    final saved = original();
+    final form = DialogueLocalizationEditing(saved);
+    final id = form.localization.units.last.id;
+    form.writeSource(id, 'Changement de locuteur : texte');
+    final changed = form.build();
+    final reopened = readLocalizedDialogue(
+      source: changed.source,
+      sourceLocale: 'fr',
+      localization: changed.entry.localization,
+    );
+    final line = reopened.document.nodes.last.steps
+        .whereType<DeLineStep>()
+        .single;
+    expect(line.body, 'Changement de locuteur : texte');
+    expect(line.speaker, isNull);
+    expect(form.sourceText(id), 'Changement de locuteur : texte');
+    expect(saved.source, source);
+  });
   test('source changes preserve translations and durable identities', () {
     final saved = original();
     final editing = DialogueLocalizationEditing(saved);

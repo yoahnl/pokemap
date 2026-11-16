@@ -538,6 +538,15 @@ AuthoringActionDescriptor _descriptor(
       resourceKinds: const ['project', 'dialogue'],
       extensions: {
         ...extensions ?? _textEditActionExtensions(id),
+        if (const {'dialogue.create', 'dialogue.create_batch',
+          'dialogue.update', 'dialogue.source_update'}.contains(id))
+          'sourceTextContract': {
+            'explicitLineCommand': 'line_v1',
+            'encoding': 'json',
+            'fields': {'text': 'string', 'speaker': 'string|null'},
+            'legacyLiteralSemanticsPreserved': true,
+            'compiledFormat': 'RuntimeDialogueDocument',
+          },
         if (id == 'dialogue.create' ||
             id == 'dialogue.create_batch' ||
             id == 'dialogue.update')
@@ -710,6 +719,10 @@ Map<String, Object?> _textEditActionExtensions(String id) {
   }
   final update = id == 'dialogue.update';
   return {
+    'lineTextEditContract': {
+      'choiceLabelChanges': true,
+      'preserves': ['topology', 'outcomes', 'commands', 'portraits', 'feedback'],
+    },
     'parameterNames': [
       if (update) 'entry' else 'dialogueId',
       if (update) 'outcomeReplacements',

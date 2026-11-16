@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_catalog_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_connection_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
+import 'package:avelune_studio/features/narrative/data/local_narrative_catalog_session.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
 import 'package:avelune_studio/platform/files/native_resource_image_picker.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
@@ -173,14 +176,23 @@ List<Override> studioSessionAdapterOverrides() => [
       ) as LocalMapWorkspaceAdapter,
     ),
   ),
-  dialoguePortProvider.overrideWith(
-    (ref, session) => LocalDialogueAdapter(
+  dialoguePortProvider.overrideWith((ref, session) {
+    final maps = ref.watch(
+      mapWorkspacePortProvider(session),
+    ) as LocalMapWorkspaceAdapter;
+    final publications = session.storage == ProjectSessionStorage.workingCatalog
+        ? LocalNarrativeCatalogSession(session: session, mapAdapter: maps)
+        : null;
+    if (publications != null) {
+      unawaited(publications.prepare().catchError((Object _) {}));
+      ref.onDispose(() => unawaited(publications.close()));
+    }
+    return LocalDialogueAdapter(
       session: session,
-      mapAdapter: ref.watch(
-        mapWorkspacePortProvider(session),
-      ) as LocalMapWorkspaceAdapter,
-    ),
-  ),
+      mapAdapter: maps,
+      publicationSession: publications,
+    );
+  }),
   presentationMediaPickerProvider.overrideWithValue(
     const NativePresentationMediaPicker().choose,
   ),

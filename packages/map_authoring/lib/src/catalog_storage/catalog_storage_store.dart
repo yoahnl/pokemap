@@ -10,6 +10,7 @@ import '../ports/project_file_reader.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../support/authoring_fingerprint.dart';
 import '../transactions/local_transaction_file_gateway.dart';
+import '../transactions/authoring_payload.dart';
 import 'catalog_history_compatibility.dart';
 import 'trusted_catalog_admissions.dart';
 
@@ -337,16 +338,23 @@ final class CatalogStorageStore {
       final path = _objectPath(entry.key);
       final existing = await _gateway.readResourceRevision(path);
       if (existing == null) {
-        await _gateway.stagePayload(
-            operationId: operationId,
-            storageKey: path,
-            kind: TransactionPayloadKind.after,
-            bytes: entry.value);
-        await _gateway.promoteStaged(
-            operationId: operationId,
-            storageKey: path,
-            kind: TransactionPayloadKind.after,
-            expectedCurrentRevision: null);
+        final publisher = _gateway;
+        if (publisher is ImmutableResourceFileGateway) {
+          await (publisher as ImmutableResourceFileGateway)
+              .publishImmutableResource(operationId: operationId,
+              payload: AuthoringPayload.inline(entry.value, storageKey: path));
+        } else {
+          await _gateway.stagePayload(
+              operationId: operationId,
+              storageKey: path,
+              kind: TransactionPayloadKind.after,
+              bytes: entry.value);
+          await _gateway.promoteStaged(
+              operationId: operationId,
+              storageKey: path,
+              kind: TransactionPayloadKind.after,
+              expectedCurrentRevision: null);
+        }
       }
       final bytes = await _readBounded(path, entry.value.length);
       if (_sha256(bytes) != entry.key) {

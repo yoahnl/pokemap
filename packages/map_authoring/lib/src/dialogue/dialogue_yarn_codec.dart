@@ -20,6 +20,8 @@
 
 import 'dart:convert';
 
+import 'package:map_core/map_core_domain.dart' show YarnDialogueLineLiteral;
+
 import 'dialogue_editor_model.dart';
 
 part 'dialogue_yarn_text_fidelity.dart';
@@ -179,7 +181,9 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
           final target =
               trimmed.substring('<<jump '.length, trimmed.length - 2).trim();
           currentChoiceSteps.add(_PJump(target));
-        } else if (trimmed.startsWith('<<') && trimmed.endsWith('>>')) {
+        } else if (trimmed.startsWith('<<') &&
+            trimmed.endsWith('>>') &&
+            !YarnDialogueLineLiteral.matches(trimmed)) {
           // Extension : conserver toute commande (dont `<<if …>>`).
           currentChoiceSteps.add(_PRaw(trimmed));
         } else {
@@ -202,7 +206,9 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
         final target =
             trimmed.substring('<<jump '.length, trimmed.length - 2).trim();
         rootSteps.add(_PJump(target));
-      } else if (trimmed.startsWith('<<') && trimmed.endsWith('>>')) {
+      } else if (trimmed.startsWith('<<') &&
+          trimmed.endsWith('>>') &&
+          !YarnDialogueLineLiteral.matches(trimmed)) {
         if (inChoiceBlock) closeChoiceBlock();
         rootSteps.add(_PRaw(trimmed));
       } else {
@@ -227,14 +233,22 @@ DialogueEditorStep _lineStepFromPlainText(
   String? characterId,
   String? portraitStateId,
 }) {
+  if (YarnDialogueLineLiteral.matches(trimmed)) {
+    final literal = YarnDialogueLineLiteral.parse(trimmed);
+    return DeLineStep(
+        id: newDialogueEditorId(),
+        body: literal.text,
+        speaker: literal.speaker,
+        characterId: characterId,
+        portraitStateId: portraitStateId);
+  }
   trimmed = _decodeText(trimmed);
   // Narration : convention éditeur `(didascalie)` sur une seule ligne.
-  final nar = RegExp(r'^\((.*)\)\s*$', dotAll: true).firstMatch(trimmed);
+  final nar = _narrationText.firstMatch(trimmed);
   if (nar != null) {
     return DeNarrationStep(id: newDialogueEditorId(), text: nar.group(1) ?? '');
   }
-  final colon =
-      RegExp(r'^([^\s:][^:\n]*): ?(.*)$', dotAll: true).firstMatch(trimmed);
+  final colon = _speakerText.firstMatch(trimmed);
   if (colon != null) {
     return DeLineStep(
       id: newDialogueEditorId(),
@@ -286,6 +300,8 @@ final RegExp _portraitDirective = RegExp(
 );
 final RegExp _speakerDirective = RegExp(r'^<<speaker\s+([^\s>]+)>>$');
 final RegExp _narrationLine = RegExp(r'^\(.*\)\s*$');
+final RegExp _narrationText = RegExp(r'^\((.*)\)\s*$', dotAll: true);
+final RegExp _speakerText = RegExp(r'^([^\s:][^:\n]*): ?(.*)$', dotAll: true);
 
 DialogueEditorStep _convertParsedStep(
     _PStep step, Map<String, _TextLocation>? locations) {
@@ -419,10 +435,7 @@ void _emitStep(StringBuffer sb, DialogueEditorStep step, String indent) {
       } else if (characterId != null) {
         sb.writeln('$indent<<speaker ${characterId.trim()}>>');
       }
-      final sp = speaker;
-      final line =
-          (sp != null && sp.trim().isNotEmpty) ? '${sp.trim()}: $body' : body;
-      sb.writeln('$indent${_encodeText(line)}');
+      sb.writeln('$indent${_encodeLineText(body, speaker)}');
     case DeNarrationStep(:final text):
       sb.writeln('$indent${_encodeText('($text)')}');
     case DeJumpStep(:final targetTitle):
@@ -501,3 +514,19 @@ String _encodeText(String value) => value.trim() != value ||
         value.startsWith('title:')
     ? '\\${jsonEncode(value)}'
     : value;
+
+String _encodeLineText(String body, String? speaker) {
+  final name = (speaker?.trim().isNotEmpty ?? false) ? speaker!.trim() : null;
+  final text = name == null ? body : '$name: $body';
+  if (!_lineTextMatches(text, body, name)) {
+    return YarnDialogueLineLiteral(text: body, speaker: name).toSource();
+  }
+  return _encodeText(text);
+}
+
+bool _lineTextMatches(String text, String body, String? speaker) {
+  if (_narrationText.hasMatch(text)) return false;
+  final colon = _speakerText.firstMatch(text);
+  return colon?.group(1)?.trim() == speaker &&
+      (colon?.group(2) ?? text) == body;
+}

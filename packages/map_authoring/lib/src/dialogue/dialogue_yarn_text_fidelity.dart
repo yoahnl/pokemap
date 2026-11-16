@@ -8,6 +8,10 @@ final class _TextLocation {
 
   String replace(String previous, String value,
       {bool narration = false, bool choice = false}) {
+    if (YarnDialogueLineLiteral.matches(token)) {
+      final line = YarnDialogueLineLiteral.parse(token);
+      return _encodeLineText(value, line.speaker);
+    }
     final decoded = _decodeText(token);
     final prefix = choice
         ? ''
@@ -16,6 +20,13 @@ final class _TextLocation {
             : decoded.substring(0, decoded.length - previous.length);
     final suffix = narration ? decoded.substring(1 + previous.length) : '';
     final text = '$prefix$value$suffix';
+    if (!narration && !choice) {
+      final line = _lineStepFromPlainText(token) as DeLineStep;
+      if (!_lineTextMatches(text, value, line.speaker)) {
+        return YarnDialogueLineLiteral(text: value, speaker: line.speaker)
+            .toSource();
+      }
+    }
     return token.startsWith(r'\"')
         ? '\\${jsonEncode(text)}'
         : _encodeText(text);

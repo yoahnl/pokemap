@@ -38,6 +38,13 @@ abstract interface class StreamingTransactionFileGateway {
   });
 }
 
+abstract interface class ImmutableResourceFileGateway {
+  Future<void> publishImmutableResource({
+    required String operationId,
+    required AuthoringPayload payload,
+  });
+}
+
 abstract interface class TransactionStagedArtifactProbe {
   Future<bool> hasStagedArtifacts({
     required String operationId,
