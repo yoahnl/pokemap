@@ -35,10 +35,11 @@ DialogueCatalogPreview previewDialogue(
   try {
     final localization = dialogue.entry.localization;
     if (localization == null) {
-      final document = parseYarnToDocument(
-        dialogue.source,
+      final document = readLocalizedDialogue(
+        source: dialogue.source,
+        sourceLocale: 'und',
         entryNodeTitle: dialogue.entry.defaultStartNode,
-      );
+      ).document;
       if (document.nodes.isEmpty) throw const FormatException();
       final texts = <String>[];
       void walk(List<DialogueEditorStep> steps) {

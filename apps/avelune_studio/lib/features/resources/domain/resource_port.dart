@@ -145,6 +145,7 @@ final class ResourceMutationReceipt {
     this.mapRevisions = const {},
     this.changedModels = const {},
     this.modelSourceRevisions = const {},
+    this.sceneChanges = const {},
   });
 
   final ProjectManifest before;
@@ -162,6 +163,7 @@ final class ResourceMutationReceipt {
   final Map<String, String> mapRevisions;
   final Map<String, ProjectModel3dEntry> changedModels;
   final Map<String, String> modelSourceRevisions;
+  final Map<String, ({SceneAsset before, SceneAsset after})> sceneChanges;
   bool get noChange => changedPaths.isEmpty;
 }
 

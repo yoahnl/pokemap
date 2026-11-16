@@ -1,10 +1,13 @@
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/game_memory/application/game_memory_staging.dart';
+import 'package:avelune_studio/features/dialogues/application/dialogue_draft_host.dart';
+import 'package:avelune_studio/features/story_draft/domain/story_dialogue_source.dart';
 import 'package:avelune_studio/features/story_draft/application/story_draft.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 
-final class MapBuilderStoryMemory implements GameMemoryStaging {
+final class MapBuilderStoryMemory
+    implements GameMemoryStaging, DialogueDraftHost {
   MapBuilderStoryMemory(this._story, {required this._editable});
 
   final MapBuilderStoryBinding _story;
@@ -30,6 +33,14 @@ final class MapBuilderStoryMemory implements GameMemoryStaging {
   @override
   void rememberStory(StorylineAsset story) =>
       _story.behaviours.records.rememberStory(story);
+
+  @override
+  void rememberDialogue(StoryDialogueSource saved) =>
+      _story.behaviours.dialogues.remember(saved);
+
+  @override
+  StoryDialogueSource? savedDialogue(String id) =>
+      _story.behaviours.dialogues[id];
 
   @override
   void stage(void Function(StoryDraft draft) body) {

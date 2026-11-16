@@ -188,6 +188,25 @@ final class StoryDraft {
     rebase(saved, only: refs);
   }
 
+  void reconcileSaved<T extends Object>(
+    StoryDraftKind<T> kind,
+    T before,
+    T after,
+    T Function(T) project,
+  ) {
+    final id = kind.idOf(before);
+    if (!isLoaded(kind, id) || baseOf(kind, id) != before) return;
+    StoryDraftEntry<T> transform(StoryDraftEntry<Object> entry) => kind.entry(
+      id,
+      base: entry.base == before ? after : entry.base,
+      current: entry.current is T ? project(entry.current as T) : entry.current,
+    );
+    final current =
+        _edits[kind]?[id] ?? kind.entry(id, base: before, current: before);
+    _history.transform(current.ref, transform);
+    _apply(transform(current));
+  }
+
   NarrativeEventRegistry? eventRegistry(NarrativeEventRegistry? saved) =>
       _projection.eventRegistry(saved, _eventRegistryShell);
 

@@ -6917,6 +6917,150 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Consulter le document source'**
   String get dialogueCatalogShowSource;
+
+  /// No description provided for @dialogueEditorOpen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Texte et traductions'**
+  String get dialogueEditorOpen;
+
+  /// No description provided for @dialogueEditorApply.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appliquer au brouillon'**
+  String get dialogueEditorApply;
+
+  /// No description provided for @dialogueEditorUnit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Texte du dialogue'**
+  String get dialogueEditorUnit;
+
+  /// No description provided for @dialogueEditorSourceLocale.
+  ///
+  /// In fr, this message translates to:
+  /// **'Langue source'**
+  String get dialogueEditorSourceLocale;
+
+  /// No description provided for @dialogueEditorChooseSource.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir la langue source'**
+  String get dialogueEditorChooseSource;
+
+  /// No description provided for @dialogueEditorTranslation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Traduction'**
+  String get dialogueEditorTranslation;
+
+  /// No description provided for @dialogueEditorSource.
+  ///
+  /// In fr, this message translates to:
+  /// **'Texte source'**
+  String get dialogueEditorSource;
+
+  /// No description provided for @dialogueEditorShared.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce document est partagé. Vos modifications s’appliquent à toutes les scènes qui l’utilisent.'**
+  String get dialogueEditorShared;
+
+  /// No description provided for @dialogueEditorDraftHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appliquer ajoute vos modifications au brouillon commun. Enregistrez le projet pour les conserver.'**
+  String get dialogueEditorDraftHint;
+
+  /// No description provided for @dialogueEditorLegacyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'La langue source n’est pas renseignée. Vous pouvez modifier le texte ; choisissez sa langue source pour ajouter des traductions.'**
+  String get dialogueEditorLegacyHint;
+
+  /// No description provided for @dialogueEditorRuntimeHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'L’export des dialogues localisés n’est pas encore disponible.'**
+  String get dialogueEditorRuntimeHint;
+
+  /// No description provided for @dialogueEditorNoLanguages.
+  ///
+  /// In fr, this message translates to:
+  /// **'Configurez les langues du projet pour ajouter des traductions.'**
+  String get dialogueEditorNoLanguages;
+
+  /// No description provided for @dialogueEditorReview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider cette traduction'**
+  String get dialogueEditorReview;
+
+  /// No description provided for @dialogueEditorError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d’appliquer ces textes. Vérifiez les champs ; votre saisie est conservée.'**
+  String get dialogueEditorError;
+
+  /// No description provided for @dialogueEditorConflict.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le document a changé ou n’est plus modifiable. Votre saisie est conservée dans cet éditeur.'**
+  String get dialogueEditorConflict;
+
+  /// No description provided for @dialogueEditorCopy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer une copie indépendante'**
+  String get dialogueEditorCopy;
+
+  /// No description provided for @dialogueEditorCopyName.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom de la copie'**
+  String get dialogueEditorCopyName;
+
+  /// No description provided for @dialogueEditorCopyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'La copie est ajoutée au brouillon. Les scènes actuelles continuent d’utiliser l’original.'**
+  String get dialogueEditorCopyHint;
+
+  /// No description provided for @dialogueEditorOriginal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier l’original'**
+  String get dialogueEditorOriginal;
+
+  /// No description provided for @dialogueEditorLine.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réplique'**
+  String get dialogueEditorLine;
+
+  /// No description provided for @dialogueEditorNarration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Narration'**
+  String get dialogueEditorNarration;
+
+  /// No description provided for @dialogueEditorChoice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choix'**
+  String get dialogueEditorChoice;
+
+  /// No description provided for @dialogueEditorCopyDefault.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} — copie'**
+  String dialogueEditorCopyDefault(String name);
+
+  /// No description provided for @dialogueEditorUnrepresentable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce texte changerait le locuteur ou le type du passage. Adaptez-le pour conserver la structure actuelle ; votre saisie est conservée.'**
+  String get dialogueEditorUnrepresentable;
 }
 
 class _AppLocalizationsDelegate

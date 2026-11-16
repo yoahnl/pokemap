@@ -216,6 +216,17 @@ class LocalNarrativeCatalogTransaction {
         beforeRevision: baseline.revision,
         revision: actualRevision,
         changedPaths: changes.map((change) => change.storageKey).toList(),
+        sceneChanges: actionId.startsWith('dialogue.')
+            ? {
+                for (final scene
+                    in planned.projectedProject?.scenes ?? const <SceneAsset>[])
+                  if (snapshot.manifest.scenes
+                          .where((before) => before.id == scene.id)
+                          .firstOrNull
+                      case final before? when before != scene)
+                    scene.id: (before: before, after: scene),
+              }
+            : const {},
       );
       await mapAdapter.acceptResourceMutation(session, receipt);
       return receipt;

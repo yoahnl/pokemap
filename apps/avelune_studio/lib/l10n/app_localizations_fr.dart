@@ -4491,4 +4491,87 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get dialogueCatalogShowSource => 'Consulter le document source';
+
+  @override
+  String get dialogueEditorOpen => 'Texte et traductions';
+
+  @override
+  String get dialogueEditorApply => 'Appliquer au brouillon';
+
+  @override
+  String get dialogueEditorUnit => 'Texte du dialogue';
+
+  @override
+  String get dialogueEditorSourceLocale => 'Langue source';
+
+  @override
+  String get dialogueEditorChooseSource => 'Choisir la langue source';
+
+  @override
+  String get dialogueEditorTranslation => 'Traduction';
+
+  @override
+  String get dialogueEditorSource => 'Texte source';
+
+  @override
+  String get dialogueEditorShared =>
+      'Ce document est partagé. Vos modifications s’appliquent à toutes les scènes qui l’utilisent.';
+
+  @override
+  String get dialogueEditorDraftHint =>
+      'Appliquer ajoute vos modifications au brouillon commun. Enregistrez le projet pour les conserver.';
+
+  @override
+  String get dialogueEditorLegacyHint =>
+      'La langue source n’est pas renseignée. Vous pouvez modifier le texte ; choisissez sa langue source pour ajouter des traductions.';
+
+  @override
+  String get dialogueEditorRuntimeHint =>
+      'L’export des dialogues localisés n’est pas encore disponible.';
+
+  @override
+  String get dialogueEditorNoLanguages =>
+      'Configurez les langues du projet pour ajouter des traductions.';
+
+  @override
+  String get dialogueEditorReview => 'Valider cette traduction';
+
+  @override
+  String get dialogueEditorError =>
+      'Impossible d’appliquer ces textes. Vérifiez les champs ; votre saisie est conservée.';
+
+  @override
+  String get dialogueEditorConflict =>
+      'Le document a changé ou n’est plus modifiable. Votre saisie est conservée dans cet éditeur.';
+
+  @override
+  String get dialogueEditorCopy => 'Créer une copie indépendante';
+
+  @override
+  String get dialogueEditorCopyName => 'Nom de la copie';
+
+  @override
+  String get dialogueEditorCopyHint =>
+      'La copie est ajoutée au brouillon. Les scènes actuelles continuent d’utiliser l’original.';
+
+  @override
+  String get dialogueEditorOriginal => 'Modifier l’original';
+
+  @override
+  String get dialogueEditorLine => 'Réplique';
+
+  @override
+  String get dialogueEditorNarration => 'Narration';
+
+  @override
+  String get dialogueEditorChoice => 'Choix';
+
+  @override
+  String dialogueEditorCopyDefault(String name) {
+    return '$name — copie';
+  }
+
+  @override
+  String get dialogueEditorUnrepresentable =>
+      'Ce texte changerait le locuteur ou le type du passage. Adaptez-le pour conserver la structure actuelle ; votre saisie est conservée.';
 }

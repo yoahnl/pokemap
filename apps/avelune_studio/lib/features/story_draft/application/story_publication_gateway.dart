@@ -13,6 +13,8 @@ import '../domain/story_draft_saved.dart';
 import 'story_draft.dart';
 import 'story_publication_plan.dart';
 import 'story_saved_dialogues.dart';
+import 'story_dialogue_text_edits.dart';
+import 'story_dialogue_scene_reconciliation.dart';
 
 typedef StoryPublicationLanding = Future<StoryDraftSaved> Function(
   Future<ResourceMutationReceipt> Function() write,
@@ -112,8 +114,15 @@ final class StoryPublicationGateway {
     ];
     var succeeded = 0;
     try {
-      for (final step in steps) {
-        final saved = await land(() => _write(step, batch));
+      for (var index = 0; index < steps.length; index++) {
+        final step = steps[index];
+        ResourceMutationReceipt? receipt;
+        final saved = await land(
+          () async => receipt = await _write(step, batch),
+        );
+        if (step.kind == StoryDraftKind.dialogue) {
+          reconcilePublishedDialogueScenes(_draft, steps, index + 1, receipt!);
+        }
         _draft.acknowledge(step.entries, saved);
         succeeded++;
       }
@@ -199,6 +208,7 @@ final class StoryPublicationGateway {
             ),
       entry: current?.entry,
       source: current?.source,
+      lineTextEdits: storyDialogueTextEdits(base, current),
     );
     switch (receipt.snapshot) {
       case final snapshot?:

@@ -17,6 +17,7 @@ final class StoryFakePorts
   final ProjectManifest Function() read;
   final calls = <String>[];
   final dialogueReads = <String>[];
+  final dialogueTextEdits = <List<DialogueLineTextEdit>?>[];
   final sources = <String, DialogueSourceSnapshot>{};
   Object? Function(String call)? refuse;
   Completer<void>? reading;
@@ -95,6 +96,7 @@ final class StoryFakePorts
     required String? source,
     List<DialogueLineTextEdit>? lineTextEdits,
   }) async {
+    dialogueTextEdits.add(lineTextEdits);
     DialogueSourceSnapshot? written;
     final receipt = _write('dialogue $id', (before) {
       if (sources[id]?.revision != base?.revision) {

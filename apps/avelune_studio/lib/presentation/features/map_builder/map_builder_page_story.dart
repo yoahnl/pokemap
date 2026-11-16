@@ -36,6 +36,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       catalog: _stories.scenes,
       behaviourCatalog: _stories.catalog,
       dialoguePort: _stories.dialogues,
+      dialogueStaging: _stories.memory,
       dialogueRequest: _dialogueRequest,
       openMap: () {
         _rememberStoryOrigin();

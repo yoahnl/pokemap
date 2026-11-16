@@ -19,6 +19,7 @@ import 'package:avelune_studio/features/scenes/application/scene_catalog_control
 import 'package:avelune_studio/features/verification/application/verification_problems.dart';
 import 'package:avelune_studio/features/dialogues/domain/dialogue_catalog_port.dart';
 import 'package:avelune_studio/features/dialogues/application/dialogue_catalog_controller.dart';
+import 'package:avelune_studio/features/dialogues/application/dialogue_draft_host.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviours_view.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_rule_creation.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_usages.dart';
@@ -61,6 +62,7 @@ class StoryPage extends StatefulWidget {
     this.behaviourCatalog,
     this.dialoguePort,
     this.dialogueRequest,
+    this.dialogueStaging,
   });
 
   final NarrativeIndexPort? port;
@@ -83,6 +85,7 @@ class StoryPage extends StatefulWidget {
   final MapBuilderStoryCatalogBinding? behaviourCatalog;
   final DialogueCatalogPort? dialoguePort;
   final ({String id, int token})? dialogueRequest;
+  final DialogueDraftHost? dialogueStaging;
 
   @override
   State<StoryPage> createState() => _StoryPageState();
@@ -122,6 +125,7 @@ class _StoryPageState extends State<StoryPage> {
         draft: widget.staging.draft,
         revision: () => widget.behaviourSource.revision,
         changed: _changed,
+        editing: widget.dialogueStaging,
       );
     }
     if (port != null) {

@@ -73,6 +73,20 @@ final class StoryDraftHistory {
     }
   }
 
+  void transform(
+    StoryDraftRef ref,
+    StoryDraftEntry<Object> Function(StoryDraftEntry<Object>) project,
+  ) {
+    for (final transaction in [..._undo, ..._redo]) {
+      final change = transaction.entries[ref];
+      if (change == null) continue;
+      transaction.entries[ref] = (
+        before: project(change.before),
+        after: project(change.after),
+      );
+    }
+  }
+
   StoryDraftEntry<Object> _rebased(
     StoryDraftEntry<Object> entry,
     Object? from,

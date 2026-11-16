@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_authoring/map_authoring_dialogue.dart';
 
 import '../../../narrative/application/scene_node_references.dart';
 import '../../../narrative/domain/narrative_port.dart';
@@ -52,12 +53,24 @@ BehaviourLineDetached detachBehaviourLine({
     for (final node in graph['nodes'] as List<dynamic>)
       _detachedNode(node as Map<String, dynamic>, ids.dialogueId),
   ];
+  final localization = line.dialogue.entry.localization;
+  final copied = localization == null
+      ? null
+      : duplicateLocalizedDialogue(
+          readLocalizedDialogue(
+            source: line.dialogue.source,
+            sourceLocale: localization.sourceLocale,
+            localization: localization,
+            entryNodeTitle: line.dialogue.entry.defaultStartNode,
+          ),
+        );
   final dialogue = NarrativeDialogueSource(
     entry: line.dialogue.entry.copyWith(
       id: ids.dialogueId,
       relativePath: ids.dialoguePath,
+      localization: copied?.localization,
     ),
-    source: line.dialogue.source,
+    source: copied?.source ?? line.dialogue.source,
   );
   return BehaviourLineDetached(
     scene: SceneAsset.fromJson({...json, 'graph': graph}),

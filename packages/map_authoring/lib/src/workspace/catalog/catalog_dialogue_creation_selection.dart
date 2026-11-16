@@ -7,7 +7,7 @@ Future<CatalogWorkshopSelection> _readDialogueCreationWorkshop({
   required Map<String, Object?> parameters,
   required Map<String, String> readDependencies,
 }) async {
-  final selected = await reader.withMetadataFields({'settings'});
+  final selected = await reader.withMetadataFields({'settings', 'newGame'});
   return selected.read((catalog) async {
     await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
     final ids = <String, Set<String>>{
@@ -20,7 +20,10 @@ Future<CatalogWorkshopSelection> _readDialogueCreationWorkshop({
         : parameters['dialogues'] is List
             ? parameters['dialogues'] as List
             : const [];
-    final candidates = <Object?>[catalog.projectMetadata.settings.toJson()];
+    final candidates = <Object?>[
+      catalog.projectMetadata.settings.toJson(),
+      catalog.projectMetadata.newGame.toJson()
+    ];
     final paths = <String>{};
     final incomingOwnership = <(ProjectDialogueEntry, bool)>[];
     for (final value in incoming) {
@@ -72,7 +75,10 @@ Future<CatalogWorkshopSelection> _readDialogueCreationWorkshop({
       }
     }
     var documents = await CatalogMetadataDocuments.readDocuments(
-        snapshot: catalog.snapshot, project: catalog.projectMetadata, ids: ids);
+        snapshot: catalog.snapshot,
+        project: catalog.projectMetadata
+            .copyWith(newGame: const ProjectNewGameConfig()),
+        ids: ids);
     final existingIds =
         documents.project.dialogues.map((entry) => entry.id).toSet();
     final incomingIds = <String>{};
@@ -97,17 +103,26 @@ Future<CatalogWorkshopSelection> _readDialogueCreationWorkshop({
       ids['dialogueFolders']!.addAll(folders);
       documents = await CatalogMetadataDocuments.readDocuments(
           snapshot: catalog.snapshot,
-          project: catalog.projectMetadata,
+          project: catalog.projectMetadata
+              .copyWith(newGame: const ProjectNewGameConfig()),
           ids: ids);
     }
     final roots = <CatalogDefinitionKey>{};
-    for (final id in CatalogWorkshopSelection._referenceIds(
-        candidates, {'characterId', 'defaultPlayerCharacterId'})) {
+    for (final id in CatalogWorkshopSelection._referenceIds(candidates, {
+      'characterId',
+      'defaultPlayerCharacterId',
+      'playerAvatarCharacterIds'
+    })) {
       final key = CatalogDefinitionKey(CatalogDefinitionKind.character, id);
       if (await catalog.snapshot.indexEntry(key) != null) roots.add(key);
     }
     final resources = await ProjectCatalogSelection(catalog).resolve(roots);
+    documents = await _dialogueResourceGroups(
+        catalog.snapshot, documents, ids, resources);
     final manifest = documents.project.copyWith(
+        characterStudioCatalog: resources.characterStudioCatalog,
+        tilesetFolders: resources.tilesetFolders,
+        elementCategories: resources.elementCategories,
         characters: resources.characters,
         elements: resources.elements,
         models3d: resources.models3d,
@@ -168,4 +183,30 @@ Future<CatalogWorkshopSelection> _readDialogueCreationWorkshop({
     await result.requireCurrent();
     return result;
   });
+}
+
+Future<CatalogMetadataDocumentSelection> _dialogueResourceGroups(
+  CatalogSnapshot snapshot,
+  CatalogMetadataDocumentSelection documents,
+  Map<String, Set<String>> ids,
+  ProjectManifest resources,
+) async {
+  ids['groups'] = {};
+  final base = documents.project;
+  while (true) {
+    final groups = <String>{
+      for (final map in documents.project.maps)
+        if (map.groupId case final String id) id,
+      for (final entry in resources.tilesets)
+        if (entry.groupId case final String id) id,
+      for (final entry in resources.elements)
+        if (entry.groupId case final String id) id,
+      for (final group in documents.project.groups)
+        if (group.parentGroupId case final String id) id,
+    }.difference(ids['groups']!);
+    if (groups.isEmpty) return documents;
+    ids['groups']!.addAll(groups);
+    documents = await CatalogMetadataDocuments.readDocuments(
+        snapshot: snapshot, project: base, ids: ids);
+  }
 }

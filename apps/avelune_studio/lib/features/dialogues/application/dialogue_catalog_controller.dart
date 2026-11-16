@@ -8,6 +8,7 @@ import '../../story_draft/domain/story_dialogue_source.dart';
 import '../domain/dialogue_catalog_port.dart';
 import 'dialogue_catalog_preview.dart';
 import 'dialogue_catalog_rows.dart';
+import 'dialogue_draft_host.dart';
 
 final class DialogueCatalogController {
   DialogueCatalogController({
@@ -16,6 +17,7 @@ final class DialogueCatalogController {
     required this.draft,
     required this.revision,
     required this.changed,
+    this.editing,
   });
 
   final NarrativeIndexPort index;
@@ -23,6 +25,7 @@ final class DialogueCatalogController {
   final StoryDraft draft;
   final Object? Function() revision;
   final void Function() changed;
+  final DialogueDraftHost? editing;
   final titles = GameMemoryResource<List<NarrativeTitle>>();
   final languages = GameMemoryResource<DialogueCatalogLanguages>();
   final _documents = <String, GameMemoryResource<DialogueCatalogDocument>>{};
@@ -164,7 +167,12 @@ final class DialogueCatalogController {
         }
         final reader = port;
         if (reader == null) throw const NarrativeIndexUnavailable();
-        return reader.document(id);
+        final saved = await reader.document(id);
+        if (editing case final host?) {
+          host.rememberDialogue(saved.dialogue);
+          draft.load(StoryDraftKind.dialogue, id, saved.dialogue);
+        }
+        return saved;
       },
       () {
         if (identical(_documents[id], resource)) _changed();
@@ -177,7 +185,13 @@ final class DialogueCatalogController {
     final saved = resource(id).value;
     final edit = draft.entryOf(StoryDraftKind.dialogue, id);
     if (edit != null && edit.current == null) return null;
-    final current = edit?.current ?? saved?.dialogue;
+    final known = editing?.savedDialogue(id);
+    if (saved?.notCovered.contains('draft') == true &&
+        edit == null &&
+        known == null) {
+      return null;
+    }
+    final current = edit?.current ?? known ?? saved?.dialogue;
     if (current == null) return null;
     final stamp = (saved, current, draft.versionOf(StoryDraftKind.scene));
     if (_documentStamps[id] == stamp) return _projectedDocuments[id];

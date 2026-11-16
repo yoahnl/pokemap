@@ -13,6 +13,7 @@ class StudioReviewDialog extends StatelessWidget {
     this.cancelLabel = 'Annuler',
     this.secondaryActionLabel,
     this.onSecondaryAction,
+    this.contentWidth = 600,
   });
 
   final String title;
@@ -23,11 +24,15 @@ class StudioReviewDialog extends StatelessWidget {
   final String cancelLabel;
   final String? secondaryActionLabel;
   final VoidCallback? onSecondaryAction;
+  final double contentWidth;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text(title),
-    content: SizedBox(width: 600, child: SingleChildScrollView(child: content)),
+    content: SizedBox(
+      width: contentWidth,
+      child: SingleChildScrollView(child: content),
+    ),
     actions: [
       StudioButton(label: cancelLabel, secondary: true, onPressed: onCancelled),
       if (secondaryActionLabel case final label?)

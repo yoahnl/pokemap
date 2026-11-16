@@ -9,6 +9,9 @@ import 'package:avelune_studio/presentation/features/story/game_memory_states.da
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 import 'story_dialogue_status.dart';
+import 'story_dialogue_editor.dart';
+
+import 'package:avelune_studio/features/dialogues/application/dialogue_localization_editing.dart';
 
 class StoryDialogueDocument extends StatefulWidget {
   const StoryDialogueDocument({
@@ -86,7 +89,26 @@ class _StoryDialogueDocumentState extends State<StoryDialogueDocument> {
           ],
         ),
         const SizedBox(height: StudioSpacing.m),
-        StudioNotice(l10n.dialogueCatalogReadOnlyPreview),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: StudioButton(
+            key: const ValueKey('dialogue-document-edit'),
+            label: l10n.dialogueEditorOpen,
+            icon: Icons.translate,
+            onPressed:
+                (catalog.editing?.editable ?? false) &&
+                    preview.status != DialogueCatalogStatus.unsupported &&
+                    preview.texts.isNotEmpty
+                ? () => showDialog<void>(
+                    context: context,
+                    builder: (_) => StoryDialogueEditor(
+                      catalog: catalog,
+                      form: DialogueLocalizationEditing(document.dialogue),
+                    ),
+                  )
+                : null,
+          ),
+        ),
         if (document.notCovered.isNotEmpty) ...[
           const SizedBox(height: StudioSpacing.s),
           StudioNotice(

@@ -595,8 +595,8 @@ void main() {
     await expectLater(
         f.api.applyMutation(f.opened.projectHandle,
             planId: plan.planId, operationId: 'ordinary-failure'),
-        throwsA(isA<StateError>().having((error) => error.message, 'message',
-            'ordinary error before promotion')));
+        throwsA(isA<JournaledAuthoringTransactionException>()
+            .having((error) => error.code, 'code', 'transaction.recovery_required')));
     expect(failed, isTrue);
     expect(await f.projectFile.readAsBytes(), bytes);
     expect(await f.sourceFile.readAsString(), f.sourceText);

@@ -22,13 +22,16 @@ import 'dart:convert';
 
 import 'dialogue_editor_model.dart';
 
+part 'dialogue_yarn_text_fidelity.dart';
+
 // --- Représentation intermédiaire (parse) -----------------------------------
 
 sealed class _PStep {}
 
 class _PLine extends _PStep {
-  _PLine(this.text);
+  _PLine(this.text, this.location);
   final String text;
+  final _TextLocation location;
 }
 
 class _PJump extends _PStep {
@@ -42,10 +45,15 @@ class _PChoice extends _PStep {
 }
 
 class _PBranch {
-  _PBranch({required this.label, required this.outcomeId, required this.steps});
+  _PBranch(
+      {required this.label,
+      required this.outcomeId,
+      required this.steps,
+      required this.location});
   final String label;
   final String? outcomeId;
   final List<_PStep> steps;
+  final _TextLocation location;
 }
 
 class _PRaw extends _PStep {
@@ -74,6 +82,7 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
   var inChoiceBlock = false;
   final currentChoices = <_PBranch>[];
   String? currentChoiceText;
+  _TextLocation? currentChoiceLocation;
   String? currentChoiceOutcomeId;
   final currentChoiceSteps = <_PStep>[];
 
@@ -84,6 +93,7 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
           label: currentChoiceText!,
           outcomeId: currentChoiceOutcomeId,
           steps: List<_PStep>.from(currentChoiceSteps),
+          location: currentChoiceLocation!,
         ),
       );
       currentChoiceText = null;
@@ -121,7 +131,10 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
     currentChoiceSteps.clear();
   }
 
+  var offset = 0;
   for (final raw in content.split('\n')) {
+    final lineOffset = offset;
+    offset += raw.length + 1;
     final line = raw.trimRight();
 
     if (!inBody) {
@@ -170,7 +183,8 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
           // Extension : conserver toute commande (dont `<<if …>>`).
           currentChoiceSteps.add(_PRaw(trimmed));
         } else {
-          currentChoiceSteps.add(_PLine(trimmed));
+          currentChoiceSteps.add(_PLine(trimmed,
+              _TextLocation(lineOffset + line.indexOf(trimmed), trimmed)));
         }
       } else if (trimmed.startsWith('->')) {
         if (!inChoiceBlock) {
@@ -178,7 +192,11 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
         } else {
           closeChoiceOption();
         }
-        currentChoiceText = _decodeText(trimmed.substring(2).trim());
+        final label = trimmed.substring(2).trim();
+        currentChoiceText = _decodeText(label);
+        currentChoiceLocation = _TextLocation(
+            lineOffset + line.indexOf(trimmed) + trimmed.indexOf(label, 2),
+            label);
       } else if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
         if (inChoiceBlock) closeChoiceBlock();
         final target =
@@ -189,7 +207,8 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
         rootSteps.add(_PRaw(trimmed));
       } else {
         if (inChoiceBlock) closeChoiceBlock();
-        rootSteps.add(_PLine(trimmed));
+        rootSteps.add(_PLine(trimmed,
+            _TextLocation(lineOffset + line.indexOf(trimmed), trimmed)));
       }
     }
   }
@@ -234,7 +253,8 @@ DialogueEditorStep _lineStepFromPlainText(
   );
 }
 
-List<DialogueEditorStep> _convertParsedSteps(List<_PStep> steps) {
+List<DialogueEditorStep> _convertParsedSteps(List<_PStep> steps,
+    {Map<String, _TextLocation>? locations}) {
   final converted = <DialogueEditorStep>[];
   for (var index = 0; index < steps.length; index++) {
     final step = steps[index];
@@ -245,18 +265,18 @@ List<DialogueEditorStep> _convertParsedSteps(List<_PStep> steps) {
       if ((portrait != null || speaker != null) &&
           next is _PLine &&
           !_narrationLine.hasMatch(next.text.trim())) {
-        converted.add(
-          _lineStepFromPlainText(
-            next.text,
-            characterId: portrait?.group(1) ?? speaker?.group(1),
-            portraitStateId: portrait?.group(2),
-          ),
+        final convertedLine = _lineStepFromPlainText(
+          next.text,
+          characterId: portrait?.group(1) ?? speaker?.group(1),
+          portraitStateId: portrait?.group(2),
         );
+        locations?[convertedLine.id] = next.location;
+        converted.add(convertedLine);
         index += 1;
         continue;
       }
     }
-    converted.add(_convertParsedStep(step));
+    converted.add(_convertParsedStep(step, locations));
   }
   return converted;
 }
@@ -267,25 +287,30 @@ final RegExp _portraitDirective = RegExp(
 final RegExp _speakerDirective = RegExp(r'^<<speaker\s+([^\s>]+)>>$');
 final RegExp _narrationLine = RegExp(r'^\(.*\)\s*$');
 
-DialogueEditorStep _convertParsedStep(_PStep step) {
+DialogueEditorStep _convertParsedStep(
+    _PStep step, Map<String, _TextLocation>? locations) {
   switch (step) {
-    case _PLine(:final text):
-      return _lineStepFromPlainText(text);
+    case _PLine(:final text, :final location):
+      final converted = _lineStepFromPlainText(text);
+      locations?[converted.id] = location;
+      return converted;
     case _PJump(:final target):
       return DeJumpStep(id: newDialogueEditorId(), targetTitle: target);
     case _PChoice(:final branches):
       return DeChoiceStep(
         id: newDialogueEditorId(),
-        branches: branches
-            .map(
-              (b) => DeChoiceBranch(
-                id: newDialogueEditorId(),
-                label: b.label,
-                outcomeId: b.outcomeId,
-                steps: _convertParsedSteps(b.steps),
-              ),
-            )
-            .toList(),
+        branches: branches.map(
+          (b) {
+            final branch = DeChoiceBranch(
+              id: newDialogueEditorId(),
+              label: b.label,
+              outcomeId: b.outcomeId,
+              steps: _convertParsedSteps(b.steps, locations: locations),
+            );
+            locations?[branch.id] = b.location;
+            return branch;
+          },
+        ).toList(),
       );
     case _PRaw(:final line):
       if (_isConditionToken(line)) {
@@ -311,6 +336,13 @@ void _ensureStartMarker(DialogueEditorDocument doc) {
 DialogueEditorDocument parseYarnToDocument(
   String content, {
   String? entryNodeTitle,
+}) =>
+    _parseYarnDocument(content, entryNodeTitle: entryNodeTitle);
+
+DialogueEditorDocument _parseYarnDocument(
+  String content, {
+  String? entryNodeTitle,
+  Map<String, _TextLocation>? locations,
 }) {
   final parsed = _parseYarnToParsedNodes(content);
   final nodes = <DialogueEditorNode>[];
@@ -320,7 +352,7 @@ DialogueEditorDocument parseYarnToDocument(
         id: newDialogueEditorId(),
         title: p.title,
         headers: p.headers,
-        steps: _convertParsedSteps(p.steps),
+        steps: _convertParsedSteps(p.steps, locations: locations),
       ),
     );
   }
@@ -441,6 +473,10 @@ String emitDocumentToYarn(DialogueEditorDocument doc) {
   final source = doc.sourcePreservation;
   if (source != null && canonical == source.canonicalAtParse) {
     return source.originalText;
+  }
+  if (source != null) {
+    final patched = _emitPatchedDialogueTexts(doc, source.originalText);
+    if (patched != null) return patched;
   }
   return canonical;
 }

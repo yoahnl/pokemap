@@ -4460,4 +4460,87 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dialogueCatalogShowSource => 'View source document';
+
+  @override
+  String get dialogueEditorOpen => 'Text and translations';
+
+  @override
+  String get dialogueEditorApply => 'Apply to draft';
+
+  @override
+  String get dialogueEditorUnit => 'Dialogue text';
+
+  @override
+  String get dialogueEditorSourceLocale => 'Source language';
+
+  @override
+  String get dialogueEditorChooseSource => 'Choose source language';
+
+  @override
+  String get dialogueEditorTranslation => 'Translation';
+
+  @override
+  String get dialogueEditorSource => 'Source text';
+
+  @override
+  String get dialogueEditorShared =>
+      'This document is shared. Your changes apply to every scene that uses it.';
+
+  @override
+  String get dialogueEditorDraftHint =>
+      'Apply adds your changes to the shared draft. Save the project to keep them.';
+
+  @override
+  String get dialogueEditorLegacyHint =>
+      'The source language is not declared. You can edit the text; choose its source language to add translations.';
+
+  @override
+  String get dialogueEditorRuntimeHint =>
+      'Exporting localized dialogues is not available yet.';
+
+  @override
+  String get dialogueEditorNoLanguages =>
+      'Configure the project languages to add translations.';
+
+  @override
+  String get dialogueEditorReview => 'Confirm this translation';
+
+  @override
+  String get dialogueEditorError =>
+      'These texts could not be applied. Check the fields; your input is preserved.';
+
+  @override
+  String get dialogueEditorConflict =>
+      'The document changed or is no longer editable. Your input is preserved in this editor.';
+
+  @override
+  String get dialogueEditorCopy => 'Create an independent copy';
+
+  @override
+  String get dialogueEditorCopyName => 'Copy name';
+
+  @override
+  String get dialogueEditorCopyHint =>
+      'The copy is added to the draft. Existing scenes keep using the original.';
+
+  @override
+  String get dialogueEditorOriginal => 'Edit the original';
+
+  @override
+  String get dialogueEditorLine => 'Line';
+
+  @override
+  String get dialogueEditorNarration => 'Narration';
+
+  @override
+  String get dialogueEditorChoice => 'Choice';
+
+  @override
+  String dialogueEditorCopyDefault(String name) {
+    return '$name — copy';
+  }
+
+  @override
+  String get dialogueEditorUnrepresentable =>
+      'This text would change the speaker or passage type. Adapt it to preserve the current structure; your input has been kept.';
 }

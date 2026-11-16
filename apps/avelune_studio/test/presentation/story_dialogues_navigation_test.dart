@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:avelune_design_system/avelune_design_system.dart';
+
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/scenes/domain/scene_document.dart';
 import 'package:flutter/material.dart';
@@ -105,6 +107,14 @@ void main() {
       );
       expect(h.port.requests, ['talk_1']);
       expect(find.text('Bonjour le monde.'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dialogue-document-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('dialogue-editor-translation')),
+        'Hello from the graph.',
+      );
+      await tester.tap(find.byKey(const ValueKey('confirm-reviewed-plan')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('dialogue-catalog-back')));
       await settleMemory(tester);
       await tester.enterText(
@@ -125,6 +135,18 @@ void main() {
         findsOneWidget,
       );
       expect(h.port.requests.where((id) => id == 'talk_1'), hasLength(2));
+      await tester.tap(find.byKey(const ValueKey('dialogue-document-edit')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<StudioDraftField>(
+              find.byKey(const ValueKey('dialogue-editor-translation')),
+            )
+            .value,
+        'Hello from the graph.',
+      );
+      await tester.tap(find.text('Annuler').last);
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('story-return')));
       await settleMemory(tester);
       expect(

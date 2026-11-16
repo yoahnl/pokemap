@@ -50,6 +50,7 @@ part 'catalog_native_resource_selection.dart';
 part 'catalog_presentation_reset_selection.dart';
 part 'catalog_scene_workshop_selection.dart';
 part 'catalog_dialogue_creation_selection.dart';
+part 'catalog_dialogue_update_selection.dart';
 part 'catalog_model_prune_selection.dart';
 part 'catalog_storyline_workshop_selection.dart';
 part 'catalog_guided_publication_dependencies.dart';
@@ -276,6 +277,9 @@ final class CatalogWorkshopSelection {
     }
     if (const {'dialogue.create', 'dialogue.create_batch'}.contains(actionId)) {
       return _readDialogueCreationWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters, readDependencies: readDependencies);
+    }
+    if (const {'dialogue.update', 'dialogue.source_update'}.contains(actionId)) {
+      return _readDialogueUpdateWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters, readDependencies: readDependencies);
     }
     if (_sceneWorkshopActions.contains(actionId)) {
       return _readSceneWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters, readDependencies: readDependencies);

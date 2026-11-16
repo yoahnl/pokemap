@@ -11,6 +11,7 @@ import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dar
 import 'package:avelune_studio/features/story_draft/domain/story_draft_saved.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring_dialogue.dart';
 
 import 'story_draft_fixtures.dart';
 import 'story_fake_ports.dart';
@@ -63,6 +64,61 @@ void main() {
     write(StoryDraftKind.scene, 'scene_line', scene('scene_line'));
     write(StoryDraftKind.dialogue, 'line', dialogue('line', 'Salut'));
   });
+
+  test(
+    'dialogue text edits reach canonical publication in compiled scopes',
+    () async {
+      const source =
+          'title: Start\n---\nLuth: Bonjour\n(La nuit tombe.)\n===\n';
+      final opened = readLocalizedDialogue(source: source, sourceLocale: 'fr');
+      final original = StoryDialogueSource(
+        entry: ProjectDialogueEntry(
+          id: 'talk',
+          name: 'Talk',
+          relativePath: 'dialogues/talk.yarn',
+          localization: opened.localization,
+        ),
+        source: source,
+        revision: 'disk-1',
+      );
+      project = manifest(dialogues: [original]);
+      dialogues.remember(original);
+      ports.sources['talk'] = DialogueSourceSnapshot(
+        entry: original.entry,
+        source: source,
+        revision: 'disk-1',
+      );
+      final node = opened.document.nodes.single;
+      node.steps.whereType<DeLineStep>().single.body = 'Salut';
+      node.steps.whereType<DeNarrationStep>().single.text = 'Le jour se lève.';
+      final updated = writeLocalizedDialogue(
+        opened.document,
+        previous: opened.localization,
+      );
+      write(
+        StoryDraftKind.dialogue,
+        'talk',
+        StoryDialogueSource(
+          entry: original.entry.copyWith(localization: updated.localization),
+          source: updated.source,
+          revision: original.revision,
+        ),
+      );
+      expect(await publish(), isA<StoryPublicationProgress>());
+      expect(
+        ports.dialogueTextEdits.single?.map(
+          (edit) =>
+              (edit.nodeName, edit.lineIndex, edit.beforeText, edit.afterText),
+        ),
+        [
+          ('Start', 0, 'Luth: Bonjour', 'Luth: Salut'),
+          ('Start', 1, '(La nuit tombe.)', '(Le jour se lève.)'),
+        ],
+      );
+      expect(draft.dirty(saved()), isFalse);
+      expect(dialogues['talk']?.source, updated.source);
+    },
+  );
 
   test('a new line writes its dialogue, its scene, then its event', () async {
     newLine();
