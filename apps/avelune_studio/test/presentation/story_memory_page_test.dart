@@ -11,7 +11,7 @@ Finder _rows({bool skipOffstage = true}) => find.byWidgetPredicate(
 );
 
 void main() {
-  testWidgets('the rail opens Histoire with only the tab that exists', (
+  testWidgets('the rail opens Histoire with facts and behaviours accessible', (
     tester,
   ) async {
     final index = memoryIndex();
@@ -21,9 +21,19 @@ void main() {
     await openHistoire(tester);
 
     expect(find.byKey(const ValueKey('studio-story')), findsOneWidget);
-    expect(find.text('Mémoire du jeu'), findsOneWidget);
-    expect(find.text('Tout le jeu'), findsOneWidget);
-    expect(find.text('Trame'), findsOneWidget);
+    expect(find.byKey(const ValueKey('story-navigation')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('story-section-behaviours')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<StudioNavigationEntry>(
+            find.byKey(const ValueKey('story-section-facts')),
+          )
+          .selected,
+      isTrue,
+    );
     expect(find.byKey(const ValueKey('map-space-construction')), findsNothing);
     expect(find.text('Rencontre'), findsOneWidget);
     expect(find.text('Nombre · au départ : 3'), findsOneWidget);
@@ -109,7 +119,7 @@ void main() {
       'disparaît.',
     );
 
-    await tester.tap(find.text('États'));
+    await tester.tap(find.byKey(const ValueKey('story-section-facts')));
     await settleMemory(tester);
     await tester.tap(find.byKey(ValueKey('memory-open-event-$guideTalk')));
     await settleMemory(tester);

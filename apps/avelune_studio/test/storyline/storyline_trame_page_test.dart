@@ -49,6 +49,9 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('trame-milestone-meet')));
     await settleMemory(tester);
+    await tester.ensureVisible(find.text('Parler au guide'));
+    await settleMemory(tester);
+    expect(find.text('Parler au guide').hitTestable(), findsOneWidget);
     await tester.tap(find.text('Parler au guide'));
     await settleMemory(tester);
     expect(find.byKey(const ValueKey('studio-story')), findsNothing);

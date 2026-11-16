@@ -35,7 +35,7 @@ FakeVerificationPort _port() => FakeVerificationPort(
 
 Future<void> _verify(WidgetTester tester, FakeVerificationPort port) async {
   await openTrameStudio(tester, verification: port);
-  await tester.tap(find.byKey(const ValueKey('story-tab-verify')));
+  await tester.tap(find.byKey(const ValueKey('story-section-verification')));
   await settleMemory(tester);
   expect(port.analyses, 0);
   await tester.tap(find.byKey(const ValueKey('verification-start')));
@@ -55,7 +55,7 @@ void main() {
     await settleMemory(tester);
     expect(find.text('Nouveau chapitre'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('story-tab-verify')));
+    await tester.tap(find.byKey(const ValueKey('story-section-verification')));
     await settleMemory(tester);
     expect(port.analyses, 0);
     expect(find.byKey(const ValueKey('verification-unsaved')), findsOneWidget);
@@ -67,7 +67,7 @@ void main() {
     expect(port.analysedProject!.storylines.single.chapters, hasLength(2));
     expect(find.byKey(const ValueKey('verification-unsaved')), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('story-tab-trame')));
+    await tester.tap(find.byKey(const ValueKey('story-section-trame')));
     await settleMemory(tester);
     expect(find.text('Nouveau chapitre'), findsOneWidget);
     expect(saved.storylines.single.chapters, hasLength(2));
@@ -91,7 +91,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const ValueKey('story-tab-verify')));
+    await tester.tap(find.byKey(const ValueKey('story-section-verification')));
     await settleMemory(tester);
     await tester.tap(find.byKey(const ValueKey('verification-open-3')));
     await settleMemory(tester);
@@ -100,7 +100,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const ValueKey('story-tab-verify')));
+    await tester.tap(find.byKey(const ValueKey('story-section-verification')));
     await settleMemory(tester);
     await tester.tap(find.byKey(const ValueKey('verification-open-1')));
     await settleMemory(tester);
@@ -119,7 +119,7 @@ void main() {
     await settleMemory(tester);
 
     expect(port.analyses, 0);
-    await tester.tap(find.byKey(const ValueKey('story-tab-verify')));
+    await tester.tap(find.byKey(const ValueKey('story-section-verification')));
     await settleMemory(tester);
     expect(find.byKey(const ValueKey('verification-unsaved')), findsOneWidget);
     expect(find.text('Le projet n’a pas encore été vérifié'), findsOneWidget);

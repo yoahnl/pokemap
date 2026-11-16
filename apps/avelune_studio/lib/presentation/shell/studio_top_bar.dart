@@ -7,7 +7,7 @@ import 'package:avelune_studio/presentation/shared/localization/studio_locale.da
 import 'package:avelune_studio/presentation/shared/localization/studio_language_menu.dart';
 
 const studioTopBarHeight = 64.0;
-const studioTopBarWideWidth = 1440.0;
+const studioTopBarWideWidth = 1600.0;
 
 enum StudioSaveState { saved, unsaved, saving, failed }
 
@@ -103,7 +103,7 @@ class StudioTopBar extends StatelessWidget {
           const SizedBox(width: StudioSpacing.l),
           const StudioLanguageMenu(),
           const SizedBox(width: StudioSpacing.s),
-          _SaveStatus(saveState),
+          _SaveStatus(saveState, compact: compact),
           const SizedBox(width: StudioSpacing.l),
           StudioButton(
             key: const ValueKey('studio-save'),
@@ -150,22 +150,29 @@ class _MapSelector extends StatelessWidget {
         for (final entry in maps)
           PopupMenuItem(value: entry, child: Text(entry.name)),
       ],
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            active?.name ?? context.l10n.topBarNoMap,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 220),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                active?.name ?? context.l10n.topBarNoMap,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(width: StudioSpacing.xs),
-          Icon(
-            Icons.keyboard_arrow_down,
-            size: 18,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ],
+            const SizedBox(width: StudioSpacing.xs),
+            Icon(
+              Icons.keyboard_arrow_down,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -228,9 +235,10 @@ class _BarDivider extends StatelessWidget {
 }
 
 class _SaveStatus extends StatelessWidget {
-  const _SaveStatus(this.state);
+  const _SaveStatus(this.state, {required this.compact});
 
   final StudioSaveState state;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -254,26 +262,35 @@ class _SaveStatus extends StatelessWidget {
     final style = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    return Row(
-      key: const ValueKey('studio-save-status'),
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        label: label,
+        excludeSemantics: true,
+        child: Row(
+          key: const ValueKey('studio-save-status'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            if (!compact) ...[
+              const SizedBox(width: StudioSpacing.s),
+              SizedBox(
+                width: _widest(context, style, [
+                  context.l10n.saveStateSaved,
+                  context.l10n.saveStateUnsaved,
+                  context.l10n.saveStateSaving,
+                  context.l10n.saveStateFailed,
+                ]),
+                child: Text(label, maxLines: 1, style: style),
+              ),
+            ],
+          ],
         ),
-        const SizedBox(width: StudioSpacing.s),
-        SizedBox(
-          width: _widest(context, style, [
-            context.l10n.saveStateSaved,
-            context.l10n.saveStateUnsaved,
-            context.l10n.saveStateSaving,
-            context.l10n.saveStateFailed,
-          ]),
-          child: Text(label, maxLines: 1, style: style),
-        ),
-      ],
+      ),
     );
   }
 }

@@ -61,38 +61,51 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
         children: [
           Padding(
             padding: const EdgeInsets.all(StudioSpacing.l),
-            child: Row(
-              children: [
-                Expanded(
-                  child: StudioSearchField(
-                    key: const ValueKey('behaviours-search'),
-                    controller: _search,
-                    label: l10n.behavioursSearch,
-                    onChanged: behaviours.search,
-                  ),
-                ),
-                const SizedBox(width: StudioSpacing.l),
-                SegmentedButton<GameBehaviourGrouping>(
-                  key: const ValueKey('behaviours-grouping'),
-                  showSelectedIcon: false,
-                  segments: [
-                    ButtonSegment(
-                      value: GameBehaviourGrouping.map,
-                      label: Text(l10n.behavioursByMap),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 800;
+                final search = StudioSearchField(
+                  key: const ValueKey('behaviours-search'),
+                  controller: _search,
+                  label: l10n.behavioursSearch,
+                  onChanged: behaviours.search,
+                );
+                return Flex(
+                  direction: narrow ? Axis.vertical : Axis.horizontal,
+                  crossAxisAlignment: narrow
+                      ? CrossAxisAlignment.stretch
+                      : CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (narrow) search else Expanded(child: search),
+                    SizedBox(
+                      width: narrow ? 0 : StudioSpacing.l,
+                      height: narrow ? StudioSpacing.m : 0,
                     ),
-                    ButtonSegment(
-                      value: GameBehaviourGrouping.fact,
-                      label: Text(l10n.behavioursByFact),
-                    ),
-                    ButtonSegment(
-                      value: GameBehaviourGrouping.character,
-                      label: Text(l10n.behavioursByCharacter),
+                    SegmentedButton<GameBehaviourGrouping>(
+                      key: const ValueKey('behaviours-grouping'),
+                      showSelectedIcon: false,
+                      segments: [
+                        ButtonSegment(
+                          value: GameBehaviourGrouping.map,
+                          label: Text(l10n.behavioursByMap),
+                        ),
+                        ButtonSegment(
+                          value: GameBehaviourGrouping.fact,
+                          label: Text(l10n.behavioursByFact),
+                        ),
+                        ButtonSegment(
+                          value: GameBehaviourGrouping.character,
+                          label: Text(l10n.behavioursByCharacter),
+                        ),
+                      ],
+                      selected: {behaviours.grouping},
+                      onSelectionChanged: (value) =>
+                          behaviours.group(value.single),
                     ),
                   ],
-                  selected: {behaviours.grouping},
-                  onSelectionChanged: (value) => behaviours.group(value.single),
-                ),
-              ],
+                );
+              },
             ),
           ),
           Padding(

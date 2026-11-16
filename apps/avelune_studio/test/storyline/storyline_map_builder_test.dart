@@ -76,7 +76,7 @@ void main() {
     tester,
   ) async {
     await openTrameStudio(tester);
-    await tester.tap(find.byKey(const ValueKey('story-tab-world')));
+    await tester.tap(find.byKey(const ValueKey('story-section-behaviours')));
     await settleMemory(tester);
 
     await tester.tap(

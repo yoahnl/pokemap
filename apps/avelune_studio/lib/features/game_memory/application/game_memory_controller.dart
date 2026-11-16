@@ -61,7 +61,10 @@ final class GameMemoryController {
     names.clear();
     unawaited(retry());
     if (filters.isNotEmpty) unawaited(_loadFilterUsages(force: true));
-    if (selectedFact case final id?) unawaited(_selectUsages(id));
+    if (selectedFact case final id?) {
+      reveal(id);
+      unawaited(_selectUsages(id));
+    }
     if (rules.saved.ready) unawaited(rules.retry());
   }
 

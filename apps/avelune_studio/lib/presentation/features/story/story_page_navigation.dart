@@ -18,15 +18,15 @@ extension _StoryPageNavigation on _StoryPageState {
     VoidCallback? step(String? id) {
       final trame = widget.trame;
       if (id == null || trame?.view?.milestone(id) == null) return null;
-      return () => _show(StoryTab.trame, () => trame!.focus = id);
+      return () => _show(StorySection.trame, () => trame!.focus = id);
     }
 
-    VoidCallback? fact(String? id) => id == null || _memory == null
+    VoidCallback? fact(String? id) => id == null || widget.port == null
         ? null
-        : () => _show(StoryTab.memory, () => _memory!.select(id));
-    VoidCallback? rule(String? id) => id == null || _memory == null
+        : () => _show(StorySection.facts, () => _memory!.select(id));
+    VoidCallback? rule(String? id) => id == null || widget.port == null
         ? null
-        : () => _show(StoryTab.memory, () => _memory!.rules.select(id));
+        : () => _show(StorySection.rules, () => _memory!.rules.select(id));
     VoidCallback? map(String? id) =>
         id == null || !widget.maps.any((entry) => entry.id == id)
         ? null
@@ -51,9 +51,9 @@ extension _StoryPageNavigation on _StoryPageState {
         map(problem.mapId);
   }
 
-  void _show(StoryTab tab, void Function() select) {
-    _openTab(tab);
-    _tab = tab;
+  void _show(StorySection section, void Function() select) {
+    _openSection(section);
+    _workspace = _workspace.select(section);
     select();
     _changed();
   }

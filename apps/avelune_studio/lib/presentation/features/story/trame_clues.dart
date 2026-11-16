@@ -93,24 +93,22 @@ class _TrameJournalCluesState extends State<TrameJournalClues> {
           if (facts.isEmpty)
             Text(l10n.trameCluesNoFact, style: theme.textTheme.bodySmall)
           else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: StudioDraftField(
-                    key: ValueKey('trame-clue-new-text-$_composer'),
-                    value: _text,
-                    label: l10n.trameClueText,
-                    helperText: l10n.trameJournalLimit(
-                      storylineJournalClueTextMaxLength,
-                    ),
-                    enabled: editable,
-                    onChanged: (value) => setState(() => _text = value),
+                StudioDraftField(
+                  key: ValueKey('trame-clue-new-text-$_composer'),
+                  value: _text,
+                  label: l10n.trameClueText,
+                  helperText: l10n.trameJournalLimit(
+                    storylineJournalClueTextMaxLength,
                   ),
+                  enabled: editable,
+                  onChanged: (value) => setState(() => _text = value),
                 ),
-                const SizedBox(width: StudioSpacing.m),
+                const SizedBox(height: StudioSpacing.m),
                 SizedBox(
-                  width: 220,
+                  width: double.infinity,
                   child: KeyedSubtree(
                     key: ValueKey('trame-clue-new-fact-$_composer'),
                     child: StudioSelect(
@@ -123,14 +121,17 @@ class _TrameJournalCluesState extends State<TrameJournalClues> {
                     ),
                   ),
                 ),
-                const SizedBox(width: StudioSpacing.m),
-                StudioButton(
-                  key: const ValueKey('trame-clue-add'),
-                  label: l10n.trameClueAdd,
-                  icon: Icons.add,
-                  onPressed: editable && text.isNotEmpty && factId != null
-                      ? () => unawaited(_add(text, factId))
-                      : null,
+                const SizedBox(height: StudioSpacing.m),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: StudioButton(
+                    key: const ValueKey('trame-clue-add'),
+                    label: l10n.trameClueAdd,
+                    icon: Icons.add,
+                    onPressed: editable && text.isNotEmpty && factId != null
+                        ? () => unawaited(_add(text, factId))
+                        : null,
+                  ),
                 ),
               ],
             ),
@@ -171,21 +172,19 @@ class _TrameClueRowState extends State<_TrameClueRow> {
     final editable = widget.editable;
     return Padding(
       padding: const EdgeInsets.only(bottom: StudioSpacing.m),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: StudioDraftField(
-              key: ValueKey('trame-clue-${clue.id}-text'),
-              value: _text ?? clue.text.fallback,
-              label: l10n.trameClueText,
-              enabled: editable,
-              onChanged: (value) => setState(() => _text = value),
-            ),
+          StudioDraftField(
+            key: ValueKey('trame-clue-${clue.id}-text'),
+            value: _text ?? clue.text.fallback,
+            label: l10n.trameClueText,
+            enabled: editable,
+            onChanged: (value) => setState(() => _text = value),
           ),
-          const SizedBox(width: StudioSpacing.m),
+          const SizedBox(height: StudioSpacing.m),
           SizedBox(
-            width: 220,
+            width: double.infinity,
             child: KeyedSubtree(
               key: ValueKey('trame-clue-${clue.id}-fact'),
               child: StudioSelect(
@@ -204,32 +203,40 @@ class _TrameClueRowState extends State<_TrameClueRow> {
               ),
             ),
           ),
-          IconButton(
-            key: ValueKey('trame-clue-${clue.id}-apply'),
-            tooltip: l10n.trameClueApply,
-            onPressed: editable && text.isNotEmpty && text != clue.text.fallback
-                ? () async {
-                    if (await widget.trame.updateJournalClue(
+          Wrap(
+            children: [
+              IconButton(
+                key: ValueKey('trame-clue-${clue.id}-apply'),
+                tooltip: l10n.trameClueApply,
+                onPressed:
+                    editable && text.isNotEmpty && text != clue.text.fallback
+                    ? () async {
+                        if (await widget.trame.updateJournalClue(
+                              widget.storylineId,
+                              clue.id,
+                              text: text,
+                            ) &&
+                            mounted) {
+                          setState(() => _text = null);
+                        }
+                      }
+                    : null,
+                icon: const Icon(Icons.check),
+              ),
+              IconButton(
+                key: ValueKey('trame-clue-${clue.id}-remove'),
+                tooltip: l10n.trameClueRemove,
+                onPressed: editable
+                    ? () => unawaited(
+                        widget.trame.removeJournalClue(
                           widget.storylineId,
                           clue.id,
-                          text: text,
-                        ) &&
-                        mounted) {
-                      setState(() => _text = null);
-                    }
-                  }
-                : null,
-            icon: const Icon(Icons.check),
-          ),
-          IconButton(
-            key: ValueKey('trame-clue-${clue.id}-remove'),
-            tooltip: l10n.trameClueRemove,
-            onPressed: editable
-                ? () => unawaited(
-                    widget.trame.removeJournalClue(widget.storylineId, clue.id),
-                  )
-                : null,
-            icon: const Icon(Icons.delete_outline),
+                        ),
+                      )
+                    : null,
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ],
           ),
         ],
       ),

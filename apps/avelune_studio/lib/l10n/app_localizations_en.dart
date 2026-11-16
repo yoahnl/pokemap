@@ -3967,4 +3967,89 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get selectionGroupHint =>
       'Arrow keys, the 3D axis handle, Copy, Duplicate and Delete act on the whole group.';
+
+  @override
+  String get storyWorkspaceTitle => 'Story';
+
+  @override
+  String get storyWorkspaceHint => 'Bring your game to life.';
+
+  @override
+  String get storySectionBehaviours => 'Behaviours';
+
+  @override
+  String get storySectionScenes => 'Scenes';
+
+  @override
+  String get storySectionDialogues => 'Dialogues';
+
+  @override
+  String get storySectionFacts => 'Facts';
+
+  @override
+  String get storySectionVerification => 'Verification';
+
+  @override
+  String get storyTrameHint => 'Stories, chapters and milestones';
+
+  @override
+  String get storyBehavioursHint => 'Across all maps';
+
+  @override
+  String get storyScenesHint => 'Sequences and choice dialogues';
+
+  @override
+  String get storyDialoguesHint => 'The text in your game';
+
+  @override
+  String get storyFactsHint => 'Progression states';
+
+  @override
+  String get storyRulesHint => 'A world that reacts';
+
+  @override
+  String get storyVerificationHint => 'Check the saved version';
+
+  @override
+  String get storyReadOnly =>
+      'Read only: changes to this project are disabled.';
+
+  @override
+  String get storySelectItem => 'Select an item to view its properties.';
+
+  @override
+  String get storyBehavioursOpenHint =>
+      'Open a behaviour to find and edit it on its map.';
+
+  @override
+  String get storyDialoguesEditingHint =>
+      'Simple lines are edited in behaviours; choice dialogues are edited in their scenes.';
+
+  @override
+  String get storyBehaviourLines => 'Behaviour lines';
+
+  @override
+  String get storyBehaviourLinesHint => 'Find a simple line on a map.';
+
+  @override
+  String get storySceneDialogues => 'Scene dialogues';
+
+  @override
+  String get storySceneDialoguesHint => 'Open the graph of a choice dialogue.';
+
+  @override
+  String get storyScenesLoading => 'Loading scene titles…';
+
+  @override
+  String get storyScenesEmpty => 'No scenes yet';
+
+  @override
+  String get storyScenesEmptyHint =>
+      'Create a scene from a behaviour on a map.';
+
+  @override
+  String get storySelectScene => 'Select a scene to open it.';
+
+  @override
+  String get storyUnnamedScene => 'Untitled scene';
 }

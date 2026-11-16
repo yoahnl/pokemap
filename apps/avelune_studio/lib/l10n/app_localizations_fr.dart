@@ -3993,4 +3993,92 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get selectionGroupHint =>
       'Les flèches du clavier, la poignée d’axe en 3D, Copier, Dupliquer et Supprimer agissent sur tout le groupe.';
+
+  @override
+  String get storyWorkspaceTitle => 'Histoire';
+
+  @override
+  String get storyWorkspaceHint => 'Donnez vie à votre jeu.';
+
+  @override
+  String get storySectionBehaviours => 'Comportements';
+
+  @override
+  String get storySectionScenes => 'Scènes';
+
+  @override
+  String get storySectionDialogues => 'Dialogues';
+
+  @override
+  String get storySectionFacts => 'Faits';
+
+  @override
+  String get storySectionVerification => 'Vérification';
+
+  @override
+  String get storyTrameHint => 'Histoires, chapitres et jalons';
+
+  @override
+  String get storyBehavioursHint => 'Sur toutes les cartes';
+
+  @override
+  String get storyScenesHint => 'Suites d’étapes et dialogues à choix';
+
+  @override
+  String get storyDialoguesHint => 'Les textes de votre jeu';
+
+  @override
+  String get storyFactsHint => 'Les états de la progression';
+
+  @override
+  String get storyRulesHint => 'Un monde qui réagit';
+
+  @override
+  String get storyVerificationHint => 'Contrôler la version enregistrée';
+
+  @override
+  String get storyReadOnly =>
+      'Consultation seule : les modifications de ce projet sont désactivées.';
+
+  @override
+  String get storySelectItem =>
+      'Sélectionnez un élément pour afficher ses propriétés.';
+
+  @override
+  String get storyBehavioursOpenHint =>
+      'Ouvrez un comportement pour le retrouver sur sa carte et le modifier.';
+
+  @override
+  String get storyDialoguesEditingHint =>
+      'Les répliques simples s’éditent dans les comportements ; les dialogues à choix s’éditent dans leurs scènes.';
+
+  @override
+  String get storyBehaviourLines => 'Répliques des comportements';
+
+  @override
+  String get storyBehaviourLinesHint =>
+      'Retrouver une phrase simple sur une carte.';
+
+  @override
+  String get storySceneDialogues => 'Dialogues des scènes';
+
+  @override
+  String get storySceneDialoguesHint =>
+      'Ouvrir le graphe d’un dialogue à choix.';
+
+  @override
+  String get storyScenesLoading => 'Chargement des titres de scènes…';
+
+  @override
+  String get storyScenesEmpty => 'Aucune scène pour l’instant';
+
+  @override
+  String get storyScenesEmptyHint =>
+      'Créez une scène depuis un comportement sur une carte.';
+
+  @override
+  String get storySelectScene => 'Sélectionnez une scène pour l’ouvrir.';
+
+  @override
+  String get storyUnnamedScene => 'Scène sans nom';
 }

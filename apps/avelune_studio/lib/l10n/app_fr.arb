@@ -2254,5 +2254,32 @@
       }
     }
   },
-  "selectionGroupHint": "Les flèches du clavier, la poignée d’axe en 3D, Copier, Dupliquer et Supprimer agissent sur tout le groupe."
+  "selectionGroupHint": "Les flèches du clavier, la poignée d’axe en 3D, Copier, Dupliquer et Supprimer agissent sur tout le groupe.",
+  "storyWorkspaceTitle": "Histoire",
+  "storyWorkspaceHint": "Donnez vie à votre jeu.",
+  "storySectionBehaviours": "Comportements",
+  "storySectionScenes": "Scènes",
+  "storySectionDialogues": "Dialogues",
+  "storySectionFacts": "Faits",
+  "storySectionVerification": "Vérification",
+  "storyTrameHint": "Histoires, chapitres et jalons",
+  "storyBehavioursHint": "Sur toutes les cartes",
+  "storyScenesHint": "Suites d’étapes et dialogues à choix",
+  "storyDialoguesHint": "Les textes de votre jeu",
+  "storyFactsHint": "Les états de la progression",
+  "storyRulesHint": "Un monde qui réagit",
+  "storyVerificationHint": "Contrôler la version enregistrée",
+  "storyReadOnly": "Consultation seule : les modifications de ce projet sont désactivées.",
+  "storySelectItem": "Sélectionnez un élément pour afficher ses propriétés.",
+  "storyBehavioursOpenHint": "Ouvrez un comportement pour le retrouver sur sa carte et le modifier.",
+  "storyDialoguesEditingHint": "Les répliques simples s’éditent dans les comportements ; les dialogues à choix s’éditent dans leurs scènes.",
+  "storyBehaviourLines": "Répliques des comportements",
+  "storyBehaviourLinesHint": "Retrouver une phrase simple sur une carte.",
+  "storySceneDialogues": "Dialogues des scènes",
+  "storySceneDialoguesHint": "Ouvrir le graphe d’un dialogue à choix.",
+  "storyScenesLoading": "Chargement des titres de scènes…",
+  "storyScenesEmpty": "Aucune scène pour l’instant",
+  "storyScenesEmptyHint": "Créez une scène depuis un comportement sur une carte.",
+  "storySelectScene": "Sélectionnez une scène pour l’ouvrir.",
+  "storyUnnamedScene": "Scène sans nom"
 }

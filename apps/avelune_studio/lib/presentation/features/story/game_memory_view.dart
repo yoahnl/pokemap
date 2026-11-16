@@ -13,7 +13,7 @@ import 'package:avelune_studio/presentation/features/story/game_memory_rule_list
 import 'package:avelune_studio/presentation/features/story/game_memory_usages.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
-const gameMemoryListWidth = 340.0;
+import 'story_workspace.dart';
 
 class GameMemoryView extends StatefulWidget {
   const GameMemoryView({
@@ -22,12 +22,14 @@ class GameMemoryView extends StatefulWidget {
     required this.maps,
     required this.loadMap,
     required this.behaviours,
+    required this.panels,
   });
 
   final GameMemoryController memory;
   final List<ProjectMapEntry> maps;
   final GameMemoryMapLoader? loadMap;
   final GameMemoryBehaviourLink behaviours;
+  final StoryPanelBuilder panels;
 
   @override
   State<GameMemoryView> createState() => _GameMemoryViewState();
@@ -38,8 +40,6 @@ class _GameMemoryViewState extends State<GameMemoryView> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final scheme = Theme.of(context).colorScheme;
     final memory = widget.memory;
     if (TickerMode.valuesOf(context).enabled) scheduleMicrotask(memory.sync);
     final loadMap = widget.loadMap;
@@ -48,63 +48,24 @@ class _GameMemoryViewState extends State<GameMemoryView> {
         loadMap != null &&
         memory.allFacts.isNotEmpty &&
         widget.maps.isNotEmpty;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Ink(
-          key: const ValueKey('memory-list-panel'),
-          width: gameMemoryListWidth,
-          decoration: BoxDecoration(
-            color: scheme.surface,
-            border: Border(right: BorderSide(color: scheme.outlineVariant)),
+    return widget.panels(
+      Column(
+        key: const ValueKey('memory-list-panel'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: memory.section == GameMemorySection.facts
+                ? GameMemoryFactList(memory: memory)
+                : GameMemoryRuleList(
+                    memory: memory,
+                    onCreate: canCreateRule
+                        ? () => setState(() => _creatingRule = true)
+                        : null,
+                  ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  StudioSpacing.l,
-                  StudioSpacing.l,
-                  StudioSpacing.l,
-                  0,
-                ),
-                child: SegmentedButton<GameMemorySection>(
-                  key: const ValueKey('memory-sections'),
-                  showSelectedIcon: false,
-                  segments: [
-                    ButtonSegment(
-                      value: GameMemorySection.facts,
-                      label: Text(l10n.memorySectionFacts),
-                    ),
-                    ButtonSegment(
-                      value: GameMemorySection.rules,
-                      label: Text(l10n.memorySectionRules),
-                    ),
-                  ],
-                  selected: {memory.section},
-                  onSelectionChanged: (value) => memory.show(value.single),
-                ),
-              ),
-              Expanded(
-                child: memory.section == GameMemorySection.facts
-                    ? GameMemoryFactList(memory: memory)
-                    : GameMemoryRuleList(
-                        memory: memory,
-                        onCreate: canCreateRule
-                            ? () => setState(() => _creatingRule = true)
-                            : null,
-                      ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Material(
-            color: scheme.surfaceContainerLowest,
-            child: _detail(context),
-          ),
-        ),
-      ],
+        ],
+      ),
+      _detail(context),
     );
   }
 

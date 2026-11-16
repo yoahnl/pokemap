@@ -6167,6 +6167,168 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Les flèches du clavier, la poignée d’axe en 3D, Copier, Dupliquer et Supprimer agissent sur tout le groupe.'**
   String get selectionGroupHint;
+
+  /// No description provided for @storyWorkspaceTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Histoire'**
+  String get storyWorkspaceTitle;
+
+  /// No description provided for @storyWorkspaceHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Donnez vie à votre jeu.'**
+  String get storyWorkspaceHint;
+
+  /// No description provided for @storySectionBehaviours.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comportements'**
+  String get storySectionBehaviours;
+
+  /// No description provided for @storySectionScenes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scènes'**
+  String get storySectionScenes;
+
+  /// No description provided for @storySectionDialogues.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dialogues'**
+  String get storySectionDialogues;
+
+  /// No description provided for @storySectionFacts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Faits'**
+  String get storySectionFacts;
+
+  /// No description provided for @storySectionVerification.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification'**
+  String get storySectionVerification;
+
+  /// No description provided for @storyTrameHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Histoires, chapitres et jalons'**
+  String get storyTrameHint;
+
+  /// No description provided for @storyBehavioursHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sur toutes les cartes'**
+  String get storyBehavioursHint;
+
+  /// No description provided for @storyScenesHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suites d’étapes et dialogues à choix'**
+  String get storyScenesHint;
+
+  /// No description provided for @storyDialoguesHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les textes de votre jeu'**
+  String get storyDialoguesHint;
+
+  /// No description provided for @storyFactsHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les états de la progression'**
+  String get storyFactsHint;
+
+  /// No description provided for @storyRulesHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un monde qui réagit'**
+  String get storyRulesHint;
+
+  /// No description provided for @storyVerificationHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Contrôler la version enregistrée'**
+  String get storyVerificationHint;
+
+  /// No description provided for @storyReadOnly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consultation seule : les modifications de ce projet sont désactivées.'**
+  String get storyReadOnly;
+
+  /// No description provided for @storySelectItem.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sélectionnez un élément pour afficher ses propriétés.'**
+  String get storySelectItem;
+
+  /// No description provided for @storyBehavioursOpenHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrez un comportement pour le retrouver sur sa carte et le modifier.'**
+  String get storyBehavioursOpenHint;
+
+  /// No description provided for @storyDialoguesEditingHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les répliques simples s’éditent dans les comportements ; les dialogues à choix s’éditent dans leurs scènes.'**
+  String get storyDialoguesEditingHint;
+
+  /// No description provided for @storyBehaviourLines.
+  ///
+  /// In fr, this message translates to:
+  /// **'Répliques des comportements'**
+  String get storyBehaviourLines;
+
+  /// No description provided for @storyBehaviourLinesHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retrouver une phrase simple sur une carte.'**
+  String get storyBehaviourLinesHint;
+
+  /// No description provided for @storySceneDialogues.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dialogues des scènes'**
+  String get storySceneDialogues;
+
+  /// No description provided for @storySceneDialoguesHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir le graphe d’un dialogue à choix.'**
+  String get storySceneDialoguesHint;
+
+  /// No description provided for @storyScenesLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement des titres de scènes…'**
+  String get storyScenesLoading;
+
+  /// No description provided for @storyScenesEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune scène pour l’instant'**
+  String get storyScenesEmpty;
+
+  /// No description provided for @storyScenesEmptyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créez une scène depuis un comportement sur une carte.'**
+  String get storyScenesEmptyHint;
+
+  /// No description provided for @storySelectScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sélectionnez une scène pour l’ouvrir.'**
+  String get storySelectScene;
+
+  /// No description provided for @storyUnnamedScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scène sans nom'**
+  String get storyUnnamedScene;
 }
 
 class _AppLocalizationsDelegate

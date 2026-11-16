@@ -16,12 +16,15 @@ import 'package:avelune_studio/presentation/features/story/trame_selection.dart'
 import 'package:avelune_studio/presentation/features/story/trame_start.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
+import 'story_workspace.dart';
+
 class TrameView extends StatefulWidget {
   const TrameView({
     super.key,
     required this.trame,
     required this.source,
     required this.navigate,
+    required this.panels,
     this.openScene,
   });
 
@@ -29,6 +32,7 @@ class TrameView extends StatefulWidget {
   final GameBehaviourSource source;
   final Future<bool> Function(String eventId) navigate;
   final SceneOpener? openScene;
+  final StoryPanelBuilder panels;
 
   @override
   State<TrameView> createState() => _TrameViewState();
@@ -57,7 +61,6 @@ class _TrameViewState extends State<TrameView> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final scheme = Theme.of(context).colorScheme;
     final trame = widget.trame;
     if (TickerMode.valuesOf(context).enabled) scheduleMicrotask(trame.sync);
     final state = gameMemoryResourceState(
@@ -66,7 +69,7 @@ class _TrameViewState extends State<TrameView> {
       loading: l10n.trameLoading,
       onRetry: trame.retry,
     );
-    if (state != null) return state;
+    if (state != null) return _panels(state);
     final view = trame.view!;
     if (trame.focus case final id?) {
       trame.focus = null;
@@ -80,7 +83,7 @@ class _TrameViewState extends State<TrameView> {
       }
     }
     if (view.outline.storylines.isEmpty) {
-      return TrameStart(trame: trame);
+      return _panels(TrameStart(trame: trame));
     }
     if (view.milestones.any((at) => at.milestone.completionFactId != null)) {
       scheduleMicrotask(trame.ensureFactNames);
@@ -153,55 +156,48 @@ class _TrameViewState extends State<TrameView> {
         0,
       ),
     ));
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Ink(
-          key: const ValueKey('trame-outline'),
-          width: 380,
-          decoration: BoxDecoration(
-            color: scheme.surface,
-            border: Border(right: BorderSide(color: scheme.outlineVariant)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (trame.refusal case final code?)
-                Padding(
-                  padding: const EdgeInsets.all(StudioSpacing.l),
-                  child: StudioNotice(
-                    key: const ValueKey('trame-refusal'),
-                    l10n.trameRefused(code),
-                    isError: true,
-                  ),
-                ),
-              Expanded(
-                child: ListView.builder(
-                  key: const ValueKey('trame-list'),
-                  padding: const EdgeInsets.all(StudioSpacing.l),
-                  itemCount: entries.length,
-                  itemBuilder: (context, index) => entries[index].$2,
-                ),
+    return widget.panels(
+      Column(
+        key: const ValueKey('trame-outline'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (trame.refusal case final code?)
+            Padding(
+              padding: const EdgeInsets.all(StudioSpacing.l),
+              child: StudioNotice(
+                key: const ValueKey('trame-refusal'),
+                l10n.trameRefused(code),
+                isError: true,
               ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Material(
-            color: scheme.surfaceContainerLowest,
-            child: TrameDetail(
-              trame: trame,
-              view: view,
-              selection: _selected,
-              behaviours: _behaviours,
-              navigate: widget.navigate,
-              openScene: widget.openScene,
+            ),
+          Expanded(
+            child: ListView.builder(
+              key: const ValueKey('trame-list'),
+              padding: const EdgeInsets.all(StudioSpacing.l),
+              itemCount: entries.length,
+              itemBuilder: (context, index) => entries[index].$2,
             ),
           ),
-        ),
-      ],
+        ],
+      ),
+      TrameDetail(
+        trame: trame,
+        view: view,
+        selection: _selected,
+        behaviours: _behaviours,
+        navigate: widget.navigate,
+        openScene: widget.openScene,
+      ),
     );
   }
+
+  Widget _panels(Widget content) => widget.panels(
+    content,
+    StudioEmptyState(
+      icon: Icons.touch_app_outlined,
+      title: context.l10n.trameSelect,
+    ),
+  );
 
   Widget _entry(
     TrameSelection key,

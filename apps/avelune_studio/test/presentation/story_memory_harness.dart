@@ -183,13 +183,13 @@ Future<void> openTrame(WidgetTester tester) async {
 
 Future<void> openWholeGame(WidgetTester tester) async {
   await openTrame(tester);
-  await tester.tap(find.byKey(const ValueKey('story-tab-world')));
+  await tester.tap(find.byKey(const ValueKey('story-section-behaviours')));
   await settleMemory(tester);
 }
 
 Future<void> openHistoire(WidgetTester tester) async {
   await openWholeGame(tester);
-  await tester.tap(find.byKey(const ValueKey('story-tab-memory')));
+  await tester.tap(find.byKey(const ValueKey('story-section-facts')));
   await settleMemory(tester);
 }
 
