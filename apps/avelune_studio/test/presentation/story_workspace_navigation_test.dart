@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'story_memory_harness.dart';
+import '../scenes/scene_catalog_support.dart';
 
 Future<void> section(WidgetTester tester, String name) async {
   await tester.tap(find.byKey(ValueKey('story-section-$name')));
@@ -145,7 +146,10 @@ void main() {
   testWidgets(
     'changing section preserves the selected scene without rereading titles',
     (tester) async {
-      final index = memoryIndex();
+      final index = memoryIndex()
+        ..documents['gate'] = catalogDocument(
+          catalogScene('gate', 'Ouverture de la porte'),
+        );
       await openMemoryStudio(tester, index);
       await openTrame(tester);
       await section(tester, 'scenes');
@@ -164,7 +168,11 @@ void main() {
       );
       expect(find.byKey(const ValueKey('story-scene-open')), findsOneWidget);
       expect(index.titleRequests.length, requests);
-      expect(index.documentRequests, isEmpty);
+      expect(index.documentRequests, ['gate']);
+      expect(
+        find.byKey(const ValueKey('scene-graph-preview-gate')),
+        findsOneWidget,
+      );
     },
   );
 

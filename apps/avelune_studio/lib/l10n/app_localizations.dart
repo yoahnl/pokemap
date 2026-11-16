@@ -6581,6 +6581,186 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ces repères concernent l’organisation du récit ; ils ne signalent pas un blocage du moteur.'**
   String get trameEditorialHint;
+
+  /// No description provided for @sceneCatalogSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher une scène…'**
+  String get sceneCatalogSearch;
+
+  /// No description provided for @sceneCatalogStory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Histoire ou quête'**
+  String get sceneCatalogStory;
+
+  /// No description provided for @sceneCatalogAllStories.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes les histoires'**
+  String get sceneCatalogAllStories;
+
+  /// No description provided for @sceneCatalogMainStories.
+  ///
+  /// In fr, this message translates to:
+  /// **'Histoires principales'**
+  String get sceneCatalogMainStories;
+
+  /// No description provided for @sceneCatalogSideStories.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes les quêtes annexes'**
+  String get sceneCatalogSideStories;
+
+  /// No description provided for @sceneCatalogAllChapters.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les chapitres'**
+  String get sceneCatalogAllChapters;
+
+  /// No description provided for @sceneCatalogWithoutChapter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans chapitre'**
+  String get sceneCatalogWithoutChapter;
+
+  /// No description provided for @sceneCatalogClear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effacer les filtres'**
+  String get sceneCatalogClear;
+
+  /// No description provided for @sceneCatalogFilterHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'« Sans chapitre » s’applique aux histoires sélectionnées. Une scène partagée apparaît une seule fois.'**
+  String get sceneCatalogFilterHint;
+
+  /// No description provided for @sceneCatalogRelationsUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les rattachements à la trame ne sont pas disponibles. La liste des scènes reste consultable.'**
+  String get sceneCatalogRelationsUnavailable;
+
+  /// No description provided for @sceneCatalogResults.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune scène} =1{1 scène} other{{count} scènes}}'**
+  String sceneCatalogResults(int count);
+
+  /// No description provided for @sceneCatalogNoResults.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune scène ne correspond à ces filtres.'**
+  String get sceneCatalogNoResults;
+
+  /// No description provided for @sceneCatalogDeleted.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirée du brouillon'**
+  String get sceneCatalogDeleted;
+
+  /// No description provided for @sceneCatalogDeletedHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette scène est retirée dans le brouillon. Annulez sa suppression pour la rouvrir.'**
+  String get sceneCatalogDeletedHint;
+
+  /// No description provided for @sceneCatalogBroken.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rattachement à vérifier'**
+  String get sceneCatalogBroken;
+
+  /// No description provided for @sceneCatalogBrokenHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un rattachement ne peut pas être résolu. Il est conservé dans cette liste pour être repéré.'**
+  String get sceneCatalogBrokenHint;
+
+  /// No description provided for @sceneCatalogDraft.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillon'**
+  String get sceneCatalogDraft;
+
+  /// No description provided for @sceneCatalogMemberships.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dans la trame'**
+  String get sceneCatalogMemberships;
+
+  /// No description provided for @sceneCatalogPreviewUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'L’aperçu de cette scène n’est pas disponible. Vous pouvez réessayer sa lecture.'**
+  String get sceneCatalogPreviewUnavailable;
+
+  /// No description provided for @sceneCatalogKnownUses.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun usage connu} =1{1 usage connu} other{{count} usages connus}}'**
+  String sceneCatalogKnownUses(int count);
+
+  /// No description provided for @sceneCatalogCoverage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ces usages recensent les comportements connus qui lancent la scène. Les appels dynamiques ne sont pas analysés ici.'**
+  String get sceneCatalogCoverage;
+
+  /// No description provided for @sceneCatalogNoKnownUse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun porteur connu. Cette scène reste ouvrable depuis son graphe.'**
+  String get sceneCatalogNoKnownUse;
+
+  /// No description provided for @sceneCatalogUnknownMembership.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rattachement inconnu'**
+  String get sceneCatalogUnknownMembership;
+
+  /// No description provided for @sceneCatalogMissingLink.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lien de chapitre introuvable'**
+  String get sceneCatalogMissingLink;
+
+  /// No description provided for @sceneCatalogMissingScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scène introuvable'**
+  String get sceneCatalogMissingScene;
+
+  /// No description provided for @sceneCatalogRefresh.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actualiser'**
+  String get sceneCatalogRefresh;
+
+  /// No description provided for @sceneCatalogNoResultsHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effacez les filtres pour retrouver toutes les scènes.'**
+  String get sceneCatalogNoResultsHint;
+
+  /// No description provided for @sceneCatalogReferences.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 référence à vérifier} other{{count} références à vérifier}}'**
+  String sceneCatalogReferences(int count);
+
+  /// No description provided for @sceneCatalogRemovedCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 scène retirée} other{{count} scènes retirées}}'**
+  String sceneCatalogRemovedCount(int count);
+
+  /// No description provided for @sceneCatalogOtherPlaces.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{+ 1 autre emplacement} other{+ {count} autres emplacements}}'**
+  String sceneCatalogOtherPlaces(int count);
 }
 
 class _AppLocalizationsDelegate

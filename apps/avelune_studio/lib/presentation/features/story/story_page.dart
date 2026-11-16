@@ -15,6 +15,7 @@ import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dar
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/features/verification/application/project_verification_controller.dart';
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
+import 'package:avelune_studio/features/scenes/application/scene_catalog_controller.dart';
 import 'package:avelune_studio/features/verification/application/verification_problems.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviours_view.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_rule_creation.dart';
@@ -25,7 +26,7 @@ import 'package:avelune_studio/presentation/features/story/verification_view.dar
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 import 'story_dialogue_links.dart';
-import 'story_scene_list.dart';
+import 'scenes/scene_catalog_view.dart';
 import 'story_workspace.dart';
 
 part 'story_page_navigation.dart';
@@ -49,6 +50,7 @@ class StoryPage extends StatefulWidget {
     this.openScene,
     this.beforeNavigation,
     this.onHistoryScopeChanged,
+    this.catalog,
   });
 
   final NarrativeIndexPort? port;
@@ -67,6 +69,7 @@ class StoryPage extends StatefulWidget {
   final SceneOpener? openScene;
   final Future<void> Function()? beforeNavigation;
   final ValueChanged<StoryHistoryScope>? onHistoryScopeChanged;
+  final SceneCatalogController? catalog;
 
   @override
   State<StoryPage> createState() => _StoryPageState();
@@ -77,10 +80,22 @@ class _StoryPageState extends State<StoryPage> {
   final _opened = <StorySection>{};
   GameMemoryController? _memory;
   GameBehavioursController? _behaviours;
+  SceneCatalogController? _catalog;
 
   void _openSection(StorySection section) {
     final port = widget.port;
     if (port != null) {
+      if (section == StorySection.scenes) {
+        _catalog ??=
+            widget.catalog ??
+            SceneCatalogController(
+              port: port,
+              storylines: widget.trame?.port,
+              draft: widget.staging.draft,
+              source: () => widget.behaviourSource,
+              changed: _changed,
+            );
+      }
       if (section == StorySection.facts || section == StorySection.rules) {
         _memory ??= GameMemoryController(
           port: port,
@@ -105,6 +120,7 @@ class _StoryPageState extends State<StoryPage> {
       unawaited(switch (section) {
         StorySection.trame => widget.trame?.open() ?? Future<void>.value(),
         StorySection.behaviours => _behaviours?.open() ?? Future<void>.value(),
+        StorySection.scenes => _catalog?.open() ?? Future<void>.value(),
         StorySection.facts => _memory?.open() ?? Future<void>.value(),
         StorySection.rules => _openRules(),
         _ => Future<void>.value(),
@@ -167,6 +183,7 @@ class _StoryPageState extends State<StoryPage> {
   @override
   void dispose() {
     _memory?.dispose();
+    if (!identical(_catalog, widget.catalog)) _catalog?.dispose();
     super.dispose();
   }
 
@@ -251,14 +268,14 @@ class _StoryPageState extends State<StoryPage> {
             ? GameMemorySection.facts
             : GameMemorySection.rules,
       ),
-      StorySection.scenes when widget.port != null => StorySceneList(
-        port: widget.port!,
+      StorySection.scenes when _catalog != null => SceneCatalogView(
+        catalog: _catalog!,
         openScene: widget.openScene,
         panels: panels,
-        onSelected: (id) => _selectItem(StorySection.scenes, (
-          kind: StoryDraftKind.scene,
-          id: id,
-        )),
+        onSelected: (id) => _selectItem(
+          StorySection.scenes,
+          id == null ? null : (kind: StoryDraftKind.scene, id: id),
+        ),
       ),
       StorySection.dialogues => panels(
         StoryDialogueLinks(onSelected: _select),

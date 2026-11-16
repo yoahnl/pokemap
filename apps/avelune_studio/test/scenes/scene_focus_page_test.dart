@@ -210,7 +210,7 @@ void main() {
     expect(_key('map-story-inspector-entity:guide'), findsOneWidget);
     await _tap(tester, 'map-story-scene-open');
     expect(_key('scene-focus-graph-talk'), findsOneWidget);
-    expect(index.documentRequests, ['talk', 'talk']);
+    expect(index.documentRequests, ['talk']);
   });
 
   testWidgets('undo in a scene never reaches the edits of another scene', (

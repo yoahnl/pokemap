@@ -17,6 +17,7 @@ extension _MapBuilderPageScene on _MapBuilderPageState {
       source: () => _stories.behaviours,
       sceneId: sceneId,
       behaviourId: behaviourId,
+      documentLoader: _stories.scenes?.readDocument,
       changed: _changed,
     );
     _sceneFocus = focus;

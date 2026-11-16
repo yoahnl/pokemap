@@ -5,6 +5,7 @@ import 'package:avelune_studio/app/di/game_memory_providers.dart';
 import 'package:avelune_studio/app/di/presentation_providers.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/features/scenes/application/scene_catalog_controller.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
 import 'package:avelune_studio/features/storyline/domain/storyline_read_port.dart';
 import 'package:avelune_studio/features/verification/application/project_verification_controller.dart';
@@ -45,11 +46,21 @@ final class MapBuilderStoryServices {
   final void Function() _changed;
   final Future<ProjectManifest?> Function() _verificationProject;
   ProjectVerificationController? verification;
+  SceneCatalogController? scenes;
 
   void attach() {
     story.narrative = narrative;
     final storylines = _storylines.read();
     final index = narrative;
+    if (index != null) {
+      scenes = SceneCatalogController(
+        port: index,
+        storylines: storylines,
+        draft: memory.draft,
+        source: () => behaviours,
+        changed: _changed,
+      );
+    }
     if (storylines != null && index != null) {
       story.trame = StorylineTrameController(
         port: storylines,
@@ -83,6 +94,7 @@ final class MapBuilderStoryServices {
       MapBuilderStoryBehaviourSource(story);
 
   void close() {
+    scenes?.dispose();
     _narrative.close();
     _world.close();
     _storylines.close();

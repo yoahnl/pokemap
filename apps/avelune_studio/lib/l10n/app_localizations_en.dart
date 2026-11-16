@@ -4216,4 +4216,144 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get trameEditorialHint =>
       'These checks concern story organization; they do not indicate an engine blocker.';
+
+  @override
+  String get sceneCatalogSearch => 'Search scenes…';
+
+  @override
+  String get sceneCatalogStory => 'Story or quest';
+
+  @override
+  String get sceneCatalogAllStories => 'All stories';
+
+  @override
+  String get sceneCatalogMainStories => 'Main stories';
+
+  @override
+  String get sceneCatalogSideStories => 'All side quests';
+
+  @override
+  String get sceneCatalogAllChapters => 'All chapters';
+
+  @override
+  String get sceneCatalogWithoutChapter => 'Without a chapter';
+
+  @override
+  String get sceneCatalogClear => 'Clear filters';
+
+  @override
+  String get sceneCatalogFilterHint =>
+      '“Without a chapter” applies to the selected stories. A shared scene appears only once.';
+
+  @override
+  String get sceneCatalogRelationsUnavailable =>
+      'Story memberships are unavailable. You can still browse the scene list.';
+
+  @override
+  String sceneCatalogResults(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count scenes',
+      one: '1 scene',
+      zero: 'No scenes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sceneCatalogNoResults => 'No scenes match these filters.';
+
+  @override
+  String get sceneCatalogDeleted => 'Removed in draft';
+
+  @override
+  String get sceneCatalogDeletedHint =>
+      'This scene has been removed in the draft. Undo its removal to open it again.';
+
+  @override
+  String get sceneCatalogBroken => 'Check membership';
+
+  @override
+  String get sceneCatalogBrokenHint =>
+      'A membership cannot be resolved. It remains in the list so you can find it.';
+
+  @override
+  String get sceneCatalogDraft => 'Draft';
+
+  @override
+  String get sceneCatalogMemberships => 'In the story';
+
+  @override
+  String get sceneCatalogPreviewUnavailable =>
+      'This scene’s preview is unavailable. You can retry loading it.';
+
+  @override
+  String sceneCatalogKnownUses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count known uses',
+      one: '1 known use',
+      zero: 'No known uses',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sceneCatalogCoverage =>
+      'These uses list known behaviours that launch the scene. Dynamic calls are not analysed here.';
+
+  @override
+  String get sceneCatalogNoKnownUse =>
+      'No known launcher. You can still open this scene’s graph.';
+
+  @override
+  String get sceneCatalogUnknownMembership => 'Unknown membership';
+
+  @override
+  String get sceneCatalogMissingLink => 'Missing chapter link';
+
+  @override
+  String get sceneCatalogMissingScene => 'Missing scene';
+
+  @override
+  String get sceneCatalogRefresh => 'Refresh';
+
+  @override
+  String get sceneCatalogNoResultsHint =>
+      'Clear the filters to find all scenes.';
+
+  @override
+  String sceneCatalogReferences(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count references to check',
+      one: '1 reference to check',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String sceneCatalogRemovedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count removed scenes',
+      one: '1 removed scene',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String sceneCatalogOtherPlaces(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+ $count other places',
+      one: '+ 1 other place',
+    );
+    return '$_temp0';
+  }
 }

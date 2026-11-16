@@ -87,7 +87,11 @@ void main() {
       await settleMemory(tester);
       await tester.tap(find.byKey(const ValueKey('story-scene-gate')));
       await settleMemory(tester);
-      expect(index.documentRequests, isEmpty);
+      expect(index.documentRequests, ['gate']);
+      expect(
+        find.byKey(const ValueKey('scene-graph-preview-gate')),
+        findsOneWidget,
+      );
       await tester.tap(find.byKey(const ValueKey('story-scene-open')));
       await settleMemory(tester);
       expect(

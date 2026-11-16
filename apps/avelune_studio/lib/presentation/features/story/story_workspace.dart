@@ -113,10 +113,13 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
                               child: TooltipVisibility(
                                 visible:
                                     TooltipVisibility.of(context) && visible,
-                                child: StoryInspector(
-                                  key: const ValueKey('story-inspector'),
-                                  width: double.infinity,
-                                  child: inspector,
+                                child: TickerMode(
+                                  enabled: visible,
+                                  child: StoryInspector(
+                                    key: const ValueKey('story-inspector'),
+                                    width: double.infinity,
+                                    child: inspector,
+                                  ),
                                 ),
                               ),
                             ),

@@ -33,6 +33,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       ),
       behaviourSource: _stories.behaviours,
       trame: _story.trame,
+      catalog: _stories.scenes,
       openMap: () {
         _rememberStoryOrigin();
         _setSection(StudioRailSection.map, navigation: true);

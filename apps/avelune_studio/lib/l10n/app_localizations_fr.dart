@@ -4246,4 +4246,145 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get trameEditorialHint =>
       'Ces repères concernent l’organisation du récit ; ils ne signalent pas un blocage du moteur.';
+
+  @override
+  String get sceneCatalogSearch => 'Rechercher une scène…';
+
+  @override
+  String get sceneCatalogStory => 'Histoire ou quête';
+
+  @override
+  String get sceneCatalogAllStories => 'Toutes les histoires';
+
+  @override
+  String get sceneCatalogMainStories => 'Histoires principales';
+
+  @override
+  String get sceneCatalogSideStories => 'Toutes les quêtes annexes';
+
+  @override
+  String get sceneCatalogAllChapters => 'Tous les chapitres';
+
+  @override
+  String get sceneCatalogWithoutChapter => 'Sans chapitre';
+
+  @override
+  String get sceneCatalogClear => 'Effacer les filtres';
+
+  @override
+  String get sceneCatalogFilterHint =>
+      '« Sans chapitre » s’applique aux histoires sélectionnées. Une scène partagée apparaît une seule fois.';
+
+  @override
+  String get sceneCatalogRelationsUnavailable =>
+      'Les rattachements à la trame ne sont pas disponibles. La liste des scènes reste consultable.';
+
+  @override
+  String sceneCatalogResults(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count scènes',
+      one: '1 scène',
+      zero: 'Aucune scène',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sceneCatalogNoResults =>
+      'Aucune scène ne correspond à ces filtres.';
+
+  @override
+  String get sceneCatalogDeleted => 'Retirée du brouillon';
+
+  @override
+  String get sceneCatalogDeletedHint =>
+      'Cette scène est retirée dans le brouillon. Annulez sa suppression pour la rouvrir.';
+
+  @override
+  String get sceneCatalogBroken => 'Rattachement à vérifier';
+
+  @override
+  String get sceneCatalogBrokenHint =>
+      'Un rattachement ne peut pas être résolu. Il est conservé dans cette liste pour être repéré.';
+
+  @override
+  String get sceneCatalogDraft => 'Brouillon';
+
+  @override
+  String get sceneCatalogMemberships => 'Dans la trame';
+
+  @override
+  String get sceneCatalogPreviewUnavailable =>
+      'L’aperçu de cette scène n’est pas disponible. Vous pouvez réessayer sa lecture.';
+
+  @override
+  String sceneCatalogKnownUses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count usages connus',
+      one: '1 usage connu',
+      zero: 'Aucun usage connu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sceneCatalogCoverage =>
+      'Ces usages recensent les comportements connus qui lancent la scène. Les appels dynamiques ne sont pas analysés ici.';
+
+  @override
+  String get sceneCatalogNoKnownUse =>
+      'Aucun porteur connu. Cette scène reste ouvrable depuis son graphe.';
+
+  @override
+  String get sceneCatalogUnknownMembership => 'Rattachement inconnu';
+
+  @override
+  String get sceneCatalogMissingLink => 'Lien de chapitre introuvable';
+
+  @override
+  String get sceneCatalogMissingScene => 'Scène introuvable';
+
+  @override
+  String get sceneCatalogRefresh => 'Actualiser';
+
+  @override
+  String get sceneCatalogNoResultsHint =>
+      'Effacez les filtres pour retrouver toutes les scènes.';
+
+  @override
+  String sceneCatalogReferences(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count références à vérifier',
+      one: '1 référence à vérifier',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String sceneCatalogRemovedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count scènes retirées',
+      one: '1 scène retirée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String sceneCatalogOtherPlaces(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+ $count autres emplacements',
+      one: '+ 1 autre emplacement',
+    );
+    return '$_temp0';
+  }
 }
