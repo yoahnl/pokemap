@@ -1,6 +1,19 @@
 part of 'story_page.dart';
 
 extension _StoryPageNavigation on _StoryPageState {
+  Future<void> _consumeBehaviourRequest() async {
+    final request = widget.behaviourRequest;
+    if (request == null) return;
+    await widget.beforeNavigation?.call();
+    if (!mounted || widget.behaviourRequest != request) return;
+    _openSection(StorySection.behaviours);
+    _workspace = _workspace.select(StorySection.behaviours);
+    if (widget.behaviourCatalog != null) {
+      await _openCatalogBehaviour(request.id);
+    }
+    if (mounted && widget.behaviourRequest == request) _changed();
+  }
+
   Future<bool> _openCatalogBehaviour(String id, {bool simulate = false}) async {
     await widget.beforeNavigation?.call();
     if (!mounted) return false;

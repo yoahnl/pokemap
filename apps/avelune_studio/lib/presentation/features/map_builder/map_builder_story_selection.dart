@@ -1,6 +1,16 @@
 part of 'map_builder_story_binding.dart';
 
 extension MapStorySelection on MapBuilderStoryBinding {
+  void _followInspectorSelection() {
+    if (!carrierEditable) return;
+    final element = selected;
+    final selection = element == null ? null : (map!.id, element.key);
+    if (selection != _inspectorSelection) {
+      _inspectorSelection = selection;
+      tab = MapStoryTab.properties;
+    }
+  }
+
   List<MapStoryElement> get visible {
     final needle = query.trim().toLowerCase();
     return [
@@ -64,6 +74,7 @@ extension MapStorySelection on MapBuilderStoryBinding {
     final document = maps.active;
     final session = view();
     if (document == null || session == null) return;
+    tab = MapStoryTab.properties;
     behaviour = 0;
     _mapSelection = null;
     switch (element.target) {

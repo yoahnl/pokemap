@@ -31,7 +31,14 @@ final class GameBehaviourEditing {
 
   StoryDraft get draft => behaviours.draft;
 
-  String? get problem {
+  String? get problem => contextProblem ?? _dependencyProblem;
+
+  bool get canRepairScene {
+    if (contextProblem != null) return false;
+    return _dependencyProblem != null && _dependencies?.$4.missingScene == true;
+  }
+
+  String? get contextProblem {
     if (isCurrent?.call() == false) {
       return 'Ce contexte a changé. Rouvrez le comportement avant de le modifier.';
     }
@@ -48,8 +55,20 @@ final class GameBehaviourEditing {
     }
     final elements = MapStoryElements(map, project);
     if (elements.byKey('${at.$2.name}:${at.$3}') == null) {
-      return 'Le porteur de ce comportement est absent. Utilisez la réparation dans Carte · Scénario.';
+      return 'Le porteur de ce comportement est absent. Utilisez la réparation dans Carte · Interactions.';
     }
+    return null;
+  }
+
+  String? get _dependencyProblem {
+    final id = eventId;
+    if (id == null) return null;
+    final record = behaviours
+        .registry(project)
+        ?.records
+        .where((record) => record.id == id)
+        .firstOrNull;
+    if (record == null) return null;
     final events = draft.versionOf(StoryDraftKind.event);
     final scenes = draft.versionOf(StoryDraftKind.scene);
     final facts = draft.versionOf(StoryDraftKind.fact);
@@ -62,7 +81,7 @@ final class GameBehaviourEditing {
         events,
         scenes,
         facts,
-        GameBehaviourDependencies(behaviours.project(project), record!),
+        GameBehaviourDependencies(behaviours.project(project), record),
       );
     }
     return _dependencies!.$4.problem;
@@ -73,8 +92,11 @@ final class GameBehaviourEditing {
     List<NarrativeEventRecord> expected = const [],
     List<MapStoryBehaviourOperation> operations = const [],
     void Function(StoryDraft draft)? stage,
+    bool repairScene = false,
   }) {
-    final invalid = problem ?? _obsolete({...active, ...expected});
+    final invalid =
+        (repairScene && canRepairScene ? contextProblem : problem) ??
+        _obsolete({...active, ...expected});
     if (invalid != null) {
       return (
         applied: false,

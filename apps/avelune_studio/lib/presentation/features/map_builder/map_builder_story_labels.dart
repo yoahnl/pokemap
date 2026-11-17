@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
+
+String mapBuilderBehaviourState(
+  NarrativeEventRecord record,
+  AppLocalizations l10n,
+) => switch (record.enabledOrNull) {
+  null => l10n.storyDraft,
+  true => l10n.storyActive,
+  false => l10n.storyDisabled,
+};
 
 IconData mapBuilderStoryIcon(MapStoryElementKind kind) => switch (kind) {
   MapStoryElementKind.character => Icons.person_outline,

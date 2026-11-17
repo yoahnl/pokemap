@@ -1,6 +1,8 @@
 part of 'map_builder_story_binding.dart';
 
 extension MapStoryAdditions on MapBuilderStoryBinding {
+  bool get charactersReady => maps.hasResourceKind('character');
+
   List<ProjectCharacterEntry> get characters =>
       [...?maps.project?.characters]..sort((a, b) => a.name.compareTo(b.name));
 
@@ -75,6 +77,7 @@ extension MapStoryAdditions on MapBuilderStoryBinding {
   }
 
   void reconcile() {
+    _followInspectorSelection();
     final map = this.map;
     if (adding == null || map == null || !armed) return;
     if (adding != MapStoryAddition.zone &&

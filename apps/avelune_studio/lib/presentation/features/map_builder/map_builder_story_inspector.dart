@@ -1,35 +1,18 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-
-import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
-import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_cases.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_conditions.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_interaction_triggers.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_errors.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_line_field.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_panel.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_milestones.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_presence.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_simulation.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 export 'package:avelune_studio/presentation/features/map_builder/map_builder_story_errors.dart';
 
-part 'map_builder_story_behaviours_tab.dart';
 part 'map_builder_story_properties_tab.dart';
-
-String mapBuilderBehaviourState(
-  NarrativeEventRecord record,
-  AppLocalizations l10n,
-) => switch (record.enabledOrNull) {
-  null => l10n.storyDraft,
-  true => l10n.storyActive,
-  false => l10n.storyDisabled,
-};
 
 class MapBuilderStoryInspector extends StatelessWidget {
   const MapBuilderStoryInspector({
@@ -89,12 +72,12 @@ class MapBuilderStoryInspector extends StatelessWidget {
             showSelectedIcon: false,
             segments: [
               ButtonSegment(
-                value: MapStoryTab.behaviour,
-                label: Text(l10n.storyTabBehaviour),
-              ),
-              ButtonSegment(
                 value: MapStoryTab.properties,
                 label: Text(l10n.storyTabProperties),
+              ),
+              ButtonSegment(
+                value: MapStoryTab.behaviour,
+                label: Text(l10n.storySectionBehaviours),
               ),
             ],
             selected: {binding.tab},
@@ -105,7 +88,7 @@ class MapBuilderStoryInspector extends StatelessWidget {
           key: ValueKey('map-story-attempt-${binding.attempts}'),
           child:
               !binding.carrierEditable || binding.tab == MapStoryTab.behaviour
-              ? MapBuilderStoryBehaviourEditor(
+              ? MapBuilderInteractionTriggers(
                   binding: binding,
                   element: element,
                   enabled: enabled,

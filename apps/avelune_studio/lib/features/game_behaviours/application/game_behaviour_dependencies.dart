@@ -39,18 +39,19 @@ final class GameBehaviourDependencies {
           if (!visited.add(ref.id)) continue;
           final scene = scenes[ref.id];
           if (scene == null) {
-            problem = 'Une scène requise est absente. Réparez la référence dans Carte · Scénario.';
+            missingScene = true;
+            problem = 'Une scène requise est absente. Choisissez une scène disponible dans Histoire.';
             return;
           }
           inspect(scene: scene);
         case NarrativeDependencyTargetKind.fact:
           if (!facts.contains(ref.id)) {
-            problem = 'Un fait requis est absent. Réparez la référence dans Carte · Scénario.';
+            problem = 'Un fait requis est absent. Réparez la référence dans Histoire.';
             return;
           }
         case NarrativeDependencyTargetKind.dialogue:
           if (!dialogues.contains(ref.id)) {
-            problem = 'Un dialogue requis est absent. Réparez la référence dans Carte · Scénario.';
+            problem = 'Un dialogue requis est absent. Réparez la scène dans Histoire.';
             return;
           }
           dialogueIds.add(ref.id);
@@ -61,5 +62,6 @@ final class GameBehaviourDependencies {
   }
 
   final dialogueIds = <String>{};
+  bool missingScene = false;
   String? problem;
 }

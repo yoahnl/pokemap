@@ -1,4 +1,4 @@
-import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:avelune_studio/features/events/application/behaviour/behaviour_reuse.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
@@ -72,9 +72,8 @@ void main() {
       find.byKey(const ValueKey('map-story-element-entity:luth')),
     );
     await tester.pump();
-    tester
-        .widget<StudioSelect>(find.byKey(const ValueKey('map-story-after')))
-        .onChanged!('eachTime');
+    story.openTab(MapStoryTab.behaviour);
+    story.setAfter(story.selectedBehaviour!, BehaviourAfter.eachTime);
     await tester.pump();
 
     expect(story.selectedBehaviour!.enabledOrNull, isFalse);
@@ -157,9 +156,7 @@ void main() {
           find.byKey(const ValueKey('map-story-element-entity:luth')),
         );
         await tester.pump();
-        tester
-            .widget<StudioSelect>(find.byKey(const ValueKey('map-story-after')))
-            .onChanged!('eachTime');
+        story.setAfter(story.selectedBehaviour!, BehaviourAfter.eachTime);
         await tester.pump();
 
         final meeting = story.behaviours

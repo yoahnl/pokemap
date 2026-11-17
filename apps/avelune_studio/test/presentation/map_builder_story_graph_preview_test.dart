@@ -1,3 +1,4 @@
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -5,8 +6,9 @@ import '../scenes/steps/scene_step_fixtures.dart';
 import 'map_builder_story_support.dart';
 
 void main() {
-  testWidgets('a behaviour that runs a scene shows its graph preview, not a '
-      'list of steps', (tester) async {
+  testWidgets('an advanced scene stays a linked scene in the local card', (
+    tester,
+  ) async {
     final scene = sceneOf(
       [startNode(), factNode('fact'), dialogueNode('talk'), endNode('end')],
       [link('start', 'fact'), link('fact', 'talk'), link('talk', 'end')],
@@ -16,14 +18,17 @@ void main() {
       scenes: [scene],
     );
     await pumpStoryInspector(tester, fixture);
+    fixture.story.openTab(MapStoryTab.behaviour);
     await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('map-story-then')), findsOne);
-    expect(find.byKey(ValueKey('scene-graph-preview-${scene.id}')), findsOne);
-    for (final id in ['start', 'fact', 'talk', 'end']) {
-      expect(find.byKey(ValueKey('scene-graph-card-$id')), findsOne);
-    }
-    expect(find.textContaining('4 étapes'), findsOne);
+    expect(find.text(scene.name), findsOneWidget);
+    expect(find.text('Modifier dans Histoire'), findsOneWidget);
+    expect(
+      find.byKey(ValueKey('scene-graph-preview-${scene.id}')),
+      findsNothing,
+    );
     expect(find.byKey(ValueKey('map-story-steps-${scene.id}')), findsNothing);
+    expect(fixture.story.sceneOf(scene.id), scene);
+    expect(fixture.ports.dialogueReads, isEmpty);
+    expect(fixture.story.dirty, isFalse);
   });
 }

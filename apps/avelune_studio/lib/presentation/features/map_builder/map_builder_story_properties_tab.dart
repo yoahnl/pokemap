@@ -143,23 +143,24 @@ class _Properties extends StatelessWidget {
                     }
                   : null,
             )
-          else ...[
+          else
             _Fact(l10n.storyAppearance, character ?? l10n.storyNone),
-            if (enabled)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: StudioButton(
-                  key: const ValueKey('map-story-load-characters'),
-                  variant: StudioButtonVariant.quiet,
-                  label: binding.charactersLoading
-                      ? l10n.storyCharactersLoading
-                      : l10n.storyChangeAppearance,
-                  onPressed: binding.charactersLoading
-                      ? null
-                      : binding.loadCharacters,
-                ),
+          if (binding.charactersError case final error?)
+            StudioNotice(error, isError: true),
+          if (enabled && !binding.charactersReady)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: StudioButton(
+                key: const ValueKey('map-story-load-characters'),
+                variant: StudioButtonVariant.quiet,
+                label: binding.charactersLoading
+                    ? l10n.storyCharactersLoading
+                    : l10n.storyChangeAppearance,
+                onPressed: binding.charactersLoading
+                    ? null
+                    : binding.loadCharacters,
               ),
-          ],
+            ),
           const SizedBox(height: StudioSpacing.m),
           StudioSelect(
             key: const ValueKey('map-story-facing'),

@@ -43,16 +43,7 @@ extension GameBehaviourLabels on AppLocalizations {
     String? Function(String factId) factName,
   ) => behavioursSummary(
     storyTrigger(summary.when?.name ?? 'none'),
-    summary.conditions.items.isEmpty
-        ? storyAlways
-        : [
-            for (final item in summary.conditions.items)
-              _condition(item, factName),
-          ].join(
-            summary.conditions.junction == BehaviourConditionJunction.any
-                ? ' $triggersConditionOr '
-                : ', ',
-          ),
+    behaviourConditions(summary.conditions, factName),
     switch (summary.scene) {
       null when summary.sceneChosen => behavioursSceneNotFound,
       null => storySceneMissing,
@@ -67,6 +58,17 @@ extension GameBehaviourLabels on AppLocalizations {
       BehaviourAfter.onceUntilOutcome => storyOnceUntilOutcome,
     },
   );
+
+  String behaviourConditions(
+    BehaviourConditions conditions,
+    String? Function(String factId) factName,
+  ) => conditions.items.isEmpty
+      ? storyAlways
+      : [for (final item in conditions.items) _condition(item, factName)].join(
+          conditions.junction == BehaviourConditionJunction.any
+              ? ' $triggersConditionOr '
+              : ', ',
+        );
 
   String _condition(
     BehaviourConditionItem item,

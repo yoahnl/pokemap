@@ -719,8 +719,62 @@ abstract class AppLocalizations {
   /// No description provided for @spaceStory.
   ///
   /// In fr, this message translates to:
-  /// **'Scénario'**
+  /// **'Interactions'**
   String get spaceStory;
+
+  /// No description provided for @interactionTriggersTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scènes déclenchées'**
+  String get interactionTriggersTitle;
+
+  /// No description provided for @interactionTriggersHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les mêmes liens que dans Histoire.'**
+  String get interactionTriggersHint;
+
+  /// No description provided for @interactionEdit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier dans Histoire'**
+  String get interactionEdit;
+
+  /// No description provided for @interactionComplete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compléter dans Histoire'**
+  String get interactionComplete;
+
+  /// No description provided for @interactionComplex.
+  ///
+  /// In fr, this message translates to:
+  /// **'Expression complexe conservée'**
+  String get interactionComplex;
+
+  /// No description provided for @interactionSceneUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scène introuvable'**
+  String get interactionSceneUnavailable;
+
+  /// No description provided for @interactionRemove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer le déclencheur'**
+  String get interactionRemove;
+
+  /// No description provided for @interactionActions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actions du déclencheur'**
+  String get interactionActions;
+
+  /// No description provided for @interactionReturnMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour à la carte'**
+  String get interactionReturnMap;
 
   /// No description provided for @spaceAmbiance.
   ///
@@ -1199,7 +1253,7 @@ abstract class AppLocalizations {
   /// No description provided for @gameplayNoteBody.
   ///
   /// In fr, this message translates to:
-  /// **'Les comportements narratifs restent dans Scénario.'**
+  /// **'Placez les éléments dans Interactions et réglez leurs déclencheurs dans Histoire.'**
   String get gameplayNoteBody;
 
   /// No description provided for @gameplayInspectorEyebrow.
@@ -1223,19 +1277,19 @@ abstract class AppLocalizations {
   /// No description provided for @storyEyebrow.
   ///
   /// In fr, this message translates to:
-  /// **'SCÉNARIO'**
+  /// **'CARTE · CONTEXTE LOCAL'**
   String get storyEyebrow;
 
   /// No description provided for @storyTitle.
   ///
   /// In fr, this message translates to:
-  /// **'Éléments de jeu'**
+  /// **'Interactions'**
   String get storyTitle;
 
   /// No description provided for @storySubtitle.
   ///
   /// In fr, this message translates to:
-  /// **'Ce qui se passe sur cette carte.'**
+  /// **'Personnages, objets et zones.'**
   String get storySubtitle;
 
   /// No description provided for @storyCharacters.
@@ -1301,13 +1355,13 @@ abstract class AppLocalizations {
   /// No description provided for @storyNoteTitle.
   ///
   /// In fr, this message translates to:
-  /// **'Scénario : personnages et événements.'**
+  /// **'La carte place les éléments.'**
   String get storyNoteTitle;
 
   /// No description provided for @storyNoteBody.
   ///
   /// In fr, this message translates to:
-  /// **'Les passages et rencontres restent dans Jeu.'**
+  /// **'Histoire définit quand leurs scènes se jouent.'**
   String get storyNoteBody;
 
   /// No description provided for @storyInspectorEyebrow.
@@ -1325,7 +1379,7 @@ abstract class AppLocalizations {
   /// No description provided for @storyInspectorHint.
   ///
   /// In fr, this message translates to:
-  /// **'Sélectionnez un élément sur la carte ou dans la liste pour afficher son comportement et ses propriétés.'**
+  /// **'Sélectionnez un élément sur la carte ou dans la liste pour afficher ses propriétés et ses déclencheurs.'**
   String get storyInspectorHint;
 
   /// No description provided for @ambianceTitle.
@@ -1859,7 +1913,7 @@ abstract class AppLocalizations {
   /// No description provided for @storyBehaviours.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 comportement} other{{count} comportements}}'**
+  /// **'{count, plural, =1{1 déclencheur} other{{count} déclencheurs}}'**
   String storyBehaviours(int count);
 
   /// No description provided for @storyConfigured.
@@ -1919,7 +1973,7 @@ abstract class AppLocalizations {
   /// No description provided for @storyNoBehaviour.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun comportement pour l’instant.'**
+  /// **'Aucun déclencheur pour l’instant.'**
   String get storyNoBehaviour;
 
   /// No description provided for @storyWhen.
@@ -2051,7 +2105,7 @@ abstract class AppLocalizations {
   /// No description provided for @storyMapProperties.
   ///
   /// In fr, this message translates to:
-  /// **'Événement de carte : ses conditions et sa scène se règlent dans Comportement.'**
+  /// **'Les déclencheurs de cette carte se consultent ici. Leurs conditions et leurs scènes se règlent dans Histoire.'**
   String get storyMapProperties;
 
   /// No description provided for @storyOutOfMap.
@@ -2315,7 +2369,7 @@ abstract class AppLocalizations {
   /// No description provided for @storyBehaviourName.
   ///
   /// In fr, this message translates to:
-  /// **'Comportement {index}'**
+  /// **'Déclencheur {index}'**
   String storyBehaviourName(int index);
 
   /// No description provided for @storyPreparing.

@@ -38,6 +38,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       dialoguePort: _stories.dialogues,
       dialogueStaging: _stories.memory,
       dialogueRequest: _dialogueRequest,
+      behaviourRequest: _behaviourRequest,
       openMap: () {
         _rememberStoryOrigin();
         _setSection(StudioRailSection.map, navigation: true);
@@ -90,6 +91,15 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     _rememberStoryOrigin();
     _setSection(StudioRailSection.story, navigation: true);
     _dialogueRequest = (id: id, token: ++_storyNavigation);
+    _changed();
+  }
+
+  Future<void> _openTriggerInStory(String id) async {
+    await _commitTyping();
+    if (!mounted || _disposed) return;
+    _rememberStoryOrigin();
+    _setSection(StudioRailSection.story, navigation: true);
+    _behaviourRequest = (id: id, token: ++_storyNavigation);
     _changed();
   }
 

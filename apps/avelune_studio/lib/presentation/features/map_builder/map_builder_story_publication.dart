@@ -9,8 +9,7 @@ extension MapStoryPublication on MapBuilderStoryBinding {
   }
 
   Future<bool> _publish(StoryPublicationGateway? gateway) async {
-    final project = maps.project;
-    if (project == null || !dirty) return true;
+    if (maps.project == null || !dirty) return true;
     if (gateway == null) {
       error = 'publish-unavailable';
       changed();
@@ -19,6 +18,12 @@ extension MapStoryPublication on MapBuilderStoryBinding {
     publishing = true;
     changed();
     try {
+      await maps.savesSettled;
+      final project = maps.project;
+      if (project == null) {
+        error = 'publish-unavailable';
+        return false;
+      }
       final progress = await gateway.publish(
         planStoryPublication(
           behaviours.draft.changes(behaviours.saved(project)),

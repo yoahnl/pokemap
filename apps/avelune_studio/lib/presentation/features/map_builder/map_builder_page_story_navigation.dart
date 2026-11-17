@@ -60,6 +60,8 @@ extension _MapBuilderStoryNavigation on _MapBuilderPageState {
               key: const ValueKey('story-return'),
               label: origin.scene != null
                   ? context.l10n.storyReturnScene
+                  : origin.section == StudioRailSection.map
+                  ? context.l10n.interactionReturnMap
                   : context.l10n.storyReturnHistory,
               icon: Icons.arrow_back,
               variant: StudioButtonVariant.quiet,

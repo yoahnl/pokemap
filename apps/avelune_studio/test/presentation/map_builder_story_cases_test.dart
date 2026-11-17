@@ -7,8 +7,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import 'map_builder_story_support.dart';
+import 'story_trigger_support.dart';
 
 Finder _key(String value) => find.byKey(ValueKey(value));
+
+void _expectOrder(WidgetTester tester, List<int> indexes) {
+  for (var index = 1; index < indexes.length; index++) {
+    expect(
+      tester
+          .getTopLeft(
+            _key('map-story-case-${storyEventId(indexes[index - 1])}'),
+          )
+          .dy,
+      lessThan(
+        tester
+            .getTopLeft(_key('map-story-case-${storyEventId(indexes[index])}'))
+            .dy,
+      ),
+    );
+  }
+}
 
 void main() {
   testWidgets('dragging a case rewrites only the records whose rank moved', (
@@ -21,8 +39,9 @@ void main() {
       ],
     );
     await pumpStoryInspector(tester, fixture);
-    expect(find.text('1 · Cas 1'), findsOneWidget);
-    expect(find.text('3 · Cas 3'), findsOneWidget);
+    fixture.story.openTab(MapStoryTab.behaviour);
+    await tester.pump();
+    _expectOrder(tester, [1, 2, 3]);
     final list = tester.widget<ReorderableListView>(
       find.descendant(
         of: _key('map-story-cases-entityInteract'),
@@ -38,9 +57,7 @@ void main() {
       [...fixture.story.behaviours.draft.touched(StoryDraftKind.event)]..sort(),
       [storyEventId(1), storyEventId(2)],
     );
-    expect(find.text('1 · Cas 3'), findsOneWidget);
-    expect(find.text('2 · Cas 1'), findsOneWidget);
-    expect(find.text('3 · Cas 2'), findsOneWidget);
+    _expectOrder(tester, [3, 1, 2]);
     for (var index = 1; index <= 3; index++) {
       expect(
         storyCurrent(fixture, storyEventId(index)).enabledOrNull,
@@ -51,7 +68,7 @@ void main() {
 
     fixture.story.undo();
     await tester.pump();
-    expect(find.text('1 · Cas 1'), findsOneWidget);
+    _expectOrder(tester, [1, 2, 3]);
     expect(fixture.story.behaviours.draft.touchedRefs, isEmpty);
   });
 
@@ -63,7 +80,8 @@ void main() {
       ],
     );
     await pumpStoryInspector(tester, fixture);
-
+    fixture.story.openTab(MapStoryTab.behaviour);
+    await tester.pump();
     expect(_key('map-story-case-shadow-${storyEventId(2)}'), findsOneWidget);
     expect(
       find.text('Ne peut jamais se jouer : « Cas 1 » passe toujours avant.'),
@@ -98,7 +116,7 @@ void main() {
         ),
       ],
     );
-    await pumpStoryInspector(tester, fixture);
+    await pumpTrigger(tester, fixture);
     StudioSelect after() =>
         tester.widget<StudioSelect>(_key('map-story-after'));
 
@@ -131,7 +149,7 @@ void main() {
       records: [storyRecord(1)],
       entities: [storyLuth.copyWith(blocksMovement: false)],
     );
-    await pumpStoryInspector(tester, fixture);
+    await pumpTrigger(tester, fixture);
 
     final options = tester
         .widget<StudioSelect>(_key('map-story-when'))

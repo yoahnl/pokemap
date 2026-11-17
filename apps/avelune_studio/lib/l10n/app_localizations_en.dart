@@ -352,7 +352,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get spaceGameplay => 'Gameplay';
 
   @override
-  String get spaceStory => 'Story';
+  String get spaceStory => 'Interactions';
+
+  @override
+  String get interactionTriggersTitle => 'Triggered scenes';
+
+  @override
+  String get interactionTriggersHint => 'The same links as in Story.';
+
+  @override
+  String get interactionEdit => 'Edit in Story';
+
+  @override
+  String get interactionComplete => 'Complete in Story';
+
+  @override
+  String get interactionComplex => 'Complex expression preserved';
+
+  @override
+  String get interactionSceneUnavailable => 'Scene not found';
+
+  @override
+  String get interactionRemove => 'Remove trigger';
+
+  @override
+  String get interactionActions => 'Trigger actions';
+
+  @override
+  String get interactionReturnMap => 'Return to map';
 
   @override
   String get spaceAmbiance => 'Ambience';
@@ -611,7 +638,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gameplayNoteTitle => 'Gameplay: paths, access and encounters.';
 
   @override
-  String get gameplayNoteBody => 'Narrative behaviours stay in Story.';
+  String get gameplayNoteBody =>
+      'Place elements in Interactions and edit their triggers in Story.';
 
   @override
   String get gameplayInspectorEyebrow => 'GAMEPLAY RULES';
@@ -624,13 +652,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Select it on the map or in the list. You can also add one.';
 
   @override
-  String get storyEyebrow => 'STORY';
+  String get storyEyebrow => 'MAP · LOCAL CONTEXT';
 
   @override
-  String get storyTitle => 'Game elements';
+  String get storyTitle => 'Interactions';
 
   @override
-  String get storySubtitle => 'What happens on this map.';
+  String get storySubtitle => 'Characters, objects and zones.';
 
   @override
   String get storyCharacters => 'Characters';
@@ -663,10 +691,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storySearch => 'A character, an area…';
 
   @override
-  String get storyNoteTitle => 'Story: characters and events.';
+  String get storyNoteTitle => 'The map places elements.';
 
   @override
-  String get storyNoteBody => 'Passages and encounters stay in Gameplay.';
+  String get storyNoteBody => 'Story defines when their scenes play.';
 
   @override
   String get storyInspectorEyebrow => 'EVENT';
@@ -676,7 +704,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storyInspectorHint =>
-      'Select an element on the map or in the list to show its behaviour and properties.';
+      'Select an element on the map or in the list to show its properties and triggers.';
 
   @override
   String get ambianceTitle => 'Place ambience';
@@ -1039,8 +1067,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count behaviours',
-      one: '1 behaviour',
+      other: '$count triggers',
+      one: '1 trigger',
     );
     return '$_temp0';
   }
@@ -1102,7 +1130,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get storyNoBehaviour => 'No behaviour yet.';
+  String get storyNoBehaviour => 'No trigger yet.';
 
   @override
   String get storyWhen => 'WHEN';
@@ -1200,7 +1228,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storyMapProperties =>
-      'Map event: its conditions and scene are set in Behaviour.';
+      'View this map\'s triggers here. Their conditions and scenes are edited in Story.';
 
   @override
   String get storyOutOfMap => 'This position is outside the map.';
@@ -1356,7 +1384,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String storyBehaviourName(int index) {
-    return 'Behaviour $index';
+    return 'Trigger $index';
   }
 
   @override

@@ -147,6 +147,7 @@ extension MapStoryBehaviourEditing on MapBuilderStoryBinding {
               sceneId: sceneId,
             ),
     ],
+    repairScene: true,
   );
 
   bool setActive(NarrativeEventRecord record, bool active) => _operate(
@@ -230,6 +231,7 @@ extension MapStoryBehaviourEditing on MapBuilderStoryBinding {
     List<MapStoryBehaviourOperation> operations, {
     List<NarrativeEventRecord> expected = const [],
     void Function(StoryDraft draft)? stage,
+    bool repairScene = false,
   }) {
     final project = this.project;
     final map = this.map;
@@ -250,6 +252,7 @@ extension MapStoryBehaviourEditing on MapBuilderStoryBinding {
               expected: expected,
               operations: operations,
               stage: stage,
+              repairScene: repairScene,
             );
     final notice = result.deactivated;
     error =

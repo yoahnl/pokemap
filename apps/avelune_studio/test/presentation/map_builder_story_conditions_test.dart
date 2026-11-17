@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import 'map_builder_story_support.dart';
+import 'story_trigger_support.dart';
 
 final _met = NarrativeFactDefinition(id: 'fact_met', label: 'Rencontré');
 final _count = NarrativeFactDefinition(
@@ -191,7 +192,7 @@ void main() {
     tester,
   ) async {
     final fixture = await _open();
-    await pumpStoryInspector(tester, fixture);
+    await pumpTrigger(tester, fixture);
     Finder key(String value) => find.byKey(ValueKey(value));
 
     expect(key('map-story-condition-0'), findsOneWidget);

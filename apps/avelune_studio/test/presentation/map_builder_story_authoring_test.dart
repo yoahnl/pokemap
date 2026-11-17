@@ -1,4 +1,5 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:avelune_studio/features/events/application/behaviour/behaviour_reuse.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/events/domain/event_port.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
@@ -112,12 +113,11 @@ void main() {
         .registry(maps.project!)!
         .records
         .singleWhere((record) => record.name == name);
-    StudioSelect select(String value) =>
-        tester.widget<StudioSelect>(key(value));
-
+    story.openInStory = (_) async {};
     await tester.tap(key('map-story-element-entity:luth'));
     await tester.pump();
-    select('map-story-after').onChanged!('eachTime');
+    story.openTab(MapStoryTab.behaviour);
+    story.setAfter(recordOf('meeting'), BehaviourAfter.eachTime);
     await tester.pump();
     expect(recordOf('meeting').reusePolicy, NarrativeEventReusePolicy.reusable);
     expect(recordOf('meeting').enabledOrNull, isTrue);
@@ -127,33 +127,33 @@ void main() {
       NarrativeEventReusePolicy.oneShot,
     );
 
-    select('map-story-then').onChanged!('scene-greeting');
+    story.setScene(recordOf('meeting'), 'scene-greeting');
     await tester.pump();
     expect(recordOf('meeting').sceneId, 'scene-greeting');
 
     await tester.tap(key('map-story-behaviour-add'));
     await tester.pump();
-    expect(find.text('3 · Comportement 3'), findsOneWidget);
+    expect(find.text('Comportement 3'), findsOneWidget);
     expect(recordOf('Comportement 3').draftOrNull, isNotNull);
-    await tester.tap(key('map-story-behaviour-active'));
+    story.setActive(recordOf('Comportement 3'), true);
     await tester.pump();
     expect(story.error, isNotNull);
     expect(recordOf('Comportement 3').enabledOrNull, isNot(isTrue));
-    select('map-story-then').onChanged!('scene-greeting');
+    story.setScene(recordOf('Comportement 3'), 'scene-greeting');
     await tester.pump();
-    await tester.tap(key('map-story-behaviour-active'));
+    story.setActive(recordOf('Comportement 3'), true);
     await tester.pump();
     expect(recordOf('Comportement 3').enabledOrNull, isTrue);
 
-    await tester.tap(key('map-story-behaviour-delete'));
+    story.deleteBehaviour(recordOf('Comportement 3'));
     await tester.pump();
-    expect(find.text('3 · Comportement 3'), findsNothing);
+    expect(find.text('Comportement 3'), findsNothing);
     story.undo();
     await tester.pump();
-    expect(find.text('3 · Comportement 3'), findsOneWidget);
+    expect(find.text('Comportement 3'), findsOneWidget);
     story.redo();
     await tester.pump();
-    expect(find.text('3 · Comportement 3'), findsNothing);
+    expect(find.text('Comportement 3'), findsNothing);
 
     final port = _EventPort(maps);
     expect(await story.publish(storyEvents(story, port)), isTrue);
@@ -172,8 +172,7 @@ void main() {
   ) async {
     await open(tester);
     Finder key(String value) => find.byKey(ValueKey(value));
-    StudioSelect select(String value) =>
-        tester.widget<StudioSelect>(key(value));
+    story.openInStory = (_) async {};
     List<NarrativeEventRecord> arrivals() => [
       for (final record in story.behaviours.registry(maps.project!)!.records)
         if (record.source == NarrativeEventSourceRef.mapEnter('a')) record,
@@ -182,33 +181,37 @@ void main() {
     await tester.tap(key('map-story-element-map:a'));
     await tester.pump();
     expect(find.text('Arrivée à a'), findsNWidgets(2));
-    expect(select('map-story-when').options.keys, ['mapEnter']);
+    expect(story.triggerKinds(story.selected!), [
+      NarrativeEventSourceKind.mapEnter,
+    ]);
+    story.openTab(MapStoryTab.behaviour);
+    await tester.pump();
 
     await tester.tap(key('map-story-behaviour-add'));
     await tester.pump();
-    expect(find.text('2 · Comportement 2'), findsOneWidget);
+    expect(find.text('Comportement 2'), findsOneWidget);
     final added = arrivals().last;
     expect(added.name, 'Comportement 2');
     expect(added.draftOrNull, isNotNull);
 
-    select('map-story-then').onChanged!('scene-greeting');
+    story.setScene(added, 'scene-greeting');
     await tester.pump();
-    select('map-story-after').onChanged!('oncePerVisit');
+    story.setAfter(arrivals().last, BehaviourAfter.oncePerVisit);
     await tester.pump();
-    await tester.tap(key('map-story-behaviour-active'));
+    story.setActive(arrivals().last, true);
     await tester.pump();
     expect(story.error, isNull);
     final active = arrivals().last;
     expect(active.enabledOrNull, isTrue);
     expect(active.sceneId, 'scene-greeting');
     expect(active.resetPolicy, isA<NarrativeEventResetOnMapReentry>());
-    expect(subtitle(tester, 'map:a'), '2 comportements');
+    expect(subtitle(tester, 'map:a'), '2 déclencheurs');
 
     await tester.tap(find.text('Propriétés'));
     await tester.pump();
     expect(
       find.text(
-        'Événement de carte : ses conditions et sa scène se règlent dans Comportement.',
+        'Les déclencheurs de cette carte se consultent ici. Leurs conditions et leurs scènes se règlent dans Histoire.',
       ),
       findsOneWidget,
     );

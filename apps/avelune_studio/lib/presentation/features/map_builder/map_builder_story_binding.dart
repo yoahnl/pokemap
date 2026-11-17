@@ -95,6 +95,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   StorylineTrameController? trame;
   String? simulating;
   void Function(String sceneId, String? behaviourId)? openScene;
+  Future<void> Function(String eventId)? openInStory;
   final MapStoryBehaviours behaviours;
   final GameBehaviourEditing? editing;
   final void Function()? onBehaviourRecorded;
@@ -157,12 +158,13 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   int _armedEntities = 0;
   String query = '';
   MapStoryElementKind? filter;
-  MapStoryTab tab = MapStoryTab.behaviour;
+  MapStoryTab tab = MapStoryTab.properties;
   int behaviour = 0;
   String? error;
   String? saveError;
   String? repairError;
   String? _mapSelection;
+  (String, String)? _inspectorSelection;
   MapStoryBehaviourIndex? _index;
   MapStoryElements? _elements;
   MapData? _source;

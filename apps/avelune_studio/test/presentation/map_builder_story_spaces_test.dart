@@ -1,4 +1,6 @@
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_interaction_trigger_card.dart';
 import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/app/di/event_providers.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
@@ -128,15 +130,25 @@ void main() {
     await settle(tester);
   }
 
-  Future<String?> after(WidgetTester tester) async {
-    final select = find.byKey(const ValueKey('map-story-after'));
-    if (select.evaluate().isEmpty) {
+  Future<String> ruleName(WidgetTester tester) async {
+    final card = find.byKey(ValueKey('map-interaction-trigger-${_meeting.id}'));
+    if (card.evaluate().isEmpty) {
       await tester.tap(
         find.byKey(const ValueKey('map-story-element-entity:luth')),
       );
       await settle(tester);
+      await tester.tap(find.text('Déclencheurs'));
+      await settle(tester);
     }
-    return tester.widget<StudioSelect>(select).value;
+    return tester
+        .widget<MapBuilderInteractionTriggerCard>(
+          find.ancestor(
+            of: card,
+            matching: find.byType(MapBuilderInteractionTriggerCard),
+          ),
+        )
+        .record
+        .name;
   }
 
   Future<void> undo(WidgetTester tester) async {
@@ -146,35 +158,50 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('Construction and Scénario share the map and the story draft', (
-    tester,
-  ) async {
-    await open(tester);
-    final document = controller().active!;
-    document.commit(document.current.copyWith(name: 'Clairière modifiée'));
-    controller().notify();
-    await showSpace(tester, 'story');
-    expect(await after(tester), 'once');
-    tester
-        .widget<StudioSelect>(find.byKey(const ValueKey('map-story-after')))
-        .onChanged!('eachTime');
-    await settle(tester);
+  testWidgets(
+    'Construction and Interactions share the map and the story draft',
+    (tester) async {
+      await open(tester);
+      final document = controller().active!;
+      document.commit(document.current.copyWith(name: 'Clairière modifiée'));
+      controller().notify();
+      await showSpace(tester, 'story');
+      expect(await ruleName(tester), 'meeting');
+      await tester.tap(
+        find.byKey(ValueKey('map-interaction-trigger-actions-${_meeting.id}')),
+      );
+      await settle(tester);
+      await tester.tap(find.text('Renommer'));
+      await settle(tester);
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(ValueKey('map-story-behaviour-name-${_meeting.id}')),
+          matching: find.byType(TextField),
+        ),
+        'Rencontre modifiée',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
 
-    await showSpace(tester, 'construction');
-    expect(find.byKey(const ValueKey('map-story-after')), findsNothing);
-    await showSpace(tester, 'story');
+      await showSpace(tester, 'construction');
+      expect(
+        find.byKey(const ValueKey('map-interaction-triggers')),
+        findsNothing,
+      );
+      await showSpace(tester, 'story');
 
-    expect(identical(controller().active, document), isTrue);
-    expect(document.current.name, 'Clairière modifiée');
-    expect(find.text('Non enregistré'), findsOneWidget);
-    expect(await after(tester), 'eachTime');
+      expect(identical(controller().active, document), isTrue);
+      expect(document.current.name, 'Clairière modifiée');
+      expect(find.text('Non enregistré'), findsOneWidget);
+      expect(await ruleName(tester), 'Rencontre modifiée');
 
-    await undo(tester);
-    expect(await after(tester), 'once');
-    expect(document.current.name, 'Clairière modifiée');
+      await undo(tester);
+      expect(await ruleName(tester), 'meeting');
+      expect(document.current.name, 'Clairière modifiée');
 
-    await undo(tester);
-    expect(document.current.name, isNot('Clairière modifiée'));
-    expect(await after(tester), 'once');
-  });
+      await undo(tester);
+      expect(document.current.name, isNot('Clairière modifiée'));
+      expect(await ruleName(tester), 'meeting');
+    },
+  );
 }

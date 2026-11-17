@@ -190,6 +190,7 @@ Future<void> pumpStoryInspector(
   WidgetTester tester,
   StoryFixture fixture, [
   String key = 'entity:luth',
+  bool enabled = true,
 ]) async {
   tester.view.physicalSize = const Size(900, 1600);
   tester.view.devicePixelRatio = 1;
@@ -209,6 +210,7 @@ Future<void> pumpStoryInspector(
             child: MapBuilderStoryInspector(
               binding: fixture.story,
               element: fixture.story.selected!,
+              enabled: enabled,
             ),
           ),
         ),

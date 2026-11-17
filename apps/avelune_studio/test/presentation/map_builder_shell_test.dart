@@ -29,7 +29,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('map-canvas')), findsOneWidget);
-    for (final label in ['Construction', 'Jeu', 'Scénario', 'Ambiance']) {
+    for (final label in ['Construction', 'Jeu', 'Interactions', 'Ambiance']) {
       expect(find.text(label), findsOneWidget);
     }
   });

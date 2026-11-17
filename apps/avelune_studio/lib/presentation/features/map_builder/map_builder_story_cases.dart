@@ -2,7 +2,6 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import 'package:avelune_studio/features/events/application/behaviour/behaviour_reuse.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
@@ -17,6 +16,7 @@ class MapBuilderStoryCaseList extends StatelessWidget {
     required this.current,
     required this.editable,
     required this.state,
+    this.itemBuilder,
   });
 
   final MapBuilderStoryBinding binding;
@@ -25,6 +25,12 @@ class MapBuilderStoryCaseList extends StatelessWidget {
   final bool editable;
   final String Function(NarrativeEventRecord record, AppLocalizations l10n)
   state;
+  final Widget Function(
+    NarrativeEventRecord record,
+    int number,
+    Widget? handle,
+  )?
+  itemBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -47,21 +53,22 @@ class MapBuilderStoryCaseList extends StatelessWidget {
         key: ValueKey('map-story-case-${record.id}'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              ?handle,
-              Expanded(
-                child: StudioChoice(
-                  key: ValueKey('map-story-behaviour-$index'),
-                  dense: true,
-                  label: '$number · ${record.name}',
-                  subtitle: state(record, l10n),
-                  selected: identical(record, current),
-                  onTap: () => binding.openBehaviour(index),
-                ),
+          itemBuilder?.call(record, number, handle) ??
+              Row(
+                children: [
+                  ?handle,
+                  Expanded(
+                    child: StudioChoice(
+                      key: ValueKey('map-story-behaviour-$index'),
+                      dense: true,
+                      label: '$number · ${record.name}',
+                      subtitle: state(record, l10n),
+                      selected: identical(record, current),
+                      onTap: () => binding.openBehaviour(index),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
           if (shadow != null)
             Padding(
               padding: const EdgeInsets.only(bottom: StudioSpacing.xs),
@@ -145,64 +152,4 @@ class _Group extends StatelessWidget {
           children: tiles,
         )
       : Column(children: tiles);
-}
-
-class MapBuilderStoryAfter extends StatelessWidget {
-  const MapBuilderStoryAfter({
-    super.key,
-    required this.binding,
-    required this.record,
-    required this.editable,
-  });
-
-  final MapBuilderStoryBinding binding;
-  final NarrativeEventRecord record;
-  final bool editable;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final current = readBehaviourAfter(record);
-    final pending = binding.pendingAfter;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        StudioSelect(
-          key: const ValueKey('map-story-after'),
-          label: l10n.storyAfterField,
-          value: current?.name ?? '',
-          options: {
-            if (current == null) '': l10n.storyReuseUnset,
-            BehaviourAfter.once.name: l10n.storyOnce,
-            BehaviourAfter.eachTime.name: l10n.storyEachTime,
-            BehaviourAfter.oncePerVisit.name: l10n.storyOncePerVisit,
-            if (current == BehaviourAfter.onceUntilOutcome)
-              BehaviourAfter.onceUntilOutcome.name: l10n.storyOnceUntilOutcome,
-          },
-          onChanged: editable
-              ? (value) => binding.setAfter(
-                  record,
-                  BehaviourAfter.values.byName(value),
-                )
-              : null,
-        ),
-        if (pending != null)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: StudioButton(
-              key: const ValueKey('map-story-after-replace'),
-              variant: StudioButtonVariant.quiet,
-              label: l10n.storyCaseAfterReplace,
-              onPressed: editable
-                  ? () => binding.setAfter(
-                      record,
-                      pending,
-                      dropOutcomeRearm: true,
-                    )
-                  : null,
-            ),
-          ),
-      ],
-    );
-  }
 }

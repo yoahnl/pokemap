@@ -13,11 +13,11 @@ void main() {
   ) async {
     await open(tester);
 
-    expect(subtitle(tester, 'entity:luth'), '2 comportements');
+    expect(subtitle(tester, 'entity:luth'), '2 déclencheurs');
     expect(subtitle(tester, 'entity:rival'), 'À configurer');
     expect(subtitle(tester, 'entity:board'), 'Configuré');
-    expect(subtitle(tester, 'trigger:departure'), '1 comportement');
-    expect(subtitle(tester, 'map:a'), '1 comportement');
+    expect(subtitle(tester, 'trigger:departure'), '1 déclencheur');
+    expect(subtitle(tester, 'map:a'), '1 déclencheur');
     expect(find.text('Arrivée à a'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('map-story-element-trigger:camera')),
@@ -45,55 +45,45 @@ void main() {
     );
   });
 
-  testWidgets('selecting an element shows its behaviours and properties', (
+  testWidgets('selection shows properties first, then faithful trigger cards', (
     tester,
   ) async {
     await open(tester);
-    expect(find.text('rien'), findsOneWidget);
-
-    await tester.tap(
-      find.byKey(const ValueKey('map-story-element-entity:luth')),
-    );
+    Finder key(String value) => find.byKey(ValueKey(value));
+    await tester.tap(key('map-story-element-entity:luth'));
     await tester.pump();
     expect(view.selectedFor('a', MapSelectionFamily.character), 'luth');
     expect(find.text('PERSONNAGE'), findsOneWidget);
     expect(find.text('a · X 3 · Y 2'), findsOneWidget);
-    expect(find.text('DÉCLENCHEURS · 2'), findsOneWidget);
-    expect(find.text('Le joueur interagit'), findsOneWidget);
-    expect(find.text('Une seule fois'), findsOneWidget);
-    expect(find.text('Scène scene-meeting'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('map-story-behaviour-1')));
-    await tester.pump();
-    expect(find.text('À chaque fois'), findsOneWidget);
-
-    await tester.tap(find.text('Propriétés'));
-    await tester.pump();
     expect(find.text('Est'), findsOneWidget);
     expect(find.text('Aucun dresseur'), findsOneWidget);
     expect(find.text('Immobile'), findsOneWidget);
-    await tester.tap(find.text('Comportement'));
+    await tester.tap(find.text('Déclencheurs'));
     await tester.pump();
-
-    await tester.tap(
-      find.byKey(const ValueKey('map-story-element-trigger:departure')),
-    );
+    expect(find.text('Le joueur interagit'), findsNWidgets(2));
+    expect(find.text('Une seule fois'), findsOneWidget);
+    expect(find.text('À chaque fois'), findsOneWidget);
+    expect(find.text('Scène scene-meeting'), findsOneWidget);
+    await tester.tap(key('map-story-element-trigger:departure'));
     await tester.pump();
     expect(view.selectedFor('a', MapSelectionFamily.trigger), 'departure');
+    expect(key('map-story-width'), findsOneWidget);
+    await tester.tap(find.text('Déclencheurs'));
+    await tester.pump();
     expect(find.text('Le joueur entre dans la zone'), findsOneWidget);
     expect(find.text('Une fois par visite'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('map-story-element-map:a')));
+    await tester.tap(key('map-story-element-map:a'));
     await tester.pump();
     expect(view.hasSelectionIn('a'), isFalse);
     expect(find.text('ÉVÉNEMENT'), findsOneWidget);
-    expect(find.text('En arrivant sur la carte'), findsOneWidget);
-
-    await tester.tap(
-      find.byKey(const ValueKey('map-story-element-entity:rival')),
-    );
+    await tester.tap(find.text('Déclencheurs'));
     await tester.pump();
-    expect(find.text('Aucun comportement pour l’instant.'), findsOneWidget);
+    expect(find.text('En arrivant sur la carte'), findsOneWidget);
+    await tester.tap(key('map-story-element-entity:rival'));
+    await tester.pump();
+    await tester.tap(find.text('Déclencheurs'));
+    await tester.pump();
+    expect(find.text('Aucun déclencheur pour l’instant.'), findsOneWidget);
   });
 
   testWidgets('the properties tab edits the element in the map draft', (

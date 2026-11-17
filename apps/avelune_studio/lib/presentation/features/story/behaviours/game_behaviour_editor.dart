@@ -191,6 +191,11 @@ class _GameBehaviourEditorState extends State<GameBehaviourEditor> {
                     record: record,
                     element: element,
                     editable: editable,
+                    sceneRepairable:
+                        widget.editable &&
+                        !binding.editingBlocked &&
+                        binding.ready &&
+                        binding.editing?.canRepairScene == true,
                   ),
                   const SizedBox(height: StudioSpacing.m),
                   MapBuilderStoryMilestoneField(

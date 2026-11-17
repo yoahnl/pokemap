@@ -8,6 +8,53 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_sto
 import '../presentation/map_builder_story_support.dart';
 
 void main() {
+  test(
+    'scene repair retains activation, revision and carrier guards',
+    () async {
+      final original = storyRecord(1, sceneId: 'lost');
+      final fixture = await openStory(records: [original]);
+      var current = true;
+      final editing = GameBehaviourEditing(
+        project: fixture.maps.project!,
+        map: fixture.story.map!,
+        behaviours: fixture.story.behaviours,
+        eventId: original.id,
+        isCurrent: () => current,
+      );
+      final binding = MapBuilderStoryBinding(
+        maps: fixture.maps,
+        changed: () {},
+        view: () => null,
+        editing: editing,
+      );
+      expect(editing.canRepairScene, isTrue);
+      expect(binding.renameBehaviour(original, 'Refusé'), isFalse);
+      expect(binding.setActive(original, true), isFalse);
+      expect(binding.setScene(original, 'still-missing'), isFalse);
+      expect(fixture.story.dirty, isFalse);
+      expect(binding.setScene(original, 'scene-plain'), isTrue);
+      final repaired = storyCurrent(fixture, original.id);
+      expect(repaired.sceneId, 'scene-plain');
+      expect(repaired.enabledOrNull, isTrue);
+      expect(binding.setScene(original, null), isFalse);
+      expect(storyCurrent(fixture, original.id), repaired);
+      binding.undo();
+      expect(storyCurrent(fixture, original.id), original);
+      current = false;
+      expect(editing.canRepairScene, isFalse);
+      expect(binding.setScene(original, 'scene-plain'), isFalse);
+      final missingCarrier = GameBehaviourEditing(
+        project: fixture.maps.project!,
+        map: fixture.story.map!.copyWith(entities: []),
+        behaviours: fixture.story.behaviours,
+        eventId: original.id,
+      );
+      expect(missingCarrier.canRepairScene, isFalse);
+      expect(fixture.story.dirty, isFalse);
+      expect(fixture.ports.calls, isEmpty);
+    },
+  );
+
   test('an obsolete record cannot overwrite a newer behaviour edit', () async {
     final original = storyRecord(1);
     final fixture = await openStory(records: [original]);

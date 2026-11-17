@@ -26,6 +26,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   var _storyNavigation = 0;
   String? _storyNavigationProblem;
   ({String id, int token})? _dialogueRequest;
+  ({String id, int token})? _behaviourRequest;
 
   SceneFocusController? get _activeScene => _sceneShown ? _sceneFocus : null;
   late final _projection = WorkspaceVisualProjectionQueue(
@@ -114,6 +115,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     _maps.modelDeletionGuard = _story.modelDeletionProblem;
     _stories.attach();
     _story.openScene = _openScene;
+    _story.openInStory = _openTriggerInStory;
     _connections = ref.listenManual(
       mapConnectionPortProvider(widget.session),
       (_, _) {},

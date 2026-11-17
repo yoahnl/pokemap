@@ -78,7 +78,7 @@ final class MapBuilderStoryCatalogBinding {
           : project.maps.where((entry) => entry.id == at.$1).firstOrNull;
       if (record == null || at == null || entry == null) {
         throw StateError(
-          'Ce comportement est hors carte. Utilisez la réparation dans Carte · Scénario.',
+          'Ce comportement est hors carte. Utilisez la réparation dans Carte · Interactions.',
         );
       }
       final document = story.maps.documents[entry.id];
@@ -132,7 +132,9 @@ final class MapBuilderStoryCatalogBinding {
         eventId: id,
         isCurrent: current,
       );
-      if (editing.problem case final problem?) throw StateError(problem);
+      if (editing.problem case final problem? when !editing.canRepairScene) {
+        throw StateError(problem);
+      }
       final sceneId = record.sceneId;
       final scene = sceneId == null
           ? null
@@ -141,11 +143,6 @@ final class MapBuilderStoryCatalogBinding {
               sceneId,
               story.behaviours.saved(project),
             );
-      if (sceneId != null && scene == null) {
-        throw StateError(
-          'La scène de ce comportement est indisponible. Réparez sa référence dans Carte · Scénario.',
-        );
-      }
       final dependencies = GameBehaviourDependencies(
         story.behaviours.project(project),
         record,
@@ -166,7 +163,9 @@ final class MapBuilderStoryCatalogBinding {
         }
         story.behaviours.dialogues.remember(dialogue);
       }
-      if (!current() || !unchanged() || editing.problem != null) {
+      if (!current() ||
+          !unchanged() ||
+          (editing.problem != null && !editing.canRepairScene)) {
         throw StateError(
           'Le contexte a changé pendant le chargement. Réessayez.',
         );

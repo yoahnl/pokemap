@@ -64,6 +64,7 @@ class StoryPage extends StatefulWidget {
     this.behaviourCatalog,
     this.dialoguePort,
     this.dialogueRequest,
+    this.behaviourRequest,
     this.dialogueStaging,
   });
 
@@ -87,6 +88,7 @@ class StoryPage extends StatefulWidget {
   final MapBuilderStoryCatalogBinding? behaviourCatalog;
   final DialogueCatalogPort? dialoguePort;
   final ({String id, int token})? dialogueRequest;
+  final ({String id, int token})? behaviourRequest;
   final DialogueDraftHost? dialogueStaging;
 
   @override
@@ -108,6 +110,10 @@ class _StoryPageState extends State<StoryPage> {
       _workspace = _workspace.select(StorySection.dialogues);
       scheduleMicrotask(_consumeDialogueRequest);
     }
+    if (widget.behaviourRequest != null) {
+      _workspace = _workspace.select(StorySection.behaviours);
+      scheduleMicrotask(_consumeBehaviourRequest);
+    }
   }
 
   @override
@@ -115,6 +121,9 @@ class _StoryPageState extends State<StoryPage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.dialogueRequest != widget.dialogueRequest) {
       scheduleMicrotask(_consumeDialogueRequest);
+    }
+    if (oldWidget.behaviourRequest != widget.behaviourRequest) {
+      scheduleMicrotask(_consumeBehaviourRequest);
     }
   }
 

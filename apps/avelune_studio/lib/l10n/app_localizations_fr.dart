@@ -352,7 +352,34 @@ class AppLocalizationsFr extends AppLocalizations {
   String get spaceGameplay => 'Jeu';
 
   @override
-  String get spaceStory => 'Scénario';
+  String get spaceStory => 'Interactions';
+
+  @override
+  String get interactionTriggersTitle => 'Scènes déclenchées';
+
+  @override
+  String get interactionTriggersHint => 'Les mêmes liens que dans Histoire.';
+
+  @override
+  String get interactionEdit => 'Modifier dans Histoire';
+
+  @override
+  String get interactionComplete => 'Compléter dans Histoire';
+
+  @override
+  String get interactionComplex => 'Expression complexe conservée';
+
+  @override
+  String get interactionSceneUnavailable => 'Scène introuvable';
+
+  @override
+  String get interactionRemove => 'Retirer le déclencheur';
+
+  @override
+  String get interactionActions => 'Actions du déclencheur';
+
+  @override
+  String get interactionReturnMap => 'Retour à la carte';
 
   @override
   String get spaceAmbiance => 'Ambiance';
@@ -616,7 +643,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get gameplayNoteBody =>
-      'Les comportements narratifs restent dans Scénario.';
+      'Placez les éléments dans Interactions et réglez leurs déclencheurs dans Histoire.';
 
   @override
   String get gameplayInspectorEyebrow => 'RÈGLES DE JEU';
@@ -629,13 +656,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Sélectionnez-le sur la carte ou dans la liste. Vous pourrez aussi en ajouter un.';
 
   @override
-  String get storyEyebrow => 'SCÉNARIO';
+  String get storyEyebrow => 'CARTE · CONTEXTE LOCAL';
 
   @override
-  String get storyTitle => 'Éléments de jeu';
+  String get storyTitle => 'Interactions';
 
   @override
-  String get storySubtitle => 'Ce qui se passe sur cette carte.';
+  String get storySubtitle => 'Personnages, objets et zones.';
 
   @override
   String get storyCharacters => 'Personnages';
@@ -668,10 +695,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storySearch => 'Un personnage, une zone…';
 
   @override
-  String get storyNoteTitle => 'Scénario : personnages et événements.';
+  String get storyNoteTitle => 'La carte place les éléments.';
 
   @override
-  String get storyNoteBody => 'Les passages et rencontres restent dans Jeu.';
+  String get storyNoteBody => 'Histoire définit quand leurs scènes se jouent.';
 
   @override
   String get storyInspectorEyebrow => 'ÉVÉNEMENT';
@@ -681,7 +708,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storyInspectorHint =>
-      'Sélectionnez un élément sur la carte ou dans la liste pour afficher son comportement et ses propriétés.';
+      'Sélectionnez un élément sur la carte ou dans la liste pour afficher ses propriétés et ses déclencheurs.';
 
   @override
   String get ambianceTitle => 'Ambiance du lieu';
@@ -1045,8 +1072,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count comportements',
-      one: '1 comportement',
+      other: '$count déclencheurs',
+      one: '1 déclencheur',
     );
     return '$_temp0';
   }
@@ -1108,7 +1135,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get storyNoBehaviour => 'Aucun comportement pour l’instant.';
+  String get storyNoBehaviour => 'Aucun déclencheur pour l’instant.';
 
   @override
   String get storyWhen => 'QUAND';
@@ -1206,7 +1233,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storyMapProperties =>
-      'Événement de carte : ses conditions et sa scène se règlent dans Comportement.';
+      'Les déclencheurs de cette carte se consultent ici. Leurs conditions et leurs scènes se règlent dans Histoire.';
 
   @override
   String get storyOutOfMap => 'Cette position sort de la carte.';
@@ -1362,7 +1389,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String storyBehaviourName(int index) {
-    return 'Comportement $index';
+    return 'Déclencheur $index';
   }
 
   @override

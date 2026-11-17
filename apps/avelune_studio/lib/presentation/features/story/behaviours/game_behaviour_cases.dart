@@ -5,7 +5,7 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_cases.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_inspector.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_labels.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class GameBehaviourCases extends StatelessWidget {

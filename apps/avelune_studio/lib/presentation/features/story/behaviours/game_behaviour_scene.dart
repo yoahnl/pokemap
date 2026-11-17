@@ -21,12 +21,14 @@ class GameBehaviourScene extends StatefulWidget {
     required this.record,
     required this.element,
     required this.editable,
+    this.sceneRepairable = false,
   });
 
   final MapBuilderStoryBinding binding;
   final NarrativeEventRecord record;
   final MapStoryElement element;
   final bool editable;
+  final bool sceneRepairable;
 
   @override
   State<GameBehaviourScene> createState() => _GameBehaviourSceneState();
@@ -122,7 +124,7 @@ class _GameBehaviourSceneState extends State<GameBehaviourScene> {
               record.sceneId!: l10n.triggersUnavailable,
             for (final scene in scenes) scene.id: scene.name,
           },
-          onChanged: widget.editable
+          onChanged: widget.editable || widget.sceneRepairable
               ? (value) =>
                     binding.setScene(record, value.isEmpty ? null : value)
               : null,

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
-import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,15 +9,14 @@ import 'map_builder_story_support.dart';
 
 Finder _key(String value) => find.byKey(ValueKey(value));
 
-Future<void> _type(WidgetTester tester, Finder field, String text) async {
-  await tester.enterText(field, text);
-  await tester.pump();
-  FocusManager.instance.primaryFocus?.unfocus();
+Future<void> _cards(WidgetTester tester, StoryFixture fixture) async {
+  await pumpStoryInspector(tester, fixture);
+  fixture.story.openTab(MapStoryTab.behaviour);
   await tester.pump();
 }
 
 void main() {
-  testWidgets('a line is read in the background, then edited in place', (
+  testWidgets('a local line card does not load or edit its shared document', (
     tester,
   ) async {
     final fixture = await openStory(
@@ -28,92 +26,73 @@ void main() {
         storyLineDialogue('dialogue_talk', ['Salut']),
       ],
     );
-    final reading = fixture.ports.reading = Completer<void>();
-    await pumpStoryInspector(tester, fixture);
-    expect(_key('map-story-line-loading'), findsOneWidget);
-    expect(find.text('Lecture de la réplique…'), findsOneWidget);
-
-    reading.complete();
-    await tester.pumpAndSettle();
-    final field = _key('map-story-line-${storyEventId(1)}');
-    expect(field, findsOneWidget);
-    expect(find.text('Ce personnage dit…'), findsOneWidget);
-    expect(_key('map-story-then'), findsNothing);
-    expect(
-      tester
-          .widget<TextField>(
-            find.descendant(of: field, matching: find.byType(TextField)),
-          )
-          .controller!
-          .text,
-      'Salut',
-    );
-
-    await _type(
-      tester,
-      find.descendant(of: field, matching: find.byType(TextField)),
-      'Bonne route !',
-    );
-
-    expect(
-      [...fixture.story.behaviours.draft.touched(StoryDraftKind.dialogue)],
-      ['dialogue_talk'],
-    );
-    final record = storyCurrent(fixture, storyEventId(1));
-    expect(fixture.story.lineOf(record).text, 'Bonne route !');
-  });
-
-  testWidgets('a behaviour without a scene offers the field and the picker', (
-    tester,
-  ) async {
-    final fixture = await openStory();
-    expect(fixture.story.addBehaviour(storyElement(fixture)), isTrue);
-    await pumpStoryInspector(tester, fixture);
-    final created = fixture.story.selectedBehaviour!;
-    expect(created.sceneId, isNull);
-    final field = find.descendant(
-      of: _key('map-story-line-${created.id}'),
-      matching: find.byType(TextField),
-    );
-    expect(field, findsOneWidget);
-    expect(_key('map-story-then'), findsOneWidget);
-    expect(find.text('Ou lancer une scène'), findsOneWidget);
-
-    await _type(tester, field, 'Bienvenue au bourg.');
-
-    final linked = storyCurrent(fixture, created.id);
-    expect(linked.sceneId, isNotNull);
-    expect(fixture.story.lineOf(linked).state, MapStoryLineState.line);
-    expect(_key('map-story-then'), findsNothing);
-    expect(_key('map-story-line-${created.id}'), findsOneWidget);
-  });
-
-  testWidgets('a shared line warns and offers to detach it', (tester) async {
-    final fixture = await openStory(
-      records: [storyRecord(1, sceneId: 'scene_talk')],
-      scenes: [
-        storyLineScene('scene_talk', 'dialogue_talk'),
-        storyLineScene('scene_other', 'dialogue_talk'),
-      ],
-      dialogues: [
-        storyLineDialogue('dialogue_talk', ['Salut']),
-      ],
-    );
-    await pumpStoryInspector(tester, fixture);
-    await tester.pump();
-
-    expect(_key('map-story-line-shared'), findsOneWidget);
-    expect(find.textContaining('Réplique scene_other'), findsOneWidget);
+    fixture.ports.reading = Completer<void>();
+    final opened = <String>[];
+    fixture.story.openInStory = (id) async => opened.add(id);
+    await _cards(tester, fixture);
+    expect(_key('map-story-line-loading'), findsNothing);
     expect(_key('map-story-line-${storyEventId(1)}'), findsNothing);
-
-    await tester.tap(_key('map-story-line-detach'));
+    expect(find.text('Réplique scene_talk'), findsOneWidget);
+    expect(fixture.ports.dialogueReads, isEmpty);
+    await tester.tap(_key('map-interaction-trigger-open-${storyEventId(1)}'));
     await tester.pump();
-
-    expect(_key('map-story-line-shared'), findsNothing);
-    expect(_key('map-story-line-${storyEventId(1)}'), findsOneWidget);
-    expect(
-      [...fixture.story.behaviours.draft.touched(StoryDraftKind.scene)],
-      ['scene_talk'],
-    );
+    expect(opened, [storyEventId(1)]);
+    expect(fixture.ports.dialogueReads, isEmpty);
+    expect(fixture.story.dirty, isFalse);
   });
+
+  testWidgets(
+    'a scene-less draft offers completion without inventing content',
+    (tester) async {
+      final fixture = await openStory();
+      expect(fixture.story.addBehaviour(storyElement(fixture)), isTrue);
+      await _cards(tester, fixture);
+      final created = fixture.story.selectedBehaviour!;
+      expect(created.sceneId, isNull);
+      expect(find.text('Aucune scène choisie'), findsOneWidget);
+      expect(find.text('Compléter dans Histoire'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+      expect(
+        fixture.story.behaviours.project(fixture.maps.project!).scenes,
+        hasLength(1),
+      );
+      expect(
+        fixture.story.behaviours.project(fixture.maps.project!).dialogues,
+        isEmpty,
+      );
+      expect(fixture.ports.dialogueReads, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'removing a shared-line link preserves both scenes and the document',
+    (tester) async {
+      final fixture = await openStory(
+        records: [storyRecord(1, sceneId: 'scene_talk')],
+        scenes: [
+          storyLineScene('scene_talk', 'shared'),
+          storyLineScene('scene_other', 'shared'),
+        ],
+        dialogues: [
+          storyLineDialogue('shared', ['Salut']),
+        ],
+      );
+      await _cards(tester, fixture);
+      final before = fixture.story.behaviours.project(fixture.maps.project!);
+      await tester.tap(
+        _key('map-interaction-trigger-actions-${storyEventId(1)}'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Retirer le déclencheur'));
+      await tester.pumpAndSettle();
+      final after = fixture.story.behaviours.project(fixture.maps.project!);
+      expect(after.scenes, before.scenes);
+      expect(after.dialogues, before.dialogues);
+      expect(fixture.ports.sources['shared']!.source, contains('Salut'));
+      fixture.story.undo();
+      await tester.pump();
+      expect(storyCurrent(fixture, storyEventId(1)).sceneId, 'scene_talk');
+      expect(fixture.story.dirty, isFalse);
+    },
+  );
 }
