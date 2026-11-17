@@ -46,12 +46,14 @@ extension MapStoryCaseEditing on MapBuilderStoryBinding {
     NarrativeEventRecord record,
     BehaviourAfter after, {
     bool dropOutcomeRearm = false,
+    NarrativeOutcomeRef? outcome,
   }) {
     pendingAfter = null;
     switch (changeBehaviourAfter(
       record,
       after,
       dropOutcomeRearm: dropOutcomeRearm,
+      outcome: outcome,
     )) {
       case BehaviourAfterUnchanged():
         return true;

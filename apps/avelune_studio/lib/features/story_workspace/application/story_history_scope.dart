@@ -1,5 +1,8 @@
 import 'package:map_core/map_core_domain.dart';
 
+import '../../events/application/behaviour/behaviour_record_edit.dart';
+import '../../events/domain/event_record_view.dart';
+
 import '../../story_draft/application/story_draft.dart';
 import '../../story_draft/domain/story_draft_entry.dart';
 import '../../story_draft/domain/story_dialogue_source.dart';
@@ -33,6 +36,9 @@ final class StoryHistoryScope {
     for (final entry in draft.nextStepEntries(redo: redo)) {
       add(entry.ref, entry.current);
       entries.putIfAbsent(entry.ref, () => []).add(entry);
+    }
+    if (_caseOrderSelection(draft, roots, entries)) {
+      return StoryHistoryDecision.allowed;
     }
     final related = <StoryDraftRef, Set<StoryDraftRef>>{};
     void relate(StoryDraftRef from, StoryDraftRef to) {
@@ -92,6 +98,39 @@ final class StoryHistoryScope {
 
   @override
   int get hashCode => Object.hashAllUnordered(roots);
+}
+
+bool _caseOrderSelection(
+  StoryDraft draft,
+  Set<StoryDraftRef> roots,
+  Map<StoryDraftRef, List<StoryDraftEntry<Object>>> entries,
+) {
+  if (entries.isEmpty) return false;
+  NarrativeEventSourceRef? source;
+  for (final MapEntry(:key, :value) in entries.entries) {
+    if (key.kind != StoryDraftKind.event || value.length != 2) return false;
+    final before = value.first.current;
+    final after = value.last.current;
+    if (before is! NarrativeEventRecord ||
+        after is! NarrativeEventRecord ||
+        before.source == null ||
+        (before.priority == after.priority && before.order == after.order) ||
+        editBehaviourRecord(
+              before,
+              priority: after.priority,
+              order: after.order,
+            ) !=
+            after) {
+      return false;
+    }
+    source ??= before.source;
+    if (before.source != source) return false;
+  }
+  return roots.any(
+    (ref) =>
+        ref.kind == StoryDraftKind.event &&
+        draft.currentOf(StoryDraftKind.event, ref.id)?.source == source,
+  );
 }
 
 Iterable<StoryDraftRef> _dependencies(Object? value) {

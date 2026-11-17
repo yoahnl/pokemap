@@ -201,12 +201,14 @@ void main() {
     );
   });
 
-  test('adding to a root any wraps it untouched under AND', () {
+  test('editing a simple OR keeps its native junction', () {
     final record = shapes['root any']!;
+    final view = readBehaviourConditions(record);
+    expect(view.fullyEditable, isTrue);
+    expect(view.junction, BehaviourConditionJunction.any);
     final edited = writeBehaviourConditions(
       record,
-      readBehaviourConditions(record)
-          .adding(BehaviourEditableCondition.isFalse('fact_new')),
+      view.adding(BehaviourEditableCondition.isFalse('fact_new')),
     );
     final expression =
         (edited.toJson()['definition']!
@@ -214,15 +216,32 @@ void main() {
     expect(
       jsonEncode(expression),
       jsonEncode({
-        'kind': 'all',
+        'kind': 'any',
         'children': [
-          {
-            'kind': 'any',
-            'children': [_leaf(_boolFact), _leaf(_intFact)],
-          },
+          _leaf(_boolFact),
+          _leaf(_intFact),
           _leaf({'kind': 'fact', 'factId': 'fact_new', 'expectedValue': false}),
         ],
       }),
+    );
+  });
+
+  test('switching a simple junction never flattens fixed expressions', () {
+    final simple = readBehaviourConditions(shapes['root any']!);
+    expect(
+      simple.joining(BehaviourConditionJunction.all).expression,
+      isA<NarrativeEventConditionAll>(),
+    );
+    final complex = readBehaviourConditions(shapes['nested all inside all']!);
+    expect(
+      () => complex.joining(BehaviourConditionJunction.any),
+      throwsStateError,
+    );
+    final fixedOr = readBehaviourConditions(shapes['draft with any']!);
+    expect(fixedOr.items.single, isA<BehaviourFixedCondition>());
+    expect(
+      fixedOr.adding(BehaviourEditableCondition.isTrue('fact_new')).expression,
+      isA<NarrativeEventConditionAll>(),
     );
   });
 

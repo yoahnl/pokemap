@@ -23,7 +23,12 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 Future<ProjectSession> _catalog() async {
-  final temporary = await Directory.systemTemp.createTemp('story_line_');
+  final qa = Directory(
+    Platform.environment['AVELUNE_QA_ROOT'] ??
+        '${Platform.environment['HOME']}/Library/Caches/AveluneQA/story-line-tests',
+  );
+  await qa.create(recursive: true);
+  final temporary = await qa.createTemp('story_line_');
   final root = Directory(await temporary.resolveSymbolicLinks());
   addTearDown(() => root.delete(recursive: true));
   await WorkingProjectCatalog.create(
@@ -138,6 +143,31 @@ void main() {
       final guide = story.elements!.byKey('entity:guide')!;
       expect(story.addBehaviour(guide), isTrue, reason: story.error);
       final record = story.behaviours.registry(maps.project!)!.records.single;
+      final head = File('${session.directoryPath}/catalog/HEAD.json');
+      final beforeIncompleteSave = await head.readAsBytes();
+      final context = story.behaviours.context(maps.project!, story.map!);
+      final refused = publishNarrativeEvent(
+        context: context,
+        expectedRevision: context.revision,
+        eventId: record.id,
+      );
+      expect(refused.status, NarrativeEventAuthoringStatus.rejected);
+      expect(refused.rejectionCode, 'sceneRequired');
+      expect(await head.readAsBytes(), beforeIncompleteSave);
+      expect(await story.save(), isTrue, reason: story.error);
+      expect(story.dirty, isFalse);
+      expect(story.behaviours.registry(maps.project!)!.records.single, record);
+      final draftReader = MapWorkspaceController(
+        session,
+        LocalMapWorkspaceAdapter(),
+      );
+      addTearDown(draftReader.dispose);
+      await draftReader.initialize();
+      await draftReader.ensureWorkshop(MapWorkspaceWorkshop.events);
+      final savedDraft = draftReader.project!.eventRegistry!.records.single;
+      expect(savedDraft, record);
+      expect(savedDraft.sceneId, isNull);
+      expect(savedDraft.enabledOrNull, isNot(true));
       expect(
         story.writeLine(guide, record, 'Bienvenue au bourg.\nBonne route !'),
         isTrue,
@@ -146,7 +176,7 @@ void main() {
 
       expect(await story.save(), isTrue, reason: story.error);
       expect(story.dirty, isFalse);
-      expect(operations, hasLength(3), reason: '$operations');
+      expect(operations, hasLength(4), reason: '$operations');
 
       final fresh = LocalMapWorkspaceAdapter();
       final reopened = MapWorkspaceController(session, fresh);

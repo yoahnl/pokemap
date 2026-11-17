@@ -97,12 +97,35 @@ class _MapBuilderStoryConditionsState extends State<MapBuilderStoryConditions> {
       key: const ValueKey('map-story-if'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (conditions.items.length > 1)
+          StudioSelect(
+            key: const ValueKey('map-story-condition-junction'),
+            label: l10n.triggersConditionJunction,
+            value: conditions.junction.name,
+            options: {
+              'all': l10n.triggersConditionAll,
+              'any': l10n.triggersConditionAny,
+            },
+            onChanged: editable && conditions.fullyEditable
+                ? (value) => _binding.setConditions(
+                    widget.record,
+                    conditions.joining(
+                      BehaviourConditionJunction.values.byName(value),
+                    ),
+                  )
+                : null,
+          ),
         if (conditions.items.isEmpty) Text(l10n.storyAlways, style: muted),
         for (final (index, item) in conditions.items.indexed) ...[
           if (index > 0)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: StudioSpacing.xxs),
-              child: Text(l10n.storyConditionAnd, style: muted),
+              child: Text(
+                conditions.junction == BehaviourConditionJunction.any
+                    ? l10n.triggersConditionOr
+                    : l10n.storyConditionAnd,
+                style: muted,
+              ),
             ),
           if (item is BehaviourEditableCondition &&
               mapBuilderConditionMilestone(_binding, item) != null)

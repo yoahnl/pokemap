@@ -63,6 +63,7 @@ extension MapStoryBehaviourEditing on MapBuilderStoryBinding {
     ]);
     if (applied) {
       behaviour = element.behaviours.length;
+      if (!carrierEditable) _behaviourSelection = created;
       tab = MapStoryTab.behaviour;
       changed();
     }
@@ -217,7 +218,10 @@ extension MapStoryBehaviourEditing on MapBuilderStoryBinding {
       ],
       expected: [record],
     );
-    if (applied) behaviour = 0;
+    if (applied) {
+      behaviour = 0;
+      if (_behaviourSelection == record.id) _behaviourSelection = null;
+    }
     return applied;
   }
 

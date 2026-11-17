@@ -186,8 +186,8 @@ final class MapBuilderStoryCatalogBinding {
       binding.openScene = story.openScene;
       final element = binding.elements!.byKey('${at.$2.name}:${at.$3}')!;
       binding.select(element);
-      binding.behaviour = element.behaviours.indexWhere(
-        (record) => record.id == id,
+      binding.openBehaviour(
+        element.behaviours.indexWhere((record) => record.id == id),
       );
       editor = binding;
       return true;

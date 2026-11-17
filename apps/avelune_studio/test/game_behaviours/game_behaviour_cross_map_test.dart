@@ -10,6 +10,20 @@ import '../support/map_workspace_fixture.dart';
 import 'game_behaviour_edit_support.dart';
 
 void main() {
+  test(
+    'opening a non-first case through the catalog selects its exact identity',
+    () async {
+      final first = storyRecord(1);
+      final second = storyRecord(2, order: 1);
+      final fixture = await openStory(records: [first, second]);
+      final catalog = openCatalogue(fixture, BehaviourMapLoader());
+      expect(await catalog.open(second.id), isTrue);
+      expect(catalog.editor!.selectedBehaviour?.id, second.id);
+      expect(catalog.editor!.renameBehaviour(second, 'Deuxième cas'), isTrue);
+      expect(storyCurrent(fixture, first.id), first);
+      expect(storyCurrent(fixture, second.id).name, 'Deuxième cas');
+    },
+  );
   test('Histoire edits B while Carte keeps A and its selection', () async {
     final record = recordOnB();
     final fixture = await openStory(records: [record, storyRecord(2)]);

@@ -4608,4 +4608,75 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get dialogueEditorUnrepresentable =>
       'Ce texte changerait le locuteur ou le type du passage. Adaptez-le pour conserver la structure actuelle ; votre saisie est conservée.';
+
+  @override
+  String get triggersOutcomePending =>
+      'Choisissez un résultat pour appliquer ce réarmement. La répétition actuelle reste conservée jusque-là.';
+
+  @override
+  String get triggersPreviewRefresh => 'Actualiser les langues';
+
+  @override
+  String get triggersConditionJunction => 'Combiner les conditions';
+
+  @override
+  String get triggersConditionAll => 'ET · toutes doivent être vraies';
+
+  @override
+  String get triggersConditionAny => 'OU · au moins une doit être vraie';
+
+  @override
+  String get triggersConditionOr => 'ou';
+
+  @override
+  String get triggersSource => 'Source sur cette carte';
+
+  @override
+  String get triggersEvent => 'Événement';
+
+  @override
+  String get triggersSceneCreate => 'Créer une scène simple';
+
+  @override
+  String get triggersSceneCreateHint =>
+      'Crée une scène Début → Dialogue → Fin. Le texte reste éditable dans Texte et traductions.';
+
+  @override
+  String get triggersSceneFirstText => 'Premier texte du dialogue';
+
+  @override
+  String get triggersPreview => 'Aperçu du dialogue · lecture seule';
+
+  @override
+  String get triggersPreviewLanguage => 'Langue d’aperçu';
+
+  @override
+  String get triggersOutcome => 'Résultat qui réarme le déclencheur';
+
+  @override
+  String get triggersOutcomeChoose => 'Choisir un résultat explicite…';
+
+  @override
+  String get triggersOutcomeUnavailable =>
+      'Le résultat attendu n’est plus disponible. Sa référence est conservée ; choisissez un résultat valide avant d’activer.';
+
+  @override
+  String get triggersNoOutcomes =>
+      'Aucun résultat disponible. Déclarez et émettez un résultat dans une scène ou un combat.';
+
+  @override
+  String get triggersParallel =>
+      'Événement parallèle : sa politique d’exécution est conservée. Il doit rester réutilisable.';
+
+  @override
+  String get triggersCasesHint =>
+      'Pour une même source, le dispatch ordinaire choisit le premier cas actif dont les conditions sont vraies, par priorité puis par ordre. Les événements parallèles gardent leur propre politique.';
+
+  @override
+  String get triggersUsages => 'Ressources liées';
+
+  @override
+  String triggersSceneUsages(int count) {
+    return '$count déclencheur(s) utilisent cette scène';
+  }
 }

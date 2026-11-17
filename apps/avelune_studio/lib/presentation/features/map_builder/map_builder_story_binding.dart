@@ -105,6 +105,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   final _lines = _StoryLines();
   final _triggers = _StoryTriggers();
   BehaviourAfter? pendingAfter;
+  String? _behaviourSelection;
   bool _mediaLoaded = false;
   final _done = <(_StorySide, Object?)>[];
   final _undone = <(_StorySide, Object?)>[];

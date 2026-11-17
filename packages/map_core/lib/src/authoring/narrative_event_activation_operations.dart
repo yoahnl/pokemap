@@ -2,6 +2,7 @@ import '../models/narrative_event_definition.dart';
 import 'narrative_event_authoring_contract.dart';
 import 'narrative_event_authoring_support.dart';
 import 'narrative_event_configuration_validation.dart';
+import 'narrative_event_reset_validation.dart';
 
 NarrativeEventAuthoringResult activateNarrativeEvent({
   required NarrativeEventAuthoringContext context,
@@ -51,8 +52,9 @@ NarrativeEventAuthoringResult activateNarrativeEvent({
       issue: validationIssue,
     );
   }
-  for (final active
-      in context.sourceIndex.index.recordsFor(definition.source)) {
+  for (final active in context.sourceIndex.index.recordsFor(
+    definition.source,
+  )) {
     if (active.id == definition.id) continue;
     final activeDefinition = active.definitionOrNull!;
     if (activeDefinition.priority == definition.priority &&
@@ -184,6 +186,12 @@ NarrativeEventAuthoringDiagnostic? _activationValidationIssue({
         context: context,
         eventId: definition.id,
         conditions: definition.conditions,
+      ) ??
+      validateNarrativeEventAuthoringReset(
+        context: context,
+        policy: definition.resetPolicy,
+        reusePolicy: definition.reusePolicy,
+        source: definition.source,
       ) ??
       firstBlockingNarrativeEventCatalogIssue(context);
 }

@@ -208,7 +208,7 @@ Map<String, int> _orders(
       orders[group[i].id] = group[i].order;
       continue;
     }
-    final anchor = before ?? keep.where((at) => at > i).firstOrNull;
+    final anchor = before ?? keep.where((at) => at > i).lastOrNull;
     orders[group[i].id] = (anchor == null ? 0 : room[anchor]) + i;
   }
   final ranked = _engineOrder([

@@ -50,6 +50,35 @@ void main() {
   });
 
   group('moving a case', () {
+    test(
+      'all moves preserve engine order with gaps and an incomplete draft',
+      () {
+        final records = [
+          behaviourCase('01', order: 0),
+          behaviourCase('02', order: 1),
+          behaviourCase('03', order: 2, enabled: false),
+          _draft('06', order: 5),
+        ];
+        for (var from = 0; from < records.length; from++) {
+          for (var to = 0; to < records.length; to++) {
+            late List<NarrativeEventRecord> changed;
+            expect(
+              () => changed = moveBehaviourCase(records, from, to),
+              returnsNormally,
+              reason: '$from -> $to',
+            );
+            final expected = [...records]
+              ..removeAt(from)
+              ..insert(to, records[from]);
+            final actual = behaviourCaseGroups(
+              _apply(records, changed),
+              EventSystemMode.v2Only,
+            ).single.records;
+            expect(_ids(actual), _ids(expected), reason: '$from -> $to');
+          }
+        }
+      },
+    );
     final sameGroup = [
       behaviourCase('01', order: 0),
       behaviourCase('02', order: 1),

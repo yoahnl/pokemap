@@ -7121,6 +7121,132 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ce texte changerait le locuteur ou le type du passage. Adaptez-le pour conserver la structure actuelle ; votre saisie est conservée.'**
   String get dialogueEditorUnrepresentable;
+
+  /// No description provided for @triggersOutcomePending.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez un résultat pour appliquer ce réarmement. La répétition actuelle reste conservée jusque-là.'**
+  String get triggersOutcomePending;
+
+  /// No description provided for @triggersPreviewRefresh.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actualiser les langues'**
+  String get triggersPreviewRefresh;
+
+  /// No description provided for @triggersConditionJunction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Combiner les conditions'**
+  String get triggersConditionJunction;
+
+  /// No description provided for @triggersConditionAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'ET · toutes doivent être vraies'**
+  String get triggersConditionAll;
+
+  /// No description provided for @triggersConditionAny.
+  ///
+  /// In fr, this message translates to:
+  /// **'OU · au moins une doit être vraie'**
+  String get triggersConditionAny;
+
+  /// No description provided for @triggersConditionOr.
+  ///
+  /// In fr, this message translates to:
+  /// **'ou'**
+  String get triggersConditionOr;
+
+  /// No description provided for @triggersSource.
+  ///
+  /// In fr, this message translates to:
+  /// **'Source sur cette carte'**
+  String get triggersSource;
+
+  /// No description provided for @triggersEvent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Événement'**
+  String get triggersEvent;
+
+  /// No description provided for @triggersSceneCreate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer une scène simple'**
+  String get triggersSceneCreate;
+
+  /// No description provided for @triggersSceneCreateHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Crée une scène Début → Dialogue → Fin. Le texte reste éditable dans Texte et traductions.'**
+  String get triggersSceneCreateHint;
+
+  /// No description provided for @triggersSceneFirstText.
+  ///
+  /// In fr, this message translates to:
+  /// **'Premier texte du dialogue'**
+  String get triggersSceneFirstText;
+
+  /// No description provided for @triggersPreview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aperçu du dialogue · lecture seule'**
+  String get triggersPreview;
+
+  /// No description provided for @triggersPreviewLanguage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Langue d’aperçu'**
+  String get triggersPreviewLanguage;
+
+  /// No description provided for @triggersOutcome.
+  ///
+  /// In fr, this message translates to:
+  /// **'Résultat qui réarme le déclencheur'**
+  String get triggersOutcome;
+
+  /// No description provided for @triggersOutcomeChoose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir un résultat explicite…'**
+  String get triggersOutcomeChoose;
+
+  /// No description provided for @triggersOutcomeUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le résultat attendu n’est plus disponible. Sa référence est conservée ; choisissez un résultat valide avant d’activer.'**
+  String get triggersOutcomeUnavailable;
+
+  /// No description provided for @triggersNoOutcomes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun résultat disponible. Déclarez et émettez un résultat dans une scène ou un combat.'**
+  String get triggersNoOutcomes;
+
+  /// No description provided for @triggersParallel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Événement parallèle : sa politique d’exécution est conservée. Il doit rester réutilisable.'**
+  String get triggersParallel;
+
+  /// No description provided for @triggersCasesHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pour une même source, le dispatch ordinaire choisit le premier cas actif dont les conditions sont vraies, par priorité puis par ordre. Les événements parallèles gardent leur propre politique.'**
+  String get triggersCasesHint;
+
+  /// No description provided for @triggersUsages.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ressources liées'**
+  String get triggersUsages;
+
+  /// No description provided for @triggersSceneUsages.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} déclencheur(s) utilisent cette scène'**
+  String triggersSceneUsages(int count);
 }
 
 class _AppLocalizationsDelegate

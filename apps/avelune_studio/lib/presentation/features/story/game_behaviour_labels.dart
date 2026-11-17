@@ -48,7 +48,11 @@ extension GameBehaviourLabels on AppLocalizations {
         : [
             for (final item in summary.conditions.items)
               _condition(item, factName),
-          ].join(', '),
+          ].join(
+            summary.conditions.junction == BehaviourConditionJunction.any
+                ? ' $triggersConditionOr '
+                : ', ',
+          ),
     switch (summary.scene) {
       null when summary.sceneChosen => behavioursSceneNotFound,
       null => storySceneMissing,

@@ -309,6 +309,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       body: _keyboard(
         StoryDialogueNavigation(
           open: _openDialogue,
+          loadLanguages: _stories.dialogues?.languages,
           child: _layout(
             onToggleInspector: () =>
                 setState(() => _inspectorOpen = !_inspectorOpen),

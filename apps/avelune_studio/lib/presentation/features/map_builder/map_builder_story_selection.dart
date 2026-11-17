@@ -12,7 +12,17 @@ extension MapStorySelection on MapBuilderStoryBinding {
   }
 
   MapStoryElement? get selected {
-    if (!carrierEditable) return this.elements?.byKey(_mapSelection);
+    if (!carrierEditable) {
+      final record = behaviours
+          .registry(project!)
+          ?.records
+          .where((record) => record.id == _behaviourSelection)
+          .firstOrNull;
+      final at = record == null ? null : mapStoryLocation(record);
+      return this.elements?.byKey(
+        at == null ? _mapSelection : '${at.$2.name}:${at.$3}',
+      );
+    }
     final map = this.map;
     final session = view();
     if (map == null || session == null) return null;
@@ -32,15 +42,22 @@ extension MapStorySelection on MapBuilderStoryBinding {
 
   NarrativeEventRecord? get selectedBehaviour {
     final behaviours = selected?.behaviours ?? const [];
+    if (!carrierEditable && _behaviourSelection != null) {
+      return behaviours
+          .where((record) => record.id == _behaviourSelection)
+          .firstOrNull;
+    }
     return behaviours.isEmpty
         ? null
         : behaviours[behaviour.clamp(0, behaviours.length - 1)];
   }
 
   void select(MapStoryElement element) {
+    pendingAfter = null;
     if (!carrierEditable) {
       behaviour = 0;
       _mapSelection = element.key;
+      _behaviourSelection = element.behaviours.firstOrNull?.id;
       changed();
       return;
     }
@@ -88,6 +105,13 @@ extension MapStorySelection on MapBuilderStoryBinding {
   }
 
   void openBehaviour(int index) {
+    pendingAfter = null;
+    if (!carrierEditable) {
+      final records = selected?.behaviours ?? const [];
+      _behaviourSelection = index >= 0 && index < records.length
+          ? records[index].id
+          : null;
+    }
     behaviour = index;
     changed();
   }

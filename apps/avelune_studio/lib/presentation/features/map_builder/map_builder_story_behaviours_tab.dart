@@ -6,28 +6,25 @@ class MapBuilderStoryBehaviourEditor extends StatelessWidget {
     required this.binding,
     required this.element,
     required this.enabled,
-    this.sectionBuilder,
   });
 
   final MapBuilderStoryBinding binding;
   final MapStoryElement element;
   final bool enabled;
-  final Widget Function(String section, Widget content)? sectionBuilder;
 
-  Widget _section(String id, String label, List<Widget> children) {
+  Widget _section(String label, List<Widget> children) {
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: children,
     );
-    return sectionBuilder?.call(id, content) ??
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Eyebrow(label),
-            const SizedBox(height: StudioSpacing.xs),
-            content,
-          ],
-        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Eyebrow(label),
+        const SizedBox(height: StudioSpacing.xs),
+        content,
+      ],
+    );
   }
 
   Widget _identity(
@@ -48,18 +45,10 @@ class MapBuilderStoryBehaviourEditor extends StatelessWidget {
       value: current.enabledOrNull == true,
       onChanged: editable ? (value) => binding.setActive(current, value) : null,
     );
-    return sectionBuilder == null
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [name, active],
-          )
-        : Row(
-            children: [
-              Expanded(flex: 3, child: name),
-              const SizedBox(width: StudioSpacing.l),
-              Expanded(flex: 2, child: active),
-            ],
-          );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [name, active],
+    );
   }
 
   @override
@@ -90,8 +79,6 @@ class MapBuilderStoryBehaviourEditor extends StatelessWidget {
         ],
         StudioSection(
           title: l10n.storyBehavioursTitle(behaviours.length),
-          collapsible: sectionBuilder != null && current != null,
-          initiallyExpanded: sectionBuilder == null,
           children: [
             if (behaviours.isEmpty) _Caption(l10n.storyNoBehaviour),
             MapBuilderStoryCaseList(
@@ -120,7 +107,7 @@ class MapBuilderStoryBehaviourEditor extends StatelessWidget {
           const SizedBox(height: StudioSpacing.l),
           _identity(current, editable, l10n),
           const SizedBox(height: StudioSpacing.s),
-          _section('when', l10n.storyWhen, [
+          _section(l10n.storyWhen, [
             StudioSelect(
               key: const ValueKey('map-story-when'),
               label: l10n.storyWhenField,
@@ -143,7 +130,7 @@ class MapBuilderStoryBehaviourEditor extends StatelessWidget {
             ),
           ]),
           const SizedBox(height: StudioSpacing.m),
-          _section('if', l10n.storyIf, [
+          _section(l10n.storyIf, [
             MapBuilderStoryConditions(
               key: ValueKey('map-story-conditions-${current.id}'),
               binding: binding,
@@ -152,7 +139,7 @@ class MapBuilderStoryBehaviourEditor extends StatelessWidget {
             ),
           ]),
           const SizedBox(height: StudioSpacing.m),
-          _section('then', l10n.storyThen, [
+          _section(l10n.storyThen, [
             MapBuilderStoryLineField(
               binding: binding,
               element: element,
@@ -186,7 +173,7 @@ class MapBuilderStoryBehaviourEditor extends StatelessWidget {
             ),
           ]),
           const SizedBox(height: StudioSpacing.m),
-          _section('repeat', l10n.storyAfter, [
+          _section(l10n.storyAfter, [
             MapBuilderStoryAfter(
               binding: binding,
               record: current,

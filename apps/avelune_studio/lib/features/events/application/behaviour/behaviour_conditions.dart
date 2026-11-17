@@ -5,6 +5,8 @@ import 'behaviour_record_edit.dart';
 
 enum BehaviourConditionTest { isTrue, isFalse, equalsNumber }
 
+enum BehaviourConditionJunction { all, any }
+
 List<BehaviourConditionTest> behaviourConditionTests(NarrativeValueKind kind) =>
     switch (kind) {
       NarrativeValueKind.boolean => const [
@@ -77,11 +79,15 @@ final class BehaviourFixedCondition extends BehaviourConditionItem {
 }
 
 final class BehaviourConditions {
-  BehaviourConditions._(List<BehaviourConditionItem> items, this._grouped)
-    : items = List.unmodifiable(items);
+  BehaviourConditions._(
+    List<BehaviourConditionItem> items,
+    this._grouped, [
+    this.junction = BehaviourConditionJunction.all,
+  ]) : items = List.unmodifiable(items);
 
   final List<BehaviourConditionItem> items;
   final bool _grouped;
+  final BehaviourConditionJunction junction;
 
   bool get fullyEditable =>
       items.every((item) => item is BehaviourEditableCondition);
@@ -89,24 +95,41 @@ final class BehaviourConditions {
   NarrativeEventConditionExpression get expression =>
       !_grouped && items.length == 1
       ? items.single.expression
+      : junction == BehaviourConditionJunction.any && items.isNotEmpty
+      ? NarrativeEventConditionExpression.any([
+          for (final item in items) item.expression,
+        ])
       : NarrativeEventConditionExpression.all([
           for (final item in items) item.expression,
         ]);
 
   BehaviourConditions adding(BehaviourEditableCondition condition) =>
-      BehaviourConditions._([...items, condition], _grouped);
+      BehaviourConditions._([...items, condition], _grouped, junction);
+
+  BehaviourConditions joining(BehaviourConditionJunction value) {
+    if (!fullyEditable) throw StateError('complexConditionExpression');
+    return BehaviourConditions._(items, true, value);
+  }
 
   BehaviourConditions replacing(
     int index,
     BehaviourEditableCondition condition,
   ) {
     _requireEditable(index);
-    return BehaviourConditions._([...items]..[index] = condition, _grouped);
+    return BehaviourConditions._(
+      [...items]..[index] = condition,
+      _grouped,
+      junction,
+    );
   }
 
   BehaviourConditions removing(int index) {
     _requireEditable(index);
-    return BehaviourConditions._([...items]..removeAt(index), _grouped);
+    return BehaviourConditions._(
+      [...items]..removeAt(index),
+      _grouped,
+      junction,
+    );
   }
 
   void _requireEditable(int index) {
@@ -119,6 +142,12 @@ final class BehaviourConditions {
 
 BehaviourConditions readBehaviourConditions(NarrativeEventRecord record) {
   final root = record.expression;
+  if (root is NarrativeEventConditionAny) {
+    final items = [for (final child in root.children) _item(child)];
+    if (items.every((item) => item is BehaviourEditableCondition)) {
+      return BehaviourConditions._(items, true, BehaviourConditionJunction.any);
+    }
+  }
   return root is NarrativeEventConditionAll
       ? BehaviourConditions._([
           for (final child in root.children) _item(child),

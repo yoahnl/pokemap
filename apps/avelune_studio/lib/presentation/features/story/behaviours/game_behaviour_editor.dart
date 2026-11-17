@@ -3,9 +3,18 @@ import 'package:flutter/material.dart';
 
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_panel.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_errors.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_milestones.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+
+import 'game_behaviour_cases.dart';
+import 'game_behaviour_conditions.dart';
+import 'game_behaviour_context.dart';
+import 'game_behaviour_repeat.dart';
+import 'game_behaviour_scene.dart';
+import 'game_behaviour_simulation.dart';
+import 'game_behaviour_when.dart';
 
 class GameBehaviourEditor extends StatefulWidget {
   const GameBehaviourEditor({
@@ -54,46 +63,172 @@ class _GameBehaviourEditorState extends State<GameBehaviourEditor> {
           ],
         ),
         if (record != null && _contextOpen)
-          StudioSection(
-            key: ValueKey('story-trigger-context-${record.id}'),
-            title: l10n.triggersContext,
-            children: [
-              Text(
-                '${binding.map?.name ?? l10n.behavioursMissingMap} · ${mapBuilderStoryName(element, l10n)}',
-              ),
-              Text(l10n.triggersPriority(record.priority)),
-            ],
+          GameBehaviourContext(
+            binding: binding,
+            record: record,
+            element: element,
           ),
-        MapBuilderStoryBehaviourEditor(
-          key: ValueKey('map-story-attempt-${binding.attempts}'),
-          binding: binding,
-          element: element,
-          enabled: widget.editable,
-          sectionBuilder: (section, content) => StudioPanel(
-            key: ValueKey('story-trigger-block-$section'),
-            compact: true,
-            title: switch (section) {
-              'when' => l10n.storyWhen,
-              'if' => l10n.storyIf,
-              'then' => l10n.storyThen,
-              _ => l10n.triggersRepeat,
-            },
-            icon: switch (section) {
-              'when' => Icons.bolt_outlined,
-              'if' => Icons.call_split,
-              'then' => Icons.account_tree_outlined,
-              _ => Icons.repeat,
-            },
-            accent: switch (section) {
-              'when' => StudioAccent.halo,
-              'if' => StudioAccent.fog,
-              'then' => StudioAccent.water,
-              _ => StudioAccent.firefly,
-            },
-            children: [content],
-          ),
-        ),
+        _commands(context),
       ],
+    );
+  }
+
+  Widget _block(BuildContext context, String section, Widget content) {
+    final l10n = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.only(top: StudioSpacing.m),
+      child: StudioPanel(
+        key: ValueKey('story-trigger-block-$section'),
+        compact: true,
+        title: switch (section) {
+          'when' => l10n.storyWhen,
+          'if' => l10n.storyIf,
+          'then' => l10n.storyThen,
+          _ => l10n.triggersRepeat,
+        },
+        icon: switch (section) {
+          'when' => Icons.bolt_outlined,
+          'if' => Icons.call_split,
+          'then' => Icons.account_tree_outlined,
+          _ => Icons.repeat,
+        },
+        accent: switch (section) {
+          'when' => StudioAccent.halo,
+          'if' => StudioAccent.fog,
+          'then' => StudioAccent.water,
+          _ => StudioAccent.firefly,
+        },
+        children: [content],
+      ),
+    );
+  }
+
+  Widget _commands(BuildContext context) {
+    final l10n = context.l10n;
+    final record = binding.selectedBehaviour;
+    final element = binding.selected!;
+    final editable =
+        widget.editable &&
+        !binding.editingBlocked &&
+        binding.ready &&
+        binding.editing?.problem == null;
+    return KeyedSubtree(
+      key: ValueKey('map-story-attempt-${record?.id}-${binding.attempts}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (binding.error ?? binding.repairError ?? binding.editing?.problem
+              case final error?)
+            StudioNotice(mapBuilderStoryError(error, l10n), isError: true),
+          if (!binding.ready)
+            StudioNotice(
+              binding.preparing ? l10n.storyPreparing : l10n.storyNotPrepared,
+            ),
+          GameBehaviourCases(
+            binding: binding,
+            element: element,
+            record: record,
+            editable: editable,
+          ),
+          if (record != null) ...[
+            const SizedBox(height: StudioSpacing.m),
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: MapBuilderNameField(
+                    key: ValueKey('map-story-behaviour-name-${record.id}'),
+                    value: record.name,
+                    label: l10n.storyBehaviourNameField,
+                    enabled: editable,
+                    onCommit: (value) => binding.renameBehaviour(record, value),
+                  ),
+                ),
+                const SizedBox(width: StudioSpacing.l),
+                Expanded(
+                  flex: 2,
+                  child: StudioToggleRow(
+                    key: const ValueKey('map-story-behaviour-active'),
+                    label: l10n.storyBehaviourActive,
+                    value: record.enabledOrNull == true,
+                    onChanged: editable
+                        ? (value) => binding.setActive(record, value)
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+            if (record.sceneId == null ||
+                binding.sceneOf(record.sceneId!) == null)
+              StudioBadge(l10n.triggersIncomplete, tone: StudioTone.warning),
+            _block(
+              context,
+              'when',
+              GameBehaviourWhen(
+                binding: binding,
+                record: record,
+                element: element,
+                editable: editable,
+              ),
+            ),
+            _block(
+              context,
+              'if',
+              GameBehaviourConditions(
+                binding: binding,
+                record: record,
+                editable: editable,
+              ),
+            ),
+            _block(
+              context,
+              'then',
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  GameBehaviourScene(
+                    binding: binding,
+                    record: record,
+                    element: element,
+                    editable: editable,
+                  ),
+                  const SizedBox(height: StudioSpacing.m),
+                  MapBuilderStoryMilestoneField(
+                    key: ValueKey('map-story-milestone-${record.id}'),
+                    binding: binding,
+                    record: record,
+                    editable: editable,
+                  ),
+                ],
+              ),
+            ),
+            _block(
+              context,
+              'repeat',
+              GameBehaviourRepeat(
+                binding: binding,
+                record: record,
+                editable: editable,
+              ),
+            ),
+            const SizedBox(height: StudioSpacing.l),
+            GameBehaviourSimulation(binding: binding, record: record),
+            const SizedBox(height: StudioSpacing.l),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: StudioButton(
+                key: const ValueKey('map-story-behaviour-delete'),
+                variant: StudioButtonVariant.destructive,
+                icon: Icons.delete_outline,
+                label: l10n.storyDeleteBehaviour,
+                onPressed: editable
+                    ? () => binding.deleteBehaviour(record)
+                    : null,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

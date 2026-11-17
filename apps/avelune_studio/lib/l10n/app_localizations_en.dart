@@ -4576,4 +4576,75 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dialogueEditorUnrepresentable =>
       'This text would change the speaker or passage type. Adapt it to preserve the current structure; your input has been kept.';
+
+  @override
+  String get triggersOutcomePending =>
+      'Choose an outcome to apply this rearm policy. The current repetition policy is preserved until then.';
+
+  @override
+  String get triggersPreviewRefresh => 'Refresh languages';
+
+  @override
+  String get triggersConditionJunction => 'Combine conditions';
+
+  @override
+  String get triggersConditionAll => 'AND · all must be true';
+
+  @override
+  String get triggersConditionAny => 'OR · at least one must be true';
+
+  @override
+  String get triggersConditionOr => 'or';
+
+  @override
+  String get triggersSource => 'Source on this map';
+
+  @override
+  String get triggersEvent => 'Event';
+
+  @override
+  String get triggersSceneCreate => 'Create a simple scene';
+
+  @override
+  String get triggersSceneCreateHint =>
+      'Creates a Start → Dialogue → End scene. Edit its text in Text and translations.';
+
+  @override
+  String get triggersSceneFirstText => 'First dialogue text';
+
+  @override
+  String get triggersPreview => 'Dialogue preview · read only';
+
+  @override
+  String get triggersPreviewLanguage => 'Preview language';
+
+  @override
+  String get triggersOutcome => 'Outcome that rearms the trigger';
+
+  @override
+  String get triggersOutcomeChoose => 'Choose an explicit outcome…';
+
+  @override
+  String get triggersOutcomeUnavailable =>
+      'The expected outcome is unavailable. Its reference is preserved; choose a valid outcome before activating.';
+
+  @override
+  String get triggersNoOutcomes =>
+      'No available outcomes. Declare and emit an outcome in a scene or battle.';
+
+  @override
+  String get triggersParallel =>
+      'Parallel event: its execution policy is preserved. It must remain reusable.';
+
+  @override
+  String get triggersCasesHint =>
+      'For the same source, ordinary dispatch chooses the first active case whose conditions are true, by priority then order. Parallel events retain their own policy.';
+
+  @override
+  String get triggersUsages => 'Linked resources';
+
+  @override
+  String triggersSceneUsages(int count) {
+    return '$count trigger(s) use this scene';
+  }
 }
