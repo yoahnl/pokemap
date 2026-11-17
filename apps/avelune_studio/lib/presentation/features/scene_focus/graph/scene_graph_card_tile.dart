@@ -6,46 +6,44 @@ import 'package:avelune_studio/features/scenes/application/graph/scene_graph_che
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_metrics.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_labels.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_palette.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class SceneGraphCardTile extends StatelessWidget {
   const SceneGraphCardTile({
     super.key,
     required this.card,
-    required this.scene,
-    required this.project,
     required this.selected,
     required this.onPath,
     this.problem,
-    this.dialogueNames = const {},
+    this.dialogue,
+    this.detail,
   });
 
   static const double portRadius = 5;
 
   final SceneGraphCard card;
-  final SceneAsset scene;
-  final ProjectManifest? project;
   final bool selected;
   final bool onPath;
   final SceneGraphProblemLevel? problem;
-  final Map<String, String> dialogueNames;
+  final ProjectDialogueEntry? dialogue;
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final accent = sceneGraphFamilyColor(context, card.family);
+    final accent = sceneGraphNodeAccent(context, card.node);
     final studio = StudioColors.of(context);
-    final title = card.node.title?.trim();
-    final detail = sceneGraphCardDetail(
-      l10n,
-      card.node,
-      scene,
-      project,
-      dialogueNames,
+    final title = sceneGraphNodeTitle(l10n, card.node);
+    final detail = this.detail;
+    final category = l10n.sceneGraphCategory(
+      sceneGraphCategory(card.node).name,
     );
-    final named = title != null && title.isNotEmpty;
+    final radius = BorderRadius.circular(StudioMetrics.controlRadius);
+    final surface = scheme.surface;
+    final roomy = MediaQuery.textScalerOf(context).scale(12) <= 14;
     final border = selected
         ? BorderSide(color: studio.canvasSelection, width: 2)
         : onPath
@@ -61,115 +59,148 @@ class SceneGraphCardTile extends StatelessWidget {
             ),
             null => BorderSide(color: scheme.outlineVariant),
           };
-    return SizedBox(
-      width: SceneGraphMetrics.cardWidth,
-      height: card.height,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              position: DecorationPosition.foreground,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
-                border: Border.fromBorderSide(border),
-              ),
-              child: _background(
-                scheme.surfaceContainerHigh,
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      height: SceneGraphMetrics.headerHeight,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: StudioSpacing.l,
-                      ),
-                      alignment: Alignment.centerLeft,
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: .28),
-                      ),
-                      child: _line(
-                        l10n.sceneGraphKind(card.node.kind.name),
-                        theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      height: SceneGraphMetrics.bodyHeight,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: StudioSpacing.l,
-                        vertical: StudioSpacing.xs,
-                      ),
-                      alignment: Alignment.centerLeft,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (named) _line(title, theme.textTheme.bodyMedium),
-                          if (detail != null)
-                            _line(
-                              detail,
-                              theme.textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
+    return Semantics(
+      container: true,
+      label: category,
+      selected: selected,
+      child: SizedBox(
+        width: SceneGraphMetrics.cardWidth,
+        height: card.height,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                position: DecorationPosition.foreground,
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  border: Border.fromBorderSide(border),
+                ),
+                child: ClipRRect(
+                  borderRadius: radius,
+                  child: ColoredBox(
+                    color: surface,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          height: SceneGraphMetrics.headerHeight,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: StudioSpacing.l,
+                          ),
+                          color: Color.alphaBlend(
+                            accent.withValues(alpha: .37),
+                            surface,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(sceneGraphNodeIcon(card.node), size: 15),
+                              const SizedBox(width: StudioSpacing.s),
+                              Expanded(
+                                child: _line(
+                                  title,
+                                  theme.textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
-                              maxLines: named ? 1 : 2,
-                            ),
-                        ],
-                      ),
-                    ),
-                    for (final port in card.outputs)
-                      Container(
-                        key: ValueKey('scene-graph-port-${card.id}-${port.id}'),
-                        height: SceneGraphMetrics.portRowHeight,
-                        padding: const EdgeInsets.only(right: StudioSpacing.l),
-                        alignment: Alignment.centerRight,
-                        child: _line(
-                          l10n.sceneGraphPort(port.id),
-                          theme.textTheme.labelSmall?.copyWith(
-                            color: _portColor(port, null, scheme, studio),
+                              if (problem case final level?) ...[
+                                const SizedBox(width: StudioSpacing.xs),
+                                Icon(
+                                  level == SceneGraphProblemLevel.blocking
+                                      ? Icons.error_outline
+                                      : Icons.warning_amber_outlined,
+                                  size: 14,
+                                  color:
+                                      level == SceneGraphProblemLevel.blocking
+                                      ? scheme.error
+                                      : studio.warning,
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                      ),
-                  ],
+                        for (final port in card.outputs)
+                          Container(
+                            key: ValueKey(
+                              'scene-graph-port-${card.id}-${port.id}',
+                            ),
+                            height: SceneGraphMetrics.portRowHeight,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: StudioSpacing.l,
+                            ),
+                            alignment: Alignment.centerRight,
+                            child: _line(
+                              sceneGraphPortLabel(l10n, port.id, dialogue),
+                              theme.textTheme.labelSmall?.copyWith(
+                                color: _portColor(
+                                  port,
+                                  scheme.onSurface,
+                                  studio,
+                                ),
+                              ),
+                            ),
+                          ),
+                        Container(
+                          height: SceneGraphMetrics.bodyHeight,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: StudioSpacing.l,
+                            vertical: StudioSpacing.xs,
+                          ),
+                          alignment: Alignment.centerLeft,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (detail == null || roomy)
+                                _line(
+                                  category,
+                                  theme.textTheme.labelSmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              if (detail != null)
+                                _line(
+                                  detail,
+                                  theme.textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-          if (card.acceptsInput)
-            _dot(
-              left: -portRadius,
-              top: SceneGraphMetrics.inputPortY - portRadius,
-              color: scheme.onSurfaceVariant,
-              filled: true,
-            ),
-          for (final (index, port) in card.outputs.indexed)
-            _dot(
-              left: SceneGraphMetrics.cardWidth - portRadius,
-              top: SceneGraphMetrics.outputPortY(index) - portRadius,
-              color: _portColor(port, accent, scheme, studio) ?? accent,
-              filled: port.connected,
-            ),
-        ],
+            if (card.acceptsInput)
+              _socket(
+                left: -portRadius,
+                top: SceneGraphMetrics.inputPortY - portRadius,
+                color: scheme.onSurface,
+                filled: true,
+              ),
+            for (final (index, port) in card.outputs.indexed)
+              _socket(
+                left: SceneGraphMetrics.cardWidth - portRadius,
+                top: SceneGraphMetrics.outputPortY(index) - portRadius,
+                color: _portColor(port, scheme.onSurface, studio),
+                filled: port.connected,
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _background(Color color, Widget child) => ClipRRect(
-    borderRadius: BorderRadius.circular(StudioMetrics.panelRadius),
-    child: ColoredBox(color: color, child: child),
-  );
-
-  Color? _portColor(
-    SceneGraphPort port,
-    Color? idle,
-    ColorScheme scheme,
-    StudioColors studio,
-  ) => switch (port) {
-    SceneGraphPort(declared: false) => studio.warning,
-    SceneGraphPort(required: true, connected: false) => studio.warning,
-    _ => idle,
-  };
+  Color _portColor(SceneGraphPort port, Color idle, StudioColors studio) =>
+      switch (port) {
+        SceneGraphPort(declared: false) => studio.warning,
+        SceneGraphPort(required: true, connected: false) => studio.warning,
+        _ => idle,
+      };
 
   Widget _line(String text, TextStyle? style, {int maxLines = 1}) => Text(
     text,
@@ -178,7 +209,7 @@ class SceneGraphCardTile extends StatelessWidget {
     style: style,
   );
 
-  Widget _dot({
+  Widget _socket({
     required double left,
     required double top,
     required Color color,
@@ -188,12 +219,35 @@ class SceneGraphCardTile extends StatelessWidget {
     top: top,
     width: portRadius * 2,
     height: portRadius * 2,
-    child: DecoratedBox(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: filled ? color : null,
-        border: Border.all(color: color, width: 1.5),
-      ),
-    ),
+    child: CustomPaint(painter: _SceneSocketPainter(color, filled)),
   );
+}
+
+class _SceneSocketPainter extends CustomPainter {
+  const _SceneSocketPainter(this.color, this.filled);
+
+  final Color color;
+  final bool filled;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outline = Path()
+      ..moveTo(1, 1)
+      ..lineTo(size.width * .55, 1)
+      ..lineTo(size.width - 1, size.height / 2)
+      ..lineTo(size.width * .55, size.height - 1)
+      ..lineTo(1, size.height - 1)
+      ..close();
+    canvas.drawPath(
+      outline,
+      Paint()
+        ..color = color
+        ..style = filled ? PaintingStyle.fill : PaintingStyle.stroke
+        ..strokeWidth = 1.25,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SceneSocketPainter oldDelegate) =>
+      oldDelegate.filled != filled || oldDelegate.color != color;
 }

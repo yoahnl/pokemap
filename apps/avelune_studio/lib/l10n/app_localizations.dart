@@ -5196,6 +5196,42 @@ abstract class AppLocalizations {
   /// **'Ajouter une étape'**
   String get sceneGraphSearch;
 
+  /// No description provided for @sceneGraphOutline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ma scène'**
+  String get sceneGraphOutline;
+
+  /// No description provided for @sceneGraphPalette.
+  ///
+  /// In fr, this message translates to:
+  /// **'Palette'**
+  String get sceneGraphPalette;
+
+  /// No description provided for @sceneGraphHelp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aide du graphe'**
+  String get sceneGraphHelp;
+
+  /// No description provided for @sceneGraphCategory.
+  ///
+  /// In fr, this message translates to:
+  /// **'{category, select, flow{Déroulement} dialogue{Dialogues et choix} facts{Faits et progression} world{Personnages et monde} travel{Carte et déplacements} inventory{Objets et argent} battle{Pokémon et combats} presentation{Mise en scène et son} services{Interfaces et services} other{Autres}}'**
+  String sceneGraphCategory(String category);
+
+  /// No description provided for @sceneGraphSummary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Graphe de scène · {steps, plural, =1{1 étape} other{{steps} étapes}} · {links, plural, =1{1 lien} other{{links} liens}}'**
+  String sceneGraphSummary(int steps, int links);
+
+  /// No description provided for @sceneGraphWaitDuration.
+  ///
+  /// In fr, this message translates to:
+  /// **'{milliseconds} ms'**
+  String sceneGraphWaitDuration(int milliseconds);
+
   /// No description provided for @sceneGraphNoMatch.
   ///
   /// In fr, this message translates to:

@@ -1754,6 +1754,28 @@
     }
   },
   "sceneGraphSearch": "Ajouter une étape",
+  "sceneGraphOutline": "Ma scène",
+  "sceneGraphPalette": "Palette",
+  "sceneGraphHelp": "Aide du graphe",
+  "sceneGraphCategory": "{category, select, flow{Déroulement} dialogue{Dialogues et choix} facts{Faits et progression} world{Personnages et monde} travel{Carte et déplacements} inventory{Objets et argent} battle{Pokémon et combats} presentation{Mise en scène et son} services{Interfaces et services} other{Autres}}",
+  "@sceneGraphCategory": {
+    "placeholders": {
+      "category": {"type": "String"}
+    }
+  },
+  "sceneGraphSummary": "Graphe de scène · {steps, plural, =1{1 étape} other{{steps} étapes}} · {links, plural, =1{1 lien} other{{links} liens}}",
+  "@sceneGraphSummary": {
+    "placeholders": {
+      "steps": {"type": "int"},
+      "links": {"type": "int"}
+    }
+  },
+  "sceneGraphWaitDuration": "{milliseconds} ms",
+  "@sceneGraphWaitDuration": {
+    "placeholders": {
+      "milliseconds": {"type": "int"}
+    }
+  },
   "sceneGraphNoMatch": "Aucune étape ne correspond.",
   "sceneGraphUnavailable": "Rien à choisir dans ce projet pour l’instant",
   "sceneGraphRefused": "{reason, select, unknownStep{Cette étape n’existe plus.} unknownExit{Cette sortie n’existe pas pour cette étape.} startHasNoInput{Le début ne peut pas recevoir de lien.} intoItself{Une étape ne peut pas se relier à elle-même.} wouldLoop{Ce lien ferait revenir la scène en arrière : les boucles ne sont pas jouables.} startCannotBeRemoved{Le début ne peut pas être supprimé.} referencedElsewhere{Une autre étape dépend de celle-ci.} other{Ce changement rendrait la scène invalide.}}",

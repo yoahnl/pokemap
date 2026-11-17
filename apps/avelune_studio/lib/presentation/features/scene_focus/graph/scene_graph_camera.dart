@@ -10,7 +10,7 @@ final class SceneGraphCamera {
   static const double minScale = 0.2;
   static const double maxScale = 2;
   static const double fitMargin = 48;
-  static const double readableScale = 0.6;
+  static const double readableScale = 0.75;
 
   final Offset pan;
   final double scale;

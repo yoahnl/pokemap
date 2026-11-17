@@ -9,6 +9,7 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_layout.dart';
+import 'package:avelune_studio/features/scenes/application/graph/scene_graph_metrics.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_ids.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_templates.dart';
@@ -30,6 +31,8 @@ class SceneGraphCanvas extends StatefulWidget {
     this.pathNodeIds = const [],
     this.pathChoices = const {},
     this.dialogueNames = const {},
+    this.dialogues = const {},
+    this.factNames = const {},
     this.map,
     this.onChanged,
     this.checks,
@@ -42,6 +45,8 @@ class SceneGraphCanvas extends StatefulWidget {
   final List<String> pathNodeIds;
   final Map<String, String> pathChoices;
   final Map<String, String> dialogueNames;
+  final Map<String, ProjectDialogueEntry> dialogues;
+  final Map<String, String> factNames;
   final MapData? map;
   final bool Function(SceneAsset scene)? onChanged;
   final SceneGraphChecks? checks;
@@ -150,6 +155,12 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   void showAll() =>
       _camera?.value = SceneGraphCamera.fit(sceneGraphBounds(_view), _viewport);
 
+  void addFromPalette(SceneStepTemplate template) => _addFromPalette(template);
+
+  void dismissStepMenu() {
+    if (_menu != null) _closeMenu();
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -165,6 +176,9 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
       pathNodeIds: widget.pathNodeIds.toSet(),
       pathEdgeIds: _pathEdgeIds,
       dialogueNames: widget.dialogueNames,
+      dialogues: widget.dialogues,
+      factNames: widget.factNames,
+      map: widget.map,
       checks: widget.checks ?? checkSceneGraph(widget.scene),
     );
     return LayoutBuilder(
@@ -205,10 +219,10 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
                                 painter: SceneGraphGridPainter(
                                   camera: value,
                                   minor: scheme.outlineVariant.withValues(
-                                    alpha: .25,
+                                    alpha: .43,
                                   ),
                                   major: scheme.outlineVariant.withValues(
-                                    alpha: .6,
+                                    alpha: .84,
                                   ),
                                 ),
                               ),
@@ -256,6 +270,16 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
                 ),
               ),
             ),
+            Positioned(
+              left: StudioSpacing.l,
+              bottom: StudioSpacing.l,
+              child: SceneGraphToolbar(
+                camera: camera,
+                editable: _editable,
+                preparing: widget.preparing,
+                onShowAll: showAll,
+              ),
+            ),
             if (menu != null)
               Positioned(
                 left: menu.screen.dx
@@ -265,29 +289,23 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
                     )
                     .toDouble(),
                 top: menu.screen.dy
-                    .clamp(0, math.max(0, _viewport.height - 320))
+                    .clamp(0, math.max(0, _viewport.height - 380))
                     .toDouble(),
-                child: SceneGraphStepMenu(
-                  choices: sceneGraphStepChoices(
-                    context,
-                    widget.project,
-                    widget.map,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: math.min(380, _viewport.height),
                   ),
-                  onChosen: _addFromMenu,
-                  onDismiss: _closeMenu,
+                  child: SceneGraphStepMenu(
+                    choices: sceneGraphStepChoices(
+                      context,
+                      widget.project,
+                      widget.map,
+                    ),
+                    onChosen: _addFromMenu,
+                    onDismiss: _closeMenu,
+                  ),
                 ),
               ),
-            Positioned(
-              left: StudioSpacing.l,
-              right: StudioSpacing.l,
-              bottom: StudioSpacing.l,
-              child: SceneGraphToolbar(
-                camera: camera,
-                editable: _editable,
-                preparing: widget.preparing,
-                onShowAll: showAll,
-              ),
-            ),
           ],
         );
       },

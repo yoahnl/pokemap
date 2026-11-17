@@ -5,6 +5,8 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/scene_step_form.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_labels.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_palette.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 const _plainKinds = {
@@ -68,13 +70,22 @@ class SceneGraphInspector extends StatelessWidget {
         ? scene.graph.nodes.where((n) => n.id == selection.single).firstOrNull
         : null;
     if (node != null) {
-      final title = node.title?.trim();
+      final category = sceneGraphCategory(node);
       return StudioSection(
         key: ValueKey('scene-graph-inspector-${node.id}'),
-        title: l10n.sceneGraphKind(node.kind.name),
+        title: sceneGraphNodeTitle(l10n, node),
         children: [
-          if (title != null && title.isNotEmpty)
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
+          Row(
+            children: [
+              Icon(
+                sceneGraphNodeIcon(node),
+                size: 15,
+                color: sceneGraphNodeAccent(context, node),
+              ),
+              const SizedBox(width: StudioSpacing.s),
+              Expanded(child: Text(l10n.sceneGraphCategory(category.name))),
+            ],
+          ),
           if (SceneStepForm.covers(node))
             SceneStepForm(
               scene: scene,

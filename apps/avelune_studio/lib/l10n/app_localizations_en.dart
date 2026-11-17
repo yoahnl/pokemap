@@ -3263,6 +3263,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sceneGraphSearch => 'Add a step';
 
   @override
+  String get sceneGraphOutline => 'My scene';
+
+  @override
+  String get sceneGraphPalette => 'Palette';
+
+  @override
+  String get sceneGraphHelp => 'Graph help';
+
+  @override
+  String sceneGraphCategory(String category) {
+    String _temp0 = intl.Intl.selectLogic(category, {
+      'flow': 'Flow',
+      'dialogue': 'Dialogue and choices',
+      'facts': 'Facts and progress',
+      'world': 'Characters and world',
+      'travel': 'Maps and travel',
+      'inventory': 'Items and money',
+      'battle': 'Pokémon and battles',
+      'presentation': 'Staging and sound',
+      'services': 'Interfaces and services',
+      'other': 'Other',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String sceneGraphSummary(int steps, int links) {
+    String _temp0 = intl.Intl.pluralLogic(
+      steps,
+      locale: localeName,
+      other: '$steps steps',
+      one: '1 step',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      links,
+      locale: localeName,
+      other: '$links links',
+      one: '1 link',
+    );
+    return 'Scene graph · $_temp0 · $_temp1';
+  }
+
+  @override
+  String sceneGraphWaitDuration(int milliseconds) {
+    return '$milliseconds ms';
+  }
+
+  @override
   String get sceneGraphNoMatch => 'No step matches.';
 
   @override

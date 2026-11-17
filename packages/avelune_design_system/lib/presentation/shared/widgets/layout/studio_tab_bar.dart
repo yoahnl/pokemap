@@ -17,16 +17,24 @@ class StudioTabBar<T> extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     this.height = 48,
+    this.fill = false,
   });
 
   final List<StudioTab<T>> tabs;
   final T selected;
   final ValueChanged<T> onSelected;
   final double height;
+  final bool fill;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    Widget entry(StudioTab<T> tab) => _StudioTabEntry(
+      key: tab.key,
+      label: tab.label,
+      selected: tab.value == selected,
+      onTap: () => onSelected(tab.value),
+    );
     return Ink(
       height: height,
       padding: const EdgeInsets.symmetric(horizontal: StudioSpacing.l),
@@ -38,12 +46,7 @@ class StudioTabBar<T> extends StatelessWidget {
         child: Row(
           children: [
             for (final tab in tabs)
-              _StudioTabEntry(
-                key: tab.key,
-                label: tab.label,
-                selected: tab.value == selected,
-                onTap: () => onSelected(tab.value),
-              ),
+              fill ? Expanded(child: entry(tab)) : entry(tab),
           ],
         ),
       ),
@@ -94,6 +97,8 @@ class _StudioTabEntryState extends State<_StudioTabEntry> {
           child: ExcludeSemantics(
             child: Text(
               widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: widget.selected
                     ? scheme.onSurface

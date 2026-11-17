@@ -3,17 +3,6 @@ import 'package:map_core/map_core_domain.dart';
 import 'scene_graph_layout.dart';
 import 'scene_graph_metrics.dart';
 
-enum SceneGraphFamily {
-  start,
-  end,
-  dialogue,
-  condition,
-  action,
-  battle,
-  cinematic,
-  flow,
-}
-
 final class SceneGraphPort {
   const SceneGraphPort({
     required this.id,
@@ -31,14 +20,12 @@ final class SceneGraphPort {
 final class SceneGraphCard {
   const SceneGraphCard({
     required this.node,
-    required this.family,
     required this.outputs,
     required this.position,
     required this.storedPosition,
   });
 
   final SceneNode node;
-  final SceneGraphFamily family;
   final List<SceneGraphPort> outputs;
   final SceneGraphPoint position;
   final bool storedPosition;
@@ -88,7 +75,6 @@ final class SceneGraphView {
               switch (moved[card.id]) {
                 final position? => SceneGraphCard(
                   node: card.node,
-                  family: card.family,
                   outputs: card.outputs,
                   position: position,
                   storedPosition: true,
@@ -100,19 +86,6 @@ final class SceneGraphView {
           unreachableNodeIds: unreachableNodeIds,
         );
 }
-
-SceneGraphFamily sceneGraphFamilyOf(SceneNodeKind kind) => switch (kind) {
-  SceneNodeKind.start => SceneGraphFamily.start,
-  SceneNodeKind.end => SceneGraphFamily.end,
-  SceneNodeKind.yarnDialogue => SceneGraphFamily.dialogue,
-  SceneNodeKind.condition ||
-  SceneNodeKind.branchByOutcome => SceneGraphFamily.condition,
-  SceneNodeKind.action => SceneGraphFamily.action,
-  SceneNodeKind.battle => SceneGraphFamily.battle,
-  SceneNodeKind.cinematic ||
-  SceneNodeKind.presentationCinematic => SceneGraphFamily.cinematic,
-  SceneNodeKind.merge => SceneGraphFamily.flow,
-};
 
 SceneGraphView projectSceneGraph(SceneAsset scene) {
   final graph = scene.graph;
@@ -136,7 +109,6 @@ SceneGraphView projectSceneGraph(SceneAsset scene) {
       for (final node in graph.nodes)
         SceneGraphCard(
           node: node,
-          family: sceneGraphFamilyOf(node.kind),
           outputs: outputs[node.id]!,
           position: shape.positions[node.id]!,
           storedPosition: shape.storedNodeIds.contains(node.id),

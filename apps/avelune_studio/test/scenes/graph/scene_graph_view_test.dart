@@ -62,8 +62,6 @@ void main() {
     expect(fight.firstWhere((p) => p.id == 'defeat').connected, isFalse);
     expect(view.card('start')!.acceptsInput, isFalse);
     expect(view.card('end')!.acceptsInput, isTrue);
-    expect(view.card('ask')!.family, SceneGraphFamily.dialogue);
-    expect(view.card('fight')!.family, SceneGraphFamily.battle);
     expect(view.wires.map((wire) => wire.id), hasLength(5));
     expect(view.wires.every((wire) => wire.declared && !wire.loop), isTrue);
   });

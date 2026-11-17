@@ -41,7 +41,7 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
     return SceneStepIds(node: () => next('step'), edge: () => next('link'));
   }
 
-  void _apply(SceneGraphEditResult result, {Set<String>? select}) {
+  bool _apply(SceneGraphEditResult result, {Set<String>? select}) {
     switch (result) {
       case SceneGraphEdited(:final scene, :final createdNodeIds):
         final accepted = widget.onChanged?.call(scene) ?? false;
@@ -50,6 +50,7 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
           if (accepted && createdNodeIds.isNotEmpty) _selected = createdNodeIds;
           if (accepted && select != null) _selected = select;
         });
+        return accepted;
       case SceneGraphEditRefused(:final reason):
         _mutate(() => _moved = const {});
         ScaffoldMessenger.maybeOf(context)
@@ -60,6 +61,7 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
               content: Text(context.l10n.sceneGraphRefused(reason.name)),
             ),
           );
+        return false;
     }
   }
 
@@ -176,13 +178,36 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
     final menu = _menu;
     _closeMenu();
     if (menu == null) return;
-    _apply(
+    _insert(template, at: menu.world, from: menu.from);
+  }
+
+  void _addFromPalette(SceneStepTemplate template) {
+    if (!_editable || _camera == null || _menu != null) return;
+    final bounds = sceneGraphBounds(_view);
+    final at = _snapped(
+      Offset(bounds.right + SceneGraphMetrics.columnGap, bounds.top),
+    );
+    final accepted = _insert(template, at: at);
+    if ((accepted ? _selected.singleOrNull : null) case final id?) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selected.contains(id)) show(id);
+      });
+    }
+    requestFocus();
+  }
+
+  bool _insert(
+    SceneStepTemplate template, {
+    required SceneGraphPoint at,
+    SceneGraphExit? from,
+  }) {
+    return _apply(
       addSceneGraphStep(
         widget.scene,
         kind: template.kind,
         payload: template.payload,
-        at: menu.world,
-        from: menu.from,
+        at: at,
+        from: from,
         ids: _ids,
       ),
     );

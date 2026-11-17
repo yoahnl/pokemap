@@ -5,9 +5,11 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_card_tile.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_labels.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_painters.dart';
+import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
-class SceneGraphWorld extends StatelessWidget {
+class SceneGraphWorld extends StatefulWidget {
   const SceneGraphWorld({
     super.key,
     required this.view,
@@ -19,6 +21,9 @@ class SceneGraphWorld extends StatelessWidget {
     required this.pathEdgeIds,
     required this.dialogueNames,
     required this.checks,
+    this.dialogues = const {},
+    this.factNames = const {},
+    this.map,
   });
 
   final SceneGraphView view;
@@ -29,10 +34,73 @@ class SceneGraphWorld extends StatelessWidget {
   final Set<String> pathNodeIds;
   final Set<String> pathEdgeIds;
   final Map<String, String> dialogueNames;
+  final Map<String, ProjectDialogueEntry> dialogues;
+  final Map<String, String> factNames;
+  final MapData? map;
   final SceneGraphChecks checks;
 
   @override
+  State<SceneGraphWorld> createState() => _SceneGraphWorldState();
+}
+
+class _SceneGraphWorldState extends State<SceneGraphWorld> {
+  final _details = <SceneNode, String?>{};
+  final _dialogues = <String, ProjectDialogueEntry?>{};
+
+  @override
+  void didUpdateWidget(SceneGraphWorld oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.scene, widget.scene) ||
+        !identical(oldWidget.project, widget.project) ||
+        !identical(oldWidget.map, widget.map) ||
+        !identical(oldWidget.factNames, widget.factNames) ||
+        oldWidget.dialogues.length != widget.dialogues.length ||
+        oldWidget.dialogues.entries.any(
+          (entry) => widget.dialogues[entry.key] != entry.value,
+        ) ||
+        oldWidget.dialogueNames.length != widget.dialogueNames.length ||
+        oldWidget.dialogueNames.entries.any(
+          (entry) => widget.dialogueNames[entry.key] != entry.value,
+        )) {
+      _details.clear();
+      _dialogues.clear();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _details.clear();
+  }
+
+  String? _detail(SceneNode node, ProjectDialogueEntry? dialogue) =>
+      _details.putIfAbsent(
+        node,
+        () => sceneGraphCardDetail(
+          context.l10n,
+          node,
+          widget.scene,
+          widget.project,
+          switch (node.payload) {
+            SceneYarnDialoguePayload(:final dialogueId) =>
+              widget.dialogueNames[dialogueId] ?? dialogue?.name,
+            _ => null,
+          },
+          map: widget.map,
+          factNames: widget.factNames,
+        ),
+      );
+
+  @override
   Widget build(BuildContext context) {
+    final SceneGraphWorld(
+      :view,
+      :bounds,
+      :selected,
+      :pathNodeIds,
+      :pathEdgeIds,
+      :checks,
+    ) = widget;
     final scheme = Theme.of(context).colorScheme;
     final studio = StudioColors.of(context);
     return OverflowBox(
@@ -60,7 +128,7 @@ class SceneGraphWorld extends StatelessWidget {
                         wire.id,
                   },
                   colors: SceneGraphWireColors(
-                    idle: scheme.onSurfaceVariant,
+                    idle: scheme.onSurface.withValues(alpha: .86),
                     path: studio.featureAccent,
                     loop: scheme.error,
                     undeclared: studio.warning,
@@ -69,22 +137,42 @@ class SceneGraphWorld extends StatelessWidget {
               ),
             ),
             for (final card in view.cards)
-              Positioned(
-                left: card.position.x - bounds.left,
-                top: card.position.y - bounds.top,
-                child: SceneGraphCardTile(
-                  key: ValueKey('scene-graph-card-${card.id}'),
-                  card: card,
-                  scene: scene,
-                  project: project,
-                  selected: selected.contains(card.id),
-                  onPath: pathNodeIds.contains(card.id),
-                  problem: checks.levelOfNode(card.id),
-                  dialogueNames: dialogueNames,
-                ),
-              ),
+              _card(card, bounds, selected, pathNodeIds, checks),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _card(
+    SceneGraphCard card,
+    Rect bounds,
+    Set<String> selected,
+    Set<String> pathNodeIds,
+    SceneGraphChecks checks,
+  ) {
+    final dialogue = switch (card.node.payload) {
+      SceneYarnDialoguePayload(:final dialogueId) => _dialogues.putIfAbsent(
+        dialogueId,
+        () =>
+            widget.dialogues[dialogueId] ??
+            widget.project?.dialogues
+                .where((entry) => entry.id == dialogueId)
+                .firstOrNull,
+      ),
+      _ => null,
+    };
+    return Positioned(
+      left: card.position.x - bounds.left,
+      top: card.position.y - bounds.top,
+      child: SceneGraphCardTile(
+        key: ValueKey('scene-graph-card-${card.id}'),
+        card: card,
+        selected: selected.contains(card.id),
+        onPath: pathNodeIds.contains(card.id),
+        problem: checks.levelOfNode(card.id),
+        dialogue: dialogue,
+        detail: _detail(card.node, dialogue),
       ),
     );
   }

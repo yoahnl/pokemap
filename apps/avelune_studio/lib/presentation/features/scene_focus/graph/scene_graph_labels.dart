@@ -1,36 +1,53 @@
-import 'package:flutter/material.dart';
-import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_families.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 
 final _commands = NarrativeCommandCatalog.canonical();
 
-Color sceneGraphFamilyColor(BuildContext context, SceneGraphFamily family) =>
-    switch (family) {
-      SceneGraphFamily.start ||
-      SceneGraphFamily.end => StudioAccent.firefly.color(context),
-      SceneGraphFamily.dialogue => StudioAccent.water.color(context),
-      SceneGraphFamily.condition => StudioAccent.halo.color(context),
-      SceneGraphFamily.action => StudioAccent.fog.color(context),
-      SceneGraphFamily.battle => StudioAccent.window.color(context),
-      SceneGraphFamily.cinematic => StudioAccent.daylight.color(context),
-      SceneGraphFamily.flow => Theme.of(context).colorScheme.outline,
-    };
+String sceneGraphNodeTitle(AppLocalizations l10n, SceneNode node) {
+  final title = node.title?.trim();
+  if (title != null && title.isNotEmpty) return title;
+  if (node.kind != SceneNodeKind.action) {
+    return l10n.sceneGraphKind(node.kind.name);
+  }
+  final command = sceneStepCommandIdOf(node);
+  final family = switch (command) {
+    NarrativeCommandIds.setFact => SceneStepFamily.rememberFact,
+    NarrativeCommandIds.giveItem ||
+    NarrativeCommandIds.giveItemGift => SceneStepFamily.giveItem,
+    NarrativeCommandIds.setNpcPresence => SceneStepFamily.showOrHide,
+    _ => null,
+  };
+  return switch ((family, command)) {
+    (final family?, _) => l10n.storyStepFamily(family.name),
+    (_, final command?) =>
+      _commands.byId(command)?.label ?? l10n.storyStepAdvanced,
+    _ => l10n.sceneGraphKind(node.kind.name),
+  };
+}
+
+String sceneGraphPortLabel(
+  AppLocalizations l10n,
+  String id,
+  ProjectDialogueEntry? dialogue,
+) =>
+    dialogue?.declaredOutcomes
+        .where((outcome) => outcome.id == id)
+        .firstOrNull
+        ?.label ??
+    l10n.sceneGraphPort(id);
 
 String? sceneGraphCardDetail(
   AppLocalizations l10n,
   SceneNode node,
   SceneAsset scene,
   ProjectManifest? project,
-  Map<String, String> dialogueNames,
-) => switch (node.payload) {
-  SceneYarnDialoguePayload(:final dialogueId) =>
-    dialogueNames[dialogueId] ??
-        project?.dialogues.where((d) => d.id == dialogueId).firstOrNull?.name ??
-        l10n.sceneGraphMissing,
+  String? dialogueName, {
+  MapData? map,
+  Map<String, String> factNames = const {},
+}) => switch (node.payload) {
+  SceneYarnDialoguePayload() => dialogueName ?? l10n.sceneGraphMissing,
   SceneConditionPayload(:final conditionSource) =>
     conditionSource?.label ?? l10n.sceneGraphUnset,
   SceneEndPayload(:final sceneOutcomeId?) =>
@@ -42,12 +59,29 @@ String? sceneGraphCardDetail(
   SceneCinematicPayload(:final cinematicId) =>
     project?.cinematics.where((c) => c.id == cinematicId).firstOrNull?.title ??
         l10n.sceneGraphMissing,
-  SceneActionPayload() => switch (sceneStepFamilyOfNode(node)) {
-    SceneStepFamily.other => switch (sceneStepCommandIdOf(node)) {
-      final id? => _commands.byId(id)?.label ?? id,
-      null => null,
-    },
-    final family => l10n.storyStepFamily(family.name),
-  },
+  SceneBattlePayload(:final trainerId?) =>
+    project?.trainers
+        .where((trainer) => trainer.id == trainerId)
+        .firstOrNull
+        ?.name,
+  SceneActionPayload(consequence: SceneSetFactConsequence(:final factId)) =>
+    factNames[factId] ??
+        project?.facts.where((fact) => fact.id == factId).firstOrNull?.label,
+  SceneActionPayload(
+    consequence: SceneSetNpcPresenceConsequence(:final mapId, :final entityId),
+  )
+      when map?.id == mapId =>
+    map?.entities.where((entity) => entity.id == entityId).firstOrNull?.name,
+  SceneActionPayload(
+    interactiveCommand: SceneWarpInteractiveCommand(:final destinationMapId),
+  ) =>
+    project?.maps
+        .where((entry) => entry.id == destinationMapId)
+        .firstOrNull
+        ?.name,
+  SceneActionPayload(
+    interactiveCommand: SceneWaitInteractiveCommand(:final durationMs),
+  ) =>
+    l10n.sceneGraphWaitDuration(durationMs),
   _ => node.description?.trim().isEmpty ?? true ? null : node.description,
 };

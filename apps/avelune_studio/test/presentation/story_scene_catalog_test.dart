@@ -91,6 +91,34 @@ void main() {
         findsOneWidget,
       );
       expect(index.documentRequests, ['gate']);
+      await tester.tap(find.byKey(const ValueKey('scene-graph-palette-tab')));
+      await settleMemory(tester);
+      expect(
+        find.byKey(const ValueKey('scene-graph-step-search')),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('scene-graph-step-search')),
+        'fin',
+      );
+      await settleMemory(tester);
+      final end = find.byKey(const ValueKey('scene-graph-step-new-end'));
+      expect(end.hitTestable(), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('scene-graph-step-new-talk')),
+        findsNothing,
+      );
+      await tester.tap(find.byKey(const ValueKey('scene-graph-outline-tab')));
+      await settleMemory(tester);
+      final outline = find.byKey(const ValueKey('scene-graph-outline-start'));
+      await tester.tap(outline);
+      await settleMemory(tester);
+      expect(tester.widget<StudioChoice>(outline).selected, isTrue);
+      expect(
+        find.byKey(const ValueKey('scene-graph-inspector-start')),
+        findsOneWidget,
+      );
+      expect(index.documentRequests, ['gate']);
       await tester.tap(find.byKey(const ValueKey('scene-focus-close')));
       await settleMemory(tester);
       expect(

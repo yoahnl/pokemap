@@ -11,7 +11,7 @@ abstract final class SceneGraphMetrics {
       headerHeight + bodyHeight + outputCount * portRowHeight + bottomPadding;
 
   static double outputPortY(int index) =>
-      headerHeight + bodyHeight + index * portRowHeight + portRowHeight / 2;
+      headerHeight + index * portRowHeight + portRowHeight / 2;
 
-  static const double inputPortY = headerHeight / 2;
+  static const double inputPortY = headerHeight + portRowHeight / 2;
 }
