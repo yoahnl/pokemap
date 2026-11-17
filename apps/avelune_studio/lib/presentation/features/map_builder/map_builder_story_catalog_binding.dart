@@ -38,19 +38,33 @@ final class MapBuilderStoryCatalogBinding {
 
   Future<void> sync() async {
     final current = editor;
-    final id = selectedId;
+    final id = current?.selectedBehaviour?.id ?? selectedId;
     if (_disposed ||
         loading ||
         story.publishing ||
         current == null ||
         id == null ||
-        identical(current.project, story.project)) {
+        (identical(current.project, story.project) &&
+            current.editing?.isCurrent?.call() != false)) {
       return;
     }
     await open(id);
   }
 
-  Future<bool> open(String id) async {
+  void clear() {
+    _epoch++;
+    selectedId = null;
+    editor = null;
+    error = null;
+    loading = false;
+    _changed();
+  }
+
+  Future<bool> open(String id) => _open(id: id);
+
+  Future<bool> prepareCreation(String mapId) => _open(mapId: mapId);
+
+  Future<bool> _open({String? id, String? mapId}) async {
     if (_disposed) return false;
     final epoch = ++_epoch;
     selectedId = id;
@@ -73,10 +87,10 @@ final class MapBuilderStoryCatalogBinding {
           .where((record) => record.id == id)
           .firstOrNull;
       final at = record == null ? null : mapStoryLocation(record);
-      final entry = at == null
-          ? null
-          : project.maps.where((entry) => entry.id == at.$1).firstOrNull;
-      if (record == null || at == null || entry == null) {
+      final entry = project.maps
+          .where((entry) => entry.id == (mapId ?? at?.$1))
+          .firstOrNull;
+      if ((id != null && (record == null || at == null)) || entry == null) {
         throw StateError(
           'Ce comportement est hors carte. Utilisez la réparation dans Carte · Interactions.',
         );
@@ -135,7 +149,7 @@ final class MapBuilderStoryCatalogBinding {
       if (editing.problem case final problem? when !editing.canRepairScene) {
         throw StateError(problem);
       }
-      final sceneId = record.sceneId;
+      final sceneId = record?.sceneId;
       final scene = sceneId == null
           ? null
           : story.behaviours.draft.effective(
@@ -143,11 +157,13 @@ final class MapBuilderStoryCatalogBinding {
               sceneId,
               story.behaviours.saved(project),
             );
-      final dependencies = GameBehaviourDependencies(
-        story.behaviours.project(project),
-        record,
-      );
-      for (final dialogueId in dependencies.dialogueIds) {
+      final dialogueIds = record == null
+          ? const <String>[]
+          : GameBehaviourDependencies(
+              story.behaviours.project(project),
+              record,
+            ).dialogueIds;
+      for (final dialogueId in dialogueIds) {
         if (draft.isTouched(StoryDraftKind.dialogue, dialogueId) ||
             story.behaviours.dialogues[dialogueId] != null) {
           continue;
@@ -170,7 +186,7 @@ final class MapBuilderStoryCatalogBinding {
           'Le contexte a changé pendant le chargement. Réessayez.',
         );
       }
-      draft.load(StoryDraftKind.event, id, record);
+      if (record != null) draft.load(StoryDraftKind.event, record.id, record);
       if (scene != null) draft.load(StoryDraftKind.scene, scene.id, scene);
       final binding = MapBuilderStoryBinding(
         maps: story.maps,
@@ -183,11 +199,13 @@ final class MapBuilderStoryCatalogBinding {
         behaviourName: story.behaviourName,
       )..trame = story.trame;
       binding.openScene = story.openScene;
-      final element = binding.elements!.byKey('${at.$2.name}:${at.$3}')!;
-      binding.select(element);
-      binding.openBehaviour(
-        element.behaviours.indexWhere((record) => record.id == id),
-      );
+      if (at != null) {
+        final element = binding.elements!.byKey('${at.$2.name}:${at.$3}')!;
+        binding.select(element);
+        binding.openBehaviour(
+          element.behaviours.indexWhere((record) => record.id == id),
+        );
+      }
       editor = binding;
       return true;
     } on Object catch (failure) {

@@ -74,6 +74,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
         if (_disposed) return false;
         _rememberStoryOrigin();
         _setSection(StudioRailSection.map, navigation: true);
+        _setSpace(MapBuilderSpace.story);
         if (_maps.active?.base.mapId != entry.id) await _maps.activate(entry);
         return true;
       },
@@ -94,12 +95,16 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     _changed();
   }
 
-  Future<void> _openTriggerInStory(String id) async {
+  Future<void> _openTriggerInStory(String? id) async {
     await _commitTyping();
     if (!mounted || _disposed) return;
+    final mapId = id == null
+        ? _maps.active?.base.mapId
+        : _behaviourEntry(id)?.$1.id;
+    if (mapId == null) return;
     _rememberStoryOrigin();
     _setSection(StudioRailSection.story, navigation: true);
-    _behaviourRequest = (id: id, token: ++_storyNavigation);
+    _behaviourRequest = (id: id, mapId: mapId, token: ++_storyNavigation);
     _changed();
   }
 

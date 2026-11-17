@@ -43,8 +43,34 @@ extension _StoryPageBody on _StoryPageState {
                 ? widget.simulate
                 : (id) => _openCatalogBehaviour(id, simulate: true),
             openScene: widget.openScene,
+            create: widget.staging.editable && widget.behaviourCatalog != null
+                ? () => unawaited(_createTrigger())
+                : null,
           ),
-          editor: widget.behaviourCatalog != null
+          editor: _creation && widget.behaviourCatalog != null
+              ? StoryTriggerCreation(
+                  key: ValueKey('trigger-creation-${_behaviours!.mapId}'),
+                  catalog: widget.behaviourCatalog!,
+                  maps: widget.maps,
+                  mapId: _behaviours!.mapId,
+                  editable: widget.staging.editable,
+                  openMap: widget.openMapEntry,
+                  created: (id) {
+                    _creation = false;
+                    _selectItem(StorySection.behaviours, (
+                      kind: StoryDraftKind.event,
+                      id: id,
+                    ));
+                    _changed();
+                  },
+                  cancel: () {
+                    widget.behaviourCatalog!.clear();
+                    _selectItem(StorySection.behaviours, null);
+                    _creation = false;
+                    _changed();
+                  },
+                )
+              : widget.behaviourCatalog != null
               ? StoryBehaviourContext(
                   catalog: widget.behaviourCatalog!,
                   openMap: widget.behaviours.open,

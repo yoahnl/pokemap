@@ -10,6 +10,71 @@ import '../support/map_workspace_fixture.dart';
 import 'game_behaviour_edit_support.dart';
 
 void main() {
+  test('returning from a separately decoded map refreshes its editor without another map read', () async {
+    final record = recordOnB();
+    final second = recordOnB(2);
+    final fixture = await openStory(records: [record, second]);
+    final port = fixture.maps.port as WorkspaceMemoryPort;
+    port.saved['b'] = MapData.fromJson(
+      workspaceMap('b').copyWith(entities: [storyLuth]).toJson(),
+    );
+    final loader = BehaviourMapLoader();
+    final catalog = openCatalogue(fixture, loader);
+    expect(await catalog.open(record.id), isTrue);
+    final old = catalog.editor!;
+    expect(old.renameBehaviour(record, 'Brouillon B'), isTrue);
+    old.openBehaviour(
+      old.selected!.behaviours.indexWhere((item) => item.id == second.id),
+    );
+    final project = fixture.maps.project;
+    await fixture.maps.activate(workspaceEntries.last);
+    expect(fixture.maps.project, same(project));
+    expect(old.editing!.problem, isNotNull);
+    await catalog.sync();
+    expect(catalog.editor!.editing!.problem, isNull);
+    expect(catalog.editor!.selectedBehaviour!.id, second.id);
+    expect(storyCurrent(fixture, record.id).name, 'Brouillon B');
+    expect(loader.reads, ['b']);
+  });
+  test(
+    'a late creation context cannot replace an explicitly opened rule',
+    () async {
+      final a = storyRecord(1);
+      final fixture = await openStory(records: [a]);
+      final gate = Completer<MapData>();
+      final loader = BehaviourMapLoader()..gate = gate;
+      final catalog = openCatalogue(fixture, loader);
+      final late = catalog.prepareCreation('b');
+      await Future<void>.delayed(Duration.zero);
+      expect(await catalog.open(a.id), isTrue);
+      final editor = catalog.editor;
+      gate.complete(workspaceMap('b').copyWith(entities: [storyLuth]));
+      expect(await late, isFalse);
+      expect(catalog.editor, same(editor));
+      expect(catalog.selectedId, a.id);
+      expect(fixture.story.behaviours.draft.recorded, 0);
+    },
+  );
+
+  test(
+    'a creation context refuses a removed source without losing other drafts',
+    () async {
+      final fixture = await openStory(records: [storyRecord(1)]);
+      await fixture.maps.activate(workspaceEntries.last);
+      fixture.maps.active!.current = workspaceMap('b')
+          .copyWith(entities: [storyLuth]);
+      final catalog = openCatalogue(fixture, BehaviourMapLoader());
+      expect(await catalog.prepareCreation('b'), isTrue);
+      final editor = catalog.editor!;
+      final source = editor.elements!.byKey('entity:luth')!;
+      editor.select(source);
+      fixture.maps.active!.current = workspaceMap('b');
+      expect(editor.addBehaviour(source), isFalse);
+      expect(editor.error, isNotNull);
+      expect(fixture.story.behaviours.draft.recorded, 0);
+      expect(fixture.maps.active!.current.entities, isEmpty);
+    },
+  );
   test(
     'opening a non-first case through the catalog selects its exact identity',
     () async {

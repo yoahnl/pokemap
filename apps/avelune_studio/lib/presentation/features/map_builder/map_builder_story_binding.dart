@@ -96,6 +96,7 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   String? simulating;
   void Function(String sceneId, String? behaviourId)? openScene;
   Future<void> Function(String eventId)? openInStory;
+  Future<void> Function()? openMapInStory;
   final MapStoryBehaviours behaviours;
   final GameBehaviourEditing? editing;
   final void Function()? onBehaviourRecorded;
@@ -110,6 +111,9 @@ class MapBuilderStoryBinding implements ProjectDraftPart {
   bool _mediaLoaded = false;
   final _done = <(_StorySide, Object?)>[];
   final _undone = <(_StorySide, Object?)>[];
+  final _mapHistoryOwners = Expando<EditableMapDocument>();
+  bool _restoringMapHistory = false;
+  _PendingMapHistory? _pendingMapHistory;
   bool publishing = false;
   int attempts = 0;
   bool preparing = false;

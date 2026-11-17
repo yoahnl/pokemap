@@ -77,6 +77,7 @@ extension MapStoryAdditions on MapBuilderStoryBinding {
   }
 
   void reconcile() {
+    if (carrierEditable) _trackMapHistory();
     _followInspectorSelection();
     final map = this.map;
     if (adding == null || map == null || !armed) return;

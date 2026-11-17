@@ -19,9 +19,6 @@ class MinimumSizeViewport extends StatelessWidget {
       final height = constraints.maxHeight < minimum.height
           ? minimum.height
           : constraints.maxHeight;
-      if (width == constraints.maxWidth && height == constraints.maxHeight) {
-        return child;
-      }
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: SingleChildScrollView(

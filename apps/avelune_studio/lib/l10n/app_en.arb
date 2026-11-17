@@ -1,5 +1,10 @@
 {
   "@@locale": "en",
+  "interactionViewHistory": "View in Story",
+  "triggersCreateHint": "Choose a source on this map. The new trigger will remain inactive until configured.",
+  "triggersCreateMap": "Choose a map",
+  "triggersNoSources": "No sources on this map",
+  "triggersNoSourcesHint": "Add a character, object or zone in Interactions to attach a trigger to it.",
   "languageMenu": "Language",
   "languageSystem": "System language",
   "languageName": "English",

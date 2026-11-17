@@ -10,6 +10,23 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get interactionViewHistory => 'Vue dans Histoire';
+
+  @override
+  String get triggersCreateHint =>
+      'Choisissez une source sur cette carte. Le nouveau déclencheur restera inactif jusqu’à sa configuration.';
+
+  @override
+  String get triggersCreateMap => 'Choisir une carte';
+
+  @override
+  String get triggersNoSources => 'Aucune source sur cette carte';
+
+  @override
+  String get triggersNoSourcesHint =>
+      'Ajoutez un personnage, un objet ou une zone dans Interactions pour lui associer un déclencheur.';
+
+  @override
   String get languageMenu => 'Langue';
 
   @override

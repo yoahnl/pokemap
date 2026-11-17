@@ -15,12 +15,14 @@ class GameBehaviourCases extends StatelessWidget {
     required this.element,
     required this.record,
     required this.editable,
+    this.allowCreation = true,
   });
 
   final MapBuilderStoryBinding binding;
   final MapStoryElement element;
   final NarrativeEventRecord? record;
   final bool editable;
+  final bool allowCreation;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +50,9 @@ class GameBehaviourCases extends StatelessWidget {
             variant: StudioButtonVariant.quiet,
             icon: Icons.add,
             label: l10n.storyAddBehaviour,
-            onPressed: editable ? () => binding.addBehaviour(element) : null,
+            onPressed: editable && allowCreation
+                ? () => binding.addBehaviour(element)
+                : null,
           ),
         ),
       ],

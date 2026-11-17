@@ -1,5 +1,10 @@
 {
   "@@locale": "fr",
+  "interactionViewHistory": "Vue dans Histoire",
+  "triggersCreateHint": "Choisissez une source sur cette carte. Le nouveau déclencheur restera inactif jusqu’à sa configuration.",
+  "triggersCreateMap": "Choisir une carte",
+  "triggersNoSources": "Aucune source sur cette carte",
+  "triggersNoSourcesHint": "Ajoutez un personnage, un objet ou une zone dans Interactions pour lui associer un déclencheur.",
   "languageMenu": "Langue",
   "@languageMenu": {
     "description": "Tooltip of the button that opens the language menu."

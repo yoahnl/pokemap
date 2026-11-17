@@ -10,6 +10,23 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get interactionViewHistory => 'View in Story';
+
+  @override
+  String get triggersCreateHint =>
+      'Choose a source on this map. The new trigger will remain inactive until configured.';
+
+  @override
+  String get triggersCreateMap => 'Choose a map';
+
+  @override
+  String get triggersNoSources => 'No sources on this map';
+
+  @override
+  String get triggersNoSourcesHint =>
+      'Add a character, object or zone in Interactions to attach a trigger to it.';
+
+  @override
   String get languageMenu => 'Language';
 
   @override

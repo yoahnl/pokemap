@@ -21,10 +21,12 @@ class GameBehaviourEditor extends StatefulWidget {
     super.key,
     required this.binding,
     required this.editable,
+    this.allowCreation = true,
   });
 
   final MapBuilderStoryBinding binding;
   final bool editable;
+  final bool allowCreation;
 
   @override
   State<GameBehaviourEditor> createState() => _GameBehaviourEditorState();
@@ -113,7 +115,7 @@ class _GameBehaviourEditorState extends State<GameBehaviourEditor> {
         binding.ready &&
         binding.editing?.problem == null;
     return KeyedSubtree(
-      key: ValueKey('map-story-attempt-${record?.id}-${binding.attempts}'),
+      key: ValueKey('map-story-editor-${record?.id}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -129,6 +131,7 @@ class _GameBehaviourEditorState extends State<GameBehaviourEditor> {
             element: element,
             record: record,
             editable: editable,
+            allowCreation: widget.allowCreation,
           ),
           if (record != null) ...[
             const SizedBox(height: StudioSpacing.m),
@@ -141,7 +144,8 @@ class _GameBehaviourEditorState extends State<GameBehaviourEditor> {
                     value: record.name,
                     label: l10n.storyBehaviourNameField,
                     enabled: editable,
-                    onCommit: (value) => binding.renameBehaviour(record, value),
+                    onSubmit: (value) async =>
+                        binding.renameBehaviour(record, value),
                   ),
                 ),
                 const SizedBox(width: StudioSpacing.l),

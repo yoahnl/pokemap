@@ -89,7 +89,11 @@ class _StoryBehaviourContextState extends State<StoryBehaviourContext> {
             else if (catalog.error case final error?)
               StudioNotice(error, isError: true)
             else if (editor != null && element != null)
-              GameBehaviourEditor(binding: editor, editable: widget.editable)
+              GameBehaviourEditor(
+                binding: editor,
+                editable: widget.editable,
+                allowCreation: !widget.filtered,
+              )
             else
               StudioEmptyState(
                 icon: Icons.people_outline,

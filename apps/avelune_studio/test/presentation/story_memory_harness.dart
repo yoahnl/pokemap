@@ -127,6 +127,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   StorylineReadPort? storylines,
   VerificationPort? verification,
   DialogueCatalogPort? dialogueCatalog,
+  Map<String, MapData> initialMaps = const {},
 }) async {
   final opened = session ?? memorySession;
   tester.view.physicalSize = const Size(1920, 1080);
@@ -146,6 +147,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
       ),
     ],
   );
+  maps.saved.addAll(initialMaps);
   final container = ProviderContainer(
     overrides: [
       projectSessionPortProvider.overrideWithValue(sessions),

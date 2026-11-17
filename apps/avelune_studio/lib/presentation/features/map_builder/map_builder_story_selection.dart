@@ -1,6 +1,18 @@
 part of 'map_builder_story_binding.dart';
 
 extension MapStorySelection on MapBuilderStoryBinding {
+  void restoreSelection(
+    String? elementKey,
+    List<MapSelectionTarget> selection,
+  ) {
+    final document = maps.active;
+    final session = view();
+    if (!carrierEditable || document == null || session == null) return;
+    _mapSelection = elementKey?.startsWith('map:') == true ? elementKey : null;
+    session.selectAll(document, selection);
+    _followInspectorSelection();
+  }
+
   void _followInspectorSelection() {
     if (!carrierEditable) return;
     final element = selected;

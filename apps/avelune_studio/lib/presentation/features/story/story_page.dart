@@ -31,6 +31,7 @@ import 'package:avelune_studio/presentation/shared/localization/studio_locale.da
 
 import 'dialogues/story_dialogues_view.dart';
 import 'behaviours/game_behaviour_workspace.dart';
+import 'behaviours/story_trigger_creation.dart';
 import 'story_behaviour_context.dart';
 import '../map_builder/map_builder_story_catalog_binding.dart';
 import '../map_builder/map_builder_story_binding.dart';
@@ -88,7 +89,7 @@ class StoryPage extends StatefulWidget {
   final MapBuilderStoryCatalogBinding? behaviourCatalog;
   final DialogueCatalogPort? dialoguePort;
   final ({String id, int token})? dialogueRequest;
-  final ({String id, int token})? behaviourRequest;
+  final ({String? id, String mapId, int token})? behaviourRequest;
   final DialogueDraftHost? dialogueStaging;
 
   @override
@@ -102,6 +103,7 @@ class _StoryPageState extends State<StoryPage> {
   GameBehavioursController? _behaviours;
   SceneCatalogController? _catalog;
   DialogueCatalogController? _dialogues;
+  bool _creation = false;
 
   @override
   void initState() {

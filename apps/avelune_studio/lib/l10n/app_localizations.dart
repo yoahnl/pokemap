@@ -98,6 +98,36 @@ abstract class AppLocalizations {
     Locale('fr'),
   ];
 
+  /// No description provided for @interactionViewHistory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue dans Histoire'**
+  String get interactionViewHistory;
+
+  /// No description provided for @triggersCreateHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez une source sur cette carte. Le nouveau déclencheur restera inactif jusqu’à sa configuration.'**
+  String get triggersCreateHint;
+
+  /// No description provided for @triggersCreateMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir une carte'**
+  String get triggersCreateMap;
+
+  /// No description provided for @triggersNoSources.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune source sur cette carte'**
+  String get triggersNoSources;
+
+  /// No description provided for @triggersNoSourcesHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez un personnage, un objet ou une zone dans Interactions pour lui associer un déclencheur.'**
+  String get triggersNoSourcesHint;
+
   /// Tooltip of the button that opens the language menu.
   ///
   /// In fr, this message translates to:

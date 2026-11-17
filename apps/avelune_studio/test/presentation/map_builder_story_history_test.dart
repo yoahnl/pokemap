@@ -2,6 +2,8 @@ import 'package:avelune_studio/features/events/application/behaviour/behaviour_r
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
+import 'package:avelune_studio/features/story_workspace/application/story_history_scope.dart';
+import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -9,6 +11,47 @@ import 'package:map_core/map_core.dart';
 import 'map_builder_story_harness.dart';
 
 void main() {
+  testWidgets(
+    'a later physical edit blocks scoped narrative undo until it is undone',
+    (tester) async {
+      await open(tester);
+      final record = story.behaviours.registry(maps.project!)!.records.first;
+      expect(
+        story.renameBehaviour(record, 'Rencontre avant construction'),
+        isTrue,
+      );
+      final document = maps.active!;
+      document.commit(document.current.copyWith(name: 'Construction suivante'));
+      final scope = StoryHistoryScope({
+        (kind: StoryDraftKind.event, id: record.id),
+      });
+      expect(
+        mapBuilderHistoryStep(
+          maps,
+          redo: false,
+          editable: true,
+          story: story,
+          scope: scope,
+        ),
+        isNull,
+      );
+      expect(
+        story.behaviours.draft.currentOf(StoryDraftKind.event, record.id)?.name,
+        'Rencontre avant construction',
+      );
+      maps.restore(redo: false);
+      expect(
+        mapBuilderHistoryStep(
+          maps,
+          redo: false,
+          editable: true,
+          story: story,
+          scope: scope,
+        ),
+        isNotNull,
+      );
+    },
+  );
   testWidgets('undo follows the history of the active space', (tester) async {
     await open(tester);
     final id = story.behaviours.registry(maps.project!)!.records.first.id;

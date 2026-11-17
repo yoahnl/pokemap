@@ -16,12 +16,14 @@ class GameBehaviourList extends StatelessWidget {
     required this.search,
     required this.child,
     this.trame,
+    this.create,
   });
 
   final GameBehavioursController behaviours;
   final TextEditingController search;
   final StorylineTrameController? trame;
   final Widget child;
+  final VoidCallback? create;
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +145,16 @@ class GameBehaviourList extends StatelessWidget {
           ),
           const SizedBox(height: StudioSpacing.m),
           Expanded(child: child),
+          if (create != null)
+            Padding(
+              padding: const EdgeInsets.all(StudioSpacing.m),
+              child: StudioButton(
+                key: const ValueKey('story-trigger-create'),
+                label: l10n.storyAddBehaviour,
+                icon: Icons.add,
+                onPressed: create,
+              ),
+            ),
         ],
       ),
     );

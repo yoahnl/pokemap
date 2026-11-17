@@ -15,6 +15,32 @@ import 'story_trigger_support.dart';
 import '../dialogues/dialogue_catalog_support.dart';
 
 void main() {
+  testWidgets(
+    'the first graph click commits a pending name and still opens the scene',
+    (tester) async {
+      final fixture = await openStory(records: [storyRecord(1)]);
+      var opened = 0;
+      fixture.story.openScene = (scene, behaviour) async {
+        opened++;
+      };
+      await pumpTrigger(tester, fixture);
+      await tester.enterText(
+        find.descendant(
+          of: triggerKey('map-story-behaviour-name-${storyEventId(1)}'),
+          matching: find.byType(TextField),
+        ),
+        'Nom en cours',
+      );
+      final gesture = await tester.startGesture(
+        tester.getCenter(triggerKey('map-story-scene-open')),
+      );
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+      expect(storyCurrent(fixture, storyEventId(1)).name, 'Nom en cours');
+      expect(opened, 1);
+    },
+  );
   for (final occupied in [false, true]) {
     testWidgets(
       'central source move preserves selection through undo and redo (occupied: $occupied)',

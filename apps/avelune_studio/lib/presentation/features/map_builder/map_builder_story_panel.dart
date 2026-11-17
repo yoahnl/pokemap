@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -34,6 +36,17 @@ class MapBuilderStoryPanel extends StatefulWidget {
 class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
   late final _search = TextEditingController(text: widget.binding.query);
   final _characterSearch = TextEditingController();
+
+  @override
+  void didUpdateWidget(MapBuilderStoryPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_search.text != widget.binding.query) {
+      _search.value = TextEditingValue(
+        text: widget.binding.query,
+        selection: TextSelection.collapsed(offset: widget.binding.query.length),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -90,6 +103,14 @@ class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
                   ),
                 ),
                 Text(outline.subtitle, style: muted),
+                if (binding.openMapInStory case final open?)
+                  StudioButton(
+                    key: const ValueKey('map-story-open-history'),
+                    label: l10n.interactionViewHistory,
+                    icon: Icons.north_east,
+                    variant: StudioButtonVariant.quiet,
+                    onPressed: () => unawaited(open()),
+                  ),
                 const SizedBox(height: StudioSpacing.l),
                 TextField(
                   key: const ValueKey('map-story-search'),

@@ -5,6 +5,14 @@ typedef _StoryOrigin = ({
   MapBuilderSpace space,
   SceneFocusController? scene,
   String? mapId,
+  String query,
+  MapStoryElementKind? filter,
+  MapStoryTab tab,
+  int behaviour,
+  String? element,
+  List<MapSelectionTarget> selection,
+  Matrix4? transform,
+  StudioMapTool? tool,
 });
 
 extension _MapBuilderStoryNavigation on _MapBuilderPageState {
@@ -14,6 +22,16 @@ extension _MapBuilderStoryNavigation on _MapBuilderPageState {
       space: _space,
       scene: _activeScene,
       mapId: _maps.active?.base.mapId,
+      query: _story.query,
+      filter: _story.filter,
+      tab: _story.tab,
+      behaviour: _story.behaviour,
+      element: _story.selected?.key,
+      selection:
+          _view?.selectionIn(_maps.active!.base.mapId) ??
+          const <MapSelectionTarget>[],
+      transform: _view?.transform.value.clone(),
+      tool: _view?.tool,
     );
     if (_storyOrigins.lastOrNull != origin) _storyOrigins.add(origin);
     _storyNavigationProblem = null;
@@ -30,9 +48,27 @@ extension _MapBuilderStoryNavigation on _MapBuilderPageState {
     if (entry != null && _maps.active?.base.mapId != entry.id) {
       await _maps.activate(entry);
     }
-    if (_disposed || navigation != _storyNavigation) return;
+    if (!mounted || _disposed || navigation != _storyNavigation) return;
+    if (origin.mapId != null && _maps.active?.base.mapId != origin.mapId) {
+      _storyOrigins.add(origin);
+      _storyNavigationProblem = context.l10n.storyDestinationUnavailable;
+      _changed();
+      return;
+    }
     _section = origin.section;
     _setSpace(origin.space);
+    _story.restoreSelection(origin.element, origin.selection);
+    _story
+      ..query = origin.query
+      ..filter = origin.filter
+      ..tab = origin.tab
+      ..behaviour = origin.behaviour;
+    if (origin.transform case final transform?) {
+      _view?.transform.value = transform.clone();
+    }
+    if (origin.tool case final tool?) {
+      _view?.tool = tool;
+    }
     _sceneShown = origin.scene != null;
     if (origin.scene != null) _sceneFocus = origin.scene;
     _changed();

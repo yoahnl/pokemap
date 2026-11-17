@@ -27,6 +27,7 @@ class GameBehavioursView extends StatefulWidget {
     this.openScene,
     this.compact = false,
     this.selectedId,
+    this.create,
   });
 
   final GameBehavioursController behaviours;
@@ -37,6 +38,7 @@ class GameBehavioursView extends StatefulWidget {
   final SceneOpener? openScene;
   final bool compact;
   final String? selectedId;
+  final VoidCallback? create;
 
   @override
   State<GameBehavioursView> createState() => _GameBehavioursViewState();
@@ -64,6 +66,7 @@ class _GameBehavioursViewState extends State<GameBehavioursView> {
         behaviours: behaviours,
         search: _search,
         trame: widget.trame,
+        create: widget.create,
         child: _body(context),
       );
     }
