@@ -10,6 +10,127 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get exportGameTitle => 'Exporter le jeu';
+
+  @override
+  String get exportHint =>
+      'Les modifications du projet seront enregistrées avant de créer le paquet à ouvrir dans Avelune Player.';
+
+  @override
+  String get exportIdentity => 'Identité du jeu';
+
+  @override
+  String get exportIdentityHint =>
+      'Cet identifiant permanent est conservé pour les prochaines mises à jour du jeu.';
+
+  @override
+  String get exportTitle => 'Nom du jeu';
+
+  @override
+  String get exportAuthor => 'Auteur ou équipe';
+
+  @override
+  String get exportVersion => 'Version du jeu';
+
+  @override
+  String get exportLocales => 'Langues disponibles';
+
+  @override
+  String get exportLocalesHint =>
+      'Codes séparés par des virgules : fr, en, fr-CA…';
+
+  @override
+  String get exportDefaultLocale => 'Langue principale';
+
+  @override
+  String get exportMode => 'Type d’export';
+
+  @override
+  String get exportModeTest => 'Test local';
+
+  @override
+  String get exportModePublication => 'Publication';
+
+  @override
+  String get exportTestHint =>
+      'Pour essayer le jeu avec le Player avant sa diffusion.';
+
+  @override
+  String get exportPublicationHint =>
+      'Vérification complète du jeu avant sa diffusion.';
+
+  @override
+  String get exportAction => 'Choisir le fichier et exporter';
+
+  @override
+  String get exportLoading => 'Chargement du profil d’export…';
+
+  @override
+  String get exportPreparing => 'Enregistrement du projet…';
+
+  @override
+  String get exportBuilding => 'Construction et vérification du jeu…';
+
+  @override
+  String get exportWriting => 'Écriture du paquet…';
+
+  @override
+  String get exportCancelling => 'Annulation en cours…';
+
+  @override
+  String get exportCancelled =>
+      'L’export a été annulé avant l’écriture du paquet. Les modifications déjà enregistrées sont conservées.';
+
+  @override
+  String get exportCompleted =>
+      'Le jeu est prêt à être ouvert dans Avelune Player.';
+
+  @override
+  String get exportReady => 'Export terminé';
+
+  @override
+  String get exportRetry => 'Réessayer';
+
+  @override
+  String get exportClose => 'Fermer';
+
+  @override
+  String get exportCancelAction => 'Annuler l’export';
+
+  @override
+  String get exportSourceUnavailable =>
+      'Le projet initial n’est plus ouvert. Fermez cette fenêtre et relancez l’export depuis le projet souhaité.';
+
+  @override
+  String get exportPickerFailed =>
+      'Impossible de choisir le fichier de destination. Réessayez.';
+
+  @override
+  String get exportFailed =>
+      'L’export a échoué. Vos modifications sont conservées.';
+
+  @override
+  String get exportOverwriteTitle => 'Remplacer ce fichier ?';
+
+  @override
+  String exportOverwriteHint(String path) {
+    return 'Ce fichier existe déjà : $path';
+  }
+
+  @override
+  String get exportOverwriteAction => 'Remplacer et exporter';
+
+  @override
+  String get exportDetails => 'Détails';
+
+  @override
+  String get exportProfileLoadFailed =>
+      'Le profil d’export ne peut pas être lu. Corrigez le fichier indiqué dans les détails, puis rechargez-le.';
+
+  @override
+  String get exportReload => 'Recharger le profil';
+
+  @override
   String get interactionViewHistory => 'Vue dans Histoire';
 
   @override

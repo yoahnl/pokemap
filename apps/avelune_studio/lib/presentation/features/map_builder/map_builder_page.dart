@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:avelune_studio/app/di/game_export_providers.dart';
+import 'package:avelune_studio/presentation/features/game_export/game_export_dialog.dart';
+
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -78,6 +81,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_too
 part 'map_builder_page_selection.dart';
 part 'map_builder_page_layout.dart';
 part 'map_builder_page_leave_guard.dart';
+part 'map_builder_page_export.dart';
 part 'map_builder_page_relief.dart';
 part 'map_builder_page_scene.dart';
 part 'map_builder_page_state.dart';

@@ -12,7 +12,8 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
     );
   }
 
-  bool get _editable => !_maps.loading && !_maps.catalogBusy && !_maps.saving;
+  bool get _editable =>
+      !_exporting && !_maps.loading && !_maps.catalogBusy && !_maps.saving;
 
   ProjectMapEntry? get _activeEntry {
     final id = _maps.active?.base.mapId;
@@ -65,6 +66,9 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
             saveFailed: _saveFailed,
             onSave: () => unawaited(_save()),
             onTestMap: () => unawaited(_testMap()),
+            onExportGame: project == null
+                ? null
+                : () => unawaited(_exportGame()),
             testing: _testing,
             ambiance: _historyAmbiance,
             story: _historyStory,

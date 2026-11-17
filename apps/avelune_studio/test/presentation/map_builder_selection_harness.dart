@@ -1,4 +1,6 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:avelune_studio/app/di/game_export_providers.dart';
+import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -112,6 +114,8 @@ Future<SelectionHost> openSelectionHost(
   WidgetTester tester, {
   MapCatalogPort? catalog,
   ProjectManifest? manifest,
+  StudioGameExportPort? exportPort,
+  PickGameExportFile? exportPicker,
 }) async {
   tester.view.physicalSize = const Size(1920, 1080);
   tester.view.devicePixelRatio = 1;
@@ -123,6 +127,10 @@ Future<SelectionHost> openSelectionHost(
     ..saved['b'] = selectionMap('b');
   final container = ProviderContainer(
     overrides: [
+      if (exportPort != null)
+        gameExportPortProvider(exampleA).overrideWithValue(exportPort),
+      if (exportPicker != null)
+        gameExportPickerProvider.overrideWithValue(exportPicker),
       projectSessionPortProvider.overrideWithValue(sessions),
       projectDirectoryPickerProvider.overrideWithValue(
         () async => exampleA.directoryPath,

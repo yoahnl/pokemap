@@ -20,6 +20,8 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   String? _visualsError;
   var _saveFailed = false;
   var _testing = false;
+  var _exporting = false;
+  var _openingExport = false;
   SceneFocusController? _sceneFocus;
   var _sceneShown = false;
   final _storyOrigins = <_StoryOrigin>[];

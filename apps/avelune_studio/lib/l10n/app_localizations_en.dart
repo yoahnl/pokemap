@@ -10,6 +10,124 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get exportGameTitle => 'Export game';
+
+  @override
+  String get exportHint =>
+      'Project changes will be saved before creating the package to open in Avelune Player.';
+
+  @override
+  String get exportIdentity => 'Game identity';
+
+  @override
+  String get exportIdentityHint =>
+      'This permanent identifier is kept for future game updates.';
+
+  @override
+  String get exportTitle => 'Game name';
+
+  @override
+  String get exportAuthor => 'Author or team';
+
+  @override
+  String get exportVersion => 'Game version';
+
+  @override
+  String get exportLocales => 'Available languages';
+
+  @override
+  String get exportLocalesHint => 'Comma-separated codes: fr, en, fr-CA…';
+
+  @override
+  String get exportDefaultLocale => 'Default language';
+
+  @override
+  String get exportMode => 'Export type';
+
+  @override
+  String get exportModeTest => 'Local test';
+
+  @override
+  String get exportModePublication => 'Publication';
+
+  @override
+  String get exportTestHint =>
+      'Try the game in the Player before distributing it.';
+
+  @override
+  String get exportPublicationHint =>
+      'Fully verify the game before distributing it.';
+
+  @override
+  String get exportAction => 'Choose a file and export';
+
+  @override
+  String get exportLoading => 'Loading the export profile…';
+
+  @override
+  String get exportPreparing => 'Saving the project…';
+
+  @override
+  String get exportBuilding => 'Building and verifying the game…';
+
+  @override
+  String get exportWriting => 'Writing the package…';
+
+  @override
+  String get exportCancelling => 'Cancelling…';
+
+  @override
+  String get exportCancelled =>
+      'Export was cancelled before writing the package. Changes already saved are kept.';
+
+  @override
+  String get exportCompleted => 'The game is ready to open in Avelune Player.';
+
+  @override
+  String get exportReady => 'Export complete';
+
+  @override
+  String get exportRetry => 'Try again';
+
+  @override
+  String get exportClose => 'Close';
+
+  @override
+  String get exportCancelAction => 'Cancel export';
+
+  @override
+  String get exportSourceUnavailable =>
+      'The original project is no longer open. Close this window and start exporting from the intended project.';
+
+  @override
+  String get exportPickerFailed =>
+      'The destination file could not be selected. Try again.';
+
+  @override
+  String get exportFailed => 'Export failed. Your changes have been kept.';
+
+  @override
+  String get exportOverwriteTitle => 'Replace this file?';
+
+  @override
+  String exportOverwriteHint(String path) {
+    return 'This file already exists: $path';
+  }
+
+  @override
+  String get exportOverwriteAction => 'Replace and export';
+
+  @override
+  String get exportDetails => 'Details';
+
+  @override
+  String get exportProfileLoadFailed =>
+      'The export profile could not be read. Fix the file shown in the details, then reload it.';
+
+  @override
+  String get exportReload => 'Reload profile';
+
+  @override
   String get interactionViewHistory => 'View in Story';
 
   @override

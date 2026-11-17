@@ -98,6 +98,222 @@ abstract class AppLocalizations {
     Locale('fr'),
   ];
 
+  /// No description provided for @exportGameTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Exporter le jeu'**
+  String get exportGameTitle;
+
+  /// No description provided for @exportHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les modifications du projet seront enregistrées avant de créer le paquet à ouvrir dans Avelune Player.'**
+  String get exportHint;
+
+  /// No description provided for @exportIdentity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Identité du jeu'**
+  String get exportIdentity;
+
+  /// No description provided for @exportIdentityHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet identifiant permanent est conservé pour les prochaines mises à jour du jeu.'**
+  String get exportIdentityHint;
+
+  /// No description provided for @exportTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom du jeu'**
+  String get exportTitle;
+
+  /// No description provided for @exportAuthor.
+  ///
+  /// In fr, this message translates to:
+  /// **'Auteur ou équipe'**
+  String get exportAuthor;
+
+  /// No description provided for @exportVersion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Version du jeu'**
+  String get exportVersion;
+
+  /// No description provided for @exportLocales.
+  ///
+  /// In fr, this message translates to:
+  /// **'Langues disponibles'**
+  String get exportLocales;
+
+  /// No description provided for @exportLocalesHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Codes séparés par des virgules : fr, en, fr-CA…'**
+  String get exportLocalesHint;
+
+  /// No description provided for @exportDefaultLocale.
+  ///
+  /// In fr, this message translates to:
+  /// **'Langue principale'**
+  String get exportDefaultLocale;
+
+  /// No description provided for @exportMode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type d’export'**
+  String get exportMode;
+
+  /// No description provided for @exportModeTest.
+  ///
+  /// In fr, this message translates to:
+  /// **'Test local'**
+  String get exportModeTest;
+
+  /// No description provided for @exportModePublication.
+  ///
+  /// In fr, this message translates to:
+  /// **'Publication'**
+  String get exportModePublication;
+
+  /// No description provided for @exportTestHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pour essayer le jeu avec le Player avant sa diffusion.'**
+  String get exportTestHint;
+
+  /// No description provided for @exportPublicationHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification complète du jeu avant sa diffusion.'**
+  String get exportPublicationHint;
+
+  /// No description provided for @exportAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir le fichier et exporter'**
+  String get exportAction;
+
+  /// No description provided for @exportLoading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement du profil d’export…'**
+  String get exportLoading;
+
+  /// No description provided for @exportPreparing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrement du projet…'**
+  String get exportPreparing;
+
+  /// No description provided for @exportBuilding.
+  ///
+  /// In fr, this message translates to:
+  /// **'Construction et vérification du jeu…'**
+  String get exportBuilding;
+
+  /// No description provided for @exportWriting.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écriture du paquet…'**
+  String get exportWriting;
+
+  /// No description provided for @exportCancelling.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annulation en cours…'**
+  String get exportCancelling;
+
+  /// No description provided for @exportCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'L’export a été annulé avant l’écriture du paquet. Les modifications déjà enregistrées sont conservées.'**
+  String get exportCancelled;
+
+  /// No description provided for @exportCompleted.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le jeu est prêt à être ouvert dans Avelune Player.'**
+  String get exportCompleted;
+
+  /// No description provided for @exportReady.
+  ///
+  /// In fr, this message translates to:
+  /// **'Export terminé'**
+  String get exportReady;
+
+  /// No description provided for @exportRetry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer'**
+  String get exportRetry;
+
+  /// No description provided for @exportClose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer'**
+  String get exportClose;
+
+  /// No description provided for @exportCancelAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler l’export'**
+  String get exportCancelAction;
+
+  /// No description provided for @exportSourceUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le projet initial n’est plus ouvert. Fermez cette fenêtre et relancez l’export depuis le projet souhaité.'**
+  String get exportSourceUnavailable;
+
+  /// No description provided for @exportPickerFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de choisir le fichier de destination. Réessayez.'**
+  String get exportPickerFailed;
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'L’export a échoué. Vos modifications sont conservées.'**
+  String get exportFailed;
+
+  /// No description provided for @exportOverwriteTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remplacer ce fichier ?'**
+  String get exportOverwriteTitle;
+
+  /// No description provided for @exportOverwriteHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce fichier existe déjà : {path}'**
+  String exportOverwriteHint(String path);
+
+  /// No description provided for @exportOverwriteAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remplacer et exporter'**
+  String get exportOverwriteAction;
+
+  /// No description provided for @exportDetails.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détails'**
+  String get exportDetails;
+
+  /// No description provided for @exportProfileLoadFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le profil d’export ne peut pas être lu. Corrigez le fichier indiqué dans les détails, puis rechargez-le.'**
+  String get exportProfileLoadFailed;
+
+  /// No description provided for @exportReload.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recharger le profil'**
+  String get exportReload;
+
   /// No description provided for @interactionViewHistory.
   ///
   /// In fr, this message translates to:

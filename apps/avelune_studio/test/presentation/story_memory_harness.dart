@@ -1,4 +1,6 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:avelune_studio/app/di/game_export_providers.dart';
+import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
 import 'package:avelune_studio/app/di/game_memory_providers.dart';
 import 'package:avelune_studio/app/di/dialogue_providers.dart';
 import 'package:avelune_studio/features/dialogues/domain/dialogue_catalog_port.dart';
@@ -130,6 +132,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   DialogueCatalogPort? dialogueCatalog,
   ValueNotifier<Locale>? locale,
   Map<String, MapData> initialMaps = const {},
+  StudioGameExportPort? exportPort,
 }) async {
   final opened = session ?? memorySession;
   tester.view.physicalSize = const Size(1920, 1080);
@@ -152,6 +155,10 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   maps.saved.addAll(initialMaps);
   final container = ProviderContainer(
     overrides: [
+      if (exportPort != null) ...[
+        gameExportPortProvider(opened).overrideWithValue(exportPort),
+        gameExportPickerProvider.overrideWithValue((_) async => null),
+      ],
       projectSessionPortProvider.overrideWithValue(sessions),
       projectDirectoryPickerProvider.overrideWithValue(
         () async => exampleA.directoryPath,

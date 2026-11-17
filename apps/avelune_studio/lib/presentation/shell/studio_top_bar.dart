@@ -23,6 +23,7 @@ class StudioTopBar extends StatelessWidget {
     required this.saveState,
     required this.onSave,
     required this.onTestMap,
+    this.onExportGame,
     this.testing = false,
     this.undoUnavailableReason,
     this.redoUnavailableReason,
@@ -32,7 +33,7 @@ class StudioTopBar extends StatelessWidget {
   final List<ProjectMapEntry> maps;
   final String? activeMapId;
   final ValueChanged<ProjectMapEntry>? onSelectMap;
-  final VoidCallback? onUndo, onRedo, onSave, onTestMap;
+  final VoidCallback? onUndo, onRedo, onSave, onTestMap, onExportGame;
   final StudioSaveState saveState;
   final bool testing;
   final String? undoUnavailableReason;
@@ -120,6 +121,13 @@ class StudioTopBar extends StatelessWidget {
             onPressed: saveState == StudioSaveState.saving ? null : onSave,
           ),
           const SizedBox(width: StudioSpacing.m),
+          _BarIcon(
+            key: const ValueKey('studio-export-game'),
+            label: context.l10n.exportGameTitle,
+            icon: Icons.file_upload_outlined,
+            onPressed: onExportGame,
+          ),
+          const SizedBox(width: StudioSpacing.m),
           StudioButton(
             key: const ValueKey('studio-test-map'),
             label: context.l10n.topBarTestMap,
@@ -187,7 +195,12 @@ class _MapSelector extends StatelessWidget {
 }
 
 class _BarIcon extends StatelessWidget {
-  const _BarIcon({required this.label, required this.icon, this.onPressed});
+  const _BarIcon({
+    super.key,
+    required this.label,
+    required this.icon,
+    this.onPressed,
+  });
 
   final String label;
   final IconData icon;
@@ -198,7 +211,7 @@ class _BarIcon extends StatelessWidget {
     tooltip: label,
     iconSize: 18,
     onPressed: onPressed,
-    icon: Icon(icon),
+    icon: Icon(icon, semanticLabel: label),
   );
 }
 

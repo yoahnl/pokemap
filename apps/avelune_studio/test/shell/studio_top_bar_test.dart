@@ -45,6 +45,7 @@ void main() {
           for (final key in [
             'studio-save',
             'studio-test-map',
+            'studio-export-game',
             'studio-language',
             'studio-map-selector',
           ]) {

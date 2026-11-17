@@ -51,6 +51,7 @@ class MapBuilderHeader extends StatelessWidget {
     required this.onSave,
     required this.onTestMap,
     required this.testing,
+    this.onExportGame,
     this.ambiance,
     this.story,
     this.history = true,
@@ -66,6 +67,7 @@ class MapBuilderHeader extends StatelessWidget {
   final bool saveFailed;
   final VoidCallback onSave;
   final VoidCallback onTestMap;
+  final VoidCallback? onExportGame;
   final bool testing;
   final MapBuilderAmbianceBinding? ambiance;
   final MapBuilderStoryBinding? story;
@@ -122,6 +124,7 @@ class MapBuilderHeader extends StatelessWidget {
       onSave: editable && (draft.unsaved || pendingInput) ? onSave : null,
       onTestMap: editable && document != null && !testing ? onTestMap : null,
       testing: testing,
+      onExportGame: editable && !testing ? onExportGame : null,
     );
   }
 }

@@ -2,7 +2,11 @@ part of 'map_builder_page.dart';
 
 extension _MapBuilderPageLeaveGuard on _MapBuilderPageState {
   void _protect() {
-    if (_guarded || _disposed || !(_draft.unsaved || _typing)) return;
+    if (_guarded ||
+        _disposed ||
+        !(_openingExport || _exporting || _draft.unsaved || _typing)) {
+      return;
+    }
     _guarded = true;
     _exitGuard.register(widget.session.sessionId, _confirmLeave);
   }
@@ -27,6 +31,7 @@ extension _MapBuilderPageLeaveGuard on _MapBuilderPageState {
   }
 
   Future<bool> _askToLeave() async {
+    if (_openingExport || _exporting) return false;
     await _commitTyping();
     if (!mounted || _disposed || !_draft.unsaved) return true;
     final l10n = context.l10n;
