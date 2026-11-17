@@ -90,16 +90,26 @@ SceneGraphCategory _actionCategory(SceneNode node) =>
       _ => sceneGraphTemplateCategory(sceneStepFamilyOfNode(node)),
     };
 
-IconData sceneGraphNodeIcon(SceneNode node) => switch (node.kind) {
-  SceneNodeKind.start => Icons.play_arrow_outlined,
-  SceneNodeKind.end => Icons.stop_circle_outlined,
-  SceneNodeKind.condition => Icons.call_split,
-  _ => sceneGraphCategory(node).icon,
+IconData sceneGraphIcon(SceneGraphCategory category, SceneNodeKind? kind) =>
+    switch (kind) {
+      SceneNodeKind.start => Icons.play_arrow_outlined,
+      SceneNodeKind.end => Icons.stop_circle_outlined,
+      SceneNodeKind.condition => Icons.call_split,
+      _ => category.icon,
+    };
+
+Color sceneGraphAccent(
+  BuildContext context,
+  SceneGraphCategory category,
+  SceneNodeKind? kind,
+) => switch (kind) {
+  SceneNodeKind.start => Theme.of(context).colorScheme.error,
+  SceneNodeKind.condition => StudioAccent.fog.color(context),
+  _ => category.accent(context),
 };
 
+IconData sceneGraphNodeIcon(SceneNode node) =>
+    sceneGraphIcon(sceneGraphCategory(node), node.kind);
+
 Color sceneGraphNodeAccent(BuildContext context, SceneNode node) =>
-    switch (node.kind) {
-      SceneNodeKind.start => Theme.of(context).colorScheme.error,
-      SceneNodeKind.condition => StudioAccent.fog.color(context),
-      _ => sceneGraphCategory(node).accent(context),
-    };
+    sceneGraphAccent(context, sceneGraphCategory(node), node.kind);

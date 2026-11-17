@@ -182,7 +182,8 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
   }
 
   void _addFromPalette(SceneStepTemplate template) {
-    if (!_editable || _camera == null || _menu != null) return;
+    if (!_editable || _camera == null) return;
+    if (_menu != null) _closeMenu();
     final bounds = sceneGraphBounds(_view);
     final at = _snapped(
       Offset(bounds.right + SceneGraphMetrics.columnGap, bounds.top),

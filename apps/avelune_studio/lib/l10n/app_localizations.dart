@@ -5043,7 +5043,7 @@ abstract class AppLocalizations {
   /// No description provided for @sceneFocusNoLauncher.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun comportement ne lance cette scène.'**
+  /// **'Aucun déclencheur ne lance cette scène.'**
   String get sceneFocusNoLauncher;
 
   /// No description provided for @sceneFocusChangedFacts.
@@ -5225,6 +5225,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Graphe de scène · {steps, plural, =1{1 étape} other{{steps} étapes}} · {links, plural, =1{1 lien} other{{links} liens}}'**
   String sceneGraphSummary(int steps, int links);
+
+  /// No description provided for @sceneGraphActionTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'{command, select, wait{Attendre} other{{authorLabel}}}'**
+  String sceneGraphActionTitle(String command, String authorLabel);
 
   /// No description provided for @sceneGraphWaitDuration.
   ///

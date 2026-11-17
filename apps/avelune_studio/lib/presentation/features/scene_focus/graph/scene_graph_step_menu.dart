@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import 'package:avelune_studio/features/scenes/application/steps/scene_step_families.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_templates.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_palette.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
@@ -11,6 +12,7 @@ typedef SceneGraphStepChoice = ({
   String id,
   String label,
   SceneGraphCategory category,
+  SceneNodeKind? kind,
   SceneStepTemplate? template,
 });
 
@@ -130,9 +132,13 @@ class _SceneGraphStepMenuState extends State<SceneGraphStepMenu> {
                         dense: choice.template != null,
                         label: choice.label,
                         leading: Icon(
-                          category.icon,
+                          sceneGraphIcon(category, choice.kind),
                           size: 16,
-                          color: category.accent(context),
+                          color: sceneGraphAccent(
+                            context,
+                            category,
+                            choice.kind,
+                          ),
                         ),
                         subtitle: choice.template == null
                             ? l10n.sceneGraphUnavailable
@@ -181,6 +187,9 @@ List<SceneGraphStepChoice> sceneGraphStepChoices(
         id: family.name,
         label: l10n.storyStepFamily(family.name),
         category: sceneGraphTemplateCategory(family),
+        kind: family == SceneStepFamily.conditions
+            ? SceneNodeKind.condition
+            : null,
         template: !enabled || project == null
             ? null
             : sceneStepTemplateOf(family, project, map),
@@ -189,6 +198,7 @@ List<SceneGraphStepChoice> sceneGraphStepChoices(
       id: SceneNodeKind.end.name,
       label: l10n.sceneGraphKind(SceneNodeKind.end.name),
       category: SceneGraphCategory.flow,
+      kind: SceneNodeKind.end,
       template: !enabled
           ? null
           : (

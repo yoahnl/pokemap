@@ -78,7 +78,7 @@ void main() {
       find.text('Cette étape n’est jamais atteinte depuis le début.'),
     );
     expect(shown, ['alone']);
-    expect(find.text('Action'), findsOneWidget, reason: 'the step is named');
+    expect(find.text('Attendre'), findsOneWidget);
   });
 
   testWidgets('a sound scene says it has no problem', (tester) async {

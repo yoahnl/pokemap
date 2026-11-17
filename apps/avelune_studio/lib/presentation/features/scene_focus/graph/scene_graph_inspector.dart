@@ -136,10 +136,7 @@ extension on SceneGraphInspector {
   String? _stepName(AppLocalizations l10n, String? nodeId) {
     final node = scene.graph.nodes.where((n) => n.id == nodeId).firstOrNull;
     if (node == null) return null;
-    final title = node.title?.trim();
-    return title == null || title.isEmpty
-        ? l10n.sceneGraphKind(node.kind.name)
-        : title;
+    return sceneGraphNodeTitle(l10n, node);
   }
 }
 

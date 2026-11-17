@@ -3136,7 +3136,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sceneFocusLaunchedBy => 'Lancée par';
 
   @override
-  String get sceneFocusNoLauncher => 'Aucun comportement ne lance cette scène.';
+  String get sceneFocusNoLauncher => 'Aucun déclencheur ne lance cette scène.';
 
   @override
   String get sceneFocusChangedFacts => 'États modifiés';
@@ -3322,6 +3322,15 @@ class AppLocalizationsFr extends AppLocalizations {
       one: '1 lien',
     );
     return 'Graphe de scène · $_temp0 · $_temp1';
+  }
+
+  @override
+  String sceneGraphActionTitle(String command, String authorLabel) {
+    String _temp0 = intl.Intl.selectLogic(command, {
+      'wait': 'Attendre',
+      'other': '$authorLabel',
+    });
+    return '$_temp0';
   }
 
   @override

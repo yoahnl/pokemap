@@ -21,8 +21,10 @@ String sceneGraphNodeTitle(AppLocalizations l10n, SceneNode node) {
   };
   return switch ((family, command)) {
     (final family?, _) => l10n.storyStepFamily(family.name),
-    (_, final command?) =>
+    (_, final command?) => l10n.sceneGraphActionTitle(
+      command,
       _commands.byId(command)?.label ?? l10n.storyStepAdvanced,
+    ),
     _ => l10n.sceneGraphKind(node.kind.name),
   };
 }

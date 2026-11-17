@@ -94,12 +94,16 @@ class SceneGraphCardTile extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              Icon(sceneGraphNodeIcon(card.node), size: 15),
+                              Icon(
+                                sceneGraphNodeIcon(card.node),
+                                size: 15,
+                                color: accent,
+                              ),
                               const SizedBox(width: StudioSpacing.s),
                               Expanded(
                                 child: _line(
                                   title,
-                                  theme.textTheme.labelMedium?.copyWith(
+                                  theme.textTheme.labelLarge?.copyWith(
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -132,7 +136,7 @@ class SceneGraphCardTile extends StatelessWidget {
                             alignment: Alignment.centerRight,
                             child: _line(
                               sceneGraphPortLabel(l10n, port.id, dialogue),
-                              theme.textTheme.labelSmall?.copyWith(
+                              theme.textTheme.labelMedium?.copyWith(
                                 color: _portColor(
                                   port,
                                   scheme.onSurface,

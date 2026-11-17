@@ -1,6 +1,6 @@
 abstract final class SceneGraphMetrics {
-  static const double cardWidth = 220;
-  static const double headerHeight = 28;
+  static const double cardWidth = 252;
+  static const double headerHeight = 36;
   static const double bodyHeight = 44;
   static const double portRowHeight = 22;
   static const double bottomPadding = 8;

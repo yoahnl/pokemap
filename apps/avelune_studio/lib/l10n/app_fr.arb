@@ -1673,7 +1673,7 @@
   "sceneFocusDetach": "Détacher une copie",
   "sceneFocusDetachHint": "La copie ne sert qu’à ce comportement ; ses dialogues restent partagés.",
   "sceneFocusLaunchedBy": "Lancée par",
-  "sceneFocusNoLauncher": "Aucun comportement ne lance cette scène.",
+  "sceneFocusNoLauncher": "Aucun déclencheur ne lance cette scène.",
   "sceneFocusChangedFacts": "États modifiés",
   "sceneFocusNoFactChange": "Cette scène ne modifie aucun état.",
   "sceneFocusPath": "Chemin",
@@ -1768,6 +1768,13 @@
     "placeholders": {
       "steps": {"type": "int"},
       "links": {"type": "int"}
+    }
+  },
+  "sceneGraphActionTitle": "{command, select, wait{Attendre} other{{authorLabel}}}",
+  "@sceneGraphActionTitle": {
+    "placeholders": {
+      "command": {"type": "String"},
+      "authorLabel": {"type": "String"}
     }
   },
   "sceneGraphWaitDuration": "{milliseconds} ms",

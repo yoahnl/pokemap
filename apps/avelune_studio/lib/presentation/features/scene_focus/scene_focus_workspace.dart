@@ -24,7 +24,9 @@ class SceneFocusWorkspace extends StatefulWidget {
   });
 
   static const double sideWidth = 304;
-  static const double outlineWidth = 214;
+  static const double outlineWidth = 204;
+  static const double _compactSideWidth = 246;
+  static const double _preferredCanvasWidth = 764;
 
   final SceneFocusController focus;
   final SceneAsset scene;
@@ -147,70 +149,81 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
         ),
         const Divider(height: 1),
         Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: SceneFocusWorkspace.outlineWidth,
-                child: SceneGraphSidebar(
-                  scene: scene,
-                  project: widget.project,
-                  map: widget.map,
-                  selection: _selection,
-                  palette: _palette,
-                  onTab: _setPalette,
-                  onShow: _showStep,
-                  onAdd: _editable
-                      ? (template) =>
-                            _canvas.currentState?.addFromPalette(template)
-                      : null,
-                ),
-              ),
-              const VerticalDivider(width: 1),
-              Expanded(
-                child: KeyedSubtree(
-                  key: ValueKey('scene-focus-graph-${scene.id}'),
-                  child: SceneGraphCanvas(
-                    key: _canvas,
-                    scene: scene,
-                    project: widget.project,
-                    map: widget.map,
-                    checks: checks,
-                    pathNodeIds: focus.path?.nodeIds ?? const [],
-                    pathChoices: focus.choices,
-                    dialogues: {
-                      for (final dialogue
-                          in focus.document.value?.dialogues ??
-                              const <StoryDialogueSource>[])
-                        dialogue.id: dialogue.entry,
-                    },
-                    factNames: _currentFactNames,
-                    onChanged: _editable ? focus.edit : null,
-                    onSelectionChanged: (ids) =>
-                        setState(() => _selection = ids),
-                    preparing: focus.draft.preparing,
-                  ),
-                ),
-              ),
-              const VerticalDivider(width: 1),
-              SizedBox(
-                width: SceneFocusWorkspace.sideWidth,
-                child: SceneFocusSide(
-                  focus: focus,
-                  onOpenBehaviour: widget.onOpenBehaviour,
-                  leading: SceneGraphInspector(
+          child: LayoutBuilder(
+            builder: (context, constraints) => Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: SceneFocusWorkspace.outlineWidth,
+                  child: SceneGraphSidebar(
                     scene: scene,
                     project: widget.project,
                     map: widget.map,
                     selection: _selection,
-                    checks: checks,
-                    editable: _editable,
-                    onEdit: _editStep,
+                    palette: _palette,
+                    onTab: _setPalette,
                     onShow: _showStep,
+                    onAdd: _editable
+                        ? (template) =>
+                              _canvas.currentState?.addFromPalette(template)
+                        : null,
                   ),
                 ),
-              ),
-            ],
+                const VerticalDivider(width: 1),
+                Expanded(
+                  child: KeyedSubtree(
+                    key: ValueKey('scene-focus-graph-${scene.id}'),
+                    child: SceneGraphCanvas(
+                      key: _canvas,
+                      scene: scene,
+                      project: widget.project,
+                      map: widget.map,
+                      checks: checks,
+                      pathNodeIds: focus.path?.nodeIds ?? const [],
+                      pathChoices: focus.choices,
+                      dialogues: {
+                        for (final dialogue
+                            in focus.document.value?.dialogues ??
+                                const <StoryDialogueSource>[])
+                          dialogue.id: dialogue.entry,
+                      },
+                      factNames: _currentFactNames,
+                      onChanged: _editable ? focus.edit : null,
+                      onSelectionChanged: (ids) =>
+                          setState(() => _selection = ids),
+                      preparing: focus.draft.preparing,
+                    ),
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                SizedBox(
+                  width:
+                      (constraints.maxWidth -
+                              SceneFocusWorkspace.outlineWidth -
+                              SceneFocusWorkspace._preferredCanvasWidth -
+                              2)
+                          .clamp(
+                            SceneFocusWorkspace._compactSideWidth,
+                            SceneFocusWorkspace.sideWidth,
+                          )
+                          .toDouble(),
+                  child: SceneFocusSide(
+                    focus: focus,
+                    onOpenBehaviour: widget.onOpenBehaviour,
+                    leading: SceneGraphInspector(
+                      scene: scene,
+                      project: widget.project,
+                      map: widget.map,
+                      selection: _selection,
+                      checks: checks,
+                      editable: _editable,
+                      onEdit: _editStep,
+                      onShow: _showStep,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

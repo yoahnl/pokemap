@@ -3117,7 +3117,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sceneFocusLaunchedBy => 'Started by';
 
   @override
-  String get sceneFocusNoLauncher => 'No behaviour starts this scene.';
+  String get sceneFocusNoLauncher => 'No trigger starts this scene.';
 
   @override
   String get sceneFocusChangedFacts => 'Changed states';
@@ -3303,6 +3303,74 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 link',
     );
     return 'Scene graph · $_temp0 · $_temp1';
+  }
+
+  @override
+  String sceneGraphActionTitle(String command, String authorLabel) {
+    String _temp0 = intl.Intl.selectLogic(command, {
+      'calculateIntegerFacts': 'Calculate with integer facts',
+      'adjustMoney': 'Change money',
+      'inputIntegerToFact': 'Ask for a number',
+      'tryPayMoney': 'Try to pay',
+      'inputTextToFact': 'Ask for text',
+      'setFact': 'Remember a fact',
+      'adjustIntegerFact': 'Change an integer fact',
+      'setMapEventInstanceBoolean': 'Set a map event flag',
+      'markEventConsumed': 'Mark an event as used',
+      'completeStoryStep': 'Complete a story step',
+      'giveItem': 'Give an item',
+      'giveItemGift': 'Give an item',
+      'claimPeriodicReward': 'Claim a recurring reward',
+      'takeItem': 'Take an item',
+      'giveMoney': 'Give money',
+      'grantRailCurrency': 'Give rail currency',
+      'grantRailStamp': 'Give a rail stamp',
+      'givePokemon': 'Give a Pokémon',
+      'markPokemonSeen': 'Mark a Pokémon as seen',
+      'setNpcPose': 'Change a character pose',
+      'givePokemonFromCatalog': 'Give a Pokémon from the catalogue',
+      'receivePokemonFromCatalog': 'Receive a Pokémon from the catalogue',
+      'giveConfiguredStarter': 'Give the configured starter',
+      'warp': 'Teleport',
+      'wait': 'Wait',
+      'waitForActorRoutes': 'Wait for characters to finish moving',
+      'worldTone': 'Change the world tone',
+      'worldPresentation': 'Change the world presentation',
+      'playSoundEffect': 'Play a sound effect',
+      'stopSoundEffects': 'Stop sound effects',
+      'playMusicEffect': 'Play a music cue',
+      'sceneMusic': 'Change scene music',
+      'actorRoute': 'Move a character along a route',
+      'actorVisibility': 'Show or hide a character',
+      'openImagePuzzle': 'Open an image puzzle',
+      'openCrafting': 'Open crafting',
+      'openShop': 'Open a shop',
+      'openHeal': 'Open healing',
+      'whiteOut': 'White out',
+      'openPc': 'Open the PC',
+      'openRegionalMap': 'Open the regional map',
+      'openPartyTrade': 'Open a trade',
+      'openNpcTrade': 'Trade with a character',
+      'dialogue': 'Open a dialogue',
+      'trainerBattle': 'Start a trainer battle',
+      'staticEncounter': 'Start a static encounter',
+      'cinematic': 'Play a cutscene',
+      'healParty': 'Heal the party',
+      'awardBadge': 'Award a badge',
+      'unlockFieldAbility': 'Unlock a field ability',
+      'finishGame': 'Finish the game',
+      'setNpcPresence': 'Show or hide a character',
+      'setPlayerAvatar': 'Change the player avatar',
+      'setPauseMenuEntryVisibility': 'Show or hide a pause menu item',
+      'moveNpc': 'Move a character',
+      'movePlatform': 'Move a platform',
+      'setPropState': 'Change a prop state',
+      'playCharacterAnimation': 'Play a character animation',
+      'playModelAnimation': 'Play a model animation',
+      'railJourney': 'Start a rail journey',
+      'other': '$authorLabel',
+    });
+    return '$_temp0';
   }
 
   @override
