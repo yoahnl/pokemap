@@ -61,14 +61,17 @@ class StoryPage extends StatefulWidget {
     required this.unsaved,
     this.saveError,
     this.openScene,
+    this.openSceneNode,
     this.beforeNavigation,
     this.navigationState,
     this.onHistoryScopeChanged,
+    this.onSectionChanged,
     this.catalog,
     this.behaviourCatalog,
     this.dialoguePort,
     this.dialogueRequest,
     this.behaviourRequest,
+    this.sectionRequest,
     this.dialogueStaging,
   });
 
@@ -86,14 +89,17 @@ class StoryPage extends StatefulWidget {
   final bool unsaved;
   final String? saveError;
   final SceneOpener? openScene;
+  final void Function(String sceneId, String nodeId)? openSceneNode;
   final Future<void> Function()? beforeNavigation;
   final Object? Function()? navigationState;
   final ValueChanged<StoryHistoryScope>? onHistoryScopeChanged;
+  final ValueChanged<StorySection>? onSectionChanged;
   final SceneCatalogController? catalog;
   final MapBuilderStoryCatalogBinding? behaviourCatalog;
   final DialogueCatalogPort? dialoguePort;
-  final ({String id, int token})? dialogueRequest;
+  final ({String id, String? language, int token})? dialogueRequest;
   final ({String? id, String mapId, int token})? behaviourRequest;
+  final ({StorySection section, int token})? sectionRequest;
   final DialogueDraftHost? dialogueStaging;
 
   @override
@@ -131,6 +137,14 @@ class _StoryPageState extends State<StoryPage> {
     }
     if (oldWidget.behaviourRequest != widget.behaviourRequest) {
       scheduleMicrotask(_consumeBehaviourRequest);
+    }
+    if (widget.sectionRequest case final request?
+        when request != oldWidget.sectionRequest) {
+      scheduleMicrotask(() {
+        if (!mounted || widget.sectionRequest != request) return;
+        _workspace = _workspace.select(request.section);
+        _changed();
+      });
     }
   }
 
@@ -214,6 +228,7 @@ class _StoryPageState extends State<StoryPage> {
   }
 
   void _notifyScope() {
+    widget.onSectionChanged?.call(_workspace.section);
     final id = widget.behaviourCatalog?.editor?.selectedBehaviour?.id;
     if (id != null) {
       _workspace = _workspace.selectItem(StorySection.behaviours, (

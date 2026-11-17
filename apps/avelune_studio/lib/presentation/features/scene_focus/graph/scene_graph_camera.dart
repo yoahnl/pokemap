@@ -22,28 +22,33 @@ final class SceneGraphCamera {
   SceneGraphCamera panBy(Offset delta) =>
       SceneGraphCamera(pan: pan + delta, scale: scale);
 
-  SceneGraphCamera zoomAt(Offset focus, double factor) {
-    final next = (scale * factor).clamp(minScale, maxScale).toDouble();
+  SceneGraphCamera zoomAt(
+    Offset focus,
+    double factor, {
+    double minimum = minScale,
+  }) {
+    final next = (scale * factor).clamp(minimum, maxScale).toDouble();
     final world = toWorld(focus);
     return SceneGraphCamera(pan: focus - world * next, scale: next);
   }
 
-  static SceneGraphCamera fit(Rect bounds, Size viewport) {
+  static SceneGraphCamera fit(
+    Rect bounds,
+    Size viewport, {
+    double margin = fitMargin,
+  }) {
     if (bounds.isEmpty || viewport.isEmpty) return const SceneGraphCamera();
     final available = Size(
-      math.max(1, viewport.width - fitMargin * 2),
-      math.max(1, viewport.height - fitMargin * 2),
+      math.max(1, viewport.width - margin * 2),
+      math.max(1, viewport.height - margin * 2),
     );
-    final scale = math
-        .min(
-          1.0,
-          math.min(
-            available.width / bounds.width,
-            available.height / bounds.height,
-          ),
-        )
-        .clamp(minScale, maxScale)
-        .toDouble();
+    final scale = math.min(
+      1.0,
+      math.min(
+        available.width / bounds.width,
+        available.height / bounds.height,
+      ),
+    );
     final center = viewport.center(Offset.zero);
     return SceneGraphCamera(pan: center - bounds.center * scale, scale: scale);
   }

@@ -14,6 +14,7 @@ import 'package:avelune_studio/features/scenes/application/graph/scene_graph_vie
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_ids.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_templates.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_camera.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_minimap.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_painters.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_step_menu.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_toolbar.dart';
@@ -21,6 +22,7 @@ import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_gra
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 part 'scene_graph_canvas_edits.dart';
+part 'scene_graph_canvas_navigation.dart';
 part 'scene_graph_canvas_pointer.dart';
 
 class SceneGraphCanvas extends StatefulWidget {
@@ -32,11 +34,13 @@ class SceneGraphCanvas extends StatefulWidget {
     this.pathChoices = const {},
     this.dialogueNames = const {},
     this.dialogues = const {},
+    this.choiceLabels = const {},
     this.factNames = const {},
     this.map,
     this.onChanged,
     this.checks,
     this.onSelectionChanged,
+    this.onFind,
     this.preparing = false,
   });
 
@@ -46,11 +50,13 @@ class SceneGraphCanvas extends StatefulWidget {
   final Map<String, String> pathChoices;
   final Map<String, String> dialogueNames;
   final Map<String, ProjectDialogueEntry> dialogues;
+  final Map<String, Map<String, String>> choiceLabels;
   final Map<String, String> factNames;
   final MapData? map;
   final bool Function(SceneAsset scene)? onChanged;
   final SceneGraphChecks? checks;
   final ValueChanged<Set<String>>? onSelectionChanged;
+  final VoidCallback? onFind;
   final bool preparing;
 
   @override
@@ -67,6 +73,7 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   static SceneGraphFragment? _clipboard;
 
   late SceneGraphView _view = projectSceneGraph(widget.scene);
+  late Rect _bounds = sceneGraphBounds(_view);
   ValueNotifier<SceneGraphCamera>? _camera;
   Size _viewport = Size.zero;
   Set<String> _selected = {};
@@ -104,6 +111,7 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.scene, widget.scene)) {
       _view = projectSceneGraph(widget.scene);
+      _bounds = sceneGraphBounds(_view);
       final ids = {for (final card in _view.cards) card.id};
       final kept = _selected.where(ids.contains).toSet();
       if (kept.length != _selected.length) {
@@ -143,17 +151,14 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
     final card = _view.card(nodeId);
     final camera = _camera;
     if (card == null || camera == null) return;
-    camera.value = SceneGraphCamera(
-      pan:
-          _viewport.center(Offset.zero) -
-          sceneGraphCardRect(card).center * camera.value.scale,
-      scale: camera.value.scale,
+    _center(
+      sceneGraphCardRect(card).center,
+      scale: math.max(camera.value.scale, SceneGraphCamera.readableScale),
     );
     _mutate(() => _selected = {nodeId});
   }
 
-  void showAll() =>
-      _camera?.value = SceneGraphCamera.fit(sceneGraphBounds(_view), _viewport);
+  void showAll() => _camera?.value = SceneGraphCamera.fit(_bounds, _viewport);
 
   void addFromPalette(SceneStepTemplate template) => _addFromPalette(template);
 
@@ -166,7 +171,7 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
     final scheme = Theme.of(context).colorScheme;
     final selectionColor = StudioColors.of(context).canvasSelection;
     final shown = _shown;
-    final bounds = sceneGraphBounds(shown);
+    final bounds = _moved.isEmpty ? _bounds : sceneGraphBounds(shown);
     final world = SceneGraphWorld(
       view: shown,
       bounds: bounds,
@@ -177,6 +182,7 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
       pathEdgeIds: _pathEdgeIds,
       dialogueNames: widget.dialogueNames,
       dialogues: widget.dialogues,
+      choiceLabels: widget.choiceLabels,
       factNames: widget.factNames,
       map: widget.map,
       checks: widget.checks ?? checkSceneGraph(widget.scene),
@@ -277,9 +283,30 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
                 camera: camera,
                 editable: _editable,
                 preparing: widget.preparing,
-                onShowAll: showAll,
+                onShowAll: () {
+                  showAll();
+                  requestFocus();
+                },
+                onZoom: _toolbarZoom,
               ),
             ),
+            if (!bounds.isEmpty &&
+                _viewport.width >= 540 &&
+                _viewport.height >= 200)
+              Positioned(
+                right: StudioSpacing.l,
+                bottom: StudioSpacing.l,
+                child: SceneGraphMinimap(
+                  view: shown,
+                  bounds: bounds,
+                  viewport: _viewport,
+                  camera: camera,
+                  onCenter: (world) {
+                    _center(world);
+                    requestFocus();
+                  },
+                ),
+              ),
             if (menu != null)
               Positioned(
                 left: menu.screen.dx
@@ -311,17 +338,4 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
       },
     );
   }
-
-  Offset _startCentre(Rect bounds) =>
-      switch (_view.card(widget.scene.graph.startNodeId)) {
-        final start? => sceneGraphCardRect(start).center,
-        null => bounds.centerLeft,
-      };
-
-  Matrix4 _matrix(SceneGraphCamera camera, Offset origin) =>
-      Matrix4.diagonal3Values(camera.scale, camera.scale, 1)..setTranslationRaw(
-        camera.pan.dx + origin.dx * camera.scale,
-        camera.pan.dy + origin.dy * camera.scale,
-        0,
-      );
 }

@@ -77,13 +77,13 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
   );
 
   void _dropWire(SceneGraphExit from, Offset screen) {
+    if (!(Offset.zero & _viewport).contains(screen)) return;
     final camera = _camera!.value;
     final target = sceneGraphCardAt(_view, camera.toWorld(screen));
     if (target == null) {
       _openMenu(screen, from);
       return;
     }
-    if (target.id == from.nodeId) return;
     _apply(
       connectSceneGraphExit(
         widget.scene,

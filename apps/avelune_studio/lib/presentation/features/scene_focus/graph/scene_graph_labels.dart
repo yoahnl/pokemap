@@ -32,8 +32,10 @@ String sceneGraphNodeTitle(AppLocalizations l10n, SceneNode node) {
 String sceneGraphPortLabel(
   AppLocalizations l10n,
   String id,
-  ProjectDialogueEntry? dialogue,
-) =>
+  ProjectDialogueEntry? dialogue, {
+  Map<String, String> choiceLabels = const {},
+}) =>
+    choiceLabels[id] ??
     dialogue?.declaredOutcomes
         .where((outcome) => outcome.id == id)
         .firstOrNull

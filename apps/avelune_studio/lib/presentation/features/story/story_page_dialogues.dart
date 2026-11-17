@@ -9,6 +9,9 @@ extension _StoryPageDialogues on _StoryPageState {
     _openSection(StorySection.dialogues);
     unawaited(_dialogues?.open());
     _workspace = _workspace.select(StorySection.dialogues);
+    if (request.language case final language?) {
+      _dialogues?.previewIn(language);
+    }
     _dialogues?.select(request.id);
     _selectItem(StorySection.dialogues, (
       kind: StoryDraftKind.dialogue,

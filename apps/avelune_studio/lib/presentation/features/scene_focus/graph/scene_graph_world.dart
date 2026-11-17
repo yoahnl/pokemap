@@ -22,6 +22,7 @@ class SceneGraphWorld extends StatefulWidget {
     required this.dialogueNames,
     required this.checks,
     this.dialogues = const {},
+    this.choiceLabels = const {},
     this.factNames = const {},
     this.map,
   });
@@ -35,6 +36,7 @@ class SceneGraphWorld extends StatefulWidget {
   final Set<String> pathEdgeIds;
   final Map<String, String> dialogueNames;
   final Map<String, ProjectDialogueEntry> dialogues;
+  final Map<String, Map<String, String>> choiceLabels;
   final Map<String, String> factNames;
   final MapData? map;
   final SceneGraphChecks checks;
@@ -172,6 +174,7 @@ class _SceneGraphWorldState extends State<SceneGraphWorld> {
         onPath: pathNodeIds.contains(card.id),
         problem: checks.levelOfNode(card.id),
         dialogue: dialogue,
+        choiceLabels: widget.choiceLabels[dialogue?.id] ?? const {},
         detail: _detail(card.node, dialogue),
       ),
     );

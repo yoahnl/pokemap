@@ -70,7 +70,7 @@ void main() {
         ],
       ),
     );
-    await _pump(tester, scene: scene);
+    await _pump(tester, scene: scene, viewport: const Size(765, 556));
 
     final canvas = tester.state<SceneGraphCanvasState>(
       find.byType(SceneGraphCanvas),
@@ -91,6 +91,35 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('scene-graph-show-all')));
     await tester.pump();
     expect(canvas.camera!.scale, lessThan(originalScale));
+    final viewport = tester.getRect(
+      find.byKey(const ValueKey('scene-graph-canvas')),
+    );
+    for (final id in ['start', 'end']) {
+      final card = tester.getRect(find.byKey(ValueKey('scene-graph-card-$id')));
+      expect(viewport.contains(card.topLeft), isTrue, reason: id);
+      expect(viewport.contains(card.bottomRight), isTrue, reason: id);
+    }
+    final overviewScale = canvas.camera!.scale;
+    await tester.tap(find.byKey(const ValueKey('scene-graph-zoom-out')));
+    await tester.pump();
+    expect(canvas.camera!.scale, overviewScale);
+    await tester.tap(find.byKey(const ValueKey('scene-graph-zoom-in')));
+    await tester.pump();
+    expect(canvas.camera!.scale, greaterThan(overviewScale));
+    canvas.show('end');
+    await tester.pump();
+    expect(canvas.camera!.scale, greaterThan(.6));
+    final map = tester.getRect(
+      find.byKey(const ValueKey('scene-graph-minimap')),
+    );
+    await tester.tapAt(map.centerLeft + const Offset(8, -20));
+    await tester.pump();
+    expect(
+      viewport.contains(
+        tester.getCenter(find.byKey(const ValueKey('scene-graph-card-start'))),
+      ),
+      isTrue,
+    );
     expect(tester.takeException(), isNull);
   });
 }
@@ -100,8 +129,9 @@ Future<void> _pump(
   required SceneAsset scene,
   ProjectManifest? project,
   double textScale = 1,
+  Size viewport = const Size(1280, 720),
 }) async {
-  tester.view.physicalSize = const Size(1280, 720);
+  tester.view.physicalSize = viewport;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(

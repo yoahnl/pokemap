@@ -1,17 +1,24 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
+import 'package:avelune_studio/features/dialogues/application/dialogue_choice_preview.dart';
+import 'package:avelune_studio/features/dialogues/domain/dialogue_catalog_port.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/story_draft/domain/story_dialogue_source.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_canvas.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_inspector.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_outline.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_sidebar.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/scene_focus_side.dart';
+import 'package:avelune_studio/presentation/features/story/story_dialogue_link.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
+
+part 'scene_focus_dialogues.dart';
 
 class SceneFocusWorkspace extends StatefulWidget {
   const SceneFocusWorkspace({
@@ -38,12 +45,16 @@ class SceneFocusWorkspace extends StatefulWidget {
   State<SceneFocusWorkspace> createState() => _SceneFocusWorkspaceState();
 }
 
-class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
+class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace>
+    with _SceneFocusDialogues {
   final _canvas = GlobalKey<SceneGraphCanvasState>();
+  final _outlineSearch = TextEditingController();
+  final _outlineFocus = FocusNode(debugLabel: 'scene-outline-search');
   Set<String> _selection = const {};
   SceneAsset? _checked;
   late SceneGraphChecks _checks;
   var _active = false;
+  var _initialFocusPlaced = false;
   var _palette = false;
   List<NarrativeTitle>? _facts;
   Map<String, String> _factNames = const {};
@@ -54,7 +65,15 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
     final active = TickerMode.valuesOf(context).enabled;
     if (active && !_active) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _active) _canvas.currentState?.requestFocus();
+        if (!mounted || !_active) return;
+        if ((_initialFocusPlaced, widget.focus.initialNodeId) case (
+          false,
+          final id?,
+        )) {
+          _initialFocusPlaced = true;
+          _canvas.currentState?.show(id);
+        }
+        _canvas.currentState?.requestFocus();
       });
     }
     _active = active;
@@ -92,6 +111,18 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
     setState(() => _palette = value);
   }
 
+  void _findStep() {
+    _setPalette(false);
+    _outlineFocus.requestFocus();
+  }
+
+  @override
+  void dispose() {
+    _outlineSearch.dispose();
+    _outlineFocus.dispose();
+    super.dispose();
+  }
+
   void _editStep(SceneNode node) {
     switch (editSceneGraphStep(widget.scene, node)) {
       case SceneGraphEdited(:final scene):
@@ -108,7 +139,15 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FutureBuilder<DialogueCatalogLanguages>(
+    future: _languages,
+    builder: (context, snapshot) => _buildGraph(
+      context,
+      _dialoguePreview(snapshot.data ?? const DialogueCatalogLanguages()),
+    ),
+  );
+
+  Widget _buildGraph(BuildContext context, _SceneDialoguePreview dialogues) {
     final focus = widget.focus;
     final scene = widget.scene;
     final checks = _currentChecks;
@@ -137,6 +176,27 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
                   style: theme.textTheme.labelMedium,
                 ),
               ),
+              if (dialogues.options.length > 1) ...[
+                SizedBox(
+                  width: 160,
+                  child: StudioSelect(
+                    key: const ValueKey('scene-graph-preview-language'),
+                    label: l10n.dialogueCatalogPreviewLanguage,
+                    value: dialogues.language,
+                    options: dialogues.options,
+                    onChanged: (value) => setState(() => _language = value),
+                    compact: true,
+                  ),
+                ),
+                const SizedBox(width: StudioSpacing.s),
+              ],
+              if (dialogues.fallbackLocales.isNotEmpty)
+                StudioBadge(
+                  l10n.dialogueCatalogFallback(
+                    dialogues.fallbackLocales.join(', ').toUpperCase(),
+                  ),
+                  tone: StudioTone.warning,
+                ),
               StudioButton(
                 key: const ValueKey('scene-graph-open-palette'),
                 label: l10n.sceneGraphSearch,
@@ -156,13 +216,19 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
                 SizedBox(
                   width: SceneFocusWorkspace.outlineWidth,
                   child: SceneGraphSidebar(
-                    scene: scene,
+                    outline: SceneGraphOutline(
+                      scene: scene,
+                      selection: _selection,
+                      dialogues: dialogues.entries,
+                      factNames: _currentFactNames,
+                      search: _outlineSearch,
+                      searchFocus: _outlineFocus,
+                      onShow: _showStep,
+                    ),
                     project: widget.project,
                     map: widget.map,
-                    selection: _selection,
                     palette: _palette,
                     onTab: _setPalette,
-                    onShow: _showStep,
                     onAdd: _editable
                         ? (template) =>
                               _canvas.currentState?.addFromPalette(template)
@@ -181,16 +247,13 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
                       checks: checks,
                       pathNodeIds: focus.path?.nodeIds ?? const [],
                       pathChoices: focus.choices,
-                      dialogues: {
-                        for (final dialogue
-                            in focus.document.value?.dialogues ??
-                                const <StoryDialogueSource>[])
-                          dialogue.id: dialogue.entry,
-                      },
+                      dialogues: dialogues.entries,
+                      choiceLabels: dialogues.labels,
                       factNames: _currentFactNames,
                       onChanged: _editable ? focus.edit : null,
                       onSelectionChanged: (ids) =>
                           setState(() => _selection = ids),
+                      onFind: _findStep,
                       preparing: focus.draft.preparing,
                     ),
                   ),
@@ -209,6 +272,8 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
                           .toDouble(),
                   child: SceneFocusSide(
                     focus: focus,
+                    dialogues: dialogues.entries,
+                    choiceLabels: dialogues.labels,
                     onOpenBehaviour: widget.onOpenBehaviour,
                     leading: SceneGraphInspector(
                       scene: scene,
@@ -219,6 +284,7 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace> {
                       editable: _editable,
                       onEdit: _editStep,
                       onShow: _showStep,
+                      dialogueLanguage: dialogues.language,
                     ),
                   ),
                 ),

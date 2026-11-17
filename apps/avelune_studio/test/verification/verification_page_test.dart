@@ -47,6 +47,8 @@ void main() {
   testWidgets('a scene diagnostic opens the scene without choosing a carrier', (
     tester,
   ) async {
+    final scene = trameProject.scenes.last;
+    final nodeId = scene.graph.nodes.last.id;
     final port = FakeVerificationPort(
       diagnostics: [
         verificationDiagnostic(
@@ -54,11 +56,17 @@ void main() {
           NarrativeProjectDiagnosticDestination.scene,
           sceneId: 'gate',
         ),
+        verificationDiagnostic(
+          'node',
+          NarrativeProjectDiagnosticDestination.scene,
+          sceneId: 'gate',
+          path: 'scenes.gate.node.$nodeId',
+        ),
       ],
     );
     final index = memoryIndex()
       ..documents['gate'] = SceneDocument(
-        scene: trameProject.scenes.last,
+        scene: scene,
         dialogues: const [],
         missingDialogueIds: const [],
         events: [trameRecords.last],
@@ -79,6 +87,15 @@ void main() {
     expect(
       find.byKey(const ValueKey('map-story-inspector-map:a')),
       findsNothing,
+    );
+    expect(find.byKey(const ValueKey('scene-graph-checks')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('scene-focus-close')));
+    await settleMemory(tester);
+    await tester.tap(find.byKey(const ValueKey('verification-open-1')));
+    await settleMemory(tester);
+    expect(
+      find.byKey(ValueKey('scene-graph-inspector-$nodeId')),
+      findsOneWidget,
     );
   });
 

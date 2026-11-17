@@ -63,7 +63,10 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
         return;
       }
     }
-    final additive = keyboard.isShiftPressed;
+    final additive =
+        keyboard.isShiftPressed ||
+        keyboard.isMetaPressed ||
+        keyboard.isControlPressed;
     final hit = sceneGraphCardAt(_view, world);
     if (hit != null) {
       final keep = !additive && _selected.contains(hit.id);
@@ -168,7 +171,18 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
           event is PointerUpEvent &&
           _editable &&
           camera != null) {
-        _openMenu(event.localPosition, null);
+        final world = camera.value.toWorld(event.localPosition);
+        final exit = sceneGraphExitAt(
+          _view,
+          world,
+          SceneGraphCanvasState._portReach / camera.value.scale,
+        );
+        final card = sceneGraphCardAt(_view, world);
+        final id = exit?.nodeId ?? card?.id;
+        if (id != null && !_selected.contains(id)) {
+          _mutate(() => _selected = {id});
+        }
+        _openMenu(event.localPosition, exit);
       }
     }
     final wire = _wire;
@@ -203,8 +217,20 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
   KeyEventResult _key(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.escape && _wire != null) {
-      _mutate(() => _wire = null);
+    if (key == LogicalKeyboardKey.escape && (_wire != null || _drag != null)) {
+      _mutate(() {
+        _wire = null;
+        _drag = null;
+        _moved = const {};
+      });
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.home) {
+      showAll();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.f7) {
+      _mutate(() => _selected = const {});
       return KeyEventResult.handled;
     }
     if ((key == LogicalKeyboardKey.delete ||
@@ -219,6 +245,14 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
         HardwareKeyboard.instance.isControlPressed;
     if (!command || HardwareKeyboard.instance.isShiftPressed) {
       return KeyEventResult.ignored;
+    }
+    if (key == LogicalKeyboardKey.keyA) {
+      _mutate(() => _selected = _view.cards.map((card) => card.id).toSet());
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.keyF && widget.onFind != null) {
+      widget.onFind!();
+      return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.keyC && _selected.isNotEmpty) {
       _copy();
@@ -252,6 +286,7 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
               math.exp(
                 -event.scrollDelta.dy * SceneGraphCanvasState._wheelZoomRate,
               ),
+              minimum: _minimumZoom,
             );
     });
   }
@@ -263,7 +298,7 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
     _pinchScale = event.scale;
     camera.value = camera.value
         .panBy(event.localPanDelta)
-        .zoomAt(event.localPosition, factor);
+        .zoomAt(event.localPosition, factor, minimum: _minimumZoom);
   }
 
   SceneGraphPoint _snapped(Offset world) {

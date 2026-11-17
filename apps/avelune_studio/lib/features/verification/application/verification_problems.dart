@@ -11,6 +11,7 @@ final class VerificationProblem {
     this.mapId,
     this.eventId,
     this.sceneId,
+    this.sceneNodeId,
     this.stepId,
     this.factId,
     this.worldRuleId,
@@ -23,6 +24,7 @@ final class VerificationProblem {
   final String? mapId;
   final String? eventId;
   final String? sceneId;
+  final String? sceneNodeId;
   final String? stepId;
   final String? factId;
   final String? worldRuleId;
@@ -49,6 +51,7 @@ List<VerificationProblem> verificationProblems(
         mapId: item.mapId,
         eventId: item.eventId,
         sceneId: item.sceneId,
+        sceneNodeId: _sceneNodeId(item),
         stepId: item.stepId,
         factId: item.factId,
         worldRuleId: item.worldRuleId,
@@ -70,4 +73,17 @@ List<VerificationProblem> verificationProblems(
     for (final severity in VerificationProblemSeverity.values)
       ...problems.where((problem) => problem.severity == severity),
   ];
+}
+
+String? _sceneNodeId(NarrativeProjectDiagnostic diagnostic) {
+  final id = diagnostic.sceneId;
+  if (id == null) return null;
+  for (final target in ['node', 'nodes']) {
+    final prefix = 'scenes.$id.$target.';
+    if (diagnostic.path.startsWith(prefix) &&
+        diagnostic.path.length > prefix.length) {
+      return diagnostic.path.substring(prefix.length);
+    }
+  }
+  return null;
 }

@@ -27,8 +27,10 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   final _storyOrigins = <_StoryOrigin>[];
   var _storyNavigation = 0;
   ({String? eventId})? _storyNavigationProblem;
-  ({String id, int token})? _dialogueRequest;
+  ({String id, String? language, int token})? _dialogueRequest;
   ({String? id, String mapId, int token})? _behaviourRequest;
+  StorySection _storySection = StorySection.trame;
+  ({StorySection section, int token})? _storySectionRequest;
 
   SceneFocusController? get _activeScene => _sceneShown ? _sceneFocus : null;
   late final _projection = WorkspaceVisualProjectionQueue(
@@ -315,7 +317,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       body: _keyboard(
         StoryDialogueNavigation(
           open: _openDialogue,
+          openWithLanguage: _openDialogue,
           loadLanguages: _stories.dialogues?.languages,
+          currentSource: _currentDialogue,
           child: _layout(
             onToggleInspector: () =>
                 setState(() => _inspectorOpen = !_inspectorOpen),

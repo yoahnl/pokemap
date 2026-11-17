@@ -5,6 +5,7 @@ extension _MapBuilderPageScene on _MapBuilderPageState {
     String sceneId,
     String? behaviourId, {
     bool replace = false,
+    String? nodeId,
   }) async {
     await _commitTyping();
     if (_disposed) return;
@@ -17,6 +18,7 @@ extension _MapBuilderPageScene on _MapBuilderPageState {
       source: () => _stories.behaviours,
       sceneId: sceneId,
       behaviourId: behaviourId,
+      initialNodeId: nodeId,
       documentLoader: _stories.scenes?.readDocument,
       changed: _changed,
     );

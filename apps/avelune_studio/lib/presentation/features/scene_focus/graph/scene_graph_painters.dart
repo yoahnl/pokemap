@@ -32,9 +32,14 @@ class SceneGraphGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final step = spacing * camera.scale;
+    if (step <= 0 || !step.isFinite) return;
     final paint = Paint()..strokeWidth = 1;
     if (step >= 6) _lines(canvas, size, step, paint..color = minor);
-    _lines(canvas, size, step * majorEvery, paint..color = major);
+    var majorStep = step * majorEvery;
+    while (majorStep < 10) {
+      majorStep *= majorEvery;
+    }
+    _lines(canvas, size, majorStep, paint..color = major);
   }
 
   void _lines(Canvas canvas, Size size, double step, Paint paint) {

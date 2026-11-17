@@ -48,9 +48,19 @@ extension _StoryPageNavigation on _StoryPageState {
         id != null && behaviours.available(id)
         ? () => unawaited(behaviours.open(id))
         : null;
-    VoidCallback? scene(String? id) => id == null || widget.openScene == null
-        ? null
-        : () => widget.openScene!(id, null);
+    VoidCallback? scene(String? id) {
+      if (id == null) return null;
+      if ((problem.sceneNodeId, widget.openSceneNode) case (
+        final nodeId?,
+        final open?,
+      )) {
+        return () => open(id, nodeId);
+      }
+      return widget.openScene == null
+          ? null
+          : () => widget.openScene!(id, null);
+    }
+
     VoidCallback? step(String? id) {
       final trame = widget.trame;
       if (id == null || trame?.view?.milestone(id) == null) return null;

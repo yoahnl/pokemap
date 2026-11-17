@@ -7,9 +7,11 @@ import 'package:avelune_studio/features/dialogues/domain/dialogue_catalog_port.d
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
 import 'package:avelune_studio/app/di/presentation_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
+import 'package:avelune_studio/app/di/story_draft_providers.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/storyline/domain/storyline_read_port.dart';
+import 'package:avelune_studio/features/story_draft/application/story_saved_dialogues.dart';
 import 'package:avelune_studio/features/verification/domain/verification_port.dart';
 import 'package:avelune_studio/features/world/domain/world_port.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
@@ -130,6 +132,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   StorylineReadPort? storylines,
   VerificationPort? verification,
   DialogueCatalogPort? dialogueCatalog,
+  StoryDialogueLoader? loadDialogue,
   ValueNotifier<Locale>? locale,
   Map<String, MapData> initialMaps = const {},
   StudioGameExportPort? exportPort,
@@ -170,6 +173,8 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
       narrativeIndexPortProvider(opened).overrideWithValue(index),
       if (dialogueCatalog != null)
         dialogueCatalogPortProvider(opened).overrideWithValue(dialogueCatalog),
+      if (loadDialogue != null)
+        storyDialogueLoaderProvider(opened).overrideWithValue(loadDialogue),
       if (storylines != null)
         storylineReadPortProvider(opened).overrideWithValue(storylines),
       if (verification != null)

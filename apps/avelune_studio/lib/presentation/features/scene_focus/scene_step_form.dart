@@ -17,6 +17,7 @@ class SceneStepForm extends StatelessWidget {
     required this.node,
     required this.enabled,
     required this.onEdit,
+    this.dialogueLanguage,
   });
 
   final SceneAsset scene;
@@ -25,6 +26,7 @@ class SceneStepForm extends StatelessWidget {
   final SceneNode node;
   final bool enabled;
   final ValueChanged<SceneNode> onEdit;
+  final String? dialogueLanguage;
 
   static bool covers(SceneNode node) => switch (node.payload) {
     SceneActionPayload(consequence: final SceneSetFactConsequence fact) =>

@@ -173,9 +173,13 @@ class _DialogueView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SceneStepCaption(steps.l10n.storyStepDialogue),
-        Text(dialogue?.name ?? payload.dialogueId),
+        Text(dialogue?.name ?? steps.l10n.sceneGraphMissing),
         const SizedBox(height: StudioSpacing.s),
-        StoryDialogueLink(id: payload.dialogueId),
+        StoryDialogueLink(
+          id: payload.dialogueId,
+          label: steps.l10n.dialogueEditorOpen,
+          language: steps.widget.dialogueLanguage,
+        ),
         if (payload.speakerHints.isNotEmpty) ...[
           const SizedBox(height: StudioSpacing.xs),
           SceneStepCaption(steps.l10n.storyStepSpeaker),

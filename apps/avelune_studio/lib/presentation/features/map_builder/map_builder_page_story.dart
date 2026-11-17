@@ -39,6 +39,8 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       dialogueStaging: _stories.memory,
       dialogueRequest: _dialogueRequest,
       behaviourRequest: _behaviourRequest,
+      sectionRequest: _storySectionRequest,
+      onSectionChanged: (section) => _storySection = section,
       openMap: () {
         _rememberStoryOrigin();
         _setSection(StudioRailSection.map, navigation: true);
@@ -54,6 +56,8 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
         _ => null,
       },
       openScene: _openScene,
+      openSceneNode: (sceneId, nodeId) =>
+          unawaited(_openScene(sceneId, null, nodeId: nodeId)),
       beforeNavigation: _commitTyping,
       navigationState: () => (_storyNavigation, _section, _sceneShown),
       onHistoryScopeChanged: (scope) {
@@ -87,13 +91,20 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     return _maps.project;
   }
 
-  Future<void> _openDialogue(String id) async {
+  Future<void> _openDialogue(String id, [String? language]) async {
     await _commitTyping();
     if (!mounted || _disposed) return;
     _rememberStoryOrigin();
     _setSection(StudioRailSection.story, navigation: true);
-    _dialogueRequest = (id: id, token: ++_storyNavigation);
+    _dialogueRequest = (id: id, language: language, token: ++_storyNavigation);
     _changed();
+  }
+
+  StoryDialogueSource? _currentDialogue(String id, StoryDialogueSource? saved) {
+    final behaviours = _story.behaviours;
+    return behaviours.draft.isTouched(StoryDraftKind.dialogue, id)
+        ? behaviours.draft.currentOf(StoryDraftKind.dialogue, id)
+        : behaviours.dialogues[id] ?? saved;
   }
 
   Future<void> _openTriggerInStory(String? id) async {

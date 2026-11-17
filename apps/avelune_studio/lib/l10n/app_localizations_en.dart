@@ -3263,6 +3263,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sceneGraphSearch => 'Add a step';
 
   @override
+  String get sceneGraphOutlineSearch => 'Find in scene';
+
+  @override
+  String get sceneGraphKnownFacts => 'Facts used';
+
+  @override
+  String get sceneGraphZoomIn => 'Zoom in';
+
+  @override
+  String get sceneGraphZoomOut => 'Zoom out';
+
+  @override
+  String get sceneGraphNavigationOverview => 'Graph navigation overview';
+
+  @override
   String get sceneGraphOutline => 'My scene';
 
   @override

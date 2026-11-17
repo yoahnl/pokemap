@@ -5196,6 +5196,36 @@ abstract class AppLocalizations {
   /// **'Ajouter une étape'**
   String get sceneGraphSearch;
 
+  /// No description provided for @sceneGraphOutlineSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher'**
+  String get sceneGraphOutlineSearch;
+
+  /// No description provided for @sceneGraphKnownFacts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Faits utilisés'**
+  String get sceneGraphKnownFacts;
+
+  /// No description provided for @sceneGraphZoomIn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Agrandir'**
+  String get sceneGraphZoomIn;
+
+  /// No description provided for @sceneGraphZoomOut.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réduire'**
+  String get sceneGraphZoomOut;
+
+  /// No description provided for @sceneGraphNavigationOverview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aperçu de navigation du graphe'**
+  String get sceneGraphNavigationOverview;
+
   /// No description provided for @sceneGraphOutline.
   ///
   /// In fr, this message translates to:

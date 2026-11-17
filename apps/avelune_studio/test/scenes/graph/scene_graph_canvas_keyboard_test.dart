@@ -6,6 +6,29 @@ import 'package:map_core/map_core_domain.dart';
 import 'scene_graph_canvas_harness.dart';
 
 void main() {
+  for (final modifier in [
+    LogicalKeyboardKey.metaLeft,
+    LogicalKeyboardKey.controlLeft,
+  ]) {
+    testWidgets('${modifier.keyLabel} selects all from the keyboard', (
+      tester,
+    ) async {
+      final host = await pumpGraph(tester);
+      await tester.pump();
+      await tester.sendKeyDownEvent(modifier);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+      await tester.sendKeyUpEvent(modifier);
+      await tester.pump();
+      expect(graphCanvas.currentState!.selection, {
+        'start',
+        'check',
+        'wait',
+        'end',
+      });
+      expect(host.edits, 0);
+    });
+  }
+
   testWidgets('⌘C then ⌘V pastes under the mouse, ⌘D duplicates beside, '
       '⌘X cuts', (tester) async {
     final host = await pumpGraph(tester);

@@ -10,12 +10,14 @@ class SceneGraphToolbar extends StatelessWidget {
     super.key,
     required this.camera,
     required this.onShowAll,
+    required this.onZoom,
     this.editable = false,
     this.preparing = false,
   });
 
   final ValueListenable<SceneGraphCamera> camera;
   final VoidCallback onShowAll;
+  final ValueChanged<double?> onZoom;
   final bool editable;
   final bool preparing;
 
@@ -52,13 +54,26 @@ class SceneGraphToolbar extends StatelessWidget {
               onPressed: onShowAll,
             ),
             const SizedBox(width: StudioSpacing.m),
+            StudioTool(
+              key: const ValueKey('scene-graph-zoom-out'),
+              label: l10n.sceneGraphZoomOut,
+              icon: Icons.remove,
+              onPressed: () => onZoom(1 / 1.2),
+            ),
             ValueListenableBuilder(
               valueListenable: camera,
-              builder: (context, value, _) => Text(
-                l10n.sceneGraphZoom((value.scale * 100).round()),
+              builder: (context, value, _) => StudioButton(
                 key: const ValueKey('scene-graph-zoom'),
-                style: theme.textTheme.labelMedium,
+                label: l10n.sceneGraphZoom((value.scale * 100).round()),
+                variant: StudioButtonVariant.quiet,
+                onPressed: () => onZoom(null),
               ),
+            ),
+            StudioTool(
+              key: const ValueKey('scene-graph-zoom-in'),
+              label: l10n.sceneGraphZoomIn,
+              icon: Icons.add,
+              onPressed: () => onZoom(1.2),
             ),
             if (preparing && !editable) ...[
               const SizedBox(width: StudioSpacing.m),

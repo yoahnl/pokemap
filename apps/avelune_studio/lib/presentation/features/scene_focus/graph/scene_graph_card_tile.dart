@@ -17,6 +17,7 @@ class SceneGraphCardTile extends StatelessWidget {
     required this.onPath,
     this.problem,
     this.dialogue,
+    this.choiceLabels = const {},
     this.detail,
   });
 
@@ -27,6 +28,7 @@ class SceneGraphCardTile extends StatelessWidget {
   final bool onPath;
   final SceneGraphProblemLevel? problem;
   final ProjectDialogueEntry? dialogue;
+  final Map<String, String> choiceLabels;
   final String? detail;
 
   @override
@@ -135,7 +137,12 @@ class SceneGraphCardTile extends StatelessWidget {
                             ),
                             alignment: Alignment.centerRight,
                             child: _line(
-                              sceneGraphPortLabel(l10n, port.id, dialogue),
+                              sceneGraphPortLabel(
+                                l10n,
+                                port.id,
+                                dialogue,
+                                choiceLabels: choiceLabels,
+                              ),
                               theme.textTheme.labelMedium?.copyWith(
                                 color: _portColor(
                                   port,

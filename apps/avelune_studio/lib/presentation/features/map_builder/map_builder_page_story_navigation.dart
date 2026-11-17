@@ -2,6 +2,7 @@ part of 'map_builder_page.dart';
 
 typedef _StoryOrigin = ({
   StudioRailSection section,
+  StorySection? workspace,
   MapBuilderSpace space,
   SceneFocusController? scene,
   String? mapId,
@@ -19,6 +20,7 @@ extension _MapBuilderStoryNavigation on _MapBuilderPageState {
   void _rememberStoryOrigin() {
     final origin = (
       section: _section,
+      workspace: _section == StudioRailSection.story ? _storySection : null,
       space: _space,
       scene: _activeScene,
       mapId: _maps.active?.base.mapId,
@@ -56,6 +58,10 @@ extension _MapBuilderStoryNavigation on _MapBuilderPageState {
       return;
     }
     _section = origin.section;
+    _dialogueRequest = null;
+    if (origin.workspace case final section?) {
+      _storySectionRequest = (section: section, token: navigation);
+    }
     _setSpace(origin.space);
     _story.restoreSelection(origin.element, origin.selection);
     _story

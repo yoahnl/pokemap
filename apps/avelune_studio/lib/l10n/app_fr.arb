@@ -1754,6 +1754,11 @@
     }
   },
   "sceneGraphSearch": "Ajouter une étape",
+  "sceneGraphOutlineSearch": "Rechercher",
+  "sceneGraphKnownFacts": "Faits utilisés",
+  "sceneGraphZoomIn": "Agrandir",
+  "sceneGraphZoomOut": "Réduire",
+  "sceneGraphNavigationOverview": "Aperçu de navigation du graphe",
   "sceneGraphOutline": "Ma scène",
   "sceneGraphPalette": "Palette",
   "sceneGraphHelp": "Aide du graphe",

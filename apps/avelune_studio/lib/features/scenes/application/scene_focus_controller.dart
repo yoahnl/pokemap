@@ -44,6 +44,7 @@ final class SceneFocusController {
     required this.sceneId,
     required this.changed,
     this.behaviourId,
+    this.initialNodeId,
     this.documentLoader,
   });
 
@@ -52,6 +53,7 @@ final class SceneFocusController {
   final GameBehaviourSource Function() source;
   final String sceneId;
   final String? behaviourId;
+  final String? initialNodeId;
   final Future<SceneDocument> Function(String sceneId)? documentLoader;
   final void Function() changed;
   final document = GameMemoryResource<SceneDocument>();

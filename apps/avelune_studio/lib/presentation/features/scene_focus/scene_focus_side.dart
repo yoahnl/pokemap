@@ -10,6 +10,7 @@ import 'package:avelune_studio/features/scenes/application/scene_path_preview.da
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_families.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_ports.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_labels.dart';
 import 'package:avelune_studio/presentation/features/story/game_behaviour_labels.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
@@ -19,11 +20,15 @@ class SceneFocusSide extends StatelessWidget {
     required this.focus,
     this.leading,
     this.onOpenBehaviour,
+    this.dialogues = const {},
+    this.choiceLabels = const {},
   });
 
   final SceneFocusController focus;
   final Widget? leading;
   final Future<bool> Function(String eventId)? onOpenBehaviour;
+  final Map<String, ProjectDialogueEntry> dialogues;
+  final Map<String, Map<String, String>> choiceLabels;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +42,13 @@ class SceneFocusSide extends StatelessWidget {
       key: const ValueKey('scene-focus-side'),
       padding: const EdgeInsets.all(StudioSpacing.l),
       children: [
-        if (path != null) _PathSection(focus: focus, path: path),
+        if (path != null)
+          _PathSection(
+            focus: focus,
+            path: path,
+            dialogues: dialogues,
+            choiceLabels: choiceLabels,
+          ),
         ?leading,
         StudioSection(
           title: l10n.sceneFocusLaunchedBy,
@@ -113,10 +124,17 @@ class SceneFocusSide extends StatelessWidget {
 }
 
 class _PathSection extends StatelessWidget {
-  const _PathSection({required this.focus, required this.path});
+  const _PathSection({
+    required this.focus,
+    required this.path,
+    required this.dialogues,
+    required this.choiceLabels,
+  });
 
   final SceneFocusController focus;
   final ScenePath path;
+  final Map<String, ProjectDialogueEntry> dialogues;
+  final Map<String, Map<String, String>> choiceLabels;
 
   @override
   Widget build(BuildContext context) {
@@ -192,11 +210,17 @@ class _PathSection extends StatelessWidget {
   }
 
   String _exit(AppLocalizations l10n, SceneNode? node, String port) =>
-      switch (port) {
-        'true' => l10n.storyStepThen,
-        'false' => l10n.storyStepElse,
+      switch ((node?.payload, port)) {
+        (SceneYarnDialoguePayload(:final dialogueId), _) => sceneGraphPortLabel(
+          l10n,
+          port,
+          dialogues[dialogueId],
+          choiceLabels: choiceLabels[dialogueId] ?? const {},
+        ),
+        (_, 'true') => l10n.storyStepThen,
+        (_, 'false') => l10n.storyStepElse,
         _ when node != null && sceneStepMainPortOf(node) == port =>
           l10n.storyStepMain,
-        _ => l10n.storyStepFailureReason(port),
+        _ => l10n.sceneGraphPort(port),
       };
 }

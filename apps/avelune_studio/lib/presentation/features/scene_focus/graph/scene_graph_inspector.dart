@@ -52,6 +52,7 @@ class SceneGraphInspector extends StatelessWidget {
     required this.editable,
     required this.onEdit,
     required this.onShow,
+    this.dialogueLanguage,
   });
 
   final SceneAsset scene;
@@ -62,6 +63,7 @@ class SceneGraphInspector extends StatelessWidget {
   final bool editable;
   final ValueChanged<SceneNode> onEdit;
   final ValueChanged<String> onShow;
+  final String? dialogueLanguage;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +96,7 @@ class SceneGraphInspector extends StatelessWidget {
               node: node,
               enabled: editable,
               onEdit: onEdit,
+              dialogueLanguage: dialogueLanguage,
             )
           else if (!_plainKinds.contains(node.kind)) ...[
             Text(l10n.storyStepAdvanced),
