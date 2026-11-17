@@ -3670,7 +3670,7 @@ abstract class AppLocalizations {
   /// No description provided for @memorySectionFacts.
   ///
   /// In fr, this message translates to:
-  /// **'États'**
+  /// **'Faits'**
   String get memorySectionFacts;
 
   /// No description provided for @memorySectionRules.
@@ -3682,31 +3682,31 @@ abstract class AppLocalizations {
   /// No description provided for @memorySearchFacts.
   ///
   /// In fr, this message translates to:
-  /// **'Rechercher un état'**
+  /// **'Rechercher un fait'**
   String get memorySearchFacts;
 
   /// No description provided for @memoryFilterNeverRead.
   ///
   /// In fr, this message translates to:
-  /// **'Jamais lu'**
+  /// **'Sans lecture connue'**
   String get memoryFilterNeverRead;
 
   /// No description provided for @memoryFilterNeverWritten.
   ///
   /// In fr, this message translates to:
-  /// **'Jamais écrit'**
+  /// **'Sans modification connue'**
   String get memoryFilterNeverWritten;
 
   /// No description provided for @memoryNewFact.
   ///
   /// In fr, this message translates to:
-  /// **'Nouvel état'**
+  /// **'Nouveau fait'**
   String get memoryNewFact;
 
   /// No description provided for @memoryFactsLoading.
   ///
   /// In fr, this message translates to:
-  /// **'Lecture des états…'**
+  /// **'Lecture des faits…'**
   String get memoryFactsLoading;
 
   /// No description provided for @memoryUsagesLoading.
@@ -3718,19 +3718,19 @@ abstract class AppLocalizations {
   /// No description provided for @memoryFactsEmpty.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun état pour l’instant'**
+  /// **'Aucun fait pour l’instant'**
   String get memoryFactsEmpty;
 
   /// No description provided for @memoryFactsEmptyHint.
   ///
   /// In fr, this message translates to:
-  /// **'Un état retient ce qui s’est passé dans la partie : une rencontre, une clé trouvée, un compteur…'**
+  /// **'Un fait retient ce qui s’est passé dans la partie : une rencontre, une clé trouvée, un compteur…'**
   String get memoryFactsEmptyHint;
 
   /// No description provided for @memoryFactsNoMatch.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun état ne correspond'**
+  /// **'Aucun fait ne correspond'**
   String get memoryFactsNoMatch;
 
   /// No description provided for @memoryFactsNoMatchHint.
@@ -3832,14 +3832,26 @@ abstract class AppLocalizations {
   /// No description provided for @memoryFactStart.
   ///
   /// In fr, this message translates to:
-  /// **'Valeur de départ'**
+  /// **'Valeur initiale du projet'**
   String get memoryFactStart;
 
   /// No description provided for @memoryKindLocked.
   ///
   /// In fr, this message translates to:
-  /// **'Le type et la valeur de départ ne se changent pas encore ici : il faudrait d’abord vérifier tout ce qui utilise cet état.'**
+  /// **'Le type et la valeur initiale sont conservés : leur modification demande de vérifier les usages de ce fait.'**
   String get memoryKindLocked;
+
+  /// No description provided for @memorySimulationHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette valeur initialise une nouvelle partie. Les valeurs de simulation sont temporaires ; modifier le projet ne réécrit pas les sauvegardes Player.'**
+  String get memorySimulationHint;
+
+  /// No description provided for @memoryCreatedNameLocked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrez ce fait avant de le renommer : son identifiant restera ainsi stable.'**
+  String get memoryCreatedNameLocked;
 
   /// No description provided for @memoryDelete.
   ///
@@ -3850,20 +3862,56 @@ abstract class AppLocalizations {
   /// No description provided for @memoryDeleteRefused.
   ///
   /// In fr, this message translates to:
-  /// **'Suppression refusée : un état enregistré ne peut pas encore être supprimé dans ce projet. Ce qui l’utilise est listé ci-dessous.'**
+  /// **'Un fait enregistré ne peut pas être supprimé ici. Les usages identifiés sont listés ci-dessous et la couverture peut être partielle.'**
   String get memoryDeleteRefused;
 
   /// No description provided for @memoryDiscard.
   ///
   /// In fr, this message translates to:
-  /// **'Retirer cet état non enregistré'**
+  /// **'Retirer ce fait non enregistré'**
   String get memoryDiscard;
 
   /// No description provided for @memoryCreatedUnused.
   ///
   /// In fr, this message translates to:
-  /// **'Cet état n’est pas encore enregistré : rien ne l’utilise encore.'**
+  /// **'Ce fait existe dans le brouillon. Ses usages identifiés sont affichés ci-dessous.'**
   String get memoryCreatedUnused;
+
+  /// No description provided for @memoryDiscardInUse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce fait ne peut pas être retiré : des usages sont identifiés ou leur analyse n’est pas disponible. Vérifiez les usages ci-dessous.'**
+  String get memoryDiscardInUse;
+
+  /// No description provided for @memoryUsagesTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Où est-ce utilisé ?'**
+  String get memoryUsagesTitle;
+
+  /// No description provided for @memoryUsageCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun usage identifié} =1{1 usage identifié} other{{count} usages identifiés}}'**
+  String memoryUsageCount(int count);
+
+  /// No description provided for @memoryChooseUsage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quel jalon ouvrir ?'**
+  String get memoryChooseUsage;
+
+  /// No description provided for @memoryCitedBy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Référencé par'**
+  String get memoryCitedBy;
+
+  /// No description provided for @memoryCitedHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ces références sont conservées ; elles ne signifient pas que le moteur exécute ces effets.'**
+  String get memoryCitedHint;
 
   /// No description provided for @memoryWrittenBy.
   ///
@@ -3880,19 +3928,19 @@ abstract class AppLocalizations {
   /// No description provided for @memoryNobodyWrites.
   ///
   /// In fr, this message translates to:
-  /// **'Rien ne le modifie d’après l’index.'**
+  /// **'Aucune modification identifiée.'**
   String get memoryNobodyWrites;
 
   /// No description provided for @memoryNobodyReads.
   ///
   /// In fr, this message translates to:
-  /// **'Rien ne le lit d’après l’index.'**
+  /// **'Aucune lecture identifiée.'**
   String get memoryNobodyReads;
 
   /// No description provided for @memoryOwnerKind.
   ///
   /// In fr, this message translates to:
-  /// **'{kind, select, scene{Scène} worldRule{Règle du monde} storyline{Trame} cinematic{Cinématique} event{Comportement} other{Élément}}'**
+  /// **'{kind, select, scene{Scène} worldRule{Règle du monde} storyline{Trame} cinematic{Cinématique} event{Déclencheur} dialogue{Document de dialogue} other{Élément}}'**
   String memoryOwnerKind(String kind);
 
   /// No description provided for @memoryOwnerUnnamed.
@@ -3916,19 +3964,19 @@ abstract class AppLocalizations {
   /// No description provided for @memoryCoverageSource.
   ///
   /// In fr, this message translates to:
-  /// **'{source, select, maps{les cartes (événements, personnages et décors posés dessus)} mapAppearanceVariants{les variantes d’apparence des cartes} decorationVisibilityConditions{les conditions d’affichage des décors} dialogueTextFacts{les états cités dans le texte des dialogues} dialogueDefinitions{les dialogues} presentationCinematics{les cinématiques de présentation} legacyFlagAliasesUnderAliasId{les anciens noms d’interrupteurs} legacyEventClaims{les anciens événements} legacyScenarios{les anciens scénarios} projectSettings{les réglages du projet} other{d’autres sources}}'**
+  /// **'{source, select, maps{les cartes (événements, personnages et décors posés dessus)} mapAppearanceVariants{les variantes d’apparence des cartes} decorationVisibilityConditions{les conditions d’affichage des décors} dialogueTextFacts{les faits cités dans le texte des dialogues} dialogueDefinitions{les dialogues enregistrés non analysés} narrativeUsages{les usages enregistrés en attente de lecture} draftAnalysis{les objets du brouillon dont l’analyse a échoué} presentationCinematics{les cinématiques de présentation} legacyFlagAliasesUnderAliasId{les anciens noms d’interrupteurs} legacyEventClaims{les anciens événements} legacyScenarios{les anciens scénarios} projectSettings{les réglages du projet} other{d’autres sources}}'**
   String memoryCoverageSource(String source);
 
   /// No description provided for @memorySelectFact.
   ///
   /// In fr, this message translates to:
-  /// **'Choisissez un état pour voir ce qui le lit et le modifie.'**
+  /// **'Choisissez un fait pour voir ce qui le lit et le modifie.'**
   String get memorySelectFact;
 
   /// No description provided for @memoryCreateFactName.
   ///
   /// In fr, this message translates to:
-  /// **'Nom de l’état'**
+  /// **'Nom du fait'**
   String get memoryCreateFactName;
 
   /// No description provided for @memoryCreate.
@@ -3958,13 +4006,13 @@ abstract class AppLocalizations {
   /// No description provided for @memoryRulesEmptyHint.
   ///
   /// In fr, this message translates to:
-  /// **'Une règle fait apparaître ou disparaître un personnage tant qu’un état a une valeur.'**
+  /// **'Une règle fait apparaître ou disparaître un personnage tant qu’un fait a une valeur.'**
   String get memoryRulesEmptyHint;
 
   /// No description provided for @memoryRuleNeedsFact.
   ///
   /// In fr, this message translates to:
-  /// **'Créez d’abord un état à tester, dans une copie de travail.'**
+  /// **'Créez d’abord un fait à tester, dans une copie de travail.'**
   String get memoryRuleNeedsFact;
 
   /// No description provided for @memoryNewRule.
@@ -4006,7 +4054,7 @@ abstract class AppLocalizations {
   /// No description provided for @memoryRuleFact.
   ///
   /// In fr, this message translates to:
-  /// **'État'**
+  /// **'Fait'**
   String get memoryRuleFact;
 
   /// No description provided for @memoryRuleComparison.
@@ -4102,7 +4150,7 @@ abstract class AppLocalizations {
   /// No description provided for @memoryUnknownFact.
   ///
   /// In fr, this message translates to:
-  /// **'un état introuvable'**
+  /// **'un fait introuvable'**
   String get memoryUnknownFact;
 
   /// No description provided for @memoryConditionWeekday.

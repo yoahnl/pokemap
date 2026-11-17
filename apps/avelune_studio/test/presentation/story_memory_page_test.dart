@@ -93,19 +93,25 @@ void main() {
     expect(
       find.textContaining(
         'Non couvert par l’index : les cartes (événements, personnages et '
-        'décors posés dessus), les dialogues.',
+        'décors posés dessus), les dialogues enregistrés non analysés.',
       ),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('memory-open-scene-gate')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('memory-open-scene-gate')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('memory-open-storyline-main')),
-      findsNothing,
+      findsOneWidget,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('memory-open-worldRule-world_rule_door')),
+    final ruleUsage = find.byKey(
+      const ValueKey('memory-open-worldRule-world_rule_door'),
     );
+    await tester.ensureVisible(ruleUsage);
+    await settleMemory(tester);
+    await tester.tap(ruleUsage);
     await settleMemory(tester);
     expect(
       find.byKey(const ValueKey('memory-rule-editor-world_rule_door')),
@@ -121,7 +127,10 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('story-section-facts')));
     await settleMemory(tester);
-    await tester.tap(find.byKey(ValueKey('memory-open-event-$guideTalk')));
+    final triggerUsage = find.byKey(ValueKey('memory-open-event-$guideTalk'));
+    await tester.ensureVisible(triggerUsage);
+    await settleMemory(tester);
+    await tester.tap(triggerUsage);
     await settleMemory(tester);
     expect(find.byKey(const ValueKey('studio-story')), findsNothing);
     expect(
@@ -188,13 +197,20 @@ void main() {
       'Or',
     );
 
-    await tester.tap(find.byKey(const ValueKey('memory-fact-delete')));
+    expect(
+      tester
+          .widget<StudioButton>(
+            find.byKey(const ValueKey('memory-fact-delete')),
+          )
+          .onPressed,
+      isNull,
+    );
     await settleMemory(tester);
     expect(
       find.byKey(const ValueKey('memory-fact-delete-refused')),
       findsOneWidget,
     );
-    expect(find.text('Rien ne le modifie d’après l’index.'), findsOneWidget);
+    expect(find.text('Aucune modification identifiée.'), findsOneWidget);
   });
 
   testWidgets('a refused save is explained in Histoire', (tester) async {

@@ -127,7 +127,7 @@ void main() {
 
     expect(
       text,
-      'Tant que un état introuvable est vrai, alors un personnage '
+      'Tant que un fait introuvable est vrai, alors un personnage '
       'disparaît.',
     );
     expect(text, isNot(contains('gone')));

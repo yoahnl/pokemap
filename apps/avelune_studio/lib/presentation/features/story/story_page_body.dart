@@ -110,6 +110,7 @@ extension _StoryPageBody on _StoryPageState {
         maps: widget.maps,
         loadMap: widget.loadMap,
         behaviours: widget.behaviours,
+        openUsage: _openMemoryUsage,
         panels: panels,
         section: section == StorySection.facts
             ? GameMemorySection.facts

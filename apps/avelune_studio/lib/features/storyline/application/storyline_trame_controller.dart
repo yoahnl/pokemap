@@ -33,6 +33,7 @@ final class StorylineTrameController {
   final definitions = <String, NarrativeFactDefinition>{};
   String? refusal;
   String? focus;
+  ({String storylineId, String? stepId})? usageFocus;
   Object? _revision;
   (Object?, Object?, Object?, Object?, StorylineTrameView)? _view;
 

@@ -71,7 +71,7 @@ void main() {
   );
 
   testWidgets(
-    'a renamed created fact keeps a usable selection across undo and redo',
+    'a created fact keeps its name and a usable selection across undo and redo',
     (tester) async {
       await openMemoryStudio(tester, memoryIndex());
       await openHistoire(tester);
@@ -89,17 +89,20 @@ void main() {
         matching: find.byType(TextField),
       );
       expect(field, findsOneWidget);
-      await tester.enterText(field, 'Nouveau');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await settleMemory(tester);
+      expect(tester.widget<TextField>(field).enabled, isFalse);
+      expect(
+        find.textContaining('Enregistrez ce fait avant de le renommer'),
+        findsOneWidget,
+      );
       await tester.tap(find.widgetWithIcon(IconButton, Icons.undo).first);
       await settleMemory(tester);
-      expect(tester.widget<TextField>(field).controller!.text, 'Ancien');
+      expect(
+        find.byKey(const ValueKey('memory-fact-unavailable')),
+        findsOneWidget,
+      );
       await tester.tap(find.widgetWithIcon(IconButton, Icons.redo).first);
       await settleMemory(tester);
-      expect(tester.widget<TextField>(field).controller!.text, 'Nouveau');
-      await tester.tap(find.widgetWithIcon(IconButton, Icons.undo).first);
-      await settleMemory(tester);
+      expect(tester.widget<TextField>(field).controller!.text, 'Ancien');
       await tester.tap(find.widgetWithIcon(IconButton, Icons.undo).first);
       await settleMemory(tester);
       expect(

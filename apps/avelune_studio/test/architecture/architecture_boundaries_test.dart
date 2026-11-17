@@ -62,6 +62,24 @@ void main() {
     expect(violations.map((edge) => '$edge'), isEmpty);
   });
 
+  test('game memory keeps canonical usage analysis free of infrastructure', () {
+    final entries = sources.where(
+      (file) => file.path.contains('/features/game_memory/application/'),
+    );
+    expect(entries, isNotEmpty);
+    final violations = graph
+        .walk(entries.map((file) => file.uri), stopAt: isFramework)
+        .where(
+          (edge) =>
+              isFramework(edge) ||
+              isInfrastructure(edge) ||
+              isComposition(edge) ||
+              edge.specifier == 'dart:io' ||
+              edge.specifier == 'dart:ui',
+        );
+    expect(violations.map((edge) => '$edge'), isEmpty);
+  });
+
   test('presentation sans acces aux adaptateurs ou au filesystem', () {
     final entries = sources.where(
       (file) => file.uri.pathSegments.contains('presentation'),

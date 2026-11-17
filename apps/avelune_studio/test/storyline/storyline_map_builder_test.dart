@@ -7,11 +7,9 @@ import '../presentation/story_memory_harness.dart';
 import 'storyline_widget_support.dart';
 
 Future<void> _openGuideBehaviour(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('studio-rail-map')));
+  await tester.tap(find.byKey(const ValueKey('story-section-behaviours')));
   await settleMemory(tester);
-  await tester.tap(find.byKey(const ValueKey('map-space-story')));
-  await settleMemory(tester);
-  await tester.tap(find.text('Guide').first);
+  await tester.tap(find.byKey(ValueKey('behaviour-${behaviourId(1)}')));
   await settleMemory(tester);
 }
 
@@ -19,11 +17,12 @@ void main() {
   testWidgets('the behaviour inspector shows and changes its milestone', (
     tester,
   ) async {
-    final reads = await openTrameStudio(tester);
+    final reads = await openTrameStudio(tester, world: MapOnlyWorld.new);
     await _openGuideBehaviour(tester);
 
     final field = find.byKey(const ValueKey('map-story-milestone'));
     await tester.ensureVisible(field);
+    await settleMemory(tester);
     expect(
       find.descendant(
         of: field,
@@ -58,11 +57,12 @@ void main() {
   testWidgets('"Après le jalon" writes the completion fact condition', (
     tester,
   ) async {
-    await openTrameStudio(tester);
+    await openTrameStudio(tester, world: MapOnlyWorld.new);
     await _openGuideBehaviour(tester);
 
     final after = find.byKey(const ValueKey('map-story-condition-after'));
     await tester.ensureVisible(after);
+    await settleMemory(tester);
     await tester.tap(after);
     await settleMemory(tester);
     await tester.tap(find.byKey(const ValueKey('map-story-after-meet')));
@@ -77,6 +77,9 @@ void main() {
   ) async {
     await openTrameStudio(tester);
     await tester.tap(find.byKey(const ValueKey('story-section-behaviours')));
+    await settleMemory(tester);
+
+    await tester.tap(find.byKey(const ValueKey('behaviours-grouping')));
     await settleMemory(tester);
 
     await tester.tap(

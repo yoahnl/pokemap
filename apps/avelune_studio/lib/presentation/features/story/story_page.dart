@@ -8,6 +8,7 @@ import 'package:avelune_studio/features/game_behaviours/application/game_behavio
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviours_controller.dart';
 import 'package:avelune_studio/features/game_memory/application/game_memory_controller.dart';
 import 'package:avelune_studio/features/game_memory/application/game_memory_staging.dart';
+import 'package:avelune_studio/features/game_memory/application/game_memory_usage_targets.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/story_workspace/application/story_workspace_state.dart';
 import 'package:avelune_studio/features/story_workspace/application/story_history_scope.dart';
@@ -41,6 +42,7 @@ import 'story_workspace.dart';
 part 'story_page_navigation.dart';
 part 'story_page_dialogues.dart';
 part 'story_page_body.dart';
+part 'story_page_memory.dart';
 
 class StoryPage extends StatefulWidget {
   const StoryPage({
@@ -60,6 +62,7 @@ class StoryPage extends StatefulWidget {
     this.saveError,
     this.openScene,
     this.beforeNavigation,
+    this.navigationState,
     this.onHistoryScopeChanged,
     this.catalog,
     this.behaviourCatalog,
@@ -84,6 +87,7 @@ class StoryPage extends StatefulWidget {
   final String? saveError;
   final SceneOpener? openScene;
   final Future<void> Function()? beforeNavigation;
+  final Object? Function()? navigationState;
   final ValueChanged<StoryHistoryScope>? onHistoryScopeChanged;
   final SceneCatalogController? catalog;
   final MapBuilderStoryCatalogBinding? behaviourCatalog;
@@ -104,6 +108,7 @@ class _StoryPageState extends State<StoryPage> {
   SceneCatalogController? _catalog;
   DialogueCatalogController? _dialogues;
   bool _creation = false;
+  int _memoryNavigation = 0;
 
   @override
   void initState() {
@@ -194,6 +199,7 @@ class _StoryPageState extends State<StoryPage> {
   }
 
   Future<void> _select(StorySection section) async {
+    _memoryNavigation++;
     await widget.beforeNavigation?.call();
     if (!mounted) return;
     _openSection(section);
@@ -202,6 +208,7 @@ class _StoryPageState extends State<StoryPage> {
   }
 
   void _selectItem(StorySection section, StoryDraftRef? ref) {
+    _memoryNavigation++;
     _workspace = _workspace.selectItem(section, ref);
     _notifyScope();
   }
@@ -230,6 +237,10 @@ class _StoryPageState extends State<StoryPage> {
       );
     }
     if (_memory case final memory?) {
+      if (_workspace.selections[StorySection.facts]?.id !=
+          memory.selectedFact) {
+        _memoryNavigation++;
+      }
       _workspace = _workspace
           .selectItem(StorySection.facts, switch (memory.selectedFact) {
             final id? => (kind: StoryDraftKind.fact, id: id),

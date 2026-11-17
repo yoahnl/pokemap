@@ -62,7 +62,7 @@ List<GameMemoryFactRow> gameMemoryFactRows({
   ];
   final needle = query.trim().toLowerCase();
   bool unused(GameMemoryFactRow row, NarrativeFactRole role) =>
-      row.created || (usages[row.id]?.withRole(role).isEmpty ?? false);
+      usages[row.id]?.withRole(role).isEmpty ?? false;
   return [
     for (final row in rows)
       if ((needle.isEmpty || row.label.toLowerCase().contains(needle)) &&

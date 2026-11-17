@@ -54,10 +54,7 @@ class _GameMemoryCreationFormState extends State<GameMemoryCreationForm> {
           key: const ValueKey('memory-new-fact-kind'),
           showSelectedIcon: false,
           segments: [
-            for (final kind in const [
-              NarrativeValueKind.boolean,
-              NarrativeValueKind.integer,
-            ])
+            for (final kind in NarrativeValueKind.values)
               ButtonSegment(value: kind, label: Text(l10n.memoryKind(kind))),
           ],
           selected: {_kind},

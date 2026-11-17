@@ -217,7 +217,7 @@ void main() {
   );
 
   test(
-    'a fact renamed before its first save takes the id of its name',
+    'a string fact can be renamed after saving without changing identity',
     () async {
       final session = await openGameMemoryCatalog(unrelated: 20);
       final adapter = LocalMapWorkspaceAdapter();
@@ -242,24 +242,34 @@ void main() {
       addTearDown(memory.dispose);
       await memory.open();
 
-      final key = memory.createFact('Clé trouvée', NarrativeValueKind.boolean)!;
+      final key = memory.createFact('Clé trouvée', NarrativeValueKind.string)!;
       expect(key, 'fact_cl_trouv_e');
+      expect(memory.renameFact(key, 'Clé rouge'), isFalse);
+      expect(memory.selectedFact, key);
+
+      expect(await story.save(), isTrue, reason: story.error);
+      memory.sync();
+      await _until(() => !memory.facts.loading);
+      memory.reveal(key);
+      await _until(() => memory.details.containsKey(key));
       expect(memory.renameFact(key, 'Clé rouge'), isTrue);
-      expect(memory.selectedFact, 'fact_cl_rouge');
-      expect(memory.renameFact('fact_cl_rouge', 'Met'), isTrue);
-      expect(memory.selectedFact, 'fact_met_2');
+      expect(memory.selectedFact, key);
 
       expect(await story.save(), isTrue, reason: story.error);
       expect(story.dirty, isFalse);
       final index = LocalNarrativeIndexAdapter(session);
-      final saved = await index.facts(['fact_met_2', 'fact_met']);
+      final saved = await index.facts([key, 'fact_met']);
       expect([
         for (final fact in saved) (fact.id, fact.label),
-      ], unorderedEquals([('fact_met_2', 'Met'), ('fact_met', 'Rencontre')]));
+      ], unorderedEquals([(key, 'Clé rouge'), ('fact_met', 'Rencontre')]));
+      expect(
+        saved.singleWhere((fact) => fact.id == key).initialValue,
+        const NarrativeValue.string(''),
+      );
       final titles = await index.titles(NarrativeTitleKind.facts);
       expect(
         titles.map((title) => title.id).where((id) => id.startsWith('fact_cl')),
-        isEmpty,
+        [key],
       );
     },
     timeout: const Timeout(Duration(minutes: 3)),

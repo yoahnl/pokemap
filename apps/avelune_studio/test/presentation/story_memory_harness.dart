@@ -12,6 +12,7 @@ import 'package:avelune_studio/features/verification/domain/verification_port.da
 import 'package:avelune_studio/features/world/domain/world_port.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/presentation/shell/studio_root.dart';
+import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -127,6 +128,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   StorylineReadPort? storylines,
   VerificationPort? verification,
   DialogueCatalogPort? dialogueCatalog,
+  ValueNotifier<Locale>? locale,
   Map<String, MapData> initialMaps = const {},
 }) async {
   final opened = session ?? memorySession;
@@ -173,7 +175,18 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(theme: studioTheme(), home: const StudioRoot()),
+      child: locale == null
+          ? MaterialApp(theme: studioTheme(), home: const StudioRoot())
+          : ValueListenableBuilder<Locale>(
+              valueListenable: locale,
+              builder: (context, value, _) => MaterialApp(
+                theme: studioTheme(),
+                locale: value,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                home: const StudioRoot(),
+              ),
+            ),
     ),
   );
   await tester.tap(find.byKey(const ValueKey('studio-home-import')));

@@ -1,5 +1,9 @@
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/verification/domain/verification_port.dart';
+import 'package:avelune_studio/features/world/domain/world_port.dart';
+
+import '../support/map_workspace_fixture.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -77,6 +81,7 @@ Future<FakeStorylineRead> openTrameStudio(
   ProjectManifest? project,
   FakeNarrativeIndex? index,
   FakeStorylineRead? reads,
+  WorldPort Function(WorkspaceMemoryPort maps)? world,
 }) async {
   reads ??= trameReads(empty: empty);
   await openMemoryStudio(
@@ -90,6 +95,7 @@ Future<FakeStorylineRead> openTrameStudio(
     project: project ?? trameProject,
     storylines: reads,
     verification: verification,
+    world: world,
   );
   await openTrame(tester);
   return reads;

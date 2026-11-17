@@ -4,6 +4,7 @@ library;
 export 'src/catalog_storage/catalog_storage_store.dart';
 export 'src/catalog_storage/catalog_editing_session.dart';
 export 'src/catalog_storage/catalog_generation_retention.dart';
+export 'src/workspace/catalog/catalog_narrative_owner_documents.dart';
 
 export 'src/domains/distribution/game_package_export_profile_api.dart';
 export 'src/domains/distribution/game_package_export_profile_store.dart';
@@ -95,7 +96,8 @@ export 'src/support/map_authoring_worker_trace.dart'
 
 export 'src/documents/visual_settings_authoring.dart';
 
-export 'src/references/exterior_decoration_references.dart' show projectExteriorReferenceUsages;
+export 'src/references/exterior_decoration_references.dart'
+    show projectExteriorReferenceUsages;
 export 'src/api/authoring_capability_discovery.dart';
 export 'src/api/map_health_query.dart';
 export 'src/api/map_edit_execution.dart';

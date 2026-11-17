@@ -103,88 +103,103 @@ final memoryDoorRule = WorldRuleDefinition(
   effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityHidden),
 );
 
-ProjectManifest _project(int unrelated, {bool character = false}) =>
-    ProjectManifest(
-      name: 'Mémoire',
-      characters: [
-        if (character)
-          const ProjectCharacterEntry(
-            id: 'leo',
-            name: 'Léo',
-            tilesetId: 'atlas',
-            frameHeight: 1,
-          ),
-      ],
-      maps: [
-        const ProjectMapEntry(
-          id: 'town',
-          name: 'Bourg',
-          relativePath: 'maps/town.json',
-        ),
-        for (var i = 0; i < unrelated; i++)
-          ProjectMapEntry(
-            id: 'unused-map-$i',
-            name: 'Inutile',
-            relativePath: 'maps/unused-$i.json',
-          ),
-      ],
-      tilesets: const [
-        ProjectTilesetEntry(
-          id: 'atlas',
-          name: 'Atlas',
-          relativePath: 'assets/atlas.png',
-        ),
-      ],
-      facts: [
-        NarrativeFactDefinition(id: 'fact_met', label: 'Rencontre'),
-        NarrativeFactDefinition(id: 'fact_door', label: 'Porte ouverte'),
-        NarrativeFactDefinition(
-          id: 'fact_coins',
-          label: 'Pièces',
-          initialValue: NarrativeValue.integer(3),
-        ),
-        for (var i = 0; i < unrelated; i++)
-          NarrativeFactDefinition(id: 'fact_unused_$i', label: 'Inutile $i'),
-      ],
-      scenes: [
-        _scene('gate', read: 'fact_met', written: 'fact_door'),
-        for (var i = 0; i < unrelated; i++) _scene('unused_scene_$i'),
-      ],
-      worldRules: [memoryDoorRule],
-      eventRegistry: NarrativeEventRegistry(
-        schemaVersion: 1,
-        mode: EventSystemMode.v2Only,
-        records: [
-          NarrativeEventRecord.draft(
-            NarrativeEventDraft(
-              id: memoryTalkEvent,
-              name: 'Parler à Léo',
-              source: NarrativeEventSourceRef.entityInteract('town', 'npc'),
-              conditions: [NarrativeEventCondition.fact('fact_met', true)],
-              priority: 0,
-              order: 0,
-            ),
-          ),
-          for (var i = 0; i < unrelated; i++)
-            NarrativeEventRecord.draft(
-              NarrativeEventDraft(
-                id: _unrelatedEvent(i),
-                name: 'Sans rapport $i',
-                conditions: const [],
-                priority: 0,
-                order: i + 1,
-              ),
-            ),
-        ],
-        legacyClaims: const [],
+ProjectManifest _project(
+  int unrelated, {
+  bool character = false,
+  bool storylines = false,
+}) => ProjectManifest(
+  name: 'Mémoire',
+  characters: [
+    if (character)
+      const ProjectCharacterEntry(
+        id: 'leo',
+        name: 'Léo',
+        tilesetId: 'atlas',
+        frameHeight: 1,
       ),
-    );
+  ],
+  maps: [
+    const ProjectMapEntry(
+      id: 'town',
+      name: 'Bourg',
+      relativePath: 'maps/town.json',
+    ),
+    for (var i = 0; i < unrelated; i++)
+      ProjectMapEntry(
+        id: 'unused-map-$i',
+        name: 'Inutile',
+        relativePath: 'maps/unused-$i.json',
+      ),
+  ],
+  tilesets: const [
+    ProjectTilesetEntry(
+      id: 'atlas',
+      name: 'Atlas',
+      relativePath: 'assets/atlas.png',
+    ),
+  ],
+  facts: [
+    NarrativeFactDefinition(id: 'fact_met', label: 'Rencontre'),
+    NarrativeFactDefinition(id: 'fact_door', label: 'Porte ouverte'),
+    NarrativeFactDefinition(
+      id: 'fact_coins',
+      label: 'Pièces',
+      initialValue: NarrativeValue.integer(3),
+    ),
+    for (var i = 0; i < unrelated; i++)
+      NarrativeFactDefinition(id: 'fact_unused_$i', label: 'Inutile $i'),
+  ],
+  scenes: [
+    _scene('gate', read: 'fact_met', written: 'fact_door'),
+    for (var i = 0; i < unrelated; i++) _scene('unused_scene_$i'),
+  ],
+  worldRules: [memoryDoorRule],
+  storylines: [
+    if (storylines) memoryUsageStory(),
+    if (storylines)
+      for (var i = 0; i < unrelated; i++)
+        StorylineAsset(
+          id: 'unrelated_story_$i',
+          type: StorylineType.sideQuest,
+          title: 'Sans rapport $i',
+          chapters: const [],
+        ),
+  ],
+  eventRegistry: NarrativeEventRegistry(
+    schemaVersion: 1,
+    mode: EventSystemMode.v2Only,
+    records: [
+      NarrativeEventRecord.draft(
+        NarrativeEventDraft(
+          id: memoryTalkEvent,
+          name: 'Parler à Léo',
+          source: NarrativeEventSourceRef.entityInteract('town', 'npc'),
+          conditions: [NarrativeEventCondition.fact('fact_met', true)],
+          priority: 0,
+          order: 0,
+        ),
+      ),
+      for (var i = 0; i < unrelated; i++)
+        NarrativeEventRecord.draft(
+          NarrativeEventDraft(
+            id: _unrelatedEvent(i),
+            name: 'Sans rapport $i',
+            conditions: const [],
+            priority: 0,
+            order: i + 1,
+          ),
+        ),
+    ],
+    legacyClaims: const [],
+  ),
+);
 
 Future<ProjectSession> openGameMemoryCatalog({
   int unrelated = 0,
   bool prepared = true,
   bool catalog = true,
   bool character = false,
+  bool storylines = false,
 }) async {
   final temporary = await Directory.systemTemp.createTemp('game_memory_');
   final root = Directory(await temporary.resolveSymbolicLinks());
@@ -193,11 +208,21 @@ Future<ProjectSession> openGameMemoryCatalog({
     await WorkingProjectCatalog.create(
       store: await CatalogStorageStore.open(projectRoot: root.path),
       projectId: 'game-memory',
-      project: _project(unrelated, character: character),
+      project: _project(
+        unrelated,
+        character: character,
+        storylines: storylines,
+      ),
     );
   } else {
     await File('${root.path}/project.json').writeAsString(
-      jsonEncode(_project(unrelated, character: character).toJson()),
+      jsonEncode(
+        _project(
+          unrelated,
+          character: character,
+          storylines: storylines,
+        ).toJson(),
+      ),
     );
   }
   final map = MapData(
@@ -265,3 +290,28 @@ Future<ProjectSession> openGameMemoryCatalog({
   expect(session.storage, ProjectSessionStorage.workingCatalog);
   return session;
 }
+
+StorylineAsset memoryUsageStory() => StorylineAsset(
+  id: 'main',
+  type: StorylineType.main,
+  title: 'Voyage',
+  chapters: [
+    StorylineChapter(
+      id: 'chapter',
+      title: 'Départ',
+      order: 0,
+      steps: [
+        StorylineStep(id: 'first', title: 'Premier jalon', order: 0),
+        StorylineStep(
+          id: 'second',
+          title: 'Deuxième jalon',
+          order: 1,
+          completionCondition: ScriptConditionFactory.factEquals(
+            'fact_met',
+            const NarrativeValue.boolean(true),
+          ),
+        ),
+      ],
+    ),
+  ],
+);

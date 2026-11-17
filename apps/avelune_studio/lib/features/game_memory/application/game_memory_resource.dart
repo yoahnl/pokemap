@@ -11,6 +11,14 @@ final class GameMemoryResource<T> {
 
   bool get ready => value != null && problem == null;
 
+  void invalidate() {
+    _generation++;
+    value = null;
+    loading = false;
+    problem = null;
+    cause = null;
+  }
+
   Future<void> load(
     Future<T> Function() read,
     void Function() changed, {

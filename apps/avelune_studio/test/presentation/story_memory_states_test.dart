@@ -73,7 +73,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byKey(const ValueKey('memory-facts-empty')),
-        matching: find.text('Nouvel état'),
+        matching: find.text('Nouveau fait'),
       ),
     );
     await settleMemory(tester);
@@ -91,7 +91,7 @@ void main() {
     await settleMemory(tester);
     expect(find.text('Rencontre'), findsNothing);
     expect(find.text('Pièces'), findsOneWidget);
-    expect(index.userRequests.single.toSet(), {'met', 'coins'});
+    expect(index.userRequests.expand((ids) => ids).toSet(), {'met', 'coins'});
 
     await tester.tap(find.byKey(const ValueKey('memory-filter-neverRead')));
     await settleMemory(tester);
@@ -105,7 +105,7 @@ void main() {
     );
     await settleMemory(tester);
     expect(find.byKey(const ValueKey('memory-facts-empty')), findsOneWidget);
-    expect(find.text('Aucun état ne correspond'), findsOneWidget);
+    expect(find.text('Aucun fait ne correspond'), findsOneWidget);
   });
 
   testWidgets('world rules read as sentences and edit into the draft', (

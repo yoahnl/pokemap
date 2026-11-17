@@ -27,7 +27,7 @@ class GameMemoryConditionFields extends StatelessWidget {
     final condition = this.condition;
     final fact = condition == null ? null : memory.current(condition.factId);
     if (condition != null && fact == null) memory.reveal(condition.factId);
-    final kind = fact?.valueKind;
+    final kind = condition == null ? null : memory.kindOf(condition.factId);
     final value = condition?.value;
     final fits = value != null && value.kind == kind;
     return Column(
@@ -45,11 +45,7 @@ class GameMemoryConditionFields extends StatelessWidget {
                     onChanged((
                       factId: id,
                       operator: NarrativeFactOperator.equals,
-                      value:
-                          memory.current(id)?.valueKind ==
-                              NarrativeValueKind.integer
-                          ? NarrativeValue.integer(0)
-                          : const NarrativeValue.boolean(true),
+                      value: defaultGameMemoryRuleValue(memory.kindOf(id)),
                     ));
                   }
                 : null,
@@ -105,7 +101,37 @@ class GameMemoryConditionFields extends StatelessWidget {
               ),
             ],
           )
-        else
+        else if (kind == NarrativeValueKind.string) ...[
+          StudioSelect(
+            key: const ValueKey('memory-rule-operator'),
+            label: l10n.memoryRuleComparison,
+            value: condition.operator.name,
+            options: {
+              for (final operator in kind.compatibleOperators)
+                operator.name: l10n.memoryOperator(operator.name),
+            },
+            onChanged: enabled
+                ? (name) => onChanged((
+                    factId: condition.factId,
+                    operator: NarrativeFactOperator.values.byName(name),
+                    value: fits ? value : const NarrativeValue.string(''),
+                  ))
+                : null,
+          ),
+          const SizedBox(height: StudioSpacing.m),
+          MapBuilderNameField(
+            key: const ValueKey('memory-rule-value'),
+            literal: true,
+            value: fits ? value.stringValue : '',
+            label: l10n.memoryRuleValue,
+            enabled: enabled,
+            onCommit: (text) => onChanged((
+              factId: condition.factId,
+              operator: condition.operator,
+              value: NarrativeValue.string(text),
+            )),
+          ),
+        ] else
           KeyedSubtree(
             key: const ValueKey('memory-rule-boolean'),
             child: StudioSelect(

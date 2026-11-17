@@ -55,6 +55,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
       },
       openScene: _openScene,
       beforeNavigation: _commitTyping,
+      navigationState: () => (_storyNavigation, _section, _sceneShown),
       onHistoryScopeChanged: (scope) {
         if (scope == _storyScope) return;
         _storyScope = scope;

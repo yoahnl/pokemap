@@ -1,4 +1,6 @@
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/map_authoring_local.dart'
+    show CatalogNarrativeOwnerDocuments;
 import 'package:map_core/map_core.dart';
 
 import '../../project_session/data/local_workshop_reader.dart';
@@ -13,7 +15,8 @@ import 'local_narrative_read.dart';
 const _usageBatch = 50;
 const _factBatch = 50;
 
-final class LocalNarrativeIndexAdapter implements NarrativeIndexPort {
+final class LocalNarrativeIndexAdapter
+    implements NarrativeIndexPort, NarrativeUsageDocumentPort {
   LocalNarrativeIndexAdapter(
     this.session, {
     this.reader = const LocalProjectFileReader(),
@@ -21,6 +24,13 @@ final class LocalNarrativeIndexAdapter implements NarrativeIndexPort {
 
   final ProjectSession session;
   final ProjectFileReader reader;
+
+  @override
+  Future<StorylineAsset?> usageStoryline(String id) => readNarrativeCatalog(
+    session,
+    reader,
+    (catalog) => CatalogNarrativeOwnerDocuments.readStoryline(catalog, id),
+  );
 
   @override
   Future<List<NarrativeTitle>> titles(NarrativeTitleKind kind) =>

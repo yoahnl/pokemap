@@ -11,7 +11,8 @@ NarrativeFactDefinition memoryFact(
   NarrativeValue value = const NarrativeValue.boolean(false),
 }) => NarrativeFactDefinition(id: id, label: label, initialValue: value);
 
-final class FakeNarrativeIndex implements NarrativeIndexPort {
+final class FakeNarrativeIndex
+    implements NarrativeIndexPort, NarrativeUsageDocumentPort {
   final titlesByKind = <NarrativeTitleKind, List<NarrativeTitle>>{};
   final definitions = <String, NarrativeFactDefinition>{};
   final users = <String, NarrativeUsages>{};
@@ -20,6 +21,7 @@ final class FakeNarrativeIndex implements NarrativeIndexPort {
   Object? titleFailure;
   Future<List<NarrativeTitle>> Function(NarrativeTitleKind kind)? titleLoader;
   Object? usageFailure;
+  Future<Map<String, NarrativeUsages>> Function(List<String> ids)? userLoader;
   final titleRequests = <NarrativeTitleKind>[];
   final factRequests = <List<String>>[];
   final userRequests = <List<String>>[];
@@ -31,6 +33,16 @@ final class FakeNarrativeIndex implements NarrativeIndexPort {
   final documents = <String, SceneDocument>{};
   final documentRequests = <String>[];
   Future<SceneDocument> Function(String sceneId)? documentLoader;
+  final usageStories = <String, StorylineAsset>{};
+  final usageStoryRequests = <String>[];
+  Future<StorylineAsset?> Function(String id)? usageStoryLoader;
+
+  @override
+  Future<StorylineAsset?> usageStoryline(String id) async {
+    usageStoryRequests.add(id);
+    if (usageStoryLoader case final load?) return load(id);
+    return usageStories[id];
+  }
 
   void addFacts(Iterable<NarrativeFactDefinition> facts) {
     for (final fact in facts) {
@@ -64,6 +76,7 @@ final class FakeNarrativeIndex implements NarrativeIndexPort {
   Future<Map<String, NarrativeUsages>> factUsers(List<String> factIds) async {
     userRequests.add(factIds);
     if (usageFailure case final failure?) throw failure;
+    if (userLoader case final load?) return load(factIds);
     return {
       for (final id in factIds)
         id:

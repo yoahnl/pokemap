@@ -9,6 +9,7 @@ import 'package:avelune_studio/features/game_behaviours/application/game_behavio
 import 'package:avelune_studio/features/game_behaviours/application/game_behaviour_source.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/storyline/application/storyline_trame_controller.dart';
+import 'package:avelune_studio/features/storyline/application/storyline_trame_view.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 import 'game_memory_states.dart';
@@ -66,6 +67,43 @@ class _TrameViewState extends State<TrameView> {
     widget.onSelected?.call(selection.storylineId);
   }
 
+  void _focusUsage(StorylineTrameView view) {
+    final target = widget.trame.usageFocus;
+    if (target == null) return;
+    widget.trame.usageFocus = null;
+    widget.trame.focus = null;
+    final story = view.outline.storylines
+        .where((story) => story.id == target.storylineId)
+        .firstOrNull;
+    if (story == null) return;
+    final chapter = target.stepId == null
+        ? null
+        : story.chapters
+              .where(
+                (chapter) =>
+                    chapter.milestones.any((step) => step.id == target.stepId),
+              )
+              .firstOrNull;
+    if (target.stepId != null && chapter == null) return;
+    final step = chapter?.milestones
+        .where((step) => step.id == target.stepId)
+        .firstOrNull;
+    _selected = (
+      item: step == null ? TrameItem.storyline : TrameItem.milestone,
+      storylineId: story.id,
+      chapterId: chapter?.id,
+      milestoneId: step?.id,
+    );
+    if (story.status == StorylineStatus.archived ||
+        chapter?.status == StorylineStatus.archived ||
+        step?.status == StorylineStatus.archived) {
+      _showArchived = true;
+    }
+    scheduleMicrotask(() {
+      if (mounted) widget.onSelected?.call(story.id);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -79,6 +117,7 @@ class _TrameViewState extends State<TrameView> {
     );
     if (state != null) return _panels(state);
     final view = trame.view!;
+    _focusUsage(view);
     if (trame.focus case final id?) {
       trame.focus = null;
       if (view.milestone(id) case final at?) {
@@ -96,11 +135,32 @@ class _TrameViewState extends State<TrameView> {
         scheduleMicrotask(() {
           if (mounted) widget.onSelected?.call(at.storyline.id);
         });
+      } else if (view.outline.storylines
+              .where((story) => story.id == id)
+              .firstOrNull
+          case final story?) {
+        _selected = (
+          item: TrameItem.storyline,
+          storylineId: story.id,
+          chapterId: null,
+          milestoneId: null,
+        );
+        if (story.status == StorylineStatus.archived) _showArchived = true;
+        scheduleMicrotask(() {
+          if (mounted) widget.onSelected?.call(story.id);
+        });
       }
     }
     final selectedId = _selected?.milestoneId;
     if (_selected?.item == TrameItem.milestone && selectedId != null) {
-      if (view.milestone(selectedId) case final at?) {
+      if (view.milestones
+              .where(
+                (at) =>
+                    at.storyline.id == _selected?.storylineId &&
+                    at.milestone.id == selectedId,
+              )
+              .firstOrNull
+          case final at?) {
         _selected = (
           item: TrameItem.milestone,
           storylineId: at.storyline.id,

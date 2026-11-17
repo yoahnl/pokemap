@@ -12,6 +12,7 @@ class MapBuilderNameField extends StatefulWidget {
     this.onCommit,
     this.onSubmit,
     this.lines = 1,
+    this.literal = false,
   }) : assert((onCommit == null) != (onSubmit == null));
 
   final String value;
@@ -20,6 +21,7 @@ class MapBuilderNameField extends StatefulWidget {
   final Future<bool> Function(String name)? onSubmit;
   final bool enabled;
   final int lines;
+  final bool literal;
 
   static Future<void> commitFocused() {
     final context = FocusManager.instance.primaryFocus?.context;
@@ -59,9 +61,9 @@ class _MapBuilderNameFieldState extends State<MapBuilderNameField> {
   }
 
   Future<void> _commit() {
-    final name = _text.text.trim();
+    final name = widget.literal ? _text.text : _text.text.trim();
     if (name == _pendingName) return _pending ?? Future<void>.value();
-    if (name.isEmpty) {
+    if (name.isEmpty && !widget.literal) {
       _text.text = widget.value;
       return Future<void>.value();
     }
@@ -75,7 +77,9 @@ class _MapBuilderNameFieldState extends State<MapBuilderNameField> {
               return true;
             })
             .then((saved) {
-              if (!saved && mounted && _text.text.trim() == name) {
+              if (!saved &&
+                  mounted &&
+                  (widget.literal ? _text.text : _text.text.trim()) == name) {
                 _text.text = widget.value;
               }
             })

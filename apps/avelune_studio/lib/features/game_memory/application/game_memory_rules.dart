@@ -16,6 +16,13 @@ typedef GameMemoryRuleCondition = ({
   NarrativeValue value,
 });
 
+NarrativeValue defaultGameMemoryRuleValue(NarrativeValueKind? kind) =>
+    switch (kind) {
+      NarrativeValueKind.integer => NarrativeValue.integer(0),
+      NarrativeValueKind.string => const NarrativeValue.string(''),
+      _ => const NarrativeValue.boolean(true),
+    };
+
 final class GameMemoryRuleRow {
   const GameMemoryRuleRow(this.rule, {this.unsaved = false});
 
@@ -93,7 +100,9 @@ final class GameMemoryRules implements WorldRuleNames {
     required bool visible,
   }) {
     final fact = _memory.current(condition.factId);
-    if (!_memory.staging.editable || fact == null) return null;
+    if (!_memory.staging.editable || fact == null || !_valid(condition)) {
+      return null;
+    }
     final created = addWorldRule(
       ProjectManifest(
         name: 'rules',
@@ -133,6 +142,11 @@ final class GameMemoryRules implements WorldRuleNames {
   }) {
     final before = rule(id);
     if (!_memory.staging.editable || before == null) return false;
+    if (condition != null &&
+        (before.source.kind != WorldRuleSourceKind.fact ||
+            !_valid(condition))) {
+      return false;
+    }
     final nextEffect = effect ?? before.effect.kind;
     if (!isWorldRuleEffectCompatibleWithTarget(
       before.target.kind,
@@ -167,19 +181,16 @@ final class GameMemoryRules implements WorldRuleNames {
     return true;
   }
 
-  WorldRuleSource _source(GameMemoryRuleCondition condition) {
-    final kind = _memory.current(condition.factId)?.valueKind;
-    final fits = kind == null || kind == condition.value.kind;
-    return WorldRuleSource.factValue(
-      factId: condition.factId,
-      operator: fits ? condition.operator : NarrativeFactOperator.equals,
-      expectedValue: fits
-          ? condition.value
-          : kind == NarrativeValueKind.integer
-          ? NarrativeValue.integer(0)
-          : const NarrativeValue.boolean(true),
-    );
-  }
+  bool _valid(GameMemoryRuleCondition condition) =>
+      _memory.kindOf(condition.factId) == condition.value.kind &&
+      condition.value.kind.compatibleOperators.contains(condition.operator);
+
+  WorldRuleSource _source(GameMemoryRuleCondition condition) =>
+      WorldRuleSource.factValue(
+        factId: condition.factId,
+        operator: condition.operator,
+        expectedValue: condition.value,
+      );
 
   @override
   String? fact(String id) => _memory.current(id)?.label ?? _title(id);

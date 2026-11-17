@@ -25,6 +25,7 @@ class GameMemoryView extends StatefulWidget {
     required this.behaviours,
     required this.panels,
     this.section,
+    this.openUsage,
   });
 
   final GameMemoryController memory;
@@ -33,6 +34,7 @@ class GameMemoryView extends StatefulWidget {
   final GameMemoryBehaviourLink behaviours;
   final StoryPanelBuilder panels;
   final GameMemorySection? section;
+  final GameMemoryUsageLink? openUsage;
 
   @override
   State<GameMemoryView> createState() => _GameMemoryViewState();
@@ -96,6 +98,7 @@ class _GameMemoryViewState extends State<GameMemoryView> {
               memory: memory,
               factId: id,
               behaviours: widget.behaviours,
+              openUsage: widget.openUsage,
             );
     }
     final loadMap = widget.loadMap;

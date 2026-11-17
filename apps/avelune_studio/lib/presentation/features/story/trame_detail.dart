@@ -47,7 +47,13 @@ class TrameDetail extends StatelessWidget {
         .firstOrNull;
     final milestone = selected?.milestoneId == null
         ? null
-        : view.milestone(selected!.milestoneId!);
+        : view.milestones
+              .where(
+                (at) =>
+                    at.storyline.id == selected?.storylineId &&
+                    at.milestone.id == selected?.milestoneId,
+              )
+              .firstOrNull;
     final editable = trame.staging.editable;
     return switch (selected?.item) {
       TrameItem.outside => TrameOutside(

@@ -22,6 +22,7 @@ enum NarrativeOwnerKind {
   worldRule(NarrativeTitleKind.worldRules),
   storyline(NarrativeTitleKind.storylines),
   cinematic(NarrativeTitleKind.cinematics),
+  dialogue(NarrativeTitleKind.dialogues),
   event(NarrativeTitleKind.events);
 
   const NarrativeOwnerKind(this.titles);
@@ -112,4 +113,8 @@ abstract interface class NarrativeIndexPort {
   Future<Map<String, String>> characterNames(List<String> characterIds);
 
   Future<SceneDocument> sceneDocument(String sceneId);
+}
+
+abstract interface class NarrativeUsageDocumentPort {
+  Future<StorylineAsset?> usageStoryline(String id);
 }

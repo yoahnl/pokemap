@@ -8,37 +8,25 @@ import 'package:avelune_studio/presentation/features/story/game_memory_labels.da
 import 'package:avelune_studio/presentation/features/story/game_memory_usages.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
-class GameMemoryFactDetail extends StatefulWidget {
+class GameMemoryFactDetail extends StatelessWidget {
   const GameMemoryFactDetail({
     super.key,
     required this.memory,
     required this.factId,
     required this.behaviours,
+    this.openUsage,
   });
 
   final GameMemoryController memory;
   final String factId;
   final GameMemoryBehaviourLink behaviours;
-
-  @override
-  State<GameMemoryFactDetail> createState() => _GameMemoryFactDetailState();
-}
-
-class _GameMemoryFactDetailState extends State<GameMemoryFactDetail> {
-  var _deleteRefused = false;
-
-  @override
-  void didUpdateWidget(GameMemoryFactDetail old) {
-    super.didUpdateWidget(old);
-    if (old.factId != widget.factId) _deleteRefused = false;
-  }
+  final GameMemoryUsageLink? openUsage;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final memory = widget.memory;
-    final fact = memory.current(widget.factId);
+    final fact = memory.current(factId);
     if (fact == null) {
       return memory.detailsError == null
           ? StudioLoadingState(label: l10n.memoryFactsLoading)
@@ -48,22 +36,24 @@ class _GameMemoryFactDetailState extends State<GameMemoryFactDetail> {
             );
     }
     final created =
-        memory.staging.draft
-            .entryOf(StoryDraftKind.fact, widget.factId)
-            ?.creation ??
+        memory.staging.draft.entryOf(StoryDraftKind.fact, factId)?.creation ??
         false;
     final editable = memory.staging.editable;
     return ListView(
-      key: ValueKey('memory-fact-detail-${widget.factId}'),
+      key: ValueKey('memory-fact-detail-$factId'),
       padding: const EdgeInsets.all(StudioSpacing.xl),
       children: [
         MapBuilderNameField(
-          key: ValueKey('memory-fact-name-${widget.factId}'),
+          key: ValueKey('memory-fact-name-$factId'),
           value: fact.label,
           label: l10n.memoryFactName,
-          enabled: editable,
-          onCommit: (label) => memory.renameFact(widget.factId, label),
+          enabled: editable && !created,
+          onSubmit: (label) async => memory.renameFact(factId, label),
         ),
+        if (created) ...[
+          const SizedBox(height: StudioSpacing.s),
+          Text(l10n.memoryCreatedNameLocked, style: theme.textTheme.bodySmall),
+        ],
         const SizedBox(height: StudioSpacing.l),
         Row(
           children: [
@@ -87,6 +77,17 @@ class _GameMemoryFactDetailState extends State<GameMemoryFactDetail> {
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
+        const SizedBox(height: StudioSpacing.s),
+        Text(l10n.memorySimulationHint, style: theme.textTheme.bodySmall),
+        const SizedBox(height: StudioSpacing.l),
+        if (created)
+          Text(l10n.memoryCreatedUnused, style: theme.textTheme.bodySmall),
+        GameMemoryUsages(
+          memory: memory,
+          factId: factId,
+          behaviours: behaviours,
+          openUsage: openUsage,
+        ),
         const SizedBox(height: StudioSpacing.l),
         Align(
           alignment: Alignment.centerLeft,
@@ -96,8 +97,8 @@ class _GameMemoryFactDetailState extends State<GameMemoryFactDetail> {
                   label: l10n.memoryDiscard,
                   icon: Icons.undo,
                   variant: StudioButtonVariant.secondary,
-                  onPressed: editable
-                      ? () => memory.discardCreated(widget.factId)
+                  onPressed: memory.canDiscardCreated(factId)
+                      ? () => memory.discardCreated(factId)
                       : null,
                 )
               : StudioButton(
@@ -105,26 +106,20 @@ class _GameMemoryFactDetailState extends State<GameMemoryFactDetail> {
                   label: l10n.memoryDelete,
                   icon: Icons.delete_outline,
                   variant: StudioButtonVariant.destructive,
-                  onPressed: () => setState(() => _deleteRefused = true),
+                  onPressed: null,
                 ),
         ),
-        if (_deleteRefused) ...[
+        if (!created || !memory.canDiscardCreated(factId)) ...[
           const SizedBox(height: StudioSpacing.m),
           StudioNotice(
-            key: const ValueKey('memory-fact-delete-refused'),
-            l10n.memoryDeleteRefused,
-            isError: true,
+            key: ValueKey(
+              created
+                  ? 'memory-fact-discard-refused'
+                  : 'memory-fact-delete-refused',
+            ),
+            created ? l10n.memoryDiscardInUse : l10n.memoryDeleteRefused,
           ),
         ],
-        const SizedBox(height: StudioSpacing.l),
-        if (created)
-          Text(l10n.memoryCreatedUnused, style: theme.textTheme.bodySmall)
-        else
-          GameMemoryUsages(
-            memory: memory,
-            factId: widget.factId,
-            behaviours: widget.behaviours,
-          ),
       ],
     );
   }

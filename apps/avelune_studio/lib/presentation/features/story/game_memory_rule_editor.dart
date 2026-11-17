@@ -50,7 +50,7 @@ class GameMemoryRuleEditor extends StatelessWidget {
           value: rule.label,
           label: l10n.memoryRuleName,
           enabled: editable,
-          onCommit: (label) => rules.update(rule.id, label: label),
+          onSubmit: (label) async => rules.update(rule.id, label: label),
         ),
         const SizedBox(height: StudioSpacing.l),
         Text(

@@ -134,6 +134,8 @@ void main() {
     expect((row.id, row.created, row.unsaved), (id, true, true));
     expect(memory.selectedFact, id);
 
+    expect(memory.discardCreated(id), isFalse);
+    await flush();
     expect(memory.discardCreated(id), isTrue);
     expect(staging.draft.isTouched(StoryDraftKind.fact, id), isFalse);
     expect(memory.rows.map((row) => row.id), isNot(contains(id)));

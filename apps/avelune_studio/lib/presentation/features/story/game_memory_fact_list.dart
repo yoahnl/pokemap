@@ -166,6 +166,8 @@ class _GameMemoryFactListState extends State<GameMemoryFactList> {
     final l10n = context.l10n;
     final memory = widget.memory;
     final value = row.value;
+    memory.revealUsages(row.id);
+    final usages = memory.usages[row.id];
     return StudioChoice(
       key: ValueKey('memory-fact-${row.id}'),
       label: row.label,
@@ -176,7 +178,11 @@ class _GameMemoryFactListState extends State<GameMemoryFactList> {
               l10n.memoryValue(value),
             ),
       selected: memory.selectedFact == row.id,
-      trailing: row.unsaved ? StudioBadge(l10n.memoryUnsaved) : null,
+      trailing: row.unsaved
+          ? StudioBadge(l10n.memoryUnsaved)
+          : usages == null
+          ? null
+          : StudioBadge(l10n.memoryUsageCount(usages.owners.length)),
       onTap: () => memory.select(row.id),
     );
   }

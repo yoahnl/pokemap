@@ -2177,38 +2177,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyTabMemory => 'Game memory';
 
   @override
-  String get memorySectionFacts => 'States';
+  String get memorySectionFacts => 'Facts';
 
   @override
   String get memorySectionRules => 'World rules';
 
   @override
-  String get memorySearchFacts => 'Search a state';
+  String get memorySearchFacts => 'Search a fact';
 
   @override
-  String get memoryFilterNeverRead => 'Never read';
+  String get memoryFilterNeverRead => 'No known readers';
 
   @override
-  String get memoryFilterNeverWritten => 'Never written';
+  String get memoryFilterNeverWritten => 'No known writers';
 
   @override
-  String get memoryNewFact => 'New state';
+  String get memoryNewFact => 'New fact';
 
   @override
-  String get memoryFactsLoading => 'Reading states…';
+  String get memoryFactsLoading => 'Reading facts…';
 
   @override
   String get memoryUsagesLoading => 'Reading usages…';
 
   @override
-  String get memoryFactsEmpty => 'No state yet';
+  String get memoryFactsEmpty => 'No facts yet';
 
   @override
   String get memoryFactsEmptyHint =>
-      'A state remembers what happened in the game: a meeting, a key found, a counter…';
+      'A fact remembers what happened in the game: a meeting, a key found, a counter…';
 
   @override
-  String get memoryFactsNoMatch => 'No state matches';
+  String get memoryFactsNoMatch => 'No fact matches';
 
   @override
   String get memoryFactsNoMatchHint => 'Change the search or remove a filter.';
@@ -2280,25 +2280,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memoryFactKind => 'Type';
 
   @override
-  String get memoryFactStart => 'Starting value';
+  String get memoryFactStart => 'Project initial value';
 
   @override
   String get memoryKindLocked =>
-      'The type and starting value cannot be changed here yet: everything that uses this state would need checking first.';
+      'The type and initial value are preserved: changing them requires checking this fact’s usages.';
+
+  @override
+  String get memorySimulationHint =>
+      'This value initializes a new playthrough. Simulation values are temporary; editing the project does not rewrite Player saves.';
+
+  @override
+  String get memoryCreatedNameLocked =>
+      'Save this fact before renaming it so its identifier stays stable.';
 
   @override
   String get memoryDelete => 'Delete';
 
   @override
   String get memoryDeleteRefused =>
-      'Deletion refused: a saved state cannot be deleted in this project yet. What uses it is listed below.';
+      'A saved fact cannot be deleted here. Identified usages are listed below and coverage may be partial.';
 
   @override
-  String get memoryDiscard => 'Remove this unsaved state';
+  String get memoryDiscard => 'Remove this unsaved fact';
 
   @override
   String get memoryCreatedUnused =>
-      'This state is not saved yet: nothing uses it yet.';
+      'This fact exists in the draft. Its identified usages are listed below.';
+
+  @override
+  String get memoryDiscardInUse =>
+      'This fact cannot be removed: usages are identified or their analysis is unavailable. Check the usages below.';
+
+  @override
+  String get memoryUsagesTitle => 'Where is this used?';
+
+  @override
+  String memoryUsageCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count identified usages',
+      one: '1 identified usage',
+      zero: 'No identified usages',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get memoryChooseUsage => 'Which milestone should open?';
+
+  @override
+  String get memoryCitedBy => 'Referenced by';
+
+  @override
+  String get memoryCitedHint =>
+      'These references are preserved; they do not mean the engine executes these effects.';
 
   @override
   String get memoryWrittenBy => 'Changed by';
@@ -2307,10 +2344,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memoryReadBy => 'Read by';
 
   @override
-  String get memoryNobodyWrites => 'Nothing changes it according to the index.';
+  String get memoryNobodyWrites => 'No identified changes.';
 
   @override
-  String get memoryNobodyReads => 'Nothing reads it according to the index.';
+  String get memoryNobodyReads => 'No identified reads.';
 
   @override
   String memoryOwnerKind(String kind) {
@@ -2319,7 +2356,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'worldRule': 'World rule',
       'storyline': 'Storyline',
       'cinematic': 'Cutscene',
-      'event': 'Behaviour',
+      'event': 'Trigger',
+      'dialogue': 'Dialogue document',
       'other': 'Element',
     });
     return '$_temp0';
@@ -2344,8 +2382,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'maps': 'maps (events, characters and decorations placed on them)',
       'mapAppearanceVariants': 'map appearance variants',
       'decorationVisibilityConditions': 'decoration display conditions',
-      'dialogueTextFacts': 'states quoted in dialogue text',
-      'dialogueDefinitions': 'dialogues',
+      'dialogueTextFacts': 'facts quoted in dialogue text',
+      'dialogueDefinitions': 'saved dialogues not analysed',
+      'narrativeUsages': 'saved usages awaiting loading',
+      'draftAnalysis': 'draft objects whose analysis failed',
       'presentationCinematics': 'presentation cutscenes',
       'legacyFlagAliasesUnderAliasId': 'old switch names',
       'legacyEventClaims': 'old events',
@@ -2358,10 +2398,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memorySelectFact =>
-      'Choose a state to see what reads and changes it.';
+      'Choose a fact to see what reads and changes it.';
 
   @override
-  String get memoryCreateFactName => 'State name';
+  String get memoryCreateFactName => 'Fact name';
 
   @override
   String get memoryCreate => 'Create';
@@ -2377,11 +2417,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memoryRulesEmptyHint =>
-      'A rule shows or hides a character while a state has a value.';
+      'A rule shows or hides a character while a fact has a value.';
 
   @override
   String get memoryRuleNeedsFact =>
-      'First create a state to test, in a working copy.';
+      'First create a fact to test, in a working copy.';
 
   @override
   String get memoryNewRule => 'New rule';
@@ -2402,7 +2442,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memoryRuleThen => 'Then';
 
   @override
-  String get memoryRuleFact => 'State';
+  String get memoryRuleFact => 'Fact';
 
   @override
   String get memoryRuleComparison => 'Comparison';
@@ -2482,7 +2522,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get memoryUnknownFact => 'a missing state';
+  String get memoryUnknownFact => 'a missing fact';
 
   @override
   String memoryConditionWeekday(String day, String expected) {

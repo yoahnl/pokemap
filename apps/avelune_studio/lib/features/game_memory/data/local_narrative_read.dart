@@ -1,4 +1,5 @@
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../project_session/domain/project_session.dart';
 import '../domain/narrative_index_port.dart';
@@ -7,6 +8,39 @@ Future<T> readNarrativeIndex<T>(
   ProjectSession session,
   ProjectFileReader reader,
   Future<T> Function(AuthoringReadApi reads, ProjectHandle handle) body, {
+  bool initializeSceneOwners = true,
+}) => _withNarrativeProject(
+  session,
+  reader,
+  (opener, handles, handle) => body(
+    AuthoringReadApi(
+      openService: opener,
+      snapshotLoader: ProjectSnapshotLoader(handles: handles),
+    ),
+    handle,
+  ),
+  initializeSceneOwners: initializeSceneOwners,
+);
+
+Future<T> readNarrativeCatalog<T>(
+  ProjectSession session,
+  ProjectFileReader reader,
+  Future<T> Function(PortableProjectCatalog catalog) body,
+) => _withNarrativeProject(session, reader, (opener, _, handle) async {
+  final catalog = await opener.catalogProject(handle);
+  if (catalog == null) throw const NarrativeIndexUnavailable();
+  return catalog.read(body);
+});
+
+Future<T> _withNarrativeProject<T>(
+  ProjectSession session,
+  ProjectFileReader reader,
+  Future<T> Function(
+    ProjectOpenService opener,
+    WorkspaceHandleStore handles,
+    ProjectHandle handle,
+  )
+  body, {
   bool initializeSceneOwners = true,
 }) async {
   final policy = await WorkspacePolicy.create(
@@ -24,13 +58,7 @@ Future<T> readNarrativeIndex<T>(
   );
   final opened = await opener.openProject(session.directoryPath);
   try {
-    return await body(
-      AuthoringReadApi(
-        openService: opener,
-        snapshotLoader: ProjectSnapshotLoader(handles: handles),
-      ),
-      opened.projectHandle,
-    );
+    return await body(opener, handles, opened.projectHandle);
   } on AuthoringQueryException catch (failure) {
     throw switch (failure.code) {
       'query.narrative_titles_preparation_required' =>
