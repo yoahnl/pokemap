@@ -24,7 +24,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   var _sceneShown = false;
   final _storyOrigins = <_StoryOrigin>[];
   var _storyNavigation = 0;
-  String? _storyNavigationProblem;
+  ({String? eventId})? _storyNavigationProblem;
   ({String id, int token})? _dialogueRequest;
   ({String? id, String mapId, int token})? _behaviourRequest;
 
@@ -183,6 +183,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     _gameplay.reconcile();
     _ambiance.reconcile();
     _story.reconcile();
+    _reconcileStoryNavigationProblem();
     _protect();
     if (mounted) setState(() {});
   }

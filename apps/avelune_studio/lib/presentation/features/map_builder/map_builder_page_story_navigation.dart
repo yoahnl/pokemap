@@ -51,7 +51,7 @@ extension _MapBuilderStoryNavigation on _MapBuilderPageState {
     if (!mounted || _disposed || navigation != _storyNavigation) return;
     if (origin.mapId != null && _maps.active?.base.mapId != origin.mapId) {
       _storyOrigins.add(origin);
-      _storyNavigationProblem = context.l10n.storyDestinationUnavailable;
+      _storyNavigationProblem = (eventId: null);
       _changed();
       return;
     }
@@ -74,12 +74,22 @@ extension _MapBuilderStoryNavigation on _MapBuilderPageState {
     _changed();
   }
 
-  Future<bool> _storyDestinationUnavailable() async {
+  Future<bool> _storyDestinationUnavailable([String? eventId]) async {
     await _returnToStoryOrigin();
     if (!mounted || _disposed) return false;
-    _storyNavigationProblem = context.l10n.storyDestinationUnavailable;
+    _storyNavigationProblem = (eventId: eventId);
     _changed();
     return false;
+  }
+
+  void _reconcileStoryNavigationProblem() {
+    final eventId = _storyNavigationProblem?.eventId;
+    if (eventId == null) return;
+    final target = _behaviourEntry(eventId);
+    if (target == null || _maps.active?.base.mapId != target.$1.id) return;
+    if (_story.elements?.byKey('${target.$2.name}:${target.$3}') != null) {
+      _storyNavigationProblem = null;
+    }
   }
 
   Widget? _storyReturnBar() {
@@ -104,7 +114,12 @@ extension _MapBuilderStoryNavigation on _MapBuilderPageState {
               onPressed: () => unawaited(_returnToStoryOrigin()),
             ),
           if (problem != null)
-            Expanded(child: StudioNotice(problem, isError: true)),
+            Expanded(
+              child: StudioNotice(
+                context.l10n.storyDestinationUnavailable,
+                isError: true,
+              ),
+            ),
         ],
       ),
     );

@@ -128,7 +128,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     if (!mounted || _disposed) return false;
     final target = _behaviourEntry(eventId);
     if (target == null) {
-      _storyNavigationProblem = context.l10n.storyDestinationUnavailable;
+      _storyNavigationProblem = (eventId: eventId);
       _changed();
       return false;
     }
@@ -144,13 +144,13 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     if (!mounted || _disposed || navigation != _storyNavigation) return false;
     if (_maps.active?.base.mapId != entry.id ||
         _behaviourEntry(eventId) == null) {
-      return _storyDestinationUnavailable();
+      return _storyDestinationUnavailable(eventId);
     }
     final element = _story.elements?.byKey('${kind.name}:$id');
     final index =
         element?.behaviours.indexWhere((item) => item.id == eventId) ?? -1;
     if (element == null || index < 0) {
-      _storyNavigationProblem = context.l10n.storyDestinationUnavailable;
+      _storyNavigationProblem = (eventId: eventId);
       _changed();
       return false;
     }
