@@ -57,3 +57,11 @@ final class ProjectLocaleResolver {
   static String _languageCode(String locale) =>
       _normalize(locale).split('-').first;
 }
+
+String normalizeProjectLocale(String value) {
+  final locale = value.trim().replaceAll('_', '-').toLowerCase();
+  if (!RegExp(r'^[a-z]{2,3}(-[a-z0-9]{2,8})*$').hasMatch(locale)) {
+    throw ArgumentError.value(value, 'locale', 'Invalid project locale');
+  }
+  return locale;
+}

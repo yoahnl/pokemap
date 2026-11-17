@@ -77,6 +77,35 @@ final class DialogueLocalization {
     required Iterable<String> supportedLocales,
     required String fallbackLocale,
   }) {
+    final (effective, fallback) = _resolveLocales(
+      preferredLocale,
+      supportedLocales,
+      fallbackLocale,
+    );
+    return _resolveUnit(unit(id), effective, fallback);
+  }
+
+  Map<String, DialogueTextResolution> resolveAll({
+    required String preferredLocale,
+    required Iterable<String> supportedLocales,
+    required String fallbackLocale,
+  }) {
+    final (effective, fallback) = _resolveLocales(
+      preferredLocale,
+      supportedLocales,
+      fallbackLocale,
+    );
+    return Map.unmodifiable({
+      for (final target in units)
+        target.id: _resolveUnit(target, effective, fallback),
+    });
+  }
+
+  (String, String) _resolveLocales(
+    String preferredLocale,
+    Iterable<String> supportedLocales,
+    String fallbackLocale,
+  ) {
     final supported = supportedLocales.map(_locale).toList();
     final fallback = _locale(fallbackLocale);
     if (!supported.contains(sourceLocale) || !supported.contains(fallback)) {
@@ -89,7 +118,14 @@ final class DialogueLocalization {
       supportedLocales: supported,
       fallbackLocale: fallback,
     );
-    final target = unit(id);
+    return (effective, fallback);
+  }
+
+  DialogueTextResolution _resolveUnit(
+    DialogueTextUnit target,
+    String effective,
+    String fallback,
+  ) {
     if (effective == sourceLocale) {
       return DialogueTextResolution(
         text: target.source,

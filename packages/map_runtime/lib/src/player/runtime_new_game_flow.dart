@@ -32,6 +32,8 @@ abstract interface class RuntimeNewGamePreSessionRunner {
     required String runId,
     required NewGameDraft draft,
     required SceneStructuredInteractionPort interactions,
+    String? preferredLocale,
+    ProjectLocalePolicy? locales,
   });
 }
 
@@ -42,6 +44,7 @@ final class RuntimeNewGamePreparation {
     required this.startMap,
     this.initialRecoveryMap,
     this.preSessionRunner,
+    this.locales,
   });
 
   final String projectRevision;
@@ -49,6 +52,7 @@ final class RuntimeNewGamePreparation {
   final MapData startMap;
   final MapData? initialRecoveryMap;
   final RuntimeNewGamePreSessionRunner? preSessionRunner;
+  final ProjectLocalePolicy? locales;
 }
 
 abstract interface class RuntimeNewGameFlowPort {
@@ -65,6 +69,7 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
     required RuntimeInitialMapPreloader initialMapPreloader,
     RuntimeNewGamePreSessionRunnerFactory? preSessionRunnerFactory,
     void Function()? cancelActivePreSession,
+    this.locales,
   })  : _projectFilePath = projectFilePath,
         _initialMapPreloader = initialMapPreloader,
         _preSessionRunnerFactory = preSessionRunnerFactory,
@@ -74,6 +79,7 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
   final RuntimeInitialMapPreloader _initialMapPreloader;
   final RuntimeNewGamePreSessionRunnerFactory? _preSessionRunnerFactory;
   final void Function()? _cancelActivePreSession;
+  final ProjectLocalePolicy? locales;
 
   /// Whether this flow can run an authored pre-session Scene. False means a
   /// New Game goes straight to the world, which is legitimate for a project
@@ -123,6 +129,7 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
       project: bundle.manifest,
       startMap: bundle.map,
       initialRecoveryMap: snapshot.initialRecoveryMap,
+      locales: locales,
       preSessionRunner: sceneId == null || sceneId.isEmpty
           ? null
           : (_preSessionRunnerFactory?.call(
@@ -185,6 +192,8 @@ final class RuntimeTextPreSessionSceneRunner
     required String runId,
     required NewGameDraft draft,
     required SceneStructuredInteractionPort interactions,
+    String? preferredLocale,
+    ProjectLocalePolicy? locales,
   }) async {
     final scene = project.scenes.where((candidate) => candidate.id == sceneId);
     if (scene.length != 1 ||
@@ -218,6 +227,8 @@ final class RuntimeTextPreSessionSceneRunner
               handledDialogueOutcomesByNodeId[intent.sourceNodeId];
           if (handledOutcome != null) return handledOutcome;
           return _runDialogue(
+            preferredLocale: preferredLocale,
+            locales: locales,
             intent: intent,
             runId: runId,
             dialogueSerial: dialogueSerial++,
@@ -257,6 +268,8 @@ final class RuntimeTextPreSessionSceneRunner
                   const <ScenePresentationCueOutcomeRoute>[];
               if (awaitablePayload is SceneYarnDialoguePayload) {
                 final outcomeId = await _runDialogue(
+                  preferredLocale: preferredLocale,
+                  locales: locales,
                   intent: SceneRuntimePlanIntent.showDialogue(
                     dialogueId: awaitablePayload.dialogueId,
                     yarnNodeName: awaitablePayload.yarnNodeName,
@@ -423,6 +436,8 @@ final class RuntimeTextPreSessionSceneRunner
   }
 
   Future<String> _runDialogue({
+    String? preferredLocale,
+    ProjectLocalePolicy? locales,
     required SceneRuntimePlanIntent intent,
     required String runId,
     required int dialogueSerial,
@@ -449,6 +464,9 @@ final class RuntimeTextPreSessionSceneRunner
         absoluteFilePath: absolutePath,
         dialogueId: dialogueId,
         startNode: intent.yarnNodeName ?? entry.defaultStartNode,
+        localization: entry.localization,
+        preferredLocale: preferredLocale,
+        locales: locales,
       ),
     );
     if (session == null) {

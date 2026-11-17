@@ -127,6 +127,7 @@ final class GameSessionDescriptor {
     required this.runtimeApiVersion,
     required Set<String> grantedCapabilities,
     required this.locale,
+    this.locales,
     required this.accessibility,
     this.initialGameState,
   }) : grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities) {
@@ -196,6 +197,7 @@ final class GameSessionDescriptor {
   final String runtimeApiVersion;
   final Set<String> grantedCapabilities;
   final String locale;
+  final ProjectLocalePolicy? locales;
   final GameSessionAccessibilityOptions accessibility;
   final GameState? initialGameState;
 

@@ -603,6 +603,8 @@ final class _MessagePreSessionRunner implements RuntimeNewGamePreSessionRunner {
     required String runId,
     required NewGameDraft draft,
     required SceneStructuredInteractionPort interactions,
+    String? preferredLocale,
+    ProjectLocalePolicy? locales,
   }) async {
     final result = await interactions.request(
       SceneInteractionRequest.message(
@@ -632,6 +634,8 @@ final class _HoldingMessagePreSessionRunner
     required String runId,
     required NewGameDraft draft,
     required SceneStructuredInteractionPort interactions,
+    String? preferredLocale,
+    ProjectLocalePolicy? locales,
   }) async {
     final result = await interactions.request(
       SceneInteractionRequest.message(

@@ -420,6 +420,7 @@ final class PlayableMapGameSessionRuntime
           gameCompletionEmitter: emitCompletion,
           defeatRecoveryCheckpointEmitter: emitDefeatRecoveryCheckpointRequest,
           runtimeLocale: descriptor.locale,
+          runtimeLocales: descriptor.locales,
           reducedMotion: descriptor.accessibility.reducedMotion,
           textScale: descriptor.accessibility.textScale,
           initialMapActivationReason:

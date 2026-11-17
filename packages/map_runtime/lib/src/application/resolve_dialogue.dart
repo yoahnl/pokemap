@@ -7,11 +7,17 @@ class ResolvedDialogue {
     required this.absoluteFilePath,
     required this.dialogueId,
     this.startNode,
+    this.localization,
+    this.preferredLocale,
+    this.locales,
   });
 
   final String absoluteFilePath;
   final String dialogueId;
   final String? startNode;
+  final DialogueLocalization? localization;
+  final String? preferredLocale;
+  final ProjectLocalePolicy? locales;
 }
 
 ResolvedDialogue? resolveDialogue({
@@ -19,6 +25,8 @@ ResolvedDialogue? resolveDialogue({
   required DialogueRef? ref,
   required String projectRootDirectory,
   required List<ProjectDialogueEntry> dialogues,
+  String? preferredLocale,
+  ProjectLocalePolicy? locales,
 }) {
   if (ref == null) {
     debugPrint('[dialogue] no dialogue configured for entity=$entityId');
@@ -36,8 +44,24 @@ ResolvedDialogue? resolveDialogue({
     absoluteFilePath = p.normalize(
       p.join(projectRootDirectory, legacyPath.replaceAll(r'\', '/')),
     );
-    dialogueId =
-        ref.dialogueId.trim().isNotEmpty ? ref.dialogueId : legacyPath;
+    dialogueId = ref.dialogueId.trim().isNotEmpty ? ref.dialogueId : legacyPath;
+    final matches = dialogues
+        .where(
+          (candidate) =>
+              p.normalize(
+                p.join(
+                  projectRootDirectory,
+                  candidate.relativePath.trim().replaceAll(r'\', '/'),
+                ),
+              ) ==
+              absoluteFilePath,
+        )
+        .toList();
+    if (matches.length > 1) {
+      debugPrint('[dialogue] ambiguous legacy scriptPath=$legacyPath');
+      return null;
+    }
+    entry = matches.singleOrNull;
     debugPrint('[dialogue] resolved via legacy scriptPath=$legacyPath');
   } else {
     dialogueId = ref.dialogueId.trim();
@@ -63,12 +87,16 @@ ResolvedDialogue? resolveDialogue({
     startNode = entityNode;
     debugPrint('[dialogue] requested startNode=$startNode');
   } else {
-    final defaultNode = entry?.defaultStartNode?.trim();
+    final defaultNode = legacyPath.isEmpty
+        ? entry?.defaultStartNode?.trim()
+        : null;
     if (defaultNode != null && defaultNode.isNotEmpty) {
       startNode = defaultNode;
       debugPrint('[dialogue] fallback defaultStartNode=$startNode');
     } else {
-      debugPrint('[dialogue] no startNode, runtime engine will decide entry point');
+      debugPrint(
+        '[dialogue] no startNode, runtime engine will decide entry point',
+      );
     }
   }
 
@@ -76,5 +104,8 @@ ResolvedDialogue? resolveDialogue({
     absoluteFilePath: absoluteFilePath,
     dialogueId: dialogueId,
     startNode: startNode,
+    localization: entry?.localization,
+    preferredLocale: preferredLocale,
+    locales: locales,
   );
 }

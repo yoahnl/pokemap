@@ -21,6 +21,7 @@ abstract final class AveluneRuntimeCompatibility {
           PokemonRulesetProfile.contextualCaptureCapabilityId,
           'catalog.partitioned@2',
           'dialogue.choices@1',
+          dialogueLocalizationCapability,
           'map@1',
           'map3d@1',
           MapExteriorDecoration.capabilityId,

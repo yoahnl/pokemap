@@ -7,24 +7,20 @@ import 'dialogue_runtime_models.dart';
 import 'parse_yarn_dialogue.dart';
 import 'resolve_dialogue.dart';
 
-/// Nœuds parsés par chemin absolu, revalidés par (mtime, taille) à chaque
-/// accès : chaque interaction PNJ relisait et re-parsait le fichier entier.
-/// Les sessions ne mutent jamais les nœuds (les transformations passent par
-/// `mapText`, qui clone), le partage est donc sûr.
-final Map<String, _CachedDialogueNodes> _dialogueNodesByPath =
-    <String, _CachedDialogueNodes>{};
-const int _dialogueNodesCacheCapacity = 64;
+final Map<String, _CachedDialogueDocument> _dialogueDocumentsByPath =
+    <String, _CachedDialogueDocument>{};
+const int _dialogueDocumentCacheCapacity = 64;
 
-final class _CachedDialogueNodes {
-  const _CachedDialogueNodes({
+final class _CachedDialogueDocument {
+  const _CachedDialogueDocument({
     required this.modified,
     required this.size,
-    required this.nodes,
+    required this.document,
   });
 
   final DateTime modified;
   final int size;
-  final List<YarnNode> nodes;
+  final RuntimeDialogueDocument document;
 }
 
 /// Read the `.yarn` file referenced by [resolved], parse it, and start a
@@ -38,30 +34,40 @@ Future<DialogueSession?> loadDialogueContent(ResolvedDialogue resolved) async {
     final path = resolved.absoluteFilePath;
     final file = File(path);
     final stat = await file.stat();
-    final cached = _dialogueNodesByPath.remove(path);
+    final cached = _dialogueDocumentsByPath.remove(path);
+    final RuntimeDialogueDocument document;
     if (cached != null &&
         cached.modified == stat.modified &&
         cached.size == stat.size) {
-      _dialogueNodesByPath[path] = cached;
-      nodes = cached.nodes;
+      _dialogueDocumentsByPath[path] = cached;
+      document = cached.document;
     } else {
       if (path.toLowerCase().endsWith('.json')) {
-        final document = const RuntimeDialogueDocumentCodec().decodeUtf8(
+        document = const RuntimeDialogueDocumentCodec().decodeUtf8(
           await file.readAsBytes(),
         );
-        nodes = runtimeDialogueNodesFromDocument(document);
       } else {
-        nodes = parseYarnFile(await file.readAsString());
+        document = const YarnDialogueCompiler().compile(
+          await file.readAsString(),
+        );
       }
-      _dialogueNodesByPath[path] = _CachedDialogueNodes(
+      _dialogueDocumentsByPath[path] = _CachedDialogueDocument(
         modified: stat.modified,
         size: stat.size,
-        nodes: nodes,
+        document: document,
       );
-      while (_dialogueNodesByPath.length > _dialogueNodesCacheCapacity) {
-        _dialogueNodesByPath.remove(_dialogueNodesByPath.keys.first);
+      while (_dialogueDocumentsByPath.length > _dialogueDocumentCacheCapacity) {
+        _dialogueDocumentsByPath.remove(_dialogueDocumentsByPath.keys.first);
       }
     }
+    nodes = runtimeDialogueNodesFromDocument(
+      document,
+      localization: path.toLowerCase().endsWith('.json')
+          ? resolved.localization
+          : null,
+      preferredLocale: resolved.preferredLocale,
+      locales: resolved.locales,
+    );
   } catch (e) {
     debugPrint(
       '[dialogue] failed to load file ${resolved.absoluteFilePath}: $e',
@@ -91,13 +97,15 @@ Future<DialogueSession?> loadDialogueContent(ResolvedDialogue resolved) async {
   if (startTitle != null && startTitle.isNotEmpty) {
     if (session.currentNodeTitle != startTitle) {
       debugPrint(
-          '[dialogue] requested node "$startTitle" not found — falling back to "${session.currentNodeTitle}"');
+        '[dialogue] requested node "$startTitle" not found — falling back to "${session.currentNodeTitle}"',
+      );
     } else {
       debugPrint('[dialogue] starting at node "$startTitle"');
     }
   } else {
     debugPrint(
-        '[dialogue] no startNode specified — using first node "${session.currentNodeTitle}"');
+      '[dialogue] no startNode specified — using first node "${session.currentNodeTitle}"',
+    );
   }
 
   return session;

@@ -278,6 +278,10 @@ final class HubRuntimeStartupBootstrap
       preparedCatalog = null;
       lifetime?.own(() async => initialMapPreloader.clear());
       final RuntimeNewGameFlowPort newGameFlow = RuntimeProjectNewGameFlowPort(
+        locales: ProjectLocalePolicy(
+          supportedLocales: launch.manifest.locales.supported,
+          fallbackLocale: launch.manifest.locales.defaultLocale,
+        ),
         projectFilePath: () async => projectFile.path,
         initialMapPreloader: initialMapPreloader,
         preSessionRunnerFactory: presentationRuntime?.buildPreSessionRunner,

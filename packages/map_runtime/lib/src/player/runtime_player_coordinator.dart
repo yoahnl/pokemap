@@ -1246,6 +1246,8 @@ final class RuntimePlayerCoordinator {
           runId: runId,
           draft: draft,
           interactions: interactions,
+          preferredLocale: _preferences?.locale,
+          locales: preparation.locales,
         );
       }
       if (generation != _launchGeneration) return _finishCancelledLaunch();

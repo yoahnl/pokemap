@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -19,32 +19,27 @@ test("authored 3D exploration and gameplay exports cross fresh MCP stdio and can
   const project = join(root, "project");
   const output = process.env.POKEMAP_SPATIAL_EXPORT_OUTPUT ?? join(root, "exports");
   await mkdir(output, { recursive: true });
-  await cp(resolve("../../apps/hgss_first_map"), project, {
-    recursive: true,
-    filter: (path) => !path.includes(`${join("hgss_first_map", ".pokemap")}`),
-  });
-  await mkdir(join(project, ".pokemap"), { recursive: true });
-  await writeFile(join(project, ".pokemap/export-profile-v1.json"), JSON.stringify({
-    schemaVersion: 1, gameId: "games.yoahn.halte-falaises", gameVersion: process.env.POKEMAP_SPATIAL_GAME_VERSION ?? "0.1.0",
-    title: "La halte des falaises", author: { name: "Yoahn" },
-    locales: { default: "fr", supported: ["fr"] }, requiredCapabilities: [],
-    branding: {}, legal: {},
-  }));
+  await promisify(execFile)(process.env.POKEMAP_TEST_DART ?? "dart", [
+    `--packages=${resolve("../../packages/map_authoring/.dart_tool/package_config.json")}`,
+    resolve("test/fixtures/spatial_game_export_fixture.dart"), project,
+    process.env.POKEMAP_SPATIAL_GAME_VERSION ?? "0.1.0",
+  ]);
   const transport = new StdioClientTransport({
     command: process.execPath, args: ["dist/src/index.js", "--root", project,
-      "--export-root", output, "--dart", process.env.POKEMAP_TEST_DART ?? "dart"],
+      "--export-root", output, "--dart", process.env.POKEMAP_TEST_DART ?? "dart",
+      "--authoring-timeout-ms", "120000"],
     cwd: process.cwd(), stderr: "pipe",
   });
   const client = new Client({ name: "spatial-export-stdio", version: "1.0.0" });
   async function data(name: string, args: JsonRecord): Promise<JsonRecord> {
-    const result = await client.callTool({ name, arguments: args });
+    const result = await client.callTool({ name, arguments: args }, { timeout: 125000 });
     const envelope = record(result.structuredContent);
     assert.equal(envelope.ok, true, JSON.stringify(envelope));
     return record(envelope.data);
   }
   try {
     await client.connect(transport);
-    const catalog = await data("pokemap_describe", {});
+    const catalog = await data("pokemap_describe", { actionIds: ["fact.create"], view: "full" });
     assert.ok(catalog.resourceKinds);
     const tools = await client.listTools();
     assert.match(tools.tools.find((tool) => tool.name === "pokemap_game_export")!.description!, /3D exploration/);
@@ -75,7 +70,8 @@ test("authored 3D exploration and gameplay exports cross fresh MCP stdio and can
     assert.equal((await readFile(gameplayPath)).length, gameplay.sizeBytes);
     const { stdout } = await promisify(execFile)("unzip", ["-p", gameplayPath, "game-manifest.json"]);
     const gameManifest = record(JSON.parse(stdout));
-    assert.deepEqual(record(gameManifest.compatibility).requiredCapabilities, ["map3d.gameplay@1", "map3d@1"]);
+    assert.deepEqual(record(gameManifest.compatibility).requiredCapabilities,
+      ["catalog.partitioned@2", "map3d.gameplay@1", "map3d@1"]);
     const rejected = await client.callTool({ name: "pokemap_game_export", arguments: {
       projectHandle: opened.projectHandle, mode: "publication",
       outputPath: join(output, "publication.avelunegame"),

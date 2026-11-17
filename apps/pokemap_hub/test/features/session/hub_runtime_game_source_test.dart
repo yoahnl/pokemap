@@ -20,51 +20,78 @@ void main() {
     if (await root.exists()) await root.delete(recursive: true);
   });
 
-  test('projects only the verified current install into a session descriptor',
-      () async {
-    final launch = await createRuntimePlayerLaunchContext(root);
-    final preferences = HubPlayerPreferencesGateway(
-      store: HubPreferencesStore(supportRoot: root),
-      fallbackLocale: launch.manifest.locales.defaultLocale,
-    );
-    await preferences.save(
-      const PlayerPreferencesSnapshot(
-        locale: 'fr',
-        accessibility: GameSessionAccessibilityOptions(
-          reducedMotion: true,
-          textScale: 1.25,
-          hapticsEnabled: false,
+  test(
+    'projects only the verified current install into a session descriptor',
+    () async {
+      final launch = await createRuntimePlayerLaunchContext(root);
+      final preferences = HubPlayerPreferencesGateway(
+        store: HubPreferencesStore(supportRoot: root),
+        fallbackLocale: launch.manifest.locales.defaultLocale,
+      );
+      await preferences.save(
+        const PlayerPreferencesSnapshot(
+          locale: 'fr',
+          accessibility: GameSessionAccessibilityOptions(
+            reducedMotion: true,
+            textScale: 1.25,
+            hapticsEnabled: false,
+          ),
         ),
-      ),
-    );
-    final source = HubRuntimeGameSource(
-      launch: launch,
-      preferencesGateway: preferences,
-      sessionIdFactory: () => 'session-from-hub',
-      sessionTokenFactory: () => 'secret-from-hub',
-    );
+      );
+      final source = HubRuntimeGameSource(
+        launch: launch,
+        preferencesGateway: preferences,
+        sessionIdFactory: () => 'session-from-hub',
+        sessionTokenFactory: () => 'secret-from-hub',
+      );
 
-    final descriptor = await source.createSessionDescriptor(
-      launchMode: GameSessionLaunchMode.continueGame,
-      profileId: 'player-1',
-      slotId: 'slot-2',
-      saveReadHandle: 'opaque-save-handle',
-    );
+      final descriptor = await source.createSessionDescriptor(
+        launchMode: GameSessionLaunchMode.continueGame,
+        profileId: 'player-1',
+        slotId: 'slot-2',
+        saveReadHandle: 'opaque-save-handle',
+      );
 
-    expect(source.identity, launch.identity);
-    expect(source.displayTitle, launch.manifest.title);
-    expect(descriptor.identity, launch.identity);
-    expect(descriptor.sessionId, 'session-from-hub');
-    expect(descriptor.sessionToken, 'secret-from-hub');
-    expect(descriptor.installedVersionHandle, launch.installedVersionHandle);
-    expect(descriptor.runtimeApiVersion, launch.runtimeApiVersion);
-    expect(descriptor.grantedCapabilities, launch.grantedCapabilities);
-    expect(descriptor.locale, 'fr-FR');
-    expect(descriptor.accessibility.reducedMotion, isTrue);
-    expect(descriptor.accessibility.textScale, 1.25);
-    expect(descriptor.accessibility.hapticsEnabled, isFalse);
-    expect(descriptor.saveReadHandle, 'opaque-save-handle');
-  });
+      expect(source.identity, launch.identity);
+      expect(source.displayTitle, launch.manifest.title);
+      expect(descriptor.identity, launch.identity);
+      expect(descriptor.sessionId, 'session-from-hub');
+      expect(descriptor.sessionToken, 'secret-from-hub');
+      expect(descriptor.installedVersionHandle, launch.installedVersionHandle);
+      expect(descriptor.runtimeApiVersion, launch.runtimeApiVersion);
+      expect(descriptor.grantedCapabilities, launch.grantedCapabilities);
+      expect(descriptor.locale, 'fr-FR');
+      expect(
+        descriptor.locales!.supportedLocales,
+        launch.manifest.locales.supported,
+      );
+      expect(
+        descriptor.locales!.fallbackLocale,
+        launch.manifest.locales.defaultLocale,
+      );
+      expect(descriptor.accessibility.reducedMotion, isTrue);
+      expect(descriptor.accessibility.textScale, 1.25);
+      expect(descriptor.accessibility.hapticsEnabled, isFalse);
+      expect(descriptor.saveReadHandle, 'opaque-save-handle');
+      await preferences.save(
+        const PlayerPreferencesSnapshot(
+          locale: 'en',
+          accessibility: GameSessionAccessibilityOptions(),
+        ),
+      );
+      final next = await source.createSessionDescriptor(
+        launchMode: GameSessionLaunchMode.continueGame,
+        profileId: 'player-1',
+        slotId: 'slot-2',
+        saveReadHandle: 'opaque-save-handle',
+      );
+      expect(next.locale, 'en');
+      expect(
+        next.locales!.resolve('unsupported'),
+        launch.manifest.locales.defaultLocale,
+      );
+    },
+  );
 
   test('external exit awaits the Hub callback', () async {
     var returned = false;

@@ -8,6 +8,8 @@ class YarnStepLine extends YarnStep {
     this.characterId,
     this.portraitStateId,
     this.feedback,
+    this.sourceText,
+    this.sourceFeedback,
   }) {
     feedback?.validateText(text);
   }
@@ -15,6 +17,8 @@ class YarnStepLine extends YarnStep {
   final String? characterId;
   final String? portraitStateId;
   final DialogueLineFeedback? feedback;
+  final String? sourceText;
+  final DialogueLineFeedback? sourceFeedback;
 }
 
 class YarnStepJump extends YarnStep {
@@ -101,10 +105,15 @@ class DialogueSession {
             case YarnStepLine():
               final index = lineIndex++;
               scopes.add(SceneDialogueLineScope(nodeName: node.title, lineIndex: index,
-                text: step.text, feedback: step.feedback));
+                text: step.sourceText ?? step.text,
+                feedback: step.sourceFeedback ?? step.feedback));
               result.add(YarnStepLine(step.text, characterId: step.characterId,
                 portraitStateId: step.portraitStateId,
-                feedback: byScope[(node.title, index)] ?? step.feedback));
+                sourceText: step.sourceText,
+                sourceFeedback: byScope[(node.title, index)] ?? step.sourceFeedback,
+                feedback: retargetDialogueLineFeedback(
+                  byScope[(node.title, index)] ?? step.sourceFeedback ?? step.feedback,
+                  sourceText: step.sourceText ?? step.text, text: step.text)));
             case YarnStepChoiceBlock():
               result.add(YarnStepChoiceBlock([
                 for (final choice in step.choices)

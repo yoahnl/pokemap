@@ -50,6 +50,8 @@ final class SpatialExplorationSession {
       );
   SpatialSmartTileAnimationController _smartTileAnimations;
   RuntimeMapBundle bundle;
+  String runtimeLocale = 'fr-FR';
+  ProjectLocalePolicy? locales;
   RuntimeProjectAudioController? projectAudio;
   RealWeatherService? realWeather;
   bool realWeatherAllowed = false;
@@ -960,6 +962,8 @@ final class SpatialExplorationSession {
         ref: ref,
         projectRootDirectory: bundle.projectRootDirectory,
       dialogues: bundle.manifest.dialogues,
+      preferredLocale: runtimeLocale,
+      locales: locales,
     ) : null;
     if (resolved == null && providedSession == null) {
       completion?.complete(const SceneDialogueRuntimeAwaitableResult.failed(
@@ -1169,6 +1173,8 @@ final class SpatialExplorationSession {
 
   static Future<SpatialExplorationSession> load(
     RuntimeMapBundle bundle, {
+    String runtimeLocale = 'fr-FR',
+    ProjectLocalePolicy? locales,
     GridPos? arrival,
     PlayerSpatialPosition? spatialArrival,
     EntityFacing? facing,
@@ -1183,6 +1189,8 @@ final class SpatialExplorationSession {
     Iterable<MapData> knownMaps = const [],
   }) =>
       _load(bundle,
+          runtimeLocale: runtimeLocale,
+          locales: locales,
           allowNpcOverlapRecovery: allowNpcOverlapRecovery,
           arrival: arrival,
           spatialArrival: spatialArrival,
@@ -1199,6 +1207,8 @@ final class SpatialExplorationSession {
 
   static Future<SpatialExplorationSession> _load(
     RuntimeMapBundle bundle, {
+    String runtimeLocale = 'fr-FR',
+    ProjectLocalePolicy? locales,
     GridPos? arrival,
     PlayerSpatialPosition? spatialArrival,
     EntityFacing? facing,
@@ -1347,6 +1357,8 @@ final class SpatialExplorationSession {
       {for (final map in knownMaps) map.id: map},
     );
     final images = assets.images;
+    session.runtimeLocale = runtimeLocale;
+    session.locales = locales;
     try {
       final paths = bundle.runtimeImageAbsolutePathsById;
       final ids = {
@@ -2240,6 +2252,8 @@ final class SpatialExplorationSession {
       if (_disposed) throw StateError('La session est fermée.');
       _validateDestination(next, id, bundle.projectRootDirectory);
       final candidate = await _load(next,
+          runtimeLocale: runtimeLocale,
+          locales: locales,
           characterId: character.id,
           worldStateProvider: worldStateProvider,
           entityIsPresent: entityIsPresent,
@@ -2491,6 +2505,8 @@ final class SpatialExplorationSession {
         Future<void> prepareSession() async {
           final prepared = await _load(
             next,
+            runtimeLocale: runtimeLocale,
+            locales: locales,
             arrival: spatialArrival == null ? resolveArrival(next.map) : null,
             spatialArrival: spatialArrival,
             facing:

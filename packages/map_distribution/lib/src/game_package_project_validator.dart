@@ -9,6 +9,7 @@ import 'game_package_security_policy.dart';
 import 'game_package_spatial_project_validator.dart';
 import 'game_package_exterior_decoration_validator.dart';
 import 'game_package_project_audio_validator.dart';
+import 'game_package_dialogue_localization_validator.dart';
 
 /// Performs the pure project preflight available before staging/smoke.
 final class GamePackageProjectValidator {
@@ -234,6 +235,8 @@ final class GamePackageProjectValidator {
       }
       _validateComplexity(project.toJson());
       ProjectValidator.validate(project);
+      validateGamePackageDialogueLocalization(project: project,
+          manifest: packageManifest, policy: policy, readPayload: readPayload);
       final exterior = const GamePackageExteriorDecorationValidator().validate(
         project: project,
         payloadPaths: payloadPaths,

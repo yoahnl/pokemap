@@ -15,8 +15,8 @@ ProjectManifest reconcileDialogueLineTextEdits({
   required List<DialogueLineTextEdit> edits,
 }) {
   if (edits.isEmpty) _invalid('At least one changed line is required.');
-  if (jsonEncode(_withoutDialogueText(before.document!.toJson())) !=
-      jsonEncode(_withoutDialogueText(after.document!.toJson()))) {
+  if (jsonEncode(runtimeDialogueTextShape(before.document!)) !=
+      jsonEncode(runtimeDialogueTextShape(after.document!))) {
     throw NarrativeAuthoringException(
       'dialogue.line_text_edits_structure_changed',
       'Line text edits must preserve the compiled dialogue structure and commands.',
@@ -148,33 +148,9 @@ SceneDialogueLinePolicy _replacePolicy(
   return SceneDialogueLinePolicy(
     nodeName: policy.nodeName,
     lineIndex: policy.lineIndex,
-    feedback: DialogueLineFeedback(
-      segments: [
-        DialogueTextSegment(edit.afterText,
-            style:
-                (policy.feedback.segments.single as DialogueTextSegment).style)
-      ],
-      revealIntervalMicros: policy.feedback.revealIntervalMicros,
-      advance: policy.feedback.advance,
-      audioCue: policy.feedback.audioCue,
-    ),
+    feedback: retargetDialogueLineFeedback(policy.feedback,
+        sourceText: edit.beforeText, text: edit.afterText)!,
   );
-}
-
-Object? _withoutDialogueText(Object? value) {
-  if (value is List) return value.map(_withoutDialogueText).toList(growable: false);
-  if (value is Map<String, Object?>) {
-    final text = value['kind'] == 'line' ||
-        (!value.containsKey('kind') &&
-            value['steps'] is List &&
-            value['text'] is String);
-    return {
-      for (final entry in value.entries)
-        entry.key:
-            text && entry.key == 'text' ? null : _withoutDialogueText(entry.value),
-    };
-  }
-  return value;
 }
 
 Never _invalid(String message) => throw NarrativeAuthoringException(

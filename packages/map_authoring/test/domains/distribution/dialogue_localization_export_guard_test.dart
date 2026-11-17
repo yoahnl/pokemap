@@ -11,7 +11,7 @@ import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 void main() {
   for (final withLocalization in [false, true]) {
     test(
-        'export preserves legacy content and refuses unsupported variants, localized=$withLocalization',
+        'export preserves authoring content and declares localized runtime needs, localized=$withLocalization',
         () async {
       final root = await Directory.systemTemp.createTemp('dialogue_export_');
       addTearDown(() => root.delete(recursive: true));
@@ -50,18 +50,11 @@ void main() {
               defaultLocale: 'fr',
               supportedLocales: ['fr', 'en']),
           mode: GamePackageExportMode.localTest);
-      if (withLocalization) {
-        await expectLater(
-            exporting,
-            throwsA(isA<GamePackageExportException>().having(
-                (error) => error.code,
-                'code',
-                'dialogueLocalizationRuntimeUnsupported')));
-      } else {
-        final artifact = await exporting;
-        expect(artifact.manifest.compatibility.requiredCapabilities,
-            isNot(contains(dialogueLocalizationCapability)));
-      }
+      final artifact = await exporting;
+      expect(
+          artifact.manifest.compatibility.requiredCapabilities
+              .contains(dialogueLocalizationCapability),
+          withLocalization);
       for (final entry in files.entries) {
         expect(
             await File('${root.path}/${entry.key.substring('project/'.length)}')

@@ -355,6 +355,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     @visibleForTesting this.railJourneyDoorAnimation,
     @visibleForTesting this.railJourneySpatialTransition,
     this.runtimeLocale = 'fr-FR',
+    this.runtimeLocales,
     String? initialPlayerName,
     String? initialPlayerAvatarCharacterId,
     PlayerPronounSet? initialPlayerPronounSet,
@@ -598,7 +599,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   final MapActivationReason initialMapActivationReason;
-  final String runtimeLocale;
+  String runtimeLocale;
+  final ProjectLocalePolicy? runtimeLocales;
 
   /// Deterministic async instrumentation for activation-dispatch race tests.
   ///
@@ -2580,6 +2582,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   RuntimeDialogueTextSpeed get dialogueTextSpeed => _dialogueTextSpeed;
 
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    runtimeLocale = runtimeLocales?.resolve(preferences.locale) ?? preferences.locale;
     reducedMotion = preferences.accessibility.reducedMotion;
     _battleMotionPolicy = preferences.battleMotion;
     _battleOverlay?.applyMotionPolicy(_battleMotionPolicy,
@@ -15396,6 +15399,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       ),
       projectRootDirectory: _bundle.projectRootDirectory,
       dialogues: _bundle.manifest.dialogues,
+      preferredLocale: runtimeLocale,
+      locales: runtimeLocales,
     );
     if (resolved == null) {
       final message = 'Dialogue introuvable: ${request.dialogueId}';
@@ -15942,6 +15947,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       ),
       projectRootDirectory: _bundle.projectRootDirectory,
       dialogues: _bundle.manifest.dialogues,
+      preferredLocale: runtimeLocale,
+      locales: runtimeLocales,
     );
 
     if (resolved == null) {
@@ -16284,6 +16291,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       ref: ref,
       projectRootDirectory: _bundle.projectRootDirectory,
       dialogues: _bundle.manifest.dialogues,
+      preferredLocale: runtimeLocale,
+      locales: runtimeLocales,
     );
 
     if (resolved == null) {

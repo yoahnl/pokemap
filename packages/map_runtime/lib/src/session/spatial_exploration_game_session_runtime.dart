@@ -238,6 +238,7 @@ final class SpatialExplorationGameSessionRuntime
   @override
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
     _preferences = preferences;
+    _session?.runtimeLocale = descriptor.locales?.resolve(preferences.locale) ?? preferences.locale;
     _battle?.applyMotionPolicy(preferences.battleMotion);
     if (_ownsAudioMixer) _observeMusic(_audioMixer.transitionTo(preferences.audioMix));
     _session?.setTextSpeed(preferences.dialogueTextSpeed);
@@ -1718,6 +1719,9 @@ final class SpatialExplorationGameSessionRuntime
         throw StateError('The prepared maps require ${SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId}.');
       }
       final loaded = await SpatialExplorationSession.load(bundle,
+          runtimeLocale: descriptor.locales?.resolve(_preferences?.locale ?? descriptor.locale)
+              ?? _preferences?.locale ?? descriptor.locale,
+          locales: descriptor.locales,
           allowNpcOverlapRecovery: descriptor.launchMode == GameSessionLaunchMode.continueGame,
           loadMap: (id) async {
             final next = await loadRuntimeMapBundle(

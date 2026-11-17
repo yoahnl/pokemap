@@ -555,7 +555,7 @@ AuthoringActionDescriptor _descriptor(
             'storage': 'entry.localization',
             'sourcePreserved': true,
             'runtimeCapability': dialogueLocalizationCapability,
-            'runtimeExportSupported': false,
+            'runtimeExportSupported': true,
             'schema': dialogueLocalizationSchema,
           },
       },

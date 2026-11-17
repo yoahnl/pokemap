@@ -1979,6 +1979,8 @@ final class _NamePreSessionRunner implements RuntimeNewGamePreSessionRunner {
     required String runId,
     required NewGameDraft draft,
     required SceneStructuredInteractionPort interactions,
+    String? preferredLocale,
+    ProjectLocalePolicy? locales,
   }) async {
     await interactions.request(
       SceneInteractionRequest.text(

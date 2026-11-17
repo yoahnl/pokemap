@@ -19,11 +19,11 @@ final class HubRuntimeGameSource implements RuntimeGameSource {
     required this.preferencesGateway,
     HubOpaqueIdFactory? sessionIdFactory,
     HubOpaqueIdFactory? sessionTokenFactory,
-  })  : _launch = launch,
-        _sessionIdFactory =
-            sessionIdFactory ?? (() => _secureOpaqueId('session')),
-        _sessionTokenFactory =
-            sessionTokenFactory ?? (() => _secureOpaqueId('token'));
+  }) : _launch = launch,
+       _sessionIdFactory =
+           sessionIdFactory ?? (() => _secureOpaqueId('session')),
+       _sessionTokenFactory =
+           sessionTokenFactory ?? (() => _secureOpaqueId('token'));
 
   final InstalledGameLaunchContext _launch;
   final PlayerPreferencesGateway preferencesGateway;
@@ -76,6 +76,10 @@ final class HubRuntimeGameSource implements RuntimeGameSource {
       grantedCapabilities: _launch.grantedCapabilities,
       locale: ProjectLocaleResolver.resolve(
         preferredLocale: preferences.locale,
+        supportedLocales: _launch.manifest.locales.supported,
+        fallbackLocale: _launch.manifest.locales.defaultLocale,
+      ),
+      locales: ProjectLocalePolicy(
         supportedLocales: _launch.manifest.locales.supported,
         fallbackLocale: _launch.manifest.locales.defaultLocale,
       ),

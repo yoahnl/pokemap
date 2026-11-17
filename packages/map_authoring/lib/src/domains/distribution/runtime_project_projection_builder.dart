@@ -24,6 +24,7 @@ import 'immutable_byte_snapshot.dart';
 import 'runtime_static_terrain_projection.dart';
 import 'runtime_regular_atlas_projection.dart';
 import 'runtime_unused_border_projection.dart';
+import '../../dialogue/dialogue_localization_document.dart';
 
 final class RuntimeProjectProjection {
   RuntimeProjectProjection({
@@ -299,31 +300,26 @@ final class RuntimeProjectProjectionBuilder {
     final dialogueSources = <String>{};
     final compiledEntries = <ProjectDialogueEntry>[];
     final compiledPaths = <String>{};
+    final linePolicySets = dialogueLinePoliciesByDocument(authorProject.scenes);
+    final factIds = authorProject.facts.map((fact) => fact.id).toSet();
     for (final entry in authorProject.dialogues) {
-      if (entry.localization != null) {
-        throw GamePackageExportException(
-          code: 'dialogueLocalizationRuntimeUnsupported',
-          path: entry.relativePath,
-          message:
-              'Localized dialogues require $dialogueLocalizationCapability support in the export and Player.',
-        );
-      }
+      var runtimeLocalization = entry.localization;
+      String? yarnSource;
       final sourcePath = _normalizeRelative(entry.relativePath);
       dialogueSources.add(sourcePath);
       final extension = p.extension(sourcePath).toLowerCase();
       final RuntimeDialogueDocument document;
       if (extension == '.yarn') {
         try {
-          document = const YarnDialogueCompiler().compile(
-            utf8.decode(
+          yarnSource = utf8.decode(
               await authorFiles.read(
                 sourcePath,
                 budget,
                 jsonLike: true,
               ),
               allowMalformed: false,
-            ),
-          );
+            );
+          document = const YarnDialogueCompiler().compile(yarnSource);
         } on Object catch (error) {
           throw GamePackageExportException(
             code: 'dialogueCompilationFailed',
@@ -358,6 +354,27 @@ final class RuntimeProjectProjectionBuilder {
       }
       final runtimeRelativePath =
           'dialogues/${_safeDialogueFileName(entry.id)}.json';
+      if (runtimeLocalization != null) {
+        try {
+          if (yarnSource != null) {
+            runtimeLocalization = compileRuntimeDialogueLocalization(
+              source: yarnSource, document: document,
+              localization: runtimeLocalization,
+            );
+          }
+          validateRuntimeDialogueLocalizationVariants(document, runtimeLocalization,
+            locales: ProjectLocalePolicy(supportedLocales: profile.supportedLocales,
+              fallbackLocale: profile.defaultLocale),
+            factIds: factIds,
+            linePolicySets: linePolicySets[entry.id] ?? const [],
+          );
+        } on Object catch (error) {
+          throw GamePackageExportException(code: 'invalidDialogueLocalization',
+            path: sourcePath,
+            message: 'Localized dialogue "${entry.name}" cannot be distributed: $error',
+            cause: error);
+        }
+      }
       if (!compiledPaths.add(runtimeRelativePath)) {
         throw GamePackageExportException(
           code: 'dialoguePathCollision',
@@ -370,7 +387,8 @@ final class RuntimeProjectProjectionBuilder {
         'project/$runtimeRelativePath',
         const RuntimeDialogueDocumentCodec().encodeUtf8(document),
       );
-      compiledEntries.add(entry.copyWith(relativePath: runtimeRelativePath));
+      compiledEntries.add(entry.copyWith(relativePath: runtimeRelativePath,
+          localization: runtimeLocalization));
       if (hasLocalResources) {
         libraryDocuments.add(ResourceUsageDocument(
             'dialogue', entry.id, entry.name, sourcePath, document.toJson()));

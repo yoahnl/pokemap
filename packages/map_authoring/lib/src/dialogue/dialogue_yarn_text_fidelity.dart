@@ -91,10 +91,15 @@ String? _emitPatchedDialogueTexts(
   if (_emitCanonicalDocument(original) != _emitCanonicalDocument(restored)) {
     return null;
   }
-  patches.sort((a, b) => b.$1.start.compareTo(a.$1.start));
-  var result = source;
+  patches.sort((a, b) => a.$1.start.compareTo(b.$1.start));
+  final result = StringBuffer();
+  var cursor = 0;
   for (final (location, text) in patches) {
-    result = result.replaceRange(location.start, location.end, text);
+    if (location.start < cursor) return null;
+    result.write(source.substring(cursor, location.start));
+    result.write(text);
+    cursor = location.end;
   }
-  return result;
+  result.write(source.substring(cursor));
+  return result.toString();
 }

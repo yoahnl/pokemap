@@ -376,6 +376,8 @@ final class CanonicalGamePackageExportService {
         }
       }
       final requiredCapabilities = <String>{
+        if (projection.project.dialogues.any((entry) => entry.localization != null))
+          dialogueLocalizationCapability,
         if (OverworldItemCapabilities.requiresContextualUse(fieldObstacleMaps)) OverworldItemCapabilities.contextualUseCapabilityId,
         if (OverworldItemCapabilities.requiresSpatialEscapeRope(fieldObstacleMaps)) OverworldItemCapabilities.spatialEscapeRopeCapabilityId,
         if (allMovesPpRestore) ItemPpRestoreCapabilities.allMovesCapabilityId,

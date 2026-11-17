@@ -79,9 +79,5 @@ String _text(String value) {
 }
 
 String _locale(String value) {
-  final locale = value.trim().replaceAll('_', '-').toLowerCase();
-  if (!RegExp(r'^[a-z]{2,3}(-[a-z0-9]{2,8})*$').hasMatch(locale)) {
-    throw ArgumentError.value(value, 'locale', 'Invalid project locale');
-  }
-  return locale;
+  return normalizeProjectLocale(value);
 }

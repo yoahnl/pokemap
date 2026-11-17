@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { tmpdir } from "node:os";
@@ -15,7 +15,10 @@ function record(value: unknown): JsonRecord {
 }
 
 test("MCP discovers, publishes and protects localized dialogue identities", { timeout: 180_000 }, async () => {
-  const root = await mkdtemp(join(tmpdir(), "dialogue-localization-"));
+  const owner = await mkdtemp(join(tmpdir(), "dialogue-localization-"));
+  const root = join(owner, "project");
+  const output = join(owner, "exports");
+  await mkdir(output);
   const source = "title: Start\n---\nBonjour\n===\n";
   const entry = { id: "talk", name: "Accueil", relativePath: "dialogues/talk.yarn" };
   const packageRoot = resolve("../../packages/map_authoring");
@@ -25,7 +28,8 @@ test("MCP discovers, publishes and protects localized dialogue identities", { ti
   ], { timeout: 90_000 });
   const client = new Client({ name: "dialogue-localization", version: "1.0.0" });
   const transport = new StdioClientTransport({ command: process.execPath,
-    args: [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"],
+    args: [resolve("dist/src/index.js"), "--root", root, "--export-root", output,
+      "--authoring-timeout-ms", "120000"],
     cwd: process.cwd(), stderr: "pipe" });
   async function call(name: string, input: JsonRecord, failure = false): Promise<JsonRecord> {
     const envelope = record((await client.callTool({ name, arguments: input })).structuredContent);
@@ -41,7 +45,7 @@ test("MCP discovers, publishes and protects localized dialogue identities", { ti
     assert.equal(contract.format, 1);
     assert.equal(contract.storage, "entry.localization");
     assert.equal(contract.runtimeCapability, "project.dialogue-localization@1");
-    assert.equal(contract.runtimeExportSupported, false);
+    assert.equal(contract.runtimeExportSupported, true);
     assert.equal(record(record(action.extensions).sourceTextContract).explicitLineCommand, "line_v1");
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const localized = { ...entry, localization: { format: 1, sourceLocale: "fr", units: [{
@@ -63,6 +67,14 @@ test("MCP discovers, publishes and protects localized dialogue identities", { ti
     const persisted = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
       actionId: "dialogue.update", parameters: { entry: localized } });
     assert.deepEqual(record((record(persisted.project).dialogues as JsonRecord[])[0]).localization, localized.localization);
+    assert.equal(await readFile(join(root, entry.relativePath), "utf8"), source);
+    const exported = await call("pokemap_game_export", { projectHandle: opened.projectHandle,
+      outputPath: join(output, "localized.avelunegame"), mode: "localTest" });
+    assert.equal(exported.gameVersion, '0.1.0');
+    const manifest = JSON.parse((await promisify(execFile)("unzip", ["-p",
+      String(exported.outputPath), "game-manifest.json"])).stdout) as JsonRecord;
+    assert.ok((record(manifest.compatibility).requiredCapabilities as string[])
+      .includes("project.dialogue-localization@1"));
     assert.equal(await readFile(join(root, entry.relativePath), "utf8"), source);
     const explicitText = "Locuteur : (Bonjour)\n<<jump Start>>";
     const explicitSource = `title: Start\n---\n<<line_v1 ${JSON.stringify({ text: explicitText, speaker: null })}>>\n===\n`;
@@ -95,6 +107,6 @@ test("MCP discovers, publishes and protects localized dialogue identities", { ti
   } finally {
     await client.close();
     await transport.close();
-    await rm(root, { recursive: true, force: true });
+    await rm(owner, { recursive: true, force: true });
   }
 });
