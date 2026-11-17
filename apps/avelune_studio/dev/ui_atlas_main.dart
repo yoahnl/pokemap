@@ -127,7 +127,6 @@ Future<void> main() async {
     }
     return false;
   });
-  RendererBinding.instance.ensureSemantics();
   stdout.writeln('AVELUNE_ATLAS_PROJECT $projectPath');
   runApp(
     RepaintBoundary(
