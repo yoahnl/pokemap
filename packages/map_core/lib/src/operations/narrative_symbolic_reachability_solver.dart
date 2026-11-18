@@ -1,10 +1,13 @@
 import 'narrative_condition_expression_evaluator.dart';
 import 'package:meta/meta.dart' show immutable;
 
+import '../authoring/event_builder_contract.dart';
 import '../models/map_data.dart';
+import '../models/map_event_definition.dart';
 import '../models/enums.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_source_ref.dart';
+import '../models/narrative_event_registry.dart';
 import '../models/narrative_command_descriptor.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
@@ -13,11 +16,19 @@ import 'narrative_trigger_bump_source_reference.dart';
 import 'narrative_entity_autorun_source_reference.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/script_conditions.dart';
 import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
 import '../read_models/narrative_command_catalog.dart';
 
+part 'narrative_symbolic_event_choices.dart';
+
 enum NarrativeSymbolicVerdict { pass, fail, indeterminate }
+
+typedef _ComponentRequirement = ({
+  bool Function(NarrativeSymbolicFactEvidenceComponent) belongsTo,
+  bool Function(NarrativeSymbolicState) holds,
+});
 
 enum NarrativeSymbolicIssueCode {
   cycleDetected,
@@ -199,33 +210,63 @@ final class NarrativeSymbolicReachabilityReport {
   final List<NarrativeSymbolicState> evidenceStates;
   final List<NarrativeSymbolicFactEvidenceComponent> independentFactComponents;
 
-  bool canSatisfyAllTrueFacts(Set<String> factIds) {
-    final requiredFromMainComponent = {...factIds};
-    var compatibleMainStates = evidenceStates.toList(growable: false);
-    for (final component in independentFactComponents) {
-      final requiredFromComponent =
-          requiredFromMainComponent.intersection(component.factIds);
-      if (requiredFromComponent.isNotEmpty) {
-        final compatibleMainKeys = <String>{};
-        for (final state in component.states) {
-          if (!requiredFromComponent.every(state.hasTrueFact)) continue;
-          compatibleMainKeys.addAll(
-            component.compatibleMainStateKeysByStateKey[state.semanticKey] ??
-                const <String>{},
+  bool canSatisfyAllTrueFacts(Set<String> factIds) => _canSatisfy([
+        for (final id in factIds)
+          (
+            belongsTo: (component) => component.factIds.contains(id),
+            holds: (state) => state.hasTrueFact(id),
+          ),
+      ]);
+
+  bool canSatisfyMilestones(Iterable<StorylineStep> steps) => _canSatisfy(
+        steps.map((step) {
+          final fact = _milestoneFactCondition(step);
+          return (
+            belongsTo: (NarrativeSymbolicFactEvidenceComponent component) =>
+                component.stepIds.contains(step.id) ||
+                (fact != null && component.factIds.contains(fact.id)),
+            holds: (NarrativeSymbolicState state) =>
+                state.completedStepIds.contains(step.id) ||
+                (fact != null && state.factValues[fact.id] == fact.value),
           );
+        }),
+        determinedOnly: true,
+      );
+
+  bool _canSatisfy(
+    Iterable<_ComponentRequirement> requirements, {
+    bool determinedOnly = false,
+  }) {
+    final requiredFromMainComponent = requirements.toSet();
+    var compatibleMainStates = evidenceStates
+        .where((state) => !determinedOnly || !state.indeterminate)
+        .toList(growable: false);
+    for (final component in independentFactComponents) {
+      final requiredFromComponent = requiredFromMainComponent
+          .where((requirement) => requirement.belongsTo(component))
+          .toList();
+      if (requiredFromComponent.isEmpty) continue;
+      final compatibleMainKeys = <String>{};
+      for (final state in component.states) {
+        if (determinedOnly && state.indeterminate) continue;
+        if (!requiredFromComponent.every((requirement) => requirement.holds(state))) {
+          continue;
         }
-        if (compatibleMainKeys.isEmpty) return false;
-        compatibleMainStates = compatibleMainStates
-            .where(
-              (state) => compatibleMainKeys.contains(state.semanticKey),
-            )
-            .toList(growable: false);
-        if (compatibleMainStates.isEmpty) return false;
+        compatibleMainKeys.addAll(
+          component.compatibleMainStateKeysByStateKey[state.semanticKey] ??
+              const <String>{},
+        );
       }
-      requiredFromMainComponent.removeAll(component.factIds);
+      compatibleMainStates = compatibleMainStates
+          .where((state) => compatibleMainKeys.contains(state.semanticKey))
+          .toList(growable: false);
+      if (compatibleMainStates.isEmpty) return false;
+      requiredFromMainComponent.removeAll(requiredFromComponent);
     }
     return compatibleMainStates.any(
-      (state) => requiredFromMainComponent.every(state.hasTrueFact),
+      (state) => requiredFromMainComponent.every(
+        (requirement) => requirement.holds(state),
+      ),
     );
   }
 
@@ -259,16 +300,38 @@ final class NarrativeSymbolicReachabilityReport {
 final class NarrativeSymbolicFactEvidenceComponent {
   NarrativeSymbolicFactEvidenceComponent({
     required Set<String> factIds,
+    Set<String> stepIds = const <String>{},
     required List<NarrativeSymbolicState> states,
     required Map<String, Set<String>> compatibleMainStateKeysByStateKey,
   })  : factIds = Set.unmodifiable(factIds),
+        stepIds = Set.unmodifiable(stepIds),
         states = List.unmodifiable(states),
         compatibleMainStateKeysByStateKey =
             _freezeSharedCompatibilitySets(compatibleMainStateKeysByStateKey);
 
   final Set<String> factIds;
+  final Set<String> stepIds;
   final List<NarrativeSymbolicState> states;
   final Map<String, Set<String>> compatibleMainStateKeysByStateKey;
+}
+
+({String id, NarrativeValue value})? _milestoneFactCondition(
+  StorylineStep step,
+) {
+  final condition = step.completionCondition;
+  if (condition == null ||
+      condition.type != ScriptConditionType.factEquals ||
+      condition.params[ScriptConditionParams.valueType] !=
+          NarrativeValueKind.boolean.wireName) {
+    return null;
+  }
+  final id = condition.params[ScriptConditionParams.factId];
+  final value = switch (condition.params[ScriptConditionParams.value]) {
+    'true' => const NarrativeValue.boolean(true),
+    'false' => const NarrativeValue.boolean(false),
+    _ => null,
+  };
+  return id == null || value == null ? null : (id: id, value: value);
 }
 
 Map<String, Set<String>> _freezeSharedCompatibilitySets(
@@ -513,7 +576,17 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
       values[existingPartyFactId] = NarrativeValue.boolean(
           project.newGame.initialParty.isNotEmpty);
     }
-    final state = NarrativeSymbolicState(factValues: values);
+    final state = NarrativeSymbolicState(
+      factValues: values,
+      provenance: [
+        if (avatarId != null)
+          NarrativeSymbolicProvenance(
+            sceneId: '',
+            nodeId: avatarId,
+            description: 'Avatar de départ',
+          ),
+      ],
+    );
     if (!initialKeys.add(state.semanticKey)) continue;
     if (initialStates.length >= explorationBudget) {
       initialBudgetExceeded = true;
@@ -595,10 +668,14 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     }
   }
 
+  final mode = project.eventRegistry?.mode ?? EventSystemMode.legacyOnly;
+  final legacySources = _legacySymbolicSources(maps, mode, project.worldRules);
   final definitions = <NarrativeEventDefinition>[
     for (final record
         in project.eventRegistry?.records ?? const <NarrativeEventRecord>[])
-      if (record.enabledOrNull == true && record.definitionOrNull != null)
+      if (record.enabledOrNull == true &&
+          record.definitionOrNull != null &&
+          (mode != EventSystemMode.legacyOnly || record.activeInLegacyMode))
         record.definitionOrNull!,
   ]..sort((left, right) {
       return _compareNarrativeDefinitions(left, right);
@@ -607,7 +684,25 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     List<NarrativeEventDefinition> batch,
     List<NarrativeSymbolicState> seeds, {
     List<NarrativeSymbolicState>? eventBoundaryStates,
+    List<_LegacySymbolicSource> legacy = const [],
   }) {
+    final bySource = <NarrativeEventSourceRef, List<NarrativeEventDefinition>>{};
+    for (final definition in batch) {
+      if (_isPlayerControlledSource(definition.source)) {
+        bySource.putIfAbsent(definition.source, () => []).add(definition);
+      }
+    }
+    final groups = _interactionGroups({
+      for (final entry in bySource.entries)
+        entry.key: _narrativeBatchFootprint(
+          project: project,
+          definitions: entry.value,
+          scenesById: scenesById,
+          milestoneWriters: const {},
+        ),
+      for (final source in legacy)
+        source: _legacySymbolicFootprint([source], scenesById, const {}),
+    });
     var batchFrontier = seeds;
     final seen = <String>{};
     final eventBoundaryStateKeys = eventBoundaryStates == null
@@ -656,24 +751,29 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
           addNextFrontierState(state.copyWith(indeterminate: true));
           continue;
         }
-        final candidates = <NarrativeEventDefinition>[];
+        final candidates = <_SymbolicEventChoice>[];
+        final selectedSources = <NarrativeEventSourceRef>{};
         for (final definition in batch) {
-          if (state.executedEventIds.contains(definition.id)) continue;
+          final alreadyExecuted = state.executedEventIds.contains(definition.id);
+          final oneShot = definition.reusePolicy == NarrativeEventReusePolicy.oneShot;
+          final playerControlled = _isPlayerControlledSource(definition.source);
+          if (oneShot && state.consumedEventIds.contains(definition.id) ||
+              alreadyExecuted && !playerControlled) {
+            continue;
+          }
           final scene = scenesById[definition.sceneId];
           if (scene == null || _isDisabledOptionalScene(project, scene)) {
             continue;
           }
           final source = _sourceEligibility(
-            definition.source,
-            state,
-            mapsById, project, mapCounts,
+            definition.source, state, mapsById, project, mapCounts,
           );
-          final conditions = _eventExpressionValue(
-            definition.conditionExpression,
-            state,
-          );
+          final conditions = _eventExpressionValue(definition.conditionExpression, state);
           if (source == false || conditions == false) continue;
-          if (source == null || conditions == null) {
+          if (playerControlled && !selectedSources.add(definition.source)) continue;
+          if (alreadyExecuted) continue;
+          final indeterminate = source == null || conditions == null;
+          if (indeterminate) {
             issues.add(
               NarrativeSymbolicIssue(
                 code: NarrativeSymbolicIssueCode.unsupportedCondition,
@@ -686,72 +786,83 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
               ),
             );
           }
-          candidates.add(definition);
+          candidates.add((
+            id: definition.id,
+            scene: scene,
+            playerSource: playerControlled ? definition.source : null,
+            consumesEvent: oneShot,
+            indeterminate: indeterminate,
+          ));
+        }
+        for (final source in legacy) {
+          final choice = _legacySymbolicChoice(source, state, scenesById);
+          if (choice != null && !_isDisabledOptionalScene(project, choice.scene)) {
+            candidates.add(choice);
+          }
         }
         if (candidates.isEmpty) {
           addNextFrontierState(state);
           continue;
         }
         progress = true;
-        // Candidate definitions are already sorted by runtime priority/order.
-        // Executing every eligible sibling here explores permutations of the
-        // same authored Events (A→B and B→A) even when their resulting semantic
-        // state is identical. Execute the canonical next Event only; its Scene
-        // still forks every exclusive route.
-        final definition = candidates.first;
-        final scene = scenesById[definition.sceneId]!;
-        var eventState = state.copyWith(
-          executedEventIds: {...state.executedEventIds, definition.id},
-          consumedEventIds:
-              definition.reusePolicy == NarrativeEventReusePolicy.oneShot
-                  ? {...state.consumedEventIds, definition.id}
-                  : state.consumedEventIds,
-        );
-        final source = _sourceEligibility(
-          definition.source,
-          state,
-          mapsById, project, mapCounts,
-        );
-        final conditions = _eventExpressionValue(
-          definition.conditionExpression,
-          state,
-        );
-        if (source == null || conditions == null) {
-          eventState = eventState.copyWith(indeterminate: true);
-        }
-        final result = solveNarrativeSceneSymbolically(
-          scene,
-          initialState: eventState,
-          explorationBudget: remainingBudget,
-          commandCatalog: catalog,
-          eventId: definition.id,
-        );
-        exploredCount += result.exploredStateCount;
-        remainingBudget -= result.exploredStateCount;
-        explored.addAll(result.exploredStates);
-        reachableSceneIds.add(scene.id);
-        final optional = _isOptionalScene(project, scene);
-        issues.addAll([
-          for (final issue in result.issues)
-            NarrativeSymbolicIssue(
-              code: issue.code,
-              verdict: issue.verdict,
-              message: issue.message,
-              sceneId: issue.sceneId,
-              nodeId: issue.nodeId,
-              eventId: issue.eventId,
-              optional: optional,
-              provenance: issue.provenance,
-            ),
-        ]);
-        if (result.terminalStates.isEmpty && optional) {
-          addNextFrontierState(eventState);
-        }
-        for (final terminal in result.terminalStates) {
-          if (eventBoundaryStates != null) {
-            addEventBoundaryState(terminal);
+        final firstGroup = groups[candidates.first.playerSource];
+        for (final (index, choice) in candidates.indexed) {
+          if (index != 0 && (firstGroup == null || groups[choice.playerSource] != firstGroup)) {
+            continue;
           }
-          addNextFrontierState(terminal);
+          if (remainingBudget < 1) {
+            issues.add(
+              NarrativeSymbolicIssue(
+                code: NarrativeSymbolicIssueCode.budgetExceeded,
+                verdict: NarrativeSymbolicVerdict.indeterminate,
+                message: 'Le budget symbolique global de $explorationBudget états est dépassé.',
+                sceneId: choice.scene.id,
+                provenance: state.provenance,
+              ),
+            );
+            break;
+          }
+          final eventState = state.copyWith(
+            executedEventIds: {...state.executedEventIds, choice.id},
+            consumedEventIds: choice.consumesEvent
+                ? {...state.consumedEventIds, choice.id}
+                : state.consumedEventIds,
+            indeterminate: state.indeterminate || choice.indeterminate,
+          );
+          final result = solveNarrativeSceneSymbolically(
+            choice.scene,
+            initialState: eventState,
+            explorationBudget: remainingBudget,
+            commandCatalog: catalog,
+            eventId: choice.id,
+          );
+          exploredCount += result.exploredStateCount;
+          remainingBudget -= result.exploredStateCount;
+          explored.addAll(result.exploredStates);
+          reachableSceneIds.add(choice.scene.id);
+          final optional = _isOptionalScene(project, choice.scene);
+          issues.addAll([
+            for (final issue in result.issues)
+              NarrativeSymbolicIssue(
+                code: issue.code,
+                verdict: issue.verdict,
+                message: issue.message,
+                sceneId: issue.sceneId,
+                nodeId: issue.nodeId,
+                eventId: choice.id,
+                optional: optional,
+                provenance: issue.provenance,
+              ),
+          ]);
+          if (result.terminalStates.isEmpty && optional) {
+            addNextFrontierState(eventState);
+          }
+          for (final terminal in result.terminalStates) {
+            if (eventBoundaryStates != null) {
+              addEventBoundaryState(terminal);
+            }
+            addNextFrontierState(terminal);
+          }
         }
       }
       batchFrontier = nextFrontier;
@@ -775,6 +886,21 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
   final optionalBatches = optionalDefinitionsByStoryline.values
       .map((definitions) => [...definitions])
       .toList();
+  final milestoneWriters = <String, Set<String>>{};
+  final milestoneFactIdsByStep = <String, Set<String>>{};
+  for (final storyline in project.storylines) {
+    for (final chapter in storyline.chapters) {
+      for (final step in chapter.steps) {
+        final fact = _milestoneFactCondition(step);
+        if (fact == null) continue;
+        milestoneFactIdsByStep.putIfAbsent(step.id, () => {}).add(fact.id);
+        final milestone = 'milestone:${step.id}';
+        for (final key in ['step:${step.id}', 'fact:${fact.id}']) {
+          milestoneWriters.putIfAbsent(key, () => <String>{}).add(milestone);
+        }
+      }
+    }
+  }
   var mergedOptionalBatch = true;
   while (mergedOptionalBatch) {
     mergedOptionalBatch = false;
@@ -785,6 +911,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
         project: project,
         definitions: optionalBatches[leftIndex],
         scenesById: scenesById,
+        milestoneWriters: milestoneWriters,
       );
       for (var rightIndex = leftIndex + 1;
           rightIndex < optionalBatches.length;
@@ -793,6 +920,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
           project: project,
           definitions: optionalBatches[rightIndex],
           scenesById: scenesById,
+          milestoneWriters: milestoneWriters,
         );
         if (!_narrativeBatchesAreCoupled(
           leftFootprint,
@@ -810,20 +938,25 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     }
   }
   var promotedOptionalBatch = true;
+  final legacyFootprint =
+      _legacySymbolicFootprint(legacySources, scenesById, milestoneWriters);
   while (promotedOptionalBatch) {
     promotedOptionalBatch = false;
     final mandatoryFootprint = _narrativeBatchFootprint(
       project: project,
       definitions: mandatoryDefinitions,
       scenesById: scenesById,
+      milestoneWriters: milestoneWriters,
     );
     for (var index = 0; index < optionalBatches.length; index++) {
       final optionalFootprint = _narrativeBatchFootprint(
         project: project,
         definitions: optionalBatches[index],
         scenesById: scenesById,
+        milestoneWriters: milestoneWriters,
       );
-      if (!_optionalBatchMustJoinMandatory(
+      if (!_narrativeBatchesAreCoupled(optionalFootprint, legacyFootprint) &&
+          !_optionalBatchMustJoinMandatory(
         optionalFootprint,
         mandatoryFootprint,
       )) {
@@ -844,6 +977,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     mandatoryDefinitions,
     frontier,
     eventBoundaryStates: mandatoryEvidenceStates,
+    legacy: legacySources,
   );
   terminals.addAll(mandatoryTerminals);
   for (final terminal in mandatoryTerminals) {
@@ -861,18 +995,25 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     return leftId.compareTo(rightId);
   });
   for (final batch in optionalBatches) {
+    final footprint = _narrativeBatchFootprint(
+      project: project,
+      definitions: batch,
+      scenesById: scenesById,
+      milestoneWriters: milestoneWriters,
+    );
+    final componentWrites = _NarrativeComponentWrites.from(
+      footprint.writes,
+      batch.map((definition) => definition.id).toSet(),
+    );
     final projectedSeeds = _projectSymbolicSeeds(
       project: project,
       definitions: batch,
       scenesById: scenesById,
       states: mandatoryEvidenceStates,
+      componentWrites: componentWrites,
+      milestoneFactIdsByStep: milestoneFactIdsByStep,
     );
     final seeds = projectedSeeds.states;
-    final footprint = _narrativeBatchFootprint(
-      project: project,
-      definitions: batch,
-      scenesById: scenesById,
-    );
     final optionalBoundaryStates = <NarrativeSymbolicState>[...seeds];
     final optionalTerminals = exploreDefinitions(
       batch,
@@ -883,7 +1024,6 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     for (final state in optionalBoundaryStates) {
       _addUniqueState(allEventBoundaryStates, state);
     }
-    final batchEventIds = batch.map((definition) => definition.id).toSet();
     final compatibleMainKeysBySeedStateKey = <String, Set<String>>{
       for (final seed in seeds)
         seed.semanticKey: {
@@ -893,10 +1033,6 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
             ...mainProvenanceIndex.descendantStateKeys(origin.provenance),
         },
     };
-    final componentWrites = _NarrativeComponentWrites.from(
-      footprint.writes,
-      batchEventIds,
-    );
     final compatibleMainKeysByAgreementKey = <String, Set<String>>{};
     for (final seed in seeds) {
       compatibleMainKeysByAgreementKey
@@ -911,10 +1047,8 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     }
     independentFactComponents.add(
       NarrativeSymbolicFactEvidenceComponent(
-        factIds: {
-          for (final write in footprint.writes)
-            if (write.startsWith('fact:')) write.substring('fact:'.length),
-        },
+        factIds: componentWrites.factIds,
+        stepIds: componentWrites.stepIds,
         states: optionalBoundaryStates,
         compatibleMainStateKeysByStateKey: {
           for (final state in optionalBoundaryStates)
@@ -998,9 +1132,14 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
   required List<NarrativeEventDefinition> definitions,
   required Map<String, SceneAsset> scenesById,
   required List<NarrativeSymbolicState> states,
+  required _NarrativeComponentWrites componentWrites,
+  required Map<String, Set<String>> milestoneFactIdsByStep,
 }) {
-  final relevantFactIds = <String>{};
-  final relevantStepIds = <String>{};
+  final relevantFactIds = {
+    ...componentWrites.factIds,
+    for (final id in componentWrites.stepIds) ...?milestoneFactIdsByStep[id],
+  };
+  final relevantStepIds = {...componentWrites.stepIds};
   final relevantConsumedEventIds = <String>{};
   final relevantOutcomeKeys = <String>{};
   final definitionIds = definitions.map((definition) => definition.id).toSet();
@@ -1203,6 +1342,7 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
   required ProjectManifest project,
   required List<NarrativeEventDefinition> definitions,
   required Map<String, SceneAsset> scenesById,
+  required Map<String, Set<String>> milestoneWriters,
 }) {
   final reads = <String>{};
   final writes = <String>{};
@@ -1241,122 +1381,132 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
     if (definition.reusePolicy == NarrativeEventReusePolicy.oneShot) {
       writes.add('consumed:${definition.id}');
     }
+    if (_isPlayerControlledSource(definition.source)) {
+      writes.add('source:${definition.source.toJson()}');
+    }
 
     final scene = scenesById[definition.sceneId];
-    if (scene == null) continue;
-    for (final node in scene.graph.nodes) {
-      switch (node.payload) {
-        case SceneConditionPayload(:final conditionSource):
-          final source = conditionSource;
-          if (source == null) continue;
-          switch (source.sourceKind) {
-            case SceneConditionSourceKind.civilWeekday:
-              reads.add('calendar:civil-day');
-              break;
-            case SceneConditionSourceKind.periodicRewardAvailable:
-              reads.add('calendar:civil-day');
-              reads.add('periodicReward:${source.sourceId}');
-              break;
-            case SceneConditionSourceKind.integerComparison:
-              for (final operand in [source.integerLeft!, source.integerRight!]) {
-                for (final id in operand.referencedFactIds) { reads.add('fact:$id'); }
-              }
-              break;
-            case SceneConditionSourceKind.pokedexCaughtCount:
-              reads.add('pokedex:caught:${source.sourceId}');
-              break;
-            case SceneConditionSourceKind.playerFacing:
-              reads.add('player:facing');
-              break;
-            case SceneConditionSourceKind.playerAtEntityAnchor:
-              reads.add('anchor:${source.mapId}:${source.sourceId}');
-            case SceneConditionSourceKind.mapEventInstanceBoolean:
-              reads.add('instance:${source.mapId}:${source.sourceId}:${source.key}');
-              break;
-            case SceneConditionSourceKind.newGameDraft:
-              break;
-            case SceneConditionSourceKind.fact:
-            case SceneConditionSourceKind.factLikeStoryFlag:
-              reads.add('fact:${source.sourceId}');
-            case SceneConditionSourceKind.badge:
-              reads.add('badge:${source.sourceId}');
-            case SceneConditionSourceKind.storyStepCompletion:
-              reads.add('step:${source.sourceId}');
-            case SceneConditionSourceKind.consumedEvent:
-              reads.add('consumed:${source.sourceId}');
-            case SceneConditionSourceKind.storyStepActive:
-            case SceneConditionSourceKind.inventoryItem:
-            case SceneConditionSourceKind.partyState:
-            case SceneConditionSourceKind.trainerDefeated:
-            case SceneConditionSourceKind.dialogueOutcome:
-            case SceneConditionSourceKind.battleOutcome:
-            case SceneConditionSourceKind.scriptVariable:
-            case SceneConditionSourceKind.worldState:
-              break;
-          }
-        case SceneActionPayload(:final consequence):
-          switch (consequence) {
-            case SceneCalculateIntegerFactsConsequence(:final factIds, :final operand):
-              for (final id in factIds) { reads.add('fact:$id'); writes.add('fact:$id'); }
-              for (final id in operand.referencedFactIds) { reads.add('fact:$id'); }
-            case SceneAdjustMoneyConsequence():
-              reads.add('money'); writes.add('money');
-            case SceneAdjustIntegerFactConsequence(:final factId):
-              reads.add('fact:$factId');
-              writes.add('fact:$factId');
-            case SceneSetMapEventInstanceBooleanConsequence(:final mapId, :final eventId, :final key):
-              writes.add('instance:$mapId:$eventId:$key');
-            case SceneSetFactConsequence(:final factId):
-              writes.add('fact:$factId');
-            case SceneCompleteStoryStepConsequence(:final stepId):
-              writes.add('step:$stepId');
-            case SceneMarkEventConsumedConsequence(:final eventId):
-              writes.add('consumed:$eventId');
-            case SceneAwardBadgeConsequence(:final badgeId):
-              writes.add('badge:$badgeId');
-            case SceneUnlockFieldAbilityConsequence(:final ability):
-              writes.add('field:${ability.moveId}');
-            case SceneSetNpcPresenceConsequence(
-                :final mapId,
-                :final entityId,
-              ):
-              writes.add('npc:$mapId:$entityId');
-            case SceneGiveItemConsequence():
-            case SceneTakeItemConsequence():
-            case SceneGiveMoneyConsequence():
-            case SceneGivePokemonConsequence():
-            case SceneGivePokemonFromCatalogConsequence():
-            case SceneGiveConfiguredStarterConsequence():
-            case SceneHealPartyConsequence():
-            case SceneFinishGameConsequence():
-            case null:
-              break;
-          }
-        case SceneEndPayload(:final sceneOutcomeId):
-          if (sceneOutcomeId != null) {
-            writes.add('outcome:${_outcomeKey(scene.id, sceneOutcomeId)}');
-          }
-        case _:
-          break;
-      }
-    }
+    if (scene != null) _addSceneSymbolicFootprint(scene, reads, writes);
   }
 
   return _NarrativeBatchFootprint(
     reads: Set.unmodifiable(reads),
-    writes: Set.unmodifiable(writes),
+    writes: Set.unmodifiable({
+      ...writes,
+      for (final key in writes) ...?milestoneWriters[key],
+    }),
   );
+}
+
+void _addSceneSymbolicFootprint(
+  SceneAsset scene,
+  Set<String> reads,
+  Set<String> writes,
+) {
+  for (final node in scene.graph.nodes) {
+    switch (node.payload) {
+      case SceneConditionPayload(:final conditionSource):
+        final source = conditionSource;
+        if (source == null) continue;
+        switch (source.sourceKind) {
+          case SceneConditionSourceKind.civilWeekday:
+            reads.add('calendar:civil-day');
+            break;
+          case SceneConditionSourceKind.periodicRewardAvailable:
+            reads.add('calendar:civil-day');
+            reads.add('periodicReward:${source.sourceId}');
+            break;
+          case SceneConditionSourceKind.integerComparison:
+            for (final operand in [source.integerLeft!, source.integerRight!]) {
+              for (final id in operand.referencedFactIds) { reads.add('fact:$id'); }
+            }
+            break;
+          case SceneConditionSourceKind.pokedexCaughtCount:
+            reads.add('pokedex:caught:${source.sourceId}');
+            break;
+          case SceneConditionSourceKind.playerFacing:
+            reads.add('player:facing');
+            break;
+          case SceneConditionSourceKind.playerAtEntityAnchor:
+            reads.add('anchor:${source.mapId}:${source.sourceId}');
+          case SceneConditionSourceKind.mapEventInstanceBoolean:
+            reads.add('instance:${source.mapId}:${source.sourceId}:${source.key}');
+            break;
+          case SceneConditionSourceKind.newGameDraft:
+            break;
+          case SceneConditionSourceKind.fact:
+          case SceneConditionSourceKind.factLikeStoryFlag:
+            reads.add('fact:${source.sourceId}');
+          case SceneConditionSourceKind.badge:
+            reads.add('badge:${source.sourceId}');
+          case SceneConditionSourceKind.storyStepCompletion:
+            reads.add('step:${source.sourceId}');
+          case SceneConditionSourceKind.consumedEvent:
+            reads.add('consumed:${source.sourceId}');
+          case SceneConditionSourceKind.storyStepActive:
+          case SceneConditionSourceKind.inventoryItem:
+          case SceneConditionSourceKind.partyState:
+          case SceneConditionSourceKind.trainerDefeated:
+          case SceneConditionSourceKind.dialogueOutcome:
+          case SceneConditionSourceKind.battleOutcome:
+          case SceneConditionSourceKind.scriptVariable:
+          case SceneConditionSourceKind.worldState:
+            break;
+        }
+      case SceneActionPayload(:final consequence):
+        switch (consequence) {
+          case SceneCalculateIntegerFactsConsequence(:final factIds, :final operand):
+            for (final id in factIds) { reads.add('fact:$id'); writes.add('fact:$id'); }
+            for (final id in operand.referencedFactIds) { reads.add('fact:$id'); }
+          case SceneAdjustMoneyConsequence():
+            reads.add('money'); writes.add('money');
+          case SceneAdjustIntegerFactConsequence(:final factId):
+            reads.add('fact:$factId');
+            writes.add('fact:$factId');
+          case SceneSetMapEventInstanceBooleanConsequence(:final mapId, :final eventId, :final key):
+            writes.add('instance:$mapId:$eventId:$key');
+          case SceneSetFactConsequence(:final factId):
+            writes.add('fact:$factId');
+          case SceneCompleteStoryStepConsequence(:final stepId):
+            writes.add('step:$stepId');
+          case SceneMarkEventConsumedConsequence(:final eventId):
+            writes.add('consumed:$eventId');
+          case SceneAwardBadgeConsequence(:final badgeId):
+            writes.add('badge:$badgeId');
+          case SceneUnlockFieldAbilityConsequence(:final ability):
+            writes.add('field:${ability.moveId}');
+          case SceneSetNpcPresenceConsequence(
+              :final mapId,
+              :final entityId,
+            ):
+            writes.add('npc:$mapId:$entityId');
+          case SceneGiveItemConsequence():
+          case SceneTakeItemConsequence():
+          case SceneGiveMoneyConsequence():
+          case SceneGivePokemonConsequence():
+          case SceneGivePokemonFromCatalogConsequence():
+          case SceneGiveConfiguredStarterConsequence():
+          case SceneHealPartyConsequence():
+          case SceneFinishGameConsequence():
+          case null:
+            break;
+        }
+      case SceneEndPayload(:final sceneOutcomeId):
+        if (sceneOutcomeId != null) {
+          writes.add('outcome:${_outcomeKey(scene.id, sceneOutcomeId)}');
+        }
+      case _:
+        break;
+    }
+  }
 }
 
 bool _narrativeBatchesAreCoupled(
   _NarrativeBatchFootprint left,
   _NarrativeBatchFootprint right,
-) {
-  final leftRelevant = {...left.reads, ...left.writes};
-  final rightRelevant = {...right.reads, ...right.writes};
-  return _setsIntersect(left.writes, rightRelevant) ||
-      _setsIntersect(right.writes, leftRelevant);
-}
+) => _setsIntersect(left.writes, right.writes) ||
+    _setsIntersect(left.writes, right.reads) ||
+    _setsIntersect(right.writes, left.reads);
 
 bool _optionalBatchMustJoinMandatory(
   _NarrativeBatchFootprint optional,

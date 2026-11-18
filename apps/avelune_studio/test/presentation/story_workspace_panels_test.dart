@@ -6,6 +6,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('the narrow Histoire rail leaves room for the Verification label', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('fr'),
+        theme: studioTheme(),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: StoryWorkspace(
+            section: StorySection.behaviours,
+            onSelected: (_) {},
+            editable: true,
+            verificationMarker: const StudioBadge('À lancer'),
+            builder: (panels) => panels(const SizedBox(), const SizedBox()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final label = tester.getRect(find.text('Vérification'));
+    final badge = tester.getRect(find.text('À lancer'));
+    expect(label.height, lessThan(55));
+    expect(badge.top, greaterThan(label.bottom));
+  });
+
   testWidgets(
     'a collapsed inspector keeps edits and remains reachable at reduced width',
     (tester) async {

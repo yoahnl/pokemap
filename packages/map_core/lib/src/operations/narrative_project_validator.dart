@@ -1158,10 +1158,6 @@ void _appendSolvabilityDiagnostics(
     ...reachability.trueFactIds,
     ...symbolicReachability.trueFactIds,
   };
-  final completedSteps = {
-    ...reachability.completedStepIds,
-    ...symbolicReachability.completedStepIds,
-  };
   final registry = project.eventRegistry;
 
   final requiredFacts = <String>{};
@@ -1240,6 +1236,16 @@ void _appendSolvabilityDiagnostics(
         ),
       ]);
     } else {
+      final jointlyCompletable = symbolicReachability.canSatisfyMilestones(
+        steps.map((entry) => entry.step),
+      );
+      final incompleteSteps = {
+        if (!jointlyCompletable)
+          for (final entry in steps)
+            if (!symbolicReachability.canSatisfyMilestones([entry.step]))
+              entry.step.id,
+      };
+      impossible = !jointlyCompletable;
       final first = steps.first;
       if (!_stepHasReachableScene(first.step, reachableSceneIds)) {
         impossible = true;
@@ -1266,12 +1272,11 @@ void _appendSolvabilityDiagnostics(
             ),
           );
         }
-        if (!completedSteps.contains(entry.step.id)) {
-          impossible = true;
+        if (incompleteSteps.contains(entry.step.id)) {
           target.add(
             _stepDiagnostic(
               code: 'storylineStepNeverCompleted',
-              message: 'Aucune conséquence narrative ne termine cette étape.',
+              message: 'Aucun parcours vérifiable ne termine cette étape.',
               storyline: storyline,
               chapterId: entry.chapterId,
               step: entry.step,
@@ -1280,7 +1285,7 @@ void _appendSolvabilityDiagnostics(
         }
       }
       final last = steps.last;
-      if (!completedSteps.contains(last.step.id)) {
+      if (incompleteSteps.contains(last.step.id)) {
         target.add(
           _stepDiagnostic(
             code: 'storylineMissingEnding',
@@ -1306,7 +1311,7 @@ void _appendSolvabilityDiagnostics(
   }
 }
 
-({Set<String> sceneIds, Set<String> trueFactIds, Set<String> completedStepIds})
+({Set<String> sceneIds, Set<String> trueFactIds})
 _solveNarrativeReachability(ProjectManifest project, List<MapData> maps) {
   final mapsById = {for (final map in maps) map.id: map};
   final possibleFactValues = <String, Set<bool>>{
@@ -1429,7 +1434,6 @@ _solveNarrativeReachability(ProjectManifest project, List<MapData> maps) {
       for (final entry in possibleFactValues.entries)
         if (entry.value.contains(true)) entry.key,
     },
-    completedStepIds: completedStepIds,
   );
 }
 

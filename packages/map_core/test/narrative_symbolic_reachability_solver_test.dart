@@ -508,6 +508,22 @@ void main() {
       }
       expect(report.completedStepIds, contains('step_optional'));
       expect(
+        report.canSatisfyMilestones([
+          StorylineStep(id: 'step_optional', title: 'Étape explicite', order: 0),
+          for (var quest = 0; quest < 4; quest++)
+            StorylineStep(
+              id: 'conditional_$quest',
+              title: 'Étape conditionnelle $quest',
+              order: quest + 1,
+              completionCondition: ScriptConditionFactory.factEquals(
+                'fact_quest_${quest}_left',
+                const NarrativeValue.boolean(true),
+              ),
+            ),
+        ]),
+        isTrue,
+      );
+      expect(
         report.canSatisfyAllTrueFacts({
           'fact_quest_0_left',
           'fact_quest_1_left',
@@ -743,6 +759,41 @@ void main() {
         }),
         isTrue,
       );
+
+      final reset = solveNarrativeSymbolicReachability(
+        project.copyWith(
+          scenes: [
+            project.scenes.first,
+            _optionalFactScene(
+              id: 'scene_optional_all',
+              storylineId: 'story_optional_all',
+              factId: 'fact_main_a',
+              value: false,
+            ),
+          ],
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: [project.eventRegistry!.records.last],
+            legacyClaims: const [],
+          ),
+        ),
+        maps: const [map],
+      );
+      final milestones = [
+        for (final id in ['fact_main_a', 'fact_main_b'])
+          StorylineStep(
+            id: 'step_$id',
+            title: id,
+            order: 0,
+            completionCondition: ScriptConditionFactory.factEquals(
+              id,
+              const NarrativeValue.boolean(true),
+            ),
+          ),
+      ];
+      expect(milestones.every((step) => reset.canSatisfyMilestones([step])), isTrue);
+      expect(reset.canSatisfyMilestones(milestones), isFalse);
     });
 
     test('keeps dependent side quests in the same symbolic component', () {
@@ -1139,8 +1190,9 @@ SceneAsset _optionalFactScene({
   required String id,
   required String storylineId,
   required String factId,
+  bool value = true,
 }) {
-  final scene = _factScene(id, factId);
+  final scene = _factScene(id, factId, value: value);
   return SceneAsset(
     id: id,
     name: id,
@@ -1212,7 +1264,7 @@ SceneAsset _consequenceSequenceScene(List<SceneConsequence> consequences) {
   );
 }
 
-SceneAsset _factScene(String id, String factId) => SceneAsset(
+SceneAsset _factScene(String id, String factId, {bool value = true}) => SceneAsset(
       id: id,
       name: id,
       graph: SceneGraph(
@@ -1223,7 +1275,7 @@ SceneAsset _factScene(String id, String factId) => SceneAsset(
             id: 'set_fact',
             kind: SceneNodeKind.action,
             payload: SceneActionPayload.consequence(
-              SceneConsequence.setFact(factId: factId, value: true),
+              SceneConsequence.setFact(factId: factId, value: value),
             ),
           ),
           SceneNode(id: 'end', kind: SceneNodeKind.end),

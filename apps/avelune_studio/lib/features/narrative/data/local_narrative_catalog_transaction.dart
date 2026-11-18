@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -22,17 +23,19 @@ class LocalNarrativeCatalogTransaction {
     required this.mapAdapter,
     this.faultInjector,
     this.reusableSession,
+    this.reader = const LocalProjectFileReader(),
   });
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   final AuthoringTransactionFaultInjector? faultInjector;
   final LocalNarrativeCatalogSession? reusableSession;
+  final ProjectFileReader reader;
 
   Future<ResourceMutationReceipt> run({
     required String actionId,
     required Map<String, Object?> Function(ProjectManifest) parameters,
     void Function(ProjectManifest, List<MapData>)? validate,
-    void Function(ProjectSnapshot)? validateSnapshot,
+    FutureOr<void> Function(ProjectSnapshot)? validateSnapshot,
     bool refreshCatalog = false,
     Set<String> allowedStorageKeys = const {},
   }) => mapAdapter.withResourceMutation(() async {
@@ -65,6 +68,7 @@ class LocalNarrativeCatalogTransaction {
             session: session,
             scoped: scoped,
             faultInjector: faultInjector,
+            reader: reader,
           )
         : await reusable.obtain(baseline.revision);
     final opened = context.opened;
@@ -79,7 +83,7 @@ class LocalNarrativeCatalogTransaction {
             )
           : await snapshots.load(opened.projectHandle);
       validate?.call(snapshot.manifest, snapshot.maps);
-      validateSnapshot?.call(snapshot);
+      await validateSnapshot?.call(snapshot);
       if ((scoped
               ? await mapAdapter.resourceRevision(session)
               : narrativeEventBytesFingerprint(

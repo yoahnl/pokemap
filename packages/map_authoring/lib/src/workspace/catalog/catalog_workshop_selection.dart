@@ -303,6 +303,7 @@ final class CatalogWorkshopSelection {
     final fact = actionId.startsWith('fact.');
     final pokemon = actionId.startsWith('pokemon.');
     final regional = actionId.startsWith('regionalMap.');
+    final storylineUpsert = actionId == 'storyline.upsert';
     final fields = <String>{
       'settings',
       if (actionId.startsWith('dialogue.')) 'newGame',
@@ -318,8 +319,7 @@ final class CatalogWorkshopSelection {
         'maps',
         'regionalMap'
       } else if (actionId.startsWith('storyline.')) ...{
-        'storylines',
-        'facts'
+        if (!storylineUpsert) ...{'storylines', 'facts'},
       } else if (actionId.startsWith('cinematic.')) ...{
         'cinematics',
         'maps',
@@ -656,6 +656,10 @@ final class CatalogWorkshopSelection {
       final scenes = await _storylineSceneDocuments(
           catalog.snapshot, manifest, actionId, parameters);
       if (scenes != null) manifest = scenes.project;
+      final upsert = storylineUpsert
+          ? await _storylineUpsertDocuments(catalog.snapshot, manifest, parameters)
+          : null;
+      if (upsert != null) manifest = upsert.selection.project;
       final projectBytes = utf8.encode(jsonEncode(manifest.toJson()));
       final projectFingerprint = computeAuthoringBytesFingerprint(projectBytes,
           logicalName: 'project.json');
@@ -675,9 +679,17 @@ final class CatalogWorkshopSelection {
         projectHandle: projectHandle,
         revision: revision,
         manifest: manifest,
-        availableProjectSections: {...fields, if (scenes != null) 'scenes'},
-        availableProjectDocuments:
-            scenes == null ? null : {'scenes': scenes.documents},
+        availableProjectSections: {
+          ...fields,
+          if (scenes != null) 'scenes',
+          if (upsert != null) ...upsert.ids.keys,
+        },
+        availableProjectDocuments: scenes == null && upsert == null
+            ? null
+            : {
+                if (scenes != null) 'scenes': scenes.documents,
+                if (upsert != null) ...upsert.ids,
+              },
         maps: maps,
         resourceFingerprints: resourceFingerprints,
         resourceStorageKeys: paths,
@@ -690,7 +702,7 @@ final class CatalogWorkshopSelection {
       );
       final result = CatalogWorkshopSelection._(selected, snapshot,
           Set.unmodifiable(writable), Map.unmodifiable(revisions),
-          metadataDocuments: await _storylineTrameDocuments(
+          metadataDocuments: upsert?.selection ?? await _storylineTrameDocuments(
               catalog.snapshot, manifest, actionId, parameters));
       await result.requireCurrent();
       return result;

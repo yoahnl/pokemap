@@ -20,6 +20,7 @@ class StudioNavigationEntry extends StatefulWidget {
     this.detail,
     this.marker,
     this.markerLabel,
+    this.markerBelowDetail = false,
   });
 
   final String label;
@@ -30,6 +31,7 @@ class StudioNavigationEntry extends StatefulWidget {
   final String? detail;
   final Widget? marker;
   final String? markerLabel;
+  final bool markerBelowDetail;
 
   static double extentOf(
     BuildContext context, {
@@ -91,11 +93,15 @@ class _StudioNavigationEntryState extends State<StudioNavigationEntry> {
                         detail,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
+                    if (widget.markerBelowDetail && widget.marker != null) ...[
+                      const SizedBox(height: 6),
+                      widget.marker!,
+                    ],
                   ],
                 ),
               ),
             ),
-            if (widget.marker case final marker?) ...[
+            if (widget.marker case final marker? when !widget.markerBelowDetail) ...[
               const SizedBox(width: 8),
               ExcludeSemantics(child: marker),
             ],

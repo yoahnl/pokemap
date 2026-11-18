@@ -1,7 +1,13 @@
 import 'package:map_authoring/map_authoring.dart'
-    show AuthoringTransactionFaultInjector;
+    show
+        AuthoringTransactionFaultInjector,
+        LocalProjectFileReader,
+        ProjectFileReader;
+import 'package:map_authoring/map_authoring_local.dart'
+    show CatalogNarrativeOwnerDocuments;
 import 'package:map_core/map_core_domain.dart';
 
+import '../../game_memory/data/local_narrative_read.dart';
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../narrative/data/local_narrative_catalog_transaction.dart';
 import '../../project_session/domain/project_session.dart';
@@ -13,16 +19,19 @@ class LocalStoryAdapter implements StoryPort {
     required this.session,
     required this.mapAdapter,
     this.faultInjector,
+    this.reader = const LocalProjectFileReader(),
   });
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   final AuthoringTransactionFaultInjector? faultInjector;
+  final ProjectFileReader reader;
 
   LocalNarrativeCatalogTransaction get _transaction =>
       LocalNarrativeCatalogTransaction(
         session: session,
         mapAdapter: mapAdapter,
         faultInjector: faultInjector,
+        reader: reader,
       );
 
   @override
@@ -44,7 +53,7 @@ class LocalStoryAdapter implements StoryPort {
           ? {'storylineId': id}
           : {'storyline': current.toJson()};
     },
-    validateSnapshot: (snapshot) {
+    validateSnapshot: (snapshot) async {
       final project = snapshot.manifest;
       final existing = project.storylines.where((s) => s.id == id).firstOrNull;
       if (existing != base) {
@@ -52,13 +61,27 @@ class LocalStoryAdapter implements StoryPort {
           'Cette histoire a changé sur le disque. Votre brouillon est conservé ; rechargez sa version enregistrée avant de réappliquer vos changements.',
         );
       }
-      if (requiredStoryIds.any(
-            (id) => !project.storylines.any((s) => s.id == id),
-          ) ||
-          requiredFactIds.any((id) => !project.facts.any((f) => f.id == id)) ||
-          requiredSceneIds.any(
-            (id) => !project.scenes.any((s) => s.id == id),
-          )) {
+      if (requiredStoryIds.isEmpty &&
+          requiredFactIds.isEmpty &&
+          requiredSceneIds.isEmpty) {
+        return;
+      }
+      final dependenciesExist =
+          session.storage == ProjectSessionStorage.workingCatalog
+          ? await readNarrativeCatalog(
+              session,
+              reader,
+              (catalog) => CatalogNarrativeOwnerDocuments.containsDependencies(
+                catalog,
+                storylineIds: requiredStoryIds,
+                factIds: requiredFactIds,
+                sceneIds: requiredSceneIds,
+              ),
+            )
+          : requiredStoryIds.every((id) => project.storylines.any((s) => s.id == id)) &&
+                requiredFactIds.every((id) => project.facts.any((f) => f.id == id)) &&
+                requiredSceneIds.every((id) => project.scenes.any((s) => s.id == id));
+      if (!dependenciesExist) {
         throw const StoryFailure(
           'Une histoire, un état ou une scène liés a disparu. Le brouillon est conservé.',
         );

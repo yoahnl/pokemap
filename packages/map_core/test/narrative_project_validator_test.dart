@@ -6,6 +6,667 @@ const _eventB = 'evt_019abcde-4000-7000-8000-000000000072';
 const _eventC = 'evt_019abcde-4000-7000-8000-000000000073';
 
 void main() {
+  for (final (mode, blocked) in [
+    (EventSystemMode.legacyOnly, null),
+    (EventSystemMode.legacyOnly, 'disabled'),
+    (EventSystemMode.legacyOnly, 'shadowed'),
+    (EventSystemMode.legacyOnly, 'hiddenByRule'),
+    (EventSystemMode.v2Only, null),
+  ]) {
+  test('H10: legacy page progression in ${mode.name}, obstruction=$blocked', () {
+    final fixture = _fixture();
+    final scene = fixture.project.scenes.single;
+    final map = fixture.map.copyWith(events: [
+      MapEventDefinition(
+        id: 'legacy_intro',
+        position: const EventPosition(layerId: 'events', x: 5, y: 5),
+        pages: [
+          if (blocked == 'shadowed')
+            const MapEventPage(pageNumber: 0, message: 'Rien ici.'),
+          MapEventPage(
+            pageNumber: blocked == 'shadowed' ? 1 : 0,
+            sceneTarget: MapEventSceneTarget(sceneId: scene.id),
+            isDisabled: blocked == 'disabled',
+          ),
+        ],
+      ),
+    ]);
+    final project = fixture.project.copyWith(
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: mode,
+        records: const [],
+        legacyClaims: const [],
+      ),
+      worldRules: [
+        if (blocked == 'hiddenByRule')
+          WorldRuleDefinition(
+            id: 'hide_guide',
+            label: 'Masquer le guide',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.fact,
+              sourceId: 'fact_gate',
+              predicate: WorldRuleSourcePredicate.isFalse,
+            ),
+            target: WorldRuleTarget(
+              kind: WorldRuleTargetKind.mapEvent,
+              mapId: fixture.map.id,
+              eventId: 'legacy_intro',
+            ),
+            effect: const WorldRuleEffect(kind: WorldRuleEffectKind.eventHidden),
+          ),
+      ],
+    );
+    final report = validateNarrativeProject(project, maps: [map]);
+    final available = blocked == null && mode == EventSystemMode.legacyOnly;
+    expect(report.byCode('storylineStepNeverCompleted'), hasLength(available ? 0 : 1));
+    expect(report.isPlayable, available);
+  });
+  }
+
+  final guide = NarrativeEventSourceRef.entityInteract('map_port', 'npc_guide');
+  final quay = NarrativeEventSourceRef.triggerEnter('map_port', 'zone_quay');
+  for (final (name, firstSource, secondSource, canReverseOrder) in [
+    (
+      'distinct interactions',
+      guide,
+      NarrativeEventSourceRef.entityInteract('map_port', 'npc_second'),
+      true,
+    ),
+    ('same interaction', guide, guide, false),
+    ('interaction and zone', guide, quay, true),
+    ('same zone', quay, quay, false),
+    (
+      'initial map activation before a zone',
+      NarrativeEventSourceRef.mapEnter('map_port'),
+      quay,
+      false,
+    ),
+  ]) {
+    test('H10: reverse interaction order for $name', () {
+      final fixture = _fixture();
+      final story = fixture.project.storylines.single;
+      final chapter = story.chapters.single;
+      final first = chapter.steps.single;
+      final second = StorylineStep(
+        id: 'step_second',
+        title: 'Rencontrer le deuxième guide',
+        order: 1,
+        sceneLinkIds: const ['scene_second'],
+      );
+      final firstScene = _h10CounterScene('scene_intro', [
+        SceneConsequence.setFact(factId: 'fact_gate', value: false),
+        SceneConsequence.completeStoryStep(stepId: first.id),
+      ]);
+      final secondScene = _h10CounterScene('scene_second', [
+        SceneConsequence.completeStoryStep(stepId: second.id),
+      ]);
+      final project = fixture.project.copyWith(
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_gate',
+            label: 'Passage',
+            defaultValue: true,
+          ),
+        ],
+        scenes: [firstScene, secondScene],
+        storylines: [
+          story.copyWith(
+            chapters: [
+              chapter.copyWith(steps: [first, second]),
+            ],
+          ),
+        ],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            _record(id: _eventA, source: firstSource),
+            _record(
+              id: _eventB,
+              source: secondSource,
+              sceneId: secondScene.id,
+              conditions: [NarrativeEventCondition.fact('fact_gate', true)],
+            ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+      final map = _h10CounterMap(fixture.map).copyWith(
+        triggers: const [
+          MapTrigger(
+            id: 'zone_quay',
+            name: 'Quai',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: GridPos(x: 1, y: 2),
+              size: GridSize(width: 1, height: 1),
+            ),
+          ),
+        ],
+      );
+      final afterSecond = solveNarrativeSceneSymbolically(
+        secondScene,
+        initialState: NarrativeSymbolicState(
+          factValues: {'fact_gate': const NarrativeValue.boolean(true)},
+        ),
+      ).terminalStates.single;
+      final afterBoth = solveNarrativeSceneSymbolically(
+        firstScene,
+        initialState: afterSecond,
+      ).terminalStates.single;
+      expect(afterBoth.completedStepIds, {first.id, second.id});
+      final report = validateNarrativeProject(project, maps: [map]);
+      expect(
+        report.byCode('storylineStepNeverCompleted'),
+        hasLength(canReverseOrder ? 0 : 1),
+      );
+      expect(report.isPlayable, canReverseOrder);
+    });
+  }
+
+  for (final alternate in [false, true]) {
+  test('H10 counter: independent components and avatar starts, alternate=$alternate', () {
+    final fixture = _fixture(completeStep: false);
+    final story = fixture.project.storylines.single;
+    final chapter = story.chapters.single;
+    final first = chapter.steps.single.copyWith(
+      completionCondition: ScriptConditionFactory.factEquals(
+        'fact_gate', NarrativeValue.boolean(alternate),
+      ),
+    );
+    final goal = ScriptConditionFactory.factEquals(
+      'fact_goal', const NarrativeValue.boolean(true),
+    );
+    final second = StorylineStep(
+      id: 'step_second',
+      title: 'Finir la quête',
+      order: 1,
+      sceneLinkIds: const ['scene_second'],
+      completionCondition: goal,
+    );
+    final optional = StorylineAsset(
+      id: 'story_optional',
+      type: StorylineType.sideQuest,
+      status: StorylineStatus.active,
+      title: 'Quête optionnelle',
+      chapters: [
+        StorylineChapter(
+          id: 'chapter_optional',
+          title: 'Le guide',
+          order: 0,
+          steps: [
+            StorylineStep(
+              id: 'step_optional',
+              title: 'Faire la quête',
+              order: 0,
+              sceneLinkIds: const ['scene_optional'],
+              completionCondition: goal,
+            ),
+          ],
+        ),
+      ],
+    );
+    final optionalScene = alternate
+    ? SceneAsset(
+      id: 'scene_optional',
+      name: 'Side quest',
+      storylineId: optional.id,
+      chapterId: optional.chapters.single.id,
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'check',
+            kind: SceneNodeKind.condition,
+            payload: SceneConditionPayload(
+              conditionSource: SceneConditionSource(
+                sourceKind: SceneConditionSourceKind.fact,
+                sourceId: 'fact_blocked',
+                operator: SceneConditionOperator.isTrue,
+              ),
+            ),
+          ),
+          SceneNode(
+            id: 'explicit',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.completeStoryStep(stepId: first.id),
+            ),
+          ),
+          SceneNode(
+            id: 'goal',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.setFact(factId: 'fact_goal', value: true),
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(id: 'start_check', fromNodeId: 'start', fromPortId: 'completed',
+            toNodeId: 'check', kind: SceneEdgeKind.defaultFlow),
+          SceneEdge(id: 'check_true', fromNodeId: 'check', fromPortId: 'true',
+            toNodeId: 'explicit', kind: SceneEdgeKind.conditionTrue),
+          SceneEdge(id: 'check_false', fromNodeId: 'check', fromPortId: 'false',
+            toNodeId: 'goal', kind: SceneEdgeKind.conditionFalse),
+          SceneEdge(id: 'explicit_goal', fromNodeId: 'explicit', fromPortId: 'completed',
+            toNodeId: 'goal', kind: SceneEdgeKind.defaultFlow),
+          SceneEdge(id: 'goal_end', fromNodeId: 'goal', fromPortId: 'completed',
+            toNodeId: 'end', kind: SceneEdgeKind.defaultFlow),
+        ],
+      ),
+    )
+    : _h10CounterScene(
+      'scene_optional',
+      [SceneConsequence.setFact(factId: 'fact_goal', value: true)],
+      storylineId: optional.id,
+      chapterId: optional.chapters.single.id,
+    );
+    final project = fixture.project.copyWith(
+      facts: [
+        ...fixture.project.facts,
+        NarrativeFactDefinition(id: 'fact_goal', label: 'Quête accomplie'),
+        if (alternate) NarrativeFactDefinition(id: 'fact_blocked', label: 'Autre parcours'),
+      ],
+      scenes: [
+        ...fixture.project.scenes,
+        _h10CounterScene('scene_second', []),
+        optionalScene,
+      ],
+      storylines: [
+        story.copyWith(chapters: [chapter.copyWith(steps: [first, second])]),
+        optional,
+      ],
+      tilesets: const [
+        ProjectTilesetEntry(id: 'avatars', name: 'Avatars', relativePath: 'assets/avatars.png'),
+      ],
+      characters: [
+        for (final id in ['avatar_a', 'avatar_b'])
+          ProjectCharacterEntry(
+            id: id,
+            name: id,
+            tilesetId: 'avatars',
+            frameHeight: 1,
+          ),
+      ],
+      newGame: ProjectNewGameConfig(
+        enabled: true,
+        startMapId: fixture.map.id,
+        playerAvatarCharacterIds: const ['avatar_a', 'avatar_b'],
+        initialFactValuesByAvatarCharacterId: {
+          'avatar_a': {'fact_gate': NarrativeValue.boolean(!alternate)},
+          'avatar_b': {'fact_gate': NarrativeValue.boolean(alternate)},
+        },
+      ),
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.v2Only,
+        records: [
+          ...fixture.project.eventRegistry!.records,
+          _record(id: _eventB, entityId: 'npc_second', sceneId: 'scene_second'),
+          _record(
+            id: _eventC,
+            entityId: 'npc_optional',
+            sceneId: optionalScene.id,
+            conditions: [if (!alternate) NarrativeEventCondition.fact('fact_gate', true)],
+          ),
+        ],
+        legacyClaims: const [],
+      ),
+    );
+    final report = validateNarrativeProject(project, maps: [_h10CounterMap(fixture.map)]);
+    final symbolic = report.symbolicReachability!;
+    final component = symbolic.independentFactComponents.singleWhere(
+      (component) => component.factIds.contains('fact_goal'),
+    );
+    final witness = component.states.firstWhere((state) => state.hasTrueFact('fact_goal'));
+    if (alternate) {
+      final validStart = symbolic.evidenceStates.firstWhere(
+        (state) => state.hasTrueFact('fact_gate'),
+      );
+      final actual = solveNarrativeSceneSymbolically(
+        optionalScene,
+        initialState: validStart,
+      ).terminalStates.single;
+      expect(actual.hasTrueFact('fact_gate'), isTrue);
+      expect(actual.hasTrueFact('fact_goal'), isTrue);
+      expect(symbolic.canSatisfyMilestones([first, second]), isTrue);
+      expect(report.isPlayable, isTrue);
+      return;
+    }
+    expect(witness.hasTrueFact('fact_gate'), isTrue);
+    expect(symbolic.canSatisfyMilestones([first]), isTrue);
+    expect(symbolic.canSatisfyMilestones([second]), isTrue);
+    final compatible = component.compatibleMainStateKeysByStateKey[witness.semanticKey]!;
+    final admitsFalseSeed = symbolic.evidenceStates.any(
+      (state) => !state.hasTrueFact('fact_gate') && compatible.contains(state.semanticKey),
+    );
+    expect(admitsFalseSeed, isFalse);
+    expect(symbolic.canSatisfyMilestones([first, second]), isFalse);
+    expect(report.byCode('storylineImpossible'), isNotEmpty);
+  });
+  }
+
+  SceneEdge link(
+    String from,
+    String port,
+    String to, [
+    SceneEdgeKind kind = SceneEdgeKind.defaultFlow,
+  ]) => SceneEdge(
+    id: '$from-$port-$to',
+    fromNodeId: from,
+    fromPortId: port,
+    toNodeId: to,
+    kind: kind,
+  );
+
+  SceneNode setTrue(String id, String fact) => SceneNode(
+    id: id,
+    kind: SceneNodeKind.action,
+    payload: SceneActionPayload.consequence(
+      SceneConsequence.setFact(factId: fact, value: true),
+    ),
+  );
+
+  ScriptCondition equals(String id, [bool value = true]) =>
+      ScriptConditionFactory.factEquals(id, NarrativeValue.boolean(value));
+
+  test('H10: the actual initial value is a valid witness', () {
+    final fixture = _fixture(completeStep: false);
+    final story = fixture.project.storylines.single;
+    final chapter = story.chapters.single;
+    final step = chapter.steps.single.copyWith(
+      completionCondition: equals('fact_gate', false),
+    );
+    final report = validateNarrativeProject(
+      fixture.project.copyWith(
+        storylines: [
+          story.copyWith(
+            chapters: [
+              chapter.copyWith(steps: [step]),
+            ],
+          ),
+        ],
+      ),
+      maps: [fixture.map],
+    );
+    expect(
+      report.symbolicReachability!.evidenceStates.first.factValues['fact_gate'],
+      const NarrativeValue.boolean(false),
+    );
+    expect(report.byCode('storylineStepNeverCompleted'), isEmpty);
+    expect(report.isPlayable, isTrue);
+  });
+
+  for (final (exclusive, explicit) in [
+    (true, false),
+    (false, false),
+    (true, true),
+    (false, true),
+  ]) {
+    test(
+      'H10: one-shot outcomes with exclusive=$exclusive and explicit=$explicit',
+      () {
+        final fixture = _fixture(completeStep: false);
+        final story = fixture.project.storylines.single;
+        final chapter = story.chapters.single;
+        final original = chapter.steps.single;
+        final first = original.copyWith(
+          completionCondition: equals('fact_left'),
+        );
+        final second = StorylineStep(
+          id: 'step_second',
+          title: 'Deuxième jalon',
+          order: 1,
+          sceneLinkIds: const ['scene_second'],
+          completionCondition: equals('fact_right'),
+        );
+        final map = fixture.map.copyWith(
+          entities: [
+            ...fixture.map.entities,
+            const MapEntity(
+              id: 'npc_second',
+              name: 'Second guide',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 4, y: 4),
+            ),
+          ],
+        );
+        final project = fixture.project.copyWith(
+          facts: [
+            for (final id in ['fact_left', 'fact_right'])
+              NarrativeFactDefinition(id: id, label: id),
+          ],
+          dialogues: [
+            ProjectDialogueEntry(
+              id: 'dialogue_branch',
+              name: 'Choix unique',
+              relativePath: 'dialogues/branch.yarn',
+              declaredOutcomes: [
+                DialogueDeclaredOutcome(id: 'left', label: 'Gauche'),
+                DialogueDeclaredOutcome(id: 'right', label: 'Droite'),
+              ],
+            ),
+          ],
+          scenes: [
+            SceneAsset(
+              id: 'scene_intro',
+              name: 'Choix unique',
+              graph: SceneGraph(
+                startNodeId: 'start',
+                nodes: [
+                  SceneNode(id: 'start', kind: SceneNodeKind.start),
+                  SceneNode(
+                    id: 'choice',
+                    kind: SceneNodeKind.yarnDialogue,
+                    payload: SceneYarnDialoguePayload(
+                      dialogueId: 'dialogue_branch',
+                      expectedOutcomes: const ['left', 'right'],
+                    ),
+                  ),
+                  if (explicit)
+                    SceneNode(
+                      id: 'left',
+                      kind: SceneNodeKind.action,
+                      payload: SceneActionPayload.consequence(
+                        SceneConsequence.completeStoryStep(stepId: first.id),
+                      ),
+                    )
+                  else
+                    setTrue('left', 'fact_left'),
+                  setTrue('right', 'fact_right'),
+                  SceneNode(id: 'end', kind: SceneNodeKind.end),
+                ],
+                edges: [
+                  link('start', 'completed', 'choice'),
+                  link('choice', 'completed', 'end'),
+                  link('choice', 'left', 'left', SceneEdgeKind.dialogueOutcome),
+                  link(
+                    'choice',
+                    'right',
+                    'right',
+                    SceneEdgeKind.dialogueOutcome,
+                  ),
+                  link('left', 'completed', exclusive ? 'end' : 'right'),
+                  link('right', 'completed', 'end'),
+                ],
+              ),
+            ),
+            SceneAsset(
+              id: 'scene_second',
+              name: 'Second guide',
+              graph: _scene(completeStep: false).graph,
+            ),
+          ],
+          storylines: [
+            story.copyWith(
+              chapters: [
+                chapter.copyWith(steps: [first, second]),
+              ],
+            ),
+          ],
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: [
+              ...fixture.project.eventRegistry!.records,
+              _record(
+                id: _eventB,
+                entityId: 'npc_second',
+                sceneId: 'scene_second',
+              ),
+            ],
+            legacyClaims: const [],
+          ),
+        );
+        final report = validateNarrativeProject(project, maps: [map]);
+        final reachability = report.symbolicReachability!;
+        expect(reachability.canSatisfyMilestones([first]), isTrue);
+        expect(reachability.canSatisfyAllTrueFacts({'fact_right'}), isTrue);
+        expect(reachability.canSatisfyMilestones([first, second]), !exclusive);
+        expect(report.byCode('storylineStepNeverCompleted'), isEmpty);
+        expect(
+          report.byCode('storylineImpossible'),
+          exclusive ? hasLength(1) : isEmpty,
+        );
+        expect(report.isPlayable, !exclusive);
+      },
+    );
+  }
+
+  for (final (unknown, separate) in [
+    (false, false),
+    (true, false),
+    (true, true),
+  ]) {
+    test(
+      'H10: optional fact witness with unknown=$unknown and separate=$separate',
+      () {
+        final fixture = _fixture(completeStep: false);
+        final story = fixture.project.storylines.single;
+        final chapter = story.chapters.single;
+        final step = chapter.steps.single.copyWith(
+          completionCondition: equals(
+            separate ? 'fact_other' : 'fact_gate',
+            !separate,
+          ),
+        );
+        final optional = StorylineAsset(
+          id: 'story_optional',
+          type: StorylineType.sideQuest,
+          status: StorylineStatus.active,
+          title: 'Quête secondaire',
+          chapters: [
+            StorylineChapter(
+              id: 'chapter_optional',
+              title: 'Guide',
+              order: 0,
+              steps: [
+                StorylineStep(
+                  id: 'step_optional',
+                  title: 'Suivre le guide',
+                  order: 0,
+                  sceneLinkIds: const ['scene_optional'],
+                  completionCondition: equals('fact_gate', !separate),
+                ),
+              ],
+            ),
+          ],
+        );
+        final map = fixture.map.copyWith(
+          entities: [
+            ...fixture.map.entities,
+            const MapEntity(
+              id: 'npc_second',
+              name: 'Second guide',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 4, y: 4),
+            ),
+          ],
+        );
+        final scene = SceneAsset(
+          id: 'scene_optional',
+          name: 'Optionnelle',
+          storylineId: optional.id,
+          chapterId: optional.chapters.single.id,
+          graph: SceneGraph(
+            startNodeId: 'start',
+            nodes: [
+              SceneNode(id: 'start', kind: SceneNodeKind.start),
+              if (unknown)
+                SceneNode(
+                  id: 'check',
+                  kind: SceneNodeKind.condition,
+                  payload: SceneConditionPayload(
+                    conditionSource: SceneConditionSource.playerFacing(
+                      direction: EntityFacing.north,
+                      expected: true,
+                    ),
+                  ),
+                ),
+              setTrue('grant', 'fact_gate'),
+              SceneNode(id: 'end', kind: SceneNodeKind.end),
+            ],
+            edges: [
+              link('start', 'completed', unknown ? 'check' : 'grant'),
+              if (unknown) ...[
+                link('check', 'true', 'grant', SceneEdgeKind.conditionTrue),
+                link('check', 'false', 'end', SceneEdgeKind.conditionFalse),
+              ],
+              link('grant', 'completed', 'end'),
+            ],
+          ),
+        );
+        final project = fixture.project.copyWith(
+          facts: [
+            ...fixture.project.facts,
+            if (separate)
+              NarrativeFactDefinition(id: 'fact_other', label: 'Autre état'),
+          ],
+          storylines: [
+            story.copyWith(
+              chapters: [
+                chapter.copyWith(steps: [step]),
+              ],
+            ),
+            optional,
+          ],
+          scenes: [...fixture.project.scenes, scene],
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: [
+              ...fixture.project.eventRegistry!.records,
+              _record(id: _eventB, entityId: 'npc_second', sceneId: scene.id),
+            ],
+            legacyClaims: const [],
+          ),
+        );
+        final report = validateNarrativeProject(project, maps: [map]);
+        final symbolic = report.symbolicReachability!;
+        final component = symbolic.independentFactComponents.singleWhere(
+          (component) => component.factIds.contains('fact_gate'),
+        );
+        final witnesses = component.states.where(
+          (s) => s.hasTrueFact('fact_gate'),
+        );
+        expect(witnesses, isNotEmpty);
+        expect(witnesses.every((s) => s.indeterminate), unknown);
+        if (unknown && !separate) {
+          expect(
+            report.byCode('storylineStepNeverCompleted').map((d) => d.stepId),
+            contains(step.id),
+          );
+        } else {
+          expect(report.byCode('storylineStepNeverCompleted'), isEmpty);
+          expect(report.isPlayable, isTrue);
+        }
+      },
+    );
+  }
+
   group('interpolation references in authored player text',
       _presentationTextReferenceTests);
 
@@ -175,6 +836,66 @@ void main() {
       expect(mapView.events.single.sceneLabel, 'Introduction');
       expect(mapView.events.single.conditionCount, 0);
     });
+
+    for (final expectedValue in [true, false]) {
+      test('accepts the Storyline completion Fact reaching $expectedValue', () {
+        final fixture = _fixture(completeStep: false);
+        final story = fixture.project.storylines.single;
+        final chapter = story.chapters.single;
+        final step = chapter.steps.single.copyWith(
+          completionCondition: ScriptConditionFactory.factEquals(
+            'fact_gate',
+            NarrativeValue.boolean(expectedValue),
+          ),
+        );
+        final project = fixture.project.copyWith(
+          facts: [
+            NarrativeFactDefinition(
+              id: 'fact_gate',
+              label: 'Passage ouvert',
+              initialValue: NarrativeValue.boolean(!expectedValue),
+            ),
+          ],
+          storylines: [
+            story.copyWith(chapters: [chapter.copyWith(steps: [step])]),
+          ],
+        );
+        final incomplete = validateNarrativeProject(project, maps: [fixture.map]);
+        expect(incomplete.byCode('storylineStepNeverCompleted').single.stepId, step.id);
+
+        final scene = _scene(completeStep: true);
+        final sceneWithFact = SceneAsset(
+          id: scene.id,
+          name: scene.name,
+          graph: SceneGraph(
+            startNodeId: scene.graph.startNodeId,
+            nodes: [
+              for (final node in scene.graph.nodes)
+                if (node.id == 'complete_step')
+                  SceneNode(
+                    id: node.id,
+                    kind: SceneNodeKind.action,
+                    payload: SceneActionPayload.consequence(
+                      SceneConsequence.setFact(
+                        factId: 'fact_gate',
+                        value: expectedValue,
+                      ),
+                    ),
+                  )
+                else
+                  node,
+            ],
+            edges: scene.graph.edges,
+          ),
+        );
+        final report = validateNarrativeProject(
+          project.copyWith(scenes: [sceneWithFact]),
+          maps: [fixture.map],
+        );
+        expect(report.byCode('storylineStepNeverCompleted'), isEmpty);
+        expect(report.isPlayable, isTrue);
+      });
+    }
 
     test('reports an impossible Step and a required Fact never produced', () {
       final fixture = _fixture(
@@ -1344,6 +2065,45 @@ void _presentationTextReferenceTests() {
   });
 }
 
+MapData _h10CounterMap(MapData map) => map.copyWith(entities: [
+  ...map.entities,
+  const MapEntity(
+    id: 'npc_second', name: 'Second guide', kind: MapEntityKind.npc,
+    pos: GridPos(x: 4, y: 4),
+  ),
+  const MapEntity(
+    id: 'npc_optional', name: 'Guide optionnel', kind: MapEntityKind.npc,
+    pos: GridPos(x: 5, y: 4),
+  ),
+]);
+
+SceneAsset _h10CounterScene(
+  String id,
+  List<SceneConsequence> actions, {
+  String? storylineId,
+  String? chapterId,
+}) {
+  final nodes = [
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    for (final (index, action) in actions.indexed)
+      SceneNode(
+        id: 'action_$index', kind: SceneNodeKind.action,
+        payload: SceneActionPayload.consequence(action),
+      ),
+    SceneNode(id: 'end', kind: SceneNodeKind.end),
+  ];
+  return SceneAsset(
+    id: id, name: id, storylineId: storylineId, chapterId: chapterId,
+    graph: SceneGraph(startNodeId: 'start', nodes: nodes, edges: [
+      for (var i = 0; i < nodes.length - 1; i++)
+        SceneEdge(
+          id: 'flow_$i', fromNodeId: nodes[i].id, fromPortId: 'completed',
+          toNodeId: nodes[i + 1].id, kind: SceneEdgeKind.defaultFlow,
+        ),
+    ]),
+  );
+}
+
 ({ProjectManifest project, MapData map}) _fixture({
   bool completeStep = true,
   bool requireFact = false,
@@ -1444,7 +2204,8 @@ void _presentationTextReferenceTests() {
 
 NarrativeEventRecord _record({
   required String id,
-  required String entityId,
+  String entityId = 'npc_guide',
+  NarrativeEventSourceRef? source,
   String sceneId = 'scene_intro',
   List<NarrativeEventCondition> conditions = const [],
   NarrativeEventReusePolicy reusePolicy = NarrativeEventReusePolicy.oneShot,
@@ -1453,7 +2214,7 @@ NarrativeEventRecord _record({
     NarrativeEventDefinition(
       id: id,
       name: 'Event $id',
-      source: NarrativeEventSourceRef.entityInteract('map_port', entityId),
+      source: source ?? NarrativeEventSourceRef.entityInteract('map_port', entityId),
       conditions: conditions,
       sceneId: sceneId,
       reusePolicy: reusePolicy,

@@ -22,8 +22,8 @@ final class LocalNarrativeCatalogContext {
     required ProjectSession session,
     required bool scoped,
     AuthoringTransactionFaultInjector? faultInjector,
+    ProjectFileReader reader = const LocalProjectFileReader(),
   }) async {
-    const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: [session.directoryPath],
       fileReader: reader,
@@ -42,6 +42,7 @@ final class LocalNarrativeCatalogContext {
       policy: policy,
       snapshotLoader: snapshots,
       faultInjector: faultInjector,
+      catalogFileReader: reader,
     );
     try {
       await api.attachProject(

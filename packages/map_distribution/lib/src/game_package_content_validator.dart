@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:map_core/map_core.dart' show PokedexSpeciesRange;
+import 'package:map_core/map_core.dart'
+    show DialogueLocalization, PokedexSpeciesRange;
 import 'package:path/path.dart' as p;
 
 import 'audio_media_format.dart';
@@ -191,6 +192,7 @@ final class GamePackageContentValidator {
   }
 
   void _scanJson(String path, Object? root) {
+    final dialogueSourceOwners = _dialogueSourceTextOwners(path, root);
     final pending = <({
       Object? value,
       String? key,
@@ -231,6 +233,8 @@ final class GamePackageContentValidator {
         for (final entry in values.entries) {
           if (entry.key is String) {
             final value = entry.value;
+            final dialogueSourceText =
+                entry.key == 'source' && dialogueSourceOwners.contains(values);
             final storyFlagIdentifier = key == 'conditionSource' &&
                 values['sourceKind'] == 'factLikeStoryFlag' &&
                 entry.key == 'sourceId' &&
@@ -243,8 +247,10 @@ final class GamePackageContentValidator {
                 PokedexSpeciesRange.tryFromKey(value) != null;
             pending.add((
               value: value,
-              key: entry.key as String,
-              referenceContext: storyFlagIdentifier || pokedexRangeIdentifier
+              key: dialogueSourceText ? null : entry.key as String,
+              referenceContext: storyFlagIdentifier ||
+                      pokedexRangeIdentifier ||
+                      dialogueSourceText
                   ? false
                   : referenceContext,
             ));
@@ -252,6 +258,42 @@ final class GamePackageContentValidator {
         }
       }
     }
+  }
+
+  Set<Object> _dialogueSourceTextOwners(String path, Object? root) {
+    if (root is! Map) return const {};
+    final Iterable<Object?> dialogues;
+    final key = root['key'];
+    if (path == 'project/project.json' && root['dialogues'] is List) {
+      dialogues = root['dialogues'] as List;
+    } else if (path.startsWith('project/catalog/objects/') &&
+        root['type'] == 'unit' &&
+        key is Map &&
+        key['kind'] == 'catalogMetadata') {
+      final payload = root['payload'];
+      final value = payload is Map && payload['section'] == r'$projectDefinition'
+          ? payload['value']
+          : null;
+      if (value is! Map || value['field'] != 'dialogues') return const {};
+      dialogues = [value['definition']];
+    } else {
+      return const {};
+    }
+    final owners = Set<Object>.identity();
+    for (final dialogue in dialogues.whereType<Map>()) {
+      final localization = dialogue['localization'];
+      if (localization is! Map<String, dynamic>) continue;
+      try {
+        DialogueLocalization.fromJson(localization);
+      } on FormatException {
+        continue;
+      }
+      for (final unit in (localization['units'] as List).cast<Map>()) {
+        owners.add(unit);
+        owners.addAll((unit['translations'] as Map).values.cast<Object>());
+      }
+    }
+    return owners;
   }
 
   void _scanText(String path, String text) {

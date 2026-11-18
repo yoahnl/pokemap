@@ -15,7 +15,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
-    'Studio exports saved translations through its production controller',
+    'Studio exports saved translations with a speaker through its production controller',
     () async {
       final fixture = await M3StoryFixture.create();
       final output = await Directory.systemTemp.createTemp(
@@ -34,7 +34,9 @@ void main() {
       final sourceFile = File(
         '${fixture.directory.path}/${entry.relativePath}',
       );
-      final source = await sourceFile.readAsString();
+      final source = (await sourceFile.readAsString())
+          .replaceFirst('\n---\n', '\n---\nGuide: ');
+      await sourceFile.writeAsString(source);
       var catalog = readLocalizedDialogue(
         source: source,
         sourceLocale: 'fr',
@@ -105,7 +107,7 @@ void main() {
       );
       expect(
         runtimeDialogueTextScopes(resolved).map((scope) => scope.text),
-        everyElement('Welcome'),
+        contains('Guide: Welcome'),
       );
       expect(
         translated.localization!.units.map((unit) => unit.id),

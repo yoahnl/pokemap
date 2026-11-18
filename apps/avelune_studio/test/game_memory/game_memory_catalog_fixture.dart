@@ -107,6 +107,7 @@ ProjectManifest _project(
   int unrelated, {
   bool character = false,
   bool storylines = false,
+  bool unrelatedDialogues = false,
 }) => ProjectManifest(
   name: 'Mémoire',
   characters: [
@@ -130,6 +131,15 @@ ProjectManifest _project(
         name: 'Inutile',
         relativePath: 'maps/unused-$i.json',
       ),
+  ],
+  dialogues: [
+    if (unrelatedDialogues)
+      for (var i = 0; i < unrelated; i++)
+        ProjectDialogueEntry(
+          id: 'unused_dialogue_$i',
+          name: 'Dialogue sans rapport $i',
+          relativePath: 'dialogues/unused-$i.yarn',
+        ),
   ],
   tilesets: const [
     ProjectTilesetEntry(
@@ -200,6 +210,7 @@ Future<ProjectSession> openGameMemoryCatalog({
   bool catalog = true,
   bool character = false,
   bool storylines = false,
+  bool unrelatedDialogues = false,
 }) async {
   final temporary = await Directory.systemTemp.createTemp('game_memory_');
   final root = Directory(await temporary.resolveSymbolicLinks());
@@ -212,6 +223,7 @@ Future<ProjectSession> openGameMemoryCatalog({
         unrelated,
         character: character,
         storylines: storylines,
+        unrelatedDialogues: unrelatedDialogues,
       ),
     );
   } else {
@@ -221,6 +233,7 @@ Future<ProjectSession> openGameMemoryCatalog({
           unrelated,
           character: character,
           storylines: storylines,
+          unrelatedDialogues: unrelatedDialogues,
         ).toJson(),
       ),
     );
@@ -273,6 +286,14 @@ Future<ProjectSession> openGameMemoryCatalog({
         ).toJson(),
       ),
     );
+  }
+  if (unrelatedDialogues) {
+    final dialogues = await Directory('${root.path}/dialogues').create();
+    for (var i = 0; i < unrelated; i++) {
+      await File(
+        '${dialogues.path}/unused-$i.yarn',
+      ).writeAsString('title: Start\n---\nUn dialogue sans rapport $i.\n===\n');
+    }
   }
   if (!prepared) {
     return ProjectSession(
