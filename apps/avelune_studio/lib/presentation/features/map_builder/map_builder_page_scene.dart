@@ -5,10 +5,11 @@ extension _MapBuilderPageScene on _MapBuilderPageState {
     String sceneId,
     String? behaviourId, {
     bool replace = false,
-    String? nodeId,
+    String? diagnosticNodeId,
+    bool Function()? isCurrent,
   }) async {
     await _commitTyping();
-    if (_disposed) return;
+    if (_disposed || isCurrent?.call() == false) return;
     final port = _stories.narrative;
     if (port == null) return;
     if (!replace) _rememberStoryOrigin();
@@ -18,7 +19,7 @@ extension _MapBuilderPageScene on _MapBuilderPageState {
       source: () => _stories.behaviours,
       sceneId: sceneId,
       behaviourId: behaviourId,
-      initialNodeId: nodeId,
+      diagnosticNodeId: diagnosticNodeId,
       documentLoader: _stories.scenes?.readDocument,
       changed: _changed,
     );

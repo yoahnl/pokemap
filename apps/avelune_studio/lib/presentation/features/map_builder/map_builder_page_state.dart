@@ -95,7 +95,6 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     story: _story,
     editable: () => _editable,
     changed: _changed,
-    verificationProject: _verificationProject,
   );
   var _section = StudioRailSection.map;
   var _storyShown = false;
@@ -205,6 +204,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     if (_disposed) return false;
     setState(() => _saveFailed = false);
     final saved = await _draft.save();
+    if (saved) {
+      unawaited(_stories.verification?.refreshRevision(checkInputs: false));
+    }
     if (!_disposed) setState(() => _saveFailed = !saved);
     return saved;
   }
@@ -318,6 +320,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
         StoryDialogueNavigation(
           open: _openDialogue,
           openWithLanguage: _openDialogue,
+          openRequested: (id, isCurrent) => _openDialogue(id, null, isCurrent),
           loadLanguages: _stories.dialogues?.languages,
           currentSource: _currentDialogue,
           child: _layout(

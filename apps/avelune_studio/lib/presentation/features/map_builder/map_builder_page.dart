@@ -26,7 +26,6 @@ import 'package:avelune_studio/features/story_draft/application/story_publicatio
 import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_failure_message.dart';
-import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
 import 'package:avelune_studio/features/project_session/application/project_draft.dart';
 import 'package:avelune_studio/features/project_session/application/studio_exit_guard.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/editor_shortcuts.dart';

@@ -19,6 +19,7 @@ class StoryWorkspace extends StatefulWidget {
     required this.builder,
     this.saveError,
     this.inspectorAvailable = true,
+    this.verificationMarker,
   });
 
   final StorySection section;
@@ -26,6 +27,7 @@ class StoryWorkspace extends StatefulWidget {
   final bool editable;
   final String? saveError;
   final bool inspectorAvailable;
+  final StudioBadge? verificationMarker;
   final Widget Function(StoryPanelBuilder panels) builder;
 
   @override
@@ -48,6 +50,7 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
           StoryNavigation(
             selected: widget.section,
             onSelected: widget.onSelected,
+            verificationMarker: widget.verificationMarker,
           ),
           Expanded(
             child: Column(

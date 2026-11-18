@@ -10,6 +10,7 @@ import 'package:avelune_studio/features/game_memory/application/game_memory_cont
 import 'package:avelune_studio/features/game_memory/application/game_memory_staging.dart';
 import 'package:avelune_studio/features/game_memory/application/game_memory_usage_targets.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_story_elements.dart';
 import 'package:avelune_studio/features/story_workspace/application/story_workspace_state.dart';
 import 'package:avelune_studio/features/story_workspace/application/story_history_scope.dart';
 import 'package:avelune_studio/features/story_draft/domain/story_draft_entry.dart';
@@ -18,6 +19,7 @@ import 'package:avelune_studio/features/verification/application/project_verific
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
 import 'package:avelune_studio/features/scenes/application/scene_catalog_controller.dart';
 import 'package:avelune_studio/features/verification/application/verification_problems.dart';
+import 'package:avelune_studio/features/verification/application/verification_snapshot.dart';
 import 'package:avelune_studio/features/dialogues/domain/dialogue_catalog_port.dart';
 import 'package:avelune_studio/features/dialogues/application/dialogue_catalog_controller.dart';
 import 'package:avelune_studio/features/dialogues/application/dialogue_draft_host.dart';
@@ -28,6 +30,7 @@ import 'package:avelune_studio/presentation/features/story/game_memory_usages.da
 import 'package:avelune_studio/presentation/features/story/game_memory_view.dart';
 import 'package:avelune_studio/presentation/features/story/trame_view.dart';
 import 'package:avelune_studio/presentation/features/story/verification_view.dart';
+import 'package:avelune_studio/presentation/features/story/story_dialogue_link.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 import 'dialogues/story_dialogues_view.dart';
@@ -43,6 +46,7 @@ part 'story_page_navigation.dart';
 part 'story_page_dialogues.dart';
 part 'story_page_body.dart';
 part 'story_page_memory.dart';
+part 'story_page_verification.dart';
 
 class StoryPage extends StatefulWidget {
   const StoryPage({
@@ -61,11 +65,12 @@ class StoryPage extends StatefulWidget {
     required this.unsaved,
     this.saveError,
     this.openScene,
-    this.openSceneNode,
+    this.openSceneDiagnostic,
     this.beforeNavigation,
     this.navigationState,
     this.onHistoryScopeChanged,
     this.onSectionChanged,
+    this.rememberVerificationOrigin,
     this.catalog,
     this.behaviourCatalog,
     this.dialoguePort,
@@ -85,15 +90,22 @@ class StoryPage extends StatefulWidget {
   final StorylineTrameController? trame;
   final ProjectVerificationController? verification;
   final Future<bool> Function(String eventId) simulate;
-  final Future<bool> Function(String mapId) openMapEntry;
+  final Future<bool> Function(String mapId, {bool Function()? isCurrent})
+  openMapEntry;
   final bool unsaved;
   final String? saveError;
   final SceneOpener? openScene;
-  final void Function(String sceneId, String nodeId)? openSceneNode;
+  final void Function(
+    String sceneId,
+    String? nodeId,
+    bool Function() isCurrent,
+  )?
+  openSceneDiagnostic;
   final Future<void> Function()? beforeNavigation;
   final Object? Function()? navigationState;
   final ValueChanged<StoryHistoryScope>? onHistoryScopeChanged;
   final ValueChanged<StorySection>? onSectionChanged;
+  final VoidCallback? rememberVerificationOrigin;
   final SceneCatalogController? catalog;
   final MapBuilderStoryCatalogBinding? behaviourCatalog;
   final DialogueCatalogPort? dialoguePort;
@@ -130,8 +142,18 @@ class _StoryPageState extends State<StoryPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.verification?.setVisible(TickerMode.valuesOf(context).enabled);
+  }
+
+  @override
   void didUpdateWidget(StoryPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.verification != widget.verification) {
+      oldWidget.verification?.setVisible(false);
+      widget.verification?.setVisible(TickerMode.valuesOf(context).enabled);
+    }
     if (oldWidget.dialogueRequest != widget.dialogueRequest) {
       scheduleMicrotask(_consumeDialogueRequest);
     }
@@ -205,13 +227,6 @@ class _StoryPageState extends State<StoryPage> {
     });
   }
 
-  Future<void> _openRules() async {
-    final memory = _memory;
-    if (memory == null) return;
-    await memory.open();
-    await memory.rules.open();
-  }
-
   Future<void> _select(StorySection section) async {
     _memoryNavigation++;
     await widget.beforeNavigation?.call();
@@ -221,8 +236,12 @@ class _StoryPageState extends State<StoryPage> {
     _notifyScope();
   }
 
-  void _selectItem(StorySection section, StoryDraftRef? ref) {
-    _memoryNavigation++;
+  void _selectItem(
+    StorySection section,
+    StoryDraftRef? ref, {
+    bool navigation = true,
+  }) {
+    if (navigation) _memoryNavigation++;
     _workspace = _workspace.selectItem(section, ref);
     _notifyScope();
   }
@@ -281,6 +300,7 @@ class _StoryPageState extends State<StoryPage> {
 
   @override
   void dispose() {
+    widget.verification?.setVisible(false);
     _memory?.dispose();
     _dialogues?.dispose();
     if (!identical(_catalog, widget.catalog)) _catalog?.dispose();
@@ -292,6 +312,7 @@ class _StoryPageState extends State<StoryPage> {
     _openSection(_workspace.section);
     return StoryWorkspace(
       section: _workspace.section,
+      verificationMarker: _verificationMarker(),
       onSelected: _select,
       editable: widget.staging.editable,
       saveError: widget.saveError,

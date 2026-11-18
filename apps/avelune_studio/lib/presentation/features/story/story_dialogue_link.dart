@@ -10,6 +10,7 @@ class StoryDialogueNavigation extends InheritedWidget {
     super.key,
     required this.open,
     this.openWithLanguage,
+    this.openRequested,
     this.loadLanguages,
     this.currentSource,
     required super.child,
@@ -17,6 +18,8 @@ class StoryDialogueNavigation extends InheritedWidget {
 
   final Future<void> Function(String id) open;
   final Future<void> Function(String id, String language)? openWithLanguage;
+  final Future<void> Function(String id, bool Function() isCurrent)?
+  openRequested;
   final Future<DialogueCatalogLanguages> Function()? loadLanguages;
   final StoryDialogueSource? Function(String, StoryDialogueSource?)?
   currentSource;
@@ -28,6 +31,7 @@ class StoryDialogueNavigation extends InheritedWidget {
   bool updateShouldNotify(StoryDialogueNavigation oldWidget) =>
       open != oldWidget.open ||
       openWithLanguage != oldWidget.openWithLanguage ||
+      openRequested != oldWidget.openRequested ||
       loadLanguages != oldWidget.loadLanguages ||
       currentSource != oldWidget.currentSource;
 }

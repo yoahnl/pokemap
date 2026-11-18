@@ -47,6 +47,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
         _setSpace(MapBuilderSpace.story);
       },
       verification: _stories.verification,
+      rememberVerificationOrigin: _rememberStoryOrigin,
       unsaved: _draft.unsaved,
       saveError: switch (_story.saveError) {
         final error? when _story.dirty => mapBuilderStoryError(
@@ -56,8 +57,14 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
         _ => null,
       },
       openScene: _openScene,
-      openSceneNode: (sceneId, nodeId) =>
-          unawaited(_openScene(sceneId, null, nodeId: nodeId)),
+      openSceneDiagnostic: (sceneId, nodeId, isCurrent) => unawaited(
+        _openScene(
+          sceneId,
+          null,
+          diagnosticNodeId: nodeId,
+          isCurrent: isCurrent,
+        ),
+      ),
       beforeNavigation: _commitTyping,
       navigationState: () => (_storyNavigation, _section, _sceneShown),
       onHistoryScopeChanged: (scope) {
@@ -70,30 +77,36 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
         if (opened) _story.toggleSimulation(id);
         return opened;
       },
-      openMapEntry: (mapId) async {
+      openMapEntry: (mapId, {isCurrent}) async {
         final entry = _maps.project?.maps
             .where((entry) => entry.id == mapId)
             .firstOrNull;
         if (entry == null) return false;
         await _commitTyping();
-        if (_disposed) return false;
+        if (_disposed || isCurrent?.call() == false) return false;
+        final navigation = ++_storyNavigation;
+        bool current() =>
+            mounted && !_disposed && navigation == _storyNavigation;
         _rememberStoryOrigin();
         _setSection(StudioRailSection.map, navigation: true);
         _setSpace(MapBuilderSpace.story);
-        if (_maps.active?.base.mapId != entry.id) await _maps.activate(entry);
-        return true;
+        if (_maps.active?.base.mapId != entry.id) {
+          await _maps.activate(entry, isCurrent: current);
+        }
+        if (!current()) return false;
+        return _maps.active?.base.mapId == entry.id ||
+            await _storyDestinationUnavailable();
       },
     );
   }
 
-  Future<ProjectManifest?> _verificationProject() async {
-    await _maps.ensureWorkshop(MapWorkspaceWorkshop.verification);
-    return _maps.project;
-  }
-
-  Future<void> _openDialogue(String id, [String? language]) async {
+  Future<void> _openDialogue(
+    String id, [
+    String? language,
+    bool Function()? isCurrent,
+  ]) async {
     await _commitTyping();
-    if (!mounted || _disposed) return;
+    if (!mounted || _disposed || isCurrent?.call() == false) return;
     _rememberStoryOrigin();
     _setSection(StudioRailSection.story, navigation: true);
     _dialogueRequest = (id: id, language: language, token: ++_storyNavigation);

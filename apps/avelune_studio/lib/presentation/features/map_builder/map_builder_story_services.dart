@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/app/di/game_memory_providers.dart';
 import 'package:avelune_studio/app/di/dialogue_providers.dart';
@@ -25,7 +24,6 @@ final class MapBuilderStoryServices {
     required this.story,
     required bool Function() editable,
     required this._changed,
-    required this._verificationProject,
   }) : memory = MapBuilderStoryMemory(
          story,
          editable: () =>
@@ -51,7 +49,6 @@ final class MapBuilderStoryServices {
        );
 
   final void Function() _changed;
-  final Future<ProjectManifest?> Function() _verificationProject;
   ProjectVerificationController? verification;
   SceneCatalogController? scenes;
   MapBuilderStoryCatalogBinding? catalog;
@@ -88,7 +85,6 @@ final class MapBuilderStoryServices {
     if (_verification.read() case final port?) {
       verification = ProjectVerificationController(
         port: port,
-        loadProject: _verificationProject,
         changed: _changed,
       );
     }
@@ -117,7 +113,7 @@ final class MapBuilderStoryServices {
     _world.close();
     _dialogues.close();
     _storylines.close();
-    verification?.cancel();
+    verification?.dispose();
     _verification.close();
   }
 }

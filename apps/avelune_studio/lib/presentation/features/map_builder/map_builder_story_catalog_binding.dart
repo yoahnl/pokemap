@@ -60,13 +60,24 @@ final class MapBuilderStoryCatalogBinding {
     _changed();
   }
 
-  Future<bool> open(String id) => _open(id: id);
+  Future<bool> open(
+    String id, {
+    bool checkSavedMap = false,
+    bool Function()? isRequested,
+  }) => _open(id: id, checkSavedMap: checkSavedMap, isRequested: isRequested);
 
   Future<bool> prepareCreation(String mapId) => _open(mapId: mapId);
 
-  Future<bool> _open({String? id, String? mapId}) async {
-    if (_disposed) return false;
+  Future<bool> _open({
+    String? id,
+    String? mapId,
+    bool checkSavedMap = false,
+    bool Function()? isRequested,
+  }) async {
+    if (_disposed || isRequested?.call() == false) return false;
     final epoch = ++_epoch;
+    bool requested() =>
+        !_disposed && epoch == _epoch && isRequested?.call() != false;
     selectedId = id;
     editor = null;
     error = null;
@@ -74,7 +85,7 @@ final class MapBuilderStoryCatalogBinding {
     _changed();
     try {
       await story.prepare();
-      if (_disposed || epoch != _epoch) return false;
+      if (!requested()) return false;
       final project = story.project;
       if (project == null || !story.ready) {
         throw StateError(
@@ -115,8 +126,11 @@ final class MapBuilderStoryCatalogBinding {
           ].indexed.every(
             (entry) => draft.versionOf(entry.$2) == versions[entry.$1],
           );
-      final map = document?.current ?? await maps.loadMap(entry);
-      if (_disposed || epoch != _epoch) return false;
+      final savedMap = checkSavedMap || document == null
+          ? await maps.loadMap(entry)
+          : null;
+      if (!requested()) return false;
+      final map = document?.current ?? savedMap!;
       bool current() =>
           !_disposed &&
           epoch == _epoch &&
@@ -129,6 +143,7 @@ final class MapBuilderStoryCatalogBinding {
       if (!current() ||
           !unchanged() ||
           map.id != entry.id ||
+          (savedMap != null && savedMap.id != entry.id) ||
           story.behaviours
                   .registry(project)
                   ?.records
@@ -173,7 +188,7 @@ final class MapBuilderStoryCatalogBinding {
           throw StateError('Le texte de ce comportement est indisponible.');
         }
         final dialogue = await load(dialogueId);
-        if (_disposed || epoch != _epoch) return false;
+        if (!requested()) return false;
         if (!current() || !unchanged() || dialogue.entry.id != dialogueId) {
           throw StateError('Le contexte du texte a changé. Réessayez.');
         }
@@ -209,7 +224,7 @@ final class MapBuilderStoryCatalogBinding {
       editor = binding;
       return true;
     } on Object catch (failure) {
-      if (!_disposed && epoch == _epoch) {
+      if (requested()) {
         error = failure is StateError ? failure.message : '$failure';
       }
       return false;

@@ -25,6 +25,7 @@ import 'package:map_core/map_core.dart';
 import '../game_memory/game_memory_fakes.dart';
 import '../support/controlled_project_session_port.dart';
 import '../support/map_workspace_fixture.dart';
+import '../verification/verification_fakes.dart';
 
 const guideTalk = 'evt_00000000-0000-7000-8000-000000000001';
 
@@ -129,6 +130,7 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   WorldPort Function(WorkspaceMemoryPort maps)? world,
   ProjectSession? session,
   ProjectManifest? project,
+  WorkspaceMemoryPort Function(ProjectManifest manifest)? workspace,
   StorylineReadPort? storylines,
   VerificationPort? verification,
   DialogueCatalogPort? dialogueCatalog,
@@ -143,7 +145,12 @@ Future<WorkspaceMemoryPort> openMemoryStudio(
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final sessions = ControlledProjectSessionPort();
-  final maps = WorkspaceMemoryPort(manifest: project ?? memoryProject);
+  final manifest = project ?? memoryProject;
+  final maps =
+      workspace?.call(manifest) ?? WorkspaceMemoryPort(manifest: manifest);
+  if (verification is FakeVerificationPort) {
+    verification.savedProject = project ?? memoryProject;
+  }
   maps.saved['a'] = workspaceMap('a').copyWith(
     entities: const [
       MapEntity(
@@ -226,14 +233,16 @@ Future<void> openHistoire(WidgetTester tester) async {
 }
 
 final class MapOnlyWorld implements WorldPort, WorldMapSelectionPort {
-  MapOnlyWorld(this.maps);
+  MapOnlyWorld(this.maps, {this.readSaved = false});
 
   final WorkspaceMemoryPort maps;
+  final bool readSaved;
   final loaded = <String>[];
 
   @override
   Future<MapData> loadMap(ProjectMapEntry entry) async {
     loaded.add(entry.id);
+    if (readSaved) return (await maps.loadMap(memorySession, entry)).map;
     return maps.saved[entry.id] ?? workspaceMap(entry.id);
   }
 

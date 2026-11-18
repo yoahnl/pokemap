@@ -35,10 +35,12 @@ class StoryNavigation extends StatelessWidget {
     super.key,
     required this.selected,
     required this.onSelected,
+    this.verificationMarker,
   });
 
   final StorySection selected;
   final ValueChanged<StorySection> onSelected;
+  final StudioBadge? verificationMarker;
 
   @override
   Widget build(BuildContext context) => FocusTraversalGroup(
@@ -69,6 +71,16 @@ class StoryNavigation extends StatelessWidget {
                   StorySection.verification => Icons.fact_check_outlined,
                 },
                 selected: section == selected,
+                marker: switch ((section, verificationMarker)) {
+                  (StorySection.verification, final marker?) => ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 72),
+                    child: marker,
+                  ),
+                  _ => null,
+                },
+                markerLabel: section == StorySection.verification
+                    ? verificationMarker?.label
+                    : null,
                 onTap: () => onSelected(section),
               ),
             ),

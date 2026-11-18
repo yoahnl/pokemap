@@ -314,6 +314,7 @@ final class GamePackageGameplayReadinessGate {
               mapId: diagnostic.mapId,
               eventId: diagnostic.eventId,
               sceneId: diagnostic.sceneId,
+              sceneNodeId: diagnostic.sceneNodeId,
               dialogueId: diagnostic.dialogueId,
               cinematicId: diagnostic.cinematicId,
               storylineId: diagnostic.storylineId,

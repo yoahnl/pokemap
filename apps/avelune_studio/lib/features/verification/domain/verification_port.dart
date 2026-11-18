@@ -1,6 +1,9 @@
 import 'package:map_core/map_core_domain.dart';
 
 const verificationUnreadableMap = 'verification.map_unreadable';
+const verificationRuntimeMissingMap = 'runtimeMissingMap';
+
+typedef VerificationInputRevision = ({String path, String? revision});
 
 /// How a runtime smoke receipt relates to the version being verified.
 enum VerificationRuntimeState {
@@ -44,6 +47,7 @@ class VerificationDialogueSource {
     required this.origin,
     this.revision,
     this.problem,
+    this.inputRevision,
   });
 
   final ProjectDialogueEntry entry;
@@ -51,15 +55,21 @@ class VerificationDialogueSource {
   final String origin;
   final String? revision;
   final String? problem;
+  final VerificationInputRevision? inputRevision;
 
   bool get readable => problem == null;
 }
 
 class VerificationMapSource {
-  const VerificationMapSource({required this.entry, required this.bytes});
+  const VerificationMapSource({
+    required this.entry,
+    required this.bytes,
+    this.inputRevision,
+  });
 
   final ProjectMapEntry entry;
   final List<int> bytes;
+  final VerificationInputRevision? inputRevision;
 }
 
 /// The canonical result of one analysis, produced away from the interface.
@@ -69,11 +79,13 @@ class VerificationAnalysis {
     required this.dependencies,
     required this.physical,
     required this.isolateName,
+    this.additionalInputs = const [],
   });
 
   final NarrativeProjectValidationReport validation;
   final NarrativeDependencyIndex dependencies;
   final NarrativeValidationDimensionResult physical;
+  final List<VerificationInputRevision> additionalInputs;
 
   /// Where the computation actually ran, so a test can prove it left the
   /// interface isolate instead of trusting an await.
@@ -89,13 +101,18 @@ class VerificationJob {
 
 /// Reads what a narrative verification consumes. It never writes.
 abstract interface class VerificationPort {
+  Future<ProjectManifest> readProject();
+
   /// The maps the validator, the dependency index and the graph read.
-  Future<List<VerificationMapSource>> readMaps({
+  Future<List<VerificationMapSource>> readMaps(
+    List<ProjectMapEntry> entries, {
     void Function(int loaded, int total)? progress,
   });
 
   /// Revision of the saved project, used to notice that the disk moved.
   Future<String> projectRevision();
+
+  Future<bool?> inputsMatch(List<VerificationInputRevision> inputs);
 
   /// The runtime proof on disk, classified against [profile] and the
   /// canonical project fingerprint rather than assumed fresh.

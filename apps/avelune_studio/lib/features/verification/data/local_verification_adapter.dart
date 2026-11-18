@@ -1,16 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:isolate';
 
+import 'package:map_authoring/map_authoring.dart'
+    show projectMediaCatalogStorageKey;
 import 'package:map_authoring/map_authoring_local.dart'
     show LocalProjectFileReader;
 import 'package:map_core/map_core_domain.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
-import '../../narrative/data/local_narrative_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../presentations/data/local_presentation_adapter.dart';
 import '../domain/verification_port.dart';
 import 'verification_analysis_worker.dart';
+import 'verification_input_revision.dart';
 import 'verification_runtime_evidence.dart';
 
 class LocalVerificationAdapter implements VerificationPort {
@@ -23,23 +26,51 @@ class LocalVerificationAdapter implements VerificationPort {
   final LocalMapWorkspaceAdapter mapAdapter;
 
   @override
-  Future<String> projectRevision() async =>
-      (await mapAdapter.resourceBaseline(session)).revision;
+  Future<String> projectRevision() => mapAdapter.resourceRevision(session);
 
   @override
-  Future<List<VerificationMapSource>> readMaps({
+  Future<bool?> inputsMatch(List<VerificationInputRevision> inputs) async {
+    var unconfirmed = false;
+    for (final expected in inputs) {
+      final observed = await _inputRevision(expected.path);
+      if (expected.revision == null || observed.revision == null) {
+        unconfirmed = true;
+      } else if (expected.revision != observed.revision) {
+        return false;
+      }
+    }
+    return unconfirmed ? null : true;
+  }
+
+  Future<VerificationInputRevision> _inputRevision(String path) =>
+      readVerificationInputRevision(session.directoryPath, path);
+
+  @override
+  Future<ProjectManifest> readProject() =>
+      mapAdapter.readVerificationProject(session);
+
+  @override
+  Future<List<VerificationMapSource>> readMaps(
+    List<ProjectMapEntry> entries, {
     void Function(int loaded, int total)? progress,
   }) async {
-    final entries = (await mapAdapter.resourceBaseline(session)).manifest.maps;
     final maps = <VerificationMapSource>[];
     for (final (index, entry) in entries.indexed) {
+      final inputRevision = await _inputRevision(entry.relativePath);
+      List<int> bytes;
+      try {
+        bytes = await const LocalProjectFileReader().readBytes(
+          projectRoot: session.directoryPath,
+          relativePath: entry.relativePath,
+        );
+      } on Object {
+        bytes = const [];
+      }
       maps.add(
         VerificationMapSource(
           entry: entry,
-          bytes: await const LocalProjectFileReader().readBytes(
-            projectRoot: session.directoryPath,
-            relativePath: entry.relativePath,
-          ),
+          bytes: bytes,
+          inputRevision: inputRevision,
         ),
       );
       progress?.call(index + 1, entries.length);
@@ -51,20 +82,21 @@ class LocalVerificationAdapter implements VerificationPort {
   Future<List<VerificationDialogueSource>> readDialogueSources(
     List<ProjectDialogueEntry> entries,
   ) async {
-    final reader = LocalNarrativeAdapter(
-      session: session,
-      mapAdapter: mapAdapter,
-    );
     final sources = <VerificationDialogueSource>[];
     for (final entry in entries) {
+      final inputRevision = await _inputRevision(entry.relativePath);
       try {
-        final read = await reader.readDialogue(entry);
+        final bytes = await const LocalProjectFileReader().readBytes(
+          projectRoot: session.directoryPath,
+          relativePath: entry.relativePath,
+        );
         sources.add(
           VerificationDialogueSource(
-            entry: read.entry,
-            text: read.source,
+            entry: entry,
+            text: utf8.decode(bytes),
             origin: 'version enregistrée',
-            revision: read.revision,
+            revision: narrativeEventBytesFingerprint(bytes),
+            inputRevision: inputRevision,
           ),
         );
       } on Object catch (failure) {
@@ -74,6 +106,7 @@ class LocalVerificationAdapter implements VerificationPort {
             text: '',
             origin: 'version enregistrée',
             problem: 'Source illisible : $failure',
+            inputRevision: inputRevision,
           ),
         );
       }
@@ -121,8 +154,12 @@ class LocalVerificationAdapter implements VerificationPort {
                     SceneWorldPresentationOperation.showPicture;
           }),
         );
-        final presentationMediaCatalog =
-            hasPictures && project.settings.dimension == ProjectDimension.twoD
+        final readMedia =
+            hasPictures && project.settings.dimension == ProjectDimension.twoD;
+        final mediaInput = readMedia
+            ? await _inputRevision(projectMediaCatalogStorageKey)
+            : null;
+        final presentationMediaCatalog = readMedia
             ? (await LocalPresentationAdapter(
                 session: session,
                 mapAdapter: mapAdapter,
@@ -139,6 +176,7 @@ class LocalVerificationAdapter implements VerificationPort {
             projectRoot: session.directoryPath,
             catalog: session.storage != ProjectSessionStorage.manifest,
             presentationMediaCatalog: presentationMediaCatalog,
+            mediaInput: mediaInput,
           ),
           debugName: verificationWorkerName,
           errorsAreFatal: true,

@@ -9,7 +9,9 @@ NarrativeProjectDiagnostic verificationDiagnostic(
   NarrativeProjectDiagnosticSeverity severity =
       NarrativeProjectDiagnosticSeverity.error,
   String? eventId,
+  String? dialogueId,
   String? sceneId,
+  String? sceneNodeId,
   String? stepId,
   String? factId,
   String? worldRuleId,
@@ -23,7 +25,9 @@ NarrativeProjectDiagnostic verificationDiagnostic(
   path: path ?? code,
   destination: destination,
   eventId: eventId,
+  dialogueId: dialogueId,
   sceneId: sceneId,
+  sceneNodeId: sceneNodeId,
   stepId: stepId,
   factId: factId,
   worldRuleId: worldRuleId,
@@ -32,17 +36,31 @@ NarrativeProjectDiagnostic verificationDiagnostic(
 
 final class FakeVerificationPort implements VerificationPort {
   FakeVerificationPort({this.diagnostics = const [], this.maps = const []});
+  late ProjectManifest savedProject;
+  Object? projectFailure;
+  Object? revisionFailure;
 
   List<NarrativeProjectDiagnostic> diagnostics;
   List<MapData> maps;
   Completer<VerificationAnalysis>? gate;
   var analyses = 0;
   var cancels = 0;
+  var revision = 'r1';
+  var revisionReads = 0;
+  var inputChecks = 0;
+  bool? inputMatch = true;
   ProjectManifest? analysedProject;
   final dialogueReads = <List<String>>[];
 
   @override
-  Future<List<VerificationMapSource>> readMaps({
+  Future<ProjectManifest> readProject() async {
+    if (projectFailure case final failure?) throw failure;
+    return savedProject;
+  }
+
+  @override
+  Future<List<VerificationMapSource>> readMaps(
+    List<ProjectMapEntry> entries, {
     void Function(int loaded, int total)? progress,
   }) async {
     for (var index = 0; index < maps.length; index++) {
@@ -62,7 +80,17 @@ final class FakeVerificationPort implements VerificationPort {
   }
 
   @override
-  Future<String> projectRevision() async => 'r1';
+  Future<String> projectRevision() async {
+    revisionReads++;
+    if (revisionFailure case final failure?) throw failure;
+    return revision;
+  }
+
+  @override
+  Future<bool?> inputsMatch(List<VerificationInputRevision> inputs) async {
+    inputChecks++;
+    return inputMatch;
+  }
 
   @override
   Future<VerificationRuntimeEvidence> readRuntimeEvidence(

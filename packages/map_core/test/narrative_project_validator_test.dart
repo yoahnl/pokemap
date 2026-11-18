@@ -862,6 +862,7 @@ void main() {
       expect(
           diagnostic.destination, NarrativeProjectDiagnosticDestination.scene);
       expect(diagnostic.sceneId, 'scene_intro');
+      expect(diagnostic.sceneNodeId, 'battle');
     });
 
     test('reports an empty Scene-only static boss team', () {
@@ -891,6 +892,7 @@ void main() {
       expect(
           diagnostic.destination, NarrativeProjectDiagnosticDestination.scene);
       expect(diagnostic.sceneId, 'scene_intro');
+      expect(diagnostic.sceneNodeId, 'battle');
     });
 
     test('reports missing authoritative species and moves in a Scene opponent',
@@ -1262,6 +1264,7 @@ void _presentationTextReferenceTests() {
 
     final issues = report.byCode('presentationTextReferenceUnresolvable');
     expect(issues, hasLength(1));
+    expect(issues.single.sceneNodeId, 'confirm');
     expect(issues.single.severity, NarrativeProjectDiagnosticSeverity.error);
     expect(
       issues.single.path,
@@ -1332,8 +1335,10 @@ void _presentationTextReferenceTests() {
       maps: <MapData>[fixture.map],
     );
 
+    final issue = report.byCode('presentationTextReferenceUnresolvable').single;
+    expect(issue.sceneNodeId, 'pick');
     expect(
-      report.byCode('presentationTextReferenceUnresolvable').single.path,
+      issue.path,
       'scenes.presession.nodes.pick.preSessionInteraction.options[0].label',
     );
   });

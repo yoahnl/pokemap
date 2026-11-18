@@ -1,13 +1,5 @@
 part of 'scene_graph_canvas.dart';
 
-final class _StepMenu {
-  const _StepMenu({required this.screen, required this.world, this.from});
-
-  final Offset screen;
-  final SceneGraphPoint world;
-  final SceneGraphExit? from;
-}
-
 extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
   Set<String> get _pathEdgeIds {
     final steps = {
@@ -65,23 +57,21 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
     }
   }
 
-  void _unlink(SceneGraphExit exit) => _apply(
-    removeSceneGraphItems(
-      widget.scene,
-      edgeIds: {
-        for (final edge in widget.scene.graph.edges)
-          if (edge.fromNodeId == exit.nodeId && edge.fromPortId == exit.portId)
-            edge.id,
-      },
-    ),
-  );
+  void _unlink(SceneGraphExit exit) => _unlinkEdges({
+    for (final edge in _portEdges(exit.nodeId, exit.portId)) edge.id,
+  });
+
+  void _unlinkEdges(Set<String> ids) =>
+      _apply(removeSceneGraphItems(widget.scene, edgeIds: ids));
 
   void _dropWire(SceneGraphExit from, Offset screen) {
     if (!(Offset.zero & _viewport).contains(screen)) return;
     final camera = _camera!.value;
     final target = sceneGraphCardAt(_view, camera.toWorld(screen));
     if (target == null) {
-      _openMenu(screen, from);
+      if (_portEdges(from.nodeId, from.portId).isEmpty) {
+        _openStepMenu(screen, from: from);
+      }
       return;
     }
     _apply(
@@ -159,26 +149,6 @@ extension _SceneGraphCanvasEdits on SceneGraphCanvasState {
         ids: _ids,
       ),
     );
-  }
-
-  void _openMenu(Offset screen, SceneGraphExit? from) {
-    final world = _camera!.value.toWorld(screen);
-    _mutate(
-      () =>
-          _menu = _StepMenu(screen: screen, world: _snapped(world), from: from),
-    );
-  }
-
-  void _closeMenu() {
-    _mutate(() => _menu = null);
-    _focus.requestFocus();
-  }
-
-  void _addFromMenu(SceneStepTemplate template) {
-    final menu = _menu;
-    _closeMenu();
-    if (menu == null) return;
-    _insert(template, at: menu.world, from: menu.from);
   }
 
   void _addFromPalette(SceneStepTemplate template) {

@@ -22,6 +22,7 @@ class SceneFocusSide extends StatelessWidget {
     this.onOpenBehaviour,
     this.dialogues = const {},
     this.choiceLabels = const {},
+    this.dialogueNotices = const [],
   });
 
   final SceneFocusController focus;
@@ -29,6 +30,7 @@ class SceneFocusSide extends StatelessWidget {
   final Future<bool> Function(String eventId)? onOpenBehaviour;
   final Map<String, ProjectDialogueEntry> dialogues;
   final Map<String, Map<String, String>> choiceLabels;
+  final List<Widget> dialogueNotices;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +44,11 @@ class SceneFocusSide extends StatelessWidget {
       key: const ValueKey('scene-focus-side'),
       padding: const EdgeInsets.all(StudioSpacing.l),
       children: [
+        if (dialogueNotices.isNotEmpty)
+          StudioSection(
+            title: l10n.sceneGraphDialoguePreview,
+            children: dialogueNotices,
+          ),
         if (path != null)
           _PathSection(
             focus: focus,

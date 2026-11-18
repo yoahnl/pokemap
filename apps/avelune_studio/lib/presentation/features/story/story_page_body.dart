@@ -96,6 +96,7 @@ extension _StoryPageBody on _StoryPageState {
                   onSelected: (id) => _selectItem(
                     StorySection.behaviours,
                     id == null ? null : (kind: StoryDraftKind.event, id: id),
+                    navigation: false,
                   ),
                 )
               : StudioEmptyState(
@@ -134,11 +135,7 @@ extension _StoryPageBody on _StoryPageState {
           unsaved: widget.unsaved,
           destination: _destination,
         ),
-        StudioEmptyState(
-          icon: Icons.fact_check_outlined,
-          title: l10n.storyVerificationHint,
-          description: l10n.verificationScope,
-        ),
+        VerificationCoverageView(snapshot: widget.verification?.snapshot),
       ),
       _ => panels(unavailable, empty),
     };

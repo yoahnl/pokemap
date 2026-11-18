@@ -78,6 +78,7 @@ final class NarrativeProjectDiagnostic {
     this.mapId,
     this.eventId,
     this.sceneId,
+    this.sceneNodeId,
     this.dialogueId,
     this.cinematicId,
     this.storylineId,
@@ -97,6 +98,7 @@ final class NarrativeProjectDiagnostic {
   final String? mapId;
   final String? eventId;
   final String? sceneId;
+  final String? sceneNodeId;
   final String? dialogueId;
   final String? cinematicId;
   final String? storylineId;
@@ -371,7 +373,7 @@ void _appendPresentationTextReferenceDiagnostics(
   ProjectManifest project,
   List<NarrativeProjectDiagnostic> target,
 ) {
-  void audit(String? text, String path, String sceneId) {
+  void audit(String? text, String path, String sceneId, String nodeId) {
     if (text == null || text.isEmpty) return;
     for (final issue in auditPresentationTextReferences(text)) {
       target.add(
@@ -384,6 +386,7 @@ void _appendPresentationTextReferenceDiagnostics(
           destination: NarrativeProjectDiagnosticDestination.scene,
           suggestedFixLabel: 'Corriger la référence dans le texte authoré.',
           sceneId: sceneId,
+          sceneNodeId: nodeId,
         ),
       );
     }
@@ -396,12 +399,13 @@ void _appendPresentationTextReferenceDiagnostics(
       final interaction = payload.preSessionInteraction;
       if (interaction == null) continue;
       final base = 'scenes.${scene.id}.nodes.${node.id}.preSessionInteraction';
-      audit(interaction.prompt.fallbackText, '$base.prompt', scene.id);
+      audit(interaction.prompt.fallbackText, '$base.prompt', scene.id, node.id);
       for (var index = 0; index < interaction.options.length; index++) {
         audit(
           interaction.options[index].label.fallbackText,
           '$base.options[$index].label',
           scene.id,
+          node.id,
         );
       }
     }
@@ -433,6 +437,7 @@ void _appendSceneOutcomePolicyDiagnostics(
           destination: NarrativeProjectDiagnosticDestination.scene,
           suggestedFixLabel: 'Choisir une politique de fin explicite.',
           sceneId: scene.id,
+          sceneNodeId: node.id,
         ),
       );
     }
@@ -523,6 +528,7 @@ void _appendSymbolicReachabilityDiagnostics(
             ? 'Remplacer la feature non prouvée ou augmenter le budget.'
             : 'Inspecter le chemin symbolique et ses branches.',
         sceneId: issue.sceneId.isEmpty ? null : issue.sceneId,
+        sceneNodeId: issue.sceneId.isEmpty ? null : issue.nodeId,
         eventId: issue.eventId,
       ),
     );
@@ -621,6 +627,9 @@ void _appendSceneDiagnostics(
               : NarrativeProjectDiagnosticDestination.dialogue,
           suggestedFixLabel: diagnostic.suggestedFixLabel,
           sceneId: scene.id,
+          sceneNodeId: diagnostic.target == SceneDiagnosticTarget.node
+              ? diagnostic.nodeId
+              : null,
           dialogueId: dialogueId,
         ),
       );
@@ -1020,6 +1029,7 @@ void _appendSceneBattleReadinessDiagnostics(
                 'L’adversaire « $trainerId » de ce combat ne possède aucun Pokémon.',
             path: '$nodePath.trainerId',
             sceneId: scene.id,
+            nodeId: node.id,
             suggestedFixLabel: 'Ajouter au moins un Pokémon à son équipe.',
           ),
         );
@@ -1038,6 +1048,7 @@ void _appendSceneBattleReadinessDiagnostics(
                   'Un Pokémon de l’adversaire « $trainerId » ne référence aucune espèce.',
               path: '$pokemonPath.speciesId',
               sceneId: scene.id,
+              nodeId: node.id,
               suggestedFixLabel: 'Choisir une espèce dans le catalogue.',
             ),
           );
@@ -1050,6 +1061,7 @@ void _appendSceneBattleReadinessDiagnostics(
                   'L’espèce « $speciesId » de l’adversaire « $trainerId » est absente du catalogue.',
               path: '$pokemonPath.speciesId',
               sceneId: scene.id,
+              nodeId: node.id,
               suggestedFixLabel: 'Choisir une espèce existante.',
             ),
           );
@@ -1067,6 +1079,7 @@ void _appendSceneBattleReadinessDiagnostics(
                   'Un Pokémon de l’adversaire « $trainerId » ne possède aucune capacité utilisable.',
               path: '$pokemonPath.moves',
               sceneId: scene.id,
+              nodeId: node.id,
               suggestedFixLabel: 'Ajouter au moins une capacité.',
             ),
           );
@@ -1078,6 +1091,7 @@ void _appendSceneBattleReadinessDiagnostics(
                   'Une capacité de l’adversaire « $trainerId » possède une référence vide.',
               path: '$pokemonPath.moves',
               sceneId: scene.id,
+              nodeId: node.id,
               suggestedFixLabel: 'Retirer ou remplacer la capacité vide.',
             ),
           );
@@ -1092,6 +1106,7 @@ void _appendSceneBattleReadinessDiagnostics(
                     'La capacité « $moveId » de l’adversaire « $trainerId » est absente du catalogue.',
                 path: '$pokemonPath.moves',
                 sceneId: scene.id,
+                nodeId: node.id,
                 suggestedFixLabel: 'Choisir une capacité existante.',
               ),
             );
@@ -1112,6 +1127,7 @@ NarrativeProjectDiagnostic _sceneBattleDiagnostic({
   required String message,
   required String path,
   required String sceneId,
+  required String nodeId,
   required String suggestedFixLabel,
 }) {
   return NarrativeProjectDiagnostic(
@@ -1123,6 +1139,7 @@ NarrativeProjectDiagnostic _sceneBattleDiagnostic({
     destination: NarrativeProjectDiagnosticDestination.scene,
     suggestedFixLabel: suggestedFixLabel,
     sceneId: sceneId,
+    sceneNodeId: nodeId,
   );
 }
 

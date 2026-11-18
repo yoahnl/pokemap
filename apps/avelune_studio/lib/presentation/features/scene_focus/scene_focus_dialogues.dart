@@ -5,6 +5,7 @@ typedef _SceneDialoguePreview = ({
   Map<String, Map<String, String>> labels,
   Map<String, String> options,
   Set<String> fallbackLocales,
+  Map<String, DialogueChoicePreviewStatus> notices,
   String language,
 });
 
@@ -75,6 +76,13 @@ mixin _SceneFocusDialogues on State<SceneFocusWorkspace> {
       },
       fallbackLocales: {
         for (final preview in resolved.values) ...preview.fallbackLocales,
+      },
+      notices: {
+        for (final MapEntry(:key, :value) in resolved.entries)
+          if (value.status == DialogueChoicePreviewStatus.unavailable ||
+              (language != 'source' &&
+                  value.status == DialogueChoicePreviewStatus.source))
+            key: value.status,
       },
       language: language,
     );

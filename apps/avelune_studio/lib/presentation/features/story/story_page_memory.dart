@@ -1,6 +1,13 @@
 part of 'story_page.dart';
 
 extension _StoryPageMemory on _StoryPageState {
+  Future<void> _openRules() async {
+    final memory = _memory;
+    if (memory == null) return;
+    await memory.open();
+    await memory.rules.open();
+  }
+
   Future<bool> _openMemoryUsage(NarrativeOwner owner, String factId) async {
     final navigation = ++_memoryNavigation;
     final parentNavigation = widget.navigationState?.call();

@@ -5169,7 +5169,7 @@ abstract class AppLocalizations {
   /// No description provided for @sceneGraphEditHint.
   ///
   /// In fr, this message translates to:
-  /// **'Glisser une sortie vers une étape pour relier · clic droit pour ajouter · Suppr pour effacer · Alt+clic pour délier · ⌘C ⌘X ⌘V ⌘D · ⌘Z pour annuler'**
+  /// **'Glisser une sortie vers une étape pour relier · clic droit pour les actions · Suppr pour effacer · Alt+clic pour délier · ⌘C ⌘X ⌘V ⌘D · ⌘Z pour annuler'**
   String get sceneGraphEditHint;
 
   /// No description provided for @sceneGraphPreparing.
@@ -5273,6 +5273,36 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Aucune étape ne correspond.'**
   String get sceneGraphNoMatch;
+
+  /// No description provided for @sceneGraphDialoguePreview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aperçu des dialogues'**
+  String get sceneGraphDialoguePreview;
+
+  /// No description provided for @sceneGraphDialogueUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} · Aperçu indisponible'**
+  String sceneGraphDialogueUnavailable(String name);
+
+  /// No description provided for @sceneGraphDialogueSource.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} · Source'**
+  String sceneGraphDialogueSource(String name);
+
+  /// No description provided for @sceneGraphMenuAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'{action, select, copy{Copier} cut{Couper} duplicate{Dupliquer} delete{Supprimer} breakAll{Rompre tous les liens} noLinks{Aucun lien} other{{action}}}'**
+  String sceneGraphMenuAction(String action);
+
+  /// No description provided for @sceneGraphMenuBreakWith.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rompre le lien avec {name}'**
+  String sceneGraphMenuBreakWith(String name);
 
   /// No description provided for @sceneGraphUnavailable.
   ///
@@ -5568,12 +5598,6 @@ abstract class AppLocalizations {
   /// **'La vérification cherche les jalons impossibles, les états requis mais jamais posés et les références absentes.'**
   String get verificationIdleHint;
 
-  /// No description provided for @verificationClean.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucun problème trouvé.'**
-  String get verificationClean;
-
   /// No description provided for @verificationSeverity.
   ///
   /// In fr, this message translates to:
@@ -5585,6 +5609,144 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ouvrir'**
   String get verificationOpen;
+
+  /// No description provided for @verificationNavState.
+  ///
+  /// In fr, this message translates to:
+  /// **'{state, select, idle{À lancer} running{En cours} stale{Périmée} incomplete{Partielle} other{Terminée}}'**
+  String verificationNavState(String state);
+
+  /// No description provided for @verificationStale.
+  ///
+  /// In fr, this message translates to:
+  /// **'La version enregistrée a changé. Relancez la vérification pour analyser cette version.'**
+  String get verificationStale;
+
+  /// No description provided for @verificationUnconfirmed.
+  ///
+  /// In fr, this message translates to:
+  /// **'La révision enregistrée n’a pas pu être confirmée.'**
+  String get verificationUnconfirmed;
+
+  /// No description provided for @verificationIncomplete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification incomplète. Consultez la couverture du résultat.'**
+  String get verificationIncomplete;
+
+  /// No description provided for @verificationCoverage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Couverture'**
+  String get verificationCoverage;
+
+  /// No description provided for @verificationRevision.
+  ///
+  /// In fr, this message translates to:
+  /// **'Version analysée · {revision}'**
+  String verificationRevision(String revision);
+
+  /// No description provided for @verificationSymbolic.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cohérence du récit'**
+  String get verificationSymbolic;
+
+  /// No description provided for @verificationPhysical.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accessibilité sur les cartes'**
+  String get verificationPhysical;
+
+  /// No description provided for @verificationDimensionStatus.
+  ///
+  /// In fr, this message translates to:
+  /// **'{status, select, pass{Vérifiée} partial{Partielle} fail{Problèmes détectés} indeterminate{Non concluante} other{Non vérifiée}}'**
+  String verificationDimensionStatus(String status);
+
+  /// No description provided for @verificationExcludedMaps.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 carte exclue du contrôle.} other{{count} cartes exclues du contrôle.}}'**
+  String verificationExcludedMaps(int count);
+
+  /// No description provided for @verificationMapUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les données de la carte « {name} » sont indisponibles pour la vérification.'**
+  String verificationMapUnavailable(String name);
+
+  /// No description provided for @verificationTriggerSceneInvalid.
+  ///
+  /// In fr, this message translates to:
+  /// **'La scène de ce déclencheur doit être unique et exécutable.'**
+  String get verificationTriggerSceneInvalid;
+
+  /// No description provided for @verificationRuleTargetUnknown.
+  ///
+  /// In fr, this message translates to:
+  /// **'La cible de cette règle du monde est introuvable.'**
+  String get verificationRuleTargetUnknown;
+
+  /// No description provided for @verificationSceneEndIncomplete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Précisez si cette fin fait progresser le joueur, permet de réessayer ou marque un échec définitif.'**
+  String get verificationSceneEndIncomplete;
+
+  /// No description provided for @verificationDialogueOutcomeUnused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une issue déclarée n’est produite par aucun choix de ce dialogue.'**
+  String get verificationDialogueOutcomeUnused;
+
+  /// No description provided for @verificationPhysicalTriggerBlocked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un déclencheur de cette carte reste inaccessible dans tous les états du récit vérifiés.'**
+  String get verificationPhysicalTriggerBlocked;
+
+  /// No description provided for @verificationTranslationScope.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dialogues · Contrôle du Yarn source. Les traductions manquantes, les textes à revoir et les replis sont indiqués dans le document.'**
+  String get verificationTranslationScope;
+
+  /// No description provided for @verificationMissingDialogue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Source non vérifiée · {name}'**
+  String verificationMissingDialogue(String name);
+
+  /// No description provided for @verificationIssueKind.
+  ///
+  /// In fr, this message translates to:
+  /// **'{kind, select, map{Carte} event{Déclencheur} scene{Scène} storyline{Trame} dialogue{Dialogue} cinematic{Cinématique} fact{Fait} worldRule{Règle du monde} other{Projet}}'**
+  String verificationIssueKind(String kind);
+
+  /// No description provided for @verificationIssueStatus.
+  ///
+  /// In fr, this message translates to:
+  /// **'{state, select, draft{À compléter} disabled{Désactivé} other{{state}}}'**
+  String verificationIssueStatus(String state);
+
+  /// No description provided for @verificationCoveredClean.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun problème sur le périmètre vérifié.'**
+  String get verificationCoveredClean;
+
+  /// No description provided for @verificationTargetUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'La destination de ce diagnostic est indisponible.'**
+  String get verificationTargetUnavailable;
+
+  /// No description provided for @verificationRecordedOnly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Analyse de la version enregistrée'**
+  String get verificationRecordedOnly;
 
   /// No description provided for @simulationOpen.
   ///

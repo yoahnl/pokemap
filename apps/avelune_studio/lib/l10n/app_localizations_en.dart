@@ -3233,7 +3233,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sceneGraphEditHint =>
-      'Drag an exit onto a step to link · right-click to add · Delete to erase · Alt+click to unlink · ⌘C ⌘X ⌘V ⌘D · ⌘Z to undo';
+      'Drag an exit onto a step to link · right-click for actions · Delete to erase · Alt+click to unlink · ⌘C ⌘X ⌘V ⌘D · ⌘Z to undo';
 
   @override
   String get sceneGraphPreparing => 'Preparing editing…';
@@ -3395,6 +3395,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sceneGraphNoMatch => 'No step matches.';
+
+  @override
+  String get sceneGraphDialoguePreview => 'Dialogue preview';
+
+  @override
+  String sceneGraphDialogueUnavailable(String name) {
+    return '$name · Preview unavailable';
+  }
+
+  @override
+  String sceneGraphDialogueSource(String name) {
+    return '$name · Source';
+  }
+
+  @override
+  String sceneGraphMenuAction(String action) {
+    String _temp0 = intl.Intl.selectLogic(action, {
+      'copy': 'Copy',
+      'cut': 'Cut',
+      'duplicate': 'Duplicate',
+      'delete': 'Delete',
+      'breakAll': 'Break all links',
+      'noLinks': 'No links',
+      'other': '$action',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String sceneGraphMenuBreakWith(String name) {
+    return 'Break link with $name';
+  }
 
   @override
   String get sceneGraphUnavailable => 'Nothing to choose in this project yet';
@@ -3659,9 +3691,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'The check looks for impossible milestones, required states that are never set and missing references.';
 
   @override
-  String get verificationClean => 'No problem found.';
-
-  @override
   String verificationSeverity(String severity) {
     String _temp0 = intl.Intl.selectLogic(severity, {
       'error': 'Error',
@@ -3673,6 +3702,137 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verificationOpen => 'Open';
+
+  @override
+  String verificationNavState(String state) {
+    String _temp0 = intl.Intl.selectLogic(state, {
+      'idle': 'Not run',
+      'running': 'Running',
+      'stale': 'Stale',
+      'incomplete': 'Partial',
+      'other': 'Complete',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get verificationStale =>
+      'The saved version changed. Run verification again to check this version.';
+
+  @override
+  String get verificationUnconfirmed =>
+      'The saved revision could not be confirmed.';
+
+  @override
+  String get verificationIncomplete =>
+      'Verification is incomplete. Review the coverage for this result.';
+
+  @override
+  String get verificationCoverage => 'Coverage';
+
+  @override
+  String verificationRevision(String revision) {
+    return 'Checked version · $revision';
+  }
+
+  @override
+  String get verificationSymbolic => 'Story consistency';
+
+  @override
+  String get verificationPhysical => 'Map reachability';
+
+  @override
+  String verificationDimensionStatus(String status) {
+    String _temp0 = intl.Intl.selectLogic(status, {
+      'pass': 'Checked',
+      'partial': 'Partial',
+      'fail': 'Issues found',
+      'indeterminate': 'Inconclusive',
+      'other': 'Not checked',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String verificationExcludedMaps(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count maps excluded from the check.',
+      one: '1 map excluded from the check.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String verificationMapUnavailable(String name) {
+    return 'Map data for “$name” is unavailable for verification.';
+  }
+
+  @override
+  String get verificationTriggerSceneInvalid =>
+      'This trigger needs a unique, runnable scene.';
+
+  @override
+  String get verificationRuleTargetUnknown =>
+      'The target of this world rule could not be found.';
+
+  @override
+  String get verificationSceneEndIncomplete =>
+      'Specify whether this ending advances the player, allows a retry, or ends the game in failure.';
+
+  @override
+  String get verificationDialogueOutcomeUnused =>
+      'A declared outcome is never produced by any choice in this dialogue.';
+
+  @override
+  String get verificationPhysicalTriggerBlocked =>
+      'A trigger on this map is unreachable in every checked story state.';
+
+  @override
+  String get verificationTranslationScope =>
+      'Dialogue · Source Yarn check. Missing translations, text to review, and fallbacks are shown in the document.';
+
+  @override
+  String verificationMissingDialogue(String name) {
+    return 'Source not checked · $name';
+  }
+
+  @override
+  String verificationIssueKind(String kind) {
+    String _temp0 = intl.Intl.selectLogic(kind, {
+      'map': 'Map',
+      'event': 'Trigger',
+      'scene': 'Scene',
+      'storyline': 'Storyline',
+      'dialogue': 'Dialogue',
+      'cinematic': 'Cutscene',
+      'fact': 'Fact',
+      'worldRule': 'World rule',
+      'other': 'Project',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String verificationIssueStatus(String state) {
+    String _temp0 = intl.Intl.selectLogic(state, {
+      'draft': 'Incomplete',
+      'disabled': 'Disabled',
+      'other': '$state',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get verificationCoveredClean => 'No issues in the checked scope.';
+
+  @override
+  String get verificationTargetUnavailable =>
+      'This issue’s destination is unavailable.';
+
+  @override
+  String get verificationRecordedOnly => 'Saved version analysis';
 
   @override
   String get simulationOpen => 'Simulate';

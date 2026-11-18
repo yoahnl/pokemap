@@ -78,7 +78,7 @@ void main() {
         locale.languageCode == 'fr'
             ? [
                 'Trame',
-                'Comportements',
+                'Déclencheurs',
                 'Scènes',
                 'Dialogues',
                 'Faits',
@@ -87,7 +87,7 @@ void main() {
               ]
             : [
                 'Plot',
-                'Behaviours',
+                'Triggers',
                 'Scenes',
                 'Dialogues',
                 'Facts',

@@ -171,18 +171,7 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
           event is PointerUpEvent &&
           _editable &&
           camera != null) {
-        final world = camera.value.toWorld(event.localPosition);
-        final exit = sceneGraphExitAt(
-          _view,
-          world,
-          SceneGraphCanvasState._portReach / camera.value.scale,
-        );
-        final card = sceneGraphCardAt(_view, world);
-        final id = exit?.nodeId ?? card?.id;
-        if (id != null && !_selected.contains(id)) {
-          _mutate(() => _selected = {id});
-        }
-        _openMenu(event.localPosition, exit);
+        _openContextMenu(event.localPosition, camera.value);
       }
     }
     final wire = _wire;
@@ -217,6 +206,10 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
   KeyEventResult _key(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.escape && _menu != null) {
+      _closeMenu();
+      return KeyEventResult.handled;
+    }
     if (key == LogicalKeyboardKey.escape && (_wire != null || _drag != null)) {
       _mutate(() {
         _wire = null;

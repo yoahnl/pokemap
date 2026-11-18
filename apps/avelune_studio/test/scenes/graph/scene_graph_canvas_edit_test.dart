@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_view.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_camera.dart';
 
 import 'scene_graph_canvas_harness.dart';
 
@@ -143,6 +144,86 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(graphKey('scene-graph-step-menu'), findsNothing);
+  });
+
+  testWidgets('a block menu exposes the existing clipboard and edit actions', (
+    tester,
+  ) async {
+    final host = await pumpGraph(tester);
+    await rightClickGraph(tester, graphCentre(tester, 'wait'));
+    expect(graphKey('scene-graph-card-menu'), findsOneWidget);
+    expect(graphKey('scene-graph-step-menu'), findsNothing);
+    expect(graphCanvas.currentState!.selection, {'wait'});
+    expect(graphKey('scene-graph-menu-copy'), findsOneWidget);
+    expect(graphKey('scene-graph-menu-delete'), findsOneWidget);
+    expect(host.edits, 0);
+
+    await tester.tap(graphKey('scene-graph-menu-duplicate'));
+    await tester.pumpAndSettle();
+    expect(host.edits, 1);
+    expect(host.scene.graph.nodes, hasLength(5));
+    expect(host.scene.graph.edges, graphInitial.graph.edges);
+    expect(graphKey('scene-graph-card-menu'), findsNothing);
+  });
+
+  testWidgets('an occupied output only changes when a link action is chosen', (
+    tester,
+  ) async {
+    final host = await pumpGraph(tester);
+    final exit = graphExit(tester, 'check', 'true');
+    final original = edgeFrom(host.scene, 'check', 'true');
+    await rightClickGraph(tester, exit);
+    expect(graphKey('scene-graph-port-menu'), findsOneWidget);
+    expect(graphKey('scene-graph-step-menu'), findsNothing);
+    expect(edgeFrom(host.scene, 'check', 'true'), original);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(graphKey('scene-graph-port-menu'), findsNothing);
+    await dragGraph(tester, exit, graphVoid(tester));
+    expect(graphKey('scene-graph-step-menu'), findsNothing);
+    expect(host.edits, 0);
+    expect(edgeFrom(host.scene, 'check', 'true'), original);
+
+    await rightClickGraph(tester, exit);
+    await tester.tap(graphKey('scene-graph-menu-break-all'));
+    await tester.pumpAndSettle();
+    expect(host.edits, 1);
+    expect(edgeFrom(host.scene, 'check', 'true'), isNull);
+    expect(edgeFrom(host.scene, 'wait', 'completed')?.toNodeId, 'end');
+  });
+
+  testWidgets('an input menu disconnects an incoming link by its identity', (
+    tester,
+  ) async {
+    final host = await pumpGraph(tester);
+    final card = projectSceneGraph(host.scene).card('wait')!;
+    final point =
+        tester.getTopLeft(graphKey('scene-graph-canvas')) +
+        graphCanvas.currentState!.camera!.toScreen(sceneGraphInputAnchor(card));
+    await rightClickGraph(tester, point);
+    expect(graphKey('scene-graph-port-menu'), findsOneWidget);
+    await tester.tap(graphKey('scene-graph-menu-break-check.true'));
+    await tester.pumpAndSettle();
+    expect(host.edits, 1);
+    expect(edgeFrom(host.scene, 'check', 'true'), isNull);
+    expect(edgeFrom(host.scene, 'wait', 'completed')?.toNodeId, 'end');
+  });
+
+  testWidgets('dragging onto another block explicitly redirects one link', (
+    tester,
+  ) async {
+    final host = await pumpGraph(tester);
+    await dragGraph(
+      tester,
+      graphExit(tester, 'check', 'true'),
+      graphCentre(tester, 'end'),
+    );
+
+    expect(host.edits, 1);
+    expect(host.scene.graph.edges, hasLength(graphInitial.graph.edges.length));
+    expect(edgeFrom(host.scene, 'check', 'true')?.toNodeId, 'end');
+    expect(edgeFrom(host.scene, 'wait', 'completed')?.toNodeId, 'end');
   });
 
   testWidgets('a read-only graph ignores links, moves, deletion and the menu', (

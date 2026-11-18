@@ -12,6 +12,7 @@ import 'package:map_authoring/map_authoring_local.dart'
 import 'package:map_core/map_core.dart';
 
 import '../domain/verification_port.dart';
+import 'verification_input_revision.dart';
 
 const _catalogMapDefinitionFields = {
   'groups',
@@ -104,18 +105,20 @@ Future<VerificationMaps> _readEach(
   return (maps: maps, unreadable: unreadable);
 }
 
-Future<ProjectItemCatalog?> verificationItemCatalog(
+Future<({ProjectItemCatalog? catalog, VerificationInputRevision? input})>
+verificationItemCatalog(
   ProjectManifest project,
   List<MapData> maps,
   String projectRoot,
 ) async {
   final path = project.pokemon.catalogFiles['items']?.trim();
-  if (path == null || path.isEmpty) return null;
+  if (path == null || path.isEmpty) return (catalog: null, input: null);
   final required = buildNarrativeDependencyIndex(project: project, maps: maps)
       .usages
       .any((usage) => usage.target.kind == NarrativeDependencyTargetKind.item);
-  if (!required) return null;
+  if (!required) return (catalog: null, input: null);
   try {
+    final input = await readVerificationInputRevision(projectRoot, path);
     final bytes = await const LocalProjectFileReader().readBytes(
       projectRoot: projectRoot,
       relativePath: path,
@@ -128,7 +131,7 @@ Future<ProjectItemCatalog?> verificationItemCatalog(
     if (blocking != null) {
       throw FormatException('${blocking.path} : ${blocking.message}');
     }
-    return catalog;
+    return (catalog: catalog, input: input);
   } on Object catch (failure) {
     throw VerificationFailure(
       'Catalogue des objets illisible ($path) : $failure',

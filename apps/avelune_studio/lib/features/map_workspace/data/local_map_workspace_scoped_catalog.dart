@@ -1,5 +1,29 @@
 part of 'local_map_workspace_adapter.dart';
 
+extension LocalVerificationProjectRead on LocalMapWorkspaceAdapter {
+  Future<ProjectManifest> readVerificationProject(
+    ProjectSession session,
+  ) async {
+    if (session.storage == ProjectSessionStorage.manifest) {
+      final bytes = await _reader.readBytes(
+        projectRoot: session.directoryPath,
+        relativePath: 'project.json',
+      );
+      final document = decodeNarrativeEventJsonStrict(utf8.decode(bytes));
+      if (document is! Map<String, dynamic>) throw const FormatException();
+      return ProjectManifest.fromJson(document);
+    }
+    return _readScopedCatalog(
+      session,
+      (catalog, _) async => catalog.projectMetadata,
+      metadataFields: {
+        ..._mapCatalogMetadataFields,
+        ...MapWorkspaceWorkshop.verification.metadataFields,
+      },
+    );
+  }
+}
+
 extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
   Future<MapWorkspaceCatalog> _loadScopedCatalog(ProjectSession session) async {
     await _requireRoot(session);

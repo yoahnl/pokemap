@@ -1,13 +1,17 @@
 import 'package:map_authoring/map_authoring_dialogue.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../story_draft/domain/story_dialogue_source.dart';
 import '../domain/dialogue_catalog_port.dart';
 
+enum DialogueChoicePreviewStatus { available, source, unavailable }
+
 final class DialogueChoicePreview {
-  const DialogueChoicePreview(this.labels, this.fallbackLocales);
+  const DialogueChoicePreview(this.labels, this.fallbackLocales, this.status);
 
   final Map<String, String> labels;
   final Set<String> fallbackLocales;
+  final DialogueChoicePreviewStatus status;
 }
 
 DialogueChoicePreview previewDialogueChoices(
@@ -20,8 +24,8 @@ DialogueChoicePreview previewDialogueChoices(
       outcome.id: outcome.label,
   };
   final fallbackLocales = <String>{};
+  final localization = dialogue.entry.localization;
   try {
-    final localization = dialogue.entry.localization;
     final parsed = readLocalizedDialogue(
       source: dialogue.source,
       sourceLocale: localization?.sourceLocale ?? 'und',
@@ -74,8 +78,23 @@ DialogueChoicePreview previewDialogueChoices(
       for (final entry in resolvedLabels.entries)
         if (!ambiguous.contains(entry.key)) entry.key: entry.value,
     });
-  } on FormatException {
-    return DialogueChoicePreview(labels, const {});
+  } on Object catch (error) {
+    if (error is! FormatException &&
+        error is! ArgumentError &&
+        error is! ValidationException) {
+      rethrow;
+    }
+    return DialogueChoicePreview(
+      labels,
+      const {},
+      DialogueChoicePreviewStatus.unavailable,
+    );
   }
-  return DialogueChoicePreview(labels, fallbackLocales);
+  return DialogueChoicePreview(
+    labels,
+    fallbackLocales,
+    localization == null
+        ? DialogueChoicePreviewStatus.source
+        : DialogueChoicePreviewStatus.available,
+  );
 }

@@ -3,13 +3,14 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
 import 'package:avelune_studio/features/verification/application/project_verification_controller.dart';
 import 'package:avelune_studio/features/verification/application/verification_problems.dart';
+import 'package:avelune_studio/features/verification/application/verification_snapshot.dart';
 import 'package:avelune_studio/features/verification/data/local_verification_adapter.dart';
 import 'package:avelune_studio/features/verification/data/verification_analysis_worker.dart';
 import 'package:avelune_studio/features/verification/data/verification_inputs.dart';
 import 'package:avelune_studio/features/verification/domain/verification_port.dart';
+import 'package:avelune_studio/features/world/data/local_world_adapter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -26,10 +27,6 @@ _verify(int unrelated) async {
   final port = LocalVerificationAdapter(session: session, mapAdapter: adapter);
   final verification = ProjectVerificationController(
     port: port,
-    loadProject: () async {
-      await maps.ensureWorkshop(MapWorkspaceWorkshop.verification);
-      return maps.project;
-    },
     changed: () {},
   );
   var stall = Duration.zero;
@@ -47,10 +44,11 @@ _verify(int unrelated) async {
     ProjectVerificationPhase.done,
     reason: '${verification.failure}',
   );
+  final saved = await port.readProject();
   final analysis = await port
       .analyse(
-        project: maps.project!,
-        maps: await port.readMaps(),
+        project: saved,
+        maps: await port.readMaps(saved.maps),
         sources: const [],
       )
       .result;
@@ -63,6 +61,58 @@ _verify(int unrelated) async {
 }
 
 void main() {
+  test(
+    'rerunning verification reads an externally published catalog revision',
+    () async {
+      final session = await openGameMemoryCatalog();
+      final adapter = LocalMapWorkspaceAdapter();
+      final maps = MapWorkspaceController(session, adapter);
+      addTearDown(maps.dispose);
+      await maps.initialize();
+      final port = LocalVerificationAdapter(
+        session: session,
+        mapAdapter: adapter,
+      );
+      final verification = ProjectVerificationController(
+        port: port,
+        changed: () {},
+      );
+      addTearDown(verification.dispose);
+      await verification.start();
+      expect(verification.failure, isNull);
+      final before = verification.snapshot!.revision;
+
+      final external = LocalMapWorkspaceAdapter();
+      final externalMaps = MapWorkspaceController(session, external);
+      addTearDown(externalMaps.dispose);
+      await externalMaps.initialize();
+      final fact = addNarrativeFact(
+        await port.readProject(),
+        label: 'Nouveau fait',
+      ).createdFact;
+      await LocalWorldAdapter(
+        session: session,
+        mapAdapter: external,
+      ).publishFact(base: null, current: fact);
+      await verification.refreshRevision();
+      expect(verification.freshness, VerificationFreshness.stale);
+
+      await verification.start();
+
+      expect(verification.failure, isNull);
+      expect(verification.snapshot!.revision, isNot(before));
+      expect(verification.freshness, VerificationFreshness.current);
+      expect(
+        (await port.readProject()).facts.map((fact) => fact.id),
+        contains(fact.id),
+      );
+      expect(
+        maps.project!.facts.map((fact) => fact.id),
+        isNot(contains(fact.id)),
+      );
+    },
+  );
+
   test(
     'verification runs off the interface isolate and scales with the project',
     () async {
@@ -94,7 +144,7 @@ void main() {
         session: session,
         mapAdapter: adapter,
       );
-      final sources = await port.readMaps();
+      final sources = await port.readMaps(maps.project!.maps);
       final read = await verificationMaps(
         maps.project!,
         sources,
@@ -121,10 +171,6 @@ void main() {
     await maps.initialize();
     final verification = ProjectVerificationController(
       port: LocalVerificationAdapter(session: session, mapAdapter: adapter),
-      loadProject: () async {
-        await maps.ensureWorkshop(MapWorkspaceWorkshop.verification);
-        return maps.project;
-      },
       changed: () {},
     );
 
@@ -154,10 +200,6 @@ void main() {
       await maps.initialize();
       final verification = ProjectVerificationController(
         port: LocalVerificationAdapter(session: session, mapAdapter: adapter),
-        loadProject: () async {
-          await maps.ensureWorkshop(MapWorkspaceWorkshop.verification);
-          return maps.project;
-        },
         changed: () {},
       );
 
@@ -192,14 +234,14 @@ void main() {
       final maps = MapWorkspaceController(session, adapter);
       addTearDown(maps.dispose);
       await maps.initialize();
-      await maps.ensureWorkshop(MapWorkspaceWorkshop.verification);
       final port = LocalVerificationAdapter(
         session: session,
         mapAdapter: adapter,
       );
+      final saved = await port.readProject();
       final job = port.analyse(
-        project: maps.project!,
-        maps: await port.readMaps(),
+        project: saved,
+        maps: await port.readMaps(saved.maps),
         sources: const [],
       );
 

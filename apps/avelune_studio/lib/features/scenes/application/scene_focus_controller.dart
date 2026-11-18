@@ -44,7 +44,7 @@ final class SceneFocusController {
     required this.sceneId,
     required this.changed,
     this.behaviourId,
-    this.initialNodeId,
+    this.diagnosticNodeId,
     this.documentLoader,
   });
 
@@ -53,7 +53,7 @@ final class SceneFocusController {
   final GameBehaviourSource Function() source;
   final String sceneId;
   final String? behaviourId;
-  final String? initialNodeId;
+  final String? diagnosticNodeId;
   final Future<SceneDocument> Function(String sceneId)? documentLoader;
   final void Function() changed;
   final document = GameMemoryResource<SceneDocument>();
@@ -83,6 +83,12 @@ final class SceneFocusController {
   }
 
   SceneAsset? get scene => draft.current(sceneId) ?? document.value?.scene;
+
+  String? get initialNodeId {
+    final id = diagnosticNodeId;
+    if (id == null) return null;
+    return scene?.graph.nodes.any((node) => node.id == id) == true ? id : null;
+  }
 
   List<NarrativeEventRecord> get launchers {
     final current = source();

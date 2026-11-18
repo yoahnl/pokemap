@@ -14,6 +14,7 @@ import 'package:avelune_studio/features/scenes/application/graph/scene_graph_vie
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_ids.dart';
 import 'package:avelune_studio/features/scenes/application/steps/scene_step_templates.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_camera.dart';
+import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_labels.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_minimap.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_painters.dart';
 import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_graph_step_menu.dart';
@@ -22,6 +23,7 @@ import 'package:avelune_studio/presentation/features/scene_focus/graph/scene_gra
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 part 'scene_graph_canvas_edits.dart';
+part 'scene_graph_canvas_menus.dart';
 part 'scene_graph_canvas_navigation.dart';
 part 'scene_graph_canvas_pointer.dart';
 
@@ -88,7 +90,7 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
   _CardDrag? _drag;
   Map<String, SceneGraphPoint> _moved = const {};
   ({int pointer, SceneGraphExit from, Offset end})? _wire;
-  _StepMenu? _menu;
+  _GraphMenu? _menu;
   Offset? _pointer;
 
   Set<String> get selection => Set.unmodifiable(_selected);
@@ -307,32 +309,7 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
                   },
                 ),
               ),
-            if (menu != null)
-              Positioned(
-                left: menu.screen.dx
-                    .clamp(
-                      0,
-                      math.max(0, _viewport.width - SceneGraphStepMenu.width),
-                    )
-                    .toDouble(),
-                top: menu.screen.dy
-                    .clamp(0, math.max(0, _viewport.height - 380))
-                    .toDouble(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: math.min(380, _viewport.height),
-                  ),
-                  child: SceneGraphStepMenu(
-                    choices: sceneGraphStepChoices(
-                      context,
-                      widget.project,
-                      widget.map,
-                    ),
-                    onChosen: _addFromMenu,
-                    onDismiss: _closeMenu,
-                  ),
-                ),
-              ),
+            if (menu != null) _buildMenu(menu),
           ],
         );
       },

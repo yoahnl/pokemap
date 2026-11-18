@@ -24,6 +24,7 @@ class VerificationAnalysisRequest {
     required this.projectRoot,
     required this.catalog,
     this.presentationMediaCatalog,
+    this.mediaInput,
   });
   final SendPort reply;
   final ProjectManifest project;
@@ -32,6 +33,7 @@ class VerificationAnalysisRequest {
   final String projectRoot;
   final bool catalog;
   final ProjectMediaCatalog? presentationMediaCatalog;
+  final VerificationInputRevision? mediaInput;
 }
 
 /// Runs the canonical validators in the spawned isolate. The interface isolate
@@ -46,7 +48,10 @@ Future<void> verificationAnalysisWorker(
       projectRoot: request.projectRoot,
       catalog: request.catalog,
     );
-    final itemCatalog = await verificationItemCatalog(
+    final (
+      catalog: itemCatalog,
+      input: itemInput,
+    ) = await verificationItemCatalog(
       request.project,
       maps,
       request.projectRoot,
@@ -89,6 +94,7 @@ Future<void> verificationAnalysisWorker(
         ),
         physical: physical,
         isolateName: Isolate.current.debugName ?? verificationWorkerName,
+        additionalInputs: [?request.mediaInput, ?itemInput],
       ),
     );
   } on Object catch (failure) {
@@ -110,7 +116,7 @@ NarrativeProjectValidationReport _withUnreadableMaps(
               domain: NarrativeProjectDiagnosticDomain.map,
               message:
                   'La carte « ${entry.name} » est illisible : elle est exclue '
-                  'de la vérification. Ouvrez-la pour voir ce qui la bloque.',
+                  'de la vérification.',
               path: 'maps.${entry.id}',
               destination: NarrativeProjectDiagnosticDestination.map,
               mapId: entry.id,

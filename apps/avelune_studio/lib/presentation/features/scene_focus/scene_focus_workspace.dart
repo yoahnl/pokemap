@@ -274,6 +274,22 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace>
                     focus: focus,
                     dialogues: dialogues.entries,
                     choiceLabels: dialogues.labels,
+                    dialogueNotices: [
+                      for (final MapEntry(:key, :value)
+                          in dialogues.notices.entries)
+                        Text(
+                          value == DialogueChoicePreviewStatus.unavailable
+                              ? l10n.sceneGraphDialogueUnavailable(
+                                  dialogues.entries[key]!.name,
+                                )
+                              : l10n.sceneGraphDialogueSource(
+                                  dialogues.entries[key]!.name,
+                                ),
+                          key: ValueKey(
+                            'scene-graph-dialogue-${value.name}-$key',
+                          ),
+                        ),
+                    ],
                     onOpenBehaviour: widget.onOpenBehaviour,
                     leading: SceneGraphInspector(
                       scene: scene,

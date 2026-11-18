@@ -82,11 +82,21 @@ final _records = [
 
 Finder _key(String key) => find.byKey(ValueKey(key));
 
+Finder _card(String id) => find.descendant(
+  of: _key('scene-focus'),
+  matching: _key('scene-graph-card-$id'),
+);
+
 Future<void> _tap(WidgetTester tester, String key) async {
   await tester.ensureVisible(_key(key));
   await settleMemory(tester);
   await tester.tap(_key(key));
   await settleMemory(tester);
+}
+
+Future<void> _openTriggerScene(WidgetTester tester, String id) async {
+  await _tap(tester, 'behaviour-$id');
+  await _tap(tester, 'map-story-scene-open');
 }
 
 void main() {
@@ -115,16 +125,21 @@ void main() {
         maps: const {},
         mapReads: 0,
       );
-    await openMemoryStudio(tester, index, project: project);
+    await openMemoryStudio(
+      tester,
+      index,
+      project: project,
+      world: MapOnlyWorld.new,
+    );
     await openWholeGame(tester);
 
-    await _tap(tester, 'behaviour-scene-${behaviourId(1)}');
+    await _openTriggerScene(tester, behaviourId(1));
 
     expect(_key('scene-focus'), findsOneWidget);
     expect(index.documentRequests, ['gate']);
     expect(_key('scene-focus-graph-gate'), findsOneWidget);
     for (final id in ['start', 'check', 'meet', 'end']) {
-      expect(_key('scene-graph-card-$id'), findsOneWidget);
+      expect(_card(id), findsOneWidget);
     }
     expect(_key('scene-graph-checks'), findsOneWidget);
     expect(_key('scene-focus-shared'), findsOneWidget);
@@ -132,19 +147,18 @@ void main() {
     expect(_key('scene-focus-launcher-${behaviourId(2)}'), findsOneWidget);
     expect(_key('scene-focus-fact-met'), findsOneWidget);
 
-    await tester.tapAt(tester.getCenter(_key('scene-graph-card-meet')));
-    await settleMemory(tester);
+    await _tap(tester, 'scene-graph-outline-meet');
     expect(_key('scene-graph-inspector-meet'), findsOneWidget);
     expect(_key('scene-graph-checks'), findsNothing);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
     await settleMemory(tester);
-    expect(_key('scene-graph-card-meet'), findsNothing);
+    expect(_card('meet'), findsNothing);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
     await settleMemory(tester);
-    expect(_key('scene-graph-card-meet'), findsOneWidget);
+    expect(_card('meet'), findsOneWidget);
 
     await _tap(tester, 'scene-focus-preview');
     expect(_key('scene-focus-path-check'), findsOneWidget);
@@ -153,10 +167,7 @@ void main() {
     expect(_key('scene-focus-path-meet'), findsOneWidget);
     expect(_key('scene-focus-path-end'), findsOneWidget);
     expect(_key('scene-focus-exit-true'), findsNothing);
-    expect(
-      tester.widget<SceneGraphCardTile>(_key('scene-graph-card-meet')).onPath,
-      isTrue,
-    );
+    expect(tester.widget<SceneGraphCardTile>(_card('meet')).onPath, isTrue);
     await _tap(tester, 'scene-focus-preview');
 
     await _tap(tester, 'scene-focus-detach');
@@ -164,7 +175,13 @@ void main() {
     expect(_key('scene-focus-shared'), findsNothing);
     expect(_key('scene-focus-launcher-${behaviourId(1)}'), findsOneWidget);
     expect(_key('scene-focus-launcher-${behaviourId(2)}'), findsNothing);
-    expect(find.text('Porte du bourg (copie)'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: _key('scene-focus'),
+        matching: find.text('Porte du bourg (copie)'),
+      ),
+      findsOneWidget,
+    );
     expect(index.documentRequests, ['gate']);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -185,7 +202,7 @@ void main() {
         maps: const {},
         mapReads: 0,
       );
-    await openTrameStudio(tester, index: index);
+    await openTrameStudio(tester, index: index, world: MapOnlyWorld.new);
 
     await _tap(tester, 'trame-milestone-meet');
     await tester.scrollUntilVisible(
@@ -208,6 +225,7 @@ void main() {
     await tester.tap(find.text('Parler au guide'));
     await settleMemory(tester);
     expect(_key('map-story-inspector-entity:guide'), findsOneWidget);
+    await _tap(tester, 'map-interaction-trigger-open-${behaviourId(1)}');
     await _tap(tester, 'map-story-scene-open');
     expect(_key('scene-focus-graph-talk'), findsOneWidget);
     expect(index.documentRequests, ['talk']);
@@ -255,7 +273,12 @@ void main() {
       ]
       ..documents['gate'] = document(_gate, _records)
       ..documents['talk'] = document(talk, [records.last]);
-    await openMemoryStudio(tester, index, project: project);
+    await openMemoryStudio(
+      tester,
+      index,
+      project: project,
+      world: MapOnlyWorld.new,
+    );
     await openWholeGame(tester);
     Future<void> undo() async {
       await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
@@ -264,22 +287,21 @@ void main() {
       await settleMemory(tester);
     }
 
-    await _tap(tester, 'behaviour-scene-${behaviourId(1)}');
-    await tester.tapAt(tester.getCenter(_key('scene-graph-card-meet')));
-    await settleMemory(tester);
+    await _openTriggerScene(tester, behaviourId(1));
+    await _tap(tester, 'scene-graph-outline-meet');
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
     await settleMemory(tester);
-    expect(_key('scene-graph-card-meet'), findsNothing);
+    expect(_card('meet'), findsNothing);
     await _tap(tester, 'scene-focus-close');
 
-    await _tap(tester, 'behaviour-scene-${behaviourId(3)}');
+    await _openTriggerScene(tester, behaviourId(3));
     expect(_key('scene-focus-graph-talk'), findsOneWidget);
     await undo();
     await _tap(tester, 'scene-focus-close');
 
-    await _tap(tester, 'behaviour-scene-${behaviourId(1)}');
-    expect(_key('scene-graph-card-meet'), findsNothing);
+    await _openTriggerScene(tester, behaviourId(1));
+    expect(_card('meet'), findsNothing);
     await undo();
-    expect(_key('scene-graph-card-meet'), findsOneWidget);
+    expect(_card('meet'), findsOneWidget);
   });
 }
