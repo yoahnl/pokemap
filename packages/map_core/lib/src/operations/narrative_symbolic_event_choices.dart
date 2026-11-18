@@ -9,7 +9,6 @@ typedef _LegacySymbolicSource = ({
 typedef _SymbolicEventChoice = ({
   String id,
   SceneAsset scene,
-  Object? playerSource,
   bool consumesEvent,
   bool indeterminate,
 });
@@ -18,6 +17,37 @@ bool _isPlayerControlledSource(NarrativeEventSourceRef source) =>
     source.kind == NarrativeEventSourceKind.entityInteract ||
     source.kind == NarrativeEventSourceKind.modelInteract ||
     source.kind == NarrativeEventSourceKind.triggerEnter;
+
+bool _canRepeatSymbolicEvent(
+  NarrativeEventDefinition definition,
+  SceneAsset? scene,
+) =>
+    definition.reusePolicy == NarrativeEventReusePolicy.reusable ||
+    (scene?.graph.nodes.any(
+          (node) => switch (node.payload) {
+            SceneEndPayload(outcomePolicy: SceneOutcomePolicy.retryable) =>
+              true,
+            _ => false,
+          },
+        ) ??
+        false);
+
+_NarrativeComponentWrites _reusableEventInputs(
+  NarrativeEventDefinition definition, {
+  required ProjectManifest project,
+  required Map<String, SceneAsset> scenesById,
+}) {
+  final footprint = _narrativeBatchFootprint(
+    project: project,
+    definitions: [definition],
+    scenesById: scenesById,
+    milestoneWriters: const {},
+  );
+  return _NarrativeComponentWrites.from({
+    ...footprint.reads,
+    ...footprint.writes,
+  }, const {});
+}
 
 List<_LegacySymbolicSource> _legacySymbolicSources(
   List<MapData> maps,
@@ -77,13 +107,7 @@ _SymbolicEventChoice? _legacySymbolicChoice(
     final scene = scenesById[page.sceneTarget?.sceneId];
     final id = 'mapEvent:${source.mapId}:${source.event.id}:$index';
     if (scene == null || state.executedEventIds.contains(id)) return null;
-    return (
-      id: id,
-      scene: scene,
-      playerSource: source,
-      consumesEvent: false,
-      indeterminate: false,
-    );
+    return (id: id, scene: scene, consumesEvent: false, indeterminate: false);
   }
   return null;
 }
@@ -126,16 +150,10 @@ bool? _legacySymbolicCondition(
       return !state.hasTrueFact(params[ScriptConditionParams.flagName] ?? '');
     case ScriptConditionType.factEquals:
       if (!typedFacts) return false;
-      if (params[ScriptConditionParams.valueType] !=
-          NarrativeValueKind.boolean.wireName) {
-        return null;
-      }
       final value = state.factValues[params[ScriptConditionParams.factId]];
-      return switch (params[ScriptConditionParams.value]) {
-        'true' => value == const NarrativeValue.boolean(true),
-        'false' => value == const NarrativeValue.boolean(false),
-        _ => false,
-      };
+      if (value == null) return state.indeterminate ? null : false;
+      return params[ScriptConditionParams.valueType] == value.kind.wireName &&
+          params[ScriptConditionParams.value] == value.toJson().toString();
     case ScriptConditionType.stepCompleted:
       return state.completedStepIds.contains(
         params[ScriptConditionParams.stepId],
@@ -193,7 +211,7 @@ _NarrativeBatchFootprint _legacySymbolicFootprint(
   Map<String, SceneAsset> scenesById,
   Map<String, Set<String>> milestoneWriters,
 ) {
-  final reads = <String>{};
+  final reads = <String>{if (sources.isNotEmpty) _playerMapFootprintKey};
   final writes = <String>{};
   void collectReads(ScriptCondition condition) {
     final key = switch (condition.type) {

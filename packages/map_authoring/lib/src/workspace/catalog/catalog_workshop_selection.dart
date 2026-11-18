@@ -10,6 +10,7 @@ import '../../domains/assets/project_media_store.dart';
 import '../../domains/narrative/dialogue_source_store.dart';
 import '../../domains/narrative/dialogue_authoring_service.dart';
 import '../../domains/narrative/event_actions.dart';
+import '../../domains/narrative/narrative_action_support.dart' show narrativeStringParameter;
 import '../../domains/narrative/narrative_authoring_exception.dart';
 import '../../domains/narrative/scene_party_move_catalog.dart';
 import '../../support/authoring_fingerprint.dart';
@@ -303,7 +304,8 @@ final class CatalogWorkshopSelection {
     final fact = actionId.startsWith('fact.');
     final pokemon = actionId.startsWith('pokemon.');
     final regional = actionId.startsWith('regionalMap.');
-    final storylineUpsert = actionId == 'storyline.upsert';
+    final targetedStorylineMutation =
+        actionId == 'storyline.upsert' || actionId == 'storyline.chapter.rename';
     final fields = <String>{
       'settings',
       if (actionId.startsWith('dialogue.')) 'newGame',
@@ -319,7 +321,7 @@ final class CatalogWorkshopSelection {
         'maps',
         'regionalMap'
       } else if (actionId.startsWith('storyline.')) ...{
-        if (!storylineUpsert) ...{'storylines', 'facts'},
+        if (!targetedStorylineMutation) ...{'storylines', 'facts'},
       } else if (actionId.startsWith('cinematic.')) ...{
         'cinematics',
         'maps',
@@ -656,10 +658,10 @@ final class CatalogWorkshopSelection {
       final scenes = await _storylineSceneDocuments(
           catalog.snapshot, manifest, actionId, parameters);
       if (scenes != null) manifest = scenes.project;
-      final upsert = storylineUpsert
-          ? await _storylineUpsertDocuments(catalog.snapshot, manifest, parameters)
+      final story = targetedStorylineMutation
+          ? await _targetStorylineDocuments(catalog.snapshot, manifest, actionId, parameters)
           : null;
-      if (upsert != null) manifest = upsert.selection.project;
+      if (story != null) manifest = story.selection.project;
       final projectBytes = utf8.encode(jsonEncode(manifest.toJson()));
       final projectFingerprint = computeAuthoringBytesFingerprint(projectBytes,
           logicalName: 'project.json');
@@ -682,13 +684,13 @@ final class CatalogWorkshopSelection {
         availableProjectSections: {
           ...fields,
           if (scenes != null) 'scenes',
-          if (upsert != null) ...upsert.ids.keys,
+          if (story != null) ...story.ids.keys,
         },
-        availableProjectDocuments: scenes == null && upsert == null
+        availableProjectDocuments: scenes == null && story == null
             ? null
             : {
                 if (scenes != null) 'scenes': scenes.documents,
-                if (upsert != null) ...upsert.ids,
+                if (story != null) ...story.ids,
               },
         maps: maps,
         resourceFingerprints: resourceFingerprints,
@@ -702,7 +704,7 @@ final class CatalogWorkshopSelection {
       );
       final result = CatalogWorkshopSelection._(selected, snapshot,
           Set.unmodifiable(writable), Map.unmodifiable(revisions),
-          metadataDocuments: upsert?.selection ?? await _storylineTrameDocuments(
+          metadataDocuments: story?.selection ?? await _storylineTrameDocuments(
               catalog.snapshot, manifest, actionId, parameters));
       await result.requireCurrent();
       return result;

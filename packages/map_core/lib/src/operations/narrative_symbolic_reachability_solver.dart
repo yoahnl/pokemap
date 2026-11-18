@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'narrative_condition_expression_evaluator.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import '../authoring/event_builder_contract.dart';
+import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
 import '../models/enums.dart';
@@ -14,14 +17,17 @@ import '../models/project_manifest.dart';
 import 'narrative_entity_bump_source_reference.dart';
 import 'narrative_trigger_bump_source_reference.dart';
 import 'narrative_entity_autorun_source_reference.dart';
+import 'narrative_event_canonical_json.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_interactive_command.dart';
 import '../models/script_conditions.dart';
 import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
 import '../read_models/narrative_command_catalog.dart';
 
 part 'narrative_symbolic_event_choices.dart';
+part 'narrative_symbolic_occurrences.dart';
 
 enum NarrativeSymbolicVerdict { pass, fail, indeterminate }
 
@@ -89,6 +95,8 @@ final class NarrativeSymbolicState {
     Set<String> emittedOutcomeKeys = const <String>{},
     Set<String> executedEventIds = const <String>{},
     Set<String> assignedDraftFields = const <String>{},
+    this.currentMapId,
+    this.mapActivationPending = false,
     List<NarrativeSymbolicProvenance> provenance =
         const <NarrativeSymbolicProvenance>[],
     this.indeterminate = false,
@@ -109,6 +117,8 @@ final class NarrativeSymbolicState {
   final Set<FieldAbility> unlockedFieldAbilities;
   final Set<String> emittedOutcomeKeys;
   final Set<String> executedEventIds;
+  final String? currentMapId;
+  final bool mapActivationPending;
 
   /// The pre-session draft fields a traversed interaction has bound on this
   /// path. Nothing else can assign one, which is what makes a draft guard
@@ -127,6 +137,8 @@ final class NarrativeSymbolicState {
     Set<String>? emittedOutcomeKeys,
     Set<String>? executedEventIds,
     Set<String>? assignedDraftFields,
+    String? currentMapId,
+    bool? mapActivationPending,
     List<NarrativeSymbolicProvenance>? provenance,
     bool? indeterminate,
   }) =>
@@ -140,6 +152,8 @@ final class NarrativeSymbolicState {
         emittedOutcomeKeys: emittedOutcomeKeys ?? this.emittedOutcomeKeys,
         executedEventIds: executedEventIds ?? this.executedEventIds,
         assignedDraftFields: assignedDraftFields ?? this.assignedDraftFields,
+        currentMapId: currentMapId ?? this.currentMapId,
+        mapActivationPending: mapActivationPending ?? this.mapActivationPending,
         provenance: provenance ?? this.provenance,
         indeterminate: indeterminate ?? this.indeterminate,
       );
@@ -169,6 +183,8 @@ final class NarrativeSymbolicState {
       'field=${unlockedFieldAbilities.map((value) => value.moveId).toList()..sort()}',
       'outcomes=${_sorted(emittedOutcomeKeys).join(',')}',
       'executed=${_sorted(executedEventIds).join(',')}',
+      if (currentMapId != null) 'map=$currentMapId',
+      if (mapActivationPending) 'mapActivationPending',
       'draft=${_sorted(assignedDraftFields).join(',')}',
       'indeterminate=$indeterminate',
     ].join('|');
@@ -353,6 +369,8 @@ NarrativeSymbolicReachabilityReport solveNarrativeSceneSymbolically(
   int explorationBudget = 4096,
   NarrativeCommandCatalog? commandCatalog,
   String? eventId,
+  bool consumeOneShotOnCompletion = false,
+  Map<String, MapData> mapsById = const {},
 }) {
   if (explorationBudget < 1) {
     throw ArgumentError.value(
@@ -455,7 +473,14 @@ NarrativeSymbolicReachabilityReport solveNarrativeSceneSymbolically(
         addIssue: addIssue,
       );
     }
-    if (node.payload case SceneEndPayload(:final sceneOutcomeId)) {
+    if (node.payload case SceneEndPayload(:final sceneOutcomeId, :final outcomePolicy)) {
+      if (consumeOneShotOnCompletion &&
+          eventId != null &&
+          outcomePolicy != SceneOutcomePolicy.retryable) {
+        nextState = nextState.copyWith(
+          consumedEventIds: {...nextState.consumedEventIds, eventId},
+        );
+      }
       final outcomeState = sceneOutcomeId == null
           ? nextState
           : nextState.copyWith(
@@ -511,8 +536,15 @@ NarrativeSymbolicReachabilityReport solveNarrativeSceneSymbolically(
       continue;
     }
     final nextPath = {...cursor.pathKeys, stateKey};
+    final warpDestination = nextState.currentMapId == null
+        ? null
+        : _symbolicSceneWarpDestination(node, mapsById);
     for (final edge in edges.reversed) {
+      final arrivalMap = edge.fromPortId == 'completed' ? warpDestination : null;
       final branched = nextState.copyWith(
+        currentMapId: arrivalMap,
+        mapActivationPending: nextState.mapActivationPending ||
+            (arrivalMap != null && arrivalMap != nextState.currentMapId),
         provenance: [
           ...nextState.provenance,
           NarrativeSymbolicProvenance(
@@ -680,202 +712,333 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
   ]..sort((left, right) {
       return _compareNarrativeDefinitions(left, right);
     });
+  final zoneFronts = _symbolicZoneFronts(maps);
+  final configuredStart = project.newGame.startMapId.trim();
+  final initialMapId = project.newGame.enabled && mapsById.containsKey(configuredStart)
+      ? configuredStart
+      : null;
+  final mapTransitions = initialMapId == null
+      ? const <String, Set<String>>{}
+      : _symbolicMapTransitions(mapsById);
+  final activations = <NarrativeEventSourceRef, List<NarrativeEventDefinition>>{};
+  if (initialMapId != null) {
+    for (final definition in definitions) {
+      if (definition.source.kind == NarrativeEventSourceKind.mapEnter) {
+        activations.putIfAbsent(definition.source, () => []).add(definition);
+      }
+    }
+  }
+
   List<NarrativeSymbolicState> exploreDefinitions(
     List<NarrativeEventDefinition> batch,
     List<NarrativeSymbolicState> seeds, {
     List<NarrativeSymbolicState>? eventBoundaryStates,
     List<_LegacySymbolicSource> legacy = const [],
+    bool activateInitialMap = false,
   }) {
-    final bySource = <NarrativeEventSourceRef, List<NarrativeEventDefinition>>{};
-    for (final definition in batch) {
-      if (_isPlayerControlledSource(definition.source)) {
-        bySource.putIfAbsent(definition.source, () => []).add(definition);
-      }
-    }
+    final playerOccurrences = _symbolicPlayerOccurrences(batch, zoneFronts);
     final groups = _interactionGroups({
-      for (final entry in bySource.entries)
+      for (final entry in playerOccurrences.entries)
         entry.key: _narrativeBatchFootprint(
           project: project,
-          definitions: entry.value,
+          definitions: entry.value.expand((source) => source).toList(),
           scenesById: scenesById,
           milestoneWriters: const {},
         ),
       for (final source in legacy)
         source: _legacySymbolicFootprint([source], scenesById, const {}),
     });
-    var batchFrontier = seeds;
-    final seen = <String>{};
-    final eventBoundaryStateKeys = eventBoundaryStates == null
-        ? null
-        : {
-            for (final state in eventBoundaryStates) state.semanticKey,
-          };
-
-    void addEventBoundaryState(NarrativeSymbolicState state) {
-      if (eventBoundaryStates == null ||
-          !eventBoundaryStateKeys!.add(state.semanticKey)) {
-        return;
+    final reusableInputs = <String, _NarrativeComponentWrites>{
+      for (final definition in [...batch, ...activations.values.expand((entries) => entries)])
+        if ((_isPlayerControlledSource(definition.source) ||
+                activations.containsKey(definition.source)) &&
+            _canRepeatSymbolicEvent(definition, scenesById[definition.sceneId]))
+          definition.id: _reusableEventInputs(
+            definition,
+            project: project,
+            scenesById: scenesById,
+          ),
+    };
+    final settledInputs = <(String, String)>{};
+    final occurrences = <_SymbolicOccurrence>[];
+    final addedOccurrences = <Object>{};
+    for (final definition in batch) {
+      if (activations.containsKey(definition.source)) continue;
+      final key = _playerOccurrenceKey(definition.source, zoneFronts);
+      if (key == null) {
+        occurrences.add((sourceKey: null, entries: [[definition]]));
+      } else if (addedOccurrences.add(key)) {
+        occurrences.add((sourceKey: key, entries: playerOccurrences[key]!));
       }
-      eventBoundaryStates.add(state);
     }
 
+    final eventBoundaryStateKeys = eventBoundaryStates == null
+        ? null
+        : {for (final state in eventBoundaryStates) state.semanticKey};
+
+    void addEventBoundaryState(NarrativeSymbolicState state) {
+      if (eventBoundaryStates != null &&
+          !state.mapActivationPending &&
+          eventBoundaryStateKeys!.add(state.semanticKey)) {
+        eventBoundaryStates.add(state);
+      }
+    }
+
+    NarrativeSymbolicState budgetExceeded(
+      NarrativeSymbolicState state, {
+      String sceneId = '',
+    }) {
+      issues.add(
+        NarrativeSymbolicIssue(
+          code: NarrativeSymbolicIssueCode.budgetExceeded,
+          verdict: NarrativeSymbolicVerdict.indeterminate,
+          message: 'Le budget symbolique global de $explorationBudget états est dépassé.',
+          sceneId: sceneId,
+          provenance: state.provenance,
+        ),
+      );
+      return state.copyWith(indeterminate: true);
+    }
+
+    _SymbolicEventChoice? select(
+      List<NarrativeEventDefinition> candidates,
+      NarrativeSymbolicState state,
+    ) {
+      for (final definition in candidates) {
+        final oneShot = definition.reusePolicy == NarrativeEventReusePolicy.oneShot;
+        if (oneShot && state.consumedEventIds.contains(definition.id)) continue;
+        final scene = scenesById[definition.sceneId];
+        if (scene == null || _isDisabledOptionalScene(project, scene)) continue;
+        final source = _sourceEligibility(
+          definition.source, state, mapsById, project, mapCounts,
+        );
+        final conditions = _eventExpressionValue(definition.conditionExpression, state);
+        if (source == false || conditions == false) continue;
+        if (state.executedEventIds.contains(definition.id)) {
+          final inputs = reusableInputs[definition.id];
+          if (inputs != null &&
+              settledInputs.contains((definition.id, inputs.reusableInputKey(state)))) {
+            return null;
+          }
+          if (inputs == null) {
+            if (_isPlayerControlledSource(definition.source) ||
+                activations.containsKey(definition.source)) return null;
+            continue;
+          }
+        }
+        return (
+          id: definition.id,
+          scene: scene,
+          consumesEvent: oneShot,
+          indeterminate: source == null || conditions == null,
+        );
+      }
+      return null;
+    }
+
+    List<NarrativeSymbolicState> runChoice(
+      _SymbolicEventChoice choice,
+      NarrativeSymbolicState state,
+    ) {
+      if (remainingBudget < 1) {
+        return [budgetExceeded(state, sceneId: choice.scene.id)];
+      }
+      if (choice.indeterminate) {
+        issues.add(
+          NarrativeSymbolicIssue(
+            code: NarrativeSymbolicIssueCode.unsupportedCondition,
+            verdict: NarrativeSymbolicVerdict.indeterminate,
+            message: 'L’éligibilité de l’Event ${choice.id} dépend d’une feature non prouvée.',
+            sceneId: choice.scene.id,
+            eventId: choice.id,
+            provenance: state.provenance,
+          ),
+        );
+      }
+      final eventState = state.copyWith(
+        executedEventIds: {...state.executedEventIds, choice.id},
+        indeterminate: state.indeterminate || choice.indeterminate,
+      );
+      final result = solveNarrativeSceneSymbolically(
+        choice.scene,
+        initialState: eventState,
+        explorationBudget: remainingBudget,
+        commandCatalog: catalog,
+        eventId: choice.id,
+        consumeOneShotOnCompletion: choice.consumesEvent,
+        mapsById: mapsById,
+      );
+      final inputs = reusableInputs[choice.id];
+      if (inputs != null &&
+          result.issues.isEmpty &&
+          result.terminalStates.isNotEmpty &&
+          result.terminalStates.every(
+            (terminal) => terminal.semanticKey == eventState.semanticKey,
+          )) {
+        settledInputs.add((choice.id, inputs.reusableInputKey(state)));
+      }
+      exploredCount += result.exploredStateCount;
+      remainingBudget -= result.exploredStateCount;
+      explored.addAll(result.exploredStates);
+      reachableSceneIds.add(choice.scene.id);
+      final optional = _isOptionalScene(project, choice.scene);
+      issues.addAll([
+        for (final issue in result.issues)
+          NarrativeSymbolicIssue(
+            code: issue.code,
+            verdict: issue.verdict,
+            message: issue.message,
+            sceneId: issue.sceneId,
+            nodeId: issue.nodeId,
+            eventId: choice.id,
+            optional: optional,
+            provenance: issue.provenance,
+          ),
+      ]);
+      return result.terminalStates.isEmpty && optional
+          ? [eventState]
+          : result.terminalStates;
+    }
+
+    List<NarrativeSymbolicState> dispatch(
+      List<List<NarrativeEventDefinition>> entries,
+      NarrativeSymbolicState seed,
+    ) {
+      if (entries.length == 1) {
+        final choice = select(entries.single, seed);
+        return choice == null ? [seed] : runChoice(choice, seed);
+      }
+      var states = [seed];
+      for (final entry in entries) {
+        final next = <String, NarrativeSymbolicState>{};
+        for (final state in states) {
+          final choice =
+              state.mapActivationPending ? null : select(entry, state);
+          final results = choice == null ? [state] : runChoice(choice, state);
+          for (final result in results) {
+            next.putIfAbsent(result.semanticKey, () => result);
+          }
+        }
+        states = next.values.toList();
+      }
+      return states;
+    }
+
+    List<NarrativeSymbolicState> activateMap(
+      String mapId,
+      NarrativeSymbolicState state,
+    ) {
+      final arrived = state.copyWith(
+        currentMapId: mapId,
+        mapActivationPending: false,
+      );
+      final definitions = activations[NarrativeEventSourceRef.mapEnter(mapId)];
+      return definitions == null ? [arrived] : dispatch([definitions], arrived);
+    }
+
+    var batchFrontier = [
+      for (final state in seeds)
+        if (activateInitialMap && initialMapId != null)
+          ...activateMap(initialMapId, state)
+        else
+          state,
+    ];
+    for (final state in batchFrontier) {
+      addEventBoundaryState(state);
+    }
+    final seen = <String>{};
+    final seenArrivals = <String>{
+      if (activateInitialMap && initialMapId != null)
+        for (final state in seeds)
+          state.copyWith(currentMapId: initialMapId).semanticKey,
+    };
     var progress = true;
     while (progress && batchFrontier.isNotEmpty) {
       progress = false;
-      final nextFrontier = <NarrativeSymbolicState>[];
-      final nextFrontierKeys = <String>{};
-
-      void addNextFrontierState(NarrativeSymbolicState state) {
-        if (nextFrontierKeys.add(state.semanticKey)) {
-          nextFrontier.add(state);
-        }
-      }
-
+      final nextFrontier = <String, NarrativeSymbolicState>{};
       for (final state in batchFrontier) {
         final stateKey = state.semanticKey;
         if (!seen.add(stateKey)) {
-          addNextFrontierState(state);
+          if (!state.mapActivationPending) {
+            nextFrontier.putIfAbsent(stateKey, () => state);
+          }
           continue;
         }
         if (remainingBudget < 1) {
-          issues.add(
-            NarrativeSymbolicIssue(
-              code: NarrativeSymbolicIssueCode.budgetExceeded,
-              verdict: NarrativeSymbolicVerdict.indeterminate,
-              message:
-                  'Le budget symbolique global de $explorationBudget états est dépassé.',
-              sceneId: '',
-              provenance: state.provenance,
-            ),
-          );
-          addNextFrontierState(state.copyWith(indeterminate: true));
+          final incomplete = budgetExceeded(state);
+          nextFrontier.putIfAbsent(incomplete.semanticKey, () => incomplete);
           continue;
         }
-        final candidates = <_SymbolicEventChoice>[];
-        final selectedSources = <NarrativeEventSourceRef>{};
-        for (final definition in batch) {
-          final alreadyExecuted = state.executedEventIds.contains(definition.id);
-          final oneShot = definition.reusePolicy == NarrativeEventReusePolicy.oneShot;
-          final playerControlled = _isPlayerControlledSource(definition.source);
-          if (oneShot && state.consumedEventIds.contains(definition.id) ||
-              alreadyExecuted && !playerControlled) {
-            continue;
+        var advanced = false;
+        int? firstGroup;
+
+        bool canExplore(int? group) =>
+            !advanced || (firstGroup != null && firstGroup == group);
+
+        void collect(int? group, List<NarrativeSymbolicState> results) {
+          if (!advanced && (results.isEmpty ||
+              results.any((result) => result.semanticKey != stateKey))) {
+            advanced = true;
+            firstGroup = group;
           }
-          final scene = scenesById[definition.sceneId];
-          if (scene == null || _isDisabledOptionalScene(project, scene)) {
-            continue;
+          for (final result in results) {
+            if (result.semanticKey == stateKey) continue;
+            addEventBoundaryState(result);
+            nextFrontier.putIfAbsent(result.semanticKey, () => result);
           }
-          final source = _sourceEligibility(
-            definition.source, state, mapsById, project, mapCounts,
-          );
-          final conditions = _eventExpressionValue(definition.conditionExpression, state);
-          if (source == false || conditions == false) continue;
-          if (playerControlled && !selectedSources.add(definition.source)) continue;
-          if (alreadyExecuted) continue;
-          final indeterminate = source == null || conditions == null;
-          if (indeterminate) {
-            issues.add(
-              NarrativeSymbolicIssue(
-                code: NarrativeSymbolicIssueCode.unsupportedCondition,
-                verdict: NarrativeSymbolicVerdict.indeterminate,
-                message:
-                    'L’éligibilité de l’Event ${definition.id} dépend d’une feature non prouvée.',
-                sceneId: definition.sceneId,
-                eventId: definition.id,
-                provenance: state.provenance,
-              ),
-            );
-          }
-          candidates.add((
-            id: definition.id,
-            scene: scene,
-            playerSource: playerControlled ? definition.source : null,
-            consumesEvent: oneShot,
-            indeterminate: indeterminate,
-          ));
+        }
+
+        if (state.mapActivationPending) {
+          collect(null, activateMap(state.currentMapId!, state));
+          progress |= advanced;
+          continue;
+        }
+
+        for (final occurrence in occurrences) {
+          final group = groups[occurrence.sourceKey];
+          if (canExplore(group)) collect(group, dispatch(occurrence.entries, state));
         }
         for (final source in legacy) {
+          final group = groups[source];
+          if (!canExplore(group)) continue;
+          if (state.currentMapId != null && state.currentMapId != source.mapId) continue;
           final choice = _legacySymbolicChoice(source, state, scenesById);
           if (choice != null && !_isDisabledOptionalScene(project, choice.scene)) {
-            candidates.add(choice);
+            collect(group, runChoice(choice, state));
           }
         }
-        if (candidates.isEmpty) {
-          addNextFrontierState(state);
-          continue;
-        }
-        progress = true;
-        final firstGroup = groups[candidates.first.playerSource];
-        for (final (index, choice) in candidates.indexed) {
-          if (index != 0 && (firstGroup == null || groups[choice.playerSource] != firstGroup)) {
-            continue;
-          }
+        for (final target in mapTransitions[state.currentMapId] ?? const <String>{}) {
+          final arrivalKey = state.copyWith(currentMapId: target).semanticKey;
+          if (!seenArrivals.add(arrivalKey)) continue;
           if (remainingBudget < 1) {
-            issues.add(
-              NarrativeSymbolicIssue(
-                code: NarrativeSymbolicIssueCode.budgetExceeded,
-                verdict: NarrativeSymbolicVerdict.indeterminate,
-                message: 'Le budget symbolique global de $explorationBudget états est dépassé.',
-                sceneId: choice.scene.id,
-                provenance: state.provenance,
-              ),
-            );
+            collect(null, [budgetExceeded(state)]);
             break;
           }
-          final eventState = state.copyWith(
-            executedEventIds: {...state.executedEventIds, choice.id},
-            consumedEventIds: choice.consumesEvent
-                ? {...state.consumedEventIds, choice.id}
-                : state.consumedEventIds,
-            indeterminate: state.indeterminate || choice.indeterminate,
-          );
-          final result = solveNarrativeSceneSymbolically(
-            choice.scene,
-            initialState: eventState,
-            explorationBudget: remainingBudget,
-            commandCatalog: catalog,
-            eventId: choice.id,
-          );
-          exploredCount += result.exploredStateCount;
-          remainingBudget -= result.exploredStateCount;
-          explored.addAll(result.exploredStates);
-          reachableSceneIds.add(choice.scene.id);
-          final optional = _isOptionalScene(project, choice.scene);
-          issues.addAll([
-            for (final issue in result.issues)
-              NarrativeSymbolicIssue(
-                code: issue.code,
-                verdict: issue.verdict,
-                message: issue.message,
-                sceneId: issue.sceneId,
-                nodeId: issue.nodeId,
-                eventId: choice.id,
-                optional: optional,
-                provenance: issue.provenance,
-              ),
-          ]);
-          if (result.terminalStates.isEmpty && optional) {
-            addNextFrontierState(eventState);
-          }
-          for (final terminal in result.terminalStates) {
-            if (eventBoundaryStates != null) {
-              addEventBoundaryState(terminal);
-            }
-            addNextFrontierState(terminal);
-          }
+          remainingBudget--;
+          exploredCount++;
+          collect(null, activateMap(
+            target,
+            state.copyWith(provenance: [
+              ...state.provenance,
+              NarrativeSymbolicProvenance(sceneId: '', nodeId: target, description: 'Arrivée sur la carte'),
+            ]),
+          ));
         }
+        progress |= advanced;
+        if (!advanced) nextFrontier.putIfAbsent(stateKey, () => state);
       }
-      batchFrontier = nextFrontier;
+      batchFrontier = nextFrontier.values.toList();
     }
     return batchFrontier;
   }
-
   final optionalDefinitionsByStoryline =
       <String, List<NarrativeEventDefinition>>{};
   final mandatoryDefinitions = <NarrativeEventDefinition>[];
   for (final definition in definitions) {
     final scene = scenesById[definition.sceneId];
-    if (scene == null || !_isOptionalScene(project, scene)) {
+    if (scene == null ||
+        activations.containsKey(definition.source) ||
+        !_isOptionalScene(project, scene)) {
       mandatoryDefinitions.add(definition);
       continue;
     }
@@ -912,6 +1075,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
         definitions: optionalBatches[leftIndex],
         scenesById: scenesById,
         milestoneWriters: milestoneWriters,
+        zoneFronts: zoneFronts,
       );
       for (var rightIndex = leftIndex + 1;
           rightIndex < optionalBatches.length;
@@ -921,6 +1085,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
           definitions: optionalBatches[rightIndex],
           scenesById: scenesById,
           milestoneWriters: milestoneWriters,
+          zoneFronts: zoneFronts,
         );
         if (!_narrativeBatchesAreCoupled(
           leftFootprint,
@@ -947,6 +1112,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
       definitions: mandatoryDefinitions,
       scenesById: scenesById,
       milestoneWriters: milestoneWriters,
+      zoneFronts: zoneFronts,
     );
     for (var index = 0; index < optionalBatches.length; index++) {
       final optionalFootprint = _narrativeBatchFootprint(
@@ -954,6 +1120,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
         definitions: optionalBatches[index],
         scenesById: scenesById,
         milestoneWriters: milestoneWriters,
+        zoneFronts: zoneFronts,
       );
       if (!_narrativeBatchesAreCoupled(optionalFootprint, legacyFootprint) &&
           !_optionalBatchMustJoinMandatory(
@@ -970,14 +1137,13 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     }
   }
 
-  final mandatoryEvidenceStates = <NarrativeSymbolicState>[
-    ...frontier,
-  ];
+  final mandatoryEvidenceStates = <NarrativeSymbolicState>[];
   final mandatoryTerminals = exploreDefinitions(
     mandatoryDefinitions,
     frontier,
     eventBoundaryStates: mandatoryEvidenceStates,
     legacy: legacySources,
+    activateInitialMap: true,
   );
   terminals.addAll(mandatoryTerminals);
   for (final terminal in mandatoryTerminals) {
@@ -1247,6 +1413,7 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
       ..sort();
     return <String>[
       ...facts,
+      if (state.currentMapId != null) 'map=${state.currentMapId}',
       'steps=${steps.join(',')}',
       'consumed=${consumed.join(',')}',
       'outcomes=${outcomes.join(',')}',
@@ -1343,6 +1510,7 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
   required List<NarrativeEventDefinition> definitions,
   required Map<String, SceneAsset> scenesById,
   required Map<String, Set<String>> milestoneWriters,
+  Map<NarrativeEventSourceRef, _SymbolicZoneFront> zoneFronts = const {},
 }) {
   final reads = <String>{};
   final writes = <String>{};
@@ -1362,6 +1530,9 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
     }
     reads.addAll(factIds.map((id) => 'fact:$id'));
     reads.addAll(consumedEventIds.map((id) => 'consumed:$id'));
+    if (definition.source.kind != NarrativeEventSourceKind.outcomeReceived) {
+      reads.add(_playerMapFootprintKey);
+    }
     definition.source.when(
       entityInteract: (_, __) {},
       entityBump: (_, _) {},
@@ -1383,6 +1554,9 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
     }
     if (_isPlayerControlledSource(definition.source)) {
       writes.add('source:${definition.source.toJson()}');
+    }
+    if (zoneFronts[definition.source] case final front?) {
+      writes.add('source:zone:${front.mapId}:${front.area}');
     }
 
     final scene = scenesById[definition.sceneId];
@@ -1453,7 +1627,10 @@ void _addSceneSymbolicFootprint(
           case SceneConditionSourceKind.worldState:
             break;
         }
-      case SceneActionPayload(:final consequence):
+      case SceneActionPayload(:final consequence, :final interactiveCommand):
+        if (interactiveCommand is SceneWarpInteractiveCommand) {
+          writes.add(_playerMapFootprintKey);
+        }
         switch (consequence) {
           case SceneCalculateIntegerFactsConsequence(:final factIds, :final operand):
             for (final id in factIds) { reads.add('fact:$id'); writes.add('fact:$id'); }
@@ -1512,10 +1689,8 @@ bool _optionalBatchMustJoinMandatory(
   _NarrativeBatchFootprint optional,
   _NarrativeBatchFootprint mandatory,
 ) {
-  return _setsIntersect(
-    optional.writes,
-    {...mandatory.reads, ...mandatory.writes},
-  );
+  return optional.writes.contains(_playerMapFootprintKey) ||
+      _setsIntersect(optional.writes, {...mandatory.reads, ...mandatory.writes});
 }
 
 bool _setsIntersect(Set<String> left, Set<String> right) =>
@@ -1560,6 +1735,18 @@ final class _NarrativeComponentWrites {
   final Set<String> fieldAbilityIds;
   final Set<String> executedEventIds;
 
+  String reusableInputKey(NarrativeSymbolicState state) => jsonEncode([
+    for (final id in factIds) state.factValues[id]?.toJson(),
+    for (final id in stepIds) state.completedStepIds.contains(id),
+    for (final id in consumedEventIds) state.consumedEventIds.contains(id),
+    for (final id in badgeIds) state.badgeIds.contains(id),
+    for (final id in outcomeKeys) state.emittedOutcomeKeys.contains(id),
+    for (final id in fieldAbilityIds)
+      state.unlockedFieldAbilities.any((ability) => ability.moveId == id),
+    ...state.assignedDraftFields.toList()..sort(),
+    state.indeterminate,
+  ]);
+
   String agreementKey(NarrativeSymbolicState state) {
     return NarrativeSymbolicState(
       factValues: {
@@ -1575,6 +1762,7 @@ final class _NarrativeComponentWrites {
       },
       emittedOutcomeKeys: state.emittedOutcomeKeys.difference(outcomeKeys),
       executedEventIds: state.executedEventIds.difference(executedEventIds),
+      currentMapId: state.currentMapId,
     ).semanticKey;
   }
 }
@@ -1941,51 +2129,59 @@ bool? _sourceEligibility(
   Map<String, MapData> mapsById,
   ProjectManifest project,
   Map<String, int> mapCounts,
-) =>
-    source.when(
-      entityInteract: (mapId, entityId) =>
-          mapsById[mapId]?.entities.any((entity) => entity.id == entityId) ==
-          true,
-      entityBump: (mapId, entityId) {
-        final map = mapsById[mapId];
-        if (map == null || mapCounts[mapId] != 1 ||
-            !isNarrativeEntityBumpSourceAvailable(project: project, map: map, entityId: entityId)) {
-          return false;
-        }
+) {
+  bool onMap(String mapId) =>
+      state.currentMapId == null || state.currentMapId == mapId;
+
+  return source.when(
+    entityInteract: (mapId, entityId) =>
+        onMap(mapId) &&
+        mapsById[mapId]?.entities.any((entity) => entity.id == entityId) == true,
+    entityBump: (mapId, entityId) {
+      final map = mapsById[mapId];
+      if (!onMap(mapId) ||
+          map == null ||
+          mapCounts[mapId] != 1 ||
+          !isNarrativeEntityBumpSourceAvailable(project: project, map: map, entityId: entityId)) {
+        return false;
+      }
+      return null;
+    },
+    entityAutorun: (mapId, entityId) {
+      final map = mapsById[mapId];
+      return onMap(mapId) &&
+          map != null &&
+          mapCounts[mapId] == 1 &&
+          isNarrativeEntityAutorunSourceAvailable(project: project, map: map, entityId: entityId);
+    },
+    modelInteract: (mapId, instanceId) =>
+        onMap(mapId) &&
+        mapsById[mapId]?.spatialScene?.instances.any((entity) => entity.id == instanceId) == true,
+    triggerBump: (mapId, triggerId) {
+      final map = mapsById[mapId];
+      if (!onMap(mapId) ||
+          map == null ||
+          mapCounts[mapId] != 1 ||
+          !isNarrativeTriggerBumpSourceAvailable(project: project, map: map, triggerId: triggerId)) {
+        return false;
+      }
+      return null;
+    },
+    triggerEnter: (mapId, triggerId) =>
+        onMap(mapId) &&
+        mapsById[mapId]?.triggers.any((trigger) =>
+          trigger.id == triggerId && _isSymbolicNarrativeZone(trigger)) == true,
+    mapEnter: (mapId) => onMap(mapId) && mapsById.containsKey(mapId),
+    outcomeReceived: (outcome) {
+      if (outcome.producerKind != NarrativeOutcomeProducerKind.scene) {
         return null;
-      },
-      entityAutorun: (mapId, entityId) {
-        final map = mapsById[mapId];
-        if (map == null || mapCounts[mapId] != 1 ||
-            !isNarrativeEntityAutorunSourceAvailable(project: project, map: map, entityId: entityId)) {
-          return false;
-        }
-        return true;
-      },
-      modelInteract: (mapId, instanceId) =>
-          mapsById[mapId]?.spatialScene?.instances.any((entity) => entity.id == instanceId) ==
-          true,
-      triggerBump: (mapId, triggerId) {
-        final map = mapsById[mapId];
-        if (map == null || mapCounts[mapId] != 1 ||
-            !isNarrativeTriggerBumpSourceAvailable(project: project, map: map, triggerId: triggerId)) {
-          return false;
-        }
-        return null;
-      },
-      triggerEnter: (mapId, triggerId) =>
-          mapsById[mapId]?.triggers.any((trigger) => trigger.id == triggerId) ==
-          true,
-      mapEnter: mapsById.containsKey,
-      outcomeReceived: (outcome) {
-        if (outcome.producerKind != NarrativeOutcomeProducerKind.scene) {
-          return null;
-        }
-        return state.emittedOutcomeKeys.contains(
-          _outcomeKey(outcome.producerId, outcome.outcomeId),
-        );
-      },
-    );
+      }
+      return state.emittedOutcomeKeys.contains(
+        _outcomeKey(outcome.producerId, outcome.outcomeId),
+      );
+    },
+  );
+}
 
 bool _isOptionalScene(ProjectManifest project, SceneAsset scene) {
   final storyline = project.storylines

@@ -66,22 +66,25 @@ void main() {
 
   final guide = NarrativeEventSourceRef.entityInteract('map_port', 'npc_guide');
   final quay = NarrativeEventSourceRef.triggerEnter('map_port', 'zone_quay');
-  for (final (name, firstSource, secondSource, canReverseOrder) in [
+  final market = NarrativeEventSourceRef.triggerEnter('map_port', 'zone_a');
+  final activation = NarrativeEventSourceRef.mapEnter('map_port');
+  for (final (name, firstSource, secondSource, canReverseOrder, sameCell, reverseEditOrder) in [
     (
       'distinct interactions',
       guide,
       NarrativeEventSourceRef.entityInteract('map_port', 'npc_second'),
       true,
-    ),
-    ('same interaction', guide, guide, false),
-    ('interaction and zone', guide, quay, true),
-    ('same zone', quay, quay, false),
-    (
-      'initial map activation before a zone',
-      NarrativeEventSourceRef.mapEnter('map_port'),
-      quay,
+      false,
       false,
     ),
+    ('same interaction', guide, guide, false, false, false),
+    ('interaction and zone', guide, quay, true, false, false),
+    ('same zone', quay, quay, false, false, false),
+    ('zones on the same cell', market, quay, false, true, false),
+    ('zones on the same cell, B ordered first', market, quay, false, true, true),
+    ('disjoint zones', market, quay, true, false, false),
+    ('initial activation ordered first', activation, quay, false, false, false),
+    ('initial activation ordered last', activation, quay, false, false, true),
   ]) {
     test('H10: reverse interaction order for $name', () {
       final fixture = _fixture();
@@ -102,6 +105,11 @@ void main() {
         SceneConsequence.completeStoryStep(stepId: second.id),
       ]);
       final project = fixture.project.copyWith(
+        newGame: const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_port',
+          startSpawnId: 'spawn_player',
+        ),
         facts: [
           NarrativeFactDefinition(
             id: 'fact_gate',
@@ -121,26 +129,36 @@ void main() {
           schemaVersion: 1,
           mode: EventSystemMode.v2Only,
           records: [
-            _record(id: _eventA, source: firstSource),
+            _record(id: _eventA, source: firstSource, order: reverseEditOrder ? 1 : 0),
             _record(
               id: _eventB,
               source: secondSource,
               sceneId: secondScene.id,
               conditions: [NarrativeEventCondition.fact('fact_gate', true)],
+              order: reverseEditOrder ? 0 : 1,
             ),
           ],
           legacyClaims: const [],
         ),
       );
       final map = _h10CounterMap(fixture.map).copyWith(
-        triggers: const [
-          MapTrigger(
+        triggers: [
+          const MapTrigger(
             id: 'zone_quay',
             name: 'Quai',
             type: TriggerType.event,
             area: MapRect(
               pos: GridPos(x: 1, y: 2),
               size: GridSize(width: 1, height: 1),
+            ),
+          ),
+          MapTrigger(
+            id: 'zone_a',
+            name: 'Marché',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: GridPos(x: sameCell ? 1 : 2, y: 2),
+              size: const GridSize(width: 1, height: 1),
             ),
           ),
         ],
@@ -164,6 +182,385 @@ void main() {
       expect(report.isPlayable, canReverseOrder);
     });
   }
+
+  for (final (policy, retryable, canRepeat) in [
+    (NarrativeEventReusePolicy.oneShot, false, false),
+    (NarrativeEventReusePolicy.reusable, false, true),
+    (NarrativeEventReusePolicy.oneShot, true, true),
+  ]) {
+    test('H10: a second interaction follows a fact changed by the first ($policy, retryable=$retryable)', () {
+      final fixture = _fixture();
+      final stepId = fixture.project.storylines.single.chapters.single.steps.single.id;
+      final scene = SceneAsset(
+        id: fixture.project.scenes.single.id,
+        name: 'Le guide se souvient',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'check',
+              kind: SceneNodeKind.condition,
+              payload: SceneConditionPayload(
+                conditionSource: SceneConditionSource(
+                  sourceKind: SceneConditionSourceKind.fact,
+                  sourceId: 'fact_gate',
+                  operator: SceneConditionOperator.isTrue,
+                ),
+              ),
+            ),
+            SceneNode(
+              id: 'remember',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.setFact(factId: 'fact_gate', value: true),
+              ),
+            ),
+            SceneNode(
+              id: 'finish',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.completeStoryStep(stepId: stepId),
+              ),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+            if (retryable)
+              SceneNode(
+                id: 'retry',
+                kind: SceneNodeKind.end,
+                payload: SceneEndPayload(
+                  sceneOutcomeId: 'try_again',
+                  outcomePolicy: SceneOutcomePolicy.retryable,
+                ),
+              ),
+          ],
+          edges: [
+            for (final (from, port, to, kind) in [
+              ('start', 'completed', 'check', SceneEdgeKind.defaultFlow),
+              ('check', 'false', 'remember', SceneEdgeKind.conditionFalse),
+              ('check', 'true', 'finish', SceneEdgeKind.conditionTrue),
+              ('remember', 'completed', retryable ? 'retry' : 'end', SceneEdgeKind.defaultFlow),
+              ('finish', 'completed', 'end', SceneEdgeKind.defaultFlow),
+            ])
+              SceneEdge(id: '${from}_$port', fromNodeId: from, fromPortId: port, toNodeId: to, kind: kind),
+          ],
+        ),
+      );
+      final first = solveNarrativeSceneSymbolically(
+        scene,
+        initialState: NarrativeSymbolicState(
+          factValues: {'fact_gate': const NarrativeValue.boolean(false)},
+        ),
+      ).terminalStates.single;
+      expect(first.hasTrueFact('fact_gate'), isTrue);
+      expect(first.completedStepIds, isEmpty);
+      expect(
+        solveNarrativeSceneSymbolically(scene, initialState: first).terminalStates.single.completedStepIds,
+        {stepId},
+      );
+      final report = validateNarrativeProject(
+        fixture.project.copyWith(
+          scenes: [scene],
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: [_record(id: _eventA, reusePolicy: policy)],
+            legacyClaims: const [],
+          ),
+        ),
+        maps: [fixture.map],
+      );
+      expect(
+        report.byCode('storylineStepNeverCompleted'),
+        hasLength(canRepeat ? 0 : 1),
+      );
+    });
+  }
+
+  for (final typedPage in [false, true]) {
+    test('H10: integer Facts on historical pages require Event Builder provenance ($typedPage)', () {
+      final fixture = _fixture();
+      final scene = fixture.project.scenes.single;
+      final map = fixture.map.copyWith(events: [
+        MapEventDefinition(
+          id: 'legacy_intro',
+          position: const EventPosition(layerId: 'events', x: 5, y: 5),
+          pages: [
+            MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: scene.id),
+              condition: ScriptConditionFactory.factEquals('fact_integer', NarrativeValue.integer(5)),
+              metadata: {
+                if (typedPage) EventBuilderMetadataKeys.schemaVersion: EventBuilderMetadataKeys.currentSchemaVersion,
+              },
+            ),
+          ],
+        ),
+      ]);
+      final project = fixture.project.copyWith(
+        facts: [
+          ...fixture.project.facts,
+          NarrativeFactDefinition(id: 'fact_integer', label: 'Entier', initialValue: NarrativeValue.integer(5)),
+        ],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.legacyOnly,
+          records: [],
+          legacyClaims: [],
+        ),
+      );
+      final report = validateNarrativeProject(project, maps: [map]);
+      expect(report.byCode('storylineStepNeverCompleted'), hasLength(typedPage ? 0 : 1));
+    });
+  }
+
+  for (final linked in [false, true]) {
+    test('H10: later map activation requires an authored transition ($linked)', () {
+      final fixture = _fixture();
+      const otherMapId = 'map_station';
+      final start = fixture.map.copyWith(
+        warps: [
+          if (linked)
+            const MapWarp(
+              id: 'to_station',
+              pos: GridPos(x: 2, y: 1),
+              targetMapId: otherMapId,
+              targetPos: GridPos(x: 1, y: 1),
+            ),
+        ],
+      );
+      final station = fixture.map.copyWith(id: otherMapId, name: 'Gare');
+      final project = fixture.project.copyWith(
+        newGame: const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_port',
+          startSpawnId: 'spawn_player',
+        ),
+        maps: [
+          ...fixture.project.maps,
+          const ProjectMapEntry(
+            id: otherMapId,
+            name: 'Gare',
+            relativePath: 'maps/station.json',
+          ),
+        ],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [_record(id: _eventA, source: NarrativeEventSourceRef.mapEnter(otherMapId))],
+          legacyClaims: const [],
+        ),
+      );
+      final report = validateNarrativeProject(project, maps: [start, station]);
+      expect(
+        report.byCode('storylineStepNeverCompleted'),
+        hasLength(linked ? 0 : 1),
+      );
+    });
+  }
+
+  for (final guideAvailable in [false, true]) {
+    test('H10: a scene warp activates its destination after completion ($guideAvailable)', () {
+      final fixture = _fixture();
+      const stationId = 'map_station';
+      const arrivalId = 'arrival';
+      final station = fixture.map.copyWith(
+        id: stationId,
+        name: 'Gare',
+        warps: const [
+          MapWarp(
+            id: arrivalId,
+            pos: GridPos(x: 1, y: 1),
+            targetMapId: stationId,
+            targetPos: GridPos(x: 1, y: 1),
+            triggerMode: MapWarpTriggerMode.sceneOnly,
+          ),
+        ],
+      );
+      final guide = SceneAsset(
+        id: 'scene_departure',
+        name: 'Départ vers la gare',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'warp',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.interactive(
+                SceneInteractiveCommand.warp(
+                  destinationMapId: stationId,
+                  warpId: arrivalId,
+                ),
+              ),
+            ),
+            SceneNode(
+              id: 'fact',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.setFact(factId: 'fact_gate', value: true),
+              ),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'start_warp',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'warp',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'warp_done',
+              fromNodeId: 'warp',
+              fromPortId: 'completed',
+              toNodeId: 'fact',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+            SceneEdge(
+              id: 'warp_blocked',
+              fromNodeId: 'warp',
+              fromPortId: 'blocked',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.blocked,
+            ),
+            SceneEdge(
+              id: 'fact_end',
+              fromNodeId: 'fact',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+          ],
+        ),
+      );
+      final project = fixture.project.copyWith(
+        newGame: const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_port',
+          startSpawnId: 'spawn_player',
+        ),
+        maps: [
+          ...fixture.project.maps,
+          const ProjectMapEntry(
+            id: stationId,
+            name: 'Gare',
+            relativePath: 'maps/station.json',
+          ),
+        ],
+        scenes: [...fixture.project.scenes, guide],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            _record(
+              id: _eventA,
+              sceneId: guide.id,
+              conditions: [
+                if (!guideAvailable) NarrativeEventCondition.fact('fact_gate', true),
+              ],
+            ),
+            _record(
+              id: _eventB,
+              source: NarrativeEventSourceRef.mapEnter(stationId),
+              conditions: [NarrativeEventCondition.fact('fact_gate', true)],
+            ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+
+      final report = validateNarrativeProject(
+        project,
+        maps: [fixture.map, station],
+      );
+
+      expect(
+        report.byCode('storylineStepNeverCompleted'),
+        hasLength(guideAvailable ? 0 : 1),
+      );
+      expect(
+        report.symbolicReachability!.terminalStates.any(
+          (state) =>
+              state.currentMapId == stationId && !state.hasTrueFact('fact_gate'),
+        ),
+        isFalse,
+      );
+    });
+  }
+
+  test('H10: independent repeatable interactions and simultaneous zones grow linearly', () {
+    final counts = <int>[];
+    for (final count in [24, 48, 96]) {
+      final fixture = _fixture();
+      final indices = List.generate(count, (index) => index);
+      final map = fixture.map.copyWith(
+        entities: [
+          ...fixture.map.entities,
+          for (final i in indices.where((index) => index.isEven))
+            MapEntity(
+              id: 'guide_$i',
+              name: 'Guide $i',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 2 + i % 12, y: 5 + i ~/ 12),
+            ),
+        ],
+        triggers: [
+          for (final i in indices.where((index) => index.isOdd))
+            MapTrigger(
+              id: 'zone_$i',
+              type: TriggerType.event,
+              area: MapRect(
+                pos: GridPos(x: 1 + i ~/ 4 % 8, y: 1 + i ~/ 32),
+                size: const GridSize(width: 1, height: 1),
+              ),
+            ),
+        ],
+      );
+      final project = fixture.project.copyWith(
+        storylines: const [],
+        facts: [
+          for (final i in indices) NarrativeFactDefinition(id: 'fact_$i', label: 'Fact $i'),
+        ],
+        scenes: [
+          for (final i in indices)
+            _h10CounterScene('scene_$i', [
+              SceneConsequence.setFact(factId: 'fact_$i', value: true),
+            ]),
+        ],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            for (final i in indices)
+              _record(
+                id: 'evt_019abcde-4500-7000-8000-${i.toString().padLeft(12, '0')}',
+                sceneId: 'scene_$i',
+                source: i.isEven
+                    ? NarrativeEventSourceRef.entityInteract(map.id, 'guide_$i')
+                    : NarrativeEventSourceRef.triggerEnter(map.id, 'zone_$i'),
+                reusePolicy: i.isEven
+                    ? NarrativeEventReusePolicy.reusable
+                    : NarrativeEventReusePolicy.oneShot,
+                order: i,
+              ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+      final report = solveNarrativeSymbolicReachability(project, maps: [map]);
+      expect(report.issues, isEmpty);
+      expect(
+        report.terminalStates.any((state) => indices.every((i) => state.hasTrueFact('fact_$i'))),
+        isTrue,
+      );
+      counts.add(report.exploredStateCount);
+    }
+    expect(counts[0], lessThanOrEqualTo(24 * 6));
+    expect(counts[1], counts[0] * 2);
+    expect(counts[2], counts[1] * 2);
+  });
 
   for (final alternate in [false, true]) {
   test('H10 counter: independent components and avatar starts, alternate=$alternate', () {
@@ -1865,7 +2262,8 @@ void main() {
       expect(diagnostic.severity, NarrativeProjectDiagnosticSeverity.error);
     });
 
-    test('accepts a narratively reachable reusable source for retry', () {
+    for (final sameSource in [false, true]) {
+    test('checks whether a reusable retry source can be selected ($sameSource)', () {
       final fixture = _fixture();
       final retryableScene = _withEndPolicy(
         fixture.project.scenes.single,
@@ -1874,7 +2272,7 @@ void main() {
       );
       final reusableRetry = _record(
         id: _eventB,
-        entityId: 'npc_guide',
+        entityId: sameSource ? 'npc_guide' : 'npc_second',
         reusePolicy: NarrativeEventReusePolicy.reusable,
       );
 
@@ -1891,11 +2289,12 @@ void main() {
             legacyClaims: const [],
           ),
         ),
-        maps: [fixture.map],
+        maps: [_h10CounterMap(fixture.map)],
       );
 
-      expect(report.byCode('oneShotRetryableOutcomeSoftlock'), isEmpty);
+      expect(report.byCode('oneShotRetryableOutcomeSoftlock'), hasLength(sameSource ? 1 : 0));
     });
+    }
 
     test('accepts an explicitly terminal failure without a retry source', () {
       final fixture = _fixture();
@@ -2209,6 +2608,7 @@ NarrativeEventRecord _record({
   String sceneId = 'scene_intro',
   List<NarrativeEventCondition> conditions = const [],
   NarrativeEventReusePolicy reusePolicy = NarrativeEventReusePolicy.oneShot,
+  int? order,
 }) {
   return NarrativeEventRecord.configuredStructurallyUnchecked(
     NarrativeEventDefinition(
@@ -2219,7 +2619,7 @@ NarrativeEventRecord _record({
       sceneId: sceneId,
       reusePolicy: reusePolicy,
       priority: 0,
-      order: id == _eventA ? 0 : 1,
+      order: order ?? (id == _eventA ? 0 : 1),
     ),
     enabled: true,
   );

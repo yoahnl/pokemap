@@ -15,46 +15,102 @@ import '../game_memory/game_memory_catalog_fixture.dart';
 import 'story_workspace_catalog_fixture.dart';
 
 void main() {
-  test('H10 counter: targeted publication keeps checks on related documents', () async {
+  test('conflicting chapter drafts preserve the local title and the published revision', () async {
     final session = await openGameMemoryCatalog();
-    final (:story, :trame) = await openStoryWorkspaceCatalog(session);
-    expect(await trame.startStoryline(StorylineType.main, 'Voyage', 'Bourg'), isTrue);
-    expect(await story.save(), isTrue, reason: story.error);
-    final reader = LocalStorylineReadAdapter(session);
-    final before = (await reader.storylines()).single;
-    final mapAdapter = LocalMapWorkspaceAdapter();
-    final maps = MapWorkspaceController(session, mapAdapter);
-    addTearDown(maps.dispose);
-    await maps.initialize();
-    final adapter = LocalStoryAdapter(session: session, mapAdapter: mapAdapter);
-    final updated = before.copyWith(title: 'Retour au bourg');
-    await adapter.publishStory(
-      id: before.id,
-      base: before,
-      current: updated,
-      requiredSceneIds: {'gate'},
-      requiredStoryIds: {before.id},
-      requiredFactIds: {'fact_met'},
+    final initial = await openStoryWorkspaceCatalog(session);
+    expect(
+      await initial.trame.startStoryline(StorylineType.main, 'Voyage', 'Bourg'),
+      isTrue,
     );
+    expect(await initial.story.save(), isTrue, reason: initial.story.error);
+    final first = await openStoryWorkspaceCatalog(session);
+    final second = await openStoryWorkspaceCatalog(session);
+    final outline = first.trame.view!.outline.storylines.single;
+    final chapter = outline.chapters.single;
+    expect(
+      await first.trame.renameChapter(
+        outline.id,
+        chapter.id,
+        'Version publiée',
+      ),
+      isTrue,
+    );
+    expect(
+      await second.trame.renameChapter(
+        outline.id,
+        chapter.id,
+        'Brouillon local',
+      ),
+      isTrue,
+    );
+    expect(await first.story.save(), isTrue, reason: first.story.error);
     final head = File('${session.directoryPath}/catalog/HEAD.json');
-    final revision = await head.readAsString();
-    for (final kind in ['scene', 'story', 'fact']) {
-      await expectLater(
-        adapter.publishStory(
-          id: updated.id,
-          base: updated,
-          current: updated.copyWith(title: 'Écriture refusée'),
-          requiredSceneIds: {kind == 'scene' ? 'missing_scene' : 'gate'},
-          requiredStoryIds: {kind == 'story' ? 'missing_story' : updated.id},
-          requiredFactIds: {kind == 'fact' ? 'missing_fact' : 'fact_met'},
-        ),
-        throwsA(isA<StoryFailure>()),
-        reason: 'missing $kind',
-      );
-      expect(await head.readAsString(), revision);
-    }
-    expect((await reader.storylines()).single.title, updated.title);
+    final revision = await head.readAsBytes();
+
+    expect(await second.story.save(), isFalse);
+    expect(second.story.error, startsWith('publish-refused:story:'));
+    expect(second.story.dirty, isTrue);
+    expect(
+      second.trame.view!.outline.storylines.single.chapters.single.title,
+      'Brouillon local',
+    );
+    expect(await head.readAsBytes(), revision);
+    final reader = LocalStorylineReadAdapter(session);
+    expect(
+      (await reader.storylines()).single.chapters.single.title,
+      'Version publiée',
+    );
   });
+
+  test(
+    'H10 counter: targeted publication keeps checks on related documents',
+    () async {
+      final session = await openGameMemoryCatalog();
+      final (:story, :trame) = await openStoryWorkspaceCatalog(session);
+      expect(
+        await trame.startStoryline(StorylineType.main, 'Voyage', 'Bourg'),
+        isTrue,
+      );
+      expect(await story.save(), isTrue, reason: story.error);
+      final reader = LocalStorylineReadAdapter(session);
+      final before = (await reader.storylines()).single;
+      final mapAdapter = LocalMapWorkspaceAdapter();
+      final maps = MapWorkspaceController(session, mapAdapter);
+      addTearDown(maps.dispose);
+      await maps.initialize();
+      final adapter = LocalStoryAdapter(
+        session: session,
+        mapAdapter: mapAdapter,
+      );
+      final updated = before.copyWith(title: 'Retour au bourg');
+      await adapter.publishStory(
+        id: before.id,
+        base: before,
+        current: updated,
+        requiredSceneIds: {'gate'},
+        requiredStoryIds: {before.id},
+        requiredFactIds: {'fact_met'},
+      );
+      final head = File('${session.directoryPath}/catalog/HEAD.json');
+      final revision = await head.readAsString();
+      for (final kind in ['scene', 'story', 'fact']) {
+        await expectLater(
+          adapter.publishStory(
+            id: updated.id,
+            base: updated,
+            current: updated.copyWith(title: 'Écriture refusée'),
+            requiredSceneIds: {kind == 'scene' ? 'missing_scene' : 'gate'},
+            requiredStoryIds: {kind == 'story' ? 'missing_story' : updated.id},
+            requiredFactIds: {kind == 'fact' ? 'missing_fact' : 'fact_met'},
+          ),
+          throwsA(isA<StoryFailure>()),
+          reason: 'missing $kind',
+        );
+        expect(await head.readAsString(), revision);
+      }
+      expect((await reader.storylines()).single.title, updated.title);
+    },
+  );
 
   test(
     'a trame, its scene link and its journal survive closing and reopening',

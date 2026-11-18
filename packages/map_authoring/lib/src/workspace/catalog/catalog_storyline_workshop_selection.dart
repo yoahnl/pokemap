@@ -1,10 +1,28 @@
 part of 'catalog_workshop_selection.dart';
 
-Future<({
-  CatalogMetadataDocumentSelection selection,
-  Map<String, Set<String>> ids,
-})> _storylineUpsertDocuments(CatalogSnapshot snapshot, ProjectManifest manifest,
-        Map<String, Object?> parameters) async {
+Future<
+    ({
+      CatalogMetadataDocumentSelection selection,
+      Map<String, Set<String>> ids,
+    })> _targetStorylineDocuments(
+  CatalogSnapshot snapshot,
+  ProjectManifest manifest,
+  String actionId,
+  Map<String, Object?> parameters,
+) async {
+  final ids = actionId == 'storyline.chapter.rename'
+      ? {
+          'storylines': {narrativeStringParameter(parameters, 'storylineId')}
+        }
+      : _incomingStorylineDocumentIds(parameters);
+  final selected = await CatalogMetadataDocuments.readDocuments(
+      snapshot: snapshot, project: manifest, ids: ids);
+  return (selection: selected, ids: ids);
+}
+
+Map<String, Set<String>> _incomingStorylineDocumentIds(
+  Map<String, Object?> parameters,
+) {
   final incoming = parameters['storyline'];
   final id = incoming is Map ? incoming['id'] : null;
   if (incoming is! Map || id is! String || id.isEmpty || id.trim() != id) {
@@ -15,17 +33,14 @@ Future<({
   }
   final factIds = CatalogWorkshopSelection._referenceIds(
       incoming, const {ScriptConditionParams.flagName});
-  final ids = {
+  return {
     'storylines': {
       id,
-      ...CatalogWorkshopSelection._referenceIds(
-          incoming['relationships'], const {'sourceStorylineId', 'targetStorylineId'}),
+      ...CatalogWorkshopSelection._referenceIds(incoming['relationships'],
+          const {'sourceStorylineId', 'targetStorylineId'}),
     },
     if (factIds.isNotEmpty) 'facts': factIds,
   };
-  final selected = await CatalogMetadataDocuments.readDocuments(
-      snapshot: snapshot, project: manifest, ids: ids);
-  return (selection: selected, ids: ids);
 }
 
 Future<({ProjectManifest project, Set<String> documents})?>
