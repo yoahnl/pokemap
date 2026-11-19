@@ -85,11 +85,11 @@ void main() {
           action.endsWith('attach_scene') ? ['scene_gate'] : isEmpty);
       expect(
           snapshot.availableProjectDocuments,
-          action.endsWith('attach_scene')
-              ? {
-                  'scenes': {'scene_gate'}
-                }
-              : null);
+          switch (action) {
+            'storyline.milestone.attach_scene' => {'scenes': {'scene_gate'}},
+            'storyline.chapter.rename' => {'storylines': {'main'}},
+            _ => null,
+          });
       final head = (await fixture.snapshot()).root;
       receipts.add(await fixture.apply(action, parameters, 'trame-$index'));
       expect((await fixture.snapshot()).root, isNot(head), reason: action);

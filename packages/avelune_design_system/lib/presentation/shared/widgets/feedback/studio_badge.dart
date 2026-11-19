@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../theme/studio_tokens.dart';
 
 enum StudioTone { neutral, info, success, warning, danger, feature }
@@ -24,10 +25,12 @@ class StudioBadge extends StatelessWidget {
     super.key,
     this.tone = StudioTone.neutral,
     this.icon,
+    this.wrapLabel = false,
   });
   final String label;
   final StudioTone tone;
   final IconData? icon;
+  final bool wrapLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +53,9 @@ class StudioBadge extends StatelessWidget {
           Flexible(
             child: Text(
               label,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: colors.onSurface),
+              overflow: wrapLabel ? TextOverflow.clip : TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: colors.onSurface),
             ),
           ),
         ],

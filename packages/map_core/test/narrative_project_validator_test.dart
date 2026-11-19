@@ -5,6 +5,10 @@ const _eventA = 'evt_019abcde-4000-7000-8000-000000000071';
 const _eventB = 'evt_019abcde-4000-7000-8000-000000000072';
 const _eventC = 'evt_019abcde-4000-7000-8000-000000000073';
 
+enum _ZoneLayout { disjoint, identical, nested, overlapping, blockedOverlap, startsInside }
+
+enum _ArrivalLayout { clear, fixedCollision, distantElement, blockingElement, actorCollision, spatial }
+
 void main() {
   for (final (mode, blocked) in [
     (EventSystemMode.legacyOnly, null),
@@ -66,22 +70,29 @@ void main() {
 
   final guide = NarrativeEventSourceRef.entityInteract('map_port', 'npc_guide');
   final quay = NarrativeEventSourceRef.triggerEnter('map_port', 'zone_quay');
-  for (final (name, firstSource, secondSource, canReverseOrder) in [
+  final market = NarrativeEventSourceRef.triggerEnter('map_port', 'zone_a');
+  final activation = NarrativeEventSourceRef.mapEnter('map_port');
+  for (final (name, firstSource, secondSource, canReverseOrder, layout, reverseEditOrder) in [
     (
       'distinct interactions',
       guide,
       NarrativeEventSourceRef.entityInteract('map_port', 'npc_second'),
       true,
-    ),
-    ('same interaction', guide, guide, false),
-    ('interaction and zone', guide, quay, true),
-    ('same zone', quay, quay, false),
-    (
-      'initial map activation before a zone',
-      NarrativeEventSourceRef.mapEnter('map_port'),
-      quay,
+      _ZoneLayout.disjoint,
       false,
     ),
+    ('same interaction', guide, guide, false, _ZoneLayout.disjoint, false),
+    ('interaction and zone', guide, quay, true, _ZoneLayout.disjoint, false),
+    ('same zone', quay, quay, false, _ZoneLayout.disjoint, false),
+    ('zones on the same cell', market, quay, false, _ZoneLayout.identical, false),
+    ('zones on the same cell, B ordered first', market, quay, false, _ZoneLayout.identical, true),
+    ('nested zones', market, quay, false, _ZoneLayout.nested, true),
+    ('overlapping zones with an independent entry', market, quay, true, _ZoneLayout.overlapping, false),
+    ('overlapping zones with the independent entry blocked', market, quay, false, _ZoneLayout.blockedOverlap, false),
+    ('default spawn inside the enclosing zone', market, quay, true, _ZoneLayout.startsInside, false),
+    ('disjoint zones', market, quay, true, _ZoneLayout.disjoint, false),
+    ('initial activation ordered first', activation, quay, false, _ZoneLayout.disjoint, false),
+    ('initial activation ordered last', activation, quay, false, _ZoneLayout.disjoint, true),
   ]) {
     test('H10: reverse interaction order for $name', () {
       final fixture = _fixture();
@@ -102,6 +113,11 @@ void main() {
         SceneConsequence.completeStoryStep(stepId: second.id),
       ]);
       final project = fixture.project.copyWith(
+        newGame: ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_port',
+          startSpawnId: layout == _ZoneLayout.startsInside ? null : 'spawn_player',
+        ),
         facts: [
           NarrativeFactDefinition(
             id: 'fact_gate',
@@ -121,28 +137,58 @@ void main() {
           schemaVersion: 1,
           mode: EventSystemMode.v2Only,
           records: [
-            _record(id: _eventA, source: firstSource),
+            _record(id: _eventA, source: firstSource, order: reverseEditOrder ? 1 : 0),
             _record(
               id: _eventB,
               source: secondSource,
               sceneId: secondScene.id,
               conditions: [NarrativeEventCondition.fact('fact_gate', true)],
+              order: reverseEditOrder ? 0 : 1,
             ),
           ],
           legacyClaims: const [],
         ),
       );
-      final map = _h10CounterMap(fixture.map).copyWith(
-        triggers: const [
+      final counterMap = _h10CounterMap(fixture.map);
+      final overlapping = layout == _ZoneLayout.overlapping || layout == _ZoneLayout.blockedOverlap;
+      final map = counterMap.copyWith(
+        layers: [
+          ...counterMap.layers,
+          if (layout == _ZoneLayout.blockedOverlap)
+            _h10CollisionAt(counterMap, const GridPos(x: 1, y: 3)),
+        ],
+        triggers: [
           MapTrigger(
             id: 'zone_quay',
             name: 'Quai',
             type: TriggerType.event,
             area: MapRect(
-              pos: GridPos(x: 1, y: 2),
-              size: GridSize(width: 1, height: 1),
+              pos: const GridPos(x: 1, y: 2),
+              size: GridSize(
+                width: 1,
+                height: overlapping ? 2 : 1,
+              ),
             ),
           ),
+          MapTrigger(
+            id: 'zone_a',
+            name: 'Marché',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: GridPos(x: layout == _ZoneLayout.disjoint ? 2 : 1, y: 2),
+              size: GridSize(
+                width: overlapping || layout == _ZoneLayout.nested || layout == _ZoneLayout.startsInside ? 2 : 1,
+                height: 1,
+              ),
+            ),
+          ),
+        ],
+        entities: [
+          for (final entity in counterMap.entities)
+            if (layout == _ZoneLayout.startsInside && entity.id == 'spawn_player')
+              entity.copyWith(pos: const GridPos(x: 2, y: 2))
+            else
+              entity,
         ],
       );
       final afterSecond = solveNarrativeSceneSymbolically(
@@ -164,6 +210,621 @@ void main() {
       expect(report.isPlayable, canReverseOrder);
     });
   }
+
+  for (final allCells in [true, false]) {
+    test(
+      'H10: a spawn inside a single zone must leave before reentry (all cells=$allCells)',
+      () {
+        final fixture = _fixture();
+        final map = fixture.map.copyWith(
+          triggers: [
+            MapTrigger(
+              id: 'zone_spawn',
+              type: TriggerType.event,
+              area: allCells
+                  ? MapRect(
+                      pos: const GridPos(x: 0, y: 0),
+                      size: fixture.map.size,
+                    )
+                  : const MapRect(
+                      pos: GridPos(x: 1, y: 1),
+                      size: GridSize(width: 1, height: 1),
+                    ),
+            ),
+          ],
+        );
+        final project = fixture.project.copyWith(
+          newGame: ProjectNewGameConfig(enabled: true, startMapId: map.id),
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: [
+              _record(
+                id: _eventA,
+                source: NarrativeEventSourceRef.triggerEnter(
+                  map.id,
+                  'zone_spawn',
+                ),
+              ),
+            ],
+            legacyClaims: const [],
+          ),
+        );
+
+        final report = validateNarrativeProject(project, maps: [map]);
+
+        expect(
+          report.byCode('storylineStepNeverCompleted'),
+          hasLength(allCells ? 1 : 0),
+        );
+        expect(report.isPlayable, !allCells);
+      },
+    );
+  }
+
+  test('H10: a moving side-quest witness retains its compatible avatar', () {
+    final fixture = _fixture();
+    final step = StorylineStep(
+      id: 'step_side',
+      title: 'Explorer le quai',
+      order: 0,
+      sceneLinkIds: ['scene_side'],
+    );
+    final quest = StorylineAsset(
+      id: 'side',
+      title: 'Le quai',
+      type: StorylineType.sideQuest,
+      status: StorylineStatus.active,
+      chapters: [
+        StorylineChapter(id: 'dock', title: 'Arrivée', order: 0, steps: [step]),
+      ],
+    );
+    final map = fixture.map.copyWith(
+      triggers: const [
+        MapTrigger(
+          id: 'zone_a',
+          type: TriggerType.event,
+          area: MapRect(
+            pos: GridPos(x: 1, y: 2),
+            size: GridSize(width: 2, height: 1),
+          ),
+        ),
+        MapTrigger(
+          id: 'zone_quay',
+          type: TriggerType.event,
+          area: MapRect(
+            pos: GridPos(x: 1, y: 2),
+            size: GridSize(width: 1, height: 1),
+          ),
+        ),
+      ],
+    );
+    final project = fixture.project.copyWith(
+      storylines: [...fixture.project.storylines, quest],
+      scenes: [
+        ...fixture.project.scenes,
+        _h10CounterScene(
+          'scene_outer',
+          [],
+          storylineId: quest.id,
+          chapterId: 'dock',
+        ),
+        _h10CounterScene(
+          'scene_side',
+          [SceneConsequence.completeStoryStep(stepId: step.id)],
+          storylineId: quest.id,
+          chapterId: 'dock',
+        ),
+      ],
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'avatars',
+          name: 'Avatars',
+          relativePath: 'assets/avatars.png',
+        ),
+      ],
+      characters: [
+        for (final id in ['avatar_a', 'avatar_b'])
+          ProjectCharacterEntry(
+            id: id,
+            name: id,
+            tilesetId: 'avatars',
+            frameHeight: 1,
+          ),
+      ],
+      newGame: ProjectNewGameConfig(
+        enabled: true,
+        startMapId: map.id,
+        playerAvatarCharacterIds: const ['avatar_a', 'avatar_b'],
+        initialFactValuesByAvatarCharacterId: const {
+          'avatar_a': {'fact_gate': NarrativeValue.boolean(true)},
+          'avatar_b': {'fact_gate': NarrativeValue.boolean(false)},
+        },
+      ),
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.v2Only,
+        records: [
+          ...fixture.project.eventRegistry!.records,
+          _record(id: _eventB, source: market, sceneId: 'scene_outer'),
+          _record(
+            id: _eventC,
+            source: quay,
+            sceneId: 'scene_side',
+            conditions: [NarrativeEventCondition.fact('fact_gate', true)],
+          ),
+        ],
+        legacyClaims: const [],
+      ),
+    );
+
+    final report = validateNarrativeProject(project, maps: [map]);
+    final symbolic = report.symbolicReachability!;
+    final component = symbolic.independentFactComponents.singleWhere(
+      (entry) => entry.stepIds.contains(step.id),
+    );
+    final witness = component.states.firstWhere(
+      (state) => state.completedStepIds.contains(step.id),
+    );
+    final avatarA = symbolic.evidenceStates.where(
+      (state) => state.hasTrueFact('fact_gate'),
+    );
+
+    expect(witness.zonePosition?.cell, const GridPos(x: 1, y: 2));
+    expect(witness.provenance.first.nodeId, 'avatar_a');
+    expect(
+      component.compatibleMainStateKeysByStateKey[witness.semanticKey],
+      unorderedEquals(avatarA.map((state) => state.semanticKey)),
+    );
+    expect(symbolic.canSatisfyMilestones([step]), isTrue);
+    expect(report.byCode('storylineStepNeverCompleted'), isEmpty);
+    expect(report.isPlayable, isTrue);
+  });
+
+  for (final (policy, retryable, canRepeat) in [
+    (NarrativeEventReusePolicy.oneShot, false, false),
+    (NarrativeEventReusePolicy.reusable, false, true),
+    (NarrativeEventReusePolicy.oneShot, true, true),
+  ]) {
+    test('H10: a second interaction follows a fact changed by the first ($policy, retryable=$retryable)', () {
+      final fixture = _fixture();
+      final stepId = fixture.project.storylines.single.chapters.single.steps.single.id;
+      final scene = SceneAsset(
+        id: fixture.project.scenes.single.id,
+        name: 'Le guide se souvient',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'check',
+              kind: SceneNodeKind.condition,
+              payload: SceneConditionPayload(
+                conditionSource: SceneConditionSource(
+                  sourceKind: SceneConditionSourceKind.fact,
+                  sourceId: 'fact_gate',
+                  operator: SceneConditionOperator.isTrue,
+                ),
+              ),
+            ),
+            SceneNode(
+              id: 'remember',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.setFact(factId: 'fact_gate', value: true),
+              ),
+            ),
+            SceneNode(
+              id: 'finish',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.completeStoryStep(stepId: stepId),
+              ),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+            if (retryable)
+              SceneNode(
+                id: 'retry',
+                kind: SceneNodeKind.end,
+                payload: SceneEndPayload(
+                  sceneOutcomeId: 'try_again',
+                  outcomePolicy: SceneOutcomePolicy.retryable,
+                ),
+              ),
+          ],
+          edges: [
+            for (final (from, port, to, kind) in [
+              ('start', 'completed', 'check', SceneEdgeKind.defaultFlow),
+              ('check', 'false', 'remember', SceneEdgeKind.conditionFalse),
+              ('check', 'true', 'finish', SceneEdgeKind.conditionTrue),
+              ('remember', 'completed', retryable ? 'retry' : 'end', SceneEdgeKind.defaultFlow),
+              ('finish', 'completed', 'end', SceneEdgeKind.defaultFlow),
+            ])
+              SceneEdge(id: '${from}_$port', fromNodeId: from, fromPortId: port, toNodeId: to, kind: kind),
+          ],
+        ),
+      );
+      final first = solveNarrativeSceneSymbolically(
+        scene,
+        initialState: NarrativeSymbolicState(
+          factValues: {'fact_gate': const NarrativeValue.boolean(false)},
+        ),
+      ).terminalStates.single;
+      expect(first.hasTrueFact('fact_gate'), isTrue);
+      expect(first.completedStepIds, isEmpty);
+      expect(
+        solveNarrativeSceneSymbolically(scene, initialState: first).terminalStates.single.completedStepIds,
+        {stepId},
+      );
+      final report = validateNarrativeProject(
+        fixture.project.copyWith(
+          scenes: [scene],
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: [_record(id: _eventA, reusePolicy: policy)],
+            legacyClaims: const [],
+          ),
+        ),
+        maps: [fixture.map],
+      );
+      expect(
+        report.byCode('storylineStepNeverCompleted'),
+        hasLength(canRepeat ? 0 : 1),
+      );
+    });
+  }
+
+  for (final typedPage in [false, true]) {
+    test('H10: integer Facts on historical pages require Event Builder provenance ($typedPage)', () {
+      final fixture = _fixture();
+      final scene = fixture.project.scenes.single;
+      final map = fixture.map.copyWith(events: [
+        MapEventDefinition(
+          id: 'legacy_intro',
+          position: const EventPosition(layerId: 'events', x: 5, y: 5),
+          pages: [
+            MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: scene.id),
+              condition: ScriptConditionFactory.factEquals('fact_integer', NarrativeValue.integer(5)),
+              metadata: {
+                if (typedPage) EventBuilderMetadataKeys.schemaVersion: EventBuilderMetadataKeys.currentSchemaVersion,
+              },
+            ),
+          ],
+        ),
+      ]);
+      final project = fixture.project.copyWith(
+        facts: [
+          ...fixture.project.facts,
+          NarrativeFactDefinition(id: 'fact_integer', label: 'Entier', initialValue: NarrativeValue.integer(5)),
+        ],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.legacyOnly,
+          records: [],
+          legacyClaims: [],
+        ),
+      );
+      final report = validateNarrativeProject(project, maps: [map]);
+      expect(report.byCode('storylineStepNeverCompleted'), hasLength(typedPage ? 0 : 1));
+    });
+  }
+
+  for (final linked in [false, true]) {
+    test('H10: later map activation requires an authored transition ($linked)', () {
+      final fixture = _fixture();
+      const otherMapId = 'map_station';
+      final start = fixture.map.copyWith(
+        warps: [
+          if (linked)
+            const MapWarp(
+              id: 'to_station',
+              pos: GridPos(x: 2, y: 1),
+              targetMapId: otherMapId,
+              targetPos: GridPos(x: 1, y: 1),
+            ),
+        ],
+      );
+      final station = fixture.map.copyWith(id: otherMapId, name: 'Gare');
+      final project = fixture.project.copyWith(
+        newGame: const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_port',
+          startSpawnId: 'spawn_player',
+        ),
+        maps: [
+          ...fixture.project.maps,
+          const ProjectMapEntry(
+            id: otherMapId,
+            name: 'Gare',
+            relativePath: 'maps/station.json',
+          ),
+        ],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [_record(id: _eventA, source: NarrativeEventSourceRef.mapEnter(otherMapId))],
+          legacyClaims: const [],
+        ),
+      );
+      final report = validateNarrativeProject(project, maps: [start, station]);
+      expect(
+        report.byCode('storylineStepNeverCompleted'),
+        hasLength(linked ? 0 : 1),
+      );
+    });
+  }
+
+  for (final (name, sameMap, layout, guideAvailable, playable) in [
+    ('free 2D arrival on another map', false, _ArrivalLayout.clear, true, true),
+    ('free 2D arrival on the same map', true, _ArrivalLayout.clear, true, true),
+    ('fixed collision on another map', false, _ArrivalLayout.fixedCollision, true, false),
+    ('static element far from the arrival', false, _ArrivalLayout.distantElement, true, true),
+    ('static element on the arrival', false, _ArrivalLayout.blockingElement, true, false),
+    ('unproven actor collision', false, _ArrivalLayout.actorCollision, true, false),
+    ('unproven 3D arrival on the same map', true, _ArrivalLayout.spatial, true, false),
+    ('unproven 3D arrival on another map', false, _ArrivalLayout.spatial, true, false),
+    ('unavailable guide', false, _ArrivalLayout.clear, false, false),
+  ]) {
+    test('H10: a scene warp activates its destination after completion ($name)', () {
+      final fixture = _fixture();
+      final destinationId = sameMap ? fixture.map.id : 'map_station';
+      const arrivalId = 'arrival';
+      const arrival = GridPos(x: 4, y: 2);
+      final hasBollard = layout == _ArrivalLayout.distantElement || layout == _ArrivalLayout.blockingElement;
+      final start = layout == _ArrivalLayout.spatial
+          ? fixture.map.copyWith(version: ProjectVersion.v9, spatialScene: MapSpatialScene(width: 16, depth: 16))
+          : fixture.map;
+      final destination = start.copyWith(
+        id: destinationId,
+        name: sameMap ? fixture.map.name : 'Gare',
+        layers: [
+          ...start.layers,
+          if (layout == _ArrivalLayout.fixedCollision) _h10CollisionAt(start, arrival),
+        ],
+        placedElements: [
+          if (hasBollard)
+            MapPlacedElement(
+              id: 'bollard_instance',
+              layerId: 'events',
+              elementId: 'bollard',
+              pos: layout == _ArrivalLayout.blockingElement ? arrival : const GridPos(x: 13, y: 13),
+              applyCollision: true,
+            ),
+        ],
+        entities: [
+          ...start.entities,
+          if (layout == _ArrivalLayout.actorCollision)
+            const MapEntity(
+              id: 'npc_arrival',
+              name: 'Garde',
+              kind: MapEntityKind.npc,
+              pos: arrival,
+              blocksMovement: true,
+            ),
+        ],
+        warps: [
+          MapWarp(
+            id: arrivalId,
+            pos: arrival,
+            targetMapId: destinationId,
+            targetPos: arrival,
+            triggerMode: MapWarpTriggerMode.sceneOnly,
+          ),
+        ],
+      );
+      final guide = SceneAsset(
+        id: 'scene_departure',
+        name: 'Départ vers la gare',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'warp',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.interactive(
+                SceneInteractiveCommand.warp(
+                  destinationMapId: destinationId,
+                  warpId: arrivalId,
+                ),
+              ),
+            ),
+            SceneNode(
+              id: 'fact',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.setFact(factId: 'fact_gate', value: true),
+              ),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'start_warp',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'warp',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'warp_done',
+              fromNodeId: 'warp',
+              fromPortId: 'completed',
+              toNodeId: 'fact',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+            SceneEdge(
+              id: 'warp_blocked',
+              fromNodeId: 'warp',
+              fromPortId: 'blocked',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+            SceneEdge(
+              id: 'fact_end',
+              fromNodeId: 'fact',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+          ],
+        ),
+      );
+      final project = fixture.project.copyWith(
+        tilesets: [
+          if (hasBollard) const ProjectTilesetEntry(id: 'bollards', name: 'Bornes', relativePath: 'assets/bollards.png'),
+        ],
+        elements: [
+          if (hasBollard)
+            ProjectElementEntry(
+              id: 'bollard', name: 'Borne', tilesetId: 'bollards', categoryId: 'objects',
+              frames: const [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0, width: 16, height: 16))],
+              collisionProfile: ElementCollisionProfile(collisionMask: ElementCollisionPixelMask(
+                widthPx: 16,
+                heightPx: 16,
+                dataBase64: ElementCollisionMaskCodec.encodePackedBits(widthPx: 16, heightPx: 16, solidPixels: List<bool>.filled(16 * 16, true)),
+              )),
+            ),
+        ],
+        newGame: const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_port',
+          startSpawnId: 'spawn_player',
+        ),
+        maps: [
+          ...fixture.project.maps,
+          if (!sameMap)
+            ProjectMapEntry(
+              id: destinationId,
+              name: 'Gare',
+              relativePath: 'maps/station.json',
+            ),
+        ],
+        scenes: [...fixture.project.scenes, guide],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            _record(
+              id: _eventA,
+              sceneId: guide.id,
+              conditions: [
+                if (!guideAvailable) NarrativeEventCondition.fact('fact_gate', true),
+              ],
+            ),
+            _record(
+              id: _eventB,
+              source: NarrativeEventSourceRef.mapEnter(destinationId),
+              conditions: [NarrativeEventCondition.fact('fact_gate', true)],
+            ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+
+      final report = validateNarrativeProject(
+        project,
+        maps: [if (!sameMap) start, destination],
+      );
+
+      expect(report.byCode('sceneNotBuildable'), isEmpty);
+      expect(report.byCode('edgeKindUnsupportedForPort'), isEmpty);
+      expect(
+        report.byCode('storylineStepNeverCompleted'),
+        hasLength(playable ? 0 : 1),
+      );
+      expect(report.isPlayable, playable, reason: report.diagnostics.map((issue) => issue.code).join(', '));
+      if (layout == _ArrivalLayout.spatial || layout == _ArrivalLayout.actorCollision) {
+        expect(report.byCode('narrativeSolvabilityIndeterminate'), isNotEmpty);
+        final witnesses = report.symbolicReachability!.terminalStates.where(
+          (state) => state.completedStepIds.contains('step_intro'),
+        );
+        if (sameMap) {
+          expect(witnesses, isEmpty);
+        } else {
+          expect(witnesses, isNotEmpty);
+          expect(witnesses.every((state) => state.indeterminate), isTrue);
+        }
+      } else {
+        expect(report.byCode('narrativeSolvabilityIndeterminate'), isEmpty);
+      }
+    });
+  }
+
+  test('H10: independent repeatable interactions and simultaneous zones grow linearly', () {
+    final counts = <int>[];
+    for (final count in [24, 48, 96]) {
+      final fixture = _fixture();
+      final indices = List.generate(count, (index) => index);
+      final map = fixture.map.copyWith(
+        entities: [
+          ...fixture.map.entities,
+          for (final i in indices.where((index) => index.isEven))
+            MapEntity(
+              id: 'guide_$i',
+              name: 'Guide $i',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 2 + i % 12, y: 5 + i ~/ 12),
+            ),
+        ],
+        triggers: [
+          for (final i in indices.where((index) => index.isOdd))
+            MapTrigger(
+              id: 'zone_$i',
+              type: TriggerType.event,
+              area: MapRect(
+                pos: GridPos(x: 1 + i ~/ 4 % 8, y: 1 + i ~/ 32),
+                size: const GridSize(width: 1, height: 1),
+              ),
+            ),
+        ],
+      );
+      final project = fixture.project.copyWith(
+        storylines: const [],
+        facts: [
+          for (final i in indices) NarrativeFactDefinition(id: 'fact_$i', label: 'Fact $i'),
+        ],
+        scenes: [
+          for (final i in indices)
+            _h10CounterScene('scene_$i', [
+              SceneConsequence.setFact(factId: 'fact_$i', value: true),
+            ]),
+        ],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            for (final i in indices)
+              _record(
+                id: 'evt_019abcde-4500-7000-8000-${i.toString().padLeft(12, '0')}',
+                sceneId: 'scene_$i',
+                source: i.isEven
+                    ? NarrativeEventSourceRef.entityInteract(map.id, 'guide_$i')
+                    : NarrativeEventSourceRef.triggerEnter(map.id, 'zone_$i'),
+                reusePolicy: i.isEven
+                    ? NarrativeEventReusePolicy.reusable
+                    : NarrativeEventReusePolicy.oneShot,
+                order: i,
+              ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+      final report = solveNarrativeSymbolicReachability(project, maps: [map]);
+      expect(report.issues, isEmpty);
+      expect(
+        report.terminalStates.any((state) => indices.every((i) => state.hasTrueFact('fact_$i'))),
+        isTrue,
+      );
+      counts.add(report.exploredStateCount);
+    }
+    expect(counts[0], lessThanOrEqualTo(24 * 6));
+    expect(counts[1], counts[0] * 2);
+    expect(counts[2], counts[1] * 2);
+  });
 
   for (final alternate in [false, true]) {
   test('H10 counter: independent components and avatar starts, alternate=$alternate', () {
@@ -1865,7 +2526,8 @@ void main() {
       expect(diagnostic.severity, NarrativeProjectDiagnosticSeverity.error);
     });
 
-    test('accepts a narratively reachable reusable source for retry', () {
+    for (final sameSource in [false, true]) {
+    test('checks whether a reusable retry source can be selected ($sameSource)', () {
       final fixture = _fixture();
       final retryableScene = _withEndPolicy(
         fixture.project.scenes.single,
@@ -1874,7 +2536,7 @@ void main() {
       );
       final reusableRetry = _record(
         id: _eventB,
-        entityId: 'npc_guide',
+        entityId: sameSource ? 'npc_guide' : 'npc_second',
         reusePolicy: NarrativeEventReusePolicy.reusable,
       );
 
@@ -1891,11 +2553,12 @@ void main() {
             legacyClaims: const [],
           ),
         ),
-        maps: [fixture.map],
+        maps: [_h10CounterMap(fixture.map)],
       );
 
-      expect(report.byCode('oneShotRetryableOutcomeSoftlock'), isEmpty);
+      expect(report.byCode('oneShotRetryableOutcomeSoftlock'), hasLength(sameSource ? 1 : 0));
     });
+    }
 
     test('accepts an explicitly terminal failure without a retry source', () {
       final fixture = _fixture();
@@ -2065,6 +2728,15 @@ void _presentationTextReferenceTests() {
   });
 }
 
+MapLayer _h10CollisionAt(MapData map, GridPos blocked) => MapLayer.collision(
+  id: 'wall',
+  name: 'Mur',
+  collisions: List.generate(
+    map.size.width * map.size.height,
+    (index) => index == map.size.width * blocked.y + blocked.x,
+  ),
+);
+
 MapData _h10CounterMap(MapData map) => map.copyWith(entities: [
   ...map.entities,
   const MapEntity(
@@ -2209,6 +2881,7 @@ NarrativeEventRecord _record({
   String sceneId = 'scene_intro',
   List<NarrativeEventCondition> conditions = const [],
   NarrativeEventReusePolicy reusePolicy = NarrativeEventReusePolicy.oneShot,
+  int? order,
 }) {
   return NarrativeEventRecord.configuredStructurallyUnchecked(
     NarrativeEventDefinition(
@@ -2219,7 +2892,7 @@ NarrativeEventRecord _record({
       sceneId: sceneId,
       reusePolicy: reusePolicy,
       priority: 0,
-      order: id == _eventA ? 0 : 1,
+      order: order ?? (id == _eventA ? 0 : 1),
     ),
     enabled: true,
   );

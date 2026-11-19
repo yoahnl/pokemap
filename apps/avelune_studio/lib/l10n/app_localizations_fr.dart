@@ -1283,9 +1283,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get storyTabBehaviour => 'Comportement';
-
-  @override
   String get storyTabProperties => 'Propriétés';
 
   @override
@@ -1310,9 +1307,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storyThen => 'ALORS';
-
-  @override
-  String get storyAfter => 'APRÈS LE DÉCLENCHEMENT';
 
   @override
   String storyTrigger(String kind) {
@@ -1540,9 +1534,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storyBehaviourActive => 'Déclencheur actif';
 
   @override
-  String get storyWhenField => 'Quand';
-
-  @override
   String get storyThenField => 'Alors · scène à déclencher';
 
   @override
@@ -1569,24 +1560,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ce comportement a été désactivé : réactivez-le une fois sa configuration complète.';
 
   @override
-  String get storyLineSays => 'Ce personnage dit…';
-
-  @override
-  String get storyLineShows => 'Ce qui s’affiche…';
-
-  @override
   String get storyLineLoading => 'Lecture de la réplique…';
-
-  @override
-  String storyLineShared(String scenes) {
-    return 'Cette réplique sert aussi à $scenes. Détachez-la pour la modifier ici sans changer les autres.';
-  }
-
-  @override
-  String get storyLineDetach => 'Détacher';
-
-  @override
-  String get storyLineOrScene => 'Ou lancer une scène';
 
   @override
   String storyLineUnavailable(String problem) {
@@ -2334,12 +2308,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get openingPhaseMapDirectory => 'Index des éléments des cartes';
 
   @override
-  String get storyTabMemory => 'Mémoire du jeu';
-
-  @override
-  String get memorySectionFacts => 'Faits';
-
-  @override
   String get memorySectionRules => 'Règles du monde';
 
   @override
@@ -2797,9 +2765,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get memoryPresenceSaveFirst =>
       'Enregistrez la carte pour lire la présence de ce personnage.';
-
-  @override
-  String get storyTabWorld => 'Tout le jeu';
 
   @override
   String get behavioursSearch =>

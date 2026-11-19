@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../support/catalog_unit_reads.dart';
@@ -39,6 +40,65 @@ void main() {
           reason: largeWork.action);
     }
   }, timeout: const Timeout(Duration(minutes: 5)));
+
+  test('canonical chapter rename ignores unrelated Storyline definitions',
+      () async {
+    final counts = <Map<String, int>>[];
+    for (final unrelated in [12, 24]) {
+      final project = trameProject(unrelated);
+      final fixture = await NarrativeTitleFixture.create(
+        project: project.copyWith(storylines: [
+          ...project.storylines,
+          for (var i = 0; i < unrelated; i++)
+            StorylineAsset(
+                id: 'side_$i',
+                title: 'Side story $i',
+                type: StorylineType.sideQuest),
+        ]),
+      );
+      try {
+        final counter = CatalogUnitReads(fixture.root);
+        final before = await _units(fixture);
+        final reads = await counter.count(() => fixture.apply(
+              'storyline.chapter.rename',
+              {
+                'storylineId': 'main',
+                'chapterId': 'act_1',
+                'title': 'Acte renommé'
+              },
+              'rename-chapter',
+            ));
+        final after = await _units(fixture);
+        expect(after.keys, unorderedEquals(before.keys));
+        final changed = [
+          for (final entry in after.entries)
+            if (before[entry.key] != entry.value) _label(entry.key),
+        ];
+        expect(changed,
+            unorderedEquals(['projectDefinition:storylines', 'storylines']));
+        final stories = [
+          for (final entry in after.entries)
+            if (_label(entry.key) == 'projectDefinition:storylines')
+              StorylineAsset.fromJson(Map<String, dynamic>.from(
+                (jsonDecode(entry.value) as Map)['value']['definition'] as Map,
+              )),
+        ];
+        expect(stories, hasLength(unrelated + 1));
+        expect(
+            stories
+                .singleWhere((story) => story.id == 'main')
+                .chapters
+                .single
+                .title,
+            'Acte renommé');
+        counts.add(reads);
+      } finally {
+        await fixture.close();
+      }
+    }
+    expect(counts.last, counts.first);
+    expect(counts.last.keys, isNot(contains('projectDefinition:facts')));
+  });
 }
 
 typedef _Work = ({

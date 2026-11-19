@@ -2234,12 +2234,6 @@ abstract class AppLocalizations {
   /// **'X {x} · Y {y}'**
   String storyPosition(int x, int y);
 
-  /// No description provided for @storyTabBehaviour.
-  ///
-  /// In fr, this message translates to:
-  /// **'Comportement'**
-  String get storyTabBehaviour;
-
   /// No description provided for @storyTabProperties.
   ///
   /// In fr, this message translates to:
@@ -2275,12 +2269,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'ALORS'**
   String get storyThen;
-
-  /// No description provided for @storyAfter.
-  ///
-  /// In fr, this message translates to:
-  /// **'APRÈS LE DÉCLENCHEMENT'**
-  String get storyAfter;
 
   /// No description provided for @storyTrigger.
   ///
@@ -2624,12 +2612,6 @@ abstract class AppLocalizations {
   /// **'Déclencheur actif'**
   String get storyBehaviourActive;
 
-  /// No description provided for @storyWhenField.
-  ///
-  /// In fr, this message translates to:
-  /// **'Quand'**
-  String get storyWhenField;
-
   /// No description provided for @storyThenField.
   ///
   /// In fr, this message translates to:
@@ -2672,41 +2654,11 @@ abstract class AppLocalizations {
   /// **'Ce comportement a été désactivé : réactivez-le une fois sa configuration complète.'**
   String get storyDeactivated;
 
-  /// No description provided for @storyLineSays.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ce personnage dit…'**
-  String get storyLineSays;
-
-  /// No description provided for @storyLineShows.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ce qui s’affiche…'**
-  String get storyLineShows;
-
   /// No description provided for @storyLineLoading.
   ///
   /// In fr, this message translates to:
   /// **'Lecture de la réplique…'**
   String get storyLineLoading;
-
-  /// No description provided for @storyLineShared.
-  ///
-  /// In fr, this message translates to:
-  /// **'Cette réplique sert aussi à {scenes}. Détachez-la pour la modifier ici sans changer les autres.'**
-  String storyLineShared(String scenes);
-
-  /// No description provided for @storyLineDetach.
-  ///
-  /// In fr, this message translates to:
-  /// **'Détacher'**
-  String get storyLineDetach;
-
-  /// No description provided for @storyLineOrScene.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ou lancer une scène'**
-  String get storyLineOrScene;
 
   /// No description provided for @storyLineUnavailable.
   ///
@@ -3913,18 +3865,6 @@ abstract class AppLocalizations {
   /// **'Index des éléments des cartes'**
   String get openingPhaseMapDirectory;
 
-  /// No description provided for @storyTabMemory.
-  ///
-  /// In fr, this message translates to:
-  /// **'Mémoire du jeu'**
-  String get storyTabMemory;
-
-  /// No description provided for @memorySectionFacts.
-  ///
-  /// In fr, this message translates to:
-  /// **'Faits'**
-  String get memorySectionFacts;
-
   /// No description provided for @memorySectionRules.
   ///
   /// In fr, this message translates to:
@@ -4512,12 +4452,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Enregistrez la carte pour lire la présence de ce personnage.'**
   String get memoryPresenceSaveFirst;
-
-  /// No description provided for @storyTabWorld.
-  ///
-  /// In fr, this message translates to:
-  /// **'Tout le jeu'**
-  String get storyTabWorld;
 
   /// No description provided for @behavioursSearch.
   ///
