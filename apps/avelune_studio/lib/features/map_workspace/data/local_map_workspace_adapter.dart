@@ -23,8 +23,8 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 import 'package:avelune_studio/features/map_workspace/data/map_document_retention.dart';
-import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/resources/application/project_resource_library.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
 import '../../project_session/data/studio_project_document_revision.dart';
 import '../../project_session/data/local_workshop_reader.dart';

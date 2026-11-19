@@ -1320,14 +1320,21 @@ final class CatalogSnapshot {
     void Function(CatalogDefinitionUnit unit)? onUnit,
   }) => _inspectObjectReferences(validateUnits: true, onUnit: onUnit);
 
-  Future<List<CatalogDefinitionUnit>> readAllUnits() async {
+  Future<List<CatalogDefinitionUnit>> readAllUnits({
+    bool includeWorkspaceState = true,
+  }) async {
     final units = <CatalogDefinitionUnit>[];
-    await _inspectObjectReferences(validateUnits: true, onUnit: units.add);
+    await _inspectObjectReferences(
+      validateUnits: true,
+      includeWorkspaceState: includeWorkspaceState,
+      onUnit: units.add,
+    );
     return List.unmodifiable(units);
   }
 
   Future<List<CatalogObjectReference>> _inspectObjectReferences({
     required bool validateUnits,
+    bool includeWorkspaceState = true,
     void Function(CatalogDefinitionUnit)? onUnit,
   }) async {
     await _read(root, _readObject, limits, limits.maxIndexBytes);
@@ -1363,15 +1370,36 @@ final class CatalogSnapshot {
       admit(entry.reference);
     }
     if (validateUnits) {
-      final keys = entries.map((e) => e.key).toSet();
+      final selected = includeWorkspaceState
+          ? entries
+          : entries
+                .where(
+                  (entry) =>
+                      entry.key.kind != CatalogDefinitionKind.workspaceState,
+                )
+                .toList();
+      final keys = selected.map((entry) => entry.key).toSet();
       final units = <CatalogDefinitionUnit>[];
-      for (final entry in entries) {
-        final unit = await _unit(entry);
-        units.add(unit);
+      void validateUnit(CatalogDefinitionUnit unit) {
         if (unit.references.any((k) => !keys.contains(k))) {
           throw const FormatException('catalog.validate: missing dependency');
         }
+        units.add(unit);
         onUnit?.call(unit);
+      }
+
+      if (includeWorkspaceState) {
+        for (final entry in selected) {
+          validateUnit(await _unit(entry));
+        }
+      } else {
+        const batchSize = 16;
+        for (var offset = 0; offset < selected.length; offset += batchSize) {
+          final batch = selected.skip(offset).take(batchSize);
+          for (final unit in await Future.wait(batch.map(_unit))) {
+            validateUnit(unit);
+          }
+        }
       }
       CatalogReverseReferences.validate(units);
     }

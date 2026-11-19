@@ -1,5 +1,10 @@
 part of 'local_map_workspace_adapter.dart';
 
+Future<ProjectResourceLibrary> _readProjectResourceLibraryInBackground(
+  LocalProjectFileReader reader,
+  ProjectSession session,
+) => Isolate.run(() => _readProjectResourceLibrary(reader, session));
+
 Future<ProjectResourceLibrary> _readProjectResourceLibrary(
   ProjectFileReader reader,
   ProjectSession session,
@@ -22,9 +27,7 @@ Future<ProjectResourceLibrary> _readProjectResourceLibrary(
   await for (final index in entries(CatalogDefinitionKind.resourceFamily)) {
     final unit = await catalog.lookup(index.key);
     if (unit == null) {
-      throw FormatException(
-        'catalog.selection: missing definition ${index.key}',
-      );
+      throw const FormatException('Une famille du catalogue est introuvable.');
     }
     families.add(catalog.definitionValue(unit) as ResourceFamily);
   }
@@ -46,7 +49,10 @@ Future<ProjectResourceLibrary> _readProjectResourceLibrary(
           tags: index.summary.tags,
           familyId: info?.familyId,
           mapId: info?.mapId,
-          description: info?.description,
+          description: info?.description ?? index.summary.description,
+          category: ResourceUsageCategory.values
+              .where((category) => category.name == info?.category)
+              .firstOrNull,
           role: info?.role == ResourceLibraryRole.component.name
               ? ResourceLibraryRole.component
               : ResourceLibraryRole.standard,

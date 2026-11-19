@@ -20,6 +20,7 @@ import '../../workspace/project_snapshot_fingerprint_cache.dart';
 import '../../workspace/workspace_handle_store.dart';
 import '../../workspace/workspace_policy.dart';
 import '../assets/asset_store.dart';
+import 'project_item_asset_sources.dart';
 
 final class ProjectItemIconPack {
   ProjectItemIconPack({
@@ -51,6 +52,7 @@ Future<Map<String, Object?>> provisionProjectItemIcons({
   List<String>? itemIds,
   bool Function()? shouldContinue,
   ProjectSnapshotLoadProfileSink? profileSink,
+  void Function(int checked, int total)? onItemsChecked,
 }) async {
   _requireCurrent(shouldContinue);
   final root = await _directory(projectPath);
@@ -60,8 +62,12 @@ Future<Map<String, Object?>> provisionProjectItemIcons({
   final policy = await WorkspacePolicy.create(
       allowedRootPaths: [root], fileReader: reader);
   final handles = WorkspaceHandleStore();
-  final opener =
-      ProjectOpenService(policy: policy, fileReader: reader, handles: handles);
+  final opener = ProjectOpenService(
+      policy: policy,
+      fileReader: reader,
+      handles: handles,
+      catalogMetadataFields: const {'pokemon'},
+      initializeSceneOwners: false);
   final opened = await opener.openProject(root);
   final snapshots = ProjectSnapshotLoader(
     handles: handles,
@@ -72,10 +78,14 @@ Future<Map<String, Object?>> provisionProjectItemIcons({
   LocalMapAuthoringMutationApi? api;
   Directory? staging;
   try {
-    final snapshot = await snapshots.load(opened.projectHandle,
-        policy: ProjectSnapshotLoadPolicy.resourceUsageReadProjection);
+    final catalog = await opener.catalogProject(opened.projectHandle);
+    final input = await readProjectItemAssetSources(
+        catalog: catalog,
+        snapshots: snapshots,
+        handle: opened.projectHandle,
+        projectFile: (path) => _projectFile(root, path));
     _requireCurrent(shouldContinue);
-    if (!snapshot.manifest.pokemon.enabled) {
+    if (!input.pokemon.enabled) {
       return {
         'importedItems': <String>[],
         'preservedItems': <String>[],
@@ -84,7 +94,7 @@ Future<Map<String, Object?>> provisionProjectItemIcons({
         'skippedReason': 'pokemon-disabled',
       };
     }
-    if (snapshot.manifest.pokemon.catalogFiles['items'] == null) {
+    if (input.pokemon.catalogFiles['items'] == null) {
       return {
         'importedItems': <String>[],
         'preservedItems': <String>[],
@@ -93,10 +103,10 @@ Future<Map<String, Object?>> provisionProjectItemIcons({
         'skippedReason': 'item-catalog-not-configured',
       };
     }
-    final itemCatalog = snapshot.itemCatalog;
+    final itemCatalog = input.items;
     if (itemCatalog == null) {
-      final catalogFile = await _projectFile(
-          root, snapshot.manifest.pokemon.catalogFiles['items']!);
+      final catalogFile =
+          await _projectFile(root, input.pokemon.catalogFiles['items']!);
       if (!await catalogFile.exists() && itemIds == null) {
         return {
           'importedItems': <String>[],
@@ -109,15 +119,12 @@ Future<Map<String, Object?>> provisionProjectItemIcons({
       throw const FormatException('A valid project item catalog is required.');
     }
     final definitions = _selectItems(itemCatalog, itemIds);
-    final catalogBytes =
-        snapshot.findResourceBytes(assetCatalogResourceIdentity);
-    final assets = catalogBytes == null
-        ? AssetCatalog()
-        : AssetCatalog.fromJson(
-            jsonDecode(utf8.decode(catalogBytes)) as Map<String, dynamic>);
+    final assets = input.assets;
     final preserved = <String>[];
     final missing = <({ProjectItemDefinition definition, String path})>[];
-    for (final definition in definitions) {
+    for (final (index, definition) in definitions.indexed) {
+      _requireCurrent(shouldContinue);
+      onItemsChecked?.call(index, definitions.length);
       final path = 'data/pokemon/assets/items/${definition.id}.png';
       final file = await _projectFile(root, path);
       if (await file.exists() || assets.findByLogicalPath(path) != null) {
@@ -126,6 +133,7 @@ Future<Map<String, Object?>> provisionProjectItemIcons({
         missing.add((definition: definition, path: path));
       }
     }
+    onItemsChecked?.call(definitions.length, definitions.length);
     _requireCurrent(shouldContinue);
     if (missing.isEmpty) {
       return {
@@ -237,9 +245,14 @@ Future<Map<String, Object?>> provisionProjectItemIcons({
                 'An import destination changed. Retry.');
           }
         }
-        final revision = (await snapshots.load(opened.projectHandle,
-                policy: ProjectSnapshotLoadPolicy.editorReadProjection))
-            .revision;
+        final parameters = <String, Object?>{'entries': chunk};
+        final snapshot = await readItemAssetMutationSnapshot(
+            catalogBacked: catalog != null,
+            snapshots: snapshots,
+            api: api,
+            handle: opened.projectHandle,
+            actionId: 'asset.import_batch',
+            parameters: parameters);
         final operationId =
             'item-icons-${DateTime.now().microsecondsSinceEpoch}-$offset';
         _requireCurrent(shouldContinue);
@@ -250,8 +263,8 @@ Future<Map<String, Object?>> provisionProjectItemIcons({
                 actionId: 'asset.import_batch',
                 actionVersion: 1,
                 workspaceHandle: opened.workspaceHandle.value,
-                parameters: {'entries': chunk},
-                expectedRevision: revision,
+                parameters: parameters,
+                expectedRevision: snapshot.revision,
                 idempotencyKey: operationId));
         if (!plan.applicable) {
           throw FormatException(

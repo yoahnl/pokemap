@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:avelune_studio/features/story_workspace/application/story_workspace_state.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
-import 'story_breadcrumb.dart';
 import 'story_inspector.dart';
 import 'story_navigation.dart';
+
+const _inspectorWidth = 320.0;
 
 typedef StoryPanelBuilder = Widget Function(Widget content, Widget inspector);
 
@@ -42,6 +43,8 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
     builder: (context, constraints) {
       final inline = constraints.maxWidth >= 1100;
       final visible = _inspector ?? inline;
+      final contentHidden = !inline && visible;
+      final inlineInspector = inline && visible && widget.inspectorAvailable;
       final l10n = context.l10n;
       return Row(
         key: const ValueKey('studio-story'),
@@ -56,30 +59,51 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (widget.section != StorySection.behaviours) ...[
-                  StoryBreadcrumb(section: widget.section),
-                  StudioPageHeader(
-                    title: storySectionLabel(context, widget.section),
-                    description: storySectionHint(context, widget.section),
-                    compact: true,
-                    alignActionsToEnd: true,
-                    actions: [
-                      if (widget.inspectorAvailable)
-                        StudioButton(
-                          key: const ValueKey('story-toggle-inspector'),
-                          label: visible
-                              ? l10n.inspectorHide
-                              : l10n.inspectorShow,
-                          icon: visible
-                              ? Icons.chevron_right
-                              : Icons.chevron_left,
-                          variant: StudioButtonVariant.quiet,
-                          onPressed: () =>
-                              setState(() => _inspector = !visible),
+                if (widget.section != StorySection.behaviours)
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: StudioPageHeader.section(
+                            key: const ValueKey('story-section-header'),
+                            title: storySectionLabel(context, widget.section),
+                            actions: [
+                              if (widget.section != StorySection.verification)
+                                StudioButton(
+                                  label: l10n.storyTabVerify,
+                                  icon: Icons.info_outline,
+                                  variant: StudioButtonVariant.quiet,
+                                  onPressed: () => widget.onSelected(
+                                    StorySection.verification,
+                                  ),
+                                ),
+                              if (widget.inspectorAvailable)
+                                StudioTool(
+                                  key: const ValueKey('story-toggle-inspector'),
+                                  label: visible
+                                      ? l10n.inspectorHide
+                                      : l10n.inspectorShow,
+                                  icon: visible
+                                      ? Icons.last_page
+                                      : Icons.first_page,
+                                  onPressed: () =>
+                                      setState(() => _inspector = !visible),
+                                ),
+                            ],
+                          ),
                         ),
-                    ],
+                        if (inlineInspector)
+                          SizedBox(
+                            width: _inspectorWidth,
+                            child: StudioPageHeader.section(
+                              key: const ValueKey('story-inspector-header'),
+                              title: l10n.inspectorTitle,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ],
                 if (!widget.editable)
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -107,14 +131,17 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
                             builder: (context, area) => Stack(
                               children: [
                                 Positioned.fill(
-                                  right: inline && visible ? 320 : 0,
-                                  child: Offstage(
-                                    offstage: !inline && visible,
-                                    child: TooltipVisibility(
-                                      visible:
-                                          TooltipVisibility.of(context) &&
-                                          (inline || !visible),
-                                      child: content,
+                                  right: inlineInspector ? _inspectorWidth : 0,
+                                  child: ExcludeFocus(
+                                    excluding: contentHidden,
+                                    child: Offstage(
+                                      offstage: contentHidden,
+                                      child: TooltipVisibility(
+                                        visible:
+                                            TooltipVisibility.of(context) &&
+                                            !contentHidden,
+                                        child: content,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -122,21 +149,27 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
                                   top: 0,
                                   right: 0,
                                   bottom: 0,
-                                  width: inline ? 320 : area.maxWidth,
-                                  child: Offstage(
-                                    offstage: !visible,
-                                    child: TooltipVisibility(
-                                      visible:
-                                          TooltipVisibility.of(context) &&
-                                          visible,
-                                      child: TickerMode(
-                                        enabled: visible,
-                                        child: StoryInspector(
-                                          key: const ValueKey(
-                                            'story-inspector',
+                                  width: inline
+                                      ? _inspectorWidth
+                                      : area.maxWidth,
+                                  child: ExcludeFocus(
+                                    excluding: !visible,
+                                    child: Offstage(
+                                      offstage: !visible,
+                                      child: TooltipVisibility(
+                                        visible:
+                                            TooltipVisibility.of(context) &&
+                                            visible,
+                                        child: TickerMode(
+                                          enabled: visible,
+                                          child: StoryInspector(
+                                            key: const ValueKey(
+                                              'story-inspector',
+                                            ),
+                                            width: double.infinity,
+                                            showTitle: !inline,
+                                            child: inspector,
                                           ),
-                                          width: double.infinity,
-                                          child: inspector,
                                         ),
                                       ),
                                     ),

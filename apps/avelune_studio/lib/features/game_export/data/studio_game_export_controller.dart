@@ -33,13 +33,12 @@ final class StudioGameExportController implements StudioGameExportPort {
     required this.projectRoot,
     required this.projectName,
     CanonicalGamePackageExportService? service,
-    BuildStudioGamePackage? buildPackage,
+    this.buildPackage,
     this.writePackage,
     ReadStudioSourceFingerprints? readFingerprints,
     CheckStudioExportDestination? destinationExists,
     this.prepareProjectAssets,
   }) : service = service ?? const CanonicalGamePackageExportService(),
-       buildPackage = buildPackage ?? _buildInIsolate,
        readFingerprints =
            readFingerprints ??
            ((root) => Isolate.run(() => sourceFingerprints(root))),
@@ -49,13 +48,16 @@ final class StudioGameExportController implements StudioGameExportPort {
   @override
   final String projectName;
   final CanonicalGamePackageExportService service;
-  final BuildStudioGamePackage buildPackage;
+  final BuildStudioGamePackage? buildPackage;
   final WriteStudioGamePackage? writePackage;
   final ReadStudioSourceFingerprints readFingerprints;
   final CheckStudioExportDestination destinationExists;
   final Future<void> Function(String projectRoot)? prepareProjectAssets;
   @override
   StudioExportStage stage = StudioExportStage.idle;
+  StudioExportProgress? _progress;
+  @override
+  StudioExportProgress? get progress => _progress;
   GamePackageExportProfile? profile;
   String? _profileRevision;
   @override
@@ -214,6 +216,13 @@ final class StudioGameExportController implements StudioGameExportPort {
 
   bool _valid(int operation, bool Function() isCurrentProject) =>
       !_disposed && operation == _operation && isCurrentProject();
+
+  void _showStep(StudioExportStep step, {int? itemsChecked, int? itemCount}) {
+    final next = (step: step, itemsChecked: itemsChecked, itemCount: itemCount);
+    if (_progress == next) return;
+    _progress = next;
+    _notify();
+  }
 
   void _notify() {
     if (!_disposed) _changes.add(null);

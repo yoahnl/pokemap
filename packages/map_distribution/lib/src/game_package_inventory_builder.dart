@@ -45,6 +45,15 @@ final class GamePackageInventoryBuilder {
     Map<String, List<int>> payloadFiles, {
     PackageMediaTypeResolver? mediaTypeForPath,
   }) {
+    final fileCount = payloadFiles.length;
+    if (fileCount == 0 || fileCount > maxFileCount) {
+      _fail(
+        'invalidFileCount',
+        r'$.content.files',
+        'The package contains $fileCount files. The allowed range is 1 to '
+            '$maxFileCount files.',
+      );
+    }
     final snapshot = Map<String, List<int>>.unmodifiable(
       payloadFiles.map(
         (path, bytes) {
@@ -63,13 +72,6 @@ final class GamePackageInventoryBuilder {
         },
       ),
     );
-    if (snapshot.isEmpty || snapshot.length > maxFileCount) {
-      _fail(
-        'invalidFileCount',
-        r'$.content.files',
-        'Payload file count is outside policy.',
-      );
-    }
     final collisionKeys = <String>{};
     final entries = <GamePackageFileEntry>[];
     var totalBytes = 0;

@@ -193,6 +193,23 @@ void main() {
     expect(button(tester, 'submit').onPressed, isNotNull);
   });
 
+  testWidgets('shows export steps and the percentage of completed steps', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    final port = GameExportUiProbe()..gate = gate;
+    await openExport(tester, port, scale: 1.4);
+    await tester.tap(control('submit'));
+    await tester.pump();
+    expect(find.text('4 étapes sur 10 terminées · 40 %'), findsOneWidget);
+    expect(find.text('Rassembler les fichiers du jeu'), findsOneWidget);
+    expect(find.text('Écrire le paquet'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('10 étapes sur 10 terminées · 100 %'), findsOneWidget);
+  });
+
   testWidgets('a project switch while picking prevents any late export', (
     tester,
   ) async {

@@ -37,6 +37,9 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
     required VoidCallback onToggleInspector,
     required VoidCallback onCollapse,
   }) {
+    final libraryWidth = (MediaQuery.sizeOf(context).width - studioRailWidth)
+        .clamp(0.0, double.infinity)
+        .toDouble();
     final project = _maps.project;
     final document = _maps.active;
     final entry = _activeEntry;
@@ -192,10 +195,19 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                                 !_sceneShown,
                             child: _storyPage(),
                           ),
-                          ProjectLibraryPage(
-                            active: _section == StudioRailSection.resources && !_sceneShown,
-                            maps: _maps,
-                            visuals: _visuals,
+                          Align(
+                            alignment: AlignmentDirectional.topStart,
+                            child: SizedBox(
+                              width: libraryWidth,
+                              height: double.infinity,
+                              child: ProjectLibraryPage(
+                                active:
+                                    _section == StudioRailSection.resources &&
+                                    !_sceneShown,
+                                maps: _maps,
+                                visuals: _visuals,
+                              ),
+                            ),
                           ),
                         ],
                       ),

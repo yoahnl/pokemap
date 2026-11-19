@@ -17,11 +17,15 @@ mixin _MapWorkspaceCatalogPorts
   @override
   Future<ProjectResourceLibrary> readResourceLibrary(ProjectSession session) {
     if (session.storage == ProjectSessionStorage.manifest) {
-      return Future.value(ProjectResourceLibrary.fromManifest(_adapter._project(session).manifest));
+      return Future.sync(
+        () => ProjectResourceLibrary.fromManifest(
+          _adapter._project(session).manifest,
+        ),
+      );
     }
     final reader = _adapter._reader;
     return reader is LocalProjectFileReader
-        ? Isolate.run(() => _readProjectResourceLibrary(reader, session))
+        ? _readProjectResourceLibraryInBackground(reader, session)
         : _readProjectResourceLibrary(reader, session);
   }
 

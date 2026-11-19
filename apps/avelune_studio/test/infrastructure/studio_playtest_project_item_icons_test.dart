@@ -18,142 +18,134 @@ import 'package:path/path.dart' as p;
 import '../../tool/create_example_project.dart';
 
 void main() {
-  testWidgets('prepares project item icons before loading the playtest bundle', (
-    tester,
-  ) async {
-    late Directory directory;
-    late ProjectSession session;
-    late ProjectMapEntry entry;
-    late MapWorkspaceDocument document;
-    late ProjectManifest project;
-    await tester.runAsync(() async {
-      directory = await Directory.systemTemp.createTemp(
-        'studio_icon_playtest_',
-      );
-      await writeExampleProject(directory);
-      session = ProjectSession(
-        sessionId: 'item-icon-playtest',
-        name: 'Project item icons',
-        directoryPath: await directory.resolveSymbolicLinks(),
-      );
-      final port = LocalMapWorkspaceAdapter();
-      project = await port.loadProject(session);
-      entry = project.maps.first;
-      document = await port.loadMap(session, entry);
-      final catalog = File(
-        p.join(session.directoryPath, 'data/pokemon/catalogs/items.json'),
-      );
-      await catalog.parent.create(recursive: true);
-      await catalog.writeAsString(
-        jsonEncode(
-          encodeProjectItemCatalog(
-            ProjectItemCatalog(
-              schemaVersion: 1,
-              entries: const [
-                ProjectItemDefinition(
-                  id: 'potion',
-                  displayName: 'Potion',
-                  pocketId: 'medicine',
-                ),
-              ],
+  testWidgets(
+    'prepares project item icons before loading the playtest bundle',
+    (tester) async {
+      late Directory directory;
+      late ProjectSession session;
+      late ProjectMapEntry entry;
+      late MapWorkspaceDocument document;
+      late ProjectManifest project;
+      await tester.runAsync(() async {
+        directory = await Directory.systemTemp.createTemp(
+          'studio_icon_playtest_',
+        );
+        await writeExampleProject(directory);
+        session = ProjectSession(
+          sessionId: 'item-icon-playtest',
+          name: 'Project item icons',
+          directoryPath: await directory.resolveSymbolicLinks(),
+        );
+        final port = LocalMapWorkspaceAdapter();
+        project = await port.loadProject(session);
+        entry = project.maps.first;
+        document = await port.loadMap(session, entry);
+        final catalog = File(
+          p.join(session.directoryPath, 'data/pokemon/catalogs/items.json'),
+        );
+        await catalog.parent.create(recursive: true);
+        await catalog.writeAsString(
+          jsonEncode(
+            encodeProjectItemCatalog(
+              ProjectItemCatalog(
+                schemaVersion: 1,
+                entries: const [
+                  ProjectItemDefinition(
+                    id: 'potion',
+                    displayName: 'Potion',
+                    pocketId: 'medicine',
+                  ),
+                ],
+              ),
             ),
           ),
+        );
+      });
+      addTearDown(() => directory.delete(recursive: true));
+      final gate = Completer<void>();
+      final port = _CachedMapPort(document);
+      String? preparationRoot;
+      await tester.pumpWidget(
+        _view(
+          session: session,
+          entry: entry,
+          document: document,
+          port: port,
+          prepare: (root) {
+            expect(root, session.directoryPath);
+            expect(port.loadCalls, 1);
+            preparationRoot = root;
+            return gate.future;
+          },
         ),
       );
-    });
-    addTearDown(() => directory.delete(recursive: true));
-    final gate = Completer<void>();
-    final port = _CachedMapPort(document);
-    var preparing = false;
-    var prepared = false;
-    var phase = 'waiting';
-    await tester.pumpWidget(
-      _view(
-        session: session,
-        entry: entry,
-        document: document,
-        port: port,
-        prepare: (root) async {
-          expect(root, session.directoryPath);
-          expect(port.loadCalls, 1);
-          preparing = true;
-          await gate.future;
-          phase = 'provisioning';
-          await StudioProjectItemIcons.shared.prepare(root);
-          phase = 'manifest';
-          await File(p.join(root, 'project.json')).writeAsString(
-            jsonEncode(project.copyWith(name: 'Item icons prepared').toJson()),
-          );
-          prepared = true;
-        },
-      ),
-    );
-    await tester.pump();
-    expect(preparing, isTrue);
-    expect(find.byType(GameWidget<PlayableMapGame>), findsNothing);
-    expect(find.textContaining('Le test ne peut pas démarrer'), findsNothing);
-    gate.complete();
-    PlayableMapGame? game;
-    for (var attempt = 0; attempt < 3000; attempt++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 10)),
-      );
-      await tester.pump(const Duration(milliseconds: 16));
-      final finder = find.byType(GameWidget<PlayableMapGame>);
-      if (finder.evaluate().isNotEmpty) {
-        game = tester.widget<GameWidget<PlayableMapGame>>(finder).game;
-        if (game!.isLoaded && !game.debugIsMapActivationDispatchInFlight) {
-          break;
+      await tester.pump();
+      expect(preparationRoot, session.directoryPath);
+      expect(find.byType(GameWidget<PlayableMapGame>), findsNothing);
+      expect(find.textContaining('Le test ne peut pas démarrer'), findsNothing);
+      await tester.runAsync(() async {
+        await StudioProjectItemIcons.shared.prepare(preparationRoot!);
+        await File(p.join(preparationRoot!, 'project.json')).writeAsString(
+          jsonEncode(project.copyWith(name: 'Item icons prepared').toJson()),
+        );
+      });
+      gate.complete();
+      PlayableMapGame? game;
+      for (var attempt = 0; attempt < 3000; attempt++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        await tester.pump(const Duration(milliseconds: 16));
+        final finder = find.byType(GameWidget<PlayableMapGame>);
+        if (finder.evaluate().isNotEmpty) {
+          game = tester.widget<GameWidget<PlayableMapGame>>(finder).game;
+          if (game!.isLoaded && !game.debugIsMapActivationDispatchInFlight) {
+            break;
+          }
         }
       }
-    }
-    expect(
-      prepared,
-      isTrue,
-      reason:
-          '$phase\n${tester.widgetList<Text>(find.byType(Text)).map((text) => text.data).join('\n')}',
-    );
-    expect(game, isNotNull);
-    expect(game!.isLoaded, isTrue);
-    await tester.runAsync(() async {
-      final bundle = await game!.debugLoadRuntimeMapBundleCachedForTest(
-        entry.id,
-      );
-      expect(bundle.manifest.name, 'Item icons prepared');
-      final icon = File(
-        p.join(session.directoryPath, 'data/pokemon/assets/items/potion.png'),
-      );
-      expect((await icon.readAsBytes()).take(8), [
-        137,
-        80,
-        78,
-        71,
-        13,
-        10,
-        26,
-        10,
-      ]);
-      final assets = AssetCatalog.fromJson(
-        jsonDecode(
-          await File(p.join(session.directoryPath, assetCatalogStorageKey))
-              .readAsString(),
-        ) as Map<String, dynamic>,
-      );
-      expect(
-        assets.findByLogicalPath('data/pokemon/assets/items/potion.png'),
-        isNotNull,
-      );
-      expect(
-        assets.records.where(
-          (record) => record.tags.contains('item-icon-provenance'),
-        ),
-        hasLength(1),
-      );
-    });
-    await tester.pumpWidget(const SizedBox());
-    expect(game.isPaused, isTrue);
-    expect(tester.takeException(), isNull);
-  });
+      expect(game, isNotNull);
+      expect(game!.isLoaded, isTrue);
+      await tester.runAsync(() async {
+        final bundle = await game!.debugLoadRuntimeMapBundleCachedForTest(
+          entry.id,
+        );
+        expect(bundle.manifest.name, 'Item icons prepared');
+        final icon = File(
+          p.join(session.directoryPath, 'data/pokemon/assets/items/potion.png'),
+        );
+        expect((await icon.readAsBytes()).take(8), [
+          137,
+          80,
+          78,
+          71,
+          13,
+          10,
+          26,
+          10,
+        ]);
+        final assets = AssetCatalog.fromJson(
+          jsonDecode(
+            await File(p.join(session.directoryPath, assetCatalogStorageKey))
+                .readAsString(),
+          ) as Map<String, dynamic>,
+        );
+        expect(
+          assets.findByLogicalPath('data/pokemon/assets/items/potion.png'),
+          isNotNull,
+        );
+        expect(
+          assets.records.where(
+            (record) => record.tags.contains('item-icon-provenance'),
+          ),
+          hasLength(1),
+        );
+      });
+      await tester.pumpWidget(const SizedBox());
+      expect(game.isPaused, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('revision conflict skips item icon preparation', (tester) async {
     final document = _document();

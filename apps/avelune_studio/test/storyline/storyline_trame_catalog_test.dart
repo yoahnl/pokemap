@@ -15,6 +15,8 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_sto
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_binding.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_memory.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart'
+    show CatalogGenerationRetention, CatalogStorageStore;
 import 'package:map_core/map_core.dart';
 
 import '../game_memory/game_memory_catalog_fixture.dart';
@@ -57,6 +59,58 @@ _openTrame() async {
 }
 
 void main() {
+  test('loading storyline documents reads each definition once', () async {
+    final session = await openGameMemoryCatalog(
+      unrelated: 2,
+      prepared: false,
+      storylines: true,
+      unrelatedDialogues: true,
+    );
+    final store = await CatalogStorageStore.open(
+      projectRoot: session.directoryPath,
+    );
+    final catalog = await CatalogGenerationRetention(
+      store: store,
+    ).openSnapshot();
+    try {
+      expect(
+        await catalog.snapshot.lookup(
+          CatalogDefinitionKey(
+            CatalogDefinitionKind.workspaceState,
+            'narrativeEventDocuments',
+          ),
+        ),
+        isNotNull,
+      );
+    } finally {
+      await catalog.close();
+    }
+    final reader = CountingReader();
+
+    final storylines = await LocalStorylineReadAdapter(
+      session,
+      reader: reader,
+    ).storylines();
+
+    expect(storylines, hasLength(3));
+    expect(
+      storylines.singleWhere((storyline) => storyline.id == 'main'),
+      memoryUsageStory(),
+    );
+    expect(
+      reader.definitions,
+      unorderedEquals(['main', 'unrelated_story_0', 'unrelated_story_1']),
+    );
+    expect(
+      reader.unitKeys.where(
+        (key) =>
+            key == 'workspaceState:narrativeEventDocuments' ||
+            key.contains('"eventRegistry"'),
+      ),
+      isEmpty,
+    );
+  });
+
   test('chapter and journal metadata stay targeted and conditions reopen from the catalog', () async {
     final (session: session, story: story, trame: initial, reader: reader) =
         await _openTrame();

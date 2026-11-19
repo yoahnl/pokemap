@@ -16,74 +16,33 @@ class ProjectLibraryItem {
     this.familyId,
     this.mapId,
     this.description,
+    this.category,
     this.role = ResourceLibraryRole.standard,
     Iterable<String> tags = const [],
   }) : searchText = studioSearchText([name, ...tags, ?description].join(' '));
 
   final String kind, id, name, searchText;
   final String? familyId, mapId, description;
+  final ResourceUsageCategory? category;
   final ResourceLibraryRole role;
+
   String get identity => '$kind:$id';
 }
 
 class ProjectResourceLibrary {
-  ProjectResourceLibrary(this.catalog, Iterable<ProjectLibraryItem> entries)
-    : items = List.unmodifiable(
-        entries.toList()..sort((a, b) {
-          final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-          return byName == 0 ? a.identity.compareTo(b.identity) : byName;
-        }),
-      );
+  ProjectResourceLibrary(this.catalog, Iterable<ProjectLibraryItem> items)
+    : items = List.unmodifiable(items);
 
-  factory ProjectResourceLibrary.fromManifest(ProjectManifest project) =>
-      ProjectResourceLibrary(project.resourceLibraryCatalog, [
-        for (final item in resourceCatalog(project))
-          _manifestItem(item, item.metadata(project)),
-      ]);
+  factory ProjectResourceLibrary.fromManifest(ProjectManifest project) {
+    final catalog = project.resourceLibraryCatalog;
+    return ProjectResourceLibrary(catalog, [
+      for (final item in resourceCatalog(project))
+        _manifestItem(item, item.metadata(project)),
+    ]);
+  }
 
   final ResourceLibraryCatalog catalog;
   final List<ProjectLibraryItem> items;
-  late final families = {for (final f in catalog.effectiveFamilies) f.id: f};
-  late final List<String> populatedFamilies = _populatedFamilies();
-
-  List<String> _populatedFamilies() {
-    final ids = <String>{};
-    for (final item in items) {
-      var id = item.familyId;
-      while (id != null && ids.add(id)) {
-        id = families[id]?.parentId;
-      }
-    }
-    return ids.toList()..sort((a, b) => familyPath(a).compareTo(familyPath(b)));
-  }
-
-  String familyPath(String familyId) {
-    final path = <String>[];
-    for (
-      var family = families[familyId];
-      family != null;
-      family = families[family.parentId]
-    ) {
-      path.add(family.name);
-    }
-    return path.reversed.join(' › ');
-  }
-
-  List<ProjectLibraryItem> search(
-    ResourceLibraryRole role,
-    String? familyId,
-    String query,
-  ) {
-    final ids = familyId == null ? null : catalog.descendantFamilyIds(familyId);
-    final words = studioSearchText(query).trim().split(RegExp(r'\s+'));
-    return [
-      for (final item in items)
-        if (item.role == role &&
-            (ids == null || ids.contains(item.familyId)) &&
-            words.every(item.searchText.contains))
-          item,
-    ];
-  }
 
   static ProjectLibraryItem _manifestItem(
     ResourceItem item,
@@ -95,6 +54,7 @@ class ProjectResourceLibrary {
     familyId: entry?.familyId,
     mapId: entry?.mapId,
     description: entry?.description,
+    category: entry?.category,
     role: entry?.role ?? ResourceLibraryRole.standard,
     tags: item.tags,
   );

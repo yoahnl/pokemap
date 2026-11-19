@@ -22,6 +22,41 @@ void main() {
   });
   tearDown(() => root.delete(recursive: true));
 
+  test('working catalog provisioning updates the item without a full snapshot',
+      () async {
+    final project = await _project(root, 'working', [_ball('poke_ball')]);
+    final store = await CatalogStorageStore.open(projectRoot: project.path);
+    final manifest = jsonDecode(
+            await File(p.join(project.path, 'project.json')).readAsString())
+        as Map<String, dynamic>;
+    await WorkingProjectCatalog.create(
+      store: store,
+      projectId: 'capture-provisioning',
+      project: ProjectManifest.fromJson(manifest),
+      expectedProjectRevision:
+          await store.gateway.readResourceRevision('project.json'),
+    );
+    final profiles = <ProjectSnapshotLoadProfile>[];
+
+    final result = await provisionProjectCaptureSprites(
+      projectPath: project.path,
+      loadPack: () async => pack,
+      profileSink: profiles.add,
+    );
+
+    expect(profiles, isEmpty);
+    expect(result['importedItems'], ['poke_ball']);
+    expect(result['updatedItems'], ['poke_ball']);
+    expect(
+        (result['receipts'] as List).map((entry) => (entry as Map)['actionId']),
+        ['asset.import_batch', 'item.update']);
+    const path = 'data/pokemon/assets/items/poke_ball/animation.png';
+    expect(
+        (await _catalog(project)).entries.single.capture!.animationSpritePath,
+        path);
+    expect(await File(p.join(project.path, path)).readAsBytes(), sprite);
+  });
+
   test('the CLI provisions only catalog Balls from the default Studio pack',
       () async {
     final project = await _project(
@@ -174,9 +209,9 @@ void main() {
         [_ball('poke_ball', path: 'assets/art/custom.png')]);
     final assets = await _unavailableUnrelatedAsset(project, sprite);
     final before = await assets.readAsBytes();
-    final items = await File(
-            p.join(project.path, 'data/pokemon/catalogs/items.json'))
-        .readAsBytes();
+    final items =
+        await File(p.join(project.path, 'data/pokemon/catalogs/items.json'))
+            .readAsBytes();
 
     final result = await provisionProjectCaptureSprites(
         projectPath: project.path,
@@ -201,8 +236,8 @@ void main() {
     await expectLater(
         provisionProjectCaptureSprites(
             projectPath: project.path, loadPack: () async => pack),
-        throwsA(isA<ProjectSnapshotException>()
-            .having((error) => error.code, 'code', 'project.asset_blob_missing')));
+        throwsA(isA<ProjectSnapshotException>().having(
+            (error) => error.code, 'code', 'project.asset_blob_missing')));
 
     expect(await assets.readAsBytes(), before);
     expect(

@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 
+import 'resource_library_preview.dart';
 import 'spatial_frame_recorder.dart';
 
 final class AtlasProjectSessionPort implements ProjectSessionPort {
@@ -54,14 +55,10 @@ Future<String> requireAtlasProject(
   return projectPath;
 }
 
-Future<void> main() async {
-  if (!kReleaseMode || !Platform.isMacOS) {
-    throw StateError('The Studio UI atlas requires macOS Release mode.');
-  }
-  WidgetsFlutterBinding.ensureInitialized();
-  const capturePath = String.fromEnvironment('MARIONETTE_CAPTURE_ROOT');
-  const projectPath = String.fromEnvironment('AVELUNE_ATLAS_PROJECT_PATH');
-  final captureRoot = await requireStudioCaptureRoot(capturePath);
+Future<ProjectSessionController> _openAtlasSession(
+  String projectPath,
+  Directory captureRoot,
+) async {
   await requireAtlasProject(projectPath, captureRoot);
   final errorFile = File(p.join(captureRoot.path, 'startup-error.txt'));
   if (await errorFile.exists()) await errorFile.delete();
@@ -85,11 +82,32 @@ Future<void> main() async {
     }
     rethrow;
   }
+  return session;
+}
+
+Future<void> main() async {
+  if (!kReleaseMode || !Platform.isMacOS) {
+    throw StateError('The Studio UI atlas requires macOS Release mode.');
+  }
+  WidgetsFlutterBinding.ensureInitialized();
+  const capturePath = String.fromEnvironment('MARIONETTE_CAPTURE_ROOT');
+  const projectPath = String.fromEnvironment('AVELUNE_ATLAS_PROJECT_PATH');
+  const libraryPreview = bool.fromEnvironment('AVELUNE_ATLAS_RESOURCE_LIBRARY');
+  if (libraryPreview && capturePath.isEmpty) {
+    runApp(const ResourceLibraryPreviewApp());
+    return;
+  }
+  final captureRoot = await requireStudioCaptureRoot(capturePath);
+  final session = libraryPreview
+      ? null
+      : await _openAtlasSession(projectPath, captureRoot);
   final boundaryKey = GlobalKey();
   var capturing = false;
   var sequence = 0;
   Future<void> capture() async {
-    if (capturing || session.state.project?.directoryPath != projectPath) {
+    if (capturing ||
+        (session != null &&
+            session.state.project?.directoryPath != projectPath)) {
       return;
     }
     capturing = true;
@@ -127,11 +145,13 @@ Future<void> main() async {
     }
     return false;
   });
-  stdout.writeln('AVELUNE_ATLAS_PROJECT $projectPath');
+  if (session != null) stdout.writeln('AVELUNE_ATLAS_PROJECT $projectPath');
   runApp(
     RepaintBoundary(
       key: boundaryKey,
-      child: StudioBootstrap(debugSession: session),
+      child: session == null
+          ? const ResourceLibraryPreviewApp()
+          : StudioBootstrap(debugSession: session),
     ),
   );
 }

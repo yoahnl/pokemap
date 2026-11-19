@@ -107,20 +107,16 @@ void main() {
     final head = File('${root.path}/catalog/HEAD.json');
     final before = await head.readAsBytes();
     final library = await maps.readResourceLibrary(session);
-    expect(
-      library
-          .search(ResourceLibraryRole.standard, null, 'bed')
-          .map((entry) => entry.id),
-      ['bed'],
+    final bed = library.items.singleWhere((entry) => entry.id == 'bed');
+    expect(bed.role, ResourceLibraryRole.standard);
+    expect(bed.familyId, isNull);
+    final component = library.items.singleWhere(
+      (entry) => entry.id == 'bed_leg',
     );
-    expect(
-      library
-          .search(ResourceLibraryRole.component, 'workshop', 'piece')
-          .single
-          .id,
-      'bed_leg',
-    );
-    expect(library.familyPath('workshop'), 'Atelier');
+    expect(component.role, ResourceLibraryRole.component);
+    expect(component.familyId, 'workshop');
+    expect(component.description, 'Pièce de lit');
+    expect(library.catalog.families.single.name, 'Atelier');
     expect(await head.readAsBytes(), before);
   });
 

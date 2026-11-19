@@ -42,7 +42,6 @@ import 'package:avelune_studio/features/rendering/contracts/map_canvas_readiness
 import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_surface.dart';
 import 'package:avelune_studio/presentation/shell/studio_rail.dart';
-import 'package:avelune_studio/presentation/features/resources/project_library_page.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_header.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_name_field.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_canvas.dart';
@@ -71,6 +70,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_spa
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_side_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_map_tree.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
+import 'package:avelune_studio/presentation/features/resources/project_library_page.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_status_bar.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_playtest_page.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';

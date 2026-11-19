@@ -46,7 +46,15 @@ void main() {
       }
 
       await tap('studio-rail-resources');
-      await tap('library-family-workshop');
+      final unclassified = keyed(
+        'library-item-model3d:${project.models3d.first.id}',
+      );
+      expect(unclassified, findsOneWidget);
+      await tester.tap(find.text('Toutes les familles').first);
+      await host.settle();
+      await tester.tap(find.text('Atelier').last);
+      await host.settle();
+      expect(unclassified, findsNothing);
       expect(keyed('library-item-model3d:windmill'), findsOneWidget);
       expect(keyed('library-item-tileset:wheel-image'), findsNothing);
       await tap('library-role-component');
@@ -63,7 +71,7 @@ void main() {
       await tester.enterText(search, 'introuvable');
       await host.settle();
       expect(keyed('library-item-tileset:wheel-image'), findsNothing);
-      expect(find.text('Aucune ressource ici'), findsOneWidget);
+      expect(find.text('Aucune ressource trouvée'), findsOneWidget);
       await tap('studio-rail-map');
       expect(keyed('library-search'), findsNothing);
       expect(host.maps.active, isNull);

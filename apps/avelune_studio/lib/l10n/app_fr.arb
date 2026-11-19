@@ -17,9 +17,20 @@
   "exportPublicationHint": "Vérification complète du jeu avant sa diffusion.",
   "exportAction": "Choisir le fichier et exporter",
   "exportLoading": "Chargement du profil d’export…",
-  "exportPreparing": "Enregistrement du projet…",
-  "exportBuilding": "Construction et vérification du jeu…",
-  "exportWriting": "Écriture du paquet…",
+  "exportStepSave": "Enregistrer le projet",
+  "exportStepItemIcons": "Préparer les icônes d’objets",
+  "exportStepCaptureSprites": "Préparer les sprites de capture",
+  "exportStepProfile": "Vérifier le profil et la version du projet",
+  "exportStepCollect": "Rassembler les fichiers du jeu",
+  "exportStepValidate": "Vérifier le contenu jouable",
+  "exportStepArchive": "Assembler l’archive",
+  "exportStepInspect": "Contrôler l’archive créée",
+  "exportStepWrite": "Écrire le paquet",
+  "exportStepFinish": "Finaliser l’export",
+  "exportProgressSteps": "{completed, plural, =1{1 étape sur {total} terminée} other{{completed} étapes sur {total} terminées}} · {percent} %",
+  "@exportProgressSteps": {"placeholders": {"completed": {"type": "int"}, "total": {"type": "int"}, "percent": {"type": "int"}}},
+  "exportProgressItems": "Vérification des objets · {checked}/{total} · {percent} %",
+  "@exportProgressItems": {"placeholders": {"checked": {"type": "int"}, "total": {"type": "int"}, "percent": {"type": "int"}}},
   "exportCancelling": "Annulation en cours…",
   "exportCancelled": "L’export a été annulé avant l’écriture du paquet. Les modifications déjà enregistrées sont conservées.",
   "exportCompleted": "Le jeu est prêt à être ouvert dans Avelune Player.",
@@ -657,7 +668,6 @@
       }
     }
   },
-  "storyTabBehaviour": "Comportement",
   "storyTabProperties": "Propriétés",
   "storyBehavioursTitle": "{count, plural, =0{DÉCLENCHEURS} other{DÉCLENCHEURS · {count}}}",
   "@storyBehavioursTitle": {
@@ -671,7 +681,6 @@
   "storyWhen": "QUAND",
   "storyIf": "SI",
   "storyThen": "ALORS",
-  "storyAfter": "APRÈS LE DÉCLENCHEMENT",
   "storyTrigger": "{kind, select, entityInteract{Le joueur interagit} modelInteract{Le joueur interagit} entityBump{Le joueur touche l’élément} entityAutorun{Automatiquement} triggerEnter{Le joueur entre dans la zone} triggerBump{Le joueur touche la zone} mapEnter{En arrivant sur la carte} outcomeReceived{À la réception d’un résultat} other{Déclencheur à choisir}}",
   "@storyTrigger": {
     "placeholders": {
@@ -805,7 +814,6 @@
   "storyDeleteCoverageUnknown": "Suppression refusée : les usages des comportements de ce projet ne sont pas encore recensés, Avelune ne peut donc pas prouver que celui-ci est inutilisé. Rien n’a été modifié.",
   "storyBehaviourNameField": "Nom du déclencheur",
   "storyBehaviourActive": "Déclencheur actif",
-  "storyWhenField": "Quand",
   "storyThenField": "Alors · scène à déclencher",
   "storyAfterField": "Après le déclenchement",
   "storyPublishUnavailable": "Les comportements ne peuvent pas être enregistrés dans ce projet.",
@@ -820,19 +828,7 @@
   "storyPreparing": "Chargement de l’histoire du projet…",
   "storyNotPrepared": "L’histoire du projet n’est pas chargée : les comportements restent en lecture.",
   "storyDeactivated": "Ce comportement a été désactivé : réactivez-le une fois sa configuration complète.",
-  "storyLineSays": "Ce personnage dit…",
-  "storyLineShows": "Ce qui s’affiche…",
   "storyLineLoading": "Lecture de la réplique…",
-  "storyLineShared": "Cette réplique sert aussi à {scenes}. Détachez-la pour la modifier ici sans changer les autres.",
-  "@storyLineShared": {
-    "placeholders": {
-      "scenes": {
-        "type": "String"
-      }
-    }
-  },
-  "storyLineDetach": "Détacher",
-  "storyLineOrScene": "Ou lancer une scène",
   "storyLineUnavailable": "La réplique n’a pas pu être lue : {problem}",
   "@storyLineUnavailable": {
     "placeholders": {
@@ -1206,8 +1202,6 @@
   "openingPhaseNarrativeTitles": "Index des noms de l’histoire",
   "openingPhaseNarrativeUsages": "Index des usages de l’histoire",
   "openingPhaseMapDirectory": "Index des éléments des cartes",
-  "storyTabMemory": "Mémoire du jeu",
-  "memorySectionFacts": "Faits",
   "memorySectionRules": "Règles du monde",
   "memorySearchFacts": "Rechercher un fait",
   "memoryFilterNeverRead": "Sans lecture connue",
@@ -1499,7 +1493,6 @@
   "memoryPresenceHint": "Règles du monde et scènes qui citent ce personnage, pour le faire apparaître, disparaître ou autre chose.",
   "memoryPresenceEmpty": "Aucune règle du monde ni scène ne cite ce personnage d’après l’index.",
   "memoryPresenceSaveFirst": "Enregistrez la carte pour lire la présence de ce personnage.",
-  "storyTabWorld": "Tout le jeu",
   "behavioursSearch": "Rechercher un comportement, une carte ou un élément",
   "behavioursByMap": "Par carte",
   "behavioursByFact": "Par état",

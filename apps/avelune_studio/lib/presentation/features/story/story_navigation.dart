@@ -72,20 +72,19 @@ class StoryNavigation extends StatelessWidget {
                 },
                 selected: section == selected,
                 marker: switch ((section, verificationMarker)) {
-                  (StorySection.verification, final marker?) => ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: selected == StorySection.behaviours ? 120 : 72,
-                    ),
-                    child: marker,
+                  (StorySection.verification, final marker?) => StudioBadge(
+                    marker.label,
+                    key: marker.key,
+                    icon: marker.icon,
+                    tone: marker.tone,
+                    wrapLabel: true,
                   ),
                   _ => null,
                 },
                 markerLabel: section == StorySection.verification
                     ? verificationMarker?.label
                     : null,
-                markerBelowDetail:
-                    selected == StorySection.behaviours ||
-                    MediaQuery.textScalerOf(context).scale(14) > 16.8,
+                markerBelowDetail: section == StorySection.verification,
                 onTap: () => onSelected(section),
               ),
             ),

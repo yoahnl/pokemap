@@ -110,6 +110,8 @@ final class GamePackageExportArtifact {
   String get packageSha256 => sha256.convert(packageBytes).toString();
 }
 
+enum GamePackageBuildPhase { projection, validation, archive, inspection }
+
 final class CanonicalGamePackageExportService {
   const CanonicalGamePackageExportService({
     this.projectionBuilder = const RuntimeProjectProjectionBuilder(),
@@ -131,12 +133,15 @@ final class CanonicalGamePackageExportService {
     required Directory projectRoot,
     required GamePackageExportProfile profile,
     GamePackageExportMode mode = GamePackageExportMode.publication,
+    void Function(GamePackageBuildPhase phase)? onPhase,
   }) async {
     try {
+      onPhase?.call(GamePackageBuildPhase.projection);
       final projection = await projectionBuilder.build(
         projectRoot: projectRoot,
         profile: profile,
       );
+      onPhase?.call(GamePackageBuildPhase.validation);
       final contextualCapture = projection.project.pokemon.ruleset.profileId == PokemonRulesetProfile.contextualProfileId;
       final itemPath = projection.project.pokemon.catalogFiles['items'];
       final itemBytes = itemPath == null ? null : projection.payloadFiles['project/$itemPath'];
@@ -702,11 +707,13 @@ final class CanonicalGamePackageExportService {
         ),
         content: emptyContent,
       );
+      onPhase?.call(GamePackageBuildPhase.archive);
       final built = (packageArchiveBuilder ??
           ({required manifest, required payloadFiles}) => packageBuilder.build(
                 manifest: manifest,
                 payloadFiles: payloadFiles,
               ))(manifest: manifest, payloadFiles: projection.payloadFiles);
+      onPhase?.call(GamePackageBuildPhase.inspection);
       final inspector = GamePackageInspector(
         hostCompatibility: AveluneRuntimeCompatibility.host(),
       );
