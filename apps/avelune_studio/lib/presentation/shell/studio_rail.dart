@@ -5,7 +5,7 @@ import 'package:avelune_studio/presentation/shared/localization/studio_locale.da
 
 const studioRailWidth = 64.0;
 
-enum StudioRailSection { map, story }
+enum StudioRailSection { map, story, resources }
 
 class StudioRail extends StatelessWidget {
   const StudioRail({
@@ -47,8 +47,11 @@ class StudioRail extends StatelessWidget {
           ),
           _RailEntry(label: l10n.railRegionalMap, icon: Icons.explore_outlined),
           _RailEntry(
+            key: const ValueKey('studio-rail-resources'),
             label: l10n.railResources,
             icon: Icons.view_in_ar_outlined,
+            selected: section == StudioRailSection.resources,
+            onPressed: _open(StudioRailSection.resources),
           ),
           _RailEntry(
             key: const ValueKey('studio-rail-story'),
