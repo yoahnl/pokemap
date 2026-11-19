@@ -17,6 +17,7 @@ final class LocalWorkshopReader {
 
   Future<T> read<T>({
     required Set<String> metadataFields,
+    bool initializeSceneOwners = true,
     required Future<T> Function(
       ProjectManifest project,
       ProjectWorkspaceAccess access,
@@ -33,14 +34,18 @@ final class LocalWorkshopReader {
       policy: policy,
       fileReader: reader,
       handles: handles,
-      catalogMetadataFields: metadataFields,
+      catalogMetadataFields: initializeSceneOwners ? metadataFields : const {},
+      initializeSceneOwners: initializeSceneOwners,
       workshopScope: true,
     );
     final opened = await opener.openProject(session.directoryPath);
     try {
       final access = handles.resolveProject(opened.projectHandle);
       final descriptor = await access.readBytes('project.json');
-      final catalog = await opener.catalogProject(opened.projectHandle);
+      final catalog = await opener.catalogProject(
+        opened.projectHandle,
+        metadataFields: initializeSceneOwners ? null : metadataFields,
+      );
       final head = catalog != null && !catalog.readOnly
           ? await access.readBytes(CatalogStorageStore.headStorageKey)
           : null;
