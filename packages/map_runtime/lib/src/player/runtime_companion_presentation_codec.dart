@@ -1180,6 +1180,7 @@ abstract final class RuntimeCompanionPresentationCodec {
             value.hpTweenDurationMs,
         'hpTweenRevision': value.hpTweenRevision,
         'genderSymbol': value.genderSymbol,
+        if (value.isAlreadyCaught) 'isAlreadyCaught': true,
         'statusLabel': value.statusLabel,
         'experienceProgress':
             value.experienceProgress,
@@ -1217,6 +1218,7 @@ abstract final class RuntimeCompanionPresentationCodec {
         genderSymbol: data['genderSymbol'] == null
             ? null
             : data['genderSymbol'] as String,
+        isAlreadyCaught: data['isAlreadyCaught'] as bool? ?? false,
         statusLabel:
             data['statusLabel'] == null ? null : data['statusLabel'] as String,
         experienceProgress: data['experienceProgress'] == null

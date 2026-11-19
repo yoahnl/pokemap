@@ -57,6 +57,7 @@ final class PokeMapPlayerLocalizations {
   String get party => _fr ? 'Équipe' : 'Party';
   String get bag => _fr ? 'Sac' : 'Bag';
   String get pokedex => 'Pokédex';
+  String get pokedexCaught => _fr ? 'Capturé' : 'Caught';
   String get searchPokedex => _fr ? 'Rechercher une espèce' : 'Search species';
   String get noPokedexMatch =>
       _fr ? 'Aucune espèce ne correspond' : 'No matching species';
@@ -289,6 +290,8 @@ final class PokeMapPlayerLocalizations {
   String get progression => _fr ? 'Progression' : 'Progress';
   String get battleResult => _fr ? 'Résultat du combat' : 'Battle result';
   String get battleCommands => _fr ? 'COMMANDES' : 'COMMANDS';
+  String get battleFight => _fr ? 'ATTAQUER' : 'FIGHT';
+  String get battleRun => _fr ? 'FUITE' : 'RUN';
   String get battleMoves => _fr ? 'CAPACITÉS' : 'MOVES';
   String get battleBag => _fr ? 'SAC' : 'BAG';
   String get battleBagMedicine => _fr ? 'SOIN' : 'HEALING';

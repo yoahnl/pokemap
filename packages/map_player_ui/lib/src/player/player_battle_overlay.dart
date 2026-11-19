@@ -132,7 +132,11 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
 
   Future<void> _openMoveInfo() async {
     if (_moveInfoOpen || !widget.snapshot.interactionsEnabled) return;
-    final commands = _commands(widget.snapshot, context.playerBattleProfile);
+    final commands = _commands(
+      widget.snapshot,
+      context.playerBattleProfile,
+      context.playerL10n,
+    );
     final selected =
         commands.where((entry) => entry.selected).firstOrNull ??
         commands.firstOrNull;
@@ -177,6 +181,8 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
     final display = widget.display;
     final itemIconBuilder = widget.itemIconBuilder;
     final battle = context.playerBattleProfile;
+    final localizations = context.playerL10n;
+    final commands = _commands(snapshot, battle, localizations);
     final canonical =
         battle == null ||
         (battle.commandLayout == ProjectBattleCommandLayout.grid &&
@@ -257,7 +263,7 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
     final rootCommandOrder =
         snapshot.mode == BattleCommandOverlayMode.root &&
             display != PlayerBattleDisplay.hudOnly
-        ? _commands(snapshot, battle).map((entry) => entry.index).toList()
+        ? commands.map((entry) => entry.index).toList()
         : snapshot.rootCommandOrder;
     final collectionMode = switch (snapshot.mode) {
       BattleCommandOverlayMode.bag ||
@@ -360,10 +366,10 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
           playerHudRect: snapshot.playerHud.rect,
         ),
         battleLabel: snapshot.battleLabel,
-        title: _localizedBattleTitle(context.playerL10n, snapshot.mode),
+        title: _localizedBattleTitle(localizations, snapshot.mode),
         prompt: snapshot.prompt,
         narrationLines: snapshot.narrationLines,
-        commands: _commands(snapshot, battle),
+        commands: commands,
         interactionsEnabled: snapshot.interactionsEnabled,
         canGoBack: snapshot.canGoBack,
         forcedReplacement: snapshot.forcedReplacement,
@@ -419,34 +425,48 @@ String _localizedBattleTitle(
 List<PlayerBattleCommandViewData> _commands(
   BattleCommandOverlaySnapshot snapshot,
   ProjectBattlePresentationProfile? profile,
+  PokeMapPlayerLocalizations localizations,
 ) {
   PlayerBattleCommandViewData mapEntry(
     BattleCommandOverlayEntry entry, {
     ProjectBattleCommandProfile? authored,
-  }) => PlayerBattleCommandViewData(
-    index: entry.index,
-    primaryLabel: authored?.label ?? entry.primaryLabel,
-    secondaryLabel: entry.secondaryLabel,
-    tertiaryLabel: entry.tertiaryLabel,
-    trailingLabel: entry.trailingLabel,
-    statusLabel: entry.statusLabel,
-    moveTypeId:
-        entry.kind == BattleCommandOverlayEntryKind.move &&
-            entry.secondaryLabel.trim().isNotEmpty
-        ? entry.secondaryLabel
-        : null,
-    isBagItem: entry.kind == BattleCommandOverlayEntryKind.bag,
-    enabled: entry.enabled,
-    selected: entry.selected,
-    tone: _tone(entry.tone),
-    iconAssetPath: entry.iconAssetPath,
-    commandId:
+  }) {
+    final commandId =
         authored?.id ??
         (entry.kind == BattleCommandOverlayEntryKind.root
             ? _commandIdForRuntimeIndex(entry.index)
-            : null),
-    commandIcon: authored?.icon,
-  );
+            : null);
+    final defaultLabel = snapshot.mode == BattleCommandOverlayMode.root
+        ? switch ((commandId, entry.primaryLabel)) {
+            (ProjectBattleCommandId.fight, 'FIGHT') => localizations.battleFight,
+            (ProjectBattleCommandId.bag, 'BAG') => localizations.battleBag,
+            (ProjectBattleCommandId.party, 'POKÉMON') =>
+              localizations.battlePokemon,
+            (ProjectBattleCommandId.run, 'RUN') => localizations.battleRun,
+            (_, final label) => label,
+          }
+        : entry.primaryLabel;
+    return PlayerBattleCommandViewData(
+      index: entry.index,
+      primaryLabel: authored?.label ?? defaultLabel,
+      secondaryLabel: entry.secondaryLabel,
+      tertiaryLabel: entry.tertiaryLabel,
+      trailingLabel: entry.trailingLabel,
+      statusLabel: entry.statusLabel,
+      moveTypeId:
+          entry.kind == BattleCommandOverlayEntryKind.move &&
+              entry.secondaryLabel.trim().isNotEmpty
+          ? entry.secondaryLabel
+          : null,
+      isBagItem: entry.kind == BattleCommandOverlayEntryKind.bag,
+      enabled: entry.enabled,
+      selected: entry.selected,
+      tone: _tone(entry.tone),
+      iconAssetPath: entry.iconAssetPath,
+      commandId: commandId,
+      commandIcon: authored?.icon,
+    );
+  }
   if (snapshot.mode != BattleCommandOverlayMode.root) {
     return snapshot.entries.map(mapEntry).toList(growable: false);
   }
@@ -519,6 +539,7 @@ PlayerBattleHudViewData _hud(BattleCommandOverlayHudSnapshot snapshot) =>
       hpTweenRevision: snapshot.hpTweenRevision,
       statusLabel: snapshot.statusLabel,
       genderSymbol: snapshot.genderSymbol,
+      isAlreadyCaught: snapshot.isAlreadyCaught,
       experienceProgress: snapshot.experienceProgress,
       experienceProgressTarget: snapshot.experienceProgressTarget,
       xpTweenDuration: snapshot.xpTweenDuration,

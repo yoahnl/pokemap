@@ -254,6 +254,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   Future<bool> start({
     required RuntimeMapBundle bundle,
     required BattleStartRequest request,
+    String runtimeLocale = 'fr-FR',
     SceneBattleDefeatRecovery defeatRecovery =
         SceneBattleDefeatRecovery.returnToRecoveryPoint,
   }) {
@@ -293,7 +294,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     );
     entryTransition = curtain;
     notifyListeners();
-    unawaited(_prepare(bundle, request, generation));
+    unawaited(_prepare(bundle, request, generation, runtimeLocale));
     return completion.future;
   }
 
@@ -321,6 +322,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     RuntimeMapBundle bundle,
     BattleStartRequest request,
     int generation,
+    String runtimeLocale,
   ) async {
     try {
       final temporary = request is WildBattleStartRequest && request.demonstration != null
@@ -420,7 +422,16 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         hydrateOwnedPlayerPokemon: ({required gameState, required bundle}) =>
             _hydrate(gameState, bundle, moveCatalogLoader: moveCatalogLoader),
       );
-      displaySession = _display();
+      final display = _display();
+      displaySession = display;
+      final speciesDisplayNames = await loadRuntimeBattleSpeciesDisplayNames(
+        bundle: bundle,
+        speciesLoader: _speciesLoader,
+        session: display,
+        presentation: _engine!.presentation,
+        locale: runtimeLocale,
+      );
+      if (!_current(generation)) return;
       _images = BattleVisualAssetCache(
         resourceBudget: bundle.resourceBudget,
         isCurrent: () => _current(generation),
@@ -480,8 +491,9 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         ),
         itemCapabilityResolver: ItemCapabilityResolver(items),
         moveCatalog: moves,
+        resolveSpeciesDisplayName: (id) => speciesDisplayNames[id] ?? id,
         resolveMoveDisplayName: (id, fallback) =>
-            moves.entriesById[id]?.displayName('fr') ?? fallback,
+            moves.entriesById[id]?.displayName(runtimeLocale) ?? fallback,
         resolveBallSpritePath: captureSprites.resolve,
         resolveCombatantBallItemId: (side, index) => balls.resolve(
           isPlayerSide: side == BattleSideId.player,

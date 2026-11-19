@@ -31,12 +31,14 @@ final class BattleCombatantSpriteSpec {
     this.explicitImageAbsolutePath,
     this.explicitAnimatedImageAbsolutePath,
     this.gen5Source,
+    this.gen5SizeReference,
   });
 
   final BattleCombatantSpriteFacing facing;
   final String? explicitImageAbsolutePath;
   final String? explicitAnimatedImageAbsolutePath;
   final BattleGen5SpriteSource? gen5Source;
+  final BattleGen5SpriteSource? gen5SizeReference;
 
   bool get hasExplicitImage =>
       (explicitImageAbsolutePath?.trim().isNotEmpty ?? false);
@@ -71,6 +73,7 @@ final class BattlePokemonSpriteResolver {
   Future<BattleCombatantSpriteSpec> resolve({
     required String speciesId,
     required bool isPlayerSide,
+    bool isWildOpponent = false,
     RuntimeBattleVisualIdentity? visualIdentity,
   }) async {
     final trimmedSpeciesId = speciesId.trim();
@@ -132,14 +135,22 @@ final class BattlePokemonSpriteResolver {
       explicitImageAbsolutePath: paths.staticPath,
       explicitAnimatedImageAbsolutePath: paths.animatedPath,
       gen5Source: gen5Source,
+      gen5SizeReference: isWildOpponent &&
+              gen5Source == null &&
+              identity?.genderId == 'female' &&
+              (paths.staticPath != null || paths.animatedPath != null)
+          ? _gen5Source(trimmedSpeciesId, identity, media,
+              preferFemaleArtwork: false)
+          : null,
     );
   }
 
   BattleGen5SpriteSource? _gen5Source(
     String speciesId,
     RuntimeBattleVisualIdentity? identity,
-    _BattlePokemonMediaRecord? media,
-  ) {
+    _BattlePokemonMediaRecord? media, {
+    bool preferFemaleArtwork = true,
+  }) {
     final loader = gen5SourceLoader;
     final pokemon = manifest.pokemon;
     final form = identity?.formId?.trim();
@@ -159,7 +170,7 @@ final class BattlePokemonSpriteResolver {
         !pokemon.enabled ||
         identity == null ||
         identity.isShiny == null ||
-        (identity.genderId == 'female' && hasFemaleArtwork) ||
+        (preferFemaleArtwork && identity.genderId == 'female' && hasFemaleArtwork) ||
         (form != null &&
             form.isNotEmpty &&
             form != (media?.defaultFormId ?? 'base'))) {
