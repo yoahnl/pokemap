@@ -37,6 +37,8 @@ export 'src/player/player_scene_interaction_surface.dart';
 export 'src/player/player_text_input_overlay.dart';
 export 'src/player/player_pokemon_gift_overlay.dart';
 export 'src/player/runtime_prompt_localization.dart';
+export 'src/player/runtime_feedback_localization.dart';
+export 'src/player/runtime_battle_message_localization.dart';
 export 'src/player/runtime_player_presentation.dart';
 export 'src/player/player_startup_strings.dart';
 export 'src/player/player_title_prompt_surface.dart';

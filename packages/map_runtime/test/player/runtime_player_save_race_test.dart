@@ -7,6 +7,38 @@ import 'package:map_runtime/map_runtime.dart';
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  test('save storage failure uses the live Player locale and keeps its code', () async {
+    final harness = RuntimePlayerTestHarness(
+      feedbackLocalizer: (locale, feedback, _) =>
+          feedback == RuntimeNavigationFeedback.saveWriteFailed
+          ? 'save storage failure in $locale'
+          : null,
+    );
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    harness.adapter.checkpoint = testPlayerCheckpoint();
+    harness.saves.commitError = StateError('disk path is private');
+
+    for (final locale in ['fr', 'en']) {
+      await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.updatePreferences,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: harness.preferences.current.copyWith(locale: locale),
+      ));
+      final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+        action: RuntimePlayerAction.save,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ));
+      expect(result.status, RuntimePlayerCommandStatus.failed);
+      expect(result.safeMessage, 'save storage failure in $locale');
+      final failure = harness.coordinator.snapshot.failure;
+      expect(failure?.code, GameSessionFailureCode.storage);
+      expect(failure?.safeMessage, result.safeMessage);
+      expect(harness.coordinator.snapshot.saveReceipt, isNull);
+    }
+  });
+
   for (final savedBefore in [false, true]) {
     test('capture refusal restores pause and permits retry after previous save: '
         '$savedBefore', () async {

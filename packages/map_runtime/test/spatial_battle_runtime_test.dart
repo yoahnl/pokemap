@@ -19,6 +19,7 @@ import 'package:map_runtime/map_runtime.dart' show
     SpatialExplorationGameSessionRuntime, GameSessionDescriptor, GameIdentity,
     GameSessionLaunchMode, GameSessionAccessibilityOptions,
     RuntimeInitialMapPreloadResult, SpatialOverworldPresentation,
+    RuntimeBattleMessageId,
     SpatialExplorationSession, SpatialExplorationView;
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
@@ -67,9 +68,10 @@ void main() {
   });
   tearDownAll(() => loopbackTransport?.close());
 
-  for (final (locale, enemyName, moveName, alreadyCaught) in [
-    ('fr-FR', 'Étincelin', 'Charge', true),
-    ('en-US', 'Sparkitten', 'Tackle', false),
+  for (final (locale, enemyName, moveName, alreadyCaught, hasFrenchName) in [
+    ('fr-FR', 'Étincelin', 'Charge', true, true),
+    ('en-US', 'Sparkitten', 'Tackle', false, true),
+    ('fr-CA', 'Sparkitten', 'Charge', false, false),
   ]) {
     testWidgets('wild HUD publishes localized species, gender and Pokédex status in $locale', (tester) async {
       final fixture = (await tester.runAsync(() async {
@@ -78,7 +80,10 @@ void main() {
         final pokemon = fixture.bundle.manifest.pokemon;
         final speciesFile = File(p.join(root, pokemon.speciesDir, '004-sparkitten.json'));
         final species = jsonDecode(await speciesFile.readAsString()) as Map<String, dynamic>;
-        species['names'] = {'en': 'Sparkitten', 'fr': 'Étincelin'};
+        species['names'] = {
+          'en': 'Sparkitten',
+          if (hasFrenchName) 'fr': 'Étincelin',
+        };
         (species['breeding'] as Map)['genderRatio'] = {'male': 0, 'female': 1};
         await speciesFile.writeAsString(jsonEncode(species));
         final movesFile = File(p.join(root, pokemon.catalogFiles['moves']!));
@@ -91,7 +96,7 @@ void main() {
       final first = fixture.state.party.members.first;
       final state = fixture.state.copyWith(
         party: fixture.state.party.copyWith(
-          members: [first.copyWith(gender: 'male')],
+          members: [first.copyWith(gender: 'male', nickname: 'Pip')],
         ),
         progression: fixture.state.progression.copyWith(
           seenSpeciesIds: ['sparkitten'],
@@ -100,15 +105,30 @@ void main() {
       );
       final runtime = SpatialBattleRuntime(
         readGameState: () => state,
+        displayLocale: () => locale,
+        formatBattleMessage: (message) => switch (message.id) {
+          RuntimeBattleMessageId.player => locale.startsWith('fr')
+              ? 'Joueur'
+              : 'Player',
+          RuntimeBattleMessageId.enemy => locale.startsWith('fr')
+              ? 'Ennemi'
+              : 'Opponent',
+          _ => message.fallbackText,
+        },
         commitGameState: (_, _) => true,
       );
       addTearDown(runtime.dispose);
-      unawaited(runtime.start(bundle: fixture.bundle, request: _wild('wild-hud'), runtimeLocale: locale));
+      unawaited(runtime.start(bundle: fixture.bundle, request: _wild('wild-hud'), runtimeLocale: locale.startsWith('fr') ? 'en' : 'fr'));
       await _readyInView(tester, runtime);
       final snapshot = runtime.battlePresentationListenable.value!;
       expect(snapshot.enemyHud.speciesLabel, enemyName);
       expect(snapshot.enemyHud.genderSymbol, '♀');
       expect(snapshot.playerHud.genderSymbol, '♂');
+      expect(snapshot.playerHud.ownerLabel, locale.startsWith('fr')
+          ? 'Joueur' : 'Player');
+      expect(snapshot.enemyHud.ownerLabel, locale.startsWith('fr')
+          ? 'Ennemi' : 'Opponent');
+      expect(snapshot.playerHud.speciesLabel, 'Pip');
       expect(snapshot.enemyHud.isAlreadyCaught, alreadyCaught);
       expect(snapshot.playerHud.isAlreadyCaught, isFalse);
       final encoded = RuntimeCompanionPresentationCodec.encodeBattleCommandOverlayHudSnapshot(snapshot.enemyHud);

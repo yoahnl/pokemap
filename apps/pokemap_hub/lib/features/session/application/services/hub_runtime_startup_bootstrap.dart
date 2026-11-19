@@ -304,13 +304,18 @@ final class HubRuntimeStartupBootstrap
         commitCheckpoint: saveGateway.commit,
         audioMixer: configuredAudioMixer,
         presentationCinematicPlayer: presentationRuntime?.controller,
+        feedbackLocalizer: player_ui.localizeRuntimePlayerFeedback,
+        battleMessageFormatter: player_ui.localizeRuntimeBattleMessage,
       );
       final sessions = GameSessionController(
         adapterFactory: sessionFactory.call,
         commitCheckpoint: saveGateway.commit,
+        playerLocale: playerLocale,
+        feedbackLocalizer: player_ui.localizeRuntimePlayerFeedback,
       );
       final coordinator = RuntimePlayerCoordinator(
         gameSource: gameSource,
+        feedbackLocalizer: player_ui.localizeRuntimePlayerFeedback,
         saveGateway: saveGateway,
         preferencesGateway: preferencesGateway,
         readPreferences: preferencesGateway.read,

@@ -163,6 +163,7 @@
   "battleCommands": "COMMANDS",
   "battleFight": "FIGHT",
   "battleRun": "RUN",
+  "battleMoveInfo": "Info",
   "battleMoves": "MOVES",
   "battleBag": "BAG",
   "battleBagMedicine": "HEALING",
@@ -1297,5 +1298,1111 @@
   "startupPreparingScene": "PREPARING THE SCENE",
   "startupMenuAndMusic": "MENU AND MUSIC",
   "craftPending": "Your order is being prepared. Come back another day.",
-  "craftReady": "Your order is ready."
+  "craftReady": "Your order is ready.",
+  "battleNarrationPlayer": "Player",
+  "battleNarrationEnemy": "Opponent",
+  "battleWildAppeared": "A wild {target} appeared!",
+  "@battleWildAppeared": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleTrainerChallenges": "Trainer {actor} challenges you!",
+  "@battleTrainerChallenges": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleUnknownTrainerChallenges": "A Trainer challenges you!",
+  "battleTrainerSends": "Trainer {actor} sent out {target}!",
+  "@battleTrainerSends": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleUnknownTrainerSends": "The Trainer sent out {target}!",
+  "@battleUnknownTrainerSends": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleSendOut": "Go, {target}!",
+  "@battleSendOut": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleJoined": "{target} joined the battle!",
+  "@battleJoined": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleConfusionHurt": "It hurt itself in its confusion!",
+  "battleMoveUsed": "{actor} used {move}!",
+  "@battleMoveUsed": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "battleMoveDodged": "{target} avoided the attack!",
+  "@battleMoveDodged": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleMoveImmune": "It doesn’t affect {target}…",
+  "@battleMoveImmune": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleCriticalHit": "A critical hit!",
+  "battleSuperEffective": "It’s super effective!",
+  "battleNotVeryEffective": "It’s not very effective…",
+  "battleFainted": "{target} fainted!",
+  "@battleFainted": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleItemUsed": "{actor} used {item} on {target}!",
+  "@battleItemUsed": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "item": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleHpRecovered": "{target} recovered {amount} HP.",
+  "@battleHpRecovered": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "battleStatusCured": "{target} recovered from its status condition.",
+  "@battleStatusCured": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battlePpRecovered": "{move} recovered {amount} PP.",
+  "@battlePpRecovered": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "battleCaptureThrown": "A Poké Ball was thrown at {target}!",
+  "@battleCaptureThrown": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleCaptureCaught": "{target} was caught!",
+  "@battleCaptureCaught": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleCaptureEscaped": "{target} broke free from the Poké Ball!",
+  "@battleCaptureEscaped": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleParalyzed": "{target} was paralyzed! It may be unable to move!",
+  "@battleParalyzed": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleBurned": "{target} was burned!",
+  "@battleBurned": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battlePoisoned": "{target} was poisoned!",
+  "@battlePoisoned": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleBadlyPoisoned": "{target} was badly poisoned!",
+  "@battleBadlyPoisoned": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleFellAsleep": "{target} fell asleep!",
+  "@battleFellAsleep": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleFrozen": "{target} was frozen solid!",
+  "@battleFrozen": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleAlreadyHasStatus": "{target} already has a status condition.",
+  "@battleAlreadyHasStatus": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleCannotAct": "{target} can’t move!",
+  "@battleCannotAct": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleBurnDamage": "{target} was hurt by its burn!",
+  "@battleBurnDamage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battlePoisonDamage": "{target} was hurt by poison!",
+  "@battlePoisonDamage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleStatusDamage": "{target} took damage!",
+  "@battleStatusDamage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleProtectActivated": "{actor} protected itself!",
+  "@battleProtectActivated": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleProtectBlocked": "The target protected itself from the attack!",
+  "battleProtectBroken": "The protection was broken!",
+  "battleRechargeRequired": "{actor} must recharge!",
+  "@battleRechargeRequired": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleRechargeTurnSpent": "{actor} is catching its breath.",
+  "@battleRechargeTurnSpent": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleChargeStarted": "{actor} began charging!",
+  "@battleChargeStarted": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleChargeReleased": "{actor} unleashed its attack!",
+  "@battleChargeReleased": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleConfusionApplied": "{actor} became confused!",
+  "@battleConfusionApplied": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleConfusionActive": "{actor} is confused!",
+  "@battleConfusionActive": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleConfusionEnded": "{actor} snapped out of confusion!",
+  "@battleConfusionEnded": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleRainStarted": "It started to rain.",
+  "battleSandstormStarted": "A sandstorm kicked up.",
+  "battleSandstormDamage": "{target} was buffeted by the sandstorm!",
+  "@battleSandstormDamage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleWeatherExpired": "The weather subsided.",
+  "battleTrickRoomStarted": "The dimensions twisted.",
+  "battleFieldCleared": "The field effect was cleared.",
+  "battleFieldExpired": "The field effect wore off.",
+  "battleStealthRockSet": "Pointed stones float around the opposing team!",
+  "battleStealthRockAlreadyPresent": "Pointed stones are already in place.",
+  "battleStealthRockDamage": "Pointed stones hurt the incoming Pokémon!",
+  "battleSpikesSet": "Spikes were scattered around the opposing team!",
+  "battleSpikesAlreadyPresent": "Spikes are already at their maximum.",
+  "battleSpikesDamage": "Spikes hurt the incoming Pokémon!",
+  "battleSwitched": "{actor} withdrew {target} and sent out {replacement}!",
+  "@battleSwitched": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "replacement": {
+        "type": "String"
+      }
+    }
+  },
+  "battleReplacementRequired": "{actor} must replace {target}!",
+  "@battleReplacementRequired": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "battleStatRaised": "{amount, plural, =1{{target}’s {stat} rose!} =2{{target}’s {stat} rose sharply!} other{{target}’s {stat} rose drastically!}}",
+  "@battleStatRaised": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "stat": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "battleStatLowered": "{amount, plural, =1{{target}’s {stat} fell!} =2{{target}’s {stat} fell sharply!} other{{target}’s {stat} fell drastically!}}",
+  "@battleStatLowered": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "stat": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "battleStatCannotRaise": "{target}’s {stat} won’t go any higher!",
+  "@battleStatCannotRaise": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "stat": {
+        "type": "String"
+      }
+    }
+  },
+  "battleStatCannotLower": "{target}’s {stat} won’t go any lower!",
+  "@battleStatCannotLower": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "stat": {
+        "type": "String"
+      }
+    }
+  },
+  "battleStatName": "{stat, select, attack{Attack} defense{Defense} specialAttack{Special Attack} specialDefense{Special Defense} speed{Speed} accuracy{Accuracy} other{Evasion}}",
+  "@battleStatName": {
+    "placeholders": {
+      "stat": {
+        "type": "String"
+      }
+    }
+  },
+  "battleMoveFailed": "But it failed!",
+  "battleFleeFailed": "You couldn’t get away.",
+  "battleNarrationVictory": "You won the battle!",
+  "battleNarrationDefeat": "You have no Pokémon left that can fight!",
+  "battleNarrationFled": "You got away safely!",
+  "postBattleVictoryMessage": "Victory!",
+  "postBattleDefeatMessage": "All your Pokémon fainted.",
+  "postBattleFledMessage": "You got away safely!",
+  "postBattleCapturedMessage": "{target} was caught.",
+  "@postBattleCapturedMessage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleCaptureParty": "{target} joined your party.",
+  "@postBattleCaptureParty": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleCaptureStorage": "{target} was sent to storage.",
+  "@postBattleCaptureStorage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleCaptureUnavailable": "There’s nowhere to send the captured Pokémon.",
+  "postBattleExperienceMessage": "{target} gained {amount} Exp. Points!",
+  "@postBattleExperienceMessage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "postBattleLevelUpMessage": "{target} grew to Lv. {amount}!",
+  "@postBattleLevelUpMessage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "postBattleMoveLearningMessage": "{target} can learn {move}.",
+  "@postBattleMoveLearningMessage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleMoveReplacementMessage": "Choose a move to replace with {move}.",
+  "@postBattleMoveReplacementMessage": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleMoveLearnedMessage": "{move} was learned.",
+  "@postBattleMoveLearnedMessage": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleMoveReplacedMessage": "{previousMove} was replaced with {move}.",
+  "@postBattleMoveReplacedMessage": {
+    "placeholders": {
+      "previousMove": {
+        "type": "String"
+      },
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleMoveDeclinedMessage": "{move} wasn’t learned.",
+  "@postBattleMoveDeclinedMessage": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleEvolutionPrompt": "{target} wants to evolve into {replacement}.",
+  "@postBattleEvolutionPrompt": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "replacement": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleEvolutionAccepted": "{target} evolved into {replacement}.",
+  "@postBattleEvolutionAccepted": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      },
+      "replacement": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleEvolutionRefused": "{target} didn’t evolve.",
+  "@postBattleEvolutionRefused": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleTrainerDefeated": "You defeated {actor}!",
+  "@postBattleTrainerDefeated": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleMoneyMessage": "You won ₽{amount}!",
+  "@postBattleMoneyMessage": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "postBattleItemMessage": "You received {item} ×{amount}.",
+  "@postBattleItemMessage": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "postBattleFlagMessage": "{target} was unlocked.",
+  "@postBattleFlagMessage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleBadgeMessage": "You received the {target} Badge.",
+  "@postBattleBadgeMessage": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleAbilityMessage": "You can now use {move}.",
+  "@postBattleAbilityMessage": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleLearn": "Learn",
+  "postBattleDeclineMove": "Don’t learn",
+  "postBattleEvolve": "Evolve",
+  "postBattleDeclineEvolution": "Decline",
+  "postBattleChoose": "What will you do?",
+  "postBattleCompleted": "Done.",
+  "postBattleNoResult": "No battle result is available.",
+  "postBattleDecisionError": "The post-battle decision couldn’t be applied.",
+  "postBattleMissingTransaction": "The battle has no transaction ID.",
+  "postBattleAlreadyApplied": "This battle result was already applied.",
+  "postBattleApplyFailed": "The battle result couldn’t be applied.",
+  "postBattleMoveNotPending": "There’s no move learning decision to make.",
+  "postBattleMoveInvalid": "The move learning decision was invalid.",
+  "postBattleEvolutionNotPending": "There’s no evolution decision to make.",
+  "postBattleEvolutionInvalid": "The evolution decision was invalid.",
+  "postBattleRewardBagCapacity": "Your Bag can’t hold all the rewards. The battle was cancelled. Make room before retrying it.",
+  "postBattleRewardQuantity": "Your Bag can’t hold that many rewards. The battle was cancelled.",
+  "postBattleRewardMissingItemCatalog": "The reward catalog is unavailable. The battle was cancelled.",
+  "postBattleRewardUnknownItem": "Unknown item reward: {item}.",
+  "@postBattleRewardUnknownItem": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "postBattleRewardInvalid": "The item reward is invalid. The battle was cancelled.",
+  "postBattleRewardMissingTrainer": "The Trainer’s rewards couldn’t be found.",
+  "postBattleRewardInvalidBattle": "This type of battle can’t award rewards.",
+  "postBattleRewardMissingData": "The post-battle progression data is incomplete.",
+  "runtimeFeedbackBicycleMissing": "You do not have a bicycle you can use.",
+  "runtimeFeedbackTextVariableInvalid": "This scene variable does not accept text.",
+  "runtimeFeedbackRequestClosed": "This request has already ended.",
+  "runtimeFeedbackRequestChanged": "The request changed before this response arrived.",
+  "runtimeFeedbackResponseNotText": "This response does not contain text.",
+  "runtimeFeedbackResponseLengthInvalid": "This response does not meet the text length requirements.",
+  "runtimeFeedbackTextSaveFailed": "The response could not be saved.",
+  "runtimeFeedbackFlyDisabled": "Fly is disabled in this game.",
+  "runtimeFeedbackFlyUnderwater": "Use Dive to return to the surface before using Fly.",
+  "runtimeFeedbackFlyIndoors": "You cannot use Fly indoors or in caves.",
+  "runtimeFeedbackFlyDestinationUnvisited": "Visit this location before flying there.",
+  "runtimeFeedbackFlyPokemonRequired": "A Pokémon that can battle must know Fly.",
+  "runtimeFeedbackFlyLocked": "You have not unlocked Fly yet.",
+  "runtimeFeedbackFlyMapUnsupported": "Fly is only available on supported 2D maps.",
+  "runtimeFeedbackFlyArrivalUnavailable": "The arrival point for this location is unavailable.",
+  "runtimeFeedbackFlyDestinationUnavailable": "You cannot fly to this destination.",
+  "runtimeFeedbackFlyConfirm": "Fly to {place}?",
+  "@runtimeFeedbackFlyConfirm": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "runtimeFeedbackFlyRecoveryFailed": "Travel failed and recovery could not be confirmed. Restart the game.",
+  "runtimeFeedbackFlyCancelled": "Fly was cancelled. Your progress was kept.",
+  "runtimeFeedbackPartyBusy": "The party is busy right now.",
+  "runtimeFeedbackTargetUnavailable": "This target is no longer available.",
+  "runtimeFeedbackPartyLeadSaved": "The new lead Pokémon was saved.",
+  "runtimeFeedbackPartyReorderSaved": "Party reordered and progress saved.",
+  "runtimeFeedbackPartyCommandInvalid": "This command is unavailable in the party menu.",
+  "runtimeFeedbackPartyReorderFailed": "The party could not be reordered and saved.",
+  "runtimeFeedbackBagBusy": "The bag is busy right now.",
+  "runtimeFeedbackBagItemDefinitionInvalid": "This item’s definition is missing or invalid.",
+  "runtimeFeedbackBagStateChanged": "The game state changed. Reopen the bag.",
+  "runtimeFeedbackBagItemRemoved": "This item is no longer in the bag.",
+  "runtimeFeedbackBagContextualUse": "Using the item in the world.",
+  "runtimeFeedbackBagContextualCancelled": "Use cancelled. You kept the item.",
+  "runtimeFeedbackBagContextualUnavailable": "This item cannot be used in the current situation. You kept it.",
+  "runtimeFeedbackBagContextualFailed": "The item could not be used here. You kept it.",
+  "runtimeFeedbackBagContextualStateChanged": "The game state changed. You kept the item.",
+  "runtimeFeedbackFishingUnsupported": "Fishing is unsupported in this game mode.",
+  "runtimeFeedbackFishingUnavailable": "Fishing is unavailable right now.",
+  "runtimeFeedbackFishingPreparing": "Getting ready to fish.",
+  "runtimeFeedbackFishingMapUnsupported": "You cannot fish on this map.",
+  "runtimeFeedbackFishingRodInvalid": "This item is not a usable fishing rod.",
+  "runtimeFeedbackFishingRodMissing": "This fishing rod is no longer in the bag.",
+  "runtimeFeedbackFishingFaceWater": "Face the water to fish.",
+  "runtimeFeedbackFishingNoEncounter": "You cannot catch anything here with this rod.",
+  "runtimeFeedbackFishingDismountSaveFailed": "Getting off the bicycle could not be saved.",
+  "runtimeFeedbackFishingStartFailed": "Fishing could not be started.",
+  "runtimeFeedbackBicycleUnsupported": "The bicycle is only available on supported 2D maps.",
+  "runtimeFeedbackBicycleUnavailable": "The bicycle is unavailable right now.",
+  "runtimeFeedbackBicycleChanged": "Movement change saved.",
+  "runtimeFeedbackBicycleChangeUnavailable": "The bicycle is unavailable here, its animations are incomplete, or saving failed.",
+  "runtimeFeedbackBicycleSaveFailed": "The movement change could not be saved.",
+  "runtimeFeedbackEscapeRopeUnsupported": "The Escape Rope is unsupported in this game mode.",
+  "runtimeFeedbackEscapeRopeUnavailable": "The Escape Rope is unavailable right now.",
+  "runtimeFeedbackEscapeRopeReturned": "You returned to the entrance. Progress saved.",
+  "runtimeFeedbackEscapeRopeExitBlocked": "The exit is unavailable or blocked. You kept the Escape Rope.",
+  "runtimeFeedbackEscapeRopeSaveFailed": "The return could not be completed and saved.",
+  "runtimeFeedbackRepelUnsupported": "Repel is unavailable in this game mode.",
+  "runtimeFeedbackRepelAlreadyActive": "A Repel is already active.",
+  "runtimeFeedbackRepelApplied": "Repel is active. Progress saved.",
+  "runtimeFeedbackRepelSaveFailed": "Repel could not be used and saved.",
+  "runtimeFeedbackHeldItemNoEffect": "This item has no effect when held.",
+  "runtimeFeedbackHeldItemUnsupported": "This held item’s effect is unsupported in battle.",
+  "runtimeFeedbackTargetDataIncomplete": "This target’s data is incomplete.",
+  "runtimeFeedbackBagItemUsed": "Item used and progress saved.",
+  "runtimeFeedbackBagItemSaveFailed": "The item could not be used and saved.",
+  "runtimeFeedbackHeldItemTargetUnavailable": "This target or item is no longer available.",
+  "runtimeFeedbackHeldItemMissing": "This item is no longer in the bag.",
+  "runtimeFeedbackHeldItemNone": "This Pokémon is holding no item.",
+  "runtimeFeedbackHeldItemUnchanged": "This Pokémon is already holding this item.",
+  "runtimeFeedbackHeldItemBagCannotReceive": "The currently held item cannot be returned to the bag.",
+  "runtimeFeedbackHeldItemBagFull": "There is no room for this item in the bag. Make room before taking it.",
+  "runtimeFeedbackHeldItemBagCapacityUnknown": "The item catalogue could not verify how much room is left in the bag.",
+  "runtimeFeedbackHeldItemRemoved": "Held item removed and progress saved.",
+  "runtimeFeedbackHeldItemChanged": "Held item changed and progress saved.",
+  "runtimeFeedbackHeldItemSaveFailed": "The held item could not be changed and saved.",
+  "runtimeFeedbackMoveMachineIncompatible": "This Pokémon cannot learn a move from this machine.",
+  "runtimeFeedbackMoveMachineReplaced": "Move replaced and progress saved.",
+  "runtimeFeedbackMoveMachineLearned": "Move learned and progress saved.",
+  "runtimeFeedbackMoveMachineForgetPrompt": "Choose a move to forget.",
+  "runtimeFeedbackMoveMachineCancelled": "Learning cancelled.",
+  "runtimeFeedbackMoveMachineCannotUse": "This machine cannot be used here.",
+  "runtimeFeedbackMoveMachineSaveFailed": "The move could not be learned and saved.",
+  "runtimeFeedbackEvolutionHeldItemInvalid": "The held item does not allow this evolution.",
+  "runtimeFeedbackEvolutionUnavailable": "This item does not trigger an evolution here.",
+  "runtimeFeedbackEvolutionAmbiguous": "This combination can trigger multiple evolutions.",
+  "runtimeFeedbackEvolutionSaved": "Evolution complete and progress saved.",
+  "runtimeFeedbackEvolutionSaveFailed": "The evolution could not be applied and saved.",
+  "runtimeFeedbackHealCapsIncomplete": "The party’s recovery data is incomplete.",
+  "runtimeFeedbackHealApplying": "Healing…",
+  "runtimeFeedbackHealDisplayUnavailable": "The healing display is unavailable on this map.",
+  "runtimeFeedbackServiceUnsupported": "This service is unsupported in this game.",
+  "runtimeFeedbackServiceUnavailable": "This service is unavailable right now.",
+  "runtimeFeedbackServiceClosed": "The player service is closed.",
+  "runtimeFeedbackServiceNotOpen": "No contextual service is open.",
+  "runtimeFeedbackServiceChanged": "The service changed before this action arrived.",
+  "runtimeFeedbackServiceWrongRequest": "This response belongs to a different request.",
+  "runtimeFeedbackServiceActionInvalid": "This service does not accept this action.",
+  "runtimeFeedbackPcBoxUnavailable": "This Box is no longer available.",
+  "runtimeFeedbackPokemonUnavailable": "This Pokémon is no longer available.",
+  "runtimeFeedbackTradeUnavailable": "This trade is no longer available.",
+  "runtimeFeedbackPcCommandInvalid": "This command is unavailable on the PC.",
+  "runtimeFeedbackPcSaving": "Saving PC changes…",
+  "runtimeFeedbackPcDeposited": "Pokémon deposited in the Box.",
+  "runtimeFeedbackPcWithdrawn": "Pokémon added to the party.",
+  "runtimeFeedbackPcSwapped": "Pokémon swapped.",
+  "runtimeFeedbackPcMoved": "Pokémon moved to another Box.",
+  "runtimeFeedbackPcSaveFailed": "The PC changes could not be saved.",
+  "runtimeFeedbackPcTitle": "Pokémon PC",
+  "runtimeFeedbackPcHelp": "Organize your party and Boxes.",
+  "runtimeFeedbackPcNoDeposit": "No Pokémon can be deposited.",
+  "runtimeFeedbackPcNoWithdraw": "No Pokémon can be withdrawn.",
+  "runtimeFeedbackPcNoSwap": "No valid swap is available.",
+  "runtimeFeedbackPcNoMove": "There are no Pokémon to move from this Box.",
+  "runtimeFeedbackPcNoDestination": "No other Box is available.",
+  "runtimeFeedbackHealInterrupted": "Healing was interrupted before it could be saved.",
+  "runtimeFeedbackHealAlreadyHealthy": "Your party is already fully healed.",
+  "runtimeFeedbackHealPartyHealed": "Your party is fully healed.",
+  "runtimeFeedbackHealSaveFailed": "Healing could not be saved.",
+  "runtimeFeedbackHealCommandInvalid": "This command is unavailable at the healing service.",
+  "runtimeFeedbackHealTitle": "Pokémon Center",
+  "runtimeFeedbackHealCompleted": "Healing is complete.",
+  "runtimeFeedbackHealHelp": "Restore HP and PP, and clear status conditions.",
+  "runtimeFeedbackShopItemUnavailable": "This item is no longer available.",
+  "runtimeFeedbackShopCommandInvalid": "This command is unavailable at the shop.",
+  "runtimeFeedbackShopChooseItem": "Select an item.",
+  "runtimeFeedbackShopPurchaseBonus": "Purchase complete. Bonus: {quantity} × {item}.",
+  "@runtimeFeedbackShopPurchaseBonus": {
+    "placeholders": {
+      "quantity": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "runtimeFeedbackShopPurchaseComplete": "Purchase complete.",
+  "runtimeFeedbackShopSaleComplete": "Sale complete.",
+  "runtimeFeedbackShopClosed": "This shop is closed.",
+  "runtimeFeedbackShopInsufficientQuantity": "You do not own enough of this item.",
+  "runtimeFeedbackShopMinimumQuantity": "The minimum quantity is 1.",
+  "runtimeFeedbackShopMaximumQuantity": "The maximum quantity has been reached.",
+  "runtimeFeedbackShopSaleUnavailable": "This sale is unavailable.",
+  "runtimeFeedbackShopPurchaseUnavailable": "This purchase is unavailable.",
+  "runtimeFeedbackShopPurchaseInvalid": "Invalid purchase.",
+  "runtimeFeedbackShopItemUnknown": "Unknown item.",
+  "runtimeFeedbackShopFundsInsufficient": "You do not have enough money.",
+  "runtimeFeedbackShopStockInsufficient": "There is not enough in stock.",
+  "runtimeFeedbackShopOwnedLimit": "You already own the maximum quantity.",
+  "runtimeFeedbackShopBagFull": "There is no room for this purchase in the bag. Make room and try again.",
+  "runtimeFeedbackShopStateChanged": "The shop changed. Its stock was refreshed.",
+  "runtimeFeedbackShopSaleInvalid": "Invalid sale.",
+  "runtimeFeedbackShopItemUnsellable": "This item cannot be sold.",
+  "runtimeFeedbackShopItemImportant": "Key items cannot be sold.",
+  "runtimeFeedbackShopItemNotAccepted": "This shop does not buy this item.",
+  "runtimeFeedbackPcOperationInvalid": "Invalid PC operation.",
+  "runtimeFeedbackPcPartySlotInvalid": "Invalid party slot.",
+  "runtimeFeedbackPcBoxUnknown": "Unknown Box.",
+  "runtimeFeedbackPcBoxSlotInvalid": "Invalid Box slot.",
+  "runtimeFeedbackPcPartyFull": "The party is full.",
+  "runtimeFeedbackPcBoxFull": "This Box is full.",
+  "runtimeFeedbackPcFull": "The PC is full.",
+  "runtimeFeedbackPcLastUsablePokemon": "You cannot deposit your last Pokémon that can battle.",
+  "runtimeFeedbackBagItemMissing": "You no longer have this item.",
+  "runtimeFeedbackBagItemWrongTarget": "This item cannot be used on this target.",
+  "runtimeFeedbackBagItemNoEffect": "This item would have no effect.",
+  "runtimeFeedbackBagItemUnsupported": "This item’s effect is unsupported.",
+  "runtimeFeedbackBagKeyItemProtected": "This key item cannot be consumed.",
+  "runtimeFeedbackTradeCatalogRequired": "The party and its Pokémon catalogue are required for this trade.",
+  "runtimeFeedbackTradePokemonMismatch": "This Pokémon does not match the trade request.",
+  "runtimeFeedbackTradeSaveFailed": "The trade could not be saved.",
+  "runtimeFeedbackTradeEvolution": "{name} evolved into {species}.",
+  "@runtimeFeedbackTradeEvolution": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "species": {
+        "type": "String"
+      }
+    }
+  },
+  "runtimeFeedbackCraftSaveRequired": "This workshop requires a save slot.",
+  "runtimeFeedbackCraftInventoryChanged": "The bag changed. Close and reopen the workshop.",
+  "runtimeFeedbackCraftConfirmIngredients": "Hand over the ingredients?",
+  "runtimeFeedbackCraftCollectBagFull": "The bag is full. Your order is still available.",
+  "runtimeFeedbackCraftKeyItemProtected": "This key item cannot be used as an ingredient.",
+  "runtimeFeedbackCraftUnavailable": "This order is unavailable.",
+  "runtimeFeedbackCraftCollected": "Order collected.",
+  "runtimeFeedbackCraftOrderSaved": "Order placed. Come back another day.",
+  "runtimeFeedbackCraftSaveFailed": "Saving failed. Your bag and order were kept.",
+  "runtimeFeedbackCraftInventoryBusy": "The bag is being updated. Finish this interaction and try again.",
+  "runtimeFeedbackCraftSceneRequired": "This workshop requires an active scene.",
+  "runtimeFeedbackPuzzleSaveRequired": "This puzzle requires a save slot.",
+  "runtimeFeedbackPuzzleMediaUnavailable": "The game’s media library is unavailable.",
+  "runtimeFeedbackPuzzleImageTooSmall": "The image must have at least one pixel per puzzle tile.",
+  "runtimeFeedbackPuzzleChangedOnOpening": "The puzzle changed as it opened. Open it again.",
+  "runtimeFeedbackPuzzleDefinitionChanged": "The puzzle definition changed. Restore its original configuration.",
+  "runtimeFeedbackPuzzleChanged": "The puzzle changed. Close this interaction and open it again.",
+  "runtimeFeedbackPuzzleIncomplete": "The image is incomplete. Check each piece’s position and rotation.",
+  "runtimeFeedbackPuzzleDestinationOccupied": "Move this piece to a free space or back to the tray.",
+  "runtimeFeedbackPuzzlePieceFixed": "This piece is fixed in place.",
+  "runtimeFeedbackPuzzleActionUnavailable": "This action is unavailable for this puzzle.",
+  "runtimeFeedbackPuzzleSaveFailed": "Saving failed. Your last saved layout was kept. Try again or quit.",
+  "runtimeFeedbackActionInProgress": "An action is already in progress.",
+  "runtimeFeedbackSaveInProgress": "A save is already in progress.",
+  "runtimeFeedbackFavoritesBagChanged": "The bag changed before this action arrived.",
+  "runtimeFeedbackFavoritesUnavailable": "This item cannot be added to favourites.",
+  "runtimeFeedbackFavoritesSaveFailed": "Favourites could not be saved. Try again.",
+  "runtimeFeedbackPlayerActionStale": "This screen changed before the action arrived.",
+  "runtimeFeedbackRegionalMapCloseFirst": "Close the regional map before using the menu.",
+  "runtimeFeedbackPlayerActionUnavailable": "This player action is unavailable.",
+  "runtimeFeedbackNewGameSlotRequired": "A profile and slot are required to start a new game.",
+  "runtimeFeedbackNoCompatibleSave": "No compatible save is available to continue.",
+  "runtimeFeedbackLoadSlotRequired": "A profile and slot are required to load a save.",
+  "runtimeFeedbackSelectedSaveUnavailable": "The selected save is unavailable or incompatible.",
+  "runtimeFeedbackFinalSaveFailed": "The final save could not be written.",
+  "runtimeFeedbackPartyMembersRequired": "Select two available party members.",
+  "runtimeFeedbackPlayerCommandUnavailable": "This command is unavailable on this screen.",
+  "runtimeFeedbackPlayerPreferencesRequired": "Valid player preferences are required.",
+  "runtimeFeedbackSaveWriteFailed": "The save could not be written.",
+  "runtimeFeedbackCreditsUnavailable": "No end credits are available.",
+  "runtimeFeedbackSurfaceActionUnavailable": "This action is not available on the current surface.",
+  "runtimeFeedbackPlayerResponseStale": "This screen changed before the response arrived.",
+  "runtimeFeedbackReturnToHostFailed": "The game could not return to the library.",
+  "runtimeFeedbackPlayerDataRefreshFailed": "Player data could not be refreshed.",
+  "runtimeFeedbackSessionCloseFailed": "The game session could not close cleanly.",
+  "runtimeFeedbackExplorationMapChanged": "The map changed while loading. Restart exploration.",
+  "runtimeFeedbackNewGamePreparationChanged": "The game content changed during setup. Start the new game again.",
+  "runtimeFeedbackNewGameSetupInvalid": "The starting configuration is incomplete or inconsistent. The new game could not be started.",
+  "runtimeFeedbackNewGameContentChanged": "The game content changed while loading. Start the new game again.",
+  "runtimeFeedbackNewGameResourceLimit": "This map’s graphics exceed the Player’s resource budget. Report this code to the game creator.",
+  "runtimeFeedbackNewGameSaveReadFailed": "Could not read saves. Check that the app can access its storage.",
+  "runtimeFeedbackNewGamePreloadFailed": "The starting map’s data or assets could not be loaded. Reinstall the game if the issue persists.",
+  "runtimeFeedbackNewGameSceneFailed": "The opening scene could not run. Report the code below to the game creator.",
+  "runtimeFeedbackNewGameSetupFailed": "The starting configuration could not be applied. Report the code below to the game creator.",
+  "runtimeFeedbackSaveOpenFailed": "The selected save could not be opened safely.",
+  "runtimeFeedbackSessionLaunchFailed": "The game session could not launch.",
+  "runtimeFeedbackPlayerDataLoadFailed": "Player data could not be loaded.",
+  "runtimeFeedbackSessionFailed": "The player session failed.",
+  "runtimeFeedbackExplorationSaveUnavailable": "3D exploration mode does not support saves yet.",
+  "runtimeFeedbackNoCompatibleGameSave": "No compatible save is available for this game.",
+  "runtimeFeedbackPlayerMapUnavailable": "This game does not provide a player map.",
+  "runtimeFeedbackUnusableSaveNotSelected": "No save has been selected for recovery.",
+  "runtimeFeedbackServiceNotActive": "No contextual service is active.",
+  "runtimeFeedbackBagRequiresPause": "The bag is only available from the pause menu.",
+  "runtimeFeedbackBagItemCheckpointFailed": "The item was used, but saving failed.",
+  "runtimeFeedbackSessionEventStreamFailed": "The game’s event channel failed.",
+  "runtimeFeedbackSessionPrepareTimedOut": "The game session took too long to prepare.",
+  "runtimeFeedbackSessionPrepareFailed": "The game session could not be prepared.",
+  "runtimeFeedbackSessionStartTimedOut": "The game session took too long to start.",
+  "runtimeFeedbackSessionStartFailed": "The game session could not start.",
+  "runtimeFeedbackSessionSignalInvalid": "The game sent an invalid session signal.",
+  "runtimeFeedbackSessionEndingMismatch": "The ending event does not match this game session.",
+  "runtimeFeedbackSessionEndingInvalid": "The ending event arrived before the game was ready.",
+  "runtimeFeedbackPreviousSessionCloseFailed": "The previous game session did not close cleanly.",
+  "runtimeFeedbackStartupGamePreparationFailed": "The game could not be prepared.",
+  "runtimeFeedbackStartupPreparationStartFailed": "Game preparation could not start.",
+  "runtimeFeedbackStartupIdentityPreparationFailed": "The game’s identity could not be prepared.",
+  "runtimeFeedbackStartupMapPreparationFailed": "The first map could not be prepared.",
+  "runtimeFeedbackStartupPresentationLoadFailed": "The game’s presentation could not be loaded.",
+  "runtimeFeedbackStartupSaveDiscoveryFailed": "Saved games could not be checked safely.",
+  "runtimeFeedbackStartupPreferencesLoadFailed": "Player preferences could not be loaded.",
+  "runtimeFeedbackStartupInstalledGamePreparationFailed": "The installed game could not be prepared.",
+  "runtimeFeedbackOverworldBagFull": "The bag is full…",
+  "runtimeFeedbackOverworldItemReceived": "Received {quantity} × {item}!",
+  "@runtimeFeedbackOverworldItemReceived": {
+    "placeholders": {
+      "quantity": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "runtimeFeedbackGiftReceived": "You received a Pokémon!",
+  "runtimeFeedbackGiftNicknamePrompt": "Choose a nickname.",
+  "runtimeFeedbackGiftNicknameAction": "Give a nickname",
+  "battleChooseAction": "What will {actor} do?",
+  "@battleChooseAction": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleChooseReplacementAfterFaint": "{actor} fainted. Choose a replacement.",
+  "@battleChooseReplacementAfterFaint": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleContinuePrompt": "Press to continue.",
+  "battleFinished": "The battle is over.",
+  "battleResolvingTurn": "Resolving the turn…",
+  "battleNoReplacement": "No replacement available.",
+  "battleNoLegalChoice": "No action is available.",
+  "battleChooseAttackTarget": "Choose a target for {actor}.",
+  "@battleChooseAttackTarget": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "battleChoosePokemon": "Choose a Pokémon.",
+  "battleChooseReplacement": "Choose a replacement.",
+  "battleNoSwitch": "No Pokémon can switch in.",
+  "battleActiveOrFainted": "Active and fainted Pokémon are unavailable.",
+  "battleChooseItem": "Choose an item.",
+  "battleNoUsableItem": "No item can be used this turn.",
+  "battleItemsDisabled": "Unavailable items are dimmed.",
+  "battleChooseItemTarget": "Choose a target for {item}.",
+  "@battleChooseItemTarget": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "battleChooseItemMove": "Choose a move for {item}.",
+  "@battleChooseItemMove": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "battleNoItemTarget": "There is no valid target for this item.",
+  "battleFaintedOrFullHp": "Fainted Pokémon and Pokémon at full HP are unavailable.",
+  "battleFullPpDisabled": "Moves with full PP are dimmed.",
+  "battleWildTitle": "Wild battle",
+  "battleTrainerTitle": "Trainer battle",
+  "runtimeFeedbackFishingInterrupted": "Fishing was interrupted.",
+  "runtimeFeedbackFishingCasting": "Casting the line…",
+  "runtimeFeedbackFishingWaiting": "The line is in the water… Press Back to cancel.",
+  "runtimeFeedbackFishingBite": "You got a bite!",
+  "runtimeFeedbackFishingNoBite": "Nothing bit…",
+  "runtimeFeedbackFishingEncounterUnavailable": "This fishing encounter is no longer available.",
+  "runtimeFeedbackFishingCancelled": "Fishing cancelled.",
+  "runtimeFeedbackFieldActionChanged": "This action is no longer available.",
+  "runtimeFeedbackFieldCrossingUnavailable": "This crossing is no longer available.",
+  "runtimeFeedbackFieldFlashUsed": "Your Pokémon used Flash! The area is lit.",
+  "runtimeFeedbackFieldCutUsed": "Your Pokémon used Cut!",
+  "runtimeFeedbackFieldStrengthActive": "Strength is active on this map. Walk toward a boulder to push it.",
+  "runtimeFeedbackFieldRockSmashUsed": "Your Pokémon used Rock Smash!",
+  "runtimeFeedbackFieldDivePassageUnavailable": "This Dive passage is no longer available.",
+  "runtimeFeedbackWaterRequiresSurf": "A Pokémon that knows Surf is needed to travel on water.",
+  "runtimeFeedbackUnderwaterRequiresDive": "Use Dive to reach this underwater terrain.",
+  "runtimeFeedbackDiveRequiresUnderwater": "Dive is available on underwater terrain.",
+  "runtimeFeedbackIncompatibleMovementTerrain": "This terrain has incompatible movement modes.",
+  "runtimeFeedbackSurfMissingPokemon": "It looks like you could surf on this water.",
+  "runtimeFeedbackSurfLocked": "A Pokémon in your party knows Surf. You have yet to unlock it outside battle.",
+  "runtimeFeedbackSurfConfirm": "Would you like to use Surf?",
+  "runtimeFeedbackNarrativePending": "The story outcome is still pending.",
+  "runtimeFeedbackNarrativeUnavailable": "The event could not start.",
+  "runtimeFeedbackNarrativeResultUnavailable": "The story outcome could not be applied.",
+  "runtimeFeedbackCannotEndGame": "The game could not finish.",
+  "runtimeFeedbackGiftFailed": "The Pokémon gift could not be received.",
+  "runtimeFeedbackTransitionFailed": "The transition could not complete.",
+  "runtimeFeedbackTransitionPassageMissing": "The transition could not complete. The passage is missing.",
+  "runtimeFeedbackInvalidMapConnection": "Connection invalid",
+  "runtimeFeedbackMapConnectionBlocked": "Connection blocked",
+  "runtimeFeedbackSceneUnavailable": "Scene V1 impossible.",
+  "runtimeFeedbackSceneCannotContinue": "The scene cannot continue.",
+  "runtimeFeedbackDialogueMissing": "The dialogue could not be found.",
+  "runtimeFeedbackMapPassageUnavailable": "This passage is unavailable right now.",
+  "runtimeFeedbackTeleportFailed": "Teleportation failed.",
+  "runtimeFeedbackNeighboringMapTransferFailed": "Travel to the neighboring map failed.",
+  "runtimeFeedbackContactUnavailable": "This contact is unavailable.",
+  "runtimeFeedbackPuzzleSceneRequired": "This puzzle requires an active scene.",
+  "battleMoveDamageSummary": "{actor} used {move} and dealt {amount} damage.",
+  "@battleMoveDamageSummary": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      },
+      "move": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "runtimeFeedbackFieldMoveCut": "Cut",
+  "runtimeFeedbackFieldMoveStrength": "Strength",
+  "runtimeFeedbackFieldMoveRockSmash": "Rock Smash",
+  "runtimeFeedbackFieldMoveWaterfall": "Waterfall",
+  "runtimeFeedbackFieldMoveWhirlpool": "Whirlpool",
+  "runtimeFeedbackFieldObstacleCutConfirm": "This tree can be cut down. Would you like to use Cut?",
+  "runtimeFeedbackFieldObstacleStrengthConfirm": "This boulder can be pushed. Would you like to use Strength?",
+  "runtimeFeedbackFieldObstacleRockSmashConfirm": "This rock can be smashed. Would you like to use Rock Smash?",
+  "runtimeFeedbackFieldObstacleCutMissing": "This tree blocks the way. A Pokémon that can use Cut is needed.",
+  "runtimeFeedbackFieldObstacleStrengthMissing": "This boulder blocks the way. A Pokémon that can use Strength is needed.",
+  "runtimeFeedbackFieldObstacleRockSmashMissing": "This rock blocks the way. A Pokémon that can use Rock Smash is needed.",
+  "runtimeFeedbackFieldObstacleMoveLocked": "A Pokémon in your party knows {move}. You have yet to unlock it outside battle.",
+  "@runtimeFeedbackFieldObstacleMoveLocked": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "runtimeFeedbackFieldObstacleStrengthReady": "Strength is active. Walk toward this boulder to push it.",
+  "runtimeFeedbackFieldTraversalConfirm": "Would you like to use {move} to cross here?",
+  "@runtimeFeedbackFieldTraversalConfirm": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "runtimeFeedbackFieldTraversalMoveMissing": "A Pokémon that can use {move} is needed.",
+  "@runtimeFeedbackFieldTraversalMoveMissing": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "runtimeFeedbackFieldTraversalMoveLocked": "You have yet to unlock {move} outside battle.",
+  "@runtimeFeedbackFieldTraversalMoveLocked": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "runtimeFeedbackFieldTraversalSurfRequired": "Use Surf before crossing here.",
+  "runtimeFeedbackFieldTraversalWrongDirection": "Face the direction of the passage to cross it.",
+  "runtimeFeedbackFieldTraversalObstructed": "The passage or its exit is blocked.",
+  "runtimeFeedbackFieldTraversalWaterRequired": "This passage must be on water.",
+  "runtimeFeedbackFieldDiveConfirmDown": "Would you like to use Dive to go underwater?",
+  "runtimeFeedbackFieldDiveConfirmUp": "Would you like to use Dive to return to the surface?",
+  "runtimeFeedbackFieldDiveDisabled": "Dive is disabled in this game.",
+  "runtimeFeedbackFieldDiveMoveMissing": "A Pokémon that can use Dive is needed.",
+  "runtimeFeedbackFieldDiveMoveLocked": "You have yet to unlock Dive outside battle.",
+  "runtimeFeedbackFieldDiveSurfRequired": "Use Surf to dive from the surface.",
+  "runtimeFeedbackFieldDiveObstructed": "The Dive destination or return point is blocked.",
+  "runtimeFeedbackFieldDiveDestinationUnavailable": "This Dive spot is not connected to an available destination.",
+  "runtimeFeedbackFieldFlashConfirm": "It’s dark here. Would you like to use Flash to light the area?",
+  "runtimeFeedbackFieldFlashMoveMissing": "It’s dark here. A Pokémon that can use Flash is needed.",
+  "runtimeFeedbackFieldFlashMoveLocked": "A Pokémon knows Flash. You have yet to unlock it outside battle.",
+  "runtimeFeedbackHeadbuttMoveMissing": "A Pokémon that can use Headbutt is needed.",
+  "runtimeFeedbackHeadbuttTreeConsumed": "No more Pokémon are hiding in this tree right now.",
+  "runtimeFeedbackHeadbuttWrongPosition": "Stand on foot in front of this tree to use Headbutt.",
+  "runtimeFeedbackHeadbuttMapUnsupported": "Object encounters are available on supported 2D maps.",
+  "runtimeFeedbackHeadbuttUnavailable": "No encounter is available at this tree right now.",
+  "runtimeFeedbackHeadbuttConfirm": "Would you like to use Headbutt on this tree?",
+  "runtimeFeedbackInteractiveEncounterEmpty": "No Pokémon appeared…",
+  "runtimeFeedbackInteractiveEncounterUnavailable": "This encounter is no longer available.",
+  "runtimeFeedbackRepelExpired": "The Repel wore off.",
+  "runtimeFeedbackRepelRenew": "Would you like to use another Repel of the same kind?",
+  "runtimeFeedbackRepelRenewed": "Repel is active again.",
+  "runtimeFeedbackRepelStockUnavailable": "This Repel is no longer available.",
+  "runtimeFeedbackRepelProgressSaveFailed": "Progress could not be saved.",
+  "runtimeFeedbackSpatialNeighborUnavailable": "A neighboring map could not be displayed.",
+  "runtimeFeedbackSpatialInteractionUnavailable": "This passage or dialogue could not be opened.",
+  "runtimeFeedbackMovingPlatformUnavailable": "The platform could not be moved.",
+  "runtimeFeedbackEntranceAnimationMissing": "This entrance has no animation.",
+  "runtimeFeedbackEntranceAnimationUnavailable": "This entrance’s animation is unavailable.",
+  "runtimeFeedbackElementAnimationUpdateFailed": "The animation could not be updated.",
+  "runtimeFeedbackSpatialSceneTextInputUnsupported": "Scene text input is unavailable in 3D.",
+  "runtimeFeedbackSpatialSceneRegionalMapUnsupported": "The regional map is unavailable during 3D scenes.",
+  "runtimeFeedbackSceneRewardCalendarUnavailable": "The calendar for this reward is unavailable. Reopen the game and try again."
 }

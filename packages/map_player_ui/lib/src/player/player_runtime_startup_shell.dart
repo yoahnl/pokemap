@@ -23,6 +23,7 @@ import 'player_title_prompt_surface.dart';
 import 'player_title_screen.dart';
 import 'pokemap_player_session_view.dart';
 import 'runtime_player_actions.dart';
+import 'runtime_feedback_localization.dart';
 import 'runtime_player_focus_controller.dart';
 import 'runtime_player_gamepad_bridge.dart';
 import 'runtime_player_options.dart';
@@ -717,8 +718,10 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
               ),
               const SizedBox(height: PlayerSpacing.md),
               Text(
-                widget.snapshot.failure?.safeMessage ??
-                    strings.startupUnavailable,
+                localizeRuntimeStartupFailure(
+                  widget.snapshot.failure,
+                  context.playerL10n,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: PlayerSpacing.lg),

@@ -1,5 +1,6 @@
 import 'package:map_battle/map_battle.dart';
 
+import '../runtime_battle_message.dart';
 import 'battle_animation_plan.dart';
 import 'battle_overlay_component.dart';
 
@@ -27,18 +28,20 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
   required BattleSession session,
   required double slideDistancePx,
   BattleSpeciesDisplayNameResolver? resolveSpeciesDisplayName,
+  BattleCombatantDisplayNameResolver? resolveCombatantDisplayName,
+  RuntimeBattleMessageRenderer? formatBattleMessage,
   double revealSeconds = 0.25,
   double slideSeconds = 0.8,
   String? playerBallItemId,
   String? enemyBallItemId,
   bool hasEnemyTrainerSprite = false,
 }) {
-  final openingLines = resolveSpeciesDisplayName == null
-      ? buildBattleOpeningNarrationLinesForOverlay(session)
-      : buildBattleOpeningNarrationLinesForOverlay(
-          session,
-          resolveSpeciesDisplayName: resolveSpeciesDisplayName,
-        );
+  final openingLines = buildBattleOpeningNarrationLinesForOverlay(
+    session,
+    resolveSpeciesDisplayName: resolveSpeciesDisplayName ?? (id) => id,
+    resolveCombatantDisplayName: resolveCombatantDisplayName,
+    formatBattleMessage: formatBattleMessage,
+  );
   // Les lignes de la référence, dans l'ordre : l'annonce, l'envoi adverse
   // (dresseur seulement), l'envoi du joueur. Lire par position serait
   // fragile ; on prend la première et la dernière, et l'intermédiaire quand

@@ -1076,6 +1076,12 @@ abstract class PlayerCatalog {
   /// **'RUN'**
   String get battleRun;
 
+  /// No description provided for @battleMoveInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get battleMoveInfo;
+
   /// No description provided for @battleMoves.
   ///
   /// In en, this message translates to:
@@ -4030,6 +4036,2918 @@ abstract class PlayerCatalog {
   /// In en, this message translates to:
   /// **'Your order is ready.'**
   String get craftReady;
+
+  /// No description provided for @battleNarrationPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Player'**
+  String get battleNarrationPlayer;
+
+  /// No description provided for @battleNarrationEnemy.
+  ///
+  /// In en, this message translates to:
+  /// **'Opponent'**
+  String get battleNarrationEnemy;
+
+  /// No description provided for @battleWildAppeared.
+  ///
+  /// In en, this message translates to:
+  /// **'A wild {target} appeared!'**
+  String battleWildAppeared({required String target});
+
+  /// No description provided for @battleTrainerChallenges.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer {actor} challenges you!'**
+  String battleTrainerChallenges({required String actor});
+
+  /// No description provided for @battleUnknownTrainerChallenges.
+  ///
+  /// In en, this message translates to:
+  /// **'A Trainer challenges you!'**
+  String get battleUnknownTrainerChallenges;
+
+  /// No description provided for @battleTrainerSends.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer {actor} sent out {target}!'**
+  String battleTrainerSends({required String actor, required String target});
+
+  /// No description provided for @battleUnknownTrainerSends.
+  ///
+  /// In en, this message translates to:
+  /// **'The Trainer sent out {target}!'**
+  String battleUnknownTrainerSends({required String target});
+
+  /// No description provided for @battleSendOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Go, {target}!'**
+  String battleSendOut({required String target});
+
+  /// No description provided for @battleJoined.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} joined the battle!'**
+  String battleJoined({required String target});
+
+  /// No description provided for @battleConfusionHurt.
+  ///
+  /// In en, this message translates to:
+  /// **'It hurt itself in its confusion!'**
+  String get battleConfusionHurt;
+
+  /// No description provided for @battleMoveUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} used {move}!'**
+  String battleMoveUsed({required String actor, required String move});
+
+  /// No description provided for @battleMoveDodged.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} avoided the attack!'**
+  String battleMoveDodged({required String target});
+
+  /// No description provided for @battleMoveImmune.
+  ///
+  /// In en, this message translates to:
+  /// **'It doesn’t affect {target}…'**
+  String battleMoveImmune({required String target});
+
+  /// No description provided for @battleCriticalHit.
+  ///
+  /// In en, this message translates to:
+  /// **'A critical hit!'**
+  String get battleCriticalHit;
+
+  /// No description provided for @battleSuperEffective.
+  ///
+  /// In en, this message translates to:
+  /// **'It’s super effective!'**
+  String get battleSuperEffective;
+
+  /// No description provided for @battleNotVeryEffective.
+  ///
+  /// In en, this message translates to:
+  /// **'It’s not very effective…'**
+  String get battleNotVeryEffective;
+
+  /// No description provided for @battleFainted.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} fainted!'**
+  String battleFainted({required String target});
+
+  /// No description provided for @battleItemUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} used {item} on {target}!'**
+  String battleItemUsed({
+    required String actor,
+    required String item,
+    required String target,
+  });
+
+  /// No description provided for @battleHpRecovered.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} recovered {amount} HP.'**
+  String battleHpRecovered({required String target, required int amount});
+
+  /// No description provided for @battleStatusCured.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} recovered from its status condition.'**
+  String battleStatusCured({required String target});
+
+  /// No description provided for @battlePpRecovered.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} recovered {amount} PP.'**
+  String battlePpRecovered({required String move, required int amount});
+
+  /// No description provided for @battleCaptureThrown.
+  ///
+  /// In en, this message translates to:
+  /// **'A Poké Ball was thrown at {target}!'**
+  String battleCaptureThrown({required String target});
+
+  /// No description provided for @battleCaptureCaught.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was caught!'**
+  String battleCaptureCaught({required String target});
+
+  /// No description provided for @battleCaptureEscaped.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} broke free from the Poké Ball!'**
+  String battleCaptureEscaped({required String target});
+
+  /// No description provided for @battleParalyzed.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was paralyzed! It may be unable to move!'**
+  String battleParalyzed({required String target});
+
+  /// No description provided for @battleBurned.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was burned!'**
+  String battleBurned({required String target});
+
+  /// No description provided for @battlePoisoned.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was poisoned!'**
+  String battlePoisoned({required String target});
+
+  /// No description provided for @battleBadlyPoisoned.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was badly poisoned!'**
+  String battleBadlyPoisoned({required String target});
+
+  /// No description provided for @battleFellAsleep.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} fell asleep!'**
+  String battleFellAsleep({required String target});
+
+  /// No description provided for @battleFrozen.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was frozen solid!'**
+  String battleFrozen({required String target});
+
+  /// No description provided for @battleAlreadyHasStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} already has a status condition.'**
+  String battleAlreadyHasStatus({required String target});
+
+  /// No description provided for @battleCannotAct.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} can’t move!'**
+  String battleCannotAct({required String target});
+
+  /// No description provided for @battleBurnDamage.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was hurt by its burn!'**
+  String battleBurnDamage({required String target});
+
+  /// No description provided for @battlePoisonDamage.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was hurt by poison!'**
+  String battlePoisonDamage({required String target});
+
+  /// No description provided for @battleStatusDamage.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} took damage!'**
+  String battleStatusDamage({required String target});
+
+  /// No description provided for @battleProtectActivated.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} protected itself!'**
+  String battleProtectActivated({required String actor});
+
+  /// No description provided for @battleProtectBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'The target protected itself from the attack!'**
+  String get battleProtectBlocked;
+
+  /// No description provided for @battleProtectBroken.
+  ///
+  /// In en, this message translates to:
+  /// **'The protection was broken!'**
+  String get battleProtectBroken;
+
+  /// No description provided for @battleRechargeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} must recharge!'**
+  String battleRechargeRequired({required String actor});
+
+  /// No description provided for @battleRechargeTurnSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} is catching its breath.'**
+  String battleRechargeTurnSpent({required String actor});
+
+  /// No description provided for @battleChargeStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} began charging!'**
+  String battleChargeStarted({required String actor});
+
+  /// No description provided for @battleChargeReleased.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} unleashed its attack!'**
+  String battleChargeReleased({required String actor});
+
+  /// No description provided for @battleConfusionApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} became confused!'**
+  String battleConfusionApplied({required String actor});
+
+  /// No description provided for @battleConfusionActive.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} is confused!'**
+  String battleConfusionActive({required String actor});
+
+  /// No description provided for @battleConfusionEnded.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} snapped out of confusion!'**
+  String battleConfusionEnded({required String actor});
+
+  /// No description provided for @battleRainStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'It started to rain.'**
+  String get battleRainStarted;
+
+  /// No description provided for @battleSandstormStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'A sandstorm kicked up.'**
+  String get battleSandstormStarted;
+
+  /// No description provided for @battleSandstormDamage.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was buffeted by the sandstorm!'**
+  String battleSandstormDamage({required String target});
+
+  /// No description provided for @battleWeatherExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The weather subsided.'**
+  String get battleWeatherExpired;
+
+  /// No description provided for @battleTrickRoomStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'The dimensions twisted.'**
+  String get battleTrickRoomStarted;
+
+  /// No description provided for @battleFieldCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'The field effect was cleared.'**
+  String get battleFieldCleared;
+
+  /// No description provided for @battleFieldExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The field effect wore off.'**
+  String get battleFieldExpired;
+
+  /// No description provided for @battleStealthRockSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Pointed stones float around the opposing team!'**
+  String get battleStealthRockSet;
+
+  /// No description provided for @battleStealthRockAlreadyPresent.
+  ///
+  /// In en, this message translates to:
+  /// **'Pointed stones are already in place.'**
+  String get battleStealthRockAlreadyPresent;
+
+  /// No description provided for @battleStealthRockDamage.
+  ///
+  /// In en, this message translates to:
+  /// **'Pointed stones hurt the incoming Pokémon!'**
+  String get battleStealthRockDamage;
+
+  /// No description provided for @battleSpikesSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Spikes were scattered around the opposing team!'**
+  String get battleSpikesSet;
+
+  /// No description provided for @battleSpikesAlreadyPresent.
+  ///
+  /// In en, this message translates to:
+  /// **'Spikes are already at their maximum.'**
+  String get battleSpikesAlreadyPresent;
+
+  /// No description provided for @battleSpikesDamage.
+  ///
+  /// In en, this message translates to:
+  /// **'Spikes hurt the incoming Pokémon!'**
+  String get battleSpikesDamage;
+
+  /// No description provided for @battleSwitched.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} withdrew {target} and sent out {replacement}!'**
+  String battleSwitched({
+    required String actor,
+    required String target,
+    required String replacement,
+  });
+
+  /// No description provided for @battleReplacementRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} must replace {target}!'**
+  String battleReplacementRequired({
+    required String actor,
+    required String target,
+  });
+
+  /// No description provided for @battleStatRaised.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount, plural, =1{{target}’s {stat} rose!} =2{{target}’s {stat} rose sharply!} other{{target}’s {stat} rose drastically!}}'**
+  String battleStatRaised({
+    required String target,
+    required String stat,
+    required int amount,
+  });
+
+  /// No description provided for @battleStatLowered.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount, plural, =1{{target}’s {stat} fell!} =2{{target}’s {stat} fell sharply!} other{{target}’s {stat} fell drastically!}}'**
+  String battleStatLowered({
+    required String target,
+    required String stat,
+    required int amount,
+  });
+
+  /// No description provided for @battleStatCannotRaise.
+  ///
+  /// In en, this message translates to:
+  /// **'{target}’s {stat} won’t go any higher!'**
+  String battleStatCannotRaise({required String target, required String stat});
+
+  /// No description provided for @battleStatCannotLower.
+  ///
+  /// In en, this message translates to:
+  /// **'{target}’s {stat} won’t go any lower!'**
+  String battleStatCannotLower({required String target, required String stat});
+
+  /// No description provided for @battleStatName.
+  ///
+  /// In en, this message translates to:
+  /// **'{stat, select, attack{Attack} defense{Defense} specialAttack{Special Attack} specialDefense{Special Defense} speed{Speed} accuracy{Accuracy} other{Evasion}}'**
+  String battleStatName({required String stat});
+
+  /// No description provided for @battleMoveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'But it failed!'**
+  String get battleMoveFailed;
+
+  /// No description provided for @battleFleeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'You couldn’t get away.'**
+  String get battleFleeFailed;
+
+  /// No description provided for @battleNarrationVictory.
+  ///
+  /// In en, this message translates to:
+  /// **'You won the battle!'**
+  String get battleNarrationVictory;
+
+  /// No description provided for @battleNarrationDefeat.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no Pokémon left that can fight!'**
+  String get battleNarrationDefeat;
+
+  /// No description provided for @battleNarrationFled.
+  ///
+  /// In en, this message translates to:
+  /// **'You got away safely!'**
+  String get battleNarrationFled;
+
+  /// No description provided for @postBattleVictoryMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Victory!'**
+  String get postBattleVictoryMessage;
+
+  /// No description provided for @postBattleDefeatMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'All your Pokémon fainted.'**
+  String get postBattleDefeatMessage;
+
+  /// No description provided for @postBattleFledMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You got away safely!'**
+  String get postBattleFledMessage;
+
+  /// No description provided for @postBattleCapturedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was caught.'**
+  String postBattleCapturedMessage({required String target});
+
+  /// No description provided for @postBattleCaptureParty.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} joined your party.'**
+  String postBattleCaptureParty({required String target});
+
+  /// No description provided for @postBattleCaptureStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was sent to storage.'**
+  String postBattleCaptureStorage({required String target});
+
+  /// No description provided for @postBattleCaptureUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'There’s nowhere to send the captured Pokémon.'**
+  String get postBattleCaptureUnavailable;
+
+  /// No description provided for @postBattleExperienceMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} gained {amount} Exp. Points!'**
+  String postBattleExperienceMessage({
+    required String target,
+    required int amount,
+  });
+
+  /// No description provided for @postBattleLevelUpMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} grew to Lv. {amount}!'**
+  String postBattleLevelUpMessage({
+    required String target,
+    required int amount,
+  });
+
+  /// No description provided for @postBattleMoveLearningMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} can learn {move}.'**
+  String postBattleMoveLearningMessage({
+    required String target,
+    required String move,
+  });
+
+  /// No description provided for @postBattleMoveReplacementMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a move to replace with {move}.'**
+  String postBattleMoveReplacementMessage({required String move});
+
+  /// No description provided for @postBattleMoveLearnedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} was learned.'**
+  String postBattleMoveLearnedMessage({required String move});
+
+  /// No description provided for @postBattleMoveReplacedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{previousMove} was replaced with {move}.'**
+  String postBattleMoveReplacedMessage({
+    required String previousMove,
+    required String move,
+  });
+
+  /// No description provided for @postBattleMoveDeclinedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} wasn’t learned.'**
+  String postBattleMoveDeclinedMessage({required String move});
+
+  /// No description provided for @postBattleEvolutionPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} wants to evolve into {replacement}.'**
+  String postBattleEvolutionPrompt({
+    required String target,
+    required String replacement,
+  });
+
+  /// No description provided for @postBattleEvolutionAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} evolved into {replacement}.'**
+  String postBattleEvolutionAccepted({
+    required String target,
+    required String replacement,
+  });
+
+  /// No description provided for @postBattleEvolutionRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} didn’t evolve.'**
+  String postBattleEvolutionRefused({required String target});
+
+  /// No description provided for @postBattleTrainerDefeated.
+  ///
+  /// In en, this message translates to:
+  /// **'You defeated {actor}!'**
+  String postBattleTrainerDefeated({required String actor});
+
+  /// No description provided for @postBattleMoneyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You won ₽{amount}!'**
+  String postBattleMoneyMessage({required int amount});
+
+  /// No description provided for @postBattleItemMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You received {item} ×{amount}.'**
+  String postBattleItemMessage({required String item, required int amount});
+
+  /// No description provided for @postBattleFlagMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{target} was unlocked.'**
+  String postBattleFlagMessage({required String target});
+
+  /// No description provided for @postBattleBadgeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You received the {target} Badge.'**
+  String postBattleBadgeMessage({required String target});
+
+  /// No description provided for @postBattleAbilityMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You can now use {move}.'**
+  String postBattleAbilityMessage({required String move});
+
+  /// No description provided for @postBattleLearn.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn'**
+  String get postBattleLearn;
+
+  /// No description provided for @postBattleDeclineMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Don’t learn'**
+  String get postBattleDeclineMove;
+
+  /// No description provided for @postBattleEvolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Evolve'**
+  String get postBattleEvolve;
+
+  /// No description provided for @postBattleDeclineEvolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get postBattleDeclineEvolution;
+
+  /// No description provided for @postBattleChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'What will you do?'**
+  String get postBattleChoose;
+
+  /// No description provided for @postBattleCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Done.'**
+  String get postBattleCompleted;
+
+  /// No description provided for @postBattleNoResult.
+  ///
+  /// In en, this message translates to:
+  /// **'No battle result is available.'**
+  String get postBattleNoResult;
+
+  /// No description provided for @postBattleDecisionError.
+  ///
+  /// In en, this message translates to:
+  /// **'The post-battle decision couldn’t be applied.'**
+  String get postBattleDecisionError;
+
+  /// No description provided for @postBattleMissingTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'The battle has no transaction ID.'**
+  String get postBattleMissingTransaction;
+
+  /// No description provided for @postBattleAlreadyApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'This battle result was already applied.'**
+  String get postBattleAlreadyApplied;
+
+  /// No description provided for @postBattleApplyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The battle result couldn’t be applied.'**
+  String get postBattleApplyFailed;
+
+  /// No description provided for @postBattleMoveNotPending.
+  ///
+  /// In en, this message translates to:
+  /// **'There’s no move learning decision to make.'**
+  String get postBattleMoveNotPending;
+
+  /// No description provided for @postBattleMoveInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The move learning decision was invalid.'**
+  String get postBattleMoveInvalid;
+
+  /// No description provided for @postBattleEvolutionNotPending.
+  ///
+  /// In en, this message translates to:
+  /// **'There’s no evolution decision to make.'**
+  String get postBattleEvolutionNotPending;
+
+  /// No description provided for @postBattleEvolutionInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The evolution decision was invalid.'**
+  String get postBattleEvolutionInvalid;
+
+  /// No description provided for @postBattleRewardBagCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Bag can’t hold all the rewards. The battle was cancelled. Make room before retrying it.'**
+  String get postBattleRewardBagCapacity;
+
+  /// No description provided for @postBattleRewardQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Bag can’t hold that many rewards. The battle was cancelled.'**
+  String get postBattleRewardQuantity;
+
+  /// No description provided for @postBattleRewardMissingItemCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'The reward catalog is unavailable. The battle was cancelled.'**
+  String get postBattleRewardMissingItemCatalog;
+
+  /// No description provided for @postBattleRewardUnknownItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown item reward: {item}.'**
+  String postBattleRewardUnknownItem({required String item});
+
+  /// No description provided for @postBattleRewardInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The item reward is invalid. The battle was cancelled.'**
+  String get postBattleRewardInvalid;
+
+  /// No description provided for @postBattleRewardMissingTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'The Trainer’s rewards couldn’t be found.'**
+  String get postBattleRewardMissingTrainer;
+
+  /// No description provided for @postBattleRewardInvalidBattle.
+  ///
+  /// In en, this message translates to:
+  /// **'This type of battle can’t award rewards.'**
+  String get postBattleRewardInvalidBattle;
+
+  /// No description provided for @postBattleRewardMissingData.
+  ///
+  /// In en, this message translates to:
+  /// **'The post-battle progression data is incomplete.'**
+  String get postBattleRewardMissingData;
+
+  /// No description provided for @runtimeFeedbackBicycleMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have a bicycle you can use.'**
+  String get runtimeFeedbackBicycleMissing;
+
+  /// No description provided for @runtimeFeedbackTextVariableInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This scene variable does not accept text.'**
+  String get runtimeFeedbackTextVariableInvalid;
+
+  /// No description provided for @runtimeFeedbackRequestClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'This request has already ended.'**
+  String get runtimeFeedbackRequestClosed;
+
+  /// No description provided for @runtimeFeedbackRequestChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The request changed before this response arrived.'**
+  String get runtimeFeedbackRequestChanged;
+
+  /// No description provided for @runtimeFeedbackResponseNotText.
+  ///
+  /// In en, this message translates to:
+  /// **'This response does not contain text.'**
+  String get runtimeFeedbackResponseNotText;
+
+  /// No description provided for @runtimeFeedbackResponseLengthInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This response does not meet the text length requirements.'**
+  String get runtimeFeedbackResponseLengthInvalid;
+
+  /// No description provided for @runtimeFeedbackTextSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The response could not be saved.'**
+  String get runtimeFeedbackTextSaveFailed;
+
+  /// No description provided for @runtimeFeedbackFlyDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Fly is disabled in this game.'**
+  String get runtimeFeedbackFlyDisabled;
+
+  /// No description provided for @runtimeFeedbackFlyUnderwater.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Dive to return to the surface before using Fly.'**
+  String get runtimeFeedbackFlyUnderwater;
+
+  /// No description provided for @runtimeFeedbackFlyIndoors.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot use Fly indoors or in caves.'**
+  String get runtimeFeedbackFlyIndoors;
+
+  /// No description provided for @runtimeFeedbackFlyDestinationUnvisited.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit this location before flying there.'**
+  String get runtimeFeedbackFlyDestinationUnvisited;
+
+  /// No description provided for @runtimeFeedbackFlyPokemonRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'A Pokémon that can battle must know Fly.'**
+  String get runtimeFeedbackFlyPokemonRequired;
+
+  /// No description provided for @runtimeFeedbackFlyLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'You have not unlocked Fly yet.'**
+  String get runtimeFeedbackFlyLocked;
+
+  /// No description provided for @runtimeFeedbackFlyMapUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Fly is only available on supported 2D maps.'**
+  String get runtimeFeedbackFlyMapUnsupported;
+
+  /// No description provided for @runtimeFeedbackFlyArrivalUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The arrival point for this location is unavailable.'**
+  String get runtimeFeedbackFlyArrivalUnavailable;
+
+  /// No description provided for @runtimeFeedbackFlyDestinationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot fly to this destination.'**
+  String get runtimeFeedbackFlyDestinationUnavailable;
+
+  /// No description provided for @runtimeFeedbackFlyConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Fly to {place}?'**
+  String runtimeFeedbackFlyConfirm({required String place});
+
+  /// No description provided for @runtimeFeedbackFlyRecoveryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel failed and recovery could not be confirmed. Restart the game.'**
+  String get runtimeFeedbackFlyRecoveryFailed;
+
+  /// No description provided for @runtimeFeedbackFlyCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Fly was cancelled. Your progress was kept.'**
+  String get runtimeFeedbackFlyCancelled;
+
+  /// No description provided for @runtimeFeedbackPartyBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'The party is busy right now.'**
+  String get runtimeFeedbackPartyBusy;
+
+  /// No description provided for @runtimeFeedbackTargetUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This target is no longer available.'**
+  String get runtimeFeedbackTargetUnavailable;
+
+  /// No description provided for @runtimeFeedbackPartyLeadSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'The new lead Pokémon was saved.'**
+  String get runtimeFeedbackPartyLeadSaved;
+
+  /// No description provided for @runtimeFeedbackPartyReorderSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Party reordered and progress saved.'**
+  String get runtimeFeedbackPartyReorderSaved;
+
+  /// No description provided for @runtimeFeedbackPartyCommandInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This command is unavailable in the party menu.'**
+  String get runtimeFeedbackPartyCommandInvalid;
+
+  /// No description provided for @runtimeFeedbackPartyReorderFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The party could not be reordered and saved.'**
+  String get runtimeFeedbackPartyReorderFailed;
+
+  /// No description provided for @runtimeFeedbackBagBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'The bag is busy right now.'**
+  String get runtimeFeedbackBagBusy;
+
+  /// No description provided for @runtimeFeedbackBagItemDefinitionInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This item’s definition is missing or invalid.'**
+  String get runtimeFeedbackBagItemDefinitionInvalid;
+
+  /// No description provided for @runtimeFeedbackBagStateChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The game state changed. Reopen the bag.'**
+  String get runtimeFeedbackBagStateChanged;
+
+  /// No description provided for @runtimeFeedbackBagItemRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'This item is no longer in the bag.'**
+  String get runtimeFeedbackBagItemRemoved;
+
+  /// No description provided for @runtimeFeedbackBagContextualUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the item in the world.'**
+  String get runtimeFeedbackBagContextualUse;
+
+  /// No description provided for @runtimeFeedbackBagContextualCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Use cancelled. You kept the item.'**
+  String get runtimeFeedbackBagContextualCancelled;
+
+  /// No description provided for @runtimeFeedbackBagContextualUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This item cannot be used in the current situation. You kept it.'**
+  String get runtimeFeedbackBagContextualUnavailable;
+
+  /// No description provided for @runtimeFeedbackBagContextualFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The item could not be used here. You kept it.'**
+  String get runtimeFeedbackBagContextualFailed;
+
+  /// No description provided for @runtimeFeedbackBagContextualStateChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The game state changed. You kept the item.'**
+  String get runtimeFeedbackBagContextualStateChanged;
+
+  /// No description provided for @runtimeFeedbackFishingUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Fishing is unsupported in this game mode.'**
+  String get runtimeFeedbackFishingUnsupported;
+
+  /// No description provided for @runtimeFeedbackFishingUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Fishing is unavailable right now.'**
+  String get runtimeFeedbackFishingUnavailable;
+
+  /// No description provided for @runtimeFeedbackFishingPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting ready to fish.'**
+  String get runtimeFeedbackFishingPreparing;
+
+  /// No description provided for @runtimeFeedbackFishingMapUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot fish on this map.'**
+  String get runtimeFeedbackFishingMapUnsupported;
+
+  /// No description provided for @runtimeFeedbackFishingRodInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This item is not a usable fishing rod.'**
+  String get runtimeFeedbackFishingRodInvalid;
+
+  /// No description provided for @runtimeFeedbackFishingRodMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This fishing rod is no longer in the bag.'**
+  String get runtimeFeedbackFishingRodMissing;
+
+  /// No description provided for @runtimeFeedbackFishingFaceWater.
+  ///
+  /// In en, this message translates to:
+  /// **'Face the water to fish.'**
+  String get runtimeFeedbackFishingFaceWater;
+
+  /// No description provided for @runtimeFeedbackFishingNoEncounter.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot catch anything here with this rod.'**
+  String get runtimeFeedbackFishingNoEncounter;
+
+  /// No description provided for @runtimeFeedbackFishingDismountSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting off the bicycle could not be saved.'**
+  String get runtimeFeedbackFishingDismountSaveFailed;
+
+  /// No description provided for @runtimeFeedbackFishingStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Fishing could not be started.'**
+  String get runtimeFeedbackFishingStartFailed;
+
+  /// No description provided for @runtimeFeedbackBicycleUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'The bicycle is only available on supported 2D maps.'**
+  String get runtimeFeedbackBicycleUnsupported;
+
+  /// No description provided for @runtimeFeedbackBicycleUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The bicycle is unavailable right now.'**
+  String get runtimeFeedbackBicycleUnavailable;
+
+  /// No description provided for @runtimeFeedbackBicycleChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Movement change saved.'**
+  String get runtimeFeedbackBicycleChanged;
+
+  /// No description provided for @runtimeFeedbackBicycleChangeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The bicycle is unavailable here, its animations are incomplete, or saving failed.'**
+  String get runtimeFeedbackBicycleChangeUnavailable;
+
+  /// No description provided for @runtimeFeedbackBicycleSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The movement change could not be saved.'**
+  String get runtimeFeedbackBicycleSaveFailed;
+
+  /// No description provided for @runtimeFeedbackEscapeRopeUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'The Escape Rope is unsupported in this game mode.'**
+  String get runtimeFeedbackEscapeRopeUnsupported;
+
+  /// No description provided for @runtimeFeedbackEscapeRopeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The Escape Rope is unavailable right now.'**
+  String get runtimeFeedbackEscapeRopeUnavailable;
+
+  /// No description provided for @runtimeFeedbackEscapeRopeReturned.
+  ///
+  /// In en, this message translates to:
+  /// **'You returned to the entrance. Progress saved.'**
+  String get runtimeFeedbackEscapeRopeReturned;
+
+  /// No description provided for @runtimeFeedbackEscapeRopeExitBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'The exit is unavailable or blocked. You kept the Escape Rope.'**
+  String get runtimeFeedbackEscapeRopeExitBlocked;
+
+  /// No description provided for @runtimeFeedbackEscapeRopeSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The return could not be completed and saved.'**
+  String get runtimeFeedbackEscapeRopeSaveFailed;
+
+  /// No description provided for @runtimeFeedbackRepelUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Repel is unavailable in this game mode.'**
+  String get runtimeFeedbackRepelUnsupported;
+
+  /// No description provided for @runtimeFeedbackRepelAlreadyActive.
+  ///
+  /// In en, this message translates to:
+  /// **'A Repel is already active.'**
+  String get runtimeFeedbackRepelAlreadyActive;
+
+  /// No description provided for @runtimeFeedbackRepelApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Repel is active. Progress saved.'**
+  String get runtimeFeedbackRepelApplied;
+
+  /// No description provided for @runtimeFeedbackRepelSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Repel could not be used and saved.'**
+  String get runtimeFeedbackRepelSaveFailed;
+
+  /// No description provided for @runtimeFeedbackHeldItemNoEffect.
+  ///
+  /// In en, this message translates to:
+  /// **'This item has no effect when held.'**
+  String get runtimeFeedbackHeldItemNoEffect;
+
+  /// No description provided for @runtimeFeedbackHeldItemUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This held item’s effect is unsupported in battle.'**
+  String get runtimeFeedbackHeldItemUnsupported;
+
+  /// No description provided for @runtimeFeedbackTargetDataIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'This target’s data is incomplete.'**
+  String get runtimeFeedbackTargetDataIncomplete;
+
+  /// No description provided for @runtimeFeedbackBagItemUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Item used and progress saved.'**
+  String get runtimeFeedbackBagItemUsed;
+
+  /// No description provided for @runtimeFeedbackBagItemSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The item could not be used and saved.'**
+  String get runtimeFeedbackBagItemSaveFailed;
+
+  /// No description provided for @runtimeFeedbackHeldItemTargetUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This target or item is no longer available.'**
+  String get runtimeFeedbackHeldItemTargetUnavailable;
+
+  /// No description provided for @runtimeFeedbackHeldItemMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This item is no longer in the bag.'**
+  String get runtimeFeedbackHeldItemMissing;
+
+  /// No description provided for @runtimeFeedbackHeldItemNone.
+  ///
+  /// In en, this message translates to:
+  /// **'This Pokémon is holding no item.'**
+  String get runtimeFeedbackHeldItemNone;
+
+  /// No description provided for @runtimeFeedbackHeldItemUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'This Pokémon is already holding this item.'**
+  String get runtimeFeedbackHeldItemUnchanged;
+
+  /// No description provided for @runtimeFeedbackHeldItemBagCannotReceive.
+  ///
+  /// In en, this message translates to:
+  /// **'The currently held item cannot be returned to the bag.'**
+  String get runtimeFeedbackHeldItemBagCannotReceive;
+
+  /// No description provided for @runtimeFeedbackHeldItemBagFull.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no room for this item in the bag. Make room before taking it.'**
+  String get runtimeFeedbackHeldItemBagFull;
+
+  /// No description provided for @runtimeFeedbackHeldItemBagCapacityUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'The item catalogue could not verify how much room is left in the bag.'**
+  String get runtimeFeedbackHeldItemBagCapacityUnknown;
+
+  /// No description provided for @runtimeFeedbackHeldItemRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Held item removed and progress saved.'**
+  String get runtimeFeedbackHeldItemRemoved;
+
+  /// No description provided for @runtimeFeedbackHeldItemChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Held item changed and progress saved.'**
+  String get runtimeFeedbackHeldItemChanged;
+
+  /// No description provided for @runtimeFeedbackHeldItemSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The held item could not be changed and saved.'**
+  String get runtimeFeedbackHeldItemSaveFailed;
+
+  /// No description provided for @runtimeFeedbackMoveMachineIncompatible.
+  ///
+  /// In en, this message translates to:
+  /// **'This Pokémon cannot learn a move from this machine.'**
+  String get runtimeFeedbackMoveMachineIncompatible;
+
+  /// No description provided for @runtimeFeedbackMoveMachineReplaced.
+  ///
+  /// In en, this message translates to:
+  /// **'Move replaced and progress saved.'**
+  String get runtimeFeedbackMoveMachineReplaced;
+
+  /// No description provided for @runtimeFeedbackMoveMachineLearned.
+  ///
+  /// In en, this message translates to:
+  /// **'Move learned and progress saved.'**
+  String get runtimeFeedbackMoveMachineLearned;
+
+  /// No description provided for @runtimeFeedbackMoveMachineForgetPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a move to forget.'**
+  String get runtimeFeedbackMoveMachineForgetPrompt;
+
+  /// No description provided for @runtimeFeedbackMoveMachineCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Learning cancelled.'**
+  String get runtimeFeedbackMoveMachineCancelled;
+
+  /// No description provided for @runtimeFeedbackMoveMachineCannotUse.
+  ///
+  /// In en, this message translates to:
+  /// **'This machine cannot be used here.'**
+  String get runtimeFeedbackMoveMachineCannotUse;
+
+  /// No description provided for @runtimeFeedbackMoveMachineSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The move could not be learned and saved.'**
+  String get runtimeFeedbackMoveMachineSaveFailed;
+
+  /// No description provided for @runtimeFeedbackEvolutionHeldItemInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The held item does not allow this evolution.'**
+  String get runtimeFeedbackEvolutionHeldItemInvalid;
+
+  /// No description provided for @runtimeFeedbackEvolutionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This item does not trigger an evolution here.'**
+  String get runtimeFeedbackEvolutionUnavailable;
+
+  /// No description provided for @runtimeFeedbackEvolutionAmbiguous.
+  ///
+  /// In en, this message translates to:
+  /// **'This combination can trigger multiple evolutions.'**
+  String get runtimeFeedbackEvolutionAmbiguous;
+
+  /// No description provided for @runtimeFeedbackEvolutionSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Evolution complete and progress saved.'**
+  String get runtimeFeedbackEvolutionSaved;
+
+  /// No description provided for @runtimeFeedbackEvolutionSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The evolution could not be applied and saved.'**
+  String get runtimeFeedbackEvolutionSaveFailed;
+
+  /// No description provided for @runtimeFeedbackHealCapsIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'The party’s recovery data is incomplete.'**
+  String get runtimeFeedbackHealCapsIncomplete;
+
+  /// No description provided for @runtimeFeedbackHealApplying.
+  ///
+  /// In en, this message translates to:
+  /// **'Healing…'**
+  String get runtimeFeedbackHealApplying;
+
+  /// No description provided for @runtimeFeedbackHealDisplayUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The healing display is unavailable on this map.'**
+  String get runtimeFeedbackHealDisplayUnavailable;
+
+  /// No description provided for @runtimeFeedbackServiceUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This service is unsupported in this game.'**
+  String get runtimeFeedbackServiceUnsupported;
+
+  /// No description provided for @runtimeFeedbackServiceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This service is unavailable right now.'**
+  String get runtimeFeedbackServiceUnavailable;
+
+  /// No description provided for @runtimeFeedbackServiceClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'The player service is closed.'**
+  String get runtimeFeedbackServiceClosed;
+
+  /// No description provided for @runtimeFeedbackServiceNotOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'No contextual service is open.'**
+  String get runtimeFeedbackServiceNotOpen;
+
+  /// No description provided for @runtimeFeedbackServiceChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The service changed before this action arrived.'**
+  String get runtimeFeedbackServiceChanged;
+
+  /// No description provided for @runtimeFeedbackServiceWrongRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'This response belongs to a different request.'**
+  String get runtimeFeedbackServiceWrongRequest;
+
+  /// No description provided for @runtimeFeedbackServiceActionInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This service does not accept this action.'**
+  String get runtimeFeedbackServiceActionInvalid;
+
+  /// No description provided for @runtimeFeedbackPcBoxUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This Box is no longer available.'**
+  String get runtimeFeedbackPcBoxUnavailable;
+
+  /// No description provided for @runtimeFeedbackPokemonUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This Pokémon is no longer available.'**
+  String get runtimeFeedbackPokemonUnavailable;
+
+  /// No description provided for @runtimeFeedbackTradeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This trade is no longer available.'**
+  String get runtimeFeedbackTradeUnavailable;
+
+  /// No description provided for @runtimeFeedbackPcCommandInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This command is unavailable on the PC.'**
+  String get runtimeFeedbackPcCommandInvalid;
+
+  /// No description provided for @runtimeFeedbackPcSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving PC changes…'**
+  String get runtimeFeedbackPcSaving;
+
+  /// No description provided for @runtimeFeedbackPcDeposited.
+  ///
+  /// In en, this message translates to:
+  /// **'Pokémon deposited in the Box.'**
+  String get runtimeFeedbackPcDeposited;
+
+  /// No description provided for @runtimeFeedbackPcWithdrawn.
+  ///
+  /// In en, this message translates to:
+  /// **'Pokémon added to the party.'**
+  String get runtimeFeedbackPcWithdrawn;
+
+  /// No description provided for @runtimeFeedbackPcSwapped.
+  ///
+  /// In en, this message translates to:
+  /// **'Pokémon swapped.'**
+  String get runtimeFeedbackPcSwapped;
+
+  /// No description provided for @runtimeFeedbackPcMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Pokémon moved to another Box.'**
+  String get runtimeFeedbackPcMoved;
+
+  /// No description provided for @runtimeFeedbackPcSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC changes could not be saved.'**
+  String get runtimeFeedbackPcSaveFailed;
+
+  /// No description provided for @runtimeFeedbackPcTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pokémon PC'**
+  String get runtimeFeedbackPcTitle;
+
+  /// No description provided for @runtimeFeedbackPcHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize your party and Boxes.'**
+  String get runtimeFeedbackPcHelp;
+
+  /// No description provided for @runtimeFeedbackPcNoDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'No Pokémon can be deposited.'**
+  String get runtimeFeedbackPcNoDeposit;
+
+  /// No description provided for @runtimeFeedbackPcNoWithdraw.
+  ///
+  /// In en, this message translates to:
+  /// **'No Pokémon can be withdrawn.'**
+  String get runtimeFeedbackPcNoWithdraw;
+
+  /// No description provided for @runtimeFeedbackPcNoSwap.
+  ///
+  /// In en, this message translates to:
+  /// **'No valid swap is available.'**
+  String get runtimeFeedbackPcNoSwap;
+
+  /// No description provided for @runtimeFeedbackPcNoMove.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no Pokémon to move from this Box.'**
+  String get runtimeFeedbackPcNoMove;
+
+  /// No description provided for @runtimeFeedbackPcNoDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'No other Box is available.'**
+  String get runtimeFeedbackPcNoDestination;
+
+  /// No description provided for @runtimeFeedbackHealInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Healing was interrupted before it could be saved.'**
+  String get runtimeFeedbackHealInterrupted;
+
+  /// No description provided for @runtimeFeedbackHealAlreadyHealthy.
+  ///
+  /// In en, this message translates to:
+  /// **'Your party is already fully healed.'**
+  String get runtimeFeedbackHealAlreadyHealthy;
+
+  /// No description provided for @runtimeFeedbackHealPartyHealed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your party is fully healed.'**
+  String get runtimeFeedbackHealPartyHealed;
+
+  /// No description provided for @runtimeFeedbackHealSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Healing could not be saved.'**
+  String get runtimeFeedbackHealSaveFailed;
+
+  /// No description provided for @runtimeFeedbackHealCommandInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This command is unavailable at the healing service.'**
+  String get runtimeFeedbackHealCommandInvalid;
+
+  /// No description provided for @runtimeFeedbackHealTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pokémon Center'**
+  String get runtimeFeedbackHealTitle;
+
+  /// No description provided for @runtimeFeedbackHealCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Healing is complete.'**
+  String get runtimeFeedbackHealCompleted;
+
+  /// No description provided for @runtimeFeedbackHealHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore HP and PP, and clear status conditions.'**
+  String get runtimeFeedbackHealHelp;
+
+  /// No description provided for @runtimeFeedbackShopItemUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This item is no longer available.'**
+  String get runtimeFeedbackShopItemUnavailable;
+
+  /// No description provided for @runtimeFeedbackShopCommandInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This command is unavailable at the shop.'**
+  String get runtimeFeedbackShopCommandInvalid;
+
+  /// No description provided for @runtimeFeedbackShopChooseItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an item.'**
+  String get runtimeFeedbackShopChooseItem;
+
+  /// No description provided for @runtimeFeedbackShopPurchaseBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase complete. Bonus: {quantity} × {item}.'**
+  String runtimeFeedbackShopPurchaseBonus({
+    required int quantity,
+    required String item,
+  });
+
+  /// No description provided for @runtimeFeedbackShopPurchaseComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase complete.'**
+  String get runtimeFeedbackShopPurchaseComplete;
+
+  /// No description provided for @runtimeFeedbackShopSaleComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale complete.'**
+  String get runtimeFeedbackShopSaleComplete;
+
+  /// No description provided for @runtimeFeedbackShopClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop is closed.'**
+  String get runtimeFeedbackShopClosed;
+
+  /// No description provided for @runtimeFeedbackShopInsufficientQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not own enough of this item.'**
+  String get runtimeFeedbackShopInsufficientQuantity;
+
+  /// No description provided for @runtimeFeedbackShopMinimumQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'The minimum quantity is 1.'**
+  String get runtimeFeedbackShopMinimumQuantity;
+
+  /// No description provided for @runtimeFeedbackShopMaximumQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'The maximum quantity has been reached.'**
+  String get runtimeFeedbackShopMaximumQuantity;
+
+  /// No description provided for @runtimeFeedbackShopSaleUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This sale is unavailable.'**
+  String get runtimeFeedbackShopSaleUnavailable;
+
+  /// No description provided for @runtimeFeedbackShopPurchaseUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This purchase is unavailable.'**
+  String get runtimeFeedbackShopPurchaseUnavailable;
+
+  /// No description provided for @runtimeFeedbackShopPurchaseInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid purchase.'**
+  String get runtimeFeedbackShopPurchaseInvalid;
+
+  /// No description provided for @runtimeFeedbackShopItemUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown item.'**
+  String get runtimeFeedbackShopItemUnknown;
+
+  /// No description provided for @runtimeFeedbackShopFundsInsufficient.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have enough money.'**
+  String get runtimeFeedbackShopFundsInsufficient;
+
+  /// No description provided for @runtimeFeedbackShopStockInsufficient.
+  ///
+  /// In en, this message translates to:
+  /// **'There is not enough in stock.'**
+  String get runtimeFeedbackShopStockInsufficient;
+
+  /// No description provided for @runtimeFeedbackShopOwnedLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You already own the maximum quantity.'**
+  String get runtimeFeedbackShopOwnedLimit;
+
+  /// No description provided for @runtimeFeedbackShopBagFull.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no room for this purchase in the bag. Make room and try again.'**
+  String get runtimeFeedbackShopBagFull;
+
+  /// No description provided for @runtimeFeedbackShopStateChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The shop changed. Its stock was refreshed.'**
+  String get runtimeFeedbackShopStateChanged;
+
+  /// No description provided for @runtimeFeedbackShopSaleInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid sale.'**
+  String get runtimeFeedbackShopSaleInvalid;
+
+  /// No description provided for @runtimeFeedbackShopItemUnsellable.
+  ///
+  /// In en, this message translates to:
+  /// **'This item cannot be sold.'**
+  String get runtimeFeedbackShopItemUnsellable;
+
+  /// No description provided for @runtimeFeedbackShopItemImportant.
+  ///
+  /// In en, this message translates to:
+  /// **'Key items cannot be sold.'**
+  String get runtimeFeedbackShopItemImportant;
+
+  /// No description provided for @runtimeFeedbackShopItemNotAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop does not buy this item.'**
+  String get runtimeFeedbackShopItemNotAccepted;
+
+  /// No description provided for @runtimeFeedbackPcOperationInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid PC operation.'**
+  String get runtimeFeedbackPcOperationInvalid;
+
+  /// No description provided for @runtimeFeedbackPcPartySlotInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid party slot.'**
+  String get runtimeFeedbackPcPartySlotInvalid;
+
+  /// No description provided for @runtimeFeedbackPcBoxUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown Box.'**
+  String get runtimeFeedbackPcBoxUnknown;
+
+  /// No description provided for @runtimeFeedbackPcBoxSlotInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid Box slot.'**
+  String get runtimeFeedbackPcBoxSlotInvalid;
+
+  /// No description provided for @runtimeFeedbackPcPartyFull.
+  ///
+  /// In en, this message translates to:
+  /// **'The party is full.'**
+  String get runtimeFeedbackPcPartyFull;
+
+  /// No description provided for @runtimeFeedbackPcBoxFull.
+  ///
+  /// In en, this message translates to:
+  /// **'This Box is full.'**
+  String get runtimeFeedbackPcBoxFull;
+
+  /// No description provided for @runtimeFeedbackPcFull.
+  ///
+  /// In en, this message translates to:
+  /// **'The PC is full.'**
+  String get runtimeFeedbackPcFull;
+
+  /// No description provided for @runtimeFeedbackPcLastUsablePokemon.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot deposit your last Pokémon that can battle.'**
+  String get runtimeFeedbackPcLastUsablePokemon;
+
+  /// No description provided for @runtimeFeedbackBagItemMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'You no longer have this item.'**
+  String get runtimeFeedbackBagItemMissing;
+
+  /// No description provided for @runtimeFeedbackBagItemWrongTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'This item cannot be used on this target.'**
+  String get runtimeFeedbackBagItemWrongTarget;
+
+  /// No description provided for @runtimeFeedbackBagItemNoEffect.
+  ///
+  /// In en, this message translates to:
+  /// **'This item would have no effect.'**
+  String get runtimeFeedbackBagItemNoEffect;
+
+  /// No description provided for @runtimeFeedbackBagItemUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This item’s effect is unsupported.'**
+  String get runtimeFeedbackBagItemUnsupported;
+
+  /// No description provided for @runtimeFeedbackBagKeyItemProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'This key item cannot be consumed.'**
+  String get runtimeFeedbackBagKeyItemProtected;
+
+  /// No description provided for @runtimeFeedbackTradeCatalogRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'The party and its Pokémon catalogue are required for this trade.'**
+  String get runtimeFeedbackTradeCatalogRequired;
+
+  /// No description provided for @runtimeFeedbackTradePokemonMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'This Pokémon does not match the trade request.'**
+  String get runtimeFeedbackTradePokemonMismatch;
+
+  /// No description provided for @runtimeFeedbackTradeSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The trade could not be saved.'**
+  String get runtimeFeedbackTradeSaveFailed;
+
+  /// No description provided for @runtimeFeedbackTradeEvolution.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} evolved into {species}.'**
+  String runtimeFeedbackTradeEvolution({
+    required String name,
+    required String species,
+  });
+
+  /// No description provided for @runtimeFeedbackCraftSaveRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This workshop requires a save slot.'**
+  String get runtimeFeedbackCraftSaveRequired;
+
+  /// No description provided for @runtimeFeedbackCraftInventoryChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The bag changed. Close and reopen the workshop.'**
+  String get runtimeFeedbackCraftInventoryChanged;
+
+  /// No description provided for @runtimeFeedbackCraftConfirmIngredients.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand over the ingredients?'**
+  String get runtimeFeedbackCraftConfirmIngredients;
+
+  /// No description provided for @runtimeFeedbackCraftCollectBagFull.
+  ///
+  /// In en, this message translates to:
+  /// **'The bag is full. Your order is still available.'**
+  String get runtimeFeedbackCraftCollectBagFull;
+
+  /// No description provided for @runtimeFeedbackCraftKeyItemProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'This key item cannot be used as an ingredient.'**
+  String get runtimeFeedbackCraftKeyItemProtected;
+
+  /// No description provided for @runtimeFeedbackCraftUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This order is unavailable.'**
+  String get runtimeFeedbackCraftUnavailable;
+
+  /// No description provided for @runtimeFeedbackCraftCollected.
+  ///
+  /// In en, this message translates to:
+  /// **'Order collected.'**
+  String get runtimeFeedbackCraftCollected;
+
+  /// No description provided for @runtimeFeedbackCraftOrderSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Order placed. Come back another day.'**
+  String get runtimeFeedbackCraftOrderSaved;
+
+  /// No description provided for @runtimeFeedbackCraftSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving failed. Your bag and order were kept.'**
+  String get runtimeFeedbackCraftSaveFailed;
+
+  /// No description provided for @runtimeFeedbackCraftInventoryBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'The bag is being updated. Finish this interaction and try again.'**
+  String get runtimeFeedbackCraftInventoryBusy;
+
+  /// No description provided for @runtimeFeedbackCraftSceneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This workshop requires an active scene.'**
+  String get runtimeFeedbackCraftSceneRequired;
+
+  /// No description provided for @runtimeFeedbackPuzzleSaveRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This puzzle requires a save slot.'**
+  String get runtimeFeedbackPuzzleSaveRequired;
+
+  /// No description provided for @runtimeFeedbackPuzzleMediaUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The game’s media library is unavailable.'**
+  String get runtimeFeedbackPuzzleMediaUnavailable;
+
+  /// No description provided for @runtimeFeedbackPuzzleImageTooSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'The image must have at least one pixel per puzzle tile.'**
+  String get runtimeFeedbackPuzzleImageTooSmall;
+
+  /// No description provided for @runtimeFeedbackPuzzleChangedOnOpening.
+  ///
+  /// In en, this message translates to:
+  /// **'The puzzle changed as it opened. Open it again.'**
+  String get runtimeFeedbackPuzzleChangedOnOpening;
+
+  /// No description provided for @runtimeFeedbackPuzzleDefinitionChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The puzzle definition changed. Restore its original configuration.'**
+  String get runtimeFeedbackPuzzleDefinitionChanged;
+
+  /// No description provided for @runtimeFeedbackPuzzleChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The puzzle changed. Close this interaction and open it again.'**
+  String get runtimeFeedbackPuzzleChanged;
+
+  /// No description provided for @runtimeFeedbackPuzzleIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'The image is incomplete. Check each piece’s position and rotation.'**
+  String get runtimeFeedbackPuzzleIncomplete;
+
+  /// No description provided for @runtimeFeedbackPuzzleDestinationOccupied.
+  ///
+  /// In en, this message translates to:
+  /// **'Move this piece to a free space or back to the tray.'**
+  String get runtimeFeedbackPuzzleDestinationOccupied;
+
+  /// No description provided for @runtimeFeedbackPuzzlePieceFixed.
+  ///
+  /// In en, this message translates to:
+  /// **'This piece is fixed in place.'**
+  String get runtimeFeedbackPuzzlePieceFixed;
+
+  /// No description provided for @runtimeFeedbackPuzzleActionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is unavailable for this puzzle.'**
+  String get runtimeFeedbackPuzzleActionUnavailable;
+
+  /// No description provided for @runtimeFeedbackPuzzleSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving failed. Your last saved layout was kept. Try again or quit.'**
+  String get runtimeFeedbackPuzzleSaveFailed;
+
+  /// No description provided for @runtimeFeedbackActionInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'An action is already in progress.'**
+  String get runtimeFeedbackActionInProgress;
+
+  /// No description provided for @runtimeFeedbackSaveInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'A save is already in progress.'**
+  String get runtimeFeedbackSaveInProgress;
+
+  /// No description provided for @runtimeFeedbackFavoritesBagChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The bag changed before this action arrived.'**
+  String get runtimeFeedbackFavoritesBagChanged;
+
+  /// No description provided for @runtimeFeedbackFavoritesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This item cannot be added to favourites.'**
+  String get runtimeFeedbackFavoritesUnavailable;
+
+  /// No description provided for @runtimeFeedbackFavoritesSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Favourites could not be saved. Try again.'**
+  String get runtimeFeedbackFavoritesSaveFailed;
+
+  /// No description provided for @runtimeFeedbackPlayerActionStale.
+  ///
+  /// In en, this message translates to:
+  /// **'This screen changed before the action arrived.'**
+  String get runtimeFeedbackPlayerActionStale;
+
+  /// No description provided for @runtimeFeedbackRegionalMapCloseFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the regional map before using the menu.'**
+  String get runtimeFeedbackRegionalMapCloseFirst;
+
+  /// No description provided for @runtimeFeedbackPlayerActionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This player action is unavailable.'**
+  String get runtimeFeedbackPlayerActionUnavailable;
+
+  /// No description provided for @runtimeFeedbackNewGameSlotRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'A profile and slot are required to start a new game.'**
+  String get runtimeFeedbackNewGameSlotRequired;
+
+  /// No description provided for @runtimeFeedbackNoCompatibleSave.
+  ///
+  /// In en, this message translates to:
+  /// **'No compatible save is available to continue.'**
+  String get runtimeFeedbackNoCompatibleSave;
+
+  /// No description provided for @runtimeFeedbackLoadSlotRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'A profile and slot are required to load a save.'**
+  String get runtimeFeedbackLoadSlotRequired;
+
+  /// No description provided for @runtimeFeedbackSelectedSaveUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected save is unavailable or incompatible.'**
+  String get runtimeFeedbackSelectedSaveUnavailable;
+
+  /// No description provided for @runtimeFeedbackFinalSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The final save could not be written.'**
+  String get runtimeFeedbackFinalSaveFailed;
+
+  /// No description provided for @runtimeFeedbackPartyMembersRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Select two available party members.'**
+  String get runtimeFeedbackPartyMembersRequired;
+
+  /// No description provided for @runtimeFeedbackPlayerCommandUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This command is unavailable on this screen.'**
+  String get runtimeFeedbackPlayerCommandUnavailable;
+
+  /// No description provided for @runtimeFeedbackPlayerPreferencesRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid player preferences are required.'**
+  String get runtimeFeedbackPlayerPreferencesRequired;
+
+  /// No description provided for @runtimeFeedbackSaveWriteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The save could not be written.'**
+  String get runtimeFeedbackSaveWriteFailed;
+
+  /// No description provided for @runtimeFeedbackCreditsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No end credits are available.'**
+  String get runtimeFeedbackCreditsUnavailable;
+
+  /// No description provided for @runtimeFeedbackSurfaceActionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is not available on the current surface.'**
+  String get runtimeFeedbackSurfaceActionUnavailable;
+
+  /// No description provided for @runtimeFeedbackPlayerResponseStale.
+  ///
+  /// In en, this message translates to:
+  /// **'This screen changed before the response arrived.'**
+  String get runtimeFeedbackPlayerResponseStale;
+
+  /// No description provided for @runtimeFeedbackReturnToHostFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The game could not return to the library.'**
+  String get runtimeFeedbackReturnToHostFailed;
+
+  /// No description provided for @runtimeFeedbackPlayerDataRefreshFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Player data could not be refreshed.'**
+  String get runtimeFeedbackPlayerDataRefreshFailed;
+
+  /// No description provided for @runtimeFeedbackSessionCloseFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The game session could not close cleanly.'**
+  String get runtimeFeedbackSessionCloseFailed;
+
+  /// No description provided for @runtimeFeedbackExplorationMapChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The map changed while loading. Restart exploration.'**
+  String get runtimeFeedbackExplorationMapChanged;
+
+  /// No description provided for @runtimeFeedbackNewGamePreparationChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The game content changed during setup. Start the new game again.'**
+  String get runtimeFeedbackNewGamePreparationChanged;
+
+  /// No description provided for @runtimeFeedbackNewGameSetupInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The starting configuration is incomplete or inconsistent. The new game could not be started.'**
+  String get runtimeFeedbackNewGameSetupInvalid;
+
+  /// No description provided for @runtimeFeedbackNewGameContentChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The game content changed while loading. Start the new game again.'**
+  String get runtimeFeedbackNewGameContentChanged;
+
+  /// No description provided for @runtimeFeedbackNewGameResourceLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'This map’s graphics exceed the Player’s resource budget. Report this code to the game creator.'**
+  String get runtimeFeedbackNewGameResourceLimit;
+
+  /// No description provided for @runtimeFeedbackNewGameSaveReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read saves. Check that the app can access its storage.'**
+  String get runtimeFeedbackNewGameSaveReadFailed;
+
+  /// No description provided for @runtimeFeedbackNewGamePreloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The starting map’s data or assets could not be loaded. Reinstall the game if the issue persists.'**
+  String get runtimeFeedbackNewGamePreloadFailed;
+
+  /// No description provided for @runtimeFeedbackNewGameSceneFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The opening scene could not run. Report the code below to the game creator.'**
+  String get runtimeFeedbackNewGameSceneFailed;
+
+  /// No description provided for @runtimeFeedbackNewGameSetupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The starting configuration could not be applied. Report the code below to the game creator.'**
+  String get runtimeFeedbackNewGameSetupFailed;
+
+  /// No description provided for @runtimeFeedbackSaveOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected save could not be opened safely.'**
+  String get runtimeFeedbackSaveOpenFailed;
+
+  /// No description provided for @runtimeFeedbackSessionLaunchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The game session could not launch.'**
+  String get runtimeFeedbackSessionLaunchFailed;
+
+  /// No description provided for @runtimeFeedbackPlayerDataLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Player data could not be loaded.'**
+  String get runtimeFeedbackPlayerDataLoadFailed;
+
+  /// No description provided for @runtimeFeedbackSessionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The player session failed.'**
+  String get runtimeFeedbackSessionFailed;
+
+  /// No description provided for @runtimeFeedbackExplorationSaveUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'3D exploration mode does not support saves yet.'**
+  String get runtimeFeedbackExplorationSaveUnavailable;
+
+  /// No description provided for @runtimeFeedbackNoCompatibleGameSave.
+  ///
+  /// In en, this message translates to:
+  /// **'No compatible save is available for this game.'**
+  String get runtimeFeedbackNoCompatibleGameSave;
+
+  /// No description provided for @runtimeFeedbackPlayerMapUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This game does not provide a player map.'**
+  String get runtimeFeedbackPlayerMapUnavailable;
+
+  /// No description provided for @runtimeFeedbackUnusableSaveNotSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No save has been selected for recovery.'**
+  String get runtimeFeedbackUnusableSaveNotSelected;
+
+  /// No description provided for @runtimeFeedbackServiceNotActive.
+  ///
+  /// In en, this message translates to:
+  /// **'No contextual service is active.'**
+  String get runtimeFeedbackServiceNotActive;
+
+  /// No description provided for @runtimeFeedbackBagRequiresPause.
+  ///
+  /// In en, this message translates to:
+  /// **'The bag is only available from the pause menu.'**
+  String get runtimeFeedbackBagRequiresPause;
+
+  /// No description provided for @runtimeFeedbackBagItemCheckpointFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The item was used, but saving failed.'**
+  String get runtimeFeedbackBagItemCheckpointFailed;
+
+  /// No description provided for @runtimeFeedbackSessionEventStreamFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The game’s event channel failed.'**
+  String get runtimeFeedbackSessionEventStreamFailed;
+
+  /// No description provided for @runtimeFeedbackSessionPrepareTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'The game session took too long to prepare.'**
+  String get runtimeFeedbackSessionPrepareTimedOut;
+
+  /// No description provided for @runtimeFeedbackSessionPrepareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The game session could not be prepared.'**
+  String get runtimeFeedbackSessionPrepareFailed;
+
+  /// No description provided for @runtimeFeedbackSessionStartTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'The game session took too long to start.'**
+  String get runtimeFeedbackSessionStartTimedOut;
+
+  /// No description provided for @runtimeFeedbackSessionStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The game session could not start.'**
+  String get runtimeFeedbackSessionStartFailed;
+
+  /// No description provided for @runtimeFeedbackSessionSignalInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The game sent an invalid session signal.'**
+  String get runtimeFeedbackSessionSignalInvalid;
+
+  /// No description provided for @runtimeFeedbackSessionEndingMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The ending event does not match this game session.'**
+  String get runtimeFeedbackSessionEndingMismatch;
+
+  /// No description provided for @runtimeFeedbackSessionEndingInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The ending event arrived before the game was ready.'**
+  String get runtimeFeedbackSessionEndingInvalid;
+
+  /// No description provided for @runtimeFeedbackPreviousSessionCloseFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The previous game session did not close cleanly.'**
+  String get runtimeFeedbackPreviousSessionCloseFailed;
+
+  /// No description provided for @runtimeFeedbackStartupGamePreparationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The game could not be prepared.'**
+  String get runtimeFeedbackStartupGamePreparationFailed;
+
+  /// No description provided for @runtimeFeedbackStartupPreparationStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Game preparation could not start.'**
+  String get runtimeFeedbackStartupPreparationStartFailed;
+
+  /// No description provided for @runtimeFeedbackStartupIdentityPreparationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The game’s identity could not be prepared.'**
+  String get runtimeFeedbackStartupIdentityPreparationFailed;
+
+  /// No description provided for @runtimeFeedbackStartupMapPreparationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The first map could not be prepared.'**
+  String get runtimeFeedbackStartupMapPreparationFailed;
+
+  /// No description provided for @runtimeFeedbackStartupPresentationLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The game’s presentation could not be loaded.'**
+  String get runtimeFeedbackStartupPresentationLoadFailed;
+
+  /// No description provided for @runtimeFeedbackStartupSaveDiscoveryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved games could not be checked safely.'**
+  String get runtimeFeedbackStartupSaveDiscoveryFailed;
+
+  /// No description provided for @runtimeFeedbackStartupPreferencesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Player preferences could not be loaded.'**
+  String get runtimeFeedbackStartupPreferencesLoadFailed;
+
+  /// No description provided for @runtimeFeedbackStartupInstalledGamePreparationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The installed game could not be prepared.'**
+  String get runtimeFeedbackStartupInstalledGamePreparationFailed;
+
+  /// No description provided for @runtimeFeedbackOverworldBagFull.
+  ///
+  /// In en, this message translates to:
+  /// **'The bag is full…'**
+  String get runtimeFeedbackOverworldBagFull;
+
+  /// No description provided for @runtimeFeedbackOverworldItemReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Received {quantity} × {item}!'**
+  String runtimeFeedbackOverworldItemReceived({
+    required int quantity,
+    required String item,
+  });
+
+  /// No description provided for @runtimeFeedbackGiftReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'You received a Pokémon!'**
+  String get runtimeFeedbackGiftReceived;
+
+  /// No description provided for @runtimeFeedbackGiftNicknamePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a nickname.'**
+  String get runtimeFeedbackGiftNicknamePrompt;
+
+  /// No description provided for @runtimeFeedbackGiftNicknameAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Give a nickname'**
+  String get runtimeFeedbackGiftNicknameAction;
+
+  /// No description provided for @battleChooseAction.
+  ///
+  /// In en, this message translates to:
+  /// **'What will {actor} do?'**
+  String battleChooseAction({required String actor});
+
+  /// No description provided for @battleChooseReplacementAfterFaint.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} fainted. Choose a replacement.'**
+  String battleChooseReplacementAfterFaint({required String actor});
+
+  /// No description provided for @battleContinuePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Press to continue.'**
+  String get battleContinuePrompt;
+
+  /// No description provided for @battleFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'The battle is over.'**
+  String get battleFinished;
+
+  /// No description provided for @battleResolvingTurn.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolving the turn…'**
+  String get battleResolvingTurn;
+
+  /// No description provided for @battleNoReplacement.
+  ///
+  /// In en, this message translates to:
+  /// **'No replacement available.'**
+  String get battleNoReplacement;
+
+  /// No description provided for @battleNoLegalChoice.
+  ///
+  /// In en, this message translates to:
+  /// **'No action is available.'**
+  String get battleNoLegalChoice;
+
+  /// No description provided for @battleChooseAttackTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a target for {actor}.'**
+  String battleChooseAttackTarget({required String actor});
+
+  /// No description provided for @battleChoosePokemon.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a Pokémon.'**
+  String get battleChoosePokemon;
+
+  /// No description provided for @battleChooseReplacement.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a replacement.'**
+  String get battleChooseReplacement;
+
+  /// No description provided for @battleNoSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'No Pokémon can switch in.'**
+  String get battleNoSwitch;
+
+  /// No description provided for @battleActiveOrFainted.
+  ///
+  /// In en, this message translates to:
+  /// **'Active and fainted Pokémon are unavailable.'**
+  String get battleActiveOrFainted;
+
+  /// No description provided for @battleChooseItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an item.'**
+  String get battleChooseItem;
+
+  /// No description provided for @battleNoUsableItem.
+  ///
+  /// In en, this message translates to:
+  /// **'No item can be used this turn.'**
+  String get battleNoUsableItem;
+
+  /// No description provided for @battleItemsDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable items are dimmed.'**
+  String get battleItemsDisabled;
+
+  /// No description provided for @battleChooseItemTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a target for {item}.'**
+  String battleChooseItemTarget({required String item});
+
+  /// No description provided for @battleChooseItemMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a move for {item}.'**
+  String battleChooseItemMove({required String item});
+
+  /// No description provided for @battleNoItemTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no valid target for this item.'**
+  String get battleNoItemTarget;
+
+  /// No description provided for @battleFaintedOrFullHp.
+  ///
+  /// In en, this message translates to:
+  /// **'Fainted Pokémon and Pokémon at full HP are unavailable.'**
+  String get battleFaintedOrFullHp;
+
+  /// No description provided for @battleFullPpDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Moves with full PP are dimmed.'**
+  String get battleFullPpDisabled;
+
+  /// No description provided for @battleWildTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wild battle'**
+  String get battleWildTitle;
+
+  /// No description provided for @battleTrainerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer battle'**
+  String get battleTrainerTitle;
+
+  /// No description provided for @runtimeFeedbackFishingInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Fishing was interrupted.'**
+  String get runtimeFeedbackFishingInterrupted;
+
+  /// No description provided for @runtimeFeedbackFishingCasting.
+  ///
+  /// In en, this message translates to:
+  /// **'Casting the line…'**
+  String get runtimeFeedbackFishingCasting;
+
+  /// No description provided for @runtimeFeedbackFishingWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'The line is in the water… Press Back to cancel.'**
+  String get runtimeFeedbackFishingWaiting;
+
+  /// No description provided for @runtimeFeedbackFishingBite.
+  ///
+  /// In en, this message translates to:
+  /// **'You got a bite!'**
+  String get runtimeFeedbackFishingBite;
+
+  /// No description provided for @runtimeFeedbackFishingNoBite.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing bit…'**
+  String get runtimeFeedbackFishingNoBite;
+
+  /// No description provided for @runtimeFeedbackFishingEncounterUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This fishing encounter is no longer available.'**
+  String get runtimeFeedbackFishingEncounterUnavailable;
+
+  /// No description provided for @runtimeFeedbackFishingCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Fishing cancelled.'**
+  String get runtimeFeedbackFishingCancelled;
+
+  /// No description provided for @runtimeFeedbackFieldActionChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is no longer available.'**
+  String get runtimeFeedbackFieldActionChanged;
+
+  /// No description provided for @runtimeFeedbackFieldCrossingUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This crossing is no longer available.'**
+  String get runtimeFeedbackFieldCrossingUnavailable;
+
+  /// No description provided for @runtimeFeedbackFieldFlashUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Pokémon used Flash! The area is lit.'**
+  String get runtimeFeedbackFieldFlashUsed;
+
+  /// No description provided for @runtimeFeedbackFieldCutUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Pokémon used Cut!'**
+  String get runtimeFeedbackFieldCutUsed;
+
+  /// No description provided for @runtimeFeedbackFieldStrengthActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength is active on this map. Walk toward a boulder to push it.'**
+  String get runtimeFeedbackFieldStrengthActive;
+
+  /// No description provided for @runtimeFeedbackFieldRockSmashUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Pokémon used Rock Smash!'**
+  String get runtimeFeedbackFieldRockSmashUsed;
+
+  /// No description provided for @runtimeFeedbackFieldDivePassageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This Dive passage is no longer available.'**
+  String get runtimeFeedbackFieldDivePassageUnavailable;
+
+  /// No description provided for @runtimeFeedbackWaterRequiresSurf.
+  ///
+  /// In en, this message translates to:
+  /// **'A Pokémon that knows Surf is needed to travel on water.'**
+  String get runtimeFeedbackWaterRequiresSurf;
+
+  /// No description provided for @runtimeFeedbackUnderwaterRequiresDive.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Dive to reach this underwater terrain.'**
+  String get runtimeFeedbackUnderwaterRequiresDive;
+
+  /// No description provided for @runtimeFeedbackDiveRequiresUnderwater.
+  ///
+  /// In en, this message translates to:
+  /// **'Dive is available on underwater terrain.'**
+  String get runtimeFeedbackDiveRequiresUnderwater;
+
+  /// No description provided for @runtimeFeedbackIncompatibleMovementTerrain.
+  ///
+  /// In en, this message translates to:
+  /// **'This terrain has incompatible movement modes.'**
+  String get runtimeFeedbackIncompatibleMovementTerrain;
+
+  /// No description provided for @runtimeFeedbackSurfMissingPokemon.
+  ///
+  /// In en, this message translates to:
+  /// **'It looks like you could surf on this water.'**
+  String get runtimeFeedbackSurfMissingPokemon;
+
+  /// No description provided for @runtimeFeedbackSurfLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'A Pokémon in your party knows Surf. You have yet to unlock it outside battle.'**
+  String get runtimeFeedbackSurfLocked;
+
+  /// No description provided for @runtimeFeedbackSurfConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to use Surf?'**
+  String get runtimeFeedbackSurfConfirm;
+
+  /// No description provided for @runtimeFeedbackNarrativePending.
+  ///
+  /// In en, this message translates to:
+  /// **'The story outcome is still pending.'**
+  String get runtimeFeedbackNarrativePending;
+
+  /// No description provided for @runtimeFeedbackNarrativeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The event could not start.'**
+  String get runtimeFeedbackNarrativeUnavailable;
+
+  /// No description provided for @runtimeFeedbackNarrativeResultUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The story outcome could not be applied.'**
+  String get runtimeFeedbackNarrativeResultUnavailable;
+
+  /// No description provided for @runtimeFeedbackCannotEndGame.
+  ///
+  /// In en, this message translates to:
+  /// **'The game could not finish.'**
+  String get runtimeFeedbackCannotEndGame;
+
+  /// No description provided for @runtimeFeedbackGiftFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The Pokémon gift could not be received.'**
+  String get runtimeFeedbackGiftFailed;
+
+  /// No description provided for @runtimeFeedbackTransitionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The transition could not complete.'**
+  String get runtimeFeedbackTransitionFailed;
+
+  /// No description provided for @runtimeFeedbackTransitionPassageMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The transition could not complete. The passage is missing.'**
+  String get runtimeFeedbackTransitionPassageMissing;
+
+  /// No description provided for @runtimeFeedbackInvalidMapConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection invalid'**
+  String get runtimeFeedbackInvalidMapConnection;
+
+  /// No description provided for @runtimeFeedbackMapConnectionBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection blocked'**
+  String get runtimeFeedbackMapConnectionBlocked;
+
+  /// No description provided for @runtimeFeedbackSceneUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Scene V1 impossible.'**
+  String get runtimeFeedbackSceneUnavailable;
+
+  /// No description provided for @runtimeFeedbackSceneCannotContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'The scene cannot continue.'**
+  String get runtimeFeedbackSceneCannotContinue;
+
+  /// No description provided for @runtimeFeedbackDialogueMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The dialogue could not be found.'**
+  String get runtimeFeedbackDialogueMissing;
+
+  /// No description provided for @runtimeFeedbackMapPassageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This passage is unavailable right now.'**
+  String get runtimeFeedbackMapPassageUnavailable;
+
+  /// No description provided for @runtimeFeedbackTeleportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Teleportation failed.'**
+  String get runtimeFeedbackTeleportFailed;
+
+  /// No description provided for @runtimeFeedbackNeighboringMapTransferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel to the neighboring map failed.'**
+  String get runtimeFeedbackNeighboringMapTransferFailed;
+
+  /// No description provided for @runtimeFeedbackContactUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This contact is unavailable.'**
+  String get runtimeFeedbackContactUnavailable;
+
+  /// No description provided for @runtimeFeedbackPuzzleSceneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This puzzle requires an active scene.'**
+  String get runtimeFeedbackPuzzleSceneRequired;
+
+  /// No description provided for @battleMoveDamageSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} used {move} and dealt {amount} damage.'**
+  String battleMoveDamageSummary({
+    required String actor,
+    required String move,
+    required int amount,
+  });
+
+  /// No description provided for @runtimeFeedbackFieldMoveCut.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut'**
+  String get runtimeFeedbackFieldMoveCut;
+
+  /// No description provided for @runtimeFeedbackFieldMoveStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength'**
+  String get runtimeFeedbackFieldMoveStrength;
+
+  /// No description provided for @runtimeFeedbackFieldMoveRockSmash.
+  ///
+  /// In en, this message translates to:
+  /// **'Rock Smash'**
+  String get runtimeFeedbackFieldMoveRockSmash;
+
+  /// No description provided for @runtimeFeedbackFieldMoveWaterfall.
+  ///
+  /// In en, this message translates to:
+  /// **'Waterfall'**
+  String get runtimeFeedbackFieldMoveWaterfall;
+
+  /// No description provided for @runtimeFeedbackFieldMoveWhirlpool.
+  ///
+  /// In en, this message translates to:
+  /// **'Whirlpool'**
+  String get runtimeFeedbackFieldMoveWhirlpool;
+
+  /// No description provided for @runtimeFeedbackFieldObstacleCutConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This tree can be cut down. Would you like to use Cut?'**
+  String get runtimeFeedbackFieldObstacleCutConfirm;
+
+  /// No description provided for @runtimeFeedbackFieldObstacleStrengthConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This boulder can be pushed. Would you like to use Strength?'**
+  String get runtimeFeedbackFieldObstacleStrengthConfirm;
+
+  /// No description provided for @runtimeFeedbackFieldObstacleRockSmashConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This rock can be smashed. Would you like to use Rock Smash?'**
+  String get runtimeFeedbackFieldObstacleRockSmashConfirm;
+
+  /// No description provided for @runtimeFeedbackFieldObstacleCutMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This tree blocks the way. A Pokémon that can use Cut is needed.'**
+  String get runtimeFeedbackFieldObstacleCutMissing;
+
+  /// No description provided for @runtimeFeedbackFieldObstacleStrengthMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This boulder blocks the way. A Pokémon that can use Strength is needed.'**
+  String get runtimeFeedbackFieldObstacleStrengthMissing;
+
+  /// No description provided for @runtimeFeedbackFieldObstacleRockSmashMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This rock blocks the way. A Pokémon that can use Rock Smash is needed.'**
+  String get runtimeFeedbackFieldObstacleRockSmashMissing;
+
+  /// No description provided for @runtimeFeedbackFieldObstacleMoveLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'A Pokémon in your party knows {move}. You have yet to unlock it outside battle.'**
+  String runtimeFeedbackFieldObstacleMoveLocked({required String move});
+
+  /// No description provided for @runtimeFeedbackFieldObstacleStrengthReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength is active. Walk toward this boulder to push it.'**
+  String get runtimeFeedbackFieldObstacleStrengthReady;
+
+  /// No description provided for @runtimeFeedbackFieldTraversalConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to use {move} to cross here?'**
+  String runtimeFeedbackFieldTraversalConfirm({required String move});
+
+  /// No description provided for @runtimeFeedbackFieldTraversalMoveMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'A Pokémon that can use {move} is needed.'**
+  String runtimeFeedbackFieldTraversalMoveMissing({required String move});
+
+  /// No description provided for @runtimeFeedbackFieldTraversalMoveLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'You have yet to unlock {move} outside battle.'**
+  String runtimeFeedbackFieldTraversalMoveLocked({required String move});
+
+  /// No description provided for @runtimeFeedbackFieldTraversalSurfRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Surf before crossing here.'**
+  String get runtimeFeedbackFieldTraversalSurfRequired;
+
+  /// No description provided for @runtimeFeedbackFieldTraversalWrongDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'Face the direction of the passage to cross it.'**
+  String get runtimeFeedbackFieldTraversalWrongDirection;
+
+  /// No description provided for @runtimeFeedbackFieldTraversalObstructed.
+  ///
+  /// In en, this message translates to:
+  /// **'The passage or its exit is blocked.'**
+  String get runtimeFeedbackFieldTraversalObstructed;
+
+  /// No description provided for @runtimeFeedbackFieldTraversalWaterRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This passage must be on water.'**
+  String get runtimeFeedbackFieldTraversalWaterRequired;
+
+  /// No description provided for @runtimeFeedbackFieldDiveConfirmDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to use Dive to go underwater?'**
+  String get runtimeFeedbackFieldDiveConfirmDown;
+
+  /// No description provided for @runtimeFeedbackFieldDiveConfirmUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to use Dive to return to the surface?'**
+  String get runtimeFeedbackFieldDiveConfirmUp;
+
+  /// No description provided for @runtimeFeedbackFieldDiveDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Dive is disabled in this game.'**
+  String get runtimeFeedbackFieldDiveDisabled;
+
+  /// No description provided for @runtimeFeedbackFieldDiveMoveMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'A Pokémon that can use Dive is needed.'**
+  String get runtimeFeedbackFieldDiveMoveMissing;
+
+  /// No description provided for @runtimeFeedbackFieldDiveMoveLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'You have yet to unlock Dive outside battle.'**
+  String get runtimeFeedbackFieldDiveMoveLocked;
+
+  /// No description provided for @runtimeFeedbackFieldDiveSurfRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Surf to dive from the surface.'**
+  String get runtimeFeedbackFieldDiveSurfRequired;
+
+  /// No description provided for @runtimeFeedbackFieldDiveObstructed.
+  ///
+  /// In en, this message translates to:
+  /// **'The Dive destination or return point is blocked.'**
+  String get runtimeFeedbackFieldDiveObstructed;
+
+  /// No description provided for @runtimeFeedbackFieldDiveDestinationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This Dive spot is not connected to an available destination.'**
+  String get runtimeFeedbackFieldDiveDestinationUnavailable;
+
+  /// No description provided for @runtimeFeedbackFieldFlashConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'It’s dark here. Would you like to use Flash to light the area?'**
+  String get runtimeFeedbackFieldFlashConfirm;
+
+  /// No description provided for @runtimeFeedbackFieldFlashMoveMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'It’s dark here. A Pokémon that can use Flash is needed.'**
+  String get runtimeFeedbackFieldFlashMoveMissing;
+
+  /// No description provided for @runtimeFeedbackFieldFlashMoveLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'A Pokémon knows Flash. You have yet to unlock it outside battle.'**
+  String get runtimeFeedbackFieldFlashMoveLocked;
+
+  /// No description provided for @runtimeFeedbackHeadbuttMoveMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'A Pokémon that can use Headbutt is needed.'**
+  String get runtimeFeedbackHeadbuttMoveMissing;
+
+  /// No description provided for @runtimeFeedbackHeadbuttTreeConsumed.
+  ///
+  /// In en, this message translates to:
+  /// **'No more Pokémon are hiding in this tree right now.'**
+  String get runtimeFeedbackHeadbuttTreeConsumed;
+
+  /// No description provided for @runtimeFeedbackHeadbuttWrongPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Stand on foot in front of this tree to use Headbutt.'**
+  String get runtimeFeedbackHeadbuttWrongPosition;
+
+  /// No description provided for @runtimeFeedbackHeadbuttMapUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Object encounters are available on supported 2D maps.'**
+  String get runtimeFeedbackHeadbuttMapUnsupported;
+
+  /// No description provided for @runtimeFeedbackHeadbuttUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No encounter is available at this tree right now.'**
+  String get runtimeFeedbackHeadbuttUnavailable;
+
+  /// No description provided for @runtimeFeedbackHeadbuttConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to use Headbutt on this tree?'**
+  String get runtimeFeedbackHeadbuttConfirm;
+
+  /// No description provided for @runtimeFeedbackInteractiveEncounterEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No Pokémon appeared…'**
+  String get runtimeFeedbackInteractiveEncounterEmpty;
+
+  /// No description provided for @runtimeFeedbackInteractiveEncounterUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This encounter is no longer available.'**
+  String get runtimeFeedbackInteractiveEncounterUnavailable;
+
+  /// No description provided for @runtimeFeedbackRepelExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The Repel wore off.'**
+  String get runtimeFeedbackRepelExpired;
+
+  /// No description provided for @runtimeFeedbackRepelRenew.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to use another Repel of the same kind?'**
+  String get runtimeFeedbackRepelRenew;
+
+  /// No description provided for @runtimeFeedbackRepelRenewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Repel is active again.'**
+  String get runtimeFeedbackRepelRenewed;
+
+  /// No description provided for @runtimeFeedbackRepelStockUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This Repel is no longer available.'**
+  String get runtimeFeedbackRepelStockUnavailable;
+
+  /// No description provided for @runtimeFeedbackRepelProgressSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress could not be saved.'**
+  String get runtimeFeedbackRepelProgressSaveFailed;
+
+  /// No description provided for @runtimeFeedbackSpatialNeighborUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'A neighboring map could not be displayed.'**
+  String get runtimeFeedbackSpatialNeighborUnavailable;
+
+  /// No description provided for @runtimeFeedbackSpatialInteractionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This passage or dialogue could not be opened.'**
+  String get runtimeFeedbackSpatialInteractionUnavailable;
+
+  /// No description provided for @runtimeFeedbackMovingPlatformUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The platform could not be moved.'**
+  String get runtimeFeedbackMovingPlatformUnavailable;
+
+  /// No description provided for @runtimeFeedbackEntranceAnimationMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This entrance has no animation.'**
+  String get runtimeFeedbackEntranceAnimationMissing;
+
+  /// No description provided for @runtimeFeedbackEntranceAnimationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This entrance’s animation is unavailable.'**
+  String get runtimeFeedbackEntranceAnimationUnavailable;
+
+  /// No description provided for @runtimeFeedbackElementAnimationUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The animation could not be updated.'**
+  String get runtimeFeedbackElementAnimationUpdateFailed;
+
+  /// No description provided for @runtimeFeedbackSpatialSceneTextInputUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Scene text input is unavailable in 3D.'**
+  String get runtimeFeedbackSpatialSceneTextInputUnsupported;
+
+  /// No description provided for @runtimeFeedbackSpatialSceneRegionalMapUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'The regional map is unavailable during 3D scenes.'**
+  String get runtimeFeedbackSpatialSceneRegionalMapUnsupported;
+
+  /// No description provided for @runtimeFeedbackSceneRewardCalendarUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The calendar for this reward is unavailable. Reopen the game and try again.'**
+  String get runtimeFeedbackSceneRewardCalendarUnavailable;
 }
 
 class _PlayerCatalogDelegate extends LocalizationsDelegate<PlayerCatalog> {

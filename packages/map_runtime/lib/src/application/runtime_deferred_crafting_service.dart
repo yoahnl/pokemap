@@ -13,8 +13,8 @@ extension RuntimeDeferredCraftingService on PlayerServiceRuntimeController {
       );
     }
     if (_commitCraftingAndSave == null) {
-      return const PlayerServiceRuntimeResult.unavailable(
-        'Cet atelier nécessite une sauvegarde durable fournie par le Player.',
+      return PlayerServiceRuntimeResult.unavailable(
+        _feedback(.craftSaveRequired),
       );
     }
     if (_active || _pauseBagMutationBusy) {
@@ -199,7 +199,7 @@ extension RuntimeDeferredCraftingService on PlayerServiceRuntimeController {
       return accepted;
     }
     if (_currentGameState() != session.initialState) {
-      session.message = 'Le sac a changé. Fermez puis rouvrez l’atelier.';
+      session.message = _feedback(.craftInventoryChanged);
       _publishCrafting(session);
       return stale;
     }
@@ -240,7 +240,7 @@ extension RuntimeDeferredCraftingService on PlayerServiceRuntimeController {
     if (inspection.status == DeferredCraftingStatus.idle &&
         !session.reviewing) {
       session.reviewing = true;
-      session.message = 'Confirmer le dépôt des ingrédients ?';
+      session.message = _feedback(.craftConfirmIngredients);
       _publishCrafting(session);
       return accepted;
     }
@@ -270,10 +270,10 @@ extension RuntimeDeferredCraftingService on PlayerServiceRuntimeController {
           );
     if (!result.isSuccess) {
       session.message = result.failure == DeferredCraftingFailure.bagFull
-          ? 'Le sac est plein. Votre commande reste disponible.'
+          ? _feedback(.craftCollectBagFull)
           : result.failure == DeferredCraftingFailure.protectedIngredient
-          ? 'Cet objet important ne peut pas servir d’ingrédient.'
-          : 'Cette fabrication est indisponible.';
+          ? _feedback(.craftKeyItemProtected)
+          : _feedback(.craftUnavailable);
       session.observedState = observed;
       _publishCrafting(session);
       return RuntimeWorldServiceCommandResult(
@@ -291,8 +291,8 @@ extension RuntimeDeferredCraftingService on PlayerServiceRuntimeController {
       session.completedState = result.state;
       session.observedState = result.state;
       session.message = inspection.status == DeferredCraftingStatus.ready
-          ? 'Commande récupérée.'
-          : 'Commande enregistrée. Revenez un prochain jour.';
+          ? _feedback(.craftCollected)
+          : _feedback(.craftOrderSaved);
       if (_disposed) {
         if (!session.result.isCompleted) {
           session.result.complete(
@@ -305,7 +305,7 @@ extension RuntimeDeferredCraftingService on PlayerServiceRuntimeController {
       return accepted;
     } catch (error) {
       session.message =
-          'La sauvegarde a échoué. Votre sac et votre commande sont conservés.';
+          _feedback(.craftSaveFailed);
       if (_disposed) {
         if (!session.result.isCompleted) {
           session.result.complete(PlayerServiceRuntimeResult.failed(error));

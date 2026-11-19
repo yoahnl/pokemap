@@ -1,7 +1,9 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../player/runtime_player_feedback.dart';
 import 'dialogue_runtime_models.dart';
+import 'field_move_dialogue.dart';
 
 final class SpatialFieldObstacleInteraction {
   const SpatialFieldObstacleInteraction(this.session, this.ticket);
@@ -22,6 +24,7 @@ SpatialFieldObstacleInteraction? prepareSpatialFieldObstacleInteraction({
   bool Function(String)? entityIsPresent,
   SpatialActorRuntimeState? Function(String)? actorStateProvider,
   ProjectSettings? projectSettings,
+  RuntimeOverworldFeedbackFormatter feedback = fallbackRuntimeOverworldFeedback,
 }) {
   final evaluation = evaluateSpatialFieldObstacleAttempt(
     map: map,
@@ -44,12 +47,6 @@ SpatialFieldObstacleInteraction? prepareSpatialFieldObstacleInteraction({
       .singleWhere((entity) => entity.id == entityId)
       .fieldObstacle!
       .ability!;
-  final name = switch (ability) {
-    FieldAbility.cut => 'Coupe',
-    FieldAbility.strength => 'Force',
-    _ => 'Éclate-Roc',
-  };
-  final object = ability == FieldAbility.cut ? 'Cet arbre' : 'Ce rocher';
   final ticket = issueSpatialFieldObstacleTicket(
     map: map,
     gameState: gameState,
@@ -63,14 +60,11 @@ SpatialFieldObstacleInteraction? prepareSpatialFieldObstacleInteraction({
     entityIsPresent: entityIsPresent,
     projectSettings: projectSettings,
   );
-  final text = switch (evaluation) {
-    CanUseFieldObstacle() =>
-      '$object peut ${switch (ability) { FieldAbility.cut => 'être coupé', FieldAbility.strength => 'être poussé', _ => 'être brisé' }}. Voulez-vous utiliser $name ?',
-    FieldObstacleUnavailable(reason: FieldObstacleBlockReason.missingMove) =>
-      '$object bloque le passage. Un Pokémon apte à utiliser $name est nécessaire.',
-    _ =>
-      'Un Pokémon de votre équipe connaît $name, mais vous n’avez pas encore l’autorisation de l’utiliser.',
-  };
+  final text = fieldObstacleDialogueMessage(
+    ability,
+    evaluation is FieldObstacleUnavailable ? evaluation.reason : null,
+    feedback,
+  );
   final node = YarnNode(
     title: 'SpatialFieldObstacle',
     steps: [
@@ -79,12 +73,12 @@ SpatialFieldObstacleInteraction? prepareSpatialFieldObstacleInteraction({
         YarnStepChoiceBlock(
           [
             YarnChoice(
-              text: 'Oui',
+              text: feedback(.yes),
               steps: const [],
               outcomeId: 'field-obstacle-confirmed',
             ),
             YarnChoice(
-              text: 'Non',
+              text: feedback(.no),
               steps: const [],
               outcomeId: 'field-obstacle-declined',
             ),

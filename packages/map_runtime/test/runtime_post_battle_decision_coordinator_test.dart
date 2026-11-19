@@ -8,6 +8,168 @@ import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart'
 
 void main() {
   group('RuntimePostBattleDecisionCoordinator', () {
+    test(
+      'progression presents typed localized values with identical write-back',
+      () async {
+        final original = _state();
+        final base = original.copyWith(
+          party: original.party.copyWith(
+            members: [original.party.members.single.copyWith(nickname: 'Pip')],
+          ),
+        );
+        final formatted = <RuntimeBattleMessage>[];
+        Future<RuntimePostBattleTransaction> begin(
+          RuntimeBattleMessageRenderer? format,
+        ) async {
+          final coordinator = RuntimePostBattleDecisionCoordinator(
+            resolveReward: _multiLevelAutomaticMoveResolution,
+            formatBattleMessage: format,
+            resolveMoveDisplayName: (_) => 'Quick Attack',
+          );
+          final result = await coordinator.begin(
+            transactionBaseState: base,
+            bundle: _bundle(),
+            runtimeContext: _context(_trainerRequest()),
+            outcome: _outcome(),
+            itemCatalog: _itemCatalog(),
+          );
+          return result.transaction!;
+        }
+
+        final fallback = await begin(null);
+        final localized = await begin((message) {
+          formatted.add(message);
+          return message.id.name;
+        });
+        expect(localized.finalState, fallback.finalState);
+        expect(
+          localized.messages.map(
+            (message) => (message.kind, message.partySlot),
+          ),
+          fallback.messages.map((message) => (message.kind, message.partySlot)),
+        );
+        final xp = formatted.firstWhere(
+          (message) =>
+              message.id == RuntimeBattleMessageId.postBattleExperience,
+        );
+        final learned = formatted.firstWhere(
+          (message) =>
+              message.id == RuntimeBattleMessageId.postBattleMoveLearned,
+        );
+        final item = formatted.firstWhere(
+          (message) => message.id == RuntimeBattleMessageId.postBattleItem,
+        );
+        expect(xp.target, 'Pip');
+        expect(xp.amount, greaterThan(0));
+        expect(learned.move, 'Quick Attack');
+        expect((item.item, item.amount), ('Potion', 2));
+        expect(
+          localized.messages.map((message) => message.text),
+          contains('postBattleExperience'),
+        );
+      },
+    );
+
+    test(
+      'renders names of evolution targets outside the battle lineup',
+      () async {
+        var locale = 'fr';
+        final loaded = <String>[];
+        final projectedMessages = <RuntimeBattleMessage>[];
+        final coordinator = RuntimePostBattleDecisionCoordinator(
+          resolveReward: _trainerResolutionWithPendingMoveAndEvolution,
+          resolveSpeciesDisplayName: (speciesId) =>
+              speciesId == 'hero' ? 'Pip' : speciesId,
+          formatBattleMessage: (message) {
+            projectedMessages.add(message);
+            return message.fallbackText;
+          },
+          presentationLocale: () => locale,
+          loadPresentationSpecies:
+              ({
+                required projectRootDirectory,
+                required pokemonConfig,
+                required speciesId,
+              }) async {
+                loaded.add(speciesId);
+                return const RuntimePokemonSpecies(
+                  id: 'hero_evolved',
+                  names: {'fr': 'Cime', 'en': 'Crown'},
+                  typing: ['grass'],
+                  baseHp: 60,
+                  baseAttack: 62,
+                  baseDefense: 63,
+                  baseSpecialAttack: 80,
+                  baseSpecialDefense: 80,
+                  baseSpeed: 60,
+                  primaryAbilityId: 'hero_power',
+                  abilityIds: ['hero_power'],
+                  learnsetRef: 'hero_evolved',
+                  growthRateId: 'medium',
+                  baseExp: 160,
+                  catchRate: 45,
+                );
+              },
+        );
+        final start = await coordinator.begin(
+          transactionBaseState: _state(
+            knownMoves: ['tackle', 'growl', 'tail_whip', 'focus_energy'],
+          ),
+          bundle: _bundle(),
+          runtimeContext: _context(_trainerRequest()),
+          outcome: _outcome(),
+          itemCatalog: _itemCatalog(),
+        );
+        final move = start.transaction!.pendingMoveLearning!;
+        final afterMove = coordinator.resolveMoveLearning(
+          transaction: start.transaction!,
+          decision: BattleMoveLearningDecision.decline(
+            opportunityId: move.opportunityId,
+            partySlot: move.partySlot,
+            moveId: move.candidate.moveId,
+          ),
+        );
+        final evolution = afterMove.transaction!.pendingEvolution!;
+        expect(
+          projectedMessages
+              .lastWhere(
+                (message) =>
+                    message.id ==
+                    RuntimeBattleMessageId.postBattleEvolutionPrompt,
+              )
+              .replacement,
+          'Cime',
+        );
+
+        locale = 'en';
+        final result = coordinator.resolveEvolution(
+          transaction: afterMove.transaction!,
+          decision: BattleEvolutionDecision.accept(
+            opportunityId: evolution.opportunityId,
+            occurrenceId: evolution.occurrenceId,
+            partySlot: evolution.partySlot,
+            sourceSpeciesId: evolution.sourceSpeciesId,
+            targetSpeciesId: evolution.targetSpeciesId,
+          ),
+        );
+        expect(
+          result.transaction!.finalState!.party.members.single.speciesId,
+          'hero_evolved',
+        );
+        expect(
+          projectedMessages
+              .lastWhere(
+                (message) =>
+                    message.id ==
+                    RuntimeBattleMessageId.postBattleEvolutionAccepted,
+              )
+              .replacement,
+          'Crown',
+        );
+        expect(loaded, ['hero_evolved']);
+      },
+    );
+
     test('savings commit once with battle rewards and survive save restoration', () async {
       final bundle = _bundle();
       final savingsBundle = bundle.copyWith(manifest: bundle.manifest.copyWith(

@@ -130,7 +130,7 @@ extension _SpatialSessionFishing on SpatialExplorationGameSessionRuntime {
         mapActivationId: activation,
       );
       _fishingFlow = FishingAttemptFlow();
-      _showFishingFeedback('Lancer de la ligne…');
+      _showFishingFeedback(_overworldFeedback(.fishingCasting));
       return null;
     } finally {
       _fishingPreparing = false;
@@ -202,15 +202,15 @@ extension _SpatialSessionFishing on SpatialExplorationGameSessionRuntime {
         switch (flow.phase) {
           case FishingAttemptPhase.waiting:
             _showFishingFeedback(
-              'La ligne est dans l’eau… Retour pour annuler.',
+              _overworldFeedback(.fishingWaiting),
             );
           case FishingAttemptPhase.bite:
-            _showFishingFeedback('Ça mord !');
+            _showFishingFeedback(_overworldFeedback(.fishingBite));
           case FishingAttemptPhase.noBite:
             _showFishingFeedback(
               flow.result?.reason == null
-                  ? 'Pas de touche…'
-                  : 'La pêche a été interrompue.',
+                  ? _overworldFeedback(.fishingNoBite)
+                  : _overworldFeedback(.fishingInterrupted),
             );
           default:
             break;

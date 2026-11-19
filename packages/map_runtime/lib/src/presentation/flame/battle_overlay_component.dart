@@ -19,6 +19,7 @@ import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_command_menu_model.dart';
 import 'battle_combatant_gender_resolver.dart';
+import '../runtime_battle_message.dart';
 import 'battle_animation_plan.dart';
 import 'battle_move_audio_scope.dart';
 import 'battle_recipe_audio_program.dart';
@@ -67,6 +68,8 @@ import 'battle_spl_static_admission.dart';
 import 'battle_spl_static_component.dart';
 import 'battle_verified_spl_loader.dart';
 
+part 'battle_overlay_prompts.dart';
+
 /// Retourne le prompt de décision à afficher pour la requête courante.
 ///
 /// Ce helper reste volontairement pur parce que le lot 1 ne doit surtout pas
@@ -85,29 +88,6 @@ String buildBattleDecisionPromptForOverlay(BattleDecisionRequest request) {
         BattleWaitReason.activeFaintedWithoutReplacement =>
           'Aucun remplaçant disponible',
         BattleWaitReason.noLegalChoice => 'Aucune décision légale disponible',
-      },
-  };
-}
-
-typedef BattleSpeciesDisplayNameResolver = String Function(String speciesId);
-
-String buildBattleDecisionPromptForSession(
-  BattleSession session, {
-  BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName =
-      _battleDisplayName,
-}) {
-  return switch (session.decisionRequest) {
-    BattleTurnChoiceRequest() =>
-      'Que doit faire ${resolveSpeciesDisplayName(session.state.player.speciesId)} ?',
-    BattleForcedReplacementRequest() =>
-      '${resolveSpeciesDisplayName(session.state.player.speciesId)} est K.O. Choisis un remplaçant.',
-    BattleContinueRequest() => 'Appuie pour continuer.',
-    BattleWaitRequest(:final reason) => switch (reason) {
-        BattleWaitReason.battleFinished => 'Combat terminé.',
-        BattleWaitReason.resolvingTurn => 'Résolution du tour en cours.',
-        BattleWaitReason.activeFaintedWithoutReplacement =>
-          'Aucun remplaçant disponible.',
-        BattleWaitReason.noLegalChoice => 'Aucune décision légale disponible.',
       },
   };
 }
@@ -231,111 +211,6 @@ List<String> buildBattleNarrationLinesForOverlay(
     session,
     resolveSpeciesDisplayName: resolveSpeciesDisplayName,
   );
-}
-
-List<String> buildBattleOpeningNarrationLinesForOverlay(
-  BattleSession session, {
-  BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName =
-      _battleDisplayName,
-}) {
-  final enemyName = resolveSpeciesDisplayName(session.state.enemy.speciesId);
-  final playerName = resolveSpeciesDisplayName(session.state.player.speciesId);
-  if (session.setup.isTrainerBattle) {
-    final trainerName = session.setup.trainerId?.trim();
-    final challenger = trainerName == null || trainerName.isEmpty
-        ? 'Un Dresseur'
-        : 'Le Dresseur $trainerName';
-    return List<String>.unmodifiable(<String>[
-      '$challenger te défie !',
-      '$challenger envoie $enemyName !',
-      'Vas-y, $playerName !',
-    ]);
-  }
-  return List<String>.unmodifiable(<String>[
-    'Un $enemyName sauvage apparaît !',
-    'Vas-y, $playerName !',
-  ]);
-}
-
-String buildBattlePartyPromptForOverlay(BattlePartyMenuModel partyMenuModel) {
-  return switch (partyMenuModel.mode) {
-    BattlePartyMenuMode.voluntarySwitch => 'Choisis un Pokémon.',
-    BattlePartyMenuMode.forcedReplacement => 'Choisis un remplaçant.',
-    BattlePartyMenuMode.unavailable => 'POKÉMON indisponible.',
-  };
-}
-
-List<String> buildBattlePartyNarrationLinesForOverlay(
-  BattlePartyMenuModel partyMenuModel,
-) {
-  if (partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement) {
-    return const <String>['Remplacement requis.'];
-  }
-  if (!partyMenuModel.hasSelectableEntries) {
-    return const <String>['Aucun switch disponible.'];
-  }
-  return const <String>['Actif et K.O. sont indisponibles.'];
-}
-
-String buildBattleBagPromptForOverlay(
-  BattleBagMenuModel bagMenuModel, {
-  String? feedbackMessage,
-}) {
-  if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
-    return feedbackMessage;
-  }
-  return switch (bagMenuModel.mode) {
-    BattleBagMenuMode.empty => 'Sac vide.',
-    BattleBagMenuMode.available => 'Choisis un objet.',
-    BattleBagMenuMode.unavailable => 'Choisis un objet.',
-  };
-}
-
-List<String> buildBattleBagNarrationLinesForOverlay(
-  BattleBagMenuModel bagMenuModel, {
-  String? feedbackMessage,
-}) {
-  if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
-    return const <String>['Le sac reflète maintenant l’état réel du runtime.'];
-  }
-  return switch (bagMenuModel.mode) {
-    BattleBagMenuMode.empty => const <String>['Aucun objet dans le sac.'],
-    BattleBagMenuMode.available => const <String>[
-        'Les objets indisponibles restent grisés.',
-      ],
-    BattleBagMenuMode.unavailable => const <String>[
-        'Aucun objet utilisable pour ce tour.',
-      ],
-  };
-}
-
-String buildBattleMedicineTargetPromptForOverlay(
-  BattleMedicineTargetMenuModel medicineTargetMenuModel, {
-  String? feedbackMessage,
-}) {
-  if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
-    return feedbackMessage;
-  }
-  return 'Choisis une cible pour ${medicineTargetMenuModel.displayName}.';
-}
-
-List<String> buildBattleMedicineTargetNarrationLinesForOverlay(
-  BattleMedicineTargetMenuModel medicineTargetMenuModel, {
-  String? feedbackMessage,
-}) {
-  if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
-    return const <String>[
-      'L’état battle/runtime affiché a déjà été mis à jour.',
-    ];
-  }
-  if (!medicineTargetMenuModel.hasSelectableEntries) {
-    return const <String>[
-      'Aucune cible valide pour cet objet.',
-    ];
-  }
-  return const <String>[
-    'Les Pokémon K.O. et full HP sont indisponibles.',
-  ];
 }
 
 /// Construit les lignes du panneau debug optionnel.
@@ -549,6 +424,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     this.onOutcomePresented,
     this.introEnabled = false,
     this.resolveSpeciesDisplayName = _battleDisplayName,
+    this.resolveCombatantDisplayName,
+    this.formatBattleMessage,
     this.showDebugPanel = false,
     this.motionScale = 1.0,
     BattleMotionPolicy? motionPolicy,
@@ -675,6 +552,13 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   final void Function(BattleOutcome outcome)? onOutcomePresented;
   bool _outcomePresentedNotified = false;
   final BattleSpeciesDisplayNameResolver resolveSpeciesDisplayName;
+  final BattleCombatantDisplayNameResolver? resolveCombatantDisplayName;
+  final RuntimeBattleMessageRenderer? formatBattleMessage;
+
+  String _combatantName(BattleSideId side, BattleCombatant combatant) =>
+      resolveCombatantDisplayName?.call(side, combatant) ??
+      resolveSpeciesDisplayName(combatant.speciesId);
+
   final RuntimeMoveCatalog _moveCatalog;
   late final BattleMoveVisualResolver _moveVisualResolver;
   late final BattleFxBundleCache _fxBundleCache;
@@ -794,10 +678,13 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   late final BattleTurnAnimationPlanner _turnAnimationPlanner =
       BattleTurnAnimationPlanner(
     speciesDisplayName: resolveSpeciesDisplayName,
+    resolveCombatantDisplayName: resolveCombatantDisplayName,
+    formatBattleMessage: formatBattleMessage,
     moveDisplayName: resolveMoveDisplayName,
     resolveCombatantBallItemId: resolveCombatantBallItemId,
     announcesOutcome: false,
   );
+  List<String> _lastTurnNarration = const [];
   BattleAnimationRunner? _animationRunner;
   BattleSceneLayout? _sceneLayout;
   BattleAnimationPlan _activeAnimationPlan =
@@ -2612,15 +2499,13 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       buildBattleDecisionPromptForSession(
         _session,
         resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+        resolveCombatantDisplayName: resolveCombatantDisplayName,
+        formatBattleMessage: formatBattleMessage,
       );
 
   @visibleForTesting
   String get currentNarrationText =>
-      (_currentCommandOverlaySnapshot?.narrationLines ??
-              buildBattleNarrationLinesForOverlay(
-                _session,
-                resolveSpeciesDisplayName: resolveSpeciesDisplayName,
-              ))
+      (_currentCommandOverlaySnapshot?.narrationLines ?? _battleNarration())
           .join('\n');
 
   @visibleForTesting
@@ -3718,6 +3603,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         session: _session,
         slideDistancePx: introSlideDistancePx,
         resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+        resolveCombatantDisplayName: resolveCombatantDisplayName,
+        formatBattleMessage: formatBattleMessage,
         playerBallItemId: playerUsesBall ? playerBallItemId : null,
         enemyBallItemId: enemyUsesBall ? enemyBallItemId : null,
         hasEnemyTrainerSprite: _introTrainerImage != null,
@@ -3726,7 +3613,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         _pendingIntroPlan = BattleAnimationPlan(steps: [
           ..._pendingIntroPlan!.steps,
           for (final active in _battlePresentation!.activeCombatants.where((entry) => entry.slot.slotIndex != 0)) ...[
-            ShowMessageStep(message: '${resolveSpeciesDisplayName(active.combatant.speciesId)} rejoint le combat !'),
+            ShowMessageStep(message: _joinedBattle(active)),
             PlayBallSequenceStep(
               side: active.slot.side,
               slotIndex: active.slot.slotIndex,
@@ -3903,6 +3790,15 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
     try {
       _session = newSession;
+      if (formatBattleMessage != null) {
+        final messages = animationPlan.flattenedSteps
+            .whereType<ShowMessageStep>()
+            .map((step) => step.summaryMessage ?? step.message)
+            .toList(growable: false);
+        _lastTurnNarration = List.unmodifiable(
+          messages.skip(math.max(0, messages.length - 4)),
+        );
+      }
       _syncFieldAmbientState();
       if (gameState != null) {
         _gameState = gameState;
@@ -4676,8 +4572,20 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         isPlayerSide ? BattleSideId.player : BattleSideId.enemy,
       )),
     );
-    final speciesName = resolveSpeciesDisplayName(combatant.speciesId);
+    final speciesName = _combatantName(
+      isPlayerSide ? BattleSideId.player : BattleSideId.enemy,
+      combatant,
+    );
     return genderSymbol == null ? speciesName : '$speciesName $genderSymbol';
+  }
+
+  String _chooseMedicineMove() {
+    final item = _selectedMedicineAction?.displayName ?? '';
+    return RuntimeBattleMessage(
+      RuntimeBattleMessageId.chooseItemMove,
+      'Choisis une attaque pour $item.',
+      item: item,
+    ).render(formatBattleMessage);
   }
 
   void _syncPanelsOnly() {
@@ -4706,21 +4614,29 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     final isPresenting =
         _presentationPendingOrRunning || !_acceptsPlayerCommands;
     final partyPrompt = menuModel.mode == BattleCommandMenuMode.pokemon
-        ? buildBattlePartyPromptForOverlay(partyMenuModel)
+        ? buildBattlePartyPromptForOverlay(
+            partyMenuModel,
+            formatBattleMessage: formatBattleMessage,
+          )
         : null;
     final partyNarration = menuModel.mode == BattleCommandMenuMode.pokemon
-        ? buildBattlePartyNarrationLinesForOverlay(partyMenuModel)
+        ? buildBattlePartyNarrationLinesForOverlay(
+            partyMenuModel,
+            formatBattleMessage: formatBattleMessage,
+          )
         : null;
     final bagPrompt = menuModel.mode == BattleCommandMenuMode.bag
         ? buildBattleBagPromptForOverlay(
             bagMenuModel,
             feedbackMessage: _bagFeedbackMessage,
+            formatBattleMessage: formatBattleMessage,
           )
         : null;
     final bagNarration = menuModel.mode == BattleCommandMenuMode.bag
         ? buildBattleBagNarrationLinesForOverlay(
             bagMenuModel,
             feedbackMessage: _bagFeedbackMessage,
+            formatBattleMessage: formatBattleMessage,
           )
         : null;
     final medicineTargetPrompt =
@@ -4729,6 +4645,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
             ? buildBattleMedicineTargetPromptForOverlay(
                 medicineTargetMenuModel,
                 feedbackMessage: _bagFeedbackMessage,
+                formatBattleMessage: formatBattleMessage,
               )
             : null;
     final medicineTargetNarration =
@@ -4737,6 +4654,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
             ? buildBattleMedicineTargetNarrationLinesForOverlay(
                 medicineTargetMenuModel,
                 feedbackMessage: _bagFeedbackMessage,
+                formatBattleMessage: formatBattleMessage,
               )
             : null;
     // Recette du 2026-08-24 (vidéo 18-09-39) : pendant l'intro, la boîte
@@ -4746,7 +4664,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     // boîte muette jusqu'à ce qu'elle ait quelque chose à dire.
     final resolvedPrompt = currentAnimationMessage ??
         (menuModel.mode == BattleCommandMenuMode.bagMedicineMoveTarget
-            ? 'Choisis une attaque pour ${_selectedMedicineAction?.displayName}.'
+            ? _chooseMedicineMove()
             : null) ??
         medicineTargetPrompt ??
         bagPrompt ??
@@ -4756,19 +4674,23 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
             : buildBattleDecisionPromptForSession(
                 _session,
                 resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+                resolveCombatantDisplayName: resolveCombatantDisplayName,
+                formatBattleMessage: formatBattleMessage,
               ));
     final defaultNarration = _introPlayed &&
             !_session.state.isFinished &&
             _session.state.currentTurn == null
         ? const <String>[]
-        : buildBattleNarrationLinesForOverlay(
-            _session,
-            resolveSpeciesDisplayName: resolveSpeciesDisplayName,
-          );
+        : _battleNarration();
     final resolvedNarration = isPresenting
         ? const <String>[]
         : ((menuModel.mode == BattleCommandMenuMode.bagMedicineMoveTarget
-                ? const <String>['Les attaques aux PP max restent grisées.']
+                ? [
+                    const RuntimeBattleMessage(
+                      RuntimeBattleMessageId.fullPpDisabled,
+                      'Les attaques aux PP max restent grisées.',
+                    ).render(formatBattleMessage),
+                  ]
                 : null) ??
             medicineTargetNarration ??
             bagNarration ??
@@ -4823,13 +4745,13 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       actorCombatantId: _isDoubles ? _battlePresentation!.request.actorCombatantId : null,
       enemyHud: _buildHudSnapshot(
         rect: _geometryFor(const BattleSlotRef.active(BattleSideId.enemy)).hudRect,
-        ownerLabel: 'ENNEMI',
+        ownerLabel: _battleOwnerLabel(BattleSideId.enemy),
         combatant: _displayedCombatantsBySlot[const BattleSlotRef.active(BattleSideId.enemy)] ?? _displayedEnemyCombatant ?? _combatantDataAt(const BattleSlotRef.active(BattleSideId.enemy)),
         isPlayerSide: false,
       ),
       playerHud: _buildHudSnapshot(
         rect: _geometryFor(const BattleSlotRef.active(BattleSideId.player)).hudRect,
-        ownerLabel: 'JOUEUR',
+        ownerLabel: _battleOwnerLabel(BattleSideId.player),
         combatant: _displayedCombatantsBySlot[const BattleSlotRef.active(BattleSideId.player)] ?? _displayedPlayerCombatant ?? _combatantDataAt(const BattleSlotRef.active(BattleSideId.player)),
         isPlayerSide: true,
       ),
@@ -4903,19 +4825,19 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       actorCombatantId: _isDoubles ? _battlePresentation!.request.actorCombatantId : null,
       enemyHud: _buildHudSnapshot(
         rect: _geometryFor(const BattleSlotRef.active(BattleSideId.enemy)).hudRect,
-        ownerLabel: 'ENNEMI',
+        ownerLabel: _battleOwnerLabel(BattleSideId.enemy),
         combatant: _displayedCombatantsBySlot[const BattleSlotRef.active(BattleSideId.enemy)] ?? _displayedEnemyCombatant ?? _combatantDataAt(const BattleSlotRef.active(BattleSideId.enemy)),
         isPlayerSide: false,
       ),
       playerHud: _buildHudSnapshot(
         rect: _geometryFor(const BattleSlotRef.active(BattleSideId.player)).hudRect,
-        ownerLabel: 'JOUEUR',
+        ownerLabel: _battleOwnerLabel(BattleSideId.player),
         combatant: _displayedCombatantsBySlot[const BattleSlotRef.active(BattleSideId.player)] ?? _displayedPlayerCombatant ?? _combatantDataAt(const BattleSlotRef.active(BattleSideId.player)),
         isPlayerSide: true,
       ),
       battleLabel: _titleForSession(),
       title: choosingTarget ? 'TARGET' : menuModel.isRootMode ? 'COMMANDS' : menuModel.choiceGroupTitle,
-      prompt: choosingTarget ? 'Choisis la cible de ${resolveSpeciesDisplayName(actor!.combatant.speciesId)}.' : actor != null && menuModel.isRootMode ? 'Que doit faire ${resolveSpeciesDisplayName(actor.combatant.speciesId)} ?' : prompt,
+      prompt: _battleCommandPrompt(prompt, choosingTarget, menuModel, interactionsEnabled, actor),
       narrationLines: List<String>.unmodifiable(narrationLines),
       entries: choosingTarget ? _moveTargetEntries() : _buildCommandOverlayEntries(
         menuModel: menuModel,
@@ -4931,20 +4853,66 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _primeBagIconAssetPaths(bagMenuModel);
   }
 
+  String _battleCommandPrompt(
+    String prompt,
+    bool choosingTarget,
+    BattleCommandMenuModel menuModel,
+    bool interactionsEnabled,
+    RuntimeBattleActiveCombatantProjection? actor,
+  ) {
+    if (!interactionsEnabled || actor == null) return prompt;
+    final name = _combatantName(actor.slot.side, actor.combatant);
+    if (choosingTarget) {
+      return RuntimeBattleMessage(
+        RuntimeBattleMessageId.chooseAttackTarget,
+        'Choisis la cible de $name.',
+        actor: name,
+      ).render(formatBattleMessage);
+    }
+    return menuModel.isRootMode
+        ? _chooseBattleAction(name).render(formatBattleMessage)
+        : prompt;
+  }
+
+  String _battleOwnerLabel(BattleSideId side) {
+    final label = side == BattleSideId.player
+        ? const RuntimeBattleMessage(RuntimeBattleMessageId.player, 'JOUEUR')
+        : const RuntimeBattleMessage(RuntimeBattleMessageId.enemy, 'ENNEMI');
+    return label.render(formatBattleMessage);
+  }
+
+  String _battleHpLabel(int current, int maximum) => RuntimeBattleMessage(
+        RuntimeBattleMessageId.hudHp,
+        '$current/$maximum PV',
+        amount: current,
+        maximum: maximum,
+      ).render(formatBattleMessage);
+
+  String _battleLevelLabel(int level) => RuntimeBattleMessage(
+        RuntimeBattleMessageId.hudLevel,
+        'Nv. $level',
+        amount: level,
+      ).render(formatBattleMessage);
+
   List<BattleCommandOverlayEntry> _moveTargetEntries() {
     final targets = _pendingMoveTargets;
     return List.unmodifiable([
       for (var index = 0; index < targets.length; index++)
-        BattleCommandOverlayEntry(
-          index: index,
-          kind: BattleCommandOverlayEntryKind.target,
-          primaryLabel: resolveSpeciesDisplayName(_battlePresentation!.combatantAt(runtimeBattleSlot(targets[index]))!.combatant.speciesId),
-          secondaryLabel: '${_battlePresentation!.combatantAt(runtimeBattleSlot(targets[index]))!.combatant.currentHp}/${_battlePresentation!.combatantAt(runtimeBattleSlot(targets[index]))!.combatant.maxHp} PV',
-          enabled: true,
-          selected: index == _selectedTargetIndex,
-          tone: BattleCommandOverlayEntryTone.neutral,
-        ),
+        _moveTargetEntry(index, runtimeBattleSlot(targets[index])),
     ]);
+  }
+
+  BattleCommandOverlayEntry _moveTargetEntry(int index, BattleSlotRef slot) {
+    final target = _battlePresentation!.combatantAt(slot)!.combatant;
+    return BattleCommandOverlayEntry(
+      index: index,
+      kind: BattleCommandOverlayEntryKind.target,
+      primaryLabel: _combatantName(slot.side, target),
+      secondaryLabel: _battleHpLabel(target.currentHp, target.maxHp),
+      enabled: true,
+      selected: index == _selectedTargetIndex,
+      tone: BattleCommandOverlayEntryTone.neutral,
+    );
   }
 
   List<BattleCommandOverlayHudSnapshot> _additionalHudSnapshots() {
@@ -4953,7 +4921,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       for (final active in _battlePresentation!.activeCombatants.where((entry) => entry.slot.slotIndex != 0))
         _buildHudSnapshot(
           rect: _geometryFor(active.slot).hudRect,
-          ownerLabel: active.slot.side == BattleSideId.player ? 'JOUEUR' : 'ENNEMI',
+          ownerLabel: _battleOwnerLabel(active.slot.side),
           combatant: _displayedCombatantsBySlot[active.slot] ?? active.combatant,
           isPlayerSide: active.slot.side == BattleSideId.player,
           slot: active.slot,
@@ -5001,7 +4969,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       teamSize: !isPlayerSide && _session.setup.isTrainerBattle
           ? 1 + _session.setup.enemyReservePokemon.length : null,
       ownerLabel: ownerLabel,
-      speciesLabel: resolveSpeciesDisplayName(combatant.speciesId),
+      speciesLabel: _combatantName(targetSide.side, combatant),
       level: isPlayerSide && targetSide.slotIndex == 0
           ? _presentationPlayerLevel ?? combatant.level
           : combatant.level,
@@ -5127,8 +5095,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
                   primaryLabel:
                       resolveSpeciesDisplayName(entry.value.speciesId),
                   secondaryLabel:
-                      '${entry.value.currentHp}/${entry.value.maxHp} PV',
-                  trailingLabel: 'Nv. ${entry.value.level}',
+                      _battleHpLabel(entry.value.currentHp, entry.value.maxHp),
+                  trailingLabel: _battleLevelLabel(entry.value.level),
                   statusLabel: _overlayPartyEntryStatusLabel(entry.value),
                   enabled: entry.value.isSelectable &&
                       entry.value.playerChoice != null,
@@ -5152,8 +5120,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
                   primaryLabel:
                       resolveSpeciesDisplayName(entry.value.speciesId),
                   secondaryLabel:
-                      '${entry.value.currentHp}/${entry.value.maxHp} PV',
-                  trailingLabel: 'Nv. ${entry.value.level}',
+                      _battleHpLabel(entry.value.currentHp, entry.value.maxHp),
+                  trailingLabel: _battleLevelLabel(entry.value.level),
                   statusLabel: _overlayMedicineTargetStatusLabel(entry.value),
                   enabled: entry.value.isSelectable,
                   selected: entry.key == _selectedMedicineTargetIndex,
@@ -5823,11 +5791,51 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
   }
 
-  String _titleForSession() {
-    if (_session.setup.isTrainerBattle) {
-      return 'Combat dresseur';
+  List<String> _battleNarration() {
+    if (formatBattleMessage == null) {
+      return buildBattleNarrationLinesForOverlay(
+        _session,
+        resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+      );
     }
-    return 'Combat sauvage';
+    if (_session.state.currentTurn != null && _lastTurnNarration.isNotEmpty) {
+      return _lastTurnNarration;
+    }
+    final outcome = _session.state.outcome;
+    if (_session.state.isFinished && outcome != null) {
+      return [
+        buildBattleOutcomeMessage(outcome, resolveSpeciesDisplayName)
+            .render(formatBattleMessage),
+      ];
+    }
+    return buildBattleOpeningNarrationLinesForOverlay(
+      _session,
+      resolveSpeciesDisplayName: resolveSpeciesDisplayName,
+      resolveCombatantDisplayName: resolveCombatantDisplayName,
+      formatBattleMessage: formatBattleMessage,
+    );
+  }
+
+  String _joinedBattle(RuntimeBattleActiveCombatantProjection active) {
+    final name = _combatantName(active.slot.side, active.combatant);
+    return RuntimeBattleMessage(
+      RuntimeBattleMessageId.joined,
+      '$name rejoint le combat !',
+      target: name,
+    ).render(formatBattleMessage);
+  }
+
+  String _titleForSession() {
+    final title = _session.setup.isTrainerBattle
+        ? const RuntimeBattleMessage(
+            RuntimeBattleMessageId.trainerBattle,
+            'Combat dresseur',
+          )
+        : const RuntimeBattleMessage(
+            RuntimeBattleMessageId.wildBattle,
+            'Combat sauvage',
+          );
+    return title.render(formatBattleMessage);
   }
 
   Future<void> _prepareAnimationPresentation({

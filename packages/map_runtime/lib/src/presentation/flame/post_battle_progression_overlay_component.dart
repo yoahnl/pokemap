@@ -6,6 +6,10 @@ import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/runtime_post_battle_decision_coordinator.dart';
 import '../flutter/post_battle_presentation_snapshot.dart';
+import '../runtime_battle_message.dart';
+import 'post_battle_decision_labels.dart';
+
+export 'post_battle_decision_labels.dart' show buildPostBattleDecisionLabels;
 
 typedef PostBattleMoveLearningDecisionHandler
     = RuntimePostBattleCoordinatorResult Function(
@@ -24,6 +28,8 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
     required this.onEvolutionDecision,
     required this.onCompleted,
     this.onPresentationSnapshotChanged,
+    this.formatBattleMessage,
+    this.resolveMoveDisplayName,
   })  : _transaction = initialResult.transaction,
         _failure = initialResult.failure,
         super(size: viewportSize, anchor: Anchor.topLeft, priority: 99) {
@@ -74,23 +80,16 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
     return const <String>[];
   }
 
-  List<String> get decisionLabels {
-    final pendingMove = _visiblePendingMove;
-    if (pendingMove != null) {
-      if (pendingMove.phase == BattleMoveLearningPhase.awaitingDecision) {
-        return const <String>['Apprendre', 'Ne pas apprendre'];
-      }
-      return <String>[
-        for (final moveId in _transaction!.pendingPartyMoveIds)
-          _displayId(moveId),
-        'Ne pas apprendre',
-      ];
-    }
-    if (_visiblePendingEvolution != null) {
-      return const <String>['Évoluer', 'Refuser'];
-    }
-    return const <String>[];
-  }
+  List<String> get decisionLabels => buildPostBattleDecisionLabels(
+        pendingMove: _visiblePendingMove,
+        pendingEvolution: _visiblePendingEvolution,
+        pendingPartyMoveIds: _transaction?.pendingPartyMoveIds ?? const [],
+        formatBattleMessage: formatBattleMessage,
+        resolveMoveDisplayName: resolveMoveDisplayName,
+      );
+
+  final RuntimeBattleMessageRenderer? formatBattleMessage;
+  final String Function(String moveId)? resolveMoveDisplayName;
 
   RuntimePostBattleTransaction? get currentTransaction => _transaction;
   RuntimePostBattleCoordinatorFailure? get currentFailure => _failure;
@@ -115,10 +114,13 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
     }
     final messages = _transaction?.messages;
     if (messages == null || messages.isEmpty) {
-      return const <RuntimePostBattleMessage>[
+      return <RuntimePostBattleMessage>[
         RuntimePostBattleMessage(
           kind: RuntimePostBattleMessageKind.error,
-          text: 'Aucun résultat post-combat disponible.',
+          text: const RuntimeBattleMessage(
+            RuntimeBattleMessageId.postBattleNoResult,
+            'Aucun résultat post-combat disponible.',
+          ).render(formatBattleMessage),
         ),
       ];
     }
@@ -264,7 +266,10 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
         RuntimePostBattleCoordinatorResult.failure(
           failure: RuntimePostBattleCoordinatorFailure(
             code: RuntimePostBattleCoordinatorFailureCode.invalidDecision,
-            message: 'La décision post-combat ne peut pas être appliquée.',
+            message: const RuntimeBattleMessage(
+              RuntimeBattleMessageId.postBattleDecisionError,
+              'La décision post-combat ne peut pas être appliquée.',
+            ).render(formatBattleMessage),
             originalState: transaction.originalState,
             cause: error,
           ),
@@ -307,7 +312,12 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
       messageIndex: _messageIndex,
       messageCount: _messages.length,
       messageKind: currentMessageKind,
-      message: _isCompleted ? 'Terminé.' : currentMessageText,
+      message: _isCompleted
+          ? const RuntimeBattleMessage(
+              RuntimeBattleMessageId.postBattleCompleted,
+              'Terminé.',
+            ).render(formatBattleMessage)
+          : currentMessageText,
       choices: List<PostBattlePresentationChoice>.unmodifiable(
         <PostBattlePresentationChoice>[
           for (var index = 0; index < labels.length; index++)
@@ -335,15 +345,4 @@ final class PostBattleProgressionOverlayComponent extends PositionComponent {
     _currentPresentationSnapshot = snapshot;
     onPresentationSnapshotChanged?.call(snapshot);
   }
-}
-
-String _displayId(String id) {
-  final words = id
-      .trim()
-      .split(RegExp(r'[-_:]+'))
-      .where((word) => word.isNotEmpty)
-      .toList(growable: false);
-  if (words.isEmpty) return 'Pokémon';
-  final text = words.join(' ');
-  return '${text[0].toUpperCase()}${text.substring(1)}';
 }

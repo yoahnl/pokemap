@@ -505,6 +505,9 @@ class PlayerCatalogEn extends PlayerCatalog {
   String get battleRun => 'RUN';
 
   @override
+  String get battleMoveInfo => 'Info';
+
+  @override
   String get battleMoves => 'MOVES';
 
   @override
@@ -2241,4 +2244,1941 @@ class PlayerCatalogEn extends PlayerCatalog {
 
   @override
   String get craftReady => 'Your order is ready.';
+
+  @override
+  String get battleNarrationPlayer => 'Player';
+
+  @override
+  String get battleNarrationEnemy => 'Opponent';
+
+  @override
+  String battleWildAppeared({required String target}) {
+    return 'A wild $target appeared!';
+  }
+
+  @override
+  String battleTrainerChallenges({required String actor}) {
+    return 'Trainer $actor challenges you!';
+  }
+
+  @override
+  String get battleUnknownTrainerChallenges => 'A Trainer challenges you!';
+
+  @override
+  String battleTrainerSends({required String actor, required String target}) {
+    return 'Trainer $actor sent out $target!';
+  }
+
+  @override
+  String battleUnknownTrainerSends({required String target}) {
+    return 'The Trainer sent out $target!';
+  }
+
+  @override
+  String battleSendOut({required String target}) {
+    return 'Go, $target!';
+  }
+
+  @override
+  String battleJoined({required String target}) {
+    return '$target joined the battle!';
+  }
+
+  @override
+  String get battleConfusionHurt => 'It hurt itself in its confusion!';
+
+  @override
+  String battleMoveUsed({required String actor, required String move}) {
+    return '$actor used $move!';
+  }
+
+  @override
+  String battleMoveDodged({required String target}) {
+    return '$target avoided the attack!';
+  }
+
+  @override
+  String battleMoveImmune({required String target}) {
+    return 'It doesn’t affect $target…';
+  }
+
+  @override
+  String get battleCriticalHit => 'A critical hit!';
+
+  @override
+  String get battleSuperEffective => 'It’s super effective!';
+
+  @override
+  String get battleNotVeryEffective => 'It’s not very effective…';
+
+  @override
+  String battleFainted({required String target}) {
+    return '$target fainted!';
+  }
+
+  @override
+  String battleItemUsed({
+    required String actor,
+    required String item,
+    required String target,
+  }) {
+    return '$actor used $item on $target!';
+  }
+
+  @override
+  String battleHpRecovered({required String target, required int amount}) {
+    return '$target recovered $amount HP.';
+  }
+
+  @override
+  String battleStatusCured({required String target}) {
+    return '$target recovered from its status condition.';
+  }
+
+  @override
+  String battlePpRecovered({required String move, required int amount}) {
+    return '$move recovered $amount PP.';
+  }
+
+  @override
+  String battleCaptureThrown({required String target}) {
+    return 'A Poké Ball was thrown at $target!';
+  }
+
+  @override
+  String battleCaptureCaught({required String target}) {
+    return '$target was caught!';
+  }
+
+  @override
+  String battleCaptureEscaped({required String target}) {
+    return '$target broke free from the Poké Ball!';
+  }
+
+  @override
+  String battleParalyzed({required String target}) {
+    return '$target was paralyzed! It may be unable to move!';
+  }
+
+  @override
+  String battleBurned({required String target}) {
+    return '$target was burned!';
+  }
+
+  @override
+  String battlePoisoned({required String target}) {
+    return '$target was poisoned!';
+  }
+
+  @override
+  String battleBadlyPoisoned({required String target}) {
+    return '$target was badly poisoned!';
+  }
+
+  @override
+  String battleFellAsleep({required String target}) {
+    return '$target fell asleep!';
+  }
+
+  @override
+  String battleFrozen({required String target}) {
+    return '$target was frozen solid!';
+  }
+
+  @override
+  String battleAlreadyHasStatus({required String target}) {
+    return '$target already has a status condition.';
+  }
+
+  @override
+  String battleCannotAct({required String target}) {
+    return '$target can’t move!';
+  }
+
+  @override
+  String battleBurnDamage({required String target}) {
+    return '$target was hurt by its burn!';
+  }
+
+  @override
+  String battlePoisonDamage({required String target}) {
+    return '$target was hurt by poison!';
+  }
+
+  @override
+  String battleStatusDamage({required String target}) {
+    return '$target took damage!';
+  }
+
+  @override
+  String battleProtectActivated({required String actor}) {
+    return '$actor protected itself!';
+  }
+
+  @override
+  String get battleProtectBlocked =>
+      'The target protected itself from the attack!';
+
+  @override
+  String get battleProtectBroken => 'The protection was broken!';
+
+  @override
+  String battleRechargeRequired({required String actor}) {
+    return '$actor must recharge!';
+  }
+
+  @override
+  String battleRechargeTurnSpent({required String actor}) {
+    return '$actor is catching its breath.';
+  }
+
+  @override
+  String battleChargeStarted({required String actor}) {
+    return '$actor began charging!';
+  }
+
+  @override
+  String battleChargeReleased({required String actor}) {
+    return '$actor unleashed its attack!';
+  }
+
+  @override
+  String battleConfusionApplied({required String actor}) {
+    return '$actor became confused!';
+  }
+
+  @override
+  String battleConfusionActive({required String actor}) {
+    return '$actor is confused!';
+  }
+
+  @override
+  String battleConfusionEnded({required String actor}) {
+    return '$actor snapped out of confusion!';
+  }
+
+  @override
+  String get battleRainStarted => 'It started to rain.';
+
+  @override
+  String get battleSandstormStarted => 'A sandstorm kicked up.';
+
+  @override
+  String battleSandstormDamage({required String target}) {
+    return '$target was buffeted by the sandstorm!';
+  }
+
+  @override
+  String get battleWeatherExpired => 'The weather subsided.';
+
+  @override
+  String get battleTrickRoomStarted => 'The dimensions twisted.';
+
+  @override
+  String get battleFieldCleared => 'The field effect was cleared.';
+
+  @override
+  String get battleFieldExpired => 'The field effect wore off.';
+
+  @override
+  String get battleStealthRockSet =>
+      'Pointed stones float around the opposing team!';
+
+  @override
+  String get battleStealthRockAlreadyPresent =>
+      'Pointed stones are already in place.';
+
+  @override
+  String get battleStealthRockDamage =>
+      'Pointed stones hurt the incoming Pokémon!';
+
+  @override
+  String get battleSpikesSet =>
+      'Spikes were scattered around the opposing team!';
+
+  @override
+  String get battleSpikesAlreadyPresent =>
+      'Spikes are already at their maximum.';
+
+  @override
+  String get battleSpikesDamage => 'Spikes hurt the incoming Pokémon!';
+
+  @override
+  String battleSwitched({
+    required String actor,
+    required String target,
+    required String replacement,
+  }) {
+    return '$actor withdrew $target and sent out $replacement!';
+  }
+
+  @override
+  String battleReplacementRequired({
+    required String actor,
+    required String target,
+  }) {
+    return '$actor must replace $target!';
+  }
+
+  @override
+  String battleStatRaised({
+    required String target,
+    required String stat,
+    required int amount,
+  }) {
+    String _temp0 = intl.Intl.pluralLogic(
+      amount,
+      locale: localeName,
+      other: '$target’s $stat rose drastically!',
+      two: '$target’s $stat rose sharply!',
+      one: '$target’s $stat rose!',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String battleStatLowered({
+    required String target,
+    required String stat,
+    required int amount,
+  }) {
+    String _temp0 = intl.Intl.pluralLogic(
+      amount,
+      locale: localeName,
+      other: '$target’s $stat fell drastically!',
+      two: '$target’s $stat fell sharply!',
+      one: '$target’s $stat fell!',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String battleStatCannotRaise({required String target, required String stat}) {
+    return '$target’s $stat won’t go any higher!';
+  }
+
+  @override
+  String battleStatCannotLower({required String target, required String stat}) {
+    return '$target’s $stat won’t go any lower!';
+  }
+
+  @override
+  String battleStatName({required String stat}) {
+    String _temp0 = intl.Intl.selectLogic(stat, {
+      'attack': 'Attack',
+      'defense': 'Defense',
+      'specialAttack': 'Special Attack',
+      'specialDefense': 'Special Defense',
+      'speed': 'Speed',
+      'accuracy': 'Accuracy',
+      'other': 'Evasion',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get battleMoveFailed => 'But it failed!';
+
+  @override
+  String get battleFleeFailed => 'You couldn’t get away.';
+
+  @override
+  String get battleNarrationVictory => 'You won the battle!';
+
+  @override
+  String get battleNarrationDefeat =>
+      'You have no Pokémon left that can fight!';
+
+  @override
+  String get battleNarrationFled => 'You got away safely!';
+
+  @override
+  String get postBattleVictoryMessage => 'Victory!';
+
+  @override
+  String get postBattleDefeatMessage => 'All your Pokémon fainted.';
+
+  @override
+  String get postBattleFledMessage => 'You got away safely!';
+
+  @override
+  String postBattleCapturedMessage({required String target}) {
+    return '$target was caught.';
+  }
+
+  @override
+  String postBattleCaptureParty({required String target}) {
+    return '$target joined your party.';
+  }
+
+  @override
+  String postBattleCaptureStorage({required String target}) {
+    return '$target was sent to storage.';
+  }
+
+  @override
+  String get postBattleCaptureUnavailable =>
+      'There’s nowhere to send the captured Pokémon.';
+
+  @override
+  String postBattleExperienceMessage({
+    required String target,
+    required int amount,
+  }) {
+    return '$target gained $amount Exp. Points!';
+  }
+
+  @override
+  String postBattleLevelUpMessage({
+    required String target,
+    required int amount,
+  }) {
+    return '$target grew to Lv. $amount!';
+  }
+
+  @override
+  String postBattleMoveLearningMessage({
+    required String target,
+    required String move,
+  }) {
+    return '$target can learn $move.';
+  }
+
+  @override
+  String postBattleMoveReplacementMessage({required String move}) {
+    return 'Choose a move to replace with $move.';
+  }
+
+  @override
+  String postBattleMoveLearnedMessage({required String move}) {
+    return '$move was learned.';
+  }
+
+  @override
+  String postBattleMoveReplacedMessage({
+    required String previousMove,
+    required String move,
+  }) {
+    return '$previousMove was replaced with $move.';
+  }
+
+  @override
+  String postBattleMoveDeclinedMessage({required String move}) {
+    return '$move wasn’t learned.';
+  }
+
+  @override
+  String postBattleEvolutionPrompt({
+    required String target,
+    required String replacement,
+  }) {
+    return '$target wants to evolve into $replacement.';
+  }
+
+  @override
+  String postBattleEvolutionAccepted({
+    required String target,
+    required String replacement,
+  }) {
+    return '$target evolved into $replacement.';
+  }
+
+  @override
+  String postBattleEvolutionRefused({required String target}) {
+    return '$target didn’t evolve.';
+  }
+
+  @override
+  String postBattleTrainerDefeated({required String actor}) {
+    return 'You defeated $actor!';
+  }
+
+  @override
+  String postBattleMoneyMessage({required int amount}) {
+    return 'You won ₽$amount!';
+  }
+
+  @override
+  String postBattleItemMessage({required String item, required int amount}) {
+    return 'You received $item ×$amount.';
+  }
+
+  @override
+  String postBattleFlagMessage({required String target}) {
+    return '$target was unlocked.';
+  }
+
+  @override
+  String postBattleBadgeMessage({required String target}) {
+    return 'You received the $target Badge.';
+  }
+
+  @override
+  String postBattleAbilityMessage({required String move}) {
+    return 'You can now use $move.';
+  }
+
+  @override
+  String get postBattleLearn => 'Learn';
+
+  @override
+  String get postBattleDeclineMove => 'Don’t learn';
+
+  @override
+  String get postBattleEvolve => 'Evolve';
+
+  @override
+  String get postBattleDeclineEvolution => 'Decline';
+
+  @override
+  String get postBattleChoose => 'What will you do?';
+
+  @override
+  String get postBattleCompleted => 'Done.';
+
+  @override
+  String get postBattleNoResult => 'No battle result is available.';
+
+  @override
+  String get postBattleDecisionError =>
+      'The post-battle decision couldn’t be applied.';
+
+  @override
+  String get postBattleMissingTransaction =>
+      'The battle has no transaction ID.';
+
+  @override
+  String get postBattleAlreadyApplied =>
+      'This battle result was already applied.';
+
+  @override
+  String get postBattleApplyFailed => 'The battle result couldn’t be applied.';
+
+  @override
+  String get postBattleMoveNotPending =>
+      'There’s no move learning decision to make.';
+
+  @override
+  String get postBattleMoveInvalid => 'The move learning decision was invalid.';
+
+  @override
+  String get postBattleEvolutionNotPending =>
+      'There’s no evolution decision to make.';
+
+  @override
+  String get postBattleEvolutionInvalid =>
+      'The evolution decision was invalid.';
+
+  @override
+  String get postBattleRewardBagCapacity =>
+      'Your Bag can’t hold all the rewards. The battle was cancelled. Make room before retrying it.';
+
+  @override
+  String get postBattleRewardQuantity =>
+      'Your Bag can’t hold that many rewards. The battle was cancelled.';
+
+  @override
+  String get postBattleRewardMissingItemCatalog =>
+      'The reward catalog is unavailable. The battle was cancelled.';
+
+  @override
+  String postBattleRewardUnknownItem({required String item}) {
+    return 'Unknown item reward: $item.';
+  }
+
+  @override
+  String get postBattleRewardInvalid =>
+      'The item reward is invalid. The battle was cancelled.';
+
+  @override
+  String get postBattleRewardMissingTrainer =>
+      'The Trainer’s rewards couldn’t be found.';
+
+  @override
+  String get postBattleRewardInvalidBattle =>
+      'This type of battle can’t award rewards.';
+
+  @override
+  String get postBattleRewardMissingData =>
+      'The post-battle progression data is incomplete.';
+
+  @override
+  String get runtimeFeedbackBicycleMissing =>
+      'You do not have a bicycle you can use.';
+
+  @override
+  String get runtimeFeedbackTextVariableInvalid =>
+      'This scene variable does not accept text.';
+
+  @override
+  String get runtimeFeedbackRequestClosed => 'This request has already ended.';
+
+  @override
+  String get runtimeFeedbackRequestChanged =>
+      'The request changed before this response arrived.';
+
+  @override
+  String get runtimeFeedbackResponseNotText =>
+      'This response does not contain text.';
+
+  @override
+  String get runtimeFeedbackResponseLengthInvalid =>
+      'This response does not meet the text length requirements.';
+
+  @override
+  String get runtimeFeedbackTextSaveFailed =>
+      'The response could not be saved.';
+
+  @override
+  String get runtimeFeedbackFlyDisabled => 'Fly is disabled in this game.';
+
+  @override
+  String get runtimeFeedbackFlyUnderwater =>
+      'Use Dive to return to the surface before using Fly.';
+
+  @override
+  String get runtimeFeedbackFlyIndoors =>
+      'You cannot use Fly indoors or in caves.';
+
+  @override
+  String get runtimeFeedbackFlyDestinationUnvisited =>
+      'Visit this location before flying there.';
+
+  @override
+  String get runtimeFeedbackFlyPokemonRequired =>
+      'A Pokémon that can battle must know Fly.';
+
+  @override
+  String get runtimeFeedbackFlyLocked => 'You have not unlocked Fly yet.';
+
+  @override
+  String get runtimeFeedbackFlyMapUnsupported =>
+      'Fly is only available on supported 2D maps.';
+
+  @override
+  String get runtimeFeedbackFlyArrivalUnavailable =>
+      'The arrival point for this location is unavailable.';
+
+  @override
+  String get runtimeFeedbackFlyDestinationUnavailable =>
+      'You cannot fly to this destination.';
+
+  @override
+  String runtimeFeedbackFlyConfirm({required String place}) {
+    return 'Fly to $place?';
+  }
+
+  @override
+  String get runtimeFeedbackFlyRecoveryFailed =>
+      'Travel failed and recovery could not be confirmed. Restart the game.';
+
+  @override
+  String get runtimeFeedbackFlyCancelled =>
+      'Fly was cancelled. Your progress was kept.';
+
+  @override
+  String get runtimeFeedbackPartyBusy => 'The party is busy right now.';
+
+  @override
+  String get runtimeFeedbackTargetUnavailable =>
+      'This target is no longer available.';
+
+  @override
+  String get runtimeFeedbackPartyLeadSaved => 'The new lead Pokémon was saved.';
+
+  @override
+  String get runtimeFeedbackPartyReorderSaved =>
+      'Party reordered and progress saved.';
+
+  @override
+  String get runtimeFeedbackPartyCommandInvalid =>
+      'This command is unavailable in the party menu.';
+
+  @override
+  String get runtimeFeedbackPartyReorderFailed =>
+      'The party could not be reordered and saved.';
+
+  @override
+  String get runtimeFeedbackBagBusy => 'The bag is busy right now.';
+
+  @override
+  String get runtimeFeedbackBagItemDefinitionInvalid =>
+      'This item’s definition is missing or invalid.';
+
+  @override
+  String get runtimeFeedbackBagStateChanged =>
+      'The game state changed. Reopen the bag.';
+
+  @override
+  String get runtimeFeedbackBagItemRemoved =>
+      'This item is no longer in the bag.';
+
+  @override
+  String get runtimeFeedbackBagContextualUse => 'Using the item in the world.';
+
+  @override
+  String get runtimeFeedbackBagContextualCancelled =>
+      'Use cancelled. You kept the item.';
+
+  @override
+  String get runtimeFeedbackBagContextualUnavailable =>
+      'This item cannot be used in the current situation. You kept it.';
+
+  @override
+  String get runtimeFeedbackBagContextualFailed =>
+      'The item could not be used here. You kept it.';
+
+  @override
+  String get runtimeFeedbackBagContextualStateChanged =>
+      'The game state changed. You kept the item.';
+
+  @override
+  String get runtimeFeedbackFishingUnsupported =>
+      'Fishing is unsupported in this game mode.';
+
+  @override
+  String get runtimeFeedbackFishingUnavailable =>
+      'Fishing is unavailable right now.';
+
+  @override
+  String get runtimeFeedbackFishingPreparing => 'Getting ready to fish.';
+
+  @override
+  String get runtimeFeedbackFishingMapUnsupported =>
+      'You cannot fish on this map.';
+
+  @override
+  String get runtimeFeedbackFishingRodInvalid =>
+      'This item is not a usable fishing rod.';
+
+  @override
+  String get runtimeFeedbackFishingRodMissing =>
+      'This fishing rod is no longer in the bag.';
+
+  @override
+  String get runtimeFeedbackFishingFaceWater => 'Face the water to fish.';
+
+  @override
+  String get runtimeFeedbackFishingNoEncounter =>
+      'You cannot catch anything here with this rod.';
+
+  @override
+  String get runtimeFeedbackFishingDismountSaveFailed =>
+      'Getting off the bicycle could not be saved.';
+
+  @override
+  String get runtimeFeedbackFishingStartFailed =>
+      'Fishing could not be started.';
+
+  @override
+  String get runtimeFeedbackBicycleUnsupported =>
+      'The bicycle is only available on supported 2D maps.';
+
+  @override
+  String get runtimeFeedbackBicycleUnavailable =>
+      'The bicycle is unavailable right now.';
+
+  @override
+  String get runtimeFeedbackBicycleChanged => 'Movement change saved.';
+
+  @override
+  String get runtimeFeedbackBicycleChangeUnavailable =>
+      'The bicycle is unavailable here, its animations are incomplete, or saving failed.';
+
+  @override
+  String get runtimeFeedbackBicycleSaveFailed =>
+      'The movement change could not be saved.';
+
+  @override
+  String get runtimeFeedbackEscapeRopeUnsupported =>
+      'The Escape Rope is unsupported in this game mode.';
+
+  @override
+  String get runtimeFeedbackEscapeRopeUnavailable =>
+      'The Escape Rope is unavailable right now.';
+
+  @override
+  String get runtimeFeedbackEscapeRopeReturned =>
+      'You returned to the entrance. Progress saved.';
+
+  @override
+  String get runtimeFeedbackEscapeRopeExitBlocked =>
+      'The exit is unavailable or blocked. You kept the Escape Rope.';
+
+  @override
+  String get runtimeFeedbackEscapeRopeSaveFailed =>
+      'The return could not be completed and saved.';
+
+  @override
+  String get runtimeFeedbackRepelUnsupported =>
+      'Repel is unavailable in this game mode.';
+
+  @override
+  String get runtimeFeedbackRepelAlreadyActive => 'A Repel is already active.';
+
+  @override
+  String get runtimeFeedbackRepelApplied => 'Repel is active. Progress saved.';
+
+  @override
+  String get runtimeFeedbackRepelSaveFailed =>
+      'Repel could not be used and saved.';
+
+  @override
+  String get runtimeFeedbackHeldItemNoEffect =>
+      'This item has no effect when held.';
+
+  @override
+  String get runtimeFeedbackHeldItemUnsupported =>
+      'This held item’s effect is unsupported in battle.';
+
+  @override
+  String get runtimeFeedbackTargetDataIncomplete =>
+      'This target’s data is incomplete.';
+
+  @override
+  String get runtimeFeedbackBagItemUsed => 'Item used and progress saved.';
+
+  @override
+  String get runtimeFeedbackBagItemSaveFailed =>
+      'The item could not be used and saved.';
+
+  @override
+  String get runtimeFeedbackHeldItemTargetUnavailable =>
+      'This target or item is no longer available.';
+
+  @override
+  String get runtimeFeedbackHeldItemMissing =>
+      'This item is no longer in the bag.';
+
+  @override
+  String get runtimeFeedbackHeldItemNone => 'This Pokémon is holding no item.';
+
+  @override
+  String get runtimeFeedbackHeldItemUnchanged =>
+      'This Pokémon is already holding this item.';
+
+  @override
+  String get runtimeFeedbackHeldItemBagCannotReceive =>
+      'The currently held item cannot be returned to the bag.';
+
+  @override
+  String get runtimeFeedbackHeldItemBagFull =>
+      'There is no room for this item in the bag. Make room before taking it.';
+
+  @override
+  String get runtimeFeedbackHeldItemBagCapacityUnknown =>
+      'The item catalogue could not verify how much room is left in the bag.';
+
+  @override
+  String get runtimeFeedbackHeldItemRemoved =>
+      'Held item removed and progress saved.';
+
+  @override
+  String get runtimeFeedbackHeldItemChanged =>
+      'Held item changed and progress saved.';
+
+  @override
+  String get runtimeFeedbackHeldItemSaveFailed =>
+      'The held item could not be changed and saved.';
+
+  @override
+  String get runtimeFeedbackMoveMachineIncompatible =>
+      'This Pokémon cannot learn a move from this machine.';
+
+  @override
+  String get runtimeFeedbackMoveMachineReplaced =>
+      'Move replaced and progress saved.';
+
+  @override
+  String get runtimeFeedbackMoveMachineLearned =>
+      'Move learned and progress saved.';
+
+  @override
+  String get runtimeFeedbackMoveMachineForgetPrompt =>
+      'Choose a move to forget.';
+
+  @override
+  String get runtimeFeedbackMoveMachineCancelled => 'Learning cancelled.';
+
+  @override
+  String get runtimeFeedbackMoveMachineCannotUse =>
+      'This machine cannot be used here.';
+
+  @override
+  String get runtimeFeedbackMoveMachineSaveFailed =>
+      'The move could not be learned and saved.';
+
+  @override
+  String get runtimeFeedbackEvolutionHeldItemInvalid =>
+      'The held item does not allow this evolution.';
+
+  @override
+  String get runtimeFeedbackEvolutionUnavailable =>
+      'This item does not trigger an evolution here.';
+
+  @override
+  String get runtimeFeedbackEvolutionAmbiguous =>
+      'This combination can trigger multiple evolutions.';
+
+  @override
+  String get runtimeFeedbackEvolutionSaved =>
+      'Evolution complete and progress saved.';
+
+  @override
+  String get runtimeFeedbackEvolutionSaveFailed =>
+      'The evolution could not be applied and saved.';
+
+  @override
+  String get runtimeFeedbackHealCapsIncomplete =>
+      'The party’s recovery data is incomplete.';
+
+  @override
+  String get runtimeFeedbackHealApplying => 'Healing…';
+
+  @override
+  String get runtimeFeedbackHealDisplayUnavailable =>
+      'The healing display is unavailable on this map.';
+
+  @override
+  String get runtimeFeedbackServiceUnsupported =>
+      'This service is unsupported in this game.';
+
+  @override
+  String get runtimeFeedbackServiceUnavailable =>
+      'This service is unavailable right now.';
+
+  @override
+  String get runtimeFeedbackServiceClosed => 'The player service is closed.';
+
+  @override
+  String get runtimeFeedbackServiceNotOpen => 'No contextual service is open.';
+
+  @override
+  String get runtimeFeedbackServiceChanged =>
+      'The service changed before this action arrived.';
+
+  @override
+  String get runtimeFeedbackServiceWrongRequest =>
+      'This response belongs to a different request.';
+
+  @override
+  String get runtimeFeedbackServiceActionInvalid =>
+      'This service does not accept this action.';
+
+  @override
+  String get runtimeFeedbackPcBoxUnavailable =>
+      'This Box is no longer available.';
+
+  @override
+  String get runtimeFeedbackPokemonUnavailable =>
+      'This Pokémon is no longer available.';
+
+  @override
+  String get runtimeFeedbackTradeUnavailable =>
+      'This trade is no longer available.';
+
+  @override
+  String get runtimeFeedbackPcCommandInvalid =>
+      'This command is unavailable on the PC.';
+
+  @override
+  String get runtimeFeedbackPcSaving => 'Saving PC changes…';
+
+  @override
+  String get runtimeFeedbackPcDeposited => 'Pokémon deposited in the Box.';
+
+  @override
+  String get runtimeFeedbackPcWithdrawn => 'Pokémon added to the party.';
+
+  @override
+  String get runtimeFeedbackPcSwapped => 'Pokémon swapped.';
+
+  @override
+  String get runtimeFeedbackPcMoved => 'Pokémon moved to another Box.';
+
+  @override
+  String get runtimeFeedbackPcSaveFailed =>
+      'The PC changes could not be saved.';
+
+  @override
+  String get runtimeFeedbackPcTitle => 'Pokémon PC';
+
+  @override
+  String get runtimeFeedbackPcHelp => 'Organize your party and Boxes.';
+
+  @override
+  String get runtimeFeedbackPcNoDeposit => 'No Pokémon can be deposited.';
+
+  @override
+  String get runtimeFeedbackPcNoWithdraw => 'No Pokémon can be withdrawn.';
+
+  @override
+  String get runtimeFeedbackPcNoSwap => 'No valid swap is available.';
+
+  @override
+  String get runtimeFeedbackPcNoMove =>
+      'There are no Pokémon to move from this Box.';
+
+  @override
+  String get runtimeFeedbackPcNoDestination => 'No other Box is available.';
+
+  @override
+  String get runtimeFeedbackHealInterrupted =>
+      'Healing was interrupted before it could be saved.';
+
+  @override
+  String get runtimeFeedbackHealAlreadyHealthy =>
+      'Your party is already fully healed.';
+
+  @override
+  String get runtimeFeedbackHealPartyHealed => 'Your party is fully healed.';
+
+  @override
+  String get runtimeFeedbackHealSaveFailed => 'Healing could not be saved.';
+
+  @override
+  String get runtimeFeedbackHealCommandInvalid =>
+      'This command is unavailable at the healing service.';
+
+  @override
+  String get runtimeFeedbackHealTitle => 'Pokémon Center';
+
+  @override
+  String get runtimeFeedbackHealCompleted => 'Healing is complete.';
+
+  @override
+  String get runtimeFeedbackHealHelp =>
+      'Restore HP and PP, and clear status conditions.';
+
+  @override
+  String get runtimeFeedbackShopItemUnavailable =>
+      'This item is no longer available.';
+
+  @override
+  String get runtimeFeedbackShopCommandInvalid =>
+      'This command is unavailable at the shop.';
+
+  @override
+  String get runtimeFeedbackShopChooseItem => 'Select an item.';
+
+  @override
+  String runtimeFeedbackShopPurchaseBonus({
+    required int quantity,
+    required String item,
+  }) {
+    final intl.NumberFormat quantityNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String quantityString = quantityNumberFormat.format(quantity);
+
+    return 'Purchase complete. Bonus: $quantityString × $item.';
+  }
+
+  @override
+  String get runtimeFeedbackShopPurchaseComplete => 'Purchase complete.';
+
+  @override
+  String get runtimeFeedbackShopSaleComplete => 'Sale complete.';
+
+  @override
+  String get runtimeFeedbackShopClosed => 'This shop is closed.';
+
+  @override
+  String get runtimeFeedbackShopInsufficientQuantity =>
+      'You do not own enough of this item.';
+
+  @override
+  String get runtimeFeedbackShopMinimumQuantity => 'The minimum quantity is 1.';
+
+  @override
+  String get runtimeFeedbackShopMaximumQuantity =>
+      'The maximum quantity has been reached.';
+
+  @override
+  String get runtimeFeedbackShopSaleUnavailable => 'This sale is unavailable.';
+
+  @override
+  String get runtimeFeedbackShopPurchaseUnavailable =>
+      'This purchase is unavailable.';
+
+  @override
+  String get runtimeFeedbackShopPurchaseInvalid => 'Invalid purchase.';
+
+  @override
+  String get runtimeFeedbackShopItemUnknown => 'Unknown item.';
+
+  @override
+  String get runtimeFeedbackShopFundsInsufficient =>
+      'You do not have enough money.';
+
+  @override
+  String get runtimeFeedbackShopStockInsufficient =>
+      'There is not enough in stock.';
+
+  @override
+  String get runtimeFeedbackShopOwnedLimit =>
+      'You already own the maximum quantity.';
+
+  @override
+  String get runtimeFeedbackShopBagFull =>
+      'There is no room for this purchase in the bag. Make room and try again.';
+
+  @override
+  String get runtimeFeedbackShopStateChanged =>
+      'The shop changed. Its stock was refreshed.';
+
+  @override
+  String get runtimeFeedbackShopSaleInvalid => 'Invalid sale.';
+
+  @override
+  String get runtimeFeedbackShopItemUnsellable => 'This item cannot be sold.';
+
+  @override
+  String get runtimeFeedbackShopItemImportant => 'Key items cannot be sold.';
+
+  @override
+  String get runtimeFeedbackShopItemNotAccepted =>
+      'This shop does not buy this item.';
+
+  @override
+  String get runtimeFeedbackPcOperationInvalid => 'Invalid PC operation.';
+
+  @override
+  String get runtimeFeedbackPcPartySlotInvalid => 'Invalid party slot.';
+
+  @override
+  String get runtimeFeedbackPcBoxUnknown => 'Unknown Box.';
+
+  @override
+  String get runtimeFeedbackPcBoxSlotInvalid => 'Invalid Box slot.';
+
+  @override
+  String get runtimeFeedbackPcPartyFull => 'The party is full.';
+
+  @override
+  String get runtimeFeedbackPcBoxFull => 'This Box is full.';
+
+  @override
+  String get runtimeFeedbackPcFull => 'The PC is full.';
+
+  @override
+  String get runtimeFeedbackPcLastUsablePokemon =>
+      'You cannot deposit your last Pokémon that can battle.';
+
+  @override
+  String get runtimeFeedbackBagItemMissing => 'You no longer have this item.';
+
+  @override
+  String get runtimeFeedbackBagItemWrongTarget =>
+      'This item cannot be used on this target.';
+
+  @override
+  String get runtimeFeedbackBagItemNoEffect =>
+      'This item would have no effect.';
+
+  @override
+  String get runtimeFeedbackBagItemUnsupported =>
+      'This item’s effect is unsupported.';
+
+  @override
+  String get runtimeFeedbackBagKeyItemProtected =>
+      'This key item cannot be consumed.';
+
+  @override
+  String get runtimeFeedbackTradeCatalogRequired =>
+      'The party and its Pokémon catalogue are required for this trade.';
+
+  @override
+  String get runtimeFeedbackTradePokemonMismatch =>
+      'This Pokémon does not match the trade request.';
+
+  @override
+  String get runtimeFeedbackTradeSaveFailed => 'The trade could not be saved.';
+
+  @override
+  String runtimeFeedbackTradeEvolution({
+    required String name,
+    required String species,
+  }) {
+    return '$name evolved into $species.';
+  }
+
+  @override
+  String get runtimeFeedbackCraftSaveRequired =>
+      'This workshop requires a save slot.';
+
+  @override
+  String get runtimeFeedbackCraftInventoryChanged =>
+      'The bag changed. Close and reopen the workshop.';
+
+  @override
+  String get runtimeFeedbackCraftConfirmIngredients =>
+      'Hand over the ingredients?';
+
+  @override
+  String get runtimeFeedbackCraftCollectBagFull =>
+      'The bag is full. Your order is still available.';
+
+  @override
+  String get runtimeFeedbackCraftKeyItemProtected =>
+      'This key item cannot be used as an ingredient.';
+
+  @override
+  String get runtimeFeedbackCraftUnavailable => 'This order is unavailable.';
+
+  @override
+  String get runtimeFeedbackCraftCollected => 'Order collected.';
+
+  @override
+  String get runtimeFeedbackCraftOrderSaved =>
+      'Order placed. Come back another day.';
+
+  @override
+  String get runtimeFeedbackCraftSaveFailed =>
+      'Saving failed. Your bag and order were kept.';
+
+  @override
+  String get runtimeFeedbackCraftInventoryBusy =>
+      'The bag is being updated. Finish this interaction and try again.';
+
+  @override
+  String get runtimeFeedbackCraftSceneRequired =>
+      'This workshop requires an active scene.';
+
+  @override
+  String get runtimeFeedbackPuzzleSaveRequired =>
+      'This puzzle requires a save slot.';
+
+  @override
+  String get runtimeFeedbackPuzzleMediaUnavailable =>
+      'The game’s media library is unavailable.';
+
+  @override
+  String get runtimeFeedbackPuzzleImageTooSmall =>
+      'The image must have at least one pixel per puzzle tile.';
+
+  @override
+  String get runtimeFeedbackPuzzleChangedOnOpening =>
+      'The puzzle changed as it opened. Open it again.';
+
+  @override
+  String get runtimeFeedbackPuzzleDefinitionChanged =>
+      'The puzzle definition changed. Restore its original configuration.';
+
+  @override
+  String get runtimeFeedbackPuzzleChanged =>
+      'The puzzle changed. Close this interaction and open it again.';
+
+  @override
+  String get runtimeFeedbackPuzzleIncomplete =>
+      'The image is incomplete. Check each piece’s position and rotation.';
+
+  @override
+  String get runtimeFeedbackPuzzleDestinationOccupied =>
+      'Move this piece to a free space or back to the tray.';
+
+  @override
+  String get runtimeFeedbackPuzzlePieceFixed => 'This piece is fixed in place.';
+
+  @override
+  String get runtimeFeedbackPuzzleActionUnavailable =>
+      'This action is unavailable for this puzzle.';
+
+  @override
+  String get runtimeFeedbackPuzzleSaveFailed =>
+      'Saving failed. Your last saved layout was kept. Try again or quit.';
+
+  @override
+  String get runtimeFeedbackActionInProgress =>
+      'An action is already in progress.';
+
+  @override
+  String get runtimeFeedbackSaveInProgress => 'A save is already in progress.';
+
+  @override
+  String get runtimeFeedbackFavoritesBagChanged =>
+      'The bag changed before this action arrived.';
+
+  @override
+  String get runtimeFeedbackFavoritesUnavailable =>
+      'This item cannot be added to favourites.';
+
+  @override
+  String get runtimeFeedbackFavoritesSaveFailed =>
+      'Favourites could not be saved. Try again.';
+
+  @override
+  String get runtimeFeedbackPlayerActionStale =>
+      'This screen changed before the action arrived.';
+
+  @override
+  String get runtimeFeedbackRegionalMapCloseFirst =>
+      'Close the regional map before using the menu.';
+
+  @override
+  String get runtimeFeedbackPlayerActionUnavailable =>
+      'This player action is unavailable.';
+
+  @override
+  String get runtimeFeedbackNewGameSlotRequired =>
+      'A profile and slot are required to start a new game.';
+
+  @override
+  String get runtimeFeedbackNoCompatibleSave =>
+      'No compatible save is available to continue.';
+
+  @override
+  String get runtimeFeedbackLoadSlotRequired =>
+      'A profile and slot are required to load a save.';
+
+  @override
+  String get runtimeFeedbackSelectedSaveUnavailable =>
+      'The selected save is unavailable or incompatible.';
+
+  @override
+  String get runtimeFeedbackFinalSaveFailed =>
+      'The final save could not be written.';
+
+  @override
+  String get runtimeFeedbackPartyMembersRequired =>
+      'Select two available party members.';
+
+  @override
+  String get runtimeFeedbackPlayerCommandUnavailable =>
+      'This command is unavailable on this screen.';
+
+  @override
+  String get runtimeFeedbackPlayerPreferencesRequired =>
+      'Valid player preferences are required.';
+
+  @override
+  String get runtimeFeedbackSaveWriteFailed => 'The save could not be written.';
+
+  @override
+  String get runtimeFeedbackCreditsUnavailable =>
+      'No end credits are available.';
+
+  @override
+  String get runtimeFeedbackSurfaceActionUnavailable =>
+      'This action is not available on the current surface.';
+
+  @override
+  String get runtimeFeedbackPlayerResponseStale =>
+      'This screen changed before the response arrived.';
+
+  @override
+  String get runtimeFeedbackReturnToHostFailed =>
+      'The game could not return to the library.';
+
+  @override
+  String get runtimeFeedbackPlayerDataRefreshFailed =>
+      'Player data could not be refreshed.';
+
+  @override
+  String get runtimeFeedbackSessionCloseFailed =>
+      'The game session could not close cleanly.';
+
+  @override
+  String get runtimeFeedbackExplorationMapChanged =>
+      'The map changed while loading. Restart exploration.';
+
+  @override
+  String get runtimeFeedbackNewGamePreparationChanged =>
+      'The game content changed during setup. Start the new game again.';
+
+  @override
+  String get runtimeFeedbackNewGameSetupInvalid =>
+      'The starting configuration is incomplete or inconsistent. The new game could not be started.';
+
+  @override
+  String get runtimeFeedbackNewGameContentChanged =>
+      'The game content changed while loading. Start the new game again.';
+
+  @override
+  String get runtimeFeedbackNewGameResourceLimit =>
+      'This map’s graphics exceed the Player’s resource budget. Report this code to the game creator.';
+
+  @override
+  String get runtimeFeedbackNewGameSaveReadFailed =>
+      'Could not read saves. Check that the app can access its storage.';
+
+  @override
+  String get runtimeFeedbackNewGamePreloadFailed =>
+      'The starting map’s data or assets could not be loaded. Reinstall the game if the issue persists.';
+
+  @override
+  String get runtimeFeedbackNewGameSceneFailed =>
+      'The opening scene could not run. Report the code below to the game creator.';
+
+  @override
+  String get runtimeFeedbackNewGameSetupFailed =>
+      'The starting configuration could not be applied. Report the code below to the game creator.';
+
+  @override
+  String get runtimeFeedbackSaveOpenFailed =>
+      'The selected save could not be opened safely.';
+
+  @override
+  String get runtimeFeedbackSessionLaunchFailed =>
+      'The game session could not launch.';
+
+  @override
+  String get runtimeFeedbackPlayerDataLoadFailed =>
+      'Player data could not be loaded.';
+
+  @override
+  String get runtimeFeedbackSessionFailed => 'The player session failed.';
+
+  @override
+  String get runtimeFeedbackExplorationSaveUnavailable =>
+      '3D exploration mode does not support saves yet.';
+
+  @override
+  String get runtimeFeedbackNoCompatibleGameSave =>
+      'No compatible save is available for this game.';
+
+  @override
+  String get runtimeFeedbackPlayerMapUnavailable =>
+      'This game does not provide a player map.';
+
+  @override
+  String get runtimeFeedbackUnusableSaveNotSelected =>
+      'No save has been selected for recovery.';
+
+  @override
+  String get runtimeFeedbackServiceNotActive =>
+      'No contextual service is active.';
+
+  @override
+  String get runtimeFeedbackBagRequiresPause =>
+      'The bag is only available from the pause menu.';
+
+  @override
+  String get runtimeFeedbackBagItemCheckpointFailed =>
+      'The item was used, but saving failed.';
+
+  @override
+  String get runtimeFeedbackSessionEventStreamFailed =>
+      'The game’s event channel failed.';
+
+  @override
+  String get runtimeFeedbackSessionPrepareTimedOut =>
+      'The game session took too long to prepare.';
+
+  @override
+  String get runtimeFeedbackSessionPrepareFailed =>
+      'The game session could not be prepared.';
+
+  @override
+  String get runtimeFeedbackSessionStartTimedOut =>
+      'The game session took too long to start.';
+
+  @override
+  String get runtimeFeedbackSessionStartFailed =>
+      'The game session could not start.';
+
+  @override
+  String get runtimeFeedbackSessionSignalInvalid =>
+      'The game sent an invalid session signal.';
+
+  @override
+  String get runtimeFeedbackSessionEndingMismatch =>
+      'The ending event does not match this game session.';
+
+  @override
+  String get runtimeFeedbackSessionEndingInvalid =>
+      'The ending event arrived before the game was ready.';
+
+  @override
+  String get runtimeFeedbackPreviousSessionCloseFailed =>
+      'The previous game session did not close cleanly.';
+
+  @override
+  String get runtimeFeedbackStartupGamePreparationFailed =>
+      'The game could not be prepared.';
+
+  @override
+  String get runtimeFeedbackStartupPreparationStartFailed =>
+      'Game preparation could not start.';
+
+  @override
+  String get runtimeFeedbackStartupIdentityPreparationFailed =>
+      'The game’s identity could not be prepared.';
+
+  @override
+  String get runtimeFeedbackStartupMapPreparationFailed =>
+      'The first map could not be prepared.';
+
+  @override
+  String get runtimeFeedbackStartupPresentationLoadFailed =>
+      'The game’s presentation could not be loaded.';
+
+  @override
+  String get runtimeFeedbackStartupSaveDiscoveryFailed =>
+      'Saved games could not be checked safely.';
+
+  @override
+  String get runtimeFeedbackStartupPreferencesLoadFailed =>
+      'Player preferences could not be loaded.';
+
+  @override
+  String get runtimeFeedbackStartupInstalledGamePreparationFailed =>
+      'The installed game could not be prepared.';
+
+  @override
+  String get runtimeFeedbackOverworldBagFull => 'The bag is full…';
+
+  @override
+  String runtimeFeedbackOverworldItemReceived({
+    required int quantity,
+    required String item,
+  }) {
+    final intl.NumberFormat quantityNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String quantityString = quantityNumberFormat.format(quantity);
+
+    return 'Received $quantityString × $item!';
+  }
+
+  @override
+  String get runtimeFeedbackGiftReceived => 'You received a Pokémon!';
+
+  @override
+  String get runtimeFeedbackGiftNicknamePrompt => 'Choose a nickname.';
+
+  @override
+  String get runtimeFeedbackGiftNicknameAction => 'Give a nickname';
+
+  @override
+  String battleChooseAction({required String actor}) {
+    return 'What will $actor do?';
+  }
+
+  @override
+  String battleChooseReplacementAfterFaint({required String actor}) {
+    return '$actor fainted. Choose a replacement.';
+  }
+
+  @override
+  String get battleContinuePrompt => 'Press to continue.';
+
+  @override
+  String get battleFinished => 'The battle is over.';
+
+  @override
+  String get battleResolvingTurn => 'Resolving the turn…';
+
+  @override
+  String get battleNoReplacement => 'No replacement available.';
+
+  @override
+  String get battleNoLegalChoice => 'No action is available.';
+
+  @override
+  String battleChooseAttackTarget({required String actor}) {
+    return 'Choose a target for $actor.';
+  }
+
+  @override
+  String get battleChoosePokemon => 'Choose a Pokémon.';
+
+  @override
+  String get battleChooseReplacement => 'Choose a replacement.';
+
+  @override
+  String get battleNoSwitch => 'No Pokémon can switch in.';
+
+  @override
+  String get battleActiveOrFainted =>
+      'Active and fainted Pokémon are unavailable.';
+
+  @override
+  String get battleChooseItem => 'Choose an item.';
+
+  @override
+  String get battleNoUsableItem => 'No item can be used this turn.';
+
+  @override
+  String get battleItemsDisabled => 'Unavailable items are dimmed.';
+
+  @override
+  String battleChooseItemTarget({required String item}) {
+    return 'Choose a target for $item.';
+  }
+
+  @override
+  String battleChooseItemMove({required String item}) {
+    return 'Choose a move for $item.';
+  }
+
+  @override
+  String get battleNoItemTarget => 'There is no valid target for this item.';
+
+  @override
+  String get battleFaintedOrFullHp =>
+      'Fainted Pokémon and Pokémon at full HP are unavailable.';
+
+  @override
+  String get battleFullPpDisabled => 'Moves with full PP are dimmed.';
+
+  @override
+  String get battleWildTitle => 'Wild battle';
+
+  @override
+  String get battleTrainerTitle => 'Trainer battle';
+
+  @override
+  String get runtimeFeedbackFishingInterrupted => 'Fishing was interrupted.';
+
+  @override
+  String get runtimeFeedbackFishingCasting => 'Casting the line…';
+
+  @override
+  String get runtimeFeedbackFishingWaiting =>
+      'The line is in the water… Press Back to cancel.';
+
+  @override
+  String get runtimeFeedbackFishingBite => 'You got a bite!';
+
+  @override
+  String get runtimeFeedbackFishingNoBite => 'Nothing bit…';
+
+  @override
+  String get runtimeFeedbackFishingEncounterUnavailable =>
+      'This fishing encounter is no longer available.';
+
+  @override
+  String get runtimeFeedbackFishingCancelled => 'Fishing cancelled.';
+
+  @override
+  String get runtimeFeedbackFieldActionChanged =>
+      'This action is no longer available.';
+
+  @override
+  String get runtimeFeedbackFieldCrossingUnavailable =>
+      'This crossing is no longer available.';
+
+  @override
+  String get runtimeFeedbackFieldFlashUsed =>
+      'Your Pokémon used Flash! The area is lit.';
+
+  @override
+  String get runtimeFeedbackFieldCutUsed => 'Your Pokémon used Cut!';
+
+  @override
+  String get runtimeFeedbackFieldStrengthActive =>
+      'Strength is active on this map. Walk toward a boulder to push it.';
+
+  @override
+  String get runtimeFeedbackFieldRockSmashUsed =>
+      'Your Pokémon used Rock Smash!';
+
+  @override
+  String get runtimeFeedbackFieldDivePassageUnavailable =>
+      'This Dive passage is no longer available.';
+
+  @override
+  String get runtimeFeedbackWaterRequiresSurf =>
+      'A Pokémon that knows Surf is needed to travel on water.';
+
+  @override
+  String get runtimeFeedbackUnderwaterRequiresDive =>
+      'Use Dive to reach this underwater terrain.';
+
+  @override
+  String get runtimeFeedbackDiveRequiresUnderwater =>
+      'Dive is available on underwater terrain.';
+
+  @override
+  String get runtimeFeedbackIncompatibleMovementTerrain =>
+      'This terrain has incompatible movement modes.';
+
+  @override
+  String get runtimeFeedbackSurfMissingPokemon =>
+      'It looks like you could surf on this water.';
+
+  @override
+  String get runtimeFeedbackSurfLocked =>
+      'A Pokémon in your party knows Surf. You have yet to unlock it outside battle.';
+
+  @override
+  String get runtimeFeedbackSurfConfirm => 'Would you like to use Surf?';
+
+  @override
+  String get runtimeFeedbackNarrativePending =>
+      'The story outcome is still pending.';
+
+  @override
+  String get runtimeFeedbackNarrativeUnavailable =>
+      'The event could not start.';
+
+  @override
+  String get runtimeFeedbackNarrativeResultUnavailable =>
+      'The story outcome could not be applied.';
+
+  @override
+  String get runtimeFeedbackCannotEndGame => 'The game could not finish.';
+
+  @override
+  String get runtimeFeedbackGiftFailed =>
+      'The Pokémon gift could not be received.';
+
+  @override
+  String get runtimeFeedbackTransitionFailed =>
+      'The transition could not complete.';
+
+  @override
+  String get runtimeFeedbackTransitionPassageMissing =>
+      'The transition could not complete. The passage is missing.';
+
+  @override
+  String get runtimeFeedbackInvalidMapConnection => 'Connection invalid';
+
+  @override
+  String get runtimeFeedbackMapConnectionBlocked => 'Connection blocked';
+
+  @override
+  String get runtimeFeedbackSceneUnavailable => 'Scene V1 impossible.';
+
+  @override
+  String get runtimeFeedbackSceneCannotContinue => 'The scene cannot continue.';
+
+  @override
+  String get runtimeFeedbackDialogueMissing =>
+      'The dialogue could not be found.';
+
+  @override
+  String get runtimeFeedbackMapPassageUnavailable =>
+      'This passage is unavailable right now.';
+
+  @override
+  String get runtimeFeedbackTeleportFailed => 'Teleportation failed.';
+
+  @override
+  String get runtimeFeedbackNeighboringMapTransferFailed =>
+      'Travel to the neighboring map failed.';
+
+  @override
+  String get runtimeFeedbackContactUnavailable =>
+      'This contact is unavailable.';
+
+  @override
+  String get runtimeFeedbackPuzzleSceneRequired =>
+      'This puzzle requires an active scene.';
+
+  @override
+  String battleMoveDamageSummary({
+    required String actor,
+    required String move,
+    required int amount,
+  }) {
+    return '$actor used $move and dealt $amount damage.';
+  }
+
+  @override
+  String get runtimeFeedbackFieldMoveCut => 'Cut';
+
+  @override
+  String get runtimeFeedbackFieldMoveStrength => 'Strength';
+
+  @override
+  String get runtimeFeedbackFieldMoveRockSmash => 'Rock Smash';
+
+  @override
+  String get runtimeFeedbackFieldMoveWaterfall => 'Waterfall';
+
+  @override
+  String get runtimeFeedbackFieldMoveWhirlpool => 'Whirlpool';
+
+  @override
+  String get runtimeFeedbackFieldObstacleCutConfirm =>
+      'This tree can be cut down. Would you like to use Cut?';
+
+  @override
+  String get runtimeFeedbackFieldObstacleStrengthConfirm =>
+      'This boulder can be pushed. Would you like to use Strength?';
+
+  @override
+  String get runtimeFeedbackFieldObstacleRockSmashConfirm =>
+      'This rock can be smashed. Would you like to use Rock Smash?';
+
+  @override
+  String get runtimeFeedbackFieldObstacleCutMissing =>
+      'This tree blocks the way. A Pokémon that can use Cut is needed.';
+
+  @override
+  String get runtimeFeedbackFieldObstacleStrengthMissing =>
+      'This boulder blocks the way. A Pokémon that can use Strength is needed.';
+
+  @override
+  String get runtimeFeedbackFieldObstacleRockSmashMissing =>
+      'This rock blocks the way. A Pokémon that can use Rock Smash is needed.';
+
+  @override
+  String runtimeFeedbackFieldObstacleMoveLocked({required String move}) {
+    return 'A Pokémon in your party knows $move. You have yet to unlock it outside battle.';
+  }
+
+  @override
+  String get runtimeFeedbackFieldObstacleStrengthReady =>
+      'Strength is active. Walk toward this boulder to push it.';
+
+  @override
+  String runtimeFeedbackFieldTraversalConfirm({required String move}) {
+    return 'Would you like to use $move to cross here?';
+  }
+
+  @override
+  String runtimeFeedbackFieldTraversalMoveMissing({required String move}) {
+    return 'A Pokémon that can use $move is needed.';
+  }
+
+  @override
+  String runtimeFeedbackFieldTraversalMoveLocked({required String move}) {
+    return 'You have yet to unlock $move outside battle.';
+  }
+
+  @override
+  String get runtimeFeedbackFieldTraversalSurfRequired =>
+      'Use Surf before crossing here.';
+
+  @override
+  String get runtimeFeedbackFieldTraversalWrongDirection =>
+      'Face the direction of the passage to cross it.';
+
+  @override
+  String get runtimeFeedbackFieldTraversalObstructed =>
+      'The passage or its exit is blocked.';
+
+  @override
+  String get runtimeFeedbackFieldTraversalWaterRequired =>
+      'This passage must be on water.';
+
+  @override
+  String get runtimeFeedbackFieldDiveConfirmDown =>
+      'Would you like to use Dive to go underwater?';
+
+  @override
+  String get runtimeFeedbackFieldDiveConfirmUp =>
+      'Would you like to use Dive to return to the surface?';
+
+  @override
+  String get runtimeFeedbackFieldDiveDisabled =>
+      'Dive is disabled in this game.';
+
+  @override
+  String get runtimeFeedbackFieldDiveMoveMissing =>
+      'A Pokémon that can use Dive is needed.';
+
+  @override
+  String get runtimeFeedbackFieldDiveMoveLocked =>
+      'You have yet to unlock Dive outside battle.';
+
+  @override
+  String get runtimeFeedbackFieldDiveSurfRequired =>
+      'Use Surf to dive from the surface.';
+
+  @override
+  String get runtimeFeedbackFieldDiveObstructed =>
+      'The Dive destination or return point is blocked.';
+
+  @override
+  String get runtimeFeedbackFieldDiveDestinationUnavailable =>
+      'This Dive spot is not connected to an available destination.';
+
+  @override
+  String get runtimeFeedbackFieldFlashConfirm =>
+      'It’s dark here. Would you like to use Flash to light the area?';
+
+  @override
+  String get runtimeFeedbackFieldFlashMoveMissing =>
+      'It’s dark here. A Pokémon that can use Flash is needed.';
+
+  @override
+  String get runtimeFeedbackFieldFlashMoveLocked =>
+      'A Pokémon knows Flash. You have yet to unlock it outside battle.';
+
+  @override
+  String get runtimeFeedbackHeadbuttMoveMissing =>
+      'A Pokémon that can use Headbutt is needed.';
+
+  @override
+  String get runtimeFeedbackHeadbuttTreeConsumed =>
+      'No more Pokémon are hiding in this tree right now.';
+
+  @override
+  String get runtimeFeedbackHeadbuttWrongPosition =>
+      'Stand on foot in front of this tree to use Headbutt.';
+
+  @override
+  String get runtimeFeedbackHeadbuttMapUnsupported =>
+      'Object encounters are available on supported 2D maps.';
+
+  @override
+  String get runtimeFeedbackHeadbuttUnavailable =>
+      'No encounter is available at this tree right now.';
+
+  @override
+  String get runtimeFeedbackHeadbuttConfirm =>
+      'Would you like to use Headbutt on this tree?';
+
+  @override
+  String get runtimeFeedbackInteractiveEncounterEmpty => 'No Pokémon appeared…';
+
+  @override
+  String get runtimeFeedbackInteractiveEncounterUnavailable =>
+      'This encounter is no longer available.';
+
+  @override
+  String get runtimeFeedbackRepelExpired => 'The Repel wore off.';
+
+  @override
+  String get runtimeFeedbackRepelRenew =>
+      'Would you like to use another Repel of the same kind?';
+
+  @override
+  String get runtimeFeedbackRepelRenewed => 'Repel is active again.';
+
+  @override
+  String get runtimeFeedbackRepelStockUnavailable =>
+      'This Repel is no longer available.';
+
+  @override
+  String get runtimeFeedbackRepelProgressSaveFailed =>
+      'Progress could not be saved.';
+
+  @override
+  String get runtimeFeedbackSpatialNeighborUnavailable =>
+      'A neighboring map could not be displayed.';
+
+  @override
+  String get runtimeFeedbackSpatialInteractionUnavailable =>
+      'This passage or dialogue could not be opened.';
+
+  @override
+  String get runtimeFeedbackMovingPlatformUnavailable =>
+      'The platform could not be moved.';
+
+  @override
+  String get runtimeFeedbackEntranceAnimationMissing =>
+      'This entrance has no animation.';
+
+  @override
+  String get runtimeFeedbackEntranceAnimationUnavailable =>
+      'This entrance’s animation is unavailable.';
+
+  @override
+  String get runtimeFeedbackElementAnimationUpdateFailed =>
+      'The animation could not be updated.';
+
+  @override
+  String get runtimeFeedbackSpatialSceneTextInputUnsupported =>
+      'Scene text input is unavailable in 3D.';
+
+  @override
+  String get runtimeFeedbackSpatialSceneRegionalMapUnsupported =>
+      'The regional map is unavailable during 3D scenes.';
+
+  @override
+  String get runtimeFeedbackSceneRewardCalendarUnavailable =>
+      'The calendar for this reward is unavailable. Reopen the game and try again.';
 }

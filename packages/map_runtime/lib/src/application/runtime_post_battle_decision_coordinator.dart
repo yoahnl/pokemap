@@ -2,11 +2,15 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../presentation/runtime_battle_message.dart';
 import 'battle_start_request.dart';
 import 'runtime_battle_outcome_apply.dart';
 import 'runtime_battle_reward_resolver.dart';
 import 'runtime_map_bundle.dart';
+import 'runtime_pokemon_species_loader.dart';
 import 'story_flags_manager.dart';
+
+part 'runtime_post_battle_messages.dart';
 
 typedef RuntimePostBattleRewardResolutionLoader
     = Future<RuntimeBattleRewardResolution> Function({
@@ -119,10 +123,12 @@ final class RuntimePostBattleTransaction {
     required this.pendingPartyMoveIds,
     required this.captureDestination,
     required this.finalState,
+    required String Function(String speciesId) displaySpeciesName,
     required ItemCatalogSnapshot? itemCatalog,
     required BattleProgressionResult? progression,
-  })  : _itemCatalog = itemCatalog,
-        _progression = progression;
+  }) : _displaySpeciesName = displaySpeciesName,
+       _itemCatalog = itemCatalog,
+       _progression = progression;
 
   final GameState originalState;
   final RuntimeActiveBattleContext runtimeContext;
@@ -137,6 +143,7 @@ final class RuntimePostBattleTransaction {
 
   /// Null until every exact decision has been resolved and rewards finalized.
   final GameState? finalState;
+  final String Function(String speciesId) _displaySpeciesName;
   final ItemCatalogSnapshot? _itemCatalog;
   final BattleProgressionResult? _progression;
 
@@ -165,13 +172,19 @@ final class RuntimePostBattleDecisionCoordinator {
     StoryFlagsManager storyFlagsManager = const StoryFlagsManager(),
     this.resolveSpeciesDisplayName,
     this.resolveMoveDisplayName,
-  })  : _resolveReward = resolveReward ??
-            (rewardResolver ?? RuntimeBattleRewardResolver()).resolve,
-        _hydrateOwnedPlayerPokemon =
-            hydrateOwnedPlayerPokemon ?? _preserveOwnedPlayerPokemon,
-        _mutations = mutations,
-        _storyFlagsManager = storyFlagsManager;
+    this.loadPresentationSpecies,
+    this.presentationLocale,
+    RuntimeBattleMessageRenderer? formatBattleMessage,
+  }) : _messages = _PostBattleMessages(formatBattleMessage),
+       _resolveReward =
+           resolveReward ??
+           (rewardResolver ?? RuntimeBattleRewardResolver()).resolve,
+       _hydrateOwnedPlayerPokemon =
+           hydrateOwnedPlayerPokemon ?? _preserveOwnedPlayerPokemon,
+       _mutations = mutations,
+       _storyFlagsManager = storyFlagsManager;
 
+  final _PostBattleMessages _messages;
   final RuntimePostBattleRewardResolutionLoader _resolveReward;
   final RuntimePostBattlePlayerPokemonHydrator _hydrateOwnedPlayerPokemon;
   final GameStateMutations _mutations;
@@ -184,8 +197,8 @@ final class RuntimePostBattleDecisionCoordinator {
   final String Function(String speciesId)? resolveSpeciesDisplayName;
   final String Function(String moveId)? resolveMoveDisplayName;
 
-  String _speciesName(String speciesId) =>
-      resolveSpeciesDisplayName?.call(speciesId) ?? _displayId(speciesId);
+  final RuntimePostBattleSpeciesLoader? loadPresentationSpecies;
+  final String Function()? presentationLocale;
 
   String _moveName(String moveId) =>
       resolveMoveDisplayName?.call(moveId) ?? _displayId(moveId);
@@ -199,12 +212,19 @@ final class RuntimePostBattleDecisionCoordinator {
     RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
     String Function(String speciesId)? resolveSpeciesDisplayName,
   }) async {
+    final speciesName =
+        resolveSpeciesDisplayName ?? this.resolveSpeciesDisplayName;
     final requestId = runtimeContext.request.requestId.trim();
     if (requestId.isEmpty) {
       return RuntimePostBattleCoordinatorResult.failure(
         failure: RuntimePostBattleCoordinatorFailure(
           code: RuntimePostBattleCoordinatorFailureCode.invalidOutcome,
-          message: 'Le combat ne possède pas d’identifiant de transaction.',
+          message: _messages.render(
+            const RuntimeBattleMessage(
+              RuntimeBattleMessageId.postBattleMissingTransaction,
+              'Le combat ne possède pas d’identifiant de transaction.',
+            ),
+          ),
           originalState: transactionBaseState,
         ),
       );
@@ -213,7 +233,12 @@ final class RuntimePostBattleDecisionCoordinator {
       return RuntimePostBattleCoordinatorResult.failure(
         failure: RuntimePostBattleCoordinatorFailure(
           code: RuntimePostBattleCoordinatorFailureCode.alreadyApplied,
-          message: 'Cette fin de combat a déjà été appliquée.',
+          message: _messages.render(
+            const RuntimeBattleMessage(
+              RuntimeBattleMessageId.postBattleAlreadyApplied,
+              'Cette fin de combat a déjà été appliquée.',
+            ),
+          ),
           originalState: transactionBaseState,
         ),
       );
@@ -247,6 +272,8 @@ final class RuntimePostBattleDecisionCoordinator {
             outcome: outcome,
             bundle: bundle,
             itemCatalog: itemCatalog,
+            messages: _messages,
+            resolveSpecies: speciesName,
           ),
         );
       }
@@ -261,10 +288,14 @@ final class RuntimePostBattleDecisionCoordinator {
         reward: resolution.progression.appliedReward,
         itemCatalog: itemCatalog,
       );
-      final messages = _initialVictoryMessages(
-        resolveSpeciesDisplayName:
-            resolveSpeciesDisplayName ?? this.resolveSpeciesDisplayName,
-        resolveMoveDisplayName: resolveMoveDisplayName,
+      final displaySpeciesName = await _progressionSpeciesDisplayName(
+        bundle: bundle,
+        context: resolution.progressionContext,
+        fallback: speciesName,
+      );
+      final messages = _messages.initialVictory(
+        resolveSpecies: displaySpeciesName,
+        resolveMove: _moveName,
         resolution: resolution,
       );
       final transaction = RuntimePostBattleTransaction._(
@@ -280,6 +311,7 @@ final class RuntimePostBattleDecisionCoordinator {
         pendingPartyMoveIds: _pendingPartyMoveIds(resolution.progression),
         captureDestination: null,
         finalState: null,
+        displaySpeciesName: displaySpeciesName,
         progression: resolution.progression,
       );
       return RuntimePostBattleCoordinatorResult.success(
@@ -291,7 +323,16 @@ final class RuntimePostBattleDecisionCoordinator {
       return RuntimePostBattleCoordinatorResult.failure(
         failure: RuntimePostBattleCoordinatorFailure(
           code: RuntimePostBattleCoordinatorFailureCode.rewardResolution,
-          message: error.message,
+          message: _messages.render(
+            RuntimeBattleMessage(switch (error.code) {
+              RuntimePostBattleResolutionErrorCode.missingTrainer =>
+                RuntimeBattleMessageId.postBattleRewardMissingTrainer,
+              RuntimePostBattleResolutionErrorCode.invalidBattleData =>
+                RuntimeBattleMessageId.postBattleRewardInvalidBattle,
+              RuntimePostBattleResolutionErrorCode.missingCatalogueData =>
+                RuntimeBattleMessageId.postBattleRewardMissingData,
+            }, error.message),
+          ),
           originalState: transactionBaseState,
           cause: error,
         ),
@@ -300,12 +341,49 @@ final class RuntimePostBattleDecisionCoordinator {
       return RuntimePostBattleCoordinatorResult.failure(
         failure: RuntimePostBattleCoordinatorFailure(
           code: RuntimePostBattleCoordinatorFailureCode.invalidOutcome,
-          message: 'La fin du combat ne peut pas être appliquée.',
+          message: _messages.render(
+            const RuntimeBattleMessage(
+              RuntimeBattleMessageId.postBattleApplyFailed,
+              'La fin du combat ne peut pas être appliquée.',
+            ),
+          ),
           originalState: transactionBaseState,
           cause: error,
         ),
       );
     }
+  }
+
+  Future<String Function(String)> _progressionSpeciesDisplayName({
+    required RuntimeMapBundle bundle,
+    required BattleProgressionContext context,
+    required String Function(String)? fallback,
+  }) async {
+    final loader = loadPresentationSpecies;
+    if (loader == null) return (id) => _speciesDisplayName(id, fallback);
+    final targetIds = {
+      for (final candidates in context.evolutionCandidatesByPartySlot.values)
+        for (final candidate in candidates) candidate.targetSpeciesId,
+    };
+    Future<MapEntry<String, RuntimePokemonSpecies>?> load(String id) async {
+      try {
+        final species = await loader(
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
+          speciesId: id,
+        );
+        return MapEntry(id, species);
+      } on Exception {
+        return null;
+      }
+    }
+
+    final species = Map.fromEntries(
+      (await Future.wait(targetIds.map(load))).nonNulls,
+    );
+    return (id) =>
+        species[id]?.displayName(presentationLocale?.call() ?? 'fr') ??
+        _speciesDisplayName(id, fallback);
   }
 
   RuntimePostBattleCoordinatorResult resolveMoveLearning({
@@ -318,17 +396,21 @@ final class RuntimePostBattleDecisionCoordinator {
         transaction.pendingMoveLearning == null) {
       return _decisionFailure(
         transaction,
-        'Aucune décision d’apprentissage n’est attendue.',
+        const RuntimeBattleMessage(
+          RuntimeBattleMessageId.postBattleMoveNotPending,
+          'Aucune décision d’apprentissage n’est attendue.',
+        ),
       );
     }
     try {
       final nextProgression = progression.resolvePendingMoveLearning(decision);
       final newMessages = <RuntimePostBattleMessage>[
         ...transaction.messages,
-        ..._moveChangeMessages(
-          nextProgression.moveLearningChanges
-              .skip(progression.moveLearningChanges.length),
-          resolveMoveDisplayName: resolveMoveDisplayName,
+        ..._messages.moveChanges(
+          nextProgression.moveLearningChanges.skip(
+            progression.moveLearningChanges.length,
+          ),
+          _moveName,
         ),
       ];
       final next = RuntimePostBattleTransaction._(
@@ -344,6 +426,7 @@ final class RuntimePostBattleDecisionCoordinator {
         pendingPartyMoveIds: _pendingPartyMoveIds(nextProgression),
         captureDestination: transaction.captureDestination,
         finalState: null,
+        displaySpeciesName: transaction._displaySpeciesName,
         progression: nextProgression,
       );
       return RuntimePostBattleCoordinatorResult.success(
@@ -353,8 +436,14 @@ final class RuntimePostBattleDecisionCoordinator {
       return _rewardFailure(error, transaction.originalState,
           transaction: transaction);
     } catch (error) {
-      return _decisionFailure(transaction, 'Décision de capacité invalide.',
-          cause: error);
+      return _decisionFailure(
+        transaction,
+        const RuntimeBattleMessage(
+          RuntimeBattleMessageId.postBattleMoveInvalid,
+          'Décision de capacité invalide.',
+        ),
+        cause: error,
+      );
     }
   }
 
@@ -368,16 +457,22 @@ final class RuntimePostBattleDecisionCoordinator {
         transaction.pendingEvolution == null) {
       return _decisionFailure(
         transaction,
-        'Aucune décision d’évolution n’est attendue.',
+        const RuntimeBattleMessage(
+          RuntimeBattleMessageId.postBattleEvolutionNotPending,
+          'Aucune décision d’évolution n’est attendue.',
+        ),
       );
     }
     try {
       final nextProgression = progression.resolvePendingEvolution(decision);
       final newMessages = <RuntimePostBattleMessage>[
         ...transaction.messages,
-        ..._evolutionChangeMessages(
-          nextProgression.evolutionChanges
-              .skip(progression.evolutionChanges.length),
+        ..._messages.evolutionChanges(
+          nextProgression.evolutionChanges.skip(
+            progression.evolutionChanges.length,
+          ),
+          party: progression.state.party,
+          resolveSpecies: transaction._displaySpeciesName,
         ),
       ];
       final next = RuntimePostBattleTransaction._(
@@ -393,6 +488,7 @@ final class RuntimePostBattleDecisionCoordinator {
         pendingPartyMoveIds: _pendingPartyMoveIds(nextProgression),
         captureDestination: transaction.captureDestination,
         finalState: null,
+        displaySpeciesName: transaction._displaySpeciesName,
         progression: nextProgression,
       );
       return RuntimePostBattleCoordinatorResult.success(
@@ -402,21 +498,27 @@ final class RuntimePostBattleDecisionCoordinator {
       return _rewardFailure(error, transaction.originalState,
           transaction: transaction);
     } catch (error) {
-      return _decisionFailure(transaction, 'Décision d’évolution invalide.',
-          cause: error);
+      return _decisionFailure(
+        transaction,
+        const RuntimeBattleMessage(
+          RuntimeBattleMessageId.postBattleEvolutionInvalid,
+          'Décision d’évolution invalide.',
+        ),
+        cause: error,
+      );
     }
   }
 
   RuntimePostBattleCoordinatorResult _decisionFailure(
     RuntimePostBattleTransaction transaction,
-    String message, {
+    RuntimeBattleMessage message, {
     Object? cause,
   }) {
     return RuntimePostBattleCoordinatorResult.failure(
       transaction: transaction,
       failure: RuntimePostBattleCoordinatorFailure(
         code: RuntimePostBattleCoordinatorFailureCode.invalidDecision,
-        message: message,
+        message: _messages.render(message),
         originalState: transaction.originalState,
         cause: cause,
       ),
@@ -432,18 +534,33 @@ final class RuntimePostBattleDecisionCoordinator {
       transaction: transaction,
       failure: RuntimePostBattleCoordinatorFailure(
         code: RuntimePostBattleCoordinatorFailureCode.rewardResolution,
-        message: switch (error.failure) {
+        message: _messages.render(switch (error.failure) {
           BattleRewardApplicationFailure.bagCapacityExceeded =>
-            'Le sac ne peut pas recevoir toutes les récompenses. Le combat est annulé : libérez de la place avant de le recommencer.',
+            const RuntimeBattleMessage(
+              RuntimeBattleMessageId.postBattleRewardBagCapacity,
+              'Le sac ne peut pas recevoir toutes les récompenses. Le combat est annulé : libérez de la place avant de le recommencer.',
+            ),
           BattleRewardApplicationFailure.quantityOverflow =>
-            'Le sac ne peut pas recevoir cette quantité de récompenses. Le combat est annulé.',
+            const RuntimeBattleMessage(
+              RuntimeBattleMessageId.postBattleRewardQuantity,
+              'Le sac ne peut pas recevoir cette quantité de récompenses. Le combat est annulé.',
+            ),
           BattleRewardApplicationFailure.missingItemCatalog =>
-            'Le catalogue des récompenses est indisponible. Le combat est annulé.',
-          BattleRewardApplicationFailure.unknownItem =>
+            const RuntimeBattleMessage(
+              RuntimeBattleMessageId.postBattleRewardMissingItemCatalog,
+              'Le catalogue des récompenses est indisponible. Le combat est annulé.',
+            ),
+          BattleRewardApplicationFailure.unknownItem => RuntimeBattleMessage(
+            RuntimeBattleMessageId.postBattleRewardUnknownItem,
             'Récompense objet inconnue : ${error.itemId}.',
+            item: error.itemId,
+          ),
           BattleRewardApplicationFailure.invalidReward =>
-            'La récompense objet est invalide. Le combat est annulé.',
-        },
+            const RuntimeBattleMessage(
+              RuntimeBattleMessageId.postBattleRewardInvalid,
+              'La récompense objet est invalide. Le combat est annulé.',
+            ),
+        }),
         originalState: originalState,
         cause: error,
       ),
@@ -453,38 +570,60 @@ final class RuntimePostBattleDecisionCoordinator {
   RuntimePostBattleTransaction _advanceOrFinalize(
     RuntimePostBattleTransaction transaction,
   ) {
+    final party = transaction._progression?.state.party;
     final pendingMove = transaction.pendingMoveLearning;
     if (pendingMove != null) {
-      return _copyWithMessages(
-        transaction,
-        <RuntimePostBattleMessage>[
-          ...transaction.messages,
-          RuntimePostBattleMessage(
-            kind: pendingMove.phase == BattleMoveLearningPhase.awaitingDecision
-                ? RuntimePostBattleMessageKind.moveLearningPrompt
-                : RuntimePostBattleMessageKind.moveReplacementPrompt,
-            text: pendingMove.phase == BattleMoveLearningPhase.awaitingDecision
-                ? '${_speciesName(_partySpecies(transaction, pendingMove.partySlot))} peut apprendre ${_moveName(pendingMove.candidate.moveId)}.'
-                : 'Choisissez une capacité à remplacer pour apprendre ${_moveName(pendingMove.candidate.moveId)}.',
-            partySlot: pendingMove.partySlot,
-          ),
-        ],
-      );
+      final awaitingDecision =
+          pendingMove.phase == BattleMoveLearningPhase.awaitingDecision;
+      final target =
+          _partyNickname(party, pendingMove.partySlot) ??
+          transaction._displaySpeciesName(
+            _partySpecies(transaction, pendingMove.partySlot),
+          );
+      final move = _moveName(pendingMove.candidate.moveId);
+      return _copyWithMessages(transaction, <RuntimePostBattleMessage>[
+        ...transaction.messages,
+        _messages.line(
+          awaitingDecision
+              ? RuntimePostBattleMessageKind.moveLearningPrompt
+              : RuntimePostBattleMessageKind.moveReplacementPrompt,
+          awaitingDecision
+              ? RuntimeBattleMessage(
+                  RuntimeBattleMessageId.postBattleMoveLearning,
+                  '$target peut apprendre $move.',
+                  target: target,
+                  move: move,
+                )
+              : RuntimeBattleMessage(
+                  RuntimeBattleMessageId.postBattleMoveReplacement,
+                  'Choisissez une capacité à remplacer pour apprendre $move.',
+                  move: move,
+                ),
+          partySlot: pendingMove.partySlot,
+        ),
+      ]);
     }
     final pendingEvolution = transaction.pendingEvolution;
     if (pendingEvolution != null) {
-      return _copyWithMessages(
-        transaction,
-        <RuntimePostBattleMessage>[
-          ...transaction.messages,
-          RuntimePostBattleMessage(
-            kind: RuntimePostBattleMessageKind.evolutionPrompt,
-            text:
-                '${_speciesName(pendingEvolution.sourceSpeciesId)} veut évoluer en ${_speciesName(pendingEvolution.targetSpeciesId)}.',
-            partySlot: pendingEvolution.partySlot,
-          ),
-        ],
+      final target =
+          _partyNickname(party, pendingEvolution.partySlot) ??
+          transaction._displaySpeciesName(pendingEvolution.sourceSpeciesId);
+      final replacement = transaction._displaySpeciesName(
+        pendingEvolution.targetSpeciesId,
       );
+      return _copyWithMessages(transaction, <RuntimePostBattleMessage>[
+        ...transaction.messages,
+        _messages.line(
+          RuntimePostBattleMessageKind.evolutionPrompt,
+          RuntimeBattleMessage(
+            RuntimeBattleMessageId.postBattleEvolutionPrompt,
+            '$target veut évoluer en $replacement.',
+            target: target,
+            replacement: replacement,
+          ),
+          partySlot: pendingEvolution.partySlot,
+        ),
+      ]);
     }
     final progression = transaction._progression;
     if (progression == null) return transaction;
@@ -497,7 +636,11 @@ final class RuntimePostBattleDecisionCoordinator {
       battleSavings: transaction.bundle.manifest.battleSavings,
       facts: transaction.bundle.manifest.facts,
     );
-    final rewardMessages = _rewardMessages(progression.appliedReward);
+    final rewardMessages = _messages.rewards(
+      progression.appliedReward,
+      itemCatalog: transaction._itemCatalog,
+      resolveMove: _moveName,
+    );
     final request = transaction.runtimeContext.request;
     final trainerMessages = <RuntimePostBattleMessage>[];
     if (request is TrainerBattleStartRequest) {
@@ -506,11 +649,18 @@ final class RuntimePostBattleDecisionCoordinator {
         finalState,
         request.trainerId,
       );
+      final trainer = _trainerDisplayName(
+        transaction.bundle,
+        request.trainerId,
+      );
       trainerMessages.add(
-        RuntimePostBattleMessage(
-          kind: RuntimePostBattleMessageKind.trainerDefeated,
-          text: 'Vous avez battu '
-              '${_trainerDisplayName(transaction.bundle, request.trainerId)} !',
+        _messages.line(
+          RuntimePostBattleMessageKind.trainerDefeated,
+          RuntimeBattleMessage(
+            RuntimeBattleMessageId.postBattleTrainerDefeated,
+            'Vous avez battu $trainer !',
+            actor: trainer,
+          ),
         ),
       );
     }
@@ -536,6 +686,7 @@ final class RuntimePostBattleDecisionCoordinator {
       pendingPartyMoveIds: const <String>[],
       captureDestination: transaction.captureDestination,
       finalState: finalState,
+      displaySpeciesName: transaction._displaySpeciesName,
       progression: progression,
     );
   }
@@ -548,52 +699,17 @@ RuntimePostBattleTransaction _nonVictoryTransaction({
   required BattleOutcome outcome,
   required RuntimeMapBundle bundle,
   required ItemCatalogSnapshot itemCatalog,
+  required _PostBattleMessages messages,
+  required String Function(String speciesId)? resolveSpecies,
 }) {
   final finalState = _completeBattleRequest(
     writeBack.state,
     runtimeContext.request,
   );
-  final messages = <RuntimePostBattleMessage>[
-    switch (outcome.type) {
-      BattleOutcomeType.defeat => const RuntimePostBattleMessage(
-          kind: RuntimePostBattleMessageKind.defeat,
-          text: 'Tous vos Pokémon sont hors combat.',
-        ),
-      BattleOutcomeType.runaway => const RuntimePostBattleMessage(
-          kind: RuntimePostBattleMessageKind.fled,
-          // Texte exact de la référence (Data/Text/Dialogs 100018,
-          // « You got away safely! ») — BETA-BAT-030.
-          text: 'Vous prenez la fuite !',
-        ),
-      BattleOutcomeType.captured => RuntimePostBattleMessage(
-          kind: RuntimePostBattleMessageKind.captured,
-          text:
-              '${_displayId(outcome.finalState.enemy.writeBackSpeciesId)} est capturé.',
-        ),
-      BattleOutcomeType.victory => throw StateError(
-          'Victory must use the reward progression transaction.',
-        ),
-    },
-  ];
   final destination = _captureDestinationWithState(
     writeBack.captureDestination,
     finalState,
   );
-  if (destination != null) {
-    messages.add(
-      RuntimePostBattleMessage(
-        kind: RuntimePostBattleMessageKind.captureDestination,
-        text: switch (destination.destination) {
-          CaptureDestinationKind.party =>
-            '${_displayId(outcome.finalState.enemy.writeBackSpeciesId)} rejoint votre équipe.',
-          CaptureDestinationKind.storage =>
-            '${_displayId(outcome.finalState.enemy.writeBackSpeciesId)} est envoyé au stockage.',
-          CaptureDestinationKind.none =>
-            'La destination de capture est indisponible.',
-        },
-      ),
-    );
-  }
   return RuntimePostBattleTransaction._(
     originalState: originalState,
     runtimeContext: runtimeContext,
@@ -608,12 +724,15 @@ RuntimePostBattleTransaction _nonVictoryTransaction({
           ? (runtimeContext.request as TrainerBattleStartRequest).trainerId
           : null,
     ),
-    messages: List<RuntimePostBattleMessage>.unmodifiable(messages),
+    messages: List<RuntimePostBattleMessage>.unmodifiable(
+      messages.terminal(outcome, destination?.destination, resolveSpecies),
+    ),
     pendingMoveLearning: null,
     pendingEvolution: null,
     pendingPartyMoveIds: const <String>[],
     captureDestination: destination,
     finalState: finalState,
+    displaySpeciesName: (id) => _speciesDisplayName(id, resolveSpecies),
     progression: null,
   );
 }
@@ -653,141 +772,6 @@ GameState _completeBattleRequest(
   );
 }
 
-List<RuntimePostBattleMessage> _initialVictoryMessages({
-  required RuntimeBattleRewardResolution resolution,
-  String Function(String speciesId)? resolveSpeciesDisplayName,
-  String Function(String moveId)? resolveMoveDisplayName,
-}) {
-  final messages = <RuntimePostBattleMessage>[
-    const RuntimePostBattleMessage(
-      kind: RuntimePostBattleMessageKind.victory,
-      text: 'Victoire !',
-    ),
-  ];
-  for (final change in resolution.progression.changes) {
-    final name = _speciesDisplayName(
-      resolution.baseState.party.members[change.partySlot].speciesId,
-      resolveSpeciesDisplayName,
-    );
-    messages.add(
-      RuntimePostBattleMessage(
-        kind: RuntimePostBattleMessageKind.experience,
-        text: '$name a gagné ${change.experienceAwarded} points Exp. !',
-        partySlot: change.partySlot,
-      ),
-    );
-  }
-  for (final change in resolution.progression.changes) {
-    final name = _speciesDisplayName(
-      resolution.baseState.party.members[change.partySlot].speciesId,
-      resolveSpeciesDisplayName,
-    );
-    for (var level = change.oldLevel + 1; level <= change.newLevel; level++) {
-      messages.add(
-        RuntimePostBattleMessage(
-          kind: RuntimePostBattleMessageKind.levelUp,
-          text: '$name monte au N. $level !',
-          partySlot: change.partySlot,
-        ),
-      );
-    }
-  }
-  messages.addAll(
-    _moveChangeMessages(
-      resolution.progression.moveLearningChanges,
-      resolveMoveDisplayName: resolveMoveDisplayName,
-    ),
-  );
-  messages.addAll(
-    _evolutionChangeMessages(resolution.progression.evolutionChanges),
-  );
-  return List<RuntimePostBattleMessage>.unmodifiable(messages);
-}
-
-List<RuntimePostBattleMessage> _moveChangeMessages(
-  Iterable<BattleMoveLearningChange> changes, {
-  String Function(String moveId)? resolveMoveDisplayName,
-}) {
-  String moveName(String moveId) =>
-      resolveMoveDisplayName?.call(moveId) ?? _displayId(moveId);
-  return <RuntimePostBattleMessage>[
-    for (final change in changes)
-      if (change.kind != BattleMoveLearningChangeKind.replacementRequested)
-        RuntimePostBattleMessage(
-          kind: switch (change.kind) {
-            BattleMoveLearningChangeKind.automaticallyLearned =>
-              RuntimePostBattleMessageKind.moveAutomaticallyLearned,
-            BattleMoveLearningChangeKind.learned =>
-              RuntimePostBattleMessageKind.moveLearned,
-            BattleMoveLearningChangeKind.replaced =>
-              RuntimePostBattleMessageKind.moveReplaced,
-            BattleMoveLearningChangeKind.declined =>
-              RuntimePostBattleMessageKind.moveDeclined,
-            BattleMoveLearningChangeKind.replacementRequested =>
-              throw StateError('Replacement requests are rendered as prompts.'),
-          },
-          text: switch (change.kind) {
-            BattleMoveLearningChangeKind.automaticallyLearned ||
-            BattleMoveLearningChangeKind.learned =>
-              '${moveName(change.candidate.moveId)} est apprise.',
-            BattleMoveLearningChangeKind.replaced =>
-              '${moveName(change.replacedMoveId ?? '')} est remplacée par ${moveName(change.candidate.moveId)}.',
-            BattleMoveLearningChangeKind.declined =>
-              '${moveName(change.candidate.moveId)} n’est pas apprise.',
-            BattleMoveLearningChangeKind.replacementRequested => '',
-          },
-          partySlot: change.partySlot,
-        ),
-  ];
-}
-
-List<RuntimePostBattleMessage> _evolutionChangeMessages(
-  Iterable<BattleEvolutionChange> changes,
-) {
-  return <RuntimePostBattleMessage>[
-    for (final change in changes)
-      RuntimePostBattleMessage(
-        kind: change.kind == BattleEvolutionChangeKind.evolved
-            ? RuntimePostBattleMessageKind.evolutionAccepted
-            : RuntimePostBattleMessageKind.evolutionRefused,
-        text: change.kind == BattleEvolutionChangeKind.evolved
-            ? '${_displayId(change.candidate.sourceSpeciesId)} évolue en ${_displayId(change.candidate.targetSpeciesId)}.'
-            : '${_displayId(change.candidate.sourceSpeciesId)} n’évolue pas.',
-        partySlot: change.partySlot,
-      ),
-  ];
-}
-
-List<RuntimePostBattleMessage> _rewardMessages(BattleReward reward) {
-  return <RuntimePostBattleMessage>[
-    if (reward.money > 0)
-      RuntimePostBattleMessage(
-        kind: RuntimePostBattleMessageKind.money,
-        text: 'Vous remportez ${reward.money} ₽ !',
-      ),
-    for (final grant in reward.itemGrants)
-      RuntimePostBattleMessage(
-        kind: RuntimePostBattleMessageKind.item,
-        text: '${_displayId(grant.itemId)} ×${grant.quantity} obtenu.',
-      ),
-    for (final flagId in reward.flagIds)
-      RuntimePostBattleMessage(
-        kind: RuntimePostBattleMessageKind.flag,
-        text: '${_displayId(flagId)} est débloqué.',
-      ),
-    if (reward.badgeId case final badgeId?)
-      RuntimePostBattleMessage(
-        kind: RuntimePostBattleMessageKind.badge,
-        text: 'Badge ${_displayId(badgeId)} obtenu.',
-      ),
-    if (reward.fieldAbilityUnlock case final ability?)
-      RuntimePostBattleMessage(
-        kind: RuntimePostBattleMessageKind.fieldAbility,
-        text: '${_displayId(ability.name)} est maintenant utilisable.',
-      ),
-  ];
-}
-
 RuntimePostBattleTransaction _copyWithMessages(
   RuntimePostBattleTransaction transaction,
   List<RuntimePostBattleMessage> messages,
@@ -805,6 +789,7 @@ RuntimePostBattleTransaction _copyWithMessages(
     pendingPartyMoveIds: transaction.pendingPartyMoveIds,
     captureDestination: transaction.captureDestination,
     finalState: transaction.finalState,
+    displaySpeciesName: transaction._displaySpeciesName,
     progression: transaction._progression,
   );
 }

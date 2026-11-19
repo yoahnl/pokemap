@@ -57,13 +57,21 @@ extension _PlayableMapRepel on PlayableMapGame {
       YarnNode(
         title: 'repel_expired',
         steps: [
-          YarnStepLine('L’effet de la Repousse s’est dissipé.'),
+          YarnStepLine(_overworldFeedback(.repelExpired)),
           if (canRenew) ...[
-            YarnStepLine('Voulez-vous utiliser une autre Repousse identique ?'),
+            YarnStepLine(_overworldFeedback(.repelRenew)),
             YarnStepChoiceBlock(
               [
-                YarnChoice(text: 'Oui', steps: [], outcomeId: 'repel.renew'),
-                YarnChoice(text: 'Non', steps: [], outcomeId: 'repel.decline'),
+                YarnChoice(
+                  text: _overworldFeedback(.yes),
+                  steps: [],
+                  outcomeId: 'repel.renew',
+                ),
+                YarnChoice(
+                  text: _overworldFeedback(.no),
+                  steps: [],
+                  outcomeId: 'repel.decline',
+                ),
               ],
               policy: const SceneDialogueChoicePolicy(
                 nodeName: 'repel_expired',
@@ -125,16 +133,16 @@ extension _PlayableMapRepel on PlayableMapGame {
         );
         if (result.isSuccess) {
           next = result.state;
-          message = 'La Repousse est de nouveau active.';
+          message = _overworldFeedback(.repelRenewed);
         } else {
-          message = 'Cette Repousse n’est plus disponible.';
+          message = _overworldFeedback(.repelStockUnavailable);
         }
       }
       await commitAndSavePlayerServiceState(next, expectedState: expectedState);
       if (message != null && !_isRemoved) _showNotification(message);
     } catch (error) {
       if (!_isRemoved) {
-        _showNotification('La progression n’a pas pu être sauvegardée.');
+        _showNotification(_overworldFeedback(.repelProgressSaveFailed));
       }
     } finally {
       if (lock != null) {

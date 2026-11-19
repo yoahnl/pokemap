@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../player/runtime_player_feedback.dart';
 import 'dialogue_runtime_models.dart';
 
 final class RuntimeFlashInteraction {
@@ -33,6 +34,7 @@ RuntimeFlashInteraction? prepareFlashInteraction({
   required int stateRevision,
   required String zoneId,
   ProjectSettings? projectSettings,
+  RuntimeOverworldFeedbackFormatter feedback = fallbackRuntimeOverworldFeedback,
 }) {
   final evaluation = evaluateFlashAttempt(
     map: map,
@@ -44,8 +46,7 @@ RuntimeFlashInteraction? prepareFlashInteraction({
   final String text;
   switch (evaluation) {
     case CanUseFlash():
-      text =
-          'Cette zone est sombre. Voulez-vous utiliser Flash pour l’éclairer ?';
+      text = feedback(.fieldFlashConfirm);
       ticket = FlashActionTicket(
         fieldAction: FieldActionTicket(
           ability: FieldAbility.flash,
@@ -57,9 +58,9 @@ RuntimeFlashInteraction? prepareFlashInteraction({
         playerPixelPosition: gameState.playerPixelPosition,
       );
     case FlashUnavailable(reason: FlashBlockReason.missingMove):
-      text = 'Cette zone est sombre. Un Pokémon apte à utiliser Flash est nécessaire.';
+      text = feedback(.fieldFlashMoveMissing);
     case FlashUnavailable(reason: FlashBlockReason.locked):
-      text = 'Un Pokémon connaît Flash, mais vous n’avez pas encore l’autorisation de l’utiliser.';
+      text = feedback(.fieldFlashMoveLocked);
     case FlashUnavailable():
       return null;
   }
@@ -71,12 +72,12 @@ RuntimeFlashInteraction? prepareFlashInteraction({
         YarnStepChoiceBlock(
           [
             YarnChoice(
-              text: 'Oui',
+              text: feedback(.yes),
               steps: const [],
               outcomeId: 'flash-confirmed',
             ),
             YarnChoice(
-              text: 'Non',
+              text: feedback(.no),
               steps: const [],
               outcomeId: 'flash-declined',
             ),

@@ -28,8 +28,8 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
         ids.isEmpty ||
         ids.any((id) => id.isEmpty) ||
         ids.toSet().length != ids.length) {
-      return const PlayerServiceRuntimeResult.unavailable(
-        'L’équipe et son catalogue doivent être disponibles pour cet échange.',
+      return PlayerServiceRuntimeResult.unavailable(
+        _feedback(.tradeCatalogRequired),
       );
     }
     final session = _ContextualPartyTradeSession(
@@ -131,7 +131,7 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
                       .speciesId !=
                   offer.requestedSpeciesId) {
             session.completionMessage =
-                'Ce Pokémon ne correspond pas à celui demandé.';
+                .tradePokemonMismatch;
             _publishPartyTrade(session);
             return const RuntimeWorldServiceCommandResult(
               status: RuntimeWorldServiceCommandStatus.unavailable,
@@ -227,7 +227,7 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
       if (!result.isSuccess) {
         throw StateError('Native trade refused: ${result.failure}');
       }
-      session.completionMessage = 'Échange terminé.';
+      session.completionMessage = .tradeCompleted;
       final evolved = result.evolution;
       if (evolved != null) {
         final target = await _pokemonSpeciesLoader.loadById(
@@ -275,9 +275,9 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
       } else {
         _publishPartyTrade(session);
       }
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.failed,
-        safeMessage: 'L’échange n’a pas pu être enregistré.',
+        safeMessage: _feedback(.tradeSaveFailed),
       );
     }
   }
@@ -352,7 +352,7 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
     await session.pendingCommit;
     session.applying = false;
     session.completedState = next;
-    session.completionMessage = 'Échange terminé.';
+    session.completionMessage = .tradeCompleted;
     session.phase = RuntimePartyTradePhase.completed;
     if (_disposed) {
       if (!session.result.isCompleted) {
@@ -424,7 +424,7 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
           partnerIndividualId: session.partnerIndividualId,
           completionMessage: _tradeCompletionMessage(session, locale),
         ),
-        safeMessage: failed ? 'L’échange n’a pas pu être enregistré.' : null,
+        safeMessage: failed ? _feedback(.tradeSaveFailed) : null,
         actions: [
           if (!applying) ...[
             if (!failed && !completed) ...[
@@ -451,7 +451,10 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
     String locale,
   ) {
     final evolved = session.evolvedSpecies;
-    if (evolved == null) return session.completionMessage;
+    if (evolved == null) {
+      final message = session.completionMessage;
+      return message == null ? null : _feedback(message);
+    }
     final first = session.members.singleWhere(
       (member) => member.individualId == session.firstIndividualId,
     );
@@ -460,7 +463,10 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
       session.speciesById[first.speciesId]!,
       locale,
     );
-    return '$name est devenu ${evolved.displayName(locale)}.';
+    return _feedback(.tradeEvolution, {
+      'name': name,
+      'species': evolved.displayName(locale),
+    });
   }
 
   Future<void> _disposePartyTrade() async {
@@ -504,7 +510,7 @@ final class _ContextualPartyTradeSession {
   List<PlayerPokemon> get members => initialState.party.members;
   RuntimePartyTradePhase phase = RuntimePartyTradePhase.selectFirst;
   String? firstIndividualId, partnerIndividualId;
-  String? completionMessage;
+  RuntimeServiceFeedback? completionMessage;
   Object? failure;
   RuntimePokemonSpecies? offeredSpecies;
   RuntimePokemonSpecies? evolvedSpecies;

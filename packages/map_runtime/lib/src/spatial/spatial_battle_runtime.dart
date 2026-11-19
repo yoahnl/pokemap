@@ -57,6 +57,7 @@ import '../presentation/flame/battle_transition_spec.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../presentation/flame/runtime_trainer_battle_overrides.dart';
 import '../presentation/flutter/battle_command_overlay_snapshot.dart';
+import '../presentation/runtime_battle_message.dart';
 
 enum SpatialBattlePhase { idle, loading, battle, postBattle }
 
@@ -71,6 +72,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     this.audioMixer,
     this.onOutcomePresented,
     this.worldNow,
+    this.displayLocale,
+    this.formatBattleMessage,
     RuntimePokemonSpeciesLoader? pokemonSpeciesLoader,
     BattleMotionPolicy? motionPolicy,
   })  : _speciesLoader = pokemonSpeciesLoader ?? RuntimePokemonSpeciesLoader(),
@@ -92,6 +95,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   final RuntimeAudioMixer? audioMixer;
   final void Function(BattleOutcome outcome)? onOutcomePresented;
   final DateTime Function()? worldNow;
+  final String Function()? displayLocale;
+  final RuntimeBattleMessageRenderer? formatBattleMessage;
   FlameAudioBattleSfxPlayer? _sounds;
   BattlePokemonSpriteResolver? _media;
   SpatialBattlePhase phase = SpatialBattlePhase.idle;
@@ -417,21 +422,29 @@ final class SpatialBattleRuntime extends ChangeNotifier {
           (slot) => hydrated.party.members[slot].individualId,
         ),
       );
-      _coordinator = RuntimePostBattleDecisionCoordinator(
-        rewardResolver: RuntimeBattleRewardResolver(worldNow: worldNow),
-        hydrateOwnedPlayerPokemon: ({required gameState, required bundle}) =>
-            _hydrate(gameState, bundle, moveCatalogLoader: moveCatalogLoader),
-      );
       final display = _display();
       displaySession = display;
-      final speciesDisplayNames = await loadRuntimeBattleSpeciesDisplayNames(
+      final species = await loadRuntimeBattleSpecies(
         bundle: bundle,
         speciesLoader: _speciesLoader,
         session: display,
         presentation: _engine!.presentation,
-        locale: runtimeLocale,
       );
       if (!_current(generation)) return;
+      String locale() => displayLocale?.call() ?? runtimeLocale;
+      String speciesName(String id) => species[id]?.displayName(locale()) ?? id;
+      String moveName(String id, String fallback) =>
+          moves.entriesById[id]?.displayName(locale()) ?? fallback;
+      _coordinator = RuntimePostBattleDecisionCoordinator(
+        rewardResolver: RuntimeBattleRewardResolver(worldNow: worldNow),
+        hydrateOwnedPlayerPokemon: ({required gameState, required bundle}) =>
+            _hydrate(gameState, bundle, moveCatalogLoader: moveCatalogLoader),
+        resolveSpeciesDisplayName: speciesName,
+        loadPresentationSpecies: _speciesLoader.loadById,
+        presentationLocale: locale,
+        formatBattleMessage: formatBattleMessage,
+        resolveMoveDisplayName: (id) => moveName(id, id),
+      );
       _images = BattleVisualAssetCache(
         resourceBudget: bundle.resourceBudget,
         isCurrent: () => _current(generation),
@@ -491,9 +504,18 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         ),
         itemCapabilityResolver: ItemCapabilityResolver(items),
         moveCatalog: moves,
-        resolveSpeciesDisplayName: (id) => speciesDisplayNames[id] ?? id,
-        resolveMoveDisplayName: (id, fallback) =>
-            moves.entriesById[id]?.displayName(runtimeLocale) ?? fallback,
+        resolveSpeciesDisplayName: speciesName,
+        resolveCombatantDisplayName: (side, combatant) =>
+            (side == BattleSideId.player
+                ? runtimeBattlePlayerNickname(
+                    _working ?? hydrated,
+                    lineup.lineupPartyIndices,
+                    combatant.lineupIndex,
+                  )
+                : null) ??
+            speciesName(combatant.speciesId),
+        resolveMoveDisplayName: moveName,
+        formatBattleMessage: formatBattleMessage,
         resolveBallSpritePath: captureSprites.resolve,
         resolveCombatantBallItemId: (side, index) => balls.resolve(
           isPlayerSide: side == BattleSideId.player,
@@ -826,6 +848,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     late final PostBattleProgressionOverlayComponent post;
     post = PostBattleProgressionOverlayComponent(
       initialResult: result,
+      formatBattleMessage: formatBattleMessage,
+      resolveMoveDisplayName: (id) => overlay?.resolveMoveDisplayName(id, id) ?? id,
       viewportSize: overlay?.size.clone() ?? Vector2(640, 480),
       onMoveLearningDecision: (decision) => _coordinator!.resolveMoveLearning(
         transaction: post.currentTransaction!,

@@ -18,6 +18,8 @@ import '../application/runtime_pokemon_species_loader.dart';
 import '../infrastructure/gen5_battle_source_loader.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_host.dart';
+import '../player/runtime_player_feedback.dart';
+import '../presentation/runtime_battle_message.dart';
 import '../player/runtime_player_pause_data_builder.dart';
 import '../player/runtime_player_journal_pause.dart';
 import '../player/runtime_audio_mixer.dart';
@@ -78,6 +80,8 @@ final class PlayableMapGameSessionRuntime
     this.audioMixer,
     this.presentationCinematicPlayer,
     this.gen5BattleSourceLoader,
+    this.feedbackLocalizer,
+    this.battleMessageFormatter,
     DateTime Function()? now,
   }) : _projectFilePath = projectFilePath,
        _initialSave = initialSave,
@@ -98,6 +102,8 @@ final class PlayableMapGameSessionRuntime
   final RuntimeAudioMixer? audioMixer;
   final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
   final RuntimeGen5BattleSourceLoader? gen5BattleSourceLoader;
+  final RuntimePlayerFeedbackLocalizer? feedbackLocalizer;
+  final RuntimeBattleMessageFormatter? battleMessageFormatter;
   final DateTime Function() _now;
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
   final _worldServiceSnapshots =
@@ -145,8 +151,9 @@ final class PlayableMapGameSessionRuntime
     }
   }
 
-  RuntimeSessionStrings get _strings =>
-      RuntimeSessionStrings.forLocale(descriptor.locale.toLowerCase());
+  RuntimeSessionStrings get _strings => RuntimeSessionStrings.forLocale(
+    (_playerPreferences?.locale ?? descriptor.locale).toLowerCase(),
+  );
 
   @override
   Stream<GameSessionAdapterEvent> get events => _events.stream;
@@ -425,6 +432,8 @@ final class PlayableMapGameSessionRuntime
           defeatRecoveryCheckpointEmitter: emitDefeatRecoveryCheckpointRequest,
           runtimeLocale: descriptor.locale,
           runtimeLocales: descriptor.locales,
+          battleMessageFormatter: battleMessageFormatter,
+          feedbackLocalizer: feedbackLocalizer,
           reducedMotion: descriptor.accessibility.reducedMotion,
           textScale: descriptor.accessibility.textScale,
           initialMapActivationReason:
@@ -492,6 +501,7 @@ final class PlayableMapGameSessionRuntime
         bagCapacity: bundle.manifest.bagCapacity,
         locale: descriptor.locale,
         displayLocale: () => _playerPreferences?.locale ?? descriptor.locale,
+        feedbackLocalizer: feedbackLocalizer,
         pokemonSpeciesLoader: _recoveryCapsSpeciesLoader,
       );
       _playerServices = playerServices;

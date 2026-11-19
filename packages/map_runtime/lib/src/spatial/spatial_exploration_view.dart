@@ -11,6 +11,7 @@ import '../player/runtime_audio_mixer.dart';
 import '../player/runtime_weather_audio_controller.dart';
 import '../player/runtime_brazier_audio_controller.dart';
 import '../player/runtime_graphics_preferences.dart';
+import '../player/runtime_player_feedback.dart';
 import '../player/runtime_world_time_preferences.dart';
 import '../presentation/map_warp_transition_overlay.dart';
 import 'spatial_exploration_session.dart';
@@ -28,9 +29,11 @@ class SpatialExplorationView extends StatefulWidget {
     this.sceneController,
     this.onError,
     this.audioMixer,
+    this.feedback = fallbackRuntimeOverworldFeedback,
   });
   final SpatialExplorationSession session;
   final RuntimeAudioMixer? audioMixer;
+  final RuntimeOverworldFeedbackFormatter feedback;
   final ValueListenable<SpatialVisualPatch>? previewVisuals;
   final SpatialSceneController? sceneController;
   final bool keyboardInputEnabled;
@@ -742,9 +745,11 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                         child: Padding(
                           padding: const EdgeInsets.all(12),
                           child: Text(
-                            neighborError != null && error == null
-                                ? 'Impossible d’afficher une carte voisine.'
-                                : 'Impossible d’ouvrir ce passage ou ce dialogue.',
+                            widget.feedback(
+                              neighborError != null && error == null
+                                  ? .spatialNeighborUnavailable
+                                  : .spatialInteractionUnavailable,
+                            ),
                             style: TextStyle(color: colors.onErrorContainer),
                           ),
                         ),

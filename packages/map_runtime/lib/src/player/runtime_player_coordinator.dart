@@ -10,6 +10,7 @@ import 'package:map_story/map_story.dart';
 import '../session/game_session_contract.dart';
 import '../session/game_session_controller.dart';
 import 'runtime_player_host.dart';
+import 'runtime_player_feedback.dart';
 import 'player_inventory_preferences_gateway.dart';
 import 'runtime_player_models.dart';
 import 'runtime_new_game_flow.dart';
@@ -31,12 +32,14 @@ final class RuntimePlayerCoordinator {
     required RuntimeExternalExit externalExit,
     RuntimePlayerLoadSlot? defaultSaveSlot,
     PlayerInventoryPreferencesGateway? inventoryPreferencesGateway,
+    RuntimePlayerFeedbackLocalizer? feedbackLocalizer,
     this.explorationOnly = false,
     RuntimePlayerOptionsAvailability optionsAvailability =
         const RuntimePlayerOptionsAvailability(),
   })  : _gameSource = gameSource,
         _saveGateway = saveGateway,
         _preferencesGateway = preferencesGateway,
+        _feedbackLocalizer = feedbackLocalizer,
         _readPreferences = readPreferences ?? preferencesGateway.load,
         _inventoryPreferencesGateway = inventoryPreferencesGateway,
         _newGameFlow = newGameFlow,
@@ -64,6 +67,7 @@ final class RuntimePlayerCoordinator {
   final RuntimeGameSource _gameSource;
   final PlayerSaveGateway _saveGateway;
   final PlayerPreferencesGateway _preferencesGateway;
+  final RuntimePlayerFeedbackLocalizer? _feedbackLocalizer;
   final Future<PlayerPreferencesSnapshot> Function() _readPreferences;
   final PlayerInventoryPreferencesGateway? _inventoryPreferencesGateway;
   final RuntimeNewGameFlowPort _newGameFlow;
@@ -101,6 +105,19 @@ final class RuntimePlayerCoordinator {
   PlayerPreferencesSnapshot? get preferences => _preferences;
   PlayerSaveSummary? get latestSave => _latestSave;
   bool get isDisposed => _disposed;
+
+  String get _playerLocale =>
+      _preferences?.locale ?? _preferencesGateway.defaultPreferences.locale;
+
+  String _feedback(RuntimeNavigationFeedback key) =>
+      key.resolve(_feedbackLocalizer, _playerLocale);
+
+  String _saveUnavailableReason(PlayerSaveUnavailableReason reason) =>
+      playerSaveUnavailableReasonText(
+        reason,
+        locale: _playerLocale,
+        localizer: _feedbackLocalizer,
+      );
 
   void updateOptionsAvailability(RuntimePlayerOptionsAvailability value) {
     if (_disposed) return;
@@ -173,9 +190,9 @@ final class RuntimePlayerCoordinator {
       switch (command.action) {
         case RuntimePlayerAction.save:
           return Future<RuntimePlayerCommandResult>.value(
-            const RuntimePlayerCommandResult(
+            RuntimePlayerCommandResult(
               status: RuntimePlayerCommandStatus.unavailable,
-              safeMessage: 'Une sauvegarde est déjà en cours.',
+              safeMessage: _feedback(.saveInProgress),
             ),
           );
         case RuntimePlayerAction.returnToTitle:
@@ -229,9 +246,9 @@ final class RuntimePlayerCoordinator {
     _ensureOpen();
     return _serialize(() async {
       if (snapshotRevision != _snapshot.revision) {
-        return const RuntimePlayerCommandResult(
+        return RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.stale,
-          safeMessage: 'Le sac a changé avant l’arrivée de cette action.',
+          safeMessage: _feedback(.favoritesBagChanged),
         );
       }
       final gateway = _inventoryPreferencesGateway;
@@ -250,9 +267,9 @@ final class RuntimePlayerCoordinator {
           _snapshot.phase != RuntimePlayerPhase.paused ||
           _snapshot.pauseSection != RuntimePlayerPauseSection.bag ||
           !ownsItem) {
-        return const RuntimePlayerCommandResult(
+        return RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.unavailable,
-          safeMessage: 'Les favoris sont indisponibles pour cet objet.',
+          safeMessage: _feedback(.favoritesUnavailable),
         );
       }
       final favorites = Set<String>.of(_favoriteItemIds);
@@ -264,9 +281,9 @@ final class RuntimePlayerCoordinator {
       try {
         await gateway.save(_gameSource.identity.gameId, favorites);
       } catch (_) {
-        return const RuntimePlayerCommandResult(
+        return RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.failed,
-          safeMessage: 'Les favoris n’ont pas pu être enregistrés. Réessayez.',
+          safeMessage: _feedback(.favoritesSaveFailed),
         );
       }
       if (!_canPublishPauseData(sessionId)) {
@@ -388,21 +405,21 @@ final class RuntimePlayerCoordinator {
       );
     }
     if (command.snapshotRevision != _snapshot.revision) {
-      return const RuntimePlayerCommandResult(
+      return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,
         safeMessage:
-            'La surface joueur a changé avant l’arrivée de cette action.',
+            _feedback(.playerActionStale),
       );
     }
     if (_snapshot.worldService?.request.kind == RuntimeWorldServiceKind.regionalMap) {
-      return const RuntimePlayerCommandResult(status: RuntimePlayerCommandStatus.unavailable,
-        safeMessage: 'Fermez la carte régionale avant de reprendre une action du menu.');
+      return RuntimePlayerCommandResult(status: RuntimePlayerCommandStatus.unavailable,
+        safeMessage: _feedback(.regionalMapCloseFirst));
     }
     if (!_snapshot.isActionEnabled(command.action)) {
       return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.unavailable,
         safeMessage: _snapshot.unavailableReasonFor(command.action) ??
-            'This player action is unavailable.',
+            _feedback(.playerActionUnavailable),
       );
     }
 
@@ -415,10 +432,10 @@ final class RuntimePlayerCoordinator {
           _ => _defaultSaveSlot,
         };
         if (slot == null) {
-          return const RuntimePlayerCommandResult(
+          return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
             safeMessage:
-                'Un profil et un emplacement sont requis pour une nouvelle partie.',
+                _feedback(.newGameSlotRequired),
           );
         }
         return _launchNewGame(
@@ -435,10 +452,10 @@ final class RuntimePlayerCoordinator {
       case RuntimePlayerAction.continueGame:
         final save = _latestSave;
         if (save == null || !save.canContinue) {
-          return const RuntimePlayerCommandResult(
+          return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
             safeMessage:
-                'Aucune sauvegarde compatible n’est disponible pour continuer.',
+                _feedback(.noCompatibleSave),
           );
         }
         return _launchSave(save, GameSessionLaunchMode.continueGame);
@@ -448,10 +465,10 @@ final class RuntimePlayerCoordinator {
           _ => _defaultSaveSlot,
         };
         if (slot == null) {
-          return const RuntimePlayerCommandResult(
+          return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
             safeMessage:
-                'Un profil et un emplacement sont requis pour charger une sauvegarde.',
+                _feedback(.loadSlotRequired),
           );
         }
         final address = _address(slot);
@@ -466,8 +483,8 @@ final class RuntimePlayerCoordinator {
           return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
             safeMessage: save?.unavailableReason == null
-                ? 'La sauvegarde choisie est indisponible ou incompatible.'
-                : playerSaveUnavailableReasonText(save!.unavailableReason!),
+                ? _feedback(.selectedSaveUnavailable)
+                : _saveUnavailableReason(save!.unavailableReason!),
           );
         }
         return _launchSave(save, GameSessionLaunchMode.load);
@@ -486,7 +503,7 @@ final class RuntimePlayerCoordinator {
           return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.failed,
             safeMessage: _sessions.snapshot.failure?.safeMessage ??
-                'La sauvegarde finale n’a pas pu être enregistrée.',
+                _feedback(.finalSaveFailed),
           );
         }
         final retry = _retryLaunch;
@@ -592,9 +609,9 @@ final class RuntimePlayerCoordinator {
                     RuntimePlayerPauseCommandKind.setPartyLead);
         if (!isReorderKind ||
             _snapshot.pauseSection != RuntimePlayerPauseSection.party) {
-          return const RuntimePlayerCommandResult(
+          return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'Deux membres de l’équipe valides sont requis.',
+            safeMessage: _feedback(.partyMembersRequired),
           );
         }
         final reorderSessionId = _sessions.snapshot.descriptor?.sessionId;
@@ -623,9 +640,9 @@ final class RuntimePlayerCoordinator {
               RuntimePlayerPauseCommandKind.setPartyLead =>
                 false,
             }) {
-          return const RuntimePlayerCommandResult(
+          return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'Cette commande n’est pas disponible sur cet écran.',
+            safeMessage: _feedback(.playerCommandUnavailable),
           );
         }
         final bagSessionId = _sessions.snapshot.descriptor?.sessionId;
@@ -713,9 +730,9 @@ final class RuntimePlayerCoordinator {
       case RuntimePlayerAction.updatePreferences:
         final preferences = command.payload;
         if (preferences is! PlayerPreferencesSnapshot) {
-          return const RuntimePlayerCommandResult(
+          return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'Des préférences joueur valides sont requises.',
+            safeMessage: _feedback(.playerPreferencesRequired),
           );
         }
         final preferencesSessionId = _sessions.snapshot.descriptor?.sessionId;
@@ -733,10 +750,10 @@ final class RuntimePlayerCoordinator {
               status: RuntimePlayerCommandStatus.cancelled,
             );
           }
-          return const RuntimePlayerCommandResult(
+          return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.failed,
             safeMessage:
-                'Les préférences du joueur n’ont pas pu être sauvegardées.',
+                _feedback(.playerPreferencesSaveFailed),
           );
         }
         if (!_isCurrentSession(preferencesSessionId)) {
@@ -831,7 +848,7 @@ final class RuntimePlayerCoordinator {
             safeMessage: saved
                 ? null
                 : _sessions.snapshot.failure?.safeMessage ??
-                    'La sauvegarde n’a pas pu être enregistrée.',
+                    _feedback(.saveWriteFailed),
           );
         } catch (_) {
           boundary.complete(false);
@@ -840,10 +857,10 @@ final class RuntimePlayerCoordinator {
               status: RuntimePlayerCommandStatus.cancelled,
             );
           }
-          const failure = GameSessionFailure(
+          final failure = GameSessionFailure(
             code: GameSessionFailureCode.runtime,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'La sauvegarde n’a pas pu être enregistrée.',
+            safeMessage: _feedback(.saveWriteFailed),
           );
           _publishPause(
             section,
@@ -863,9 +880,9 @@ final class RuntimePlayerCoordinator {
         final completion = _sessions.committedCompletion;
         final openedFromTitle = _snapshot.phase == RuntimePlayerPhase.title;
         if (completion == null && !openedFromTitle) {
-          return const RuntimePlayerCommandResult(
+          return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
-            safeMessage: 'Aucun générique de fin n’est disponible.',
+            safeMessage: _feedback(.creditsUnavailable),
           );
         }
         _creditsOpenedFromTitle = openedFromTitle;
@@ -923,9 +940,9 @@ final class RuntimePlayerCoordinator {
         );
       case RuntimePlayerAction.cancel:
       case RuntimePlayerAction.resolvePreSessionInteraction:
-        return const RuntimePlayerCommandResult(
+        return RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.unavailable,
-          safeMessage: 'This action is not available on the current surface.',
+          safeMessage: _feedback(.surfaceActionUnavailable),
         );
       case RuntimePlayerAction.returnToHost:
         return _returnToHost();
@@ -941,9 +958,9 @@ final class RuntimePlayerCoordinator {
       );
     }
     if (snapshotRevision != _snapshot.revision) {
-      return const RuntimePlayerCommandResult(
+      return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,
-        safeMessage: 'La surface joueur a changé avant l’arrivée du retour.',
+        safeMessage: _feedback(.playerResponseStale),
       );
     }
     final worldService = _snapshot.worldService;
@@ -1039,9 +1056,9 @@ final class RuntimePlayerCoordinator {
         status: RuntimePlayerCommandStatus.accepted,
       );
     } catch (_) {
-      return const RuntimePlayerCommandResult(
+      return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.failed,
-        safeMessage: 'Le joueur n’a pas pu revenir à son hôte.',
+        safeMessage: _feedback(.returnToHostFailed),
       );
     }
   }
@@ -1066,9 +1083,9 @@ final class RuntimePlayerCoordinator {
           failure: _sessions.snapshot.failure,
         );
         if (!loaded) {
-          return const RuntimePlayerCommandResult(
+          return RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.failed,
-            safeMessage: 'Les données du joueur n’ont pas pu être actualisées.',
+            safeMessage: _feedback(.playerDataRefreshFailed),
           );
         }
       }
@@ -1079,10 +1096,10 @@ final class RuntimePlayerCoordinator {
       if (error.code == GameSessionErrorCode.checkpointRejected &&
           _sessions.snapshot.state == GameSessionState.paused) {
         final failure = _sessions.snapshot.failure ??
-            const GameSessionFailure(
+            GameSessionFailure(
               code: GameSessionFailureCode.storage,
               recoverability: GameSessionFailureRecoverability.retry,
-              safeMessage: 'La sauvegarde n’a pas pu être enregistrée.',
+              safeMessage: _feedback(.saveWriteFailed),
             );
         _publishPause(
           pauseSection,
@@ -1095,16 +1112,16 @@ final class RuntimePlayerCoordinator {
         );
       }
       _publishFailure(
-        const GameSessionFailure(
+        GameSessionFailure(
           code: GameSessionFailureCode.runtime,
           recoverability: GameSessionFailureRecoverability.titleOrHub,
-          safeMessage: 'La session de jeu n’a pas pu être fermée proprement.',
+          safeMessage: _feedback(.sessionCloseFailed),
         ),
         allowRetry: false,
       );
-      return const RuntimePlayerCommandResult(
+      return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.failed,
-        safeMessage: 'La session de jeu n’a pas pu être fermée proprement.',
+        safeMessage: _feedback(.sessionCloseFailed),
       );
     }
   }
@@ -1122,7 +1139,7 @@ final class RuntimePlayerCoordinator {
       return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.failed,
         safeMessage: _sessions.snapshot.failure?.safeMessage ??
-            'La sauvegarde n’a pas pu être enregistrée.',
+            _feedback(.saveWriteFailed),
       );
     }
     return _returnToTitle(checkpoint: false);
@@ -1207,8 +1224,8 @@ final class RuntimePlayerCoordinator {
         final revision = await _newGameFlow.readCurrentProjectRevision();
         if (generation != _launchGeneration) return _finishCancelledLaunch();
         if (revision != preparation.projectRevision) {
-          throw const RuntimeNewGameException(code: 'exploration.project_changed',
-            safeMessage: 'La carte a changé pendant le chargement. Relancez l’exploration.');
+          throw RuntimeNewGameException(code: 'exploration.project_changed',
+            safeMessage: _feedback(.explorationMapChanged));
         }
         final launch = await _launch(request, launchGeneration: generation);
         keepPreload = launch.status == RuntimePlayerCommandStatus.accepted;
@@ -1252,10 +1269,8 @@ final class RuntimePlayerCoordinator {
           code: issue?.diagnosticCode ?? 'new_game.seed_commit_failed',
           safeMessage:
               issue?.code == NewGameSeedCommitIssueCode.staleProjectRevision
-                  ? 'Le contenu du jeu a changé pendant la préparation. '
-                      'Relancez la création de la partie.'
-                  : 'La configuration de départ est incomplète ou incohérente. '
-                      'La partie n’a pas été créée.',
+                  ? _feedback(.newGamePreparationChanged)
+                  : _feedback(.newGameSetupInvalid),
         );
       }
       preparationStage = 'initial_state';
@@ -1295,22 +1310,16 @@ final class RuntimePlayerCoordinator {
               ? 'new_game.$preparationStage.resources.$resourceReason'
               : 'new_game.$preparationStage.${error.runtimeType}';
       final message = error is RuntimeNewGameException
-          ? error.safeMessage
+          ? _newGameExceptionMessage(error)
           : resourceReason != null
-              ? 'Les ressources graphiques de cette carte dépassent le budget '
-                  'du Player. Signalez ce code au créateur du jeu.'
+              ? _feedback(.newGameResourceLimit)
               : switch (preparationStage) {
-              'save_lookup' => 'Impossible de lire les sauvegardes. '
-                  'Vérifiez l’accès au stockage de l’application.',
-              'project_preload' => 'Impossible de charger les données ou les '
-                  'ressources de la carte de départ. '
-                  'Réinstallez le jeu si le problème persiste.',
+              'save_lookup' => _feedback(.newGameSaveReadFailed),
+              'project_preload' => _feedback(.newGamePreloadFailed),
               'pre_session' =>
-                'La scène de début du jeu n’a pas pu être exécutée. '
-                    'Signalez le code ci-dessous au créateur du jeu.',
+                _feedback(.newGameSceneFailed),
               _ =>
-                'La configuration de départ du jeu n’a pas pu être appliquée. '
-                    'Signalez le code ci-dessous au créateur du jeu.',
+                _feedback(.newGameSetupFailed),
             };
       developer.log(
         diagnosticCode,
@@ -1337,6 +1346,16 @@ final class RuntimePlayerCoordinator {
       if (!keepPreload) _newGameFlow.clear();
     }
   }
+
+  String _newGameExceptionMessage(RuntimeNewGameException error) =>
+      error.code == 'new_game.project_changed'
+      ? _feedbackLocalizer?.call(
+          _playerLocale,
+          RuntimeNavigationFeedback.newGameContentChanged,
+          const {},
+        ) ??
+          error.safeMessage
+      : error.safeMessage;
 
   NewGameDraft _applyRequestedIdentity(
     NewGameDraft draft,
@@ -1491,10 +1510,10 @@ final class RuntimePlayerCoordinator {
     _validateSaveScope(save);
     final handle = await _saveGateway.openReadHandle(save.address);
     if (handle == null || handle.trim().isEmpty) {
-      return const RuntimePlayerCommandResult(
+      return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.unavailable,
         safeMessage:
-            'La sauvegarde sélectionnée n’a pas pu être ouverte en sécurité.',
+            _feedback(.saveOpenFailed),
       );
     }
     return _launch(
@@ -1568,16 +1587,16 @@ final class RuntimePlayerCoordinator {
         return _finishCancelledLaunch();
       }
       _publishFailure(
-        const GameSessionFailure(
+        GameSessionFailure(
           code: GameSessionFailureCode.runtime,
           recoverability: GameSessionFailureRecoverability.retry,
-          safeMessage: 'La session de jeu n’a pas pu être lancée.',
+          safeMessage: _feedback(.sessionLaunchFailed),
         ),
         allowRetry: true,
       );
-      return const RuntimePlayerCommandResult(
+      return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.failed,
-        safeMessage: 'La session de jeu n’a pas pu être lancée.',
+        safeMessage: _feedback(.sessionLaunchFailed),
       );
     }
   }
@@ -1658,16 +1677,17 @@ final class RuntimePlayerCoordinator {
       if (!frameRateChanged) {
         AveluneFrameRate.setLimit(_preferences!.targetFramesPerSecond);
       }
+      _sessions.applyPlayerPreferences(_preferences!);
       _retryLaunch = null;
       _publishTitle(failure: failure);
       return true;
     } catch (_) {
       if (_disposed || generation != _launchGeneration) return false;
       _publishFailure(
-        const GameSessionFailure(
+        GameSessionFailure(
           code: GameSessionFailureCode.storage,
           recoverability: GameSessionFailureRecoverability.retry,
-          safeMessage: 'Les données du joueur n’ont pas pu être chargées.',
+          safeMessage: _feedback(.playerDataLoadFailed),
         ),
         allowRetry: true,
       );
@@ -1793,7 +1813,15 @@ final class RuntimePlayerCoordinator {
         pauseDetails: details,
       );
     }
-    _publish(_snapshot.next(preferences: _preferences));
+    _publish(
+      _snapshot.next(
+        preferences: _preferences,
+        actions: before?.locale != confirmed.locale &&
+                _snapshot.phase == RuntimePlayerPhase.title
+            ? _titleActions
+            : null,
+      ),
+    );
     return true;
   }
 
@@ -1894,10 +1922,10 @@ final class RuntimePlayerCoordinator {
       case GameSessionState.failed:
         _publishFailure(
           session.failure ??
-              const GameSessionFailure(
+              GameSessionFailure(
                 code: GameSessionFailureCode.runtime,
                 recoverability: GameSessionFailureRecoverability.titleOrHub,
-                safeMessage: 'La session joueur a échoué.',
+                safeMessage: _feedback(.sessionFailed),
               ),
           allowRetry: true,
         );
@@ -2133,10 +2161,10 @@ final class RuntimePlayerCoordinator {
     final save = _latestSave;
     final continueEnabled = save != null && save.canContinue;
     final unavailableReason = explorationOnly
-        ? 'L’exploration 3D ne propose pas encore de sauvegarde.'
+        ? _feedback(.explorationSaveUnavailable)
         : save?.unavailableReason == null
-        ? 'Aucune sauvegarde compatible n\u2019est disponible pour ce jeu.'
-        : playerSaveUnavailableReasonText(save!.unavailableReason!);
+        ? _feedback(.noCompatibleGameSave)
+        : _saveUnavailableReason(save!.unavailableReason!);
     return <RuntimePlayerActionAvailability>[
       if (save != null && !save.canContinue)
         const RuntimePlayerActionAvailability.enabled(
@@ -2210,7 +2238,7 @@ final class RuntimePlayerCoordinator {
         const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.updatePreferences),
         const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.returnToTitle),
         RuntimePlayerActionAvailability.disabled(RuntimePlayerAction.save,
-          reason: 'L’exploration 3D ne propose pas encore de sauvegarde.'),
+          reason: _feedback(.explorationSaveUnavailable)),
         if (includeReturnToRoot)
           const RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.returnToPauseRoot),
       ];
@@ -2278,7 +2306,7 @@ final class RuntimePlayerCoordinator {
         else
           RuntimePlayerActionAvailability.disabled(
             RuntimePlayerAction.openMap,
-            reason: 'This game does not provide a player map.',
+            reason: _feedback(.playerMapUnavailable),
           ),
       if (_isPauseActionVisible(ProjectPauseActionId.quests, pauseMenuState))
         if (pauseDetails.containsKey(RuntimePlayerPauseSection.quests))
@@ -2433,9 +2461,9 @@ final class RuntimePlayerCoordinator {
   Future<RuntimePlayerCommandResult> _deleteUnusableSave() async {
     final address = _unusableSaveAddress;
     if (address == null) {
-      return const RuntimePlayerCommandResult(
+      return RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.unavailable,
-        safeMessage: 'Aucune sauvegarde à réparer n’est sélectionnée.',
+        safeMessage: _feedback(.unusableSaveNotSelected),
       );
     }
     await _saveGateway.deleteSave(address);

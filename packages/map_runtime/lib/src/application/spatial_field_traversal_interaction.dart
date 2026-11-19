@@ -1,7 +1,9 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../player/runtime_player_feedback.dart';
 import 'dialogue_runtime_models.dart';
+import 'field_move_dialogue.dart';
 
 final class SpatialFieldTraversalInteraction {
   const SpatialFieldTraversalInteraction(this.session, this.ticket);
@@ -19,6 +21,7 @@ SpatialFieldTraversalInteraction? prepareSpatialFieldTraversalInteraction({
   ProjectSettings? projectSettings,
   bool Function(String)? entityIsPresent,
   SpatialActorRuntimeState? Function(String)? actorStateProvider,
+  RuntimeOverworldFeedbackFormatter feedback = fallbackRuntimeOverworldFeedback,
 }) {
   if (ability != FieldAbility.waterfall && ability != FieldAbility.whirlpool) {
     return null;
@@ -33,24 +36,12 @@ SpatialFieldTraversalInteraction? prepareSpatialFieldTraversalInteraction({
     entityIsPresent: entityIsPresent,
     actorStateProvider: actorStateProvider,
   );
-  final name = ability == FieldAbility.waterfall ? 'Cascade' : 'Tourbillon';
-  final text = switch (evaluation.reason) {
-    null => 'Voulez-vous utiliser $name pour traverser ce passage ?',
-    FieldTraversalBlockReason.missingMove =>
-      'Un Pokémon apte à utiliser $name est nécessaire.',
-    FieldTraversalBlockReason.locked =>
-      'Vous n’avez pas encore l’autorisation d’utiliser $name.',
-    FieldTraversalBlockReason.requiresSurf =>
-      'Vous devez utiliser Surf avant de traverser ce passage.',
-    FieldTraversalBlockReason.wrongDirection =>
-      'Placez-vous dans le sens du passage pour le traverser.',
-    FieldTraversalBlockReason.obstructed =>
-      'Le passage ou sa sortie est occupé.',
-    FieldTraversalBlockReason.requiresWater =>
-      'Ce passage doit se trouver sur l’eau.',
-    _ => '',
-  };
-  if (text.isEmpty) return null;
+  final text = fieldTraversalDialogueMessage(
+    ability,
+    evaluation.reason,
+    feedback,
+  );
+  if (text == null) return null;
   final ticket = evaluation.reason != null
       ? null
       : issueSpatialFieldTraversalTicket(
@@ -72,12 +63,12 @@ SpatialFieldTraversalInteraction? prepareSpatialFieldTraversalInteraction({
         YarnStepChoiceBlock(
           [
             YarnChoice(
-              text: 'Oui',
+              text: feedback(.yes),
               steps: const [],
               outcomeId: 'field-traversal-confirmed',
             ),
             YarnChoice(
-              text: 'Non',
+              text: feedback(.no),
               steps: const [],
               outcomeId: 'field-traversal-declined',
             ),

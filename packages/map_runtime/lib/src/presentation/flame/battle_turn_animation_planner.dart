@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:map_battle/map_battle.dart';
 
 import '../../application/runtime_move_catalog_loader.dart';
+import '../runtime_battle_message.dart';
 import 'battle_animation_plan.dart';
 import 'battle_move_audio_scope.dart';
 import 'battle_move_recipe_compiler.dart';
@@ -11,6 +12,7 @@ import 'battle_move_visual_catalog.dart';
 import 'battle_move_visual_recipe_library.dart';
 import 'battle_move_visual_resolver.dart';
 import 'battle_recipe_audio_program.dart';
+import 'battle_turn_messages.dart';
 
 final class BattleTurnAudioCancelled implements Exception {
   const BattleTurnAudioCancelled();
@@ -147,12 +149,16 @@ final class BattleTurnAnimationPlanner {
       BattleMoveVisualRecipeContext,
     )? recipeBuilder,
     this.speciesDisplayName = _rawSpeciesName,
+    this.resolveCombatantDisplayName,
+    RuntimeBattleMessageRenderer? formatBattleMessage,
     this.moveDisplayName = _rawMoveName,
     this.announcesOutcome = true,
     this.resolveCombatantBallItemId,
   }) : _importedRecipes = Map.unmodifiable(importedRecipes),
-       _buildRecipe = recipeBuilder ??
-            (recipeLibrary ?? BattleMoveVisualRecipeLibrary()).build;
+       _messages = BattleTurnMessages(formatBattleMessage),
+       _buildRecipe =
+           recipeBuilder ??
+           (recipeLibrary ?? BattleMoveVisualRecipeLibrary()).build;
 
   /// Ce plan annonce-t-il lui-même l'issue du combat ?
   ///
@@ -183,6 +189,13 @@ final class BattleTurnAnimationPlanner {
   /// l'identifiant : un appelant qui n'en fournit pas garde exactement l'ancien
   /// texte.
   final BattleTurnSpeciesDisplayName speciesDisplayName;
+  final String Function(BattleSideId side, BattleCombatant combatant)?
+  resolveCombatantDisplayName;
+  final BattleTurnMessages _messages;
+
+  String _combatantName(BattleSideId side, BattleCombatant combatant) =>
+      resolveCombatantDisplayName?.call(side, combatant) ??
+      speciesDisplayName(combatant.speciesId);
   final BattleTurnMoveDisplayName moveDisplayName;
 
   BattleAnimationPlan build({
@@ -212,6 +225,7 @@ final class BattleTurnAnimationPlanner {
             outcome,
             isTrainerBattle: newSession.setup.isTrainerBattle,
             speciesDisplayName: speciesDisplayName,
+            messages: _messages,
             announcesOutcome: announcesOutcome,
           ),
         ),
@@ -251,6 +265,7 @@ final class BattleTurnAnimationPlanner {
             outcome,
             isTrainerBattle: newSession.setup.isTrainerBattle,
             speciesDisplayName: speciesDisplayName,
+            messages: _messages,
             announcesOutcome: announcesOutcome,
           ),
         ]),
@@ -376,8 +391,25 @@ final class BattleTurnAnimationPlanner {
     };
     final trackedDisplayName = <BattleSlotRef, String>{
       for (final entry in before.entries)
-        entry.key: speciesDisplayName(entry.value.speciesId),
+        entry.key: _combatantName(entry.key.side, entry.value),
     };
+    String nameForSlot(BattleSlotRef slot) =>
+        trackedDisplayName[slot] ?? _messages.sideLabel(slot.side);
+    BattleSlotRef? slotForLineup(BattleSideId side, int lineupIndex) =>
+        trackedLineup.entries
+            .where(
+              (entry) => entry.key.side == side && entry.value == lineupIndex,
+            )
+            .firstOrNull
+            ?.key;
+    String itemTargetName(
+      BattleSideId side,
+      int lineupIndex,
+      String speciesId,
+    ) =>
+        trackedDisplayName[slotForLineup(side, lineupIndex)] ??
+        speciesDisplayName(speciesId);
+
     final replacementRequiredSides = turnResult.timeline
         .whereType<BattleTurnSwitchEvent>()
         .map((event) => event.event)
@@ -401,16 +433,25 @@ final class BattleTurnAnimationPlanner {
           if (isEffectProc) {
             if (execution.move.id == 'effect:confusion') {
               steps.add(
-                const ShowMessageStep(
-                  message: 'Il se blesse dans sa confusion.',
+                _messages.show(
+                  const RuntimeBattleMessage(
+                    RuntimeBattleMessageId.confusionHurt,
+                    'Il se blesse dans sa confusion.',
+                  ),
                 ),
               );
             }
           } else {
             steps.add(
-              ShowMessageStep(
-                message:
-                    '${_presentationCombatantName(execution.attackerSlot, trackedDisplayName)} utilise ${moveDisplayName(execution.move.id, execution.move.name)} !',
+              _messages.moveUsed(
+                nameForSlot(execution.attackerSlot),
+                moveDisplayName(execution.move.id, execution.move.name),
+                damage:
+                    execution.didHit &&
+                        execution.targetKind ==
+                            BattleMoveExecutionTargetKind.combatant
+                    ? execution.damage
+                    : 0,
               ),
             );
             final resolvedMove = resolver.resolve(execution.move);
@@ -582,12 +623,7 @@ final class BattleTurnAnimationPlanner {
           if (!execution.didHit &&
               execution.targetKind == BattleMoveExecutionTargetKind.combatant &&
               execution.targetSide != null) {
-            steps.add(
-              ShowMessageStep(
-                message:
-                    '${_presentationCombatantName(execution.targetSlot!, trackedDisplayName)} évite l’attaque !',
-              ),
-            );
+            steps.add(_messages.moveDodged(nameForSlot(execution.targetSlot!)));
           }
           if (execution.didHit &&
               execution.targetKind == BattleMoveExecutionTargetKind.combatant &&
@@ -596,12 +632,7 @@ final class BattleTurnAnimationPlanner {
             // Recette du 2026-08-24 : une immunité se dit aussi — « Ça
             // n'affecte pas X… », sans son d'impact, sans clignotement et
             // sans barre : le coup n'a rien touché.
-            steps.add(
-              ShowMessageStep(
-                message:
-                    'Ça n’affecte pas ${_presentationCombatantName(execution.targetSlot!, trackedDisplayName)}…',
-              ),
-            );
+            steps.add(_messages.moveImmune(nameForSlot(execution.targetSlot!)));
           } else if (execution.didHit &&
               execution.targetKind == BattleMoveExecutionTargetKind.combatant &&
               execution.targetSide != null &&
@@ -665,11 +696,18 @@ final class BattleTurnAnimationPlanner {
             // `efficent_message` et où les deux sont joués une fois
             // `show_hp_animations` terminé.
             if (execution.didCrit) {
-              steps.add(const ShowMessageStep(message: 'Coup critique !'));
+              steps.add(
+                _messages.show(
+                  const RuntimeBattleMessage(
+                    RuntimeBattleMessageId.criticalHit,
+                    'Coup critique !',
+                  ),
+                ),
+              );
             }
             if (_effectivenessMessage(execution.typeEffectivenessMultiplier)
                 case final effectiveness?) {
-              steps.add(ShowMessageStep(message: effectiveness));
+              steps.add(_messages.show(effectiveness));
             }
             if (hpFrom > 0 && hpTo == 0) {
               // BETA-BAT-014 : le son de K.O. de la référence — `down`, volume
@@ -686,33 +724,20 @@ final class BattleTurnAnimationPlanner {
                   ),
                 );
               }
-              steps.add(
-                ShowMessageStep(
-                  message:
-                      '${_presentationCombatantName(targetSide, trackedDisplayName)} est K.O. !',
-                ),
-              );
+              steps.add(_messages.fainted(nameForSlot(targetSide)));
             }
           }
         case BattleTurnBagHpHealItemEvent(:final event):
-          steps.add(
-            ShowMessageStep(
-              message:
-                  '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${speciesDisplayName(event.targetSpeciesId)} !',
-            ),
+          final visibleTargetSide = slotForLineup(
+            event.side,
+            event.targetLineupIndex,
           );
+          final target =
+              trackedDisplayName[visibleTargetSide] ??
+              speciesDisplayName(event.targetSpeciesId);
+          steps.add(_messages.itemUsed(event.side, event.displayName, target));
           trackedPartyHp[(event.side, event.targetLineupIndex)] = event.hpAfter;
-          final visibleTargetSide = trackedLineup.entries
-              .where((entry) => entry.key.side == event.side &&
-                  entry.value == event.targetLineupIndex)
-              .map((entry) => entry.key)
-              .firstOrNull;
-          steps.add(
-            ShowMessageStep(
-              message:
-                  '${speciesDisplayName(event.targetSpeciesId)} récupère ${event.healedAmount} PV.',
-            ),
-          );
+          steps.add(_messages.hpRecovered(target, event.healedAmount));
           if (visibleTargetSide != null && event.healedAmount > 0) {
             trackedHp[visibleTargetSide] = event.hpAfter;
             steps.add(
@@ -725,30 +750,39 @@ final class BattleTurnAnimationPlanner {
             );
           }
         case BattleTurnStatusCuredItemEvent():
+          final target = itemTargetName(
+            event.side,
+            event.targetLineupIndex,
+            event.targetSpeciesId,
+          );
           if (!itemHealingAnnouncesStatusCure(previous, event)) {
-            steps.add(ShowMessageStep(
-              message:
-                  '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${speciesDisplayName(event.targetSpeciesId)} !',
-            ));
+            steps.add(
+              _messages.itemUsed(event.side, event.displayName, target),
+            );
           }
-          steps.add(ShowMessageStep(
-            message:
-                '${speciesDisplayName(event.targetSpeciesId)} est guéri de son problème de statut.',
-          ));
+          steps.add(_messages.statusCured(target));
         case BattleTurnMovePpRestoredEvent():
-          steps.add(ShowMessageStep(
-            message:
-                '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${speciesDisplayName(event.targetSpeciesId)} !',
-          ));
-          steps.add(ShowMessageStep(
-            message:
-                '${moveDisplayName(event.moveId, event.moveName)} récupère ${event.amount} PP.',
-          ));
+          final target = itemTargetName(
+            event.side,
+            event.targetLineupIndex,
+            event.targetSpeciesId,
+          );
+          steps.add(_messages.itemUsed(event.side, event.displayName, target));
+          steps.add(
+            _messages.ppRecovered(
+              moveDisplayName(event.moveId, event.moveName),
+              event.amount,
+            ),
+          );
         case BattleTurnCaptureAttemptEvent(:final event):
           final targetName = speciesDisplayName(event.targetSpeciesId);
           steps.add(
-            ShowMessageStep(
-              message: 'Une Poké Ball est lancée sur $targetName !',
+            _messages.show(
+              RuntimeBattleMessage(
+                RuntimeBattleMessageId.captureThrown,
+                'Une Poké Ball est lancée sur $targetName !',
+                target: targetName,
+              ),
             ),
           );
           // BETA-BAT-025 : la capture passe par la vraie Poké Ball — le
@@ -769,24 +803,20 @@ final class BattleTurnAnimationPlanner {
             ),
           );
           steps.add(
-            ShowMessageStep(
-              message: event.caught
-                  ? '$targetName est capturé !'
-                  : '$targetName s’échappe de la Poké Ball !',
+            _messages.show(
+              event.caught
+                  ? _battleCaptureCaughtMessage(targetName)
+                  : RuntimeBattleMessage(
+                      RuntimeBattleMessageId.captureEscaped,
+                      '$targetName s’échappe de la Poké Ball !',
+                      target: targetName,
+                    ),
             ),
           );
         case BattleTurnStatusEvent(:final event):
-          steps.add(
-            ShowMessageStep(
-              message: _messageForStatusEvent(event, trackedDisplayName),
-            ),
-          );
+          steps.add(_messages.status(event, nameForSlot(event.targetSlot)));
         case BattleTurnVolatileEvent(:final event):
-          steps.add(
-            ShowMessageStep(
-              message: _messageForVolatileEvent(event, trackedDisplayName),
-            ),
-          );
+          steps.add(_messages.volatile(event, nameForSlot(event.actorSlot)));
           switch (event.kind) {
             case BattleVolatileEventKind.protectActivated:
               steps.add(
@@ -857,9 +887,12 @@ final class BattleTurnAnimationPlanner {
               break;
           }
         case BattleTurnFieldEvent(:final event):
-          steps.add(ShowMessageStep(
-            message: _messageForFieldEvent(event, trackedDisplayName),
-          ));
+          steps.add(
+            _messages.field(
+              event,
+              event.targetSlot == null ? null : nameForSlot(event.targetSlot!),
+            ),
+          );
           switch (event.kind) {
             case BattleFieldEventKind.weatherResidualDamage:
               final targetSide = event.targetSlot;
@@ -887,10 +920,7 @@ final class BattleTurnAnimationPlanner {
                       durationSeconds: 0.1,
                     ));
                   }
-                  steps.add(ShowMessageStep(
-                    message:
-                        '${_presentationCombatantName(targetSide, trackedDisplayName)} est K.O. !',
-                  ));
+                  steps.add(_messages.fainted(nameForSlot(targetSide)));
                 }
               }
             case BattleFieldEventKind.weatherSet:
@@ -928,9 +958,7 @@ final class BattleTurnAnimationPlanner {
               break;
           }
         case BattleTurnStealthRockEvent(:final event):
-          steps.add(
-            ShowMessageStep(message: _messageForStealthRockEvent(event)),
-          );
+          steps.add(_messages.stealthRock(event));
           if (event.kind == BattleStealthRockEventKind.set) {
             steps.addAll(
               _buildRecipe(
@@ -981,18 +1009,11 @@ final class BattleTurnAnimationPlanner {
                   ),
                 );
               }
-              steps.add(
-                ShowMessageStep(
-                  message:
-                      '${_presentationCombatantName(targetSide, trackedDisplayName)} est K.O. !',
-                ),
-              );
+              steps.add(_messages.fainted(nameForSlot(targetSide)));
             }
           }
         case BattleTurnSpikesEvent(:final event):
-          steps.add(
-            ShowMessageStep(message: _messageForSpikesEvent(event)),
-          );
+          steps.add(_messages.spikes(event));
           if (event.kind == BattleSpikesEventKind.setLayer) {
             steps.addAll(
               _buildRecipe(
@@ -1043,16 +1064,27 @@ final class BattleTurnAnimationPlanner {
                   ),
                 );
               }
-              steps.add(
-                ShowMessageStep(
-                  message:
-                      '${_presentationCombatantName(targetSide, trackedDisplayName)} est K.O. !',
-                ),
-              );
+              steps.add(_messages.fainted(nameForSlot(targetSide)));
             }
           }
         case BattleTurnSwitchEvent(:final event):
-          steps.add(ShowMessageStep(message: _messageForSwitchEvent(event)));
+          final incoming = after[event.slot];
+          final incomingSpeciesId = event.toSpeciesId;
+          final incomingName =
+              incoming != null && incoming.speciesId == incomingSpeciesId
+              ? _combatantName(event.side, incoming)
+              : incomingSpeciesId == null
+              ? ''
+              : speciesDisplayName(incomingSpeciesId);
+          steps.add(
+            _messages.switchCombatant(
+              event: event,
+              outgoing:
+                  trackedDisplayName[event.slot] ??
+                  speciesDisplayName(event.fromSpeciesId),
+              incoming: incomingName,
+            ),
+          );
           if (event.kind == BattleSwitchEventKind.switched) {
             // BETA-BAT-022 : le remplacement passe par la Poké Ball, comme
             // la référence — rappel (la Ball s'ouvre, le Pokémon rétrécit),
@@ -1079,7 +1111,6 @@ final class BattleTurnAnimationPlanner {
                 durationSeconds: 0.1,
               ),
             );
-            final incoming = after[event.slot];
             final incomingHp = incoming == null ? null :
                 trackedPartyHp[(event.side, incoming.lineupIndex)] ?? incoming.currentHp;
             if (incoming != null && incomingHp != null) {
@@ -1109,8 +1140,7 @@ final class BattleTurnAnimationPlanner {
                 durationSeconds: 0.1,
               ),
             );
-            trackedDisplayName[event.slot] =
-                speciesDisplayName(event.toSpeciesId!);
+            trackedDisplayName[event.slot] = incomingName;
           } else {
             steps.add(
               FaintCombatantStep(
@@ -1134,19 +1164,25 @@ final class BattleTurnAnimationPlanner {
               ),
             );
           }
+          steps.add(_messages.statStage(event, nameForSlot(event.slot)));
+        case BattleTurnMoveFailedEvent():
           steps.add(
-            ShowMessageStep(
-              message: _messageForStatStageEvent(event, trackedDisplayName),
+            _messages.show(
+              const RuntimeBattleMessage(
+                RuntimeBattleMessageId.moveFailed,
+                'Mais cela échoue !',
+              ),
             ),
           );
-        case BattleTurnMoveFailedEvent():
-          steps.add(const ShowMessageStep(message: 'Mais cela échoue !'));
         case BattleTurnFleeFailedEvent():
           // Recette du 2026-08-24 : sans ce texte, l'adversaire attaquait
           // après une fuite ratée sans que le joueur sache pourquoi.
           steps.add(
-            const ShowMessageStep(
-              message: 'Vous n’avez pas réussi à fuir.',
+            _messages.show(
+              const RuntimeBattleMessage(
+                RuntimeBattleMessageId.fleeFailed,
+                'Vous n’avez pas réussi à fuir.',
+              ),
             ),
           );
       }
@@ -1209,6 +1245,7 @@ List<BattleAnimationStep> _buildOutcomeSteps(
   BattleOutcome outcome, {
   required bool isTrainerBattle,
   required BattleTurnSpeciesDisplayName speciesDisplayName,
+  required BattleTurnMessages messages,
   bool announcesOutcome = true,
 }) {
   // Le SON de la fuite part même quand l'annonce revient à l'hôte : c'est un
@@ -1224,19 +1261,11 @@ List<BattleAnimationStep> _buildOutcomeSteps(
   if (!battleOutcomeIsAnnounced(outcome, isTrainerBattle: isTrainerBattle)) {
     return const <BattleAnimationStep>[];
   }
-  final message = switch (outcome.type) {
-    BattleOutcomeType.victory => 'Tu as gagné le combat !',
-    BattleOutcomeType.defeat =>
-      'Tu n’as plus de Pokémon en état de combattre !',
-    BattleOutcomeType.runaway => 'Tu as pris la fuite !',
-    BattleOutcomeType.captured =>
-      '${speciesDisplayName(outcome.finalState.enemy.speciesId)} est capturé !',
-  };
   return <BattleAnimationStep>[
     // Recette du 2026-08-24 : la fuite a son propre son chez la référence —
     // `escape` (fleee.wav), volume 80, pitch 70 — joué avec l'annonce.
     ...fleeSe,
-    ShowMessageStep(message: message),
+    messages.show(buildBattleOutcomeMessage(outcome, speciesDisplayName)),
   ];
 }
 
@@ -1256,10 +1285,18 @@ String _hitSeName(double multiplier) {
   return 'hit';
 }
 
-String? _effectivenessMessage(double multiplier) {
-  if (multiplier > 1.0) return 'C’est super efficace !';
+RuntimeBattleMessage? _effectivenessMessage(double multiplier) {
+  if (multiplier > 1.0) {
+    return const RuntimeBattleMessage(
+      RuntimeBattleMessageId.superEffective,
+      'C’est super efficace !',
+    );
+  }
   if (multiplier > 0.0 && multiplier < 1.0) {
-    return 'Ce n’est pas très efficace…';
+    return const RuntimeBattleMessage(
+      RuntimeBattleMessageId.notVeryEffective,
+      'Ce n’est pas très efficace…',
+    );
   }
   return null;
 }
@@ -1292,159 +1329,40 @@ double _postDrainHoldSeconds({
   return (1.0 - drainSeconds).clamp(0.25, 1.0);
 }
 
-String _presentationCombatantLabel(BattleSideId side) {
-  return side == BattleSideId.player ? 'Joueur' : 'Ennemi';
-}
-
-String _presentationCombatantName(
-  BattleSlotRef slot,
-  Map<BattleSlotRef, String> displayNameBySide,
-) {
-  return displayNameBySide[slot] ?? _presentationCombatantLabel(slot.side);
-}
-
-/// Les textes de changement d'étage de la référence — BETA-BAT-021.
-///
-/// Parité Data/Text/Dialogs 100019 : le nom de la stat est genré en français
-/// (« L'Attaque … augmente ! », « La Défense … baisse ! »), et l'ampleur suit
-/// le nombre d'étages : 1 « augmente/baisse », 2 « beaucoup », 3 et plus
-/// « énormément ». Un changement refusé dit « ne peut plus … ».
-String _messageForStatStageEvent(
-  BattleTurnStatStageEvent event,
-  Map<BattleSlotRef, String> displayNameBySide,
-) {
-  final target = _presentationCombatantName(event.slot, displayNameBySide);
-  final label = switch (event.stat) {
-    BattleStatId.attack => 'L’Attaque',
-    BattleStatId.defense => 'La Défense',
-    BattleStatId.specialAttack => 'L’Attaque Spéciale',
-    BattleStatId.specialDefense => 'La Défense Spéciale',
-    BattleStatId.speed => 'La Vitesse',
-    BattleStatId.accuracy => 'La Précision',
-    BattleStatId.evasion => 'L’Esquive',
-  };
-  if (event.amount == 0) {
-    // Le sens du refus se lit sur l'étage atteint : au plafond on ne peut
-    // plus monter, au plancher on ne peut plus descendre.
-    return event.currentStage > 0
-        ? '$label de $target ne peut plus augmenter !'
-        : '$label de $target ne peut plus baisser !';
-  }
-  final magnitude = switch (event.amount.abs()) {
-    1 => '',
-    2 => ' beaucoup',
-    _ => ' énormément',
-  };
-  final verb = event.amount > 0 ? 'augmente' : 'baisse';
-  return '$label de $target $verb$magnitude !';
-}
-
-String _messageForStatusEvent(
-  BattleStatusEvent event,
-  Map<BattleSlotRef, String> displayNameBySide,
-) {
-  final target =
-      _presentationCombatantName(event.targetSlot, displayNameBySide);
-  return switch (event.kind) {
-    // Recette du 2026-08-24 : les textes d'application suivent la référence
-    // (« [X] est empoisonné ! »), avec le nom affichable du Pokémon plutôt
-    // qu'un « Joueur subit PSN ! » technique.
-    BattleStatusEventKind.applied => switch (event.status) {
-        BattleMajorStatusId.par =>
-          '$target est paralysé ! Il aura du mal à attaquer !',
-        BattleMajorStatusId.brn => '$target est brûlé !',
-        BattleMajorStatusId.psn => '$target est empoisonné !',
-        BattleMajorStatusId.tox => '$target est gravement empoisonné !',
-        BattleMajorStatusId.slp => '$target s’est endormi !',
-        BattleMajorStatusId.frz => '$target est gelé !',
-      },
-    BattleStatusEventKind.blockedExistingMajorStatus =>
-      '$target a déjà un statut majeur.',
-    BattleStatusEventKind.preventedAction => '$target ne peut pas agir !',
-    BattleStatusEventKind.residualDamage => switch (event.status) {
-        BattleMajorStatusId.brn => '$target souffre de sa brûlure !',
-        BattleMajorStatusId.psn ||
-        BattleMajorStatusId.tox =>
-          '$target souffre du poison !',
-        _ => '$target subit des dégâts !',
-      },
-  };
-}
-
-String _messageForVolatileEvent(
-  BattleVolatileEvent event,
-  Map<BattleSlotRef, String> displayNameBySide,
-) {
-  final actor = _presentationCombatantName(event.actorSlot, displayNameBySide);
-  return switch (event.kind) {
-    BattleVolatileEventKind.protectActivated => '$actor se protège !',
-    BattleVolatileEventKind.protectBlocked =>
-      'L’attaque est bloquée par Protect !',
-    BattleVolatileEventKind.protectBroken => 'La protection est brisée !',
-    BattleVolatileEventKind.rechargeRequired => '$actor doit se recharger !',
-    BattleVolatileEventKind.rechargeTurnSpent => '$actor récupère son souffle.',
-    BattleVolatileEventKind.chargeStarted => '$actor se charge !',
-    BattleVolatileEventKind.chargeReleased => '$actor libère son attaque !',
-    // Recette du 2026-08-24 : les trois temps de la confusion, aux textes de
-    // la référence.
-    BattleVolatileEventKind.confusionApplied => 'Ça rend $actor confus !',
-    BattleVolatileEventKind.confusionActive => '$actor est confus !',
-    BattleVolatileEventKind.confusionEnded => '$actor n’est plus confus !',
-  };
-}
-
-String _messageForFieldEvent(
-  BattleFieldEvent event,
-  Map<BattleSlotRef, String> displayNameBySide,
-) {
-  final target = event.targetSlot == null
-      ? null
-      : _presentationCombatantName(event.targetSlot!, displayNameBySide);
-  return switch (event.kind) {
-    BattleFieldEventKind.weatherSet => event.weather == BattleWeatherId.rain
-        ? 'La pluie commence à tomber.'
-        : 'Une tempête de sable se lève.',
-    BattleFieldEventKind.weatherResidualDamage =>
-      '$target est blessé par la tempête de sable !',
-    BattleFieldEventKind.weatherExpired => 'La météo se dissipe.',
-    BattleFieldEventKind.pseudoWeatherSet => 'L’espace se tord bizarrement.',
-    BattleFieldEventKind.pseudoWeatherCleared =>
-      'Le pseudo-climat de champ disparaît.',
-    BattleFieldEventKind.pseudoWeatherExpired => 'L’effet de champ prend fin.',
-  };
-}
-
-String _messageForStealthRockEvent(BattleStealthRockEvent event) {
-  return switch (event.kind) {
-    BattleStealthRockEventKind.set =>
-      'Des pièges de roc entourent le camp adverse !',
-    BattleStealthRockEventKind.alreadyPresent =>
-      'Les pièges de roc sont déjà en place.',
-    BattleStealthRockEventKind.damagedOnEntry =>
-      'Les pièges de roc blessent le Pokémon entrant !',
-  };
-}
-
-String _messageForSpikesEvent(BattleSpikesEvent event) {
-  return switch (event.kind) {
-    BattleSpikesEventKind.setLayer =>
-      'Des picots se dispersent sur le terrain adverse !',
-    BattleSpikesEventKind.alreadyAtMaxLayers =>
-      'Les picots sont déjà au maximum.',
-    BattleSpikesEventKind.damagedOnEntry =>
-      'Les picots blessent le Pokémon entrant !',
-  };
-}
-
-String _messageForSwitchEvent(BattleSwitchEvent event) {
-  return switch (event.kind) {
-    BattleSwitchEventKind.switched =>
-      '${_presentationCombatantLabel(event.side)} rappelle ${event.fromSpeciesId} et envoie ${event.toSpeciesId} !',
-    BattleSwitchEventKind.replacementRequired =>
-      '${_presentationCombatantLabel(event.side)} doit remplacer ${event.fromSpeciesId} !',
-  };
-}
-
 BattleSideId _oppositeSide(BattleSideId side) {
   return side == BattleSideId.player ? BattleSideId.enemy : BattleSideId.player;
 }
+
+RuntimeBattleMessage buildBattleOutcomeMessage(
+  BattleOutcome outcome,
+  String Function(String speciesId) speciesDisplayName,
+) {
+  switch (outcome.type) {
+    case BattleOutcomeType.victory:
+      return const RuntimeBattleMessage(
+        RuntimeBattleMessageId.victory,
+        'Tu as gagné le combat !',
+      );
+    case BattleOutcomeType.defeat:
+      return const RuntimeBattleMessage(
+        RuntimeBattleMessageId.defeat,
+        'Tu n’as plus de Pokémon en état de combattre !',
+      );
+    case BattleOutcomeType.runaway:
+      return const RuntimeBattleMessage(
+        RuntimeBattleMessageId.fled,
+        'Tu as pris la fuite !',
+      );
+    case BattleOutcomeType.captured:
+      return _battleCaptureCaughtMessage(
+        speciesDisplayName(outcome.finalState.enemy.speciesId),
+      );
+  }
+}
+
+RuntimeBattleMessage _battleCaptureCaughtMessage(String target) =>
+    RuntimeBattleMessage(
+      RuntimeBattleMessageId.captureCaught,
+      '$target est capturé !',
+      target: target,
+    );

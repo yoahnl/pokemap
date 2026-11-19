@@ -37,6 +37,7 @@ import 'spatial_field_action_presentation.dart';
 import 'spatial_field_obstacle_burst.dart';
 import 'spatial_field_motion.dart';
 import '../application/field_move_dialogue.dart';
+import '../player/runtime_player_feedback.dart';
 
 final class SpatialExplorationSession {
   SpatialExplorationSession._(this.bundle, this.character, this.movement,
@@ -266,11 +267,20 @@ final class SpatialExplorationSession {
       ? surfWater.facingWater(movement.x, movement.z, movement.facing)
       : null;
 
-  Future<void> promptSurf(SurfAttemptEvaluation evaluation, VoidCallback onConfirmed) async {
+  Future<void> promptSurf(
+    SurfAttemptEvaluation evaluation,
+    VoidCallback onConfirmed, {
+    String uiLocale = 'fr',
+    RuntimePlayerFeedbackLocalizer? feedbackLocalizer,
+  }) async {
     final node = surfEvaluationToYarnNode(evaluation);
     if (node == null) return;
     await _openDialogue(const DialogueRef(dialogueId: 'system:surf'),
-      providedSession: loadSurfDialogueSession(node),
+      providedSession: loadSurfDialogueSession(
+        node,
+        uiLocale: uiLocale,
+        localizer: feedbackLocalizer,
+      ),
       onSurfConfirmed: evaluation is CanPromptSurf ? onConfirmed : null,
     );
   }
