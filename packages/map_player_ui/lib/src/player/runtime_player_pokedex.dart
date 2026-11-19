@@ -68,8 +68,6 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
       widget.navigation ?? _localNavigation;
   List<RuntimePlayerDetailEntrySnapshot> get _entries => widget.detail.entries;
 
-  String _text(String fr, String en) =>
-      Localizations.localeOf(context).languageCode == 'fr' ? fr : en;
 
   RuntimePlayerPokedexKnowledge _knowledge(
     RuntimePlayerDetailEntrySnapshot entry,
@@ -84,12 +82,13 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
   String _number(RuntimePlayerDetailEntrySnapshot entry) =>
       entry.pokedexEntry?.nationalDex?.toString().padLeft(3, '0') ?? '—';
 
-  String _status(RuntimePlayerDetailEntrySnapshot entry) =>
-      switch (_knowledge(entry)) {
-        RuntimePlayerPokedexKnowledge.unknown => _text('Inconnu', 'Unknown'),
-        RuntimePlayerPokedexKnowledge.seen => _text('Vu', 'Seen'),
-        RuntimePlayerPokedexKnowledge.caught => _text('Capturé', 'Caught'),
-      };
+  String _status(RuntimePlayerDetailEntrySnapshot entry) => switch (_knowledge(
+    entry,
+  )) {
+    RuntimePlayerPokedexKnowledge.unknown => context.playerL10n.pokedexUnknown,
+    RuntimePlayerPokedexKnowledge.seen => context.playerL10n.pokedexSeen,
+    RuntimePlayerPokedexKnowledge.caught => context.playerL10n.pokedexCaught,
+  };
 
   String _normalized(String value) {
     const accents = {
@@ -379,7 +378,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
               cursorColor: theme.focus,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: _text('Nom ou numéro', 'Name or number'),
+                hintText: context.playerL10n.pokedexSearchHint,
                 hintStyle: theme.body.copyWith(color: theme.secondary),
                 prefixIcon: Icon(Icons.search, color: theme.secondary),
                 border: InputBorder.none,
@@ -405,7 +404,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
                 key: const ValueKey('pokedex-search-clear'),
                 id: 'pokedex-search-clear',
                 label: '',
-                semanticValue: _text('Effacer la recherche', 'Clear search'),
+                semanticValue: context.playerL10n.clearSearch,
                 integrated: true,
                 minimumHeight: 48,
                 contentPadding: const EdgeInsets.symmetric(vertical: 4),
@@ -432,9 +431,11 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
             key: ValueKey('pokedex-filter-${filter.name}'),
             id: 'pokedex-filter-${filter.name}',
             label: switch (filter) {
-              RuntimePlayerPokedexFilter.all => _text('Tous', 'All'),
-              RuntimePlayerPokedexFilter.seen => _text('Vus', 'Seen'),
-              RuntimePlayerPokedexFilter.caught => _text('Capturés', 'Caught'),
+              RuntimePlayerPokedexFilter.all => context.playerL10n.all,
+              RuntimePlayerPokedexFilter.seen =>
+                context.playerL10n.pokedexSeenFilter,
+              RuntimePlayerPokedexFilter.caught =>
+                context.playerL10n.pokedexCaughtFilter,
             },
             selected: _navigation._filter == filter,
             tab: true,
@@ -514,19 +515,15 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
     const Icon(Icons.search_off, size: 32),
     Text(
       _entries.isEmpty
-          ? _text('Pokédex vide', 'Empty Pokédex')
-          : _text('Aucun résultat', 'No results'),
+          ? context.playerL10n.pokedexEmpty
+          : context.playerL10n.noResults,
       key: ValueKey(_entries.isEmpty ? 'pokedex-empty' : 'pokedex-no-results'),
       style: context.playerMenuTheme.subtitle,
     ),
     Text(
       _entries.isEmpty
-          ? widget.detail.emptyMessage ??
-                _text('Aucune entrée disponible.', 'No entries available.')
-          : _text(
-              'Essayez un autre nom, numéro ou filtre.',
-              'Try another name, number or filter.',
-            ),
+          ? widget.detail.emptyMessage ?? context.playerL10n.pokedexEmptyMessage
+          : context.playerL10n.pokedexSearchNoResults,
       style: context.playerMenuTheme.body,
     ),
   ];
@@ -577,15 +574,9 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
               PlayerCompanionScope.of(context);
           if (wide && MediaQuery.textScalerOf(context).scale(1) < 1.5) {
             final description = !_known(entry)
-                ? _text(
-                    'Ce Pokémon n’a pas encore été rencontré.',
-                    'This Pokémon has not been encountered yet.',
-                  )
+                ? context.playerL10n.pokedexNotEncountered
                 : entry.pokedexEntry?.description ??
-                      _text(
-                        'Aucune description disponible.',
-                        'No description available.',
-                      );
+                      context.playerL10n.noDescriptionAvailable;
             final descriptionRows = textPages(
               description,
               theme.body.copyWith(fontSize: 14, height: 1.4),
@@ -652,7 +643,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            _text('DESCRIPTION', 'DESCRIPTION'),
+                            context.playerL10n.pokedexDescriptionHeading,
                             style: theme.meta.copyWith(fontSize: 10),
                           ),
                           const SizedBox(height: 8),
@@ -702,15 +693,9 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
                 ),
               ...textPages(
                 !_known(entry)
-                    ? _text(
-                        'Ce Pokémon n’a pas encore été rencontré.',
-                        'This Pokémon has not been encountered yet.',
-                      )
+                    ? context.playerL10n.pokedexNotEncountered
                     : entry.pokedexEntry?.description ??
-                          _text(
-                            'Aucune description disponible.',
-                            'No description available.',
-                          ),
+                          context.playerL10n.noDescriptionAvailable,
                 theme.body,
                 'pokedex-description-text',
               ),

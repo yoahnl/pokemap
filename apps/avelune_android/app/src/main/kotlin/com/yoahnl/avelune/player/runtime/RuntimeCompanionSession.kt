@@ -15,7 +15,9 @@ import com.yoahnl.avelune.host.RuntimeCompanionWindowLease
 import com.yoahnl.avelune.host.RuntimeCompanionWindowPolicy
 import com.yoahnl.avelune.host.RuntimeCompanionWindows
 import com.yoahnl.avelune.host.RuntimeOwnerLifecycle
+import com.yoahnl.avelune.player.R
 import com.yoahnl.avelune.player.display.DisplayCapabilityAdapter
+import com.yoahnl.avelune.player.localization.NativeFailure
 import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineGroup
@@ -90,7 +92,7 @@ class RuntimeCompanionSession(
     }
 
     fun prepare(): String {
-        check(!closed && relay == null) { "La partie précédente est encore en cours de fermeture." }
+        if (closed || relay != null) throw NativeFailure(R.string.error_game_still_closing)
         val sessionId = UUID.randomUUID().toString()
         val current = RuntimeCompanionRelay(sessionId)
         relay = current

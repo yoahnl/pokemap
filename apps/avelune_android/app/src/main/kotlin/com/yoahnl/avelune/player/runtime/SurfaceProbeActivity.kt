@@ -7,6 +7,8 @@ import android.view.Window
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import com.yoahnl.avelune.player.AveluneApplication
+import com.yoahnl.avelune.player.R
+import com.yoahnl.avelune.player.localization.presentationResources
 import io.flutter.embedding.android.FlutterView
 import io.flutter.embedding.engine.FlutterEngine
 import kotlinx.coroutines.CoroutineScope
@@ -49,11 +51,13 @@ class SurfaceProbeActivity : ComponentActivity() {
                 errorDialog?.dismiss()
                 errorDialog = null
                 if (error != null && !isFinishing) {
+                    val appLocale = runtime.applicationLanguage.value.confirmed?.appLocale ?: AppLanguage.ENGLISH.wireValue
+                    val localized = presentationResources(appLocale)
                     errorDialog = AlertDialog.Builder(this@SurfaceProbeActivity)
-                        .setTitle("Le test reste ouvert")
-                        .setMessage(error)
+                        .setTitle(localized.getString(R.string.error_probe_still_open))
+                        .setMessage(error.resolve(localized))
                         .setCancelable(false)
-                        .setPositiveButton("Réessayer") { _, _ -> currentProbe.requestStop() }
+                        .setPositiveButton(localized.getString(R.string.action_retry)) { _, _ -> currentProbe.requestStop() }
                         .show()
                 }
             }

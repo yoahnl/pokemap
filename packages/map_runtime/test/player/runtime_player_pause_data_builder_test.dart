@@ -159,6 +159,89 @@ void main() {
     expect(action.unavailableReason, contains('mode de jeu'));
   });
 
+  test('refreshes species names in pause using the UI locale', () async {
+    final root = await Directory.systemTemp.createTemp('pause-species-locale-');
+    addTearDown(() => root.delete(recursive: true));
+    final species = await Directory('${root.path}/data/pokemon/species')
+        .create(recursive: true);
+    await _writeSpecies(
+      species,
+      fileName: 'sproutle.json',
+      id: 'sproutle',
+      nationalDex: 1,
+      names: {'en': 'Sproutle', 'fr': 'Pousse', 'FR_ca': 'Poussette'},
+      types: ['grass'],
+      baseHp: 45,
+    );
+    await _writeSpecies(
+      species,
+      fileName: 'leaflet.json',
+      id: 'leaflet',
+      nationalDex: 2,
+      names: {'en': 'Leaflet', 'fr': '  '},
+      types: ['grass'],
+      baseHp: 60,
+    );
+    await _writeSpecies(
+      species,
+      fileName: 'unknown.json',
+      id: 'unknown',
+      nationalDex: 3,
+      names: {'en': 'Secret', 'fr': 'Caché'},
+      types: ['grass'],
+      baseHp: 80,
+    );
+    const state = GameState(
+      saveId: 'pause-species-locale',
+      party: PlayerParty(
+        members: [
+          PlayerPokemon(
+            speciesId: 'sproutle',
+            natureId: 'hardy',
+            abilityId: '',
+          ),
+          PlayerPokemon(
+            speciesId: 'leaflet',
+            natureId: 'hardy',
+            abilityId: '',
+            nickname: 'Mon P’tit',
+          ),
+        ],
+      ),
+    );
+    const config = ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    );
+    const builder = RuntimePlayerPauseDataBuilder();
+    for (final (uiLocale, sproutleName) in [
+      ('en', 'Sproutle'),
+      ('fr', 'Pousse'),
+      ('fr-CA', 'Poussette'),
+    ]) {
+      final details = await builder.build(
+        gameState: state,
+        projectRootDirectory: root.path,
+        pokemonConfig: config,
+        locale: 'fr',
+        uiLocale: uiLocale,
+      );
+      final party = details[RuntimePlayerPauseSection.party]!.entries;
+      expect(party.map((entry) => entry.title), [sproutleName, 'Mon P’tit']);
+      expect(party.last.pokemonSummary?.speciesLabel, 'Leaflet');
+      final bagTargets = details[RuntimePlayerPauseSection.bag]!.bagTargets;
+      expect(bagTargets.map((target) => target.label), [
+        sproutleName,
+        'Mon P’tit',
+      ]);
+      final pokedex = details[RuntimePlayerPauseSection.pokedex]!.entries;
+      expect(pokedex.map((entry) => entry.title), [
+        sproutleName,
+        'Leaflet',
+        '???',
+      ]);
+    }
+  });
+
   test(
     'builds party bag and Pokedex details from the live game state',
     () async {

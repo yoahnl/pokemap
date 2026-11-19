@@ -1,6 +1,7 @@
 import 'package:pokemap_hub/features/session/data/repositories/hub_prepared_narrative_index.dart';
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
@@ -188,15 +189,12 @@ final class HubRuntimeStartupBootstrap
         store: preferencesRepository,
         fallbackLocale: launch.manifest.locales.defaultLocale,
         audioMixer: configuredAudioMixer,
+        systemLocales: () => PlatformDispatcher.instance.locales.map(
+          (locale) => locale.toLanguageTag(),
+        ),
       );
       final saveGateway = HubPlayerSaveGateway(store: store);
-      final playerLocale = ProjectLocaleResolver.resolve(
-        preferredLocale:
-            preferences.locale?.toLanguageTag() ??
-            launch.manifest.locales.defaultLocale,
-        supportedLocales: launch.manifest.locales.supported,
-        fallbackLocale: launch.manifest.locales.defaultLocale,
-      );
+      final playerLocale = preferencesGateway.project(preferences).locale;
       final saveSelection = await HubSaveProfileManager(store: store)
           .ensureDefaultSelection(
             defaultProfileDisplayName: defaultProfileDisplayNameForLocale(
@@ -228,6 +226,13 @@ final class HubRuntimeStartupBootstrap
           'The installed dimension does not match its runtime capability.',
         );
       }
+      final locales = ProjectLocalePolicy(
+        supportedLocales: launch.manifest.locales.supported,
+        fallbackLocale: launch.manifest.locales.defaultLocale,
+      );
+      Future<String> readPreferredLocale() async =>
+          (await preferencesGateway.read()).contentLocale(locales);
+
       if (installedProject.presentationCinematics.isNotEmpty) {
         final media = _referencesPresentationMedia(installedProject)
             ? await const HubInstalledPresentationMediaLoader().load(
@@ -246,6 +251,7 @@ final class HubRuntimeStartupBootstrap
           reducedMotion: preferences.reducedMotion,
           frameDeltas: presentationFrameDeltas,
           beforeTerminal: presentationBeforeTerminal,
+          readPreferredLocale: readPreferredLocale,
         );
         lifetime?.own(presentationRuntime.close);
       }
@@ -278,14 +284,12 @@ final class HubRuntimeStartupBootstrap
       preparedCatalog = null;
       lifetime?.own(() async => initialMapPreloader.clear());
       final RuntimeNewGameFlowPort newGameFlow = RuntimeProjectNewGameFlowPort(
-        locales: ProjectLocalePolicy(
-          supportedLocales: launch.manifest.locales.supported,
-          fallbackLocale: launch.manifest.locales.defaultLocale,
-        ),
+        locales: locales,
         projectFilePath: () async => projectFile.path,
         initialMapPreloader: initialMapPreloader,
         preSessionRunnerFactory: presentationRuntime?.buildPreSessionRunner,
         cancelActivePreSession: presentationRuntime?.cancelActive,
+        readPreferredLocale: readPreferredLocale,
       );
       final sessionFactory = HubInProcessSessionFactory(
         launch: launch,
@@ -309,6 +313,7 @@ final class HubRuntimeStartupBootstrap
         gameSource: gameSource,
         saveGateway: saveGateway,
         preferencesGateway: preferencesGateway,
+        readPreferences: preferencesGateway.read,
         newGameFlow: newGameFlow,
         inventoryPreferencesGateway: FilePlayerInventoryPreferencesGateway(
           directory: Directory.fromUri(

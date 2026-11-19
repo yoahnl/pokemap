@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -59,25 +60,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yoahnl.avelune.player.R
+import com.yoahnl.avelune.player.localization.NativeMessage
+import com.yoahnl.avelune.player.localization.resolve
 
 @Composable
 fun LibraryLoading() {
     val palette = avelunePalette
+    val description = stringResource(R.string.library_loading_description)
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 42.dp).testTag("library-loading")
-            .clearAndSetSemantics { contentDescription = "Chargement de la bibliothèque Avelune" },
+            .clearAndSetSemantics { contentDescription = description },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         LibraryLoadingArtwork()
         Text(
-            "Vos mondes se rassemblent",
+            stringResource(R.string.library_loading_title),
             color = palette.text,
             fontSize = 25.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
-        Text("On prépare votre bibliothèque…", color = palette.muted, fontSize = 15.sp, textAlign = TextAlign.Center)
+        Text(stringResource(R.string.library_loading_detail), color = palette.muted, fontSize = 15.sp, textAlign = TextAlign.Center)
         Box(
             Modifier.padding(top = 4.dp).size(width = 78.dp, height = 3.dp)
                 .background(Brush.linearGradient(listOf(palette.lilac, palette.cyan)), CircleShape),
@@ -109,33 +114,33 @@ fun EmptyLibrary(enabled: Boolean, importGame: () -> Unit) {
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
-                "Un monde vous attend",
+                stringResource(R.string.library_empty_title),
                 color = palette.text,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )
             Text(
-                "Importez votre premier jeu et retrouvez toutes vos aventures au même endroit.",
+                stringResource(R.string.library_empty_detail),
                 color = palette.muted,
                 fontSize = 15.sp,
                 textAlign = TextAlign.Center,
             )
         }
         AveluneButton(
-            "Importer un jeu",
+            stringResource(R.string.library_import),
             importGame,
             Modifier.fillMaxWidth(),
             enabled = enabled,
             icon = Icons.Outlined.FileDownload,
             prominent = true,
         )
-        Text("Fichier .avelunegame", color = palette.muted, fontSize = 12.sp)
+        Text(stringResource(R.string.library_package_format), color = palette.muted, fontSize = 12.sp)
     }
 }
 
 @Composable
-fun FailedLibrary(detail: String?, retry: () -> Unit) {
+internal fun FailedLibrary(detail: NativeMessage?, retry: () -> Unit) {
     val palette = avelunePalette
     val shape = RoundedCornerShape(30.dp)
     Column(
@@ -146,21 +151,21 @@ fun FailedLibrary(detail: String?, retry: () -> Unit) {
     ) {
         AveluneMoon(Modifier.size(104.dp))
         Text(
-            "La bibliothèque ne s’ouvre pas",
+            stringResource(R.string.library_failed_title),
             color = palette.text,
             fontSize = 25.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
         Text(
-            "Impossible de retrouver vos jeux pour le moment. Réessayons.",
+            stringResource(R.string.library_failed_detail),
             color = palette.muted,
             fontSize = 15.sp,
             textAlign = TextAlign.Center,
         )
-        if (detail != null) {
+        if (detail != null && detail != NativeMessage(R.string.error_library_load)) {
             Text(
-                detail,
+                detail.resolve(),
                 color = palette.muted,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
@@ -168,12 +173,12 @@ fun FailedLibrary(detail: String?, retry: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        AveluneButton("Réessayer", retry, Modifier.fillMaxWidth(), icon = Icons.Outlined.Refresh, prominent = true)
+        AveluneButton(stringResource(R.string.action_retry), retry, Modifier.fillMaxWidth(), icon = Icons.Outlined.Refresh, prominent = true)
     }
 }
 
 @Composable
-fun InstallationScreen(stage: LibraryInstallationStage, gameName: String) {
+internal fun InstallationScreen(stage: LibraryInstallationStage, gameName: String) {
     val palette = avelunePalette
     AveluneBackground {
         Column(
@@ -184,20 +189,20 @@ fun InstallationScreen(stage: LibraryInstallationStage, gameName: String) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 AveluneWordmark(Modifier.size(width = 170.dp, height = 50.dp).offset(x = (-14).dp))
                 Spacer(Modifier.weight(1f))
-                Text("INSTALLATION", color = palette.cyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                Text(stringResource(R.string.install_label), color = palette.cyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
             }
             InstallationArtwork()
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Une nouvelle aventure arrive", color = palette.text, fontSize = 29.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.install_title), color = palette.text, fontSize = 29.sp, fontWeight = FontWeight.Bold)
                 Text(gameName, color = palette.cyan, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Crossfade(stage, animationSpec = tween(350), label = "installation-detail") {
-                    Text(it.detail, color = palette.muted, fontSize = 15.sp)
+                    Text(stringResource(it.detail), color = palette.muted, fontSize = 15.sp)
                 }
             }
             InstallationProgress(stage)
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.Info, null, Modifier.size(14.dp), tint = palette.muted)
-                Text("Gardez Avelune ouverte pendant l’installation.", color = palette.muted, fontSize = 12.sp)
+                Text(stringResource(R.string.install_keep_open), color = palette.muted, fontSize = 12.sp)
             }
         }
     }
@@ -291,8 +296,11 @@ private fun InstallationProgress(stage: LibraryInstallationStage) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CircularProgressIndicator(Modifier.size(18.dp), color = palette.cyan, strokeWidth = 2.dp)
-            Text(stage.title, Modifier.weight(1f), color = palette.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            Text("Étape ${stage.ordinal + 1} sur 3", color = palette.muted, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+            Text(stringResource(stage.title), Modifier.weight(1f), color = palette.text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                stringResource(R.string.install_step_count, stage.ordinal + 1, LibraryInstallationStage.entries.size),
+                color = palette.muted, fontSize = 12.sp, fontFamily = FontFamily.Monospace,
+            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for (step in LibraryInstallationStage.entries) {
@@ -309,9 +317,14 @@ private fun InstallationProgress(stage: LibraryInstallationStage) {
             for (step in LibraryInstallationStage.entries) {
                 val completed = step.ordinal < stage.ordinal
                 val current = step == stage
+                val status = stringResource(when {
+                    completed -> R.string.install_step_completed
+                    current -> R.string.install_step_current
+                    else -> R.string.install_step_pending
+                })
                 Row(
                     Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
-                        stateDescription = if (completed) "Terminée" else if (current) "En cours" else "À venir"
+                        stateDescription = status
                     },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(13.dp),
@@ -323,7 +336,7 @@ private fun InstallationProgress(stage: LibraryInstallationStage) {
                         tint = if (step.ordinal <= stage.ordinal) palette.cyan else palette.muted,
                     )
                     Text(
-                        step.title,
+                        stringResource(step.title),
                         Modifier.weight(1f),
                         color = if (step.ordinal <= stage.ordinal) palette.text else palette.muted,
                         fontSize = 15.sp,
@@ -331,7 +344,7 @@ private fun InstallationProgress(stage: LibraryInstallationStage) {
                     )
                     if (current) {
                         Text(
-                            "En cours",
+                            status,
                             Modifier.clearAndSetSemantics { },
                             color = palette.cyan,
                             fontSize = 11.sp,

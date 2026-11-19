@@ -4,6 +4,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
 import '../foundation/player_menu_components.dart';
+import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_control_profile.dart';
@@ -36,7 +37,10 @@ class PlayerCraftingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.playerL10n;
     final content = snapshot.content! as RuntimeCraftingServiceContent;
+    final pendingQuantity = content.pendingOutputQuantity;
+    final pendingItem = content.pendingOutputLabel;
     final applying = snapshot.stage == RuntimeWorldServiceStage.applying;
     final completed = snapshot.stage == RuntimeWorldServiceStage.completed;
     final selected = content.recipes
@@ -91,17 +95,19 @@ class PlayerCraftingOverlay extends StatelessWidget {
                                     label:
                                         content.status ==
                                             RuntimeCraftingStatus.ready
-                                        ? 'Récupérer'
+                                        ? strings.craftCollect
                                         : content.reviewing
-                                        ? 'Confirmer le dépôt'
-                                        : 'Vérifier la commande',
+                                        ? strings.craftConfirmDeposit
+                                        : strings.craftReviewOrder,
                                     icon: Icons.check,
                                     onPressed: () => _emit(
                                       RuntimeWorldServiceAction.confirm,
                                     ),
                                   ),
                                 PlayerActionButton(
-                                  label: completed ? 'Fermer' : 'Annuler',
+                                  label: completed
+                                      ? strings.close
+                                      : strings.cancel,
                                   icon: Icons.close,
                                   secondary: true,
                                   onPressed: applying
@@ -123,12 +129,22 @@ class PlayerCraftingOverlay extends StatelessWidget {
                                   content.status ==
                                       RuntimeCraftingStatus.working)
                                 Text(
-                                  'Votre commande est en préparation : ${content.pendingOutputQuantity} × ${content.pendingOutputLabel}. Revenez un prochain jour.',
+                                  pendingQuantity == null || pendingItem == null
+                                      ? strings.craftPending
+                                      : strings.craftPendingOrder(
+                                          quantity: pendingQuantity,
+                                          item: pendingItem,
+                                        ),
                                 ),
                               if (!completed &&
                                   content.status == RuntimeCraftingStatus.ready)
                                 Text(
-                                  'Votre commande est prête : ${content.pendingOutputQuantity} × ${content.pendingOutputLabel}.',
+                                  pendingQuantity == null || pendingItem == null
+                                      ? strings.craftReady
+                                      : strings.craftReadyOrder(
+                                          quantity: pendingQuantity,
+                                          item: pendingItem,
+                                        ),
                                 ),
                               if (!completed &&
                                   content.status ==
@@ -136,8 +152,16 @@ class PlayerCraftingOverlay extends StatelessWidget {
                                 if (!content.reviewing)
                                   for (final recipe in content.recipes)
                                     PlayerActionButton(
-                                      label:
-                                          '${recipe.label} · ${recipe.inputQuantity} × ${recipe.inputLabel} → ${recipe.outputQuantity} × ${recipe.outputLabel} · Sac : ${recipe.ownedQuantity}',
+                                      label: strings.craftRecipe(
+                                        recipe: recipe.label,
+                                        exchange: strings.craftExchange(
+                                          inputQuantity: recipe.inputQuantity,
+                                          input: recipe.inputLabel,
+                                          outputQuantity: recipe.outputQuantity,
+                                          output: recipe.outputLabel,
+                                        ),
+                                        owned: recipe.ownedQuantity,
+                                      ),
                                       icon: Icons.build,
                                       secondary:
                                           selected?.recipeId != recipe.recipeId,
@@ -151,16 +175,28 @@ class PlayerCraftingOverlay extends StatelessWidget {
                                     ),
                                 if (selected != null) ...[
                                   Text(
-                                    '${content.quantity * selected.inputQuantity} × ${selected.inputLabel} → ${content.quantity * selected.outputQuantity} × ${selected.outputLabel}',
+                                    strings.craftExchange(
+                                      inputQuantity:
+                                          content.quantity *
+                                          selected.inputQuantity,
+                                      input: selected.inputLabel,
+                                      outputQuantity:
+                                          content.quantity *
+                                          selected.outputQuantity,
+                                      output: selected.outputLabel,
+                                    ),
                                   ),
                                   Text(
-                                    'Quantité : ${content.quantity} · Maximum disponible : ${content.maximumQuantity}',
+                                    strings.craftQuantity(
+                                      quantity: content.quantity,
+                                      maximum: content.maximumQuantity,
+                                    ),
                                   ),
                                   if (!content.reviewing)
                                     PlayerServiceActions(
                                       children: [
                                         PlayerActionButton(
-                                          label: 'Moins',
+                                          label: strings.craftDecreaseQuantity,
                                           icon: Icons.remove,
                                           secondary: true,
                                           onPressed:
@@ -175,7 +211,7 @@ class PlayerCraftingOverlay extends StatelessWidget {
                                               : null,
                                         ),
                                         PlayerActionButton(
-                                          label: 'Plus',
+                                          label: strings.craftIncreaseQuantity,
                                           icon: Icons.add,
                                           secondary: true,
                                           onPressed:

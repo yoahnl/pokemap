@@ -599,8 +599,12 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       PlayerInputSource.controller => PlayerControlDevice.gamepad,
     };
     final glyph = (_latestSnapshot.preferences?.showInputHints ?? true)
-        ? _controlProfile.promptFor(device, RuntimeInputControl.primary,
-            family: _controllerFamily)
+        ? _controlProfile.promptFor(
+            device,
+            RuntimeInputControl.primary,
+            family: _controllerFamily,
+            localizations: context.playerL10n,
+          )
         : '';
     final epoch = _overworldActionEpoch;
     final cancellation = _touchCancellation.value;
@@ -1567,15 +1571,17 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
           Positioned(
             right: 16,
             bottom: 24,
-            child: SafeArea(child: PlayerActionButton(
-              key: const ValueKey('runtime-player-cancel-world-action'),
-              label: Localizations.localeOf(context).languageCode == 'fr'
-                  ? 'Annuler la pêche' : 'Cancel fishing',
-              icon: Icons.close,
-              expandWidth: false,
-              onPressed: () => widget.gameplayInputRoute?.call(
-                const RuntimeInputEvent.press(RuntimeInputControl.secondary)),
-            )),
+            child: SafeArea(
+              child: PlayerActionButton(
+                key: const ValueKey('runtime-player-cancel-world-action'),
+                label: context.playerL10n.cancelFishing,
+                icon: Icons.close,
+                expandWidth: false,
+                onPressed: () => widget.gameplayInputRoute?.call(
+                  const RuntimeInputEvent.press(RuntimeInputControl.secondary),
+                ),
+              ),
+            ),
           ),
         if (acceptsTouchControls)
           Positioned.fill(
@@ -1676,9 +1682,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
               gameTitle: snapshot.gameTitle,
               logo: widget.loadingLogo,
               wordmark: widget.loadingWordmark,
-              stage: Localizations.localeOf(context).languageCode == 'fr'
-                  ? 'Activation de la carte'
-                  : 'Activating the map',
+              stage: context.playerL10n.loadingActivatingMap,
               reducedMotion:
                   snapshot.preferences?.accessibility.reducedMotion ?? false,
             ),
@@ -1801,9 +1805,16 @@ class _RuntimePlayerInputHints extends StatelessWidget {
     final device = source == PlayerInputSource.controller
         ? PlayerControlDevice.gamepad
         : PlayerControlDevice.keyboard;
+    final strings = context.playerL10n;
+    String binding(RuntimeInputControl control) => profile.promptFor(
+      device,
+      control,
+      family: controllerFamily,
+      localizations: strings,
+    );
     final label =
-        '${profile.promptFor(device, RuntimeInputControl.primary, family: controllerFamily)} · '
-        '${profile.promptFor(device, RuntimeInputControl.menu, family: controllerFamily)} ${context.playerL10n.pause}';
+        '${binding(RuntimeInputControl.primary)} · '
+        '${binding(RuntimeInputControl.menu)} ${strings.pause}';
     return Semantics(
       key: const ValueKey<String>('runtime-player-input-hints'),
       container: true,

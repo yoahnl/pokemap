@@ -70,8 +70,6 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
   int _listPage = 0;
   String? _failure;
 
-  bool get _french => Localizations.localeOf(context).languageCode == 'fr';
-  String _text(String french, String english) => _french ? french : english;
   String _id(RuntimePlayerDetailEntrySnapshot entry) =>
       entry.pokemonSummary?.hasStableIdentity == true
       ? entry.pokemonSummary!.individualId
@@ -183,10 +181,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
       if (mounted) _failure = failure.safeMessage;
     } catch (_) {
       if (mounted) {
-        _failure = _text(
-          'Cette action n’a pas pu être effectuée. Réessayez.',
-          'The action could not be completed. Try again.',
-        );
+        _failure = context.playerL10n.partyActionFailed;
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -291,7 +286,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
       return PlayerMenuFeedback(
         key: const ValueKey('runtime-player-detail-empty'),
         id: 'party-empty',
-        title: _text('Votre équipe est vide', 'Your party is empty'),
+        title: context.playerL10n.partyEmpty,
         message: widget.detail.emptyMessage,
       );
     }
@@ -393,14 +388,8 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
 
   Widget _moveInstruction({required bool compact}) {
     final theme = context.playerMenuTheme;
-    final title = _text(
-      'Choisissez la nouvelle position',
-      'Choose the new position',
-    );
-    final message = _text(
-      'Les deux Pokémon échangeront leur place.',
-      'The two Pokémon will swap places.',
-    );
+    final title = context.playerL10n.partyChooseNewPosition;
+    final message = context.playerL10n.partySwapPositions;
     final instruction = Semantics(
       identifier: 'party-swap-instruction',
       liveRegion: true,
@@ -419,7 +408,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
       child: PlayerMenuSelectableRow(
         key: const ValueKey('party-swap-cancel'),
         id: 'party-swap-cancel',
-        label: _text('Annuler', 'Cancel'),
+        label: context.playerL10n.cancel,
         leading: const Icon(Icons.close),
         integrated: true,
         busy: _busy,
@@ -457,7 +446,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
             builder: (context) {
               final summary = entry.pokemonSummary;
               final status = summary?.isFainted == true
-                  ? _text('KO', 'Fainted')
+                  ? context.playerL10n.pokemonFainted
                   : summary?.statusLabel;
               final genderIcon = switch ((summary?.identity?.gender ??
                       summary?.genderLabel)
@@ -662,7 +651,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                 child: Text(status, textAlign: TextAlign.right, style: meta),
               )
             else if (widget.detail.entries.firstOrNull == entry)
-              Text(_text('En tête', 'Lead'), style: meta),
+              Text(context.playerL10n.partyLead, style: meta),
           ],
         ),
       ],
@@ -687,7 +676,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
           expandWidth: false,
           focusNode: modal ? null : _detailFocus,
           label: integrated
-              ? _text('Résumé', 'Summary')
+              ? context.playerL10n.pokemonSummary
               : PlayerPokemonSummaryStrings.of(context).viewSummary,
           icon: Icons.info_outline,
           secondary: true,
@@ -705,7 +694,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
           key: ValueKey('runtime-player-held-manage-${held.partyTargetId}'),
           expandWidth: false,
           label: integrated
-              ? _text('Objet', 'Item')
+              ? context.playerL10n.bagItem
               : PlayerBagStrings.of(context).manageHeldItem,
           icon: Icons.auto_awesome_rounded,
           secondary: true,
@@ -720,7 +709,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
         PlayerActionButton(
           key: const ValueKey('party-swap'),
           expandWidth: false,
-          label: _text('Déplacer', 'Move'),
+          label: context.playerL10n.partyMove,
           icon: Icons.swap_vert,
           secondary: true,
           onPressed: _busy || widget.onCommand == null
@@ -810,10 +799,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              _text(
-                                'Donner retire un objet du sac. Remplacer ou retirer remet l’objet actuel dans le sac.',
-                                'Giving takes one item from the bag. Replacing or taking returns the current item to the bag.',
-                              ),
+                              context.playerL10n.partyHeldItemsHelp,
                               style: context.playerMenuTheme.meta,
                             ),
                             const SizedBox(height: 12),
@@ -843,12 +829,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                                   ),
                                 ),
                               if (action.options.isEmpty)
-                                Text(
-                                  _text(
-                                    'Aucun objet compatible dans le sac.',
-                                    'No compatible item in the bag.',
-                                  ),
-                                ),
+                                Text(context.playerL10n.partyNoCompatibleItem),
                             ],
                           ],
                         ),

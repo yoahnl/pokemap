@@ -1,40 +1,29 @@
 import 'package:flutter/widgets.dart';
 
+import '../localization/player_localizations.dart';
+
 final class PlayerHealStrings {
-  const PlayerHealStrings._(this._languageCode);
+  const PlayerHealStrings._(this._strings);
 
   factory PlayerHealStrings.of(BuildContext context) =>
-      PlayerHealStrings._(Localizations.localeOf(context).languageCode);
+      PlayerHealStrings._(context.playerL10n);
 
-  final String _languageCode;
+  final PokeMapPlayerLocalizations _strings;
 
-  bool get _isFrench => _languageCode == 'fr';
-
-  String get emptyTitle => _isFrench ? 'Aucun Pokémon' : 'No Pokémon';
-  String get emptyParty =>
-      _isFrench ? 'Votre équipe est vide.' : 'Your party is empty.';
-  String get returnToGame => _isFrench ? 'Retour au jeu' : 'Return to game';
-  String get retry => _isFrench ? 'Réessayer' : 'Try again';
-  String get healParty => _isFrench ? 'Soigner' : 'Heal';
-  String get cancel => _isFrench ? 'Annuler' : 'Cancel';
-  String get close => _isFrench ? 'Fermer' : 'Close';
-  String get unavailable => _isFrench
-      ? 'Le service de soin ne peut pas être affiché.'
-      : 'The healing service cannot be displayed.';
+  String get emptyTitle => _strings.noPokemon;
+  String get emptyParty => _strings.emptyPartyMessage;
+  String get returnToGame => _strings.returnToGame;
+  String get retry => _strings.healRetry;
+  String get healParty => _strings.healHealParty;
+  String get cancel => _strings.cancel;
+  String get close => _strings.close;
+  String get unavailable => _strings.healUnavailable;
   String hp(int current, int maximum) =>
-      _isFrench ? 'PV $current / $maximum' : 'HP $current / $maximum';
-  String status(bool needsHealing) => switch ((_isFrench, needsHealing)) {
-    (true, true) => 'Statut à soigner',
-    (true, false) => 'Statut normal',
-    (false, true) => 'Status needs healing',
-    (false, false) => 'Status healthy',
-  };
-  String pp(int depletedMoveCount) {
-    if (depletedMoveCount > 0) {
-      return _isFrench
-          ? 'PP à restaurer : $depletedMoveCount'
-          : 'PP to restore: $depletedMoveCount';
-    }
-    return _isFrench ? 'PP complets' : 'PP full';
-  }
+      _strings.healHp(current: current, maximum: maximum);
+  String status(bool needsHealing) => needsHealing
+      ? _strings.healStatusNeedsHealing
+      : _strings.healStatusHealthy;
+  String pp(int depletedMoveCount) => depletedMoveCount > 0
+      ? _strings.healPpToRestore(count: depletedMoveCount)
+      : _strings.healPpFull;
 }

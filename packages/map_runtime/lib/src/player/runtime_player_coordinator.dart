@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:avelune_rendering/avelune_rendering.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_story/map_story.dart';
@@ -24,6 +25,7 @@ final class RuntimePlayerCoordinator {
     required RuntimeGameSource gameSource,
     required PlayerSaveGateway saveGateway,
     required PlayerPreferencesGateway preferencesGateway,
+    Future<PlayerPreferencesSnapshot> Function()? readPreferences,
     required RuntimeNewGameFlowPort newGameFlow,
     required GameSessionController sessionController,
     required RuntimeExternalExit externalExit,
@@ -35,6 +37,7 @@ final class RuntimePlayerCoordinator {
   })  : _gameSource = gameSource,
         _saveGateway = saveGateway,
         _preferencesGateway = preferencesGateway,
+        _readPreferences = readPreferences ?? preferencesGateway.load,
         _inventoryPreferencesGateway = inventoryPreferencesGateway,
         _newGameFlow = newGameFlow,
         _sessions = sessionController,
@@ -61,6 +64,7 @@ final class RuntimePlayerCoordinator {
   final RuntimeGameSource _gameSource;
   final PlayerSaveGateway _saveGateway;
   final PlayerPreferencesGateway _preferencesGateway;
+  final Future<PlayerPreferencesSnapshot> Function() _readPreferences;
   final PlayerInventoryPreferencesGateway? _inventoryPreferencesGateway;
   final RuntimeNewGameFlowPort _newGameFlow;
   final GameSessionController _sessions;
@@ -714,13 +718,15 @@ final class RuntimePlayerCoordinator {
             safeMessage: 'Des préférences joueur valides sont requises.',
           );
         }
-        final localeChanged = _preferences?.locale != preferences.locale;
-        final sessionPreferencesChanged =
-            _sessionPreferencesDiffer(_preferences, preferences);
         final preferencesSessionId = _sessions.snapshot.descriptor?.sessionId;
         final frameRateRevision = _frameRateRevision;
+        PlayerPreferencesSnapshot saved;
         try {
           await _preferencesGateway.save(preferences);
+          saved = _preferences?.playerLanguage != null ||
+                  preferences.languageChange != null
+              ? await _readPreferences()
+              : preferences;
         } on Object {
           if (!_isCurrentSession(preferencesSessionId)) {
             return const RuntimePlayerCommandResult(
@@ -740,42 +746,19 @@ final class RuntimePlayerCoordinator {
         }
         final frameRateChanged = _frameRateRevision != frameRateRevision;
         final confirmedPreferences = frameRateChanged
-            ? preferences.copyWith(
+            ? saved.copyWith(
                 targetFramesPerSecond: AveluneFrameRate.limit,
               )
-            : preferences;
-        _preferences = confirmedPreferences;
-        if (!frameRateChanged) {
-          AveluneFrameRate.setLimit(confirmedPreferences.targetFramesPerSecond);
-        }
-        if (sessionPreferencesChanged) {
-          _sessions.applyPlayerPreferences(confirmedPreferences);
-        }
-        if (localeChanged && _snapshot.phase == RuntimePlayerPhase.paused) {
-          Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
-              details;
-          String? pauseDataFailure;
-          try {
-            details = await _sessions.loadPauseDetails();
-          } on Object {
-            details = const {};
-            pauseDataFailure = _isFrench
-                ? 'Le menu n’a pas pu être actualisé. Rouvrez-le pour réessayer.'
-                : 'The menu could not be refreshed. Reopen it to retry.';
-          }
-          if (!_canPublishPauseData(preferencesSessionId)) {
-            return const RuntimePlayerCommandResult(
-              status: RuntimePlayerCommandStatus.cancelled,
-            );
-          }
-          _pauseDataFailure = pauseDataFailure;
-          _publishPause(
-            _snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
-            logicalSelectionId: _snapshot.logicalSelectionId,
-            pauseDetails: details,
+            : saved;
+        if (!await _applyConfirmedPreferences(
+          confirmedPreferences,
+          preferencesSessionId,
+          applyFrameRate: !frameRateChanged,
+        )) {
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.cancelled,
           );
         }
-        _publish(_snapshot.next(preferences: _preferences));
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
         );
@@ -1246,7 +1229,7 @@ final class RuntimePlayerCoordinator {
           runId: runId,
           draft: draft,
           interactions: interactions,
-          preferredLocale: _preferences?.locale,
+          preferredLocale: _preferences?.contentLocale(preparation.locales),
           locales: preparation.locales,
         );
       }
@@ -1560,6 +1543,15 @@ final class RuntimePlayerCoordinator {
         await _sessions.terminate();
         return _finishCancelledLaunch();
       }
+      final refreshed = await _updatedLanguageProjection();
+      if (generation != _launchGeneration) {
+        await _sessions.terminate();
+        return _finishCancelledLaunch();
+      }
+      if (refreshed != null) {
+        _preferences = refreshed;
+        _publish(_snapshot.next(preferences: refreshed));
+      }
       if (_preferences case final preferences?) {
         _sessions.applyPlayerPreferences(preferences);
       }
@@ -1728,6 +1720,83 @@ final class RuntimePlayerCoordinator {
     await _snapshots.close();
   }
 
+  Future<void> refreshLocalePreferences() => _serialize(() async {
+        if (!_lifecycleActive ||
+            _snapshot.phase == RuntimePlayerPhase.lifecyclePaused) {
+          return;
+        }
+        final sessionId = _sessions.snapshot.descriptor?.sessionId;
+        final refreshed = await _updatedLanguageProjection();
+        if (refreshed == null || !_isCurrentSession(sessionId)) return;
+        await _applyConfirmedPreferences(
+          refreshed,
+          sessionId,
+          applyFrameRate: false,
+        );
+      });
+
+  Future<PlayerPreferencesSnapshot?> _updatedLanguageProjection() async {
+    if (_disposed || _preferences?.playerLanguage == null) return null;
+    PlayerPreferencesSnapshot refreshed;
+    try {
+      refreshed = await _readPreferences();
+    } on Object {
+      return null;
+    }
+    final before = _preferences;
+    if (before == null || _disposed) return null;
+    if (before.locale == refreshed.locale &&
+        before.playerLanguage == refreshed.playerLanguage &&
+        listEquals(
+          before.preferredContentLocales,
+          refreshed.preferredContentLocales,
+        )) {
+      return null;
+    }
+    return before.copyWith(
+      locale: refreshed.locale,
+      playerLanguage: refreshed.playerLanguage,
+      preferredContentLocales: refreshed.preferredContentLocales,
+    );
+  }
+
+  Future<bool> _applyConfirmedPreferences(
+    PlayerPreferencesSnapshot confirmed,
+    String? sessionId, {
+    required bool applyFrameRate,
+  }) async {
+    final before = _preferences;
+    _preferences = confirmed;
+    if (applyFrameRate) {
+      AveluneFrameRate.setLimit(confirmed.targetFramesPerSecond);
+    }
+    if (_sessionPreferencesDiffer(before, confirmed)) {
+      _sessions.applyPlayerPreferences(confirmed);
+    }
+    if (before?.locale != confirmed.locale &&
+        _snapshot.phase == RuntimePlayerPhase.paused) {
+      Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> details;
+      String? pauseDataFailure;
+      try {
+        details = await _sessions.loadPauseDetails();
+      } on Object {
+        details = const {};
+        pauseDataFailure = _isFrench
+            ? 'Le menu n’a pas pu être actualisé. Rouvrez-le pour réessayer.'
+            : 'The menu could not be refreshed. Reopen it to retry.';
+      }
+      if (!_canPublishPauseData(sessionId)) return false;
+      _pauseDataFailure = pauseDataFailure;
+      _publishPause(
+        _snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
+        logicalSelectionId: _snapshot.logicalSelectionId,
+        pauseDetails: details,
+      );
+    }
+    _publish(_snapshot.next(preferences: _preferences));
+    return true;
+  }
+
   bool _sessionPreferencesDiffer(
     PlayerPreferencesSnapshot? before,
     PlayerPreferencesSnapshot after,
@@ -1738,6 +1807,7 @@ final class RuntimePlayerCoordinator {
       before.graphics != after.graphics ||
       before.battleMotion != after.battleMotion ||
       before.locale != after.locale ||
+      !listEquals(before.preferredContentLocales, after.preferredContentLocales) ||
       before.accessibility.reducedMotion != after.accessibility.reducedMotion ||
       before.accessibility.textScale != after.accessibility.textScale ||
       before.accessibility.hapticsEnabled != after.accessibility.hapticsEnabled ||

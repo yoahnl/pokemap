@@ -1,7 +1,11 @@
 package com.yoahnl.avelune.player.presentation
 
 import com.yoahnl.avelune.host.InstalledGame
+import com.yoahnl.avelune.player.R
+import com.yoahnl.avelune.player.localization.NativeFailure
+import com.yoahnl.avelune.player.localization.NativeMessage
 import com.yoahnl.avelune.player.runtime.RuntimeLibraryPort
+import com.yoahnl.avelune.player.runtime.runtimeChannelFailure
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,7 +44,7 @@ class GameLibraryViewModelTest {
         advanceUntilIdle()
 
         assertFalse(viewModel.state.value.isLoaded)
-        assertEquals("Préparation de la bibliothèque…", viewModel.state.value.busy)
+        assertEquals(R.string.library_busy_loading, viewModel.state.value.busy)
         port.listGate!!.complete(Unit)
         advanceUntilIdle()
 
@@ -56,7 +60,7 @@ class GameLibraryViewModelTest {
         advanceUntilIdle()
 
         assertFalse(viewModel.state.value.isLoaded)
-        assertEquals("Lecture impossible", viewModel.state.value.error)
+        assertEquals(NativeMessage(R.string.error_library_load), viewModel.state.value.error)
         port.listError = null
         viewModel.refresh()
         advanceUntilIdle()
@@ -70,13 +74,13 @@ class GameLibraryViewModelTest {
         val port = FakeRuntime()
         val viewModel = GameLibraryViewModel(port) { error("Picker unused") }
         advanceUntilIdle()
-        port.listError = IllegalStateException("Lecture impossible")
+        port.listError = NativeFailure(R.string.error_unexpected_library_response, code = "badPayload")
 
         viewModel.refresh()
         advanceUntilIdle()
 
         assertEquals(listOf(port.game), viewModel.state.value.games)
-        assertEquals("Lecture impossible", viewModel.state.value.error)
+        assertEquals(NativeMessage(R.string.error_unexpected_library_response, code = "badPayload"), viewModel.state.value.error)
         assertNull(viewModel.state.value.busy)
     }
 
@@ -92,7 +96,7 @@ class GameLibraryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, port.playCalls)
-        assertEquals("Ouverture du jeu…", viewModel.state.value.busy)
+        assertEquals(R.string.library_busy_opening, viewModel.state.value.busy)
         port.playGate!!.complete(Unit)
         advanceUntilIdle()
         assertNull(viewModel.state.value.busy)
@@ -104,13 +108,17 @@ class GameLibraryViewModelTest {
         val viewModel = GameLibraryViewModel(port) { error("Picker unused") }
         advanceUntilIdle()
         viewModel.select("clairbois")
-        port.uninstallError = IllegalStateException("Jeu protégé")
+        port.uninstallError = runtimeChannelFailure("uninstallGame", "installation.uninstallFallbackRequired", null)
 
         viewModel.uninstall("clairbois")
         advanceUntilIdle()
 
         assertEquals("clairbois", viewModel.state.value.selectedGameId)
         assertFalse(viewModel.state.value.games.isEmpty())
+        assertEquals(
+            NativeMessage(R.string.error_uninstall_fallback, code = "installation.uninstallFallbackRequired"),
+            viewModel.state.value.error,
+        )
         port.uninstallError = null
         viewModel.uninstall("clairbois")
         advanceUntilIdle()

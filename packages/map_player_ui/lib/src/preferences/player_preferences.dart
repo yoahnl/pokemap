@@ -11,6 +11,7 @@ final class PlayerPreferences {
   const PlayerPreferences({
     this.schemaVersion = 1,
     this.language = PlayerLanguage.system,
+    this.playerLanguage = const RuntimePlayerLanguageChoice.followApplication(),
     this.theme = PlayerThemePreference.system,
     this.masterVolume = 1,
     this.musicVolume = 0.8,
@@ -44,6 +45,7 @@ final class PlayerPreferences {
     const keys = <String>{
       'schemaVersion',
       'language',
+      'playerLanguage',
       'theme',
       'masterVolume',
       'musicVolume',
@@ -158,6 +160,9 @@ final class PlayerPreferences {
             ),
       realWeather: json['realWeather'] == null ? const RealWeatherPreferences() : RealWeatherPreferences.fromJson(Map<String, dynamic>.from(json['realWeather'] as Map)),
       language: language,
+      playerLanguage: json.containsKey('playerLanguage')
+          ? RuntimePlayerLanguageChoice.explicit(read<String>('playerLanguage'))
+          : const RuntimePlayerLanguageChoice.followApplication(),
       theme: theme,
       dialogueTextSpeed: dialogueTextSpeed,
       menuEffects: menuEffects,
@@ -182,6 +187,7 @@ final class PlayerPreferences {
 
   final int schemaVersion;
   final PlayerLanguage language;
+  final RuntimePlayerLanguageChoice playerLanguage;
   final PlayerThemePreference theme;
   final double masterVolume;
   final double musicVolume;
@@ -272,6 +278,7 @@ final class PlayerPreferences {
 
   PlayerPreferences copyWith({
     PlayerLanguage? language,
+    RuntimePlayerLanguageChoice? playerLanguage,
     PlayerThemePreference? theme,
     double? masterVolume,
     double? musicVolume,
@@ -296,6 +303,7 @@ final class PlayerPreferences {
   }) =>
       PlayerPreferences(
         language: language ?? this.language,
+        playerLanguage: playerLanguage ?? this.playerLanguage,
         realWeather: realWeather ?? this.realWeather,
         worldTime: worldTime ?? this.worldTime,
         graphics: graphics ?? this.graphics,
@@ -329,6 +337,8 @@ final class PlayerPreferences {
         if (graphics != const RuntimeGraphicsPreferences())
           'graphics': graphics.toJson(),
         'language': language.name,
+        if (playerLanguage.languageTag != null)
+          'playerLanguage': playerLanguage.languageTag,
         'dialogueTextSpeed': dialogueTextSpeed.name,
         'menuEffects': menuEffects.name,
         if (battleMotion != null) 'battleMotion': battleMotion!.toJson(),
@@ -356,6 +366,7 @@ final class PlayerPreferences {
       graphics == other.graphics &&
       schemaVersion == other.schemaVersion &&
       language == other.language &&
+      playerLanguage == other.playerLanguage &&
       dialogueTextSpeed == other.dialogueTextSpeed &&
       menuEffects == other.menuEffects &&
       battleMotion == other.battleMotion &&
@@ -381,6 +392,7 @@ final class PlayerPreferences {
         graphics,
         schemaVersion,
         language,
+        playerLanguage,
         dialogueTextSpeed,
         menuEffects,
         battleMotion,

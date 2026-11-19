@@ -2,13 +2,28 @@ import SwiftUI
 
 @main
 struct AveluneApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var appState = AppState()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AveluneRootView(language: appState.composition.languagePreferences)
                 .environmentObject(appState)
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task { await appState.composition.languagePreferences.refresh() }
+            }
+        }
+    }
+}
+
+private struct AveluneRootView: View {
+    let language: AppLanguageSettings
+
+    var body: some View {
+        ContentView()
+            .environment(\.locale, language.locale)
     }
 }
 
@@ -28,9 +43,16 @@ final class AppState: ObservableObject {
     }
 }
 
-enum AppTab: String, CaseIterable {
-    case games = "Jeux"
-    case settings = "Réglages"
+enum AppTab: CaseIterable {
+    case games
+    case settings
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .games: return "Jeux"
+        case .settings: return "Réglages"
+        }
+    }
 
     var icon: String {
         switch self {

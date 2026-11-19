@@ -28,8 +28,10 @@ typedef HubPlayerReturnRequest = Future<void> Function();
 
 class HubInstalledGamePlayerController {
   Future<void> Function()? _stop;
+  Future<void> Function()? _refreshLocales;
 
   Future<void> stop() async => await _stop?.call();
+  Future<void> refreshLocales() async => await _refreshLocales?.call();
 }
 
 class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
@@ -871,6 +873,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   void initState() {
     super.initState();
     widget.controller?._stop = _stop;
+    widget.controller?._refreshLocales = _refreshLocales;
     widget.companionOwner?.addListener(_handleCompanionChanged);
     WidgetsBinding.instance.addObserver(this);
     final mixer = RuntimeAudioMixer();
@@ -1173,6 +1176,16 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     );
   }
 
+  Future<void> _refreshLocales() async {
+    if (_closing) return;
+    await _viewController?.coordinator.refreshLocalePreferences();
+  }
+
+  @override
+  void didChangeLocales(List<Locale>? locales) {
+    if (_lifecycleActive) unawaited(_refreshLocales());
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_closing) return;
@@ -1186,9 +1199,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (!_lifecycleActive && mounted) {
         setState(() => _lifecycleActive = true);
       }
-      if (startup != null) {
-        unawaited(startup.resumeFromLifecycle());
-      }
+      unawaited(_resumeStartupAndRefreshLocales(startup?.resumeFromLifecycle()));
       unawaited(_splashJingle.resumeFromLifecycle());
       if (_splashMovie != null &&
           (_startupSnapshot?.phase == RuntimeStartupPhase.splash ||
@@ -1213,6 +1224,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (movie != null) unawaited(movie.pause());
       unawaited(_presentationRuntime?.controller.pauseForLifecycle());
     }
+  }
+
+  Future<void> _resumeStartupAndRefreshLocales(
+    Future<void>? resume,
+  ) async {
+    await resume;
+    await _refreshLocales();
   }
 
   @override
@@ -1359,6 +1377,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     return Localizations.override(
       context: context,
       locale: playerLocale,
+      delegates: player_ui.PokeMapPlayerLocalizations.localizationsDelegates,
       child: player_ui.PlayerImageScope(
         identity:
             _mountedGame?.resourceBudget ??
@@ -1665,8 +1684,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     if (oldWidget.controller != widget.controller) {
       if (oldWidget.controller?._stop == _stop) {
         oldWidget.controller?._stop = null;
+        oldWidget.controller?._refreshLocales = null;
       }
       widget.controller?._stop = _stop;
+      widget.controller?._refreshLocales = _refreshLocales;
     }
   }
 
@@ -1675,6 +1696,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     _startupImageBudget.dispose();
     if (widget.controller?._stop == _stop) {
       widget.controller?._stop = null;
+      widget.controller?._refreshLocales = null;
     }
     unawaited(_stop());
     super.dispose();

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../localization/player_localizations.dart';
 import '../foundation/player_menu_components.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'player_scene_interaction_strings.dart';
@@ -184,17 +185,13 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
       if (!widget.numeric)
         _key(
           'space',
-          Localizations.localeOf(context).languageCode == 'fr'
-              ? 'Espace'
-              : 'Space',
+          context.playerL10n.keyboardSpace,
           () => _insert(' '),
           icon: Icons.space_bar,
         ),
       _key(
         'erase',
-        Localizations.localeOf(context).languageCode == 'fr'
-            ? 'Effacer'
-            : 'Delete',
+        context.playerL10n.keyboardDelete,
         _erase,
         icon: Icons.backspace_outlined,
       ),
@@ -287,7 +284,7 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
 
   @override
   Widget build(BuildContext context) {
-    final french = Localizations.localeOf(context).languageCode == 'fr';
+    final french = context.playerL10n.locale.languageCode == 'fr';
     final alphabet = french
         ? 'AZERTYUIOPQSDFGHJKLMWXCVBN'
         : 'QWERTYUIOPASDFGHJKLZXCVBNM';
@@ -375,13 +372,13 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
           if (!widget.numeric)
             _key(
               'space',
-              french ? 'Espace' : 'Space',
+              context.playerL10n.keyboardSpace,
               () => _insert(' '),
               icon: Icons.space_bar,
             ),
           _key(
             'erase',
-            french ? 'Effacer' : 'Delete',
+            context.playerL10n.keyboardDelete,
             _erase,
             icon: Icons.backspace_outlined,
           ),

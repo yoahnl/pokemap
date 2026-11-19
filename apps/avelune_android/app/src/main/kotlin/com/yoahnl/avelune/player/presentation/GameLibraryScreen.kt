@@ -80,6 +80,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -92,6 +94,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yoahnl.avelune.host.InstalledGame
+import com.yoahnl.avelune.player.R
+import com.yoahnl.avelune.player.localization.presentationLocale
+import com.yoahnl.avelune.player.localization.resolve
+import com.yoahnl.avelune.player.runtime.LanguagePreferencesState
 import com.yoahnl.avelune.player.runtime.RuntimeRecoveryState
 import com.yoahnl.avelune.player.runtime.RuntimeSession
 import java.text.DateFormat
@@ -100,9 +106,10 @@ import java.util.Locale
 import kotlin.math.floor
 
 @Composable
-fun GameLibraryScreen(
+internal fun GameLibraryScreen(
     viewModel: GameLibraryViewModel,
     runtime: RuntimeSession,
+    languageState: LanguagePreferencesState,
     resetRuntime: () -> Unit,
     startSurfaceProbe: () -> Unit = {},
 ) {
@@ -126,8 +133,9 @@ fun GameLibraryScreen(
     LaunchedEffect(enabled, tab, state.selectedGameId, quickGameId) {
         if (enabled && tab == 0 && state.selectedGameId == null && quickGameId == null) importFocus.requestFocus()
     }
-    LaunchedEffect(state.notice) {
-        state.notice?.let {
+    val notice = state.notice?.resolve()
+    LaunchedEffect(notice) {
+        notice?.let {
             snackbar.showSnackbar(it)
             viewModel.dismissMessage()
         }
@@ -144,7 +152,13 @@ fun GameLibraryScreen(
         ) { insets ->
             Box(Modifier.fillMaxSize().padding(insets)) {
                 when {
-                    tab == 1 -> SettingsScreen(onStartSurfaceProbe = startSurfaceProbe, canStartSurfaceProbe = enabled)
+                    tab == 1 -> SettingsScreen(
+                        languageState = languageState,
+                        onAppLanguageSelected = runtime::setAppLanguage,
+                        onReloadLanguage = { runtime.refreshLanguagePreferences() },
+                        onStartSurfaceProbe = startSurfaceProbe,
+                        canStartSurfaceProbe = enabled,
+                    )
                     state.selectedGame != null -> GameDetail(state.selectedGame!!, enabled, viewModel)
                     else -> LibraryHome(state, enabled, importFocus, importGame, viewModel, onQuickView = { quickGameId = it.id })
                 }
@@ -156,7 +170,7 @@ fun GameLibraryScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             CircularProgressIndicator(color = palette.lilac)
-                            Text(state.busy!!, color = palette.text)
+                            Text(stringResource(state.busy!!), color = palette.text)
                         }
                     }
                 }
@@ -174,28 +188,40 @@ fun GameLibraryScreen(
     state.installationStage?.let { stage ->
         Dialog({}, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false, usePlatformDefaultWidth = false)) {
             AveluneDialogGamepadKeys {}
-            InstallationScreen(stage, state.installationName ?: "Nouveau jeu")
+            InstallationScreen(stage, state.installationName ?: stringResource(R.string.install_new_game))
         }
     }
-    if (state.error != null && state.isLoaded) {
+    state.error?.takeIf { state.isLoaded }?.let { error ->
         AlertDialog(
             onDismissRequest = viewModel::dismissMessage,
-            title = { AveluneDialogGamepadKeys(viewModel::dismissMessage); Text("Erreur") },
-            text = { Text(state.error!!) },
-            confirmButton = { TextButton(onClick = viewModel::dismissMessage, modifier = Modifier.focusRing()) { Text("OK") } },
+            title = {
+                AveluneDialogGamepadKeys(viewModel::dismissMessage)
+                Text(stringResource(R.string.error_title))
+            },
+            text = { Text(error.resolve()) },
+            confirmButton = {
+                TextButton(onClick = viewModel::dismissMessage, modifier = Modifier.focusRing()) {
+                    Text(stringResource(R.string.action_ok))
+                }
+            },
         )
     }
     state.uninstallGame?.let { game ->
         AlertDialog(
             onDismissRequest = { viewModel.requestUninstall(null) },
-            title = { AveluneDialogGamepadKeys { viewModel.requestUninstall(null) }; Text("Désinstaller ${game.title} ?") },
-            text = { Text("Le jeu sera retiré de votre bibliothèque. Vous pourrez le réimporter avec son fichier.") },
+            title = {
+                AveluneDialogGamepadKeys { viewModel.requestUninstall(null) }
+                Text(stringResource(R.string.game_uninstall_title, game.title))
+            },
+            text = { Text(stringResource(R.string.game_uninstall_detail)) },
             confirmButton = {
                 TextButton(onClick = { viewModel.uninstall(game.id) }, enabled = enabled, modifier = Modifier.focusRing()) {
-                    Text("Désinstaller")
+                    Text(stringResource(R.string.game_uninstall))
                 }
             },
-            dismissButton = { TextButton(onClick = { viewModel.requestUninstall(null) }) { Text("Annuler") } },
+            dismissButton = {
+                TextButton(onClick = { viewModel.requestUninstall(null) }) { Text(stringResource(R.string.action_cancel)) }
+            },
         )
     }
 }
@@ -207,7 +233,7 @@ private fun LibraryTabs(selected: Int, select: (Int) -> Unit) {
         Modifier.fillMaxWidth().background(palette.surface.copy(alpha = 0.94f))
             .border(1.dp, palette.border).navigationBarsPadding().height(56.dp),
     ) {
-        listOf("Jeux" to Icons.Outlined.SportsEsports, "Réglages" to Icons.Outlined.Settings).forEachIndexed { index, (title, icon) ->
+        listOf(R.string.library_tab_games to Icons.Outlined.SportsEsports, R.string.settings_title to Icons.Outlined.Settings).forEachIndexed { index, (title, icon) ->
             Surface(
                 onClick = { select(index) },
                 modifier = Modifier.weight(1f).fillMaxSize().focusRing(10),
@@ -217,7 +243,7 @@ private fun LibraryTabs(selected: Int, select: (Int) -> Unit) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Icon(icon, null, Modifier.size(24.dp))
                     Spacer(Modifier.height(3.dp))
-                    Text(title, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    Text(stringResource(title), fontSize = 11.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -230,11 +256,12 @@ private fun RecoveryBanner(recovery: RuntimeRecoveryState, stop: () -> Unit, res
     Surface(color = palette.surfaceRaised, modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                if (recovery.isStopping) "Fermeture du jeu…" else recovery.error ?: "Une partie est encore ouverte.",
+                if (recovery.isStopping) stringResource(R.string.game_closing)
+                else recovery.error?.resolve() ?: stringResource(R.string.game_still_open),
                 Modifier.weight(1f), color = palette.text,
             )
-            AveluneButton("Fermer le jeu", stop, enabled = !recovery.isStopping)
-            if (recovery.error != null && !recovery.isStopping) AveluneButton("Réinitialiser Avelune", reset)
+            AveluneButton(stringResource(R.string.game_close), stop, enabled = !recovery.isStopping)
+            if (recovery.error != null && !recovery.isStopping) AveluneButton(stringResource(R.string.runtime_reset), reset)
         }
     }
 }
@@ -249,6 +276,7 @@ private fun LibraryHome(
     onQuickView: (InstalledGame) -> Unit,
 ) {
     val palette = avelunePalette
+    val appName = stringResource(R.string.app_name)
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val viewport = maxWidth.value
         val scroll = rememberLazyListState()
@@ -261,11 +289,11 @@ private fun LibraryHome(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                AveluneMoon(Modifier.size(28.dp).semantics { contentDescription = "Avelune" })
-                if (collapsed) Text("Bibliothèque", Modifier.weight(1f), textAlign = TextAlign.Center,
+                AveluneMoon(Modifier.size(28.dp).semantics { contentDescription = appName })
+                if (collapsed) Text(stringResource(R.string.library_title), Modifier.weight(1f), textAlign = TextAlign.Center,
                     fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = palette.text)
                 else Spacer(Modifier.weight(1f))
-                AveluneIconButton(Icons.Outlined.Add, "Importer un jeu", importGame, Modifier.focusRequester(importFocus), enabled)
+                AveluneIconButton(Icons.Outlined.Add, stringResource(R.string.library_import), importGame, Modifier.focusRequester(importFocus), enabled)
             }
             LazyColumn(
                 Modifier.fillMaxWidth().weight(1f),
@@ -274,7 +302,7 @@ private fun LibraryHome(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item {
-                    Text("Bibliothèque", Modifier.padding(horizontal = 24.dp).padding(bottom = 10.dp),
+                    Text(stringResource(R.string.library_title), Modifier.padding(horizontal = 24.dp).padding(bottom = 10.dp),
                         fontSize = 34.sp, fontWeight = FontWeight.Bold, color = palette.text)
                 }
                 when {
@@ -284,7 +312,9 @@ private fun LibraryHome(
                     !state.isLoaded -> item { LibraryLoading() }
                     else -> {
                         item {
-                            Text(if (state.games.isEmpty()) "Vos aventures commencent ici." else "${state.games.size} aventure${if (state.games.size > 1) "s" else ""}",
+                            val subtitle = if (state.games.isEmpty()) stringResource(R.string.library_empty_subtitle)
+                            else pluralStringResource(R.plurals.library_adventures, state.games.size, state.games.size)
+                            Text(subtitle,
                                 Modifier.padding(horizontal = 24.dp).padding(bottom = 12.dp), color = palette.muted, fontSize = 14.sp)
                         }
                         if (state.games.isEmpty()) item {
@@ -294,7 +324,7 @@ private fun LibraryHome(
                                 FeaturedGames(InstalledGame.featuredOrder(state.games), viewport, enabled, viewModel, onQuickView)
                             }
                             item {
-                                Text("Ma collection", Modifier.padding(horizontal = 24.dp),
+                                Text(stringResource(R.string.library_collection), Modifier.padding(horizontal = 24.dp),
                                     fontSize = 22.sp, fontWeight = FontWeight.Bold, color = palette.text)
                             }
                             items(collection.size) { rowIndex ->
@@ -331,7 +361,7 @@ private fun FeaturedGames(
     val cardWidth = (viewport - 64).coerceAtMost(600f).coerceAtLeast(120f)
     val pager = rememberPagerState { games.size }
     Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("À la une", Modifier.padding(horizontal = 24.dp), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = palette.text)
+        Text(stringResource(R.string.library_featured), Modifier.padding(horizontal = 24.dp), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = palette.text)
         HorizontalPager(
             pager,
             pageSize = PageSize.Fixed(cardWidth.dp),
@@ -342,13 +372,16 @@ private fun FeaturedGames(
             val game = games[page]
             FeaturedCard(game, enabled, { viewModel.play(game.id) }, { viewModel.select(game.id) }, { onQuickView(game) })
         }
-        if (games.size > 1) Row(
-            Modifier.fillMaxWidth().semantics { contentDescription = "Jeu ${pager.currentPage + 1} sur ${games.size}" },
-            horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
-        ) {
-            games.indices.forEach { index ->
-                Box(Modifier.width(if (pager.currentPage == index) 18.dp else 7.dp).height(7.dp)
-                    .background(if (pager.currentPage == index) palette.lilac else palette.muted.copy(alpha = 0.35f), CircleShape))
+        if (games.size > 1) {
+            val pageDescription = stringResource(R.string.library_page, pager.currentPage + 1, games.size)
+            Row(
+                Modifier.fillMaxWidth().semantics { contentDescription = pageDescription },
+                horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
+            ) {
+                games.indices.forEach { index ->
+                    Box(Modifier.width(if (pager.currentPage == index) 18.dp else 7.dp).height(7.dp)
+                        .background(if (pager.currentPage == index) palette.lilac else palette.muted.copy(alpha = 0.35f), CircleShape))
+                }
             }
         }
     }
@@ -371,9 +404,9 @@ private fun FeaturedCard(game: InstalledGame, enabled: Boolean, play: () -> Unit
             if (game.author.isNotBlank()) Text(game.author, color = palette.artworkText.copy(alpha = 0.8f),
                 fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                AveluneButton(if (game.canContinue) "Reprendre" else "Jouer", play, Modifier.weight(1f),
+                AveluneButton(stringResource(if (game.canContinue) R.string.game_resume else R.string.game_play), play, Modifier.weight(1f),
                     enabled, Icons.Outlined.PlayArrow, actionColor = style.action)
-                AveluneButton("Détails", details, Modifier.weight(1f), enabled, Icons.Outlined.Info)
+                AveluneButton(stringResource(R.string.game_details), details, Modifier.weight(1f), enabled, Icons.Outlined.Info)
             }
         }
     }
@@ -384,11 +417,12 @@ private fun FeaturedCard(game: InstalledGame, enabled: Boolean, play: () -> Unit
 private fun CollectionCard(game: InstalledGame, enabled: Boolean, viewModel: GameLibraryViewModel, quick: (InstalledGame) -> Unit) {
     val palette = avelunePalette
     var options by remember(game.id) { mutableStateOf(false) }
+    val description = stringResource(R.string.game_details_for, game.title)
     Box(Modifier.widthIn(max = 210.dp).fillMaxWidth().aspectRatio(0.72f)) {
         Box(
             Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp)).border(1.dp, palette.border, RoundedCornerShape(20.dp))
                 .focusRing(20).combinedClickable(enabled = enabled, onClick = { viewModel.select(game.id) }, onLongClick = { quick(game) })
-                .semantics { contentDescription = "${game.title}, voir la fiche" },
+                .semantics { contentDescription = description },
         ) {
             AveluneArtwork(game.artworkPaths, artworkStyle(game), Modifier.fillMaxSize())
             ArtworkScrim(opacity = 0.68f)
@@ -396,10 +430,10 @@ private fun CollectionCard(game: InstalledGame, enabled: Boolean, viewModel: Gam
                 fontSize = 17.sp, fontFamily = FontFamily.Serif, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         Box(Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-            AveluneIconButton(Icons.Outlined.MoreHoriz, "Options pour ${game.title}", { options = true }, enabled = enabled)
+            AveluneIconButton(Icons.Outlined.MoreHoriz, stringResource(R.string.game_options_for, game.title), { options = true }, enabled = enabled)
             DropdownMenu(options, { options = false }, modifier = Modifier.popupGamepadKeys { options = false }) {
-                DropdownMenuItem(text = { Text("Voir la fiche") }, onClick = { options = false; viewModel.select(game.id) })
-                DropdownMenuItem(text = { Text("Supprimer le jeu") }, onClick = { options = false; viewModel.requestUninstall(game.id) }, enabled = enabled)
+                DropdownMenuItem(text = { Text(stringResource(R.string.game_view_details)) }, onClick = { options = false; viewModel.select(game.id) })
+                DropdownMenuItem(text = { Text(stringResource(R.string.game_remove)) }, onClick = { options = false; viewModel.requestUninstall(game.id) }, enabled = enabled)
             }
         }
     }
@@ -419,7 +453,7 @@ private fun AddGameCard(enabled: Boolean, importGame: () -> Unit) {
             Box(Modifier.size(58.dp).background(palette.lilac.copy(alpha = 0.14f), CircleShape), contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Add, null, Modifier.size(25.dp), tint = palette.text)
             }
-            Text("Ajouter un jeu", color = palette.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(stringResource(R.string.library_add_game), color = palette.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         }
     }
 }
@@ -428,6 +462,7 @@ private fun AddGameCard(enabled: Boolean, importGame: () -> Unit) {
 private fun GameDetail(game: InstalledGame, enabled: Boolean, viewModel: GameLibraryViewModel) {
     val palette = avelunePalette
     val style = artworkStyle(game)
+    val locale = presentationLocale()
     var expanded by rememberSaveable(game.id) { mutableStateOf(false) }
     val backFocus = remember(game.id) { FocusRequester() }
     LaunchedEffect(game.id) { backFocus.requestFocus() }
@@ -435,9 +470,10 @@ private fun GameDetail(game: InstalledGame, enabled: Boolean, viewModel: GameLib
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 12.dp, bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)) {
             Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                AveluneIconButton(Icons.AutoMirrored.Outlined.ArrowBack, "Retour à la bibliothèque", { viewModel.select(null) }, Modifier.focusRequester(backFocus))
+                AveluneIconButton(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.game_back_to_library),
+                    { viewModel.select(null) }, Modifier.focusRequester(backFocus))
                 AveluneMoon(Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)))
-                Text("Avelune", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = palette.text)
+                Text(stringResource(R.string.app_name), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = palette.text)
             }
             Box(Modifier.padding(horizontal = 20.dp).fillMaxWidth().height(300.dp).clip(RoundedCornerShape(28.dp))) {
                 AveluneArtwork(game.heroArtworkPaths, style, Modifier.fillMaxSize())
@@ -446,31 +482,41 @@ private fun GameDetail(game: InstalledGame, enabled: Boolean, viewModel: GameLib
                     fontSize = 34.sp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, color = palette.artworkText)
             }
             Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                AveluneButton(if (game.canContinue) "Reprendre" else "Jouer", { viewModel.play(game.id) },
+                AveluneButton(stringResource(if (game.canContinue) R.string.game_resume else R.string.game_play), { viewModel.play(game.id) },
                     Modifier.fillMaxWidth(), enabled, Icons.Outlined.PlayArrow, actionColor = style.action)
                 game.description?.takeIf(String::isNotBlank)?.let { description ->
                     InformationPanel {
-                        Text("À propos de ce jeu", color = palette.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.game_about), color = palette.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                         Text(description, color = palette.muted, maxLines = if (expanded) Int.MAX_VALUE else 4)
-                        if (description.length > 180) TextButton({ expanded = !expanded }) { Text(if (expanded) "Voir moins" else "Voir plus", color = style.action) }
+                        if (description.length > 180) TextButton({ expanded = !expanded }) {
+                            Text(stringResource(if (expanded) R.string.game_show_less else R.string.game_show_more), color = style.action)
+                        }
                     }
                 }
                 InformationPanel {
-                    Text("Informations", color = palette.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    if (game.author.isNotBlank()) InformationRow("Créé par", game.author, Icons.Outlined.PersonOutline, style)
-                    game.publisher?.takeIf(String::isNotBlank)?.let { InformationRow("Édité par", it, Icons.Outlined.Business, style) }
-                    game.version?.takeIf(String::isNotBlank)?.let { InformationRow("Version", it, Icons.Outlined.Tag, style) }
-                    if (game.supportedLocales.isNotEmpty()) InformationRow("Langues", game.supportedLocales.joinToString(", ") {
-                        Locale.forLanguageTag(it.replace('_', '-')).getDisplayName(Locale.FRENCH)
-                    }, Icons.Outlined.Language, style)
+                    Text(stringResource(R.string.game_information), color = palette.text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    if (game.author.isNotBlank()) InformationRow(stringResource(R.string.game_author), game.author, Icons.Outlined.PersonOutline, style)
+                    game.publisher?.takeIf(String::isNotBlank)?.let {
+                        InformationRow(stringResource(R.string.game_publisher), it, Icons.Outlined.Business, style)
+                    }
+                    game.version?.takeIf(String::isNotBlank)?.let {
+                        InformationRow(stringResource(R.string.game_version), it, Icons.Outlined.Tag, style)
+                    }
+                    if (game.supportedLocales.isNotEmpty()) {
+                        val languages = game.supportedLocales.joinToString(", ") { tag ->
+                            Locale.forLanguageTag(tag.replace('_', '-')).getDisplayName(locale).ifBlank { tag }
+                        }
+                        InformationRow(stringResource(R.string.game_languages), languages, Icons.Outlined.Language, style)
+                    }
                     game.lastPlayedAt?.let { played ->
-                        InformationRow("Dernière partie", DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, Locale.FRENCH)
-                            .format(Date.from(played)), Icons.Outlined.Schedule, style)
+                        val timestamp = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, locale).format(Date.from(played))
+                        InformationRow(stringResource(R.string.game_last_played), timestamp, Icons.Outlined.Schedule, style)
                     }
                     if (game.playTimeSeconds > 0) {
                         val minutes = game.playTimeSeconds / 60
-                        val duration = if (minutes >= 60) "${minutes / 60} h ${minutes % 60} min" else "$minutes min"
-                        InformationRow("Temps de jeu", duration, Icons.Outlined.Timer, style)
+                        val duration = if (minutes >= 60) stringResource(R.string.game_play_time_hours, minutes / 60, minutes % 60)
+                        else stringResource(R.string.game_play_time_minutes, minutes)
+                        InformationRow(stringResource(R.string.game_play_time), duration, Icons.Outlined.Timer, style)
                     }
                 }
             }
@@ -500,6 +546,7 @@ private fun InformationRow(title: String, value: String, icon: ImageVector, styl
 @Composable
 private fun QuickGameView(game: InstalledGame, enabled: Boolean, onClose: () -> Unit, onPlay: () -> Unit, onDetails: () -> Unit) {
     val palette = avelunePalette
+    val locale = presentationLocale()
     val closeFocus = remember(game.id) { FocusRequester() }
     Dialog(onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         AveluneDialogGamepadKeys(onClose)
@@ -515,20 +562,21 @@ private fun QuickGameView(game: InstalledGame, enabled: Boolean, onClose: () -> 
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     Box(Modifier.fillMaxWidth().height(240.dp)) {
                         AveluneArtwork(game.heroArtworkPaths, artworkStyle(game), Modifier.fillMaxSize())
-                        AveluneIconButton(Icons.Outlined.Close, "Fermer l’aperçu", onClose,
+                        AveluneIconButton(Icons.Outlined.Close, stringResource(R.string.game_close_preview), onClose,
                             Modifier.align(Alignment.TopEnd).padding(12.dp).focusRequester(closeFocus))
                     }
                     Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(game.title, color = palette.text, fontSize = 34.sp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold)
                         game.description?.takeIf(String::isNotBlank)?.let { Text(it, color = palette.muted, maxLines = 4, overflow = TextOverflow.Ellipsis) }
                         game.lastPlayedAt?.let {
-                            Text("Dernière partie : ${DateFormat.getDateInstance(DateFormat.MEDIUM, Locale.FRENCH).format(Date.from(it))}",
+                            val date = DateFormat.getDateInstance(DateFormat.MEDIUM, locale).format(Date.from(it))
+                            Text(stringResource(R.string.game_last_played_on, date),
                                 color = palette.muted, fontSize = 14.sp)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            AveluneButton(if (game.canContinue) "Reprendre" else "Jouer", onPlay, Modifier.weight(1f),
+                            AveluneButton(stringResource(if (game.canContinue) R.string.game_resume else R.string.game_play), onPlay, Modifier.weight(1f),
                                 enabled, Icons.Outlined.PlayArrow, actionColor = artworkStyle(game).action)
-                            AveluneButton("Voir la fiche", onDetails, Modifier.weight(1f), enabled)
+                            AveluneButton(stringResource(R.string.game_view_details), onDetails, Modifier.weight(1f), enabled)
                         }
                     }
                 }

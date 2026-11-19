@@ -11,7 +11,10 @@ import com.yoahnl.avelune.host.SurfaceProbeWindowLease
 import com.yoahnl.avelune.host.SurfaceProbeWindowPolicy
 import com.yoahnl.avelune.host.SurfaceProbeWindows
 import com.yoahnl.avelune.player.BuildConfig
+import com.yoahnl.avelune.player.R
 import com.yoahnl.avelune.player.display.DisplayCapabilityAdapter
+import com.yoahnl.avelune.player.localization.NativeFailure
+import com.yoahnl.avelune.player.localization.NativeMessage
 import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineGroup
@@ -47,9 +50,9 @@ class SurfaceProbeSession(
     private val windows = SurfaceProbeWindows()
     private val presence = MutableStateFlow(false)
     private val mutableActiveSession = MutableStateFlow<String?>(null)
-    private val mutableStopError = MutableStateFlow<String?>(null)
+    private val mutableStopError = MutableStateFlow<NativeMessage?>(null)
     val activeSession = mutableActiveSession.asStateFlow()
-    val stopError = mutableStopError.asStateFlow()
+    internal val stopError = mutableStopError.asStateFlow()
     private var relay: SurfaceProbeRelay? = null
     private var ownerActivity: SurfaceProbeActivity? = null
     private var companion: CompanionSurface? = null
@@ -59,7 +62,7 @@ class SurfaceProbeSession(
     private var startJob: Job? = null
     private var stopJob: Job? = null
     private var blockedDisplayId: Int? = null
-    private var pendingError: String? = null
+    private var pendingError: NativeMessage? = null
     private var closed = false
 
     init {
@@ -103,8 +106,8 @@ class SurfaceProbeSession(
     }
 
     fun prepare(): String {
-        check(isEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { "Ce test est disponible uniquement dans la version de debug sur Android 8 ou plus récent." }
-        check(!closed && relay == null) { "Le test des écrans est déjà ouvert." }
+        if (!isEnabled || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) throw NativeFailure(R.string.error_probe_unavailable)
+        if (closed || relay != null) throw NativeFailure(R.string.error_probe_already_open)
         val sessionId = UUID.randomUUID().toString()
         relay = SurfaceProbeRelay(sessionId)
         mutableActiveSession.value = sessionId
@@ -146,7 +149,8 @@ class SurfaceProbeSession(
                 started = true
                 reconcile()
             } catch (error: Exception) {
-                pendingError = error.message ?: "Le test des écrans n’a pas pu démarrer."
+                Log.w(TAG, "Display test could not start", error)
+                pendingError = NativeMessage.fromError(error, R.string.error_probe_start)
                 requestStop()
             }
         }
@@ -220,12 +224,13 @@ class SurfaceProbeSession(
                 activity?.finish()
             } catch (error: Exception) {
                 started = true
-                mutableStopError.value = error.message ?: "Le test des écrans n’a pas pu être fermé."
+                Log.w(TAG, "Display test could not stop", error)
+                mutableStopError.value = NativeMessage.fromError(error, R.string.error_probe_stop)
             }
         }
     }
 
-    fun consumeError(): String? = pendingError.also { pendingError = null }
+    internal fun consumeError(): NativeMessage? = pendingError.also { pendingError = null }
 
     fun close() {
         if (closed) return

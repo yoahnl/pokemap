@@ -23,8 +23,6 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
   double? _identityHeight;
   double? _progressionHeight;
 
-  bool get _french => Localizations.localeOf(context).languageCode == 'fr';
-  String _text(String french, String english) => _french ? french : english;
 
   @override
   void initState() {
@@ -145,7 +143,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
     final seconds = profile.playtimeSeconds;
     return [
       Text(
-        _text('CARTE DE JOUEUR', 'PLAYER CARD'),
+        context.playerL10n.profileCardHeading,
         style: theme.meta.copyWith(fontSize: 10),
       ),
       Row(
@@ -175,7 +173,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
             height: portraitHeight,
             child: PlayerMenuPortrait(
               circular: true,
-              semanticLabel: _text('Portrait de $name', '$name’s portrait'),
+              semanticLabel: context.playerL10n.profilePortrait(name: name),
               child: _portrait(),
             ),
           ),
@@ -201,7 +199,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
             child: _statistics([
               (
                 id: 'money',
-                label: _text('Argent', 'Money'),
+                label: context.playerL10n.money,
                 value: [
                   material.formatDecimal(profile.money),
                   if (currency != null && currency.isNotEmpty) currency,
@@ -231,7 +229,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
               child: _statistics([
                 (
                   id: 'pokedex-total',
-                  label: _text('Total du Pokédex', 'Pokédex total'),
+                  label: context.playerL10n.profilePokedexTotal,
                   value: material.formatDecimal(pokedex.total),
                 ),
               ], stacked: true),
@@ -275,12 +273,12 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
       if (pokedex != null) ...[
         (
           id: 'pokedex-seen',
-          label: _text('Pokémon vus', 'Pokémon seen'),
+          label: context.playerL10n.profilePokemonSeen,
           value: material.formatDecimal(pokedex.seen),
         ),
         (
           id: 'pokedex-caught',
-          label: _text('Pokémon capturés', 'Pokémon caught'),
+          label: context.playerL10n.profilePokemonCaught,
           value: material.formatDecimal(pokedex.caught),
         ),
       ],
@@ -294,7 +292,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
       Semantics(
         header: true,
         child: Text(
-          _text('Progression', 'Progress'),
+          context.playerL10n.progression,
           style: theme.meta.copyWith(fontSize: 10),
         ),
       ),
@@ -303,7 +301,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
         Semantics(
           header: true,
           child: Text(
-            _text('Badges obtenus', 'Earned badges'),
+            context.playerL10n.profileEarnedBadges,
             style: theme.meta.copyWith(fontSize: 10),
           ),
         ),
@@ -334,7 +332,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
           child: Row(
             children: [
               Text(
-                _text('Lieu actuel', 'Current location'),
+                context.playerL10n.profileCurrentLocation,
                 style: theme.meta.copyWith(fontSize: 12),
               ),
               const SizedBox(width: 8),

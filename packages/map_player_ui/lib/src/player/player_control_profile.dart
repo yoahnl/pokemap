@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../localization/player_localizations.dart';
+
 enum PlayerControlDevice { keyboard, gamepad, touch }
 
 enum PlayerControllerFamily { unknown, xbox, playStation, nintendo }
@@ -221,17 +223,40 @@ final class PlayerControlProfile {
   String glyphFor(PlayerControlDevice device, RuntimeInputControl control) =>
       glyphForInput(bindingFor(device, control));
 
-  static String glyphForInput(String inputId) =>
-      inputId.isEmpty ? '—' : _glyphs[inputId] ?? inputId;
+  static String glyphForInput(
+    String inputId, {
+    PokeMapPlayerLocalizations? localizations,
+  }) {
+    final strings =
+        localizations ??
+        PokeMapPlayerLocalizations.lookup(const ui.Locale('en'));
+    return switch (inputId) {
+      '' => '—',
+      'space' => strings.keyboardSpace,
+      'enter' => strings.keyboardEnter,
+      'back' => strings.back,
+      'bicycleButton' =>
+        (localizations ?? _legacyControllerStrings).controlsControlBicycle,
+      _ => _glyphs[inputId] ?? inputId,
+    };
+  }
+
+  static final _legacyControllerStrings = PokeMapPlayerLocalizations.lookup(
+    const ui.Locale('fr'),
+  );
 
   String promptFor(
     PlayerControlDevice device,
     RuntimeInputControl control, {
     PlayerControllerFamily family = PlayerControllerFamily.unknown,
+    PokeMapPlayerLocalizations? localizations,
   }) {
     if (device == PlayerControlDevice.touch) return '';
     final input = bindingFor(device, control);
-    if (device == PlayerControlDevice.keyboard) return glyphForInput(input);
+    if (device == PlayerControlDevice.keyboard) {
+      return glyphForInput(input, localizations: localizations);
+    }
+    final strings = localizations ?? _legacyControllerStrings;
     return switch ((family, input)) {
       (PlayerControllerFamily.xbox, 'a') => 'A',
       (PlayerControllerFamily.xbox, 'b') => 'B',
@@ -247,19 +272,19 @@ final class PlayerControlProfile {
       (PlayerControllerFamily.nintendo, 'y') => 'X',
       (PlayerControllerFamily.nintendo, 'back') => '−',
       (PlayerControllerFamily.nintendo, 'start') => '+',
-      (_, 'a') => 'Bouton sud',
-      (_, 'b') => 'Bouton est',
-      (_, 'x') => 'Bouton ouest',
-      (_, 'y') => 'Bouton nord',
-      (_, 'back') => 'Sélection',
-      (_, 'start') => 'Menu',
+      (_, 'a') => strings.controllerSouthButton,
+      (_, 'b') => strings.controllerEastButton,
+      (_, 'x') => strings.controllerWestButton,
+      (_, 'y') => strings.controllerNorthButton,
+      (_, 'back') => strings.controllerSelectButton,
+      (_, 'start') => strings.menu,
       (PlayerControllerFamily.xbox, 'leftBumper') => 'LB',
       (PlayerControllerFamily.xbox, 'rightBumper') => 'RB',
       (PlayerControllerFamily.playStation, 'leftBumper') => 'L1',
       (PlayerControllerFamily.playStation, 'rightBumper') => 'R1',
       (_, 'leftBumper') => 'L',
       (_, 'rightBumper') => 'R',
-      _ => glyphForInput(input),
+      _ => glyphForInput(input, localizations: localizations),
     };
   }
 
@@ -385,8 +410,6 @@ const Map<String, String> _glyphs = <String, String>{
   'keyZ': 'Z',
   'keyX': 'X',
   'keyB': 'B',
-  'space': 'Space',
-  'enter': 'Enter',
   'escape': 'Esc',
   'tab': 'Tab',
   'keyM': 'M',
@@ -399,7 +422,6 @@ const Map<String, String> _glyphs = <String, String>{
   'b': 'B',
   'x': 'X',
   'y': 'Y',
-  'back': 'Back',
   'start': 'Start',
   'leftBumper': 'L',
   'rightBumper': 'R',
@@ -415,7 +437,6 @@ const Map<String, String> _glyphs = <String, String>{
   'secondaryButton': 'B',
   'menuButton': '☰',
   'sprintButton': 'R',
-  'bicycleButton': 'Vélo',
 };
 
 String? _keyboardInputId(LogicalKeyboardKey key) {

@@ -1,0 +1,1299 @@
+{
+  "@@locale": "en",
+  "appName": "PokeMap Hub",
+  "home": "Home",
+  "library": "Library",
+  "preferences": "Preferences",
+  "diagnostics": "Diagnostics",
+  "installedGames": "Installed games",
+  "recentGames": "Recent games",
+  "resumeLastGame": "Resume last game",
+  "importGame": "Import a game",
+  "emptyLibraryTitle": "Your library is ready",
+  "emptyLibraryMessage": "Import a compatible game package to begin an adventure.",
+  "searchGames": "Search games",
+  "continueGame": "Continue",
+  "newGame": "New game",
+  "load": "Load",
+  "options": "Options",
+  "creditsAbout": "Credits / About",
+  "returnToHub": "Back to Hub",
+  "pause": "Pause",
+  "resume": "Resume",
+  "party": "Party",
+  "bag": "Bag",
+  "pokedex": "Pokédex",
+  "searchPokedex": "Search species",
+  "noPokedexMatch": "No matching species",
+  "map": "Map",
+  "quests": "Quests",
+  "profile": "Profile",
+  "save": "Save",
+  "returnToTitle": "Back to title",
+  "play": "Play",
+  "update": "Update",
+  "repair": "Repair",
+  "manageSaves": "Manage saves",
+  "uninstall": "Uninstall",
+  "version": "Version",
+  "author": "Author",
+  "lastSave": "Latest save",
+  "playTime": "Play time",
+  "noSave": "No save",
+  "loading": "Loading",
+  "cancel": "Cancel",
+  "showCredits": "View credits",
+  "retry": "Retry",
+  "close": "Close",
+  "language": "Language",
+  "appearance": "Appearance",
+  "accessibility": "Accessibility",
+  "audio": "Audio",
+  "reducedMotion": "Reduce motion",
+  "highContrast": "High contrast",
+  "haptics": "Haptics",
+  "textSize": "Text size",
+  "inputHints": "Show controls",
+  "touchControlsOpacity": "Touch controls opacity",
+  "launchMostRecentGameOnStartup": "Launch the latest game directly",
+  "launchMostRecentGameOnStartupDescription": "At startup, open the most recent playable game without showing the Hub home screen.",
+  "healthy": "Installation verified",
+  "needsRepair": "Repair required",
+  "storage": "Storage",
+  "usedStorage": "Used by the application",
+  "availableStorage": "Available",
+  "noDiagnostics": "No issue detected",
+  "actionUnavailable": "Action unavailable",
+  "menuBackgroundUnavailable": "Menu background unavailable.",
+  "confirmShortcut": "Enter / A button",
+  "interact": "Interact",
+  "talk": "Talk",
+  "read": "Read",
+  "collect": "Collect",
+  "enter": "Enter",
+  "run": "Run",
+  "badges": "Badges",
+  "menu": "Menu",
+  "pokemon": "Pokémon",
+  "choose": "Choose",
+  "battleChooseMove": "Choose a move",
+  "validate": "Confirm",
+  "noSaveAvailable": "No save available",
+  "noSaveToLoad": "No save to load",
+  "noPlayerDetailAvailable": "No information is available yet.",
+  "unavailableInGame": "Unavailable in this game",
+  "directReturnHub": "This ending returns directly to the Hub",
+  "directReturnTitle": "This ending returns directly to the title",
+  "preparingSession": "Preparing session",
+  "sessionSuspended": "Session suspended",
+  "resumeOnReturn": "Resumes when you return",
+  "validatingCompletion": "Validating completion",
+  "closingSession": "Closing session",
+  "returningHub": "Returning to Hub",
+  "loadingGame": "Loading game",
+  "completionSaveIncomplete": "Completion save incomplete",
+  "completionSaveMessage": "The ending cannot be validated yet.",
+  "completionSaveRecommendation": "Retry without leaving to preserve your progress.",
+  "sessionErrorTitle": "The game encountered a problem",
+  "sessionCannotContinue": "The session cannot continue.",
+  "completedFallback": "Game completed",
+  "completedSummaryFallback": "Your adventure is complete.",
+  "retryKeepsSaves": "Retry. Your existing saves remain intact.",
+  "repairFromHub": "Return to the Hub and repair the installation.",
+  "returnTitleOrHub": "Return to the title or Hub.",
+  "consultDiagnostics": "Return to the Hub to view diagnostics.",
+  "overwriteSaveTitle": "Replace this save?",
+  "overwriteSaveMessage": "The current save remains intact until the new game creates its first checkpoint.",
+  "hubSubtitle": "Your adventures, ready to resume.",
+  "openingLibrary": "Opening library",
+  "hubAttentionTitle": "The Hub needs your attention",
+  "libraryUnavailable": "The library cannot be displayed.",
+  "installedDataPreserved": "Your games and saves remain on disk.",
+  "installingGame": "Installing game",
+  "importUnavailable": "Import unavailable on this platform",
+  "noSearchResult": "No matching game",
+  "tryAnotherSearch": "Try another search.",
+  "globalSettingsSubtitle": "Global settings for the Hub and games.",
+  "systemLanguage": "System language",
+  "systemTheme": "System",
+  "lightTheme": "Light",
+  "darkTheme": "Dark",
+  "theme": "Theme",
+  "masterVolume": "Master volume",
+  "music": "Music",
+  "effects": "Effects",
+  "diagnosticsSubtitle": "Library, installation, and storage status.",
+  "diagnosticsReady": "The library and installations are ready.",
+  "viewGameDetails": "Open game details",
+  "repairRequired": "Repair required",
+  "launchUnavailable": "Launch unavailable",
+  "noUpdateAvailable": "No update available",
+  "updateUnavailable": "Update unavailable",
+  "repairSourceMissing": "No repair source selected",
+  "saveManagementUnavailable": "Save management unavailable",
+  "uninstallUnavailable": "Uninstall unavailable",
+  "repairBeforePlaying": "Repair the game before playing",
+  "loadingPackage": "Reading package",
+  "checkingCompatibility": "Checking compatibility",
+  "checkingStorage": "Checking storage",
+  "protectingInstalledVersion": "Protecting installed version",
+  "secureExtraction": "Secure extraction",
+  "verifyingFiles": "Verifying files",
+  "validatingGame": "Validating game",
+  "loadingTrial": "Loading trial",
+  "preparingSaves": "Preparing saves",
+  "activatingVersion": "Activating version",
+  "updatingLibrary": "Updating library",
+  "installationComplete": "Installation complete",
+  "estimatedTimeCalculating": "Estimated time remaining: calculating…",
+  "cancelling": "Cancelling",
+  "recovering": "Recovering",
+  "preparing": "Preparing",
+  "back": "Back",
+  "mandatoryReplacement": "Replacement required",
+  "levelAbbreviation": "Lv.",
+  "hpAbbreviation": "HP",
+  "experienceAbbreviation": "XP",
+  "showFullText": "Show",
+  "next": "Next",
+  "yourChoice": "Your choice",
+  "postBattle": "Post-battle",
+  "progression": "Progress",
+  "battleResult": "Battle result",
+  "battleCommands": "COMMANDS",
+  "battleMoves": "MOVES",
+  "battleBag": "BAG",
+  "battleBagMedicine": "HEALING",
+  "battleBagCapture": "CAPTURE",
+  "battleBagOther": "ITEM",
+  "battleTarget": "TARGET",
+  "battlePokemon": "POKÉMON",
+  "battleContinue": "CONTINUE",
+  "battleDecision": "CHOICE",
+  "reward": "Reward",
+  "decision": "Decision",
+  "shopItems": "Items",
+  "shopBuy": "Buy",
+  "shopSell": "Sell",
+  "shopQuantity": "Quantity",
+  "shopDecreaseQuantity": "Decrease quantity",
+  "shopIncreaseQuantity": "Increase quantity",
+  "shopUnsellable": "Cannot be sold",
+  "shopEmpty": "This shop is empty.",
+  "shopBagEmpty": "The bag is empty.",
+  "shopNoItems": "No items available",
+  "shopCannotDisplay": "The shop cannot be displayed.",
+  "confirmOverwrite": "This save already exists. Do you want to replace it?",
+  "dialogueChoicePrompt": "Choose a reply.",
+  "estimatedTimeRemainingMessage": "Estimated time remaining: {duration}",
+  "@estimatedTimeRemainingMessage": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "shortSecondsMessage": "{seconds} sec",
+  "@shortSecondsMessage": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "shortMinutesMessage": "{minutes} min",
+  "@shortMinutesMessage": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "shopStockMessage": "Stock: {quantity}",
+  "@shopStockMessage": {
+    "placeholders": {
+      "quantity": {
+        "type": "int"
+      }
+    }
+  },
+  "shopOwnedMessage": "Owned: {quantity}",
+  "@shopOwnedMessage": {
+    "placeholders": {
+      "quantity": {
+        "type": "int"
+      }
+    }
+  },
+  "shopTotalMessage": "Total: {amount} ₽",
+  "@shopTotalMessage": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "installedGameCountMessage": "{count, plural, =0{0 installed games} one{{count} installed game} other{{count} installed games}}",
+  "@installedGameCountMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "diagnosticsToReviewMessage": "{count, plural, =0{0 diagnostics to review} one{{count} diagnostic to review} other{{count} diagnostics to review}}",
+  "@diagnosticsToReviewMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "levelLabelMessage": "Lv. {level}",
+  "@levelLabelMessage": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "hpLabelMessage": "{current} / {maximum} HP",
+  "@hpLabelMessage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "maximum": {
+        "type": "int"
+      }
+    }
+  },
+  "hpFractionMessage": "{current}/{maximum}",
+  "@hpFractionMessage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "maximum": {
+        "type": "int"
+      }
+    }
+  },
+  "experienceProgressMessage": "Progress to the next level: {percent}%",
+  "@experienceProgressMessage": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "postBattleProgressMessage": "{current} / {total}",
+  "@postBattleProgressMessage": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmOverwriteUnusableMessage": "This save cannot be continued: {reason} Replacing it will permanently erase its progress.",
+  "@confirmOverwriteUnusableMessage": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "battleMoveCategorySpecial": "SPECIAL",
+  "battleMoveCategoryPhysical": "PHYSICAL",
+  "battleMoveCategoryStatus": "STATUS",
+  "saveUnavailablePostGameContinuationRefused": "This ending does not allow post-game continuation.",
+  "saveUnavailableMigrationRequired": "This save must be migrated before it can be loaded.",
+  "saveUnavailableIncompatibleVersion": "This save is not compatible with the installed game version.",
+  "saveUnavailableCorrupt": "This save is damaged and could not be recovered from its backup.",
+  "saveUnavailableMissing": "No save exists in this slot.",
+  "saveUnavailableTemporarilyUnavailable": "This save is temporarily unavailable.",
+  "battleMoveTypeMessage": "{type, select, other{{fallback}}}",
+  "@battleMoveTypeMessage": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      },
+      "fallback": {
+        "type": "String"
+      }
+    }
+  },
+  "bagUse": "Use",
+  "bagChooseTarget": "Choose a target",
+  "bagManageHeldItem": "Manage held item",
+  "bagHeldItemSummary": "Held item: {item}",
+  "@bagHeldItemSummary": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "bagGiveHeldItem": "Give {item}",
+  "@bagGiveHeldItem": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "bagReplaceHeldItem": "Replace with {item}",
+  "@bagReplaceHeldItem": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "bagTakeHeldItem": "Take {item}",
+  "@bagTakeHeldItem": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "bagUseOn": "Use on {pokemon}",
+  "@bagUseOn": {
+    "placeholders": {
+      "pokemon": {
+        "type": "String"
+      }
+    }
+  },
+  "bagUseOnMove": "Use on {pokemon} — {move}",
+  "@bagUseOnMove": {
+    "placeholders": {
+      "pokemon": {
+        "type": "String"
+      },
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "bagTeachTo": "Teach to {pokemon}",
+  "@bagTeachTo": {
+    "placeholders": {
+      "pokemon": {
+        "type": "String"
+      }
+    }
+  },
+  "bagTeachReplacing": "Teach to {pokemon} and forget {move}",
+  "@bagTeachReplacing": {
+    "placeholders": {
+      "pokemon": {
+        "type": "String"
+      },
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "optionsCategoryControls": "Controls",
+  "controlsConflict": "This input is already assigned.",
+  "controlsReset": "Reset",
+  "controlsSwapTouch": "Swap A / B",
+  "controlsDeviceKeyboard": "Keyboard",
+  "controlsDeviceGamepad": "Gamepad",
+  "controlsDeviceTouch": "Touch",
+  "controlsControlUp": "Up",
+  "controlsControlDown": "Down",
+  "controlsControlLeft": "Left",
+  "controlsControlRight": "Right",
+  "controlsControlSprint": "Sprint",
+  "controlsControlPrimary": "Primary action",
+  "controlsControlSecondary": "Secondary action",
+  "controlsControlBicycle": "Bicycle",
+  "controlsControlPreviousTab": "Previous tab",
+  "controlsControlNextTab": "Next tab",
+  "displayTitle": "Display",
+  "displayMode": "Display mode",
+  "displayWindowed": "Windowed",
+  "displayFullscreen": "Fullscreen",
+  "displayWindowSize": "Window size",
+  "displayCompact": "Compact",
+  "displayBalanced": "Balanced",
+  "displaySpacious": "Spacious",
+  "displayUnsupported": "Window settings are available on desktop.",
+  "displayApplyFailed": "The display setting could not be applied.",
+  "healStatusNeedsHealing": "Status needs healing",
+  "healStatusHealthy": "Status healthy",
+  "healPpToRestore": "PP to restore: {count}",
+  "@healPpToRestore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "healPpFull": "PP full",
+  "noPokemon": "No Pokémon",
+  "emptyPartyMessage": "Your party is empty.",
+  "returnToGame": "Return to game",
+  "healRetry": "Try again",
+  "healHealParty": "Heal",
+  "healUnavailable": "The healing service cannot be displayed.",
+  "healHp": "HP {current} / {maximum}",
+  "@healHp": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "maximum": {
+        "type": "int"
+      }
+    }
+  },
+  "introVideoSkip": "Skip",
+  "introVideoReplay": "Replay",
+  "introVideoUnavailable": "Video playback is unavailable.",
+  "introVideoReducedMotionSkipped": "Intro skipped with reduced motion",
+  "pcSummaryTitle": "{pokemon} summary",
+  "@pcSummaryTitle": {
+    "placeholders": {
+      "pokemon": {
+        "type": "String"
+      }
+    }
+  },
+  "pcSummaryTooltip": "View summary",
+  "pcSwapTooltip": "Swap",
+  "pcEmptyBox": "This Box is empty.",
+  "pcDeposit": "Deposit",
+  "pcWithdraw": "Withdraw",
+  "pcUnavailable": "The PC cannot be displayed.",
+  "pokemonLevel": "Lv. {level}",
+  "@pokemonLevel": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "pcSpecies": "Species",
+  "pcLevel": "Level",
+  "pcCurrentHp": "Current HP",
+  "pcAbility": "Ability",
+  "pcGender": "Gender",
+  "pcStatus": "Status",
+  "pcShiny": "Shiny",
+  "pcHeldItem": "Held item",
+  "pcMoves": "Moves",
+  "pcNickname": "Nickname",
+  "pcFriendship": "Friendship",
+  "pcOrigin": "Origin",
+  "pcMetLocation": "Met location",
+  "pcMetSource": "Source",
+  "pcMetLevel": "Met level",
+  "pcCaptureBall": "Capture Ball",
+  "pcNone": "None",
+  "yes": "Yes",
+  "no": "No",
+  "pokemonOriginCaptured": "Captured",
+  "pokemonOriginGift": "Gift",
+  "pokemonOriginStarter": "Starter",
+  "pokemonOriginTrade": "Trade",
+  "pokemonOriginScripted": "Event",
+  "pokemonOriginUnknown": "Unknown",
+  "pcSwapWith": "Swap with {pokemon}",
+  "@pcSwapWith": {
+    "placeholders": {
+      "pokemon": {
+        "type": "String"
+      }
+    }
+  },
+  "pokemonPpValue": "PP {current}/{max}",
+  "@pokemonPpValue": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "pokemonSpecies": "Species",
+  "pokemonForm": "Form",
+  "pokemonExperience": "Experience",
+  "pokemonNature": "Nature",
+  "pokemonAbility": "Ability",
+  "pokemonGender": "Gender",
+  "pokemonShiny": "Shiny",
+  "pokemonHeldItem": "Held item",
+  "pokemonFriendship": "Friendship",
+  "pokemonStats": "Stats",
+  "pokemonAttack": "Attack",
+  "pokemonDefense": "Defense",
+  "pokemonSpecialAttack": "Sp. Attack",
+  "pokemonSpecialDefense": "Sp. Defense",
+  "pokemonSpeed": "Speed",
+  "pokemonMoves": "Moves",
+  "pokemonProvenance": "Origin",
+  "pokemonOrigin": "Origin",
+  "pokemonMetLocation": "Met location",
+  "pokemonMetSource": "Source",
+  "pokemonMetLevel": "Met level",
+  "pokemonCaptureBall": "Capture Ball",
+  "pokemonNone": "None",
+  "pokemonViewSummary": "View summary",
+  "pokemonFriendshipValue": "{friendship}/255",
+  "@pokemonFriendshipValue": {
+    "placeholders": {
+      "friendship": {
+        "type": "int"
+      }
+    }
+  },
+  "pokemonPpUnavailable": "—",
+  "saveRecoveryCauseUnreadable": "The save file cannot be read.",
+  "saveRecoveryCauseUnsupportedSchema": "This save comes from another version of the game.",
+  "saveRecoveryCauseInvalidState": "The save is incomplete or inconsistent.",
+  "saveRecoveryExpectedVersion": "This game expects version {expected}.",
+  "@saveRecoveryExpectedVersion": {
+    "placeholders": {
+      "expected": {
+        "type": "int"
+      }
+    }
+  },
+  "saveRecoveryVersionMismatch": "Save is version {detected}, this game expects version {expected}.",
+  "@saveRecoveryVersionMismatch": {
+    "placeholders": {
+      "detected": {
+        "type": "int"
+      },
+      "expected": {
+        "type": "int"
+      }
+    }
+  },
+  "saveRecoveryActionRetry": "Try again",
+  "saveRecoveryActionRestoreBackup": "Restore the previous save",
+  "saveRecoveryActionMigrate": "Update the save",
+  "saveRecoveryActionDeleteSave": "Delete the save",
+  "saveRecoveryDeleteConfirmTitle": "Delete permanently?",
+  "saveRecoveryDeleteConfirmBody": "This game will be erased and cannot be recovered.",
+  "saveRecoveryDeleteConfirm": "Delete permanently",
+  "saveTitle": "Save game?",
+  "saveSaving": "Saving…",
+  "saveSuccess": "Game saved",
+  "saveFailure": "Unable to save",
+  "saveExitTitle": "Return to title?",
+  "saveStay": "Stay",
+  "saveDiscard": "Return to title without saving",
+  "saveSaveAndExit": "Save and quit",
+  "saveExiting": "Returning to title…",
+  "saveExitFailure": "Unable to return to title",
+  "saveExitWarning": "Unsaved progress will be lost if you leave without saving.",
+  "saveDiscardUnavailable": "This player cannot leave without saving.",
+  "saveSaveUnavailable": "No active save slot is available.",
+  "saveSaveAndExitUnavailable": "This player cannot save and then quit.",
+  "saveMissingReceipt": "The save was not confirmed. Please retry.",
+  "saveUnexpectedFailure": "The operation could not be completed. Please retry.",
+  "savePlayer": "Player: {name}",
+  "@savePlayer": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "saveLocation": "Location: {name}",
+  "@saveLocation": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "savePlaytime": "Play time: {hours} h {minutes} min",
+  "@savePlaytime": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      },
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "saveLastSave": "Last save: {date} at {time}",
+  "@saveLastSave": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "saveTarget": "Profile “{profile}”, slot “{slot}”.",
+  "@saveTarget": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      },
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "saveSaved": "Game saved — profile “{profile}”, slot “{slot}”.",
+  "@saveSaved": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      },
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "interactionSubmit": "Submit",
+  "interactionTextFieldLabel": "Your answer",
+  "interactionSelected": "Selected",
+  "interactionOptionUnavailable": "This option is unavailable.",
+  "interactionMaximumReached": "The maximum number of choices is reached.",
+  "interactionCharacterCount": "{current, plural, =0{0 characters} one{{current} character} other{{current} characters}}",
+  "@interactionCharacterCount": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      }
+    }
+  },
+  "interactionSelectionCount": "{current} selected, between {minimum} and {maximum} required",
+  "@interactionSelectionCount": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "minimum": {
+        "type": "int"
+      },
+      "maximum": {
+        "type": "int"
+      }
+    }
+  },
+  "interactionIntegerOutOfRange": "Enter an integer between {minimum} and {maximum}.",
+  "@interactionIntegerOutOfRange": {
+    "placeholders": {
+      "minimum": {
+        "type": "String"
+      },
+      "maximum": {
+        "type": "String"
+      }
+    }
+  },
+  "interactionCancellationForbidden": "Submit this input to continue.",
+  "interactionTextTooShort": "{minimum, plural, one{Enter at least {minimum} character.} other{Enter at least {minimum} characters.}}",
+  "@interactionTextTooShort": {
+    "placeholders": {
+      "minimum": {
+        "type": "int"
+      }
+    }
+  },
+  "interactionTextTooLong": "{maximum, plural, one{Enter at most {maximum} character.} other{Enter at most {maximum} characters.}}",
+  "@interactionTextTooLong": {
+    "placeholders": {
+      "maximum": {
+        "type": "int"
+      }
+    }
+  },
+  "interactionTooFewSelections": "{minimum, plural, one{Select at least {minimum} option.} other{Select at least {minimum} options.}}",
+  "@interactionTooFewSelections": {
+    "placeholders": {
+      "minimum": {
+        "type": "int"
+      }
+    }
+  },
+  "interactionTooManySelections": "{maximum, plural, one{Select at most {maximum} option.} other{Select at most {maximum} options.}}",
+  "@interactionTooManySelections": {
+    "placeholders": {
+      "maximum": {
+        "type": "int"
+      }
+    }
+  },
+  "interactionCannotSubmit": "This answer cannot be submitted.",
+  "startupPressStart": "Press Start",
+  "startupReplayIntro": "Replay intro",
+  "startupReplaceSaveTitle": "Replace the current game?",
+  "startupReplaceSaveBody": "A new game will replace the current save the next time it is saved.",
+  "startupBegin": "Start",
+  "startupStartupUnavailable": "The game could not finish starting.",
+  "startupPreparing": "Preparing…",
+  "optionsCategoryGeneral": "General",
+  "optionsCategoryWeather": "Weather",
+  "optionsCategoryTime": "Time",
+  "optionsCategoryDisplay": "Display",
+  "optionsCategoryAudio": "Sound",
+  "optionsSpeedSlow": "Slow",
+  "optionsSpeedNormal": "Normal",
+  "optionsSpeedFast": "Fast",
+  "optionsSpeedInstant": "Instant",
+  "optionsEffectsFull": "Full",
+  "optionsEffectsReduced": "Reduced",
+  "optionsEffectsOpaque": "Opaque",
+  "optionsHelpWeather": "Choose the source for real weather. Story scenes keep priority.",
+  "optionsHelpTime": "Real time follows the clock the game intends, usually the device clock. A chosen hour freezes day and night, and time-based events follow it. Story scenes keep priority.",
+  "optionsHelpGeneral": "Choose how quickly dialogue text appears.",
+  "optionsHelpDisplay": "A lower frame rate limit reduces power use. The actual rate depends on the display and device. Menu effects: Reduced limits their animations; Opaque uses solid panels. 3D resolution keeps the image format; lower values lighten the load, and upscaling chooses how the image is enlarged to the screen. Scene effects stay as the game intends until you turn them off.",
+  "optionsHelpAudio": "Master volume controls every channel. At 0%, sound is muted. Left and right adjust volume in steps of 5%.",
+  "optionsHelpControls": "Hints follow the current bindings. Duplicate inputs are rejected to keep every action accessible. Opacity affects the touch controls shown in game.",
+  "optionsHelpLanguage": "Interface language changes the Player menus. Dialogue follows the translations available in the game.",
+  "optionsHelpAccessibility": "Adjust readability for your comfort. Reduced motion requested by the system still takes priority.",
+  "optionsScope": "Settings saved on this device.",
+  "optionsCategories": "Categories",
+  "optionsDefaults": "Defaults",
+  "optionsRestore": "Restore",
+  "optionsSaving": "Saving…",
+  "optionsError": "Could not save settings. The last saved values have been kept. Please try again.",
+  "optionsReturnToTitle": "Return to title",
+  "optionsTextSpeed": "Text speed",
+  "optionsBattleSpeed": "Battle speed",
+  "optionsBattleEffectIntensity": "Battle effect intensity",
+  "optionsMenuEffects": "Menu effects",
+  "optionsFrameRateLimit": "Frames per second",
+  "optionsRenderScale": "3D resolution",
+  "optionsRenderScaleValue": "Auto (per device)",
+  "optionsUpscaling": "3D upscaling",
+  "optionsUpscalingValueNearest": "Sharp pixels",
+  "optionsDepthOfField": "Depth of field",
+  "optionsShadows": "Shadows",
+  "optionsFogAndHalos": "Fog and halos",
+  "optionsAmbientAnimation": "Animated ambience",
+  "optionsWorldTime": "World time",
+  "optionsWorldTimeValue": "Real time",
+  "optionsMaster": "Master volume",
+  "optionsSoundEffects": "Sound effects",
+  "optionsInterfaceLanguage": "Interface language",
+  "optionsFollowApplicationLanguage": "Follow the app",
+  "optionsHighContrast": "Increase contrast",
+  "optionsHaptics": "Vibration",
+  "optionsHints": "Show control hints",
+  "optionsLeftHandedTouchControls": "Touch joystick on the right",
+  "optionsTouchRunMode": "Touch running",
+  "optionsRunningModeGesture": "Run with a wider gesture",
+  "optionsRunningModeWalkOnly": "Walk only",
+  "optionsRunningModeAutomatic": "Run automatically when allowed",
+  "optionsResetTitle": "Reset {category}?",
+  "@optionsResetTitle": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "optionsResetControlsMessage": "Touch running, joystick side, control hints and opacity will be reset. Keyboard and controller bindings will be kept.",
+  "optionsResetMessage": "Only the settings in “{category}” will be reset. Your save and other categories will be kept.",
+  "@optionsResetMessage": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "optionsRenderScalePercent": "{percent} %",
+  "@optionsRenderScalePercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "optionsFsr": "FSR 1 (AMD)",
+  "optionsFrameRateValue": "{rate} FPS",
+  "@optionsFrameRateValue": {
+    "placeholders": {
+      "rate": {
+        "type": "int"
+      }
+    }
+  },
+  "nextPage": "Next page",
+  "previousPage": "Previous page",
+  "partyTradeWithItself": "With itself",
+  "partyTradeChoosePartner": "Choose a partner",
+  "confirm": "Confirm",
+  "partyTradeTitle": "Party trade",
+  "partyTradeCompleted": "Trade completed.",
+  "partyTradeConfirmTrade": "Confirm this trade?",
+  "partyTradeSelectPartner": "Choose its partner from your party.",
+  "partyTradeChooseAnotherPartner": "Choose another Pokémon as partner?",
+  "partyTradeSelectPokemon": "Choose the Pokémon to trade.",
+  "partyTradeUnavailable": "Trade is unavailable.",
+  "pcNextBox": "Next box",
+  "pcPreviousBox": "Previous box",
+  "pokemonSummary": "Summary",
+  "giftSentToPc": "{nickname} will be sent to the PC.",
+  "@giftSentToPc": {
+    "placeholders": {
+      "nickname": {
+        "type": "String"
+      }
+    }
+  },
+  "giftJoinsParty": "{nickname} will join your party.",
+  "@giftJoinsParty": {
+    "placeholders": {
+      "nickname": {
+        "type": "String"
+      }
+    }
+  },
+  "giftNewPokedexEntry": "New Pokédex entry to add",
+  "giftTitle": "A new companion",
+  "giftEgg": "The Egg",
+  "pokemonEggEntrusted": "An Egg entrusted to your party.",
+  "keyboardDelete": "Delete",
+  "keyboardSpace": "Space",
+  "credits": "Credits",
+  "bagTargetIncompatible": "Not compatible.",
+  "bagActionFailed": "The action failed. Try again.",
+  "bagNoEligibleTarget": "No companion can receive this item.",
+  "bagAddFavorite": "Add to favorites",
+  "bagRemoveFavorite": "Remove from favorites",
+  "bagFavorite": "Favorite",
+  "noDescriptionAvailable": "No description available.",
+  "information": "Information",
+  "bagCannotUse": "This item cannot be used here.",
+  "bagPocketEmpty": "This pocket is empty.",
+  "bagEmpty": "Your bag is empty.",
+  "bagPreviousPockets": "Previous pockets",
+  "bagNextPockets": "Next pockets",
+  "bagFavorites": "Favorites",
+  "phone": "Phone",
+  "optionsResetBindings": "Only {device} bindings will be reset. Other settings will be kept.",
+  "@optionsResetBindings": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "optionsResetCategory": "Reset this category",
+  "optionsNextCategory": "Next category",
+  "optionsPreviousCategory": "Previous category",
+  "optionsTouchSettings": "Touch settings",
+  "optionsCategoriesTooltip": "Options categories",
+  "partyNoCompatibleItem": "No compatible item in the bag.",
+  "partyHeldItemsHelp": "Giving takes one item from the bag. Replacing or taking returns the current item to the bag.",
+  "partyMove": "Move",
+  "bagItem": "Item",
+  "partyLead": "Lead",
+  "pokemonFainted": "Fainted",
+  "partySwapPositions": "The two Pokémon will swap places.",
+  "partyChooseNewPosition": "Choose the new position",
+  "partyEmpty": "Your party is empty",
+  "partyActionFailed": "The action could not be completed. Try again.",
+  "pokedexNotEncountered": "This Pokémon has not been encountered yet.",
+  "pokedexDescriptionHeading": "DESCRIPTION",
+  "pokedexSearchNoResults": "Try another name, number or filter.",
+  "pokedexEmptyMessage": "No entries available.",
+  "noResults": "No results",
+  "pokedexEmpty": "Empty Pokédex",
+  "pokedexCaughtFilter": "Caught",
+  "pokedexSeenFilter": "Seen",
+  "all": "All",
+  "clearSearch": "Clear search",
+  "pokedexSearchHint": "Name or number",
+  "pokedexCaught": "Caught",
+  "pokedexSeen": "Seen",
+  "pokedexUnknown": "Unknown",
+  "profileCurrentLocation": "Current location",
+  "profileEarnedBadges": "Earned badges",
+  "profilePokemonCaught": "Pokémon caught",
+  "profilePokemonSeen": "Pokémon seen",
+  "profilePokedexTotal": "Pokédex total",
+  "money": "Money",
+  "profilePortrait": "{name}’s portrait",
+  "@profilePortrait": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "profileCardHeading": "PLAYER CARD",
+  "mapPositionMissing": "Position not provided.",
+  "mapLocationNotDiscovered": "This location has not been discovered yet.",
+  "mapSelectLocation": "Select a location.",
+  "mapLocationUnavailable": "Location unavailable. Choose another location.",
+  "mapCloseSelection": "Close selection",
+  "mapMultipleLocations": "Several locations here",
+  "backToMap": "Back to map",
+  "mapNoLocations": "No locations available in this region.",
+  "mapUndiscoveredLocation": "Undiscovered",
+  "mapDiscoveredLocation": "Discovered",
+  "mapCurrentLocation": "You are here",
+  "loadingReady": "Ready",
+  "loadingPlacingPlayer": "Placing player",
+  "loadingMountingMap": "Mounting map",
+  "loadingAssets": "Loading assets",
+  "loadingBuildingScene": "Building scene",
+  "loadingPreparingWorld": "Preparing world",
+  "loadingReadingSave": "Reading save",
+  "loadingOpeningGame": "Opening game",
+  "weatherNoCityFound": "No city found.",
+  "weatherSearchUnavailable": "Search unavailable. Please try later.",
+  "search": "Search",
+  "weatherSearching": "Searching…",
+  "weatherLocationSearchHint": "City, region or country",
+  "weatherLocationTitle": "Weather location",
+  "weatherDataAdapted": "Weather data adapted for game rendering.",
+  "linkUnavailable": "Link unavailable.",
+  "weatherRefreshInterval": "Refresh every 20 minutes",
+  "weatherOffline": "Offline · cached or game weather",
+  "weatherRefreshing": "Refreshing…",
+  "weatherDetectLocation": "Detected by IP when gameplay starts",
+  "weatherIpDisclosure": "GeoJS and Open-Meteo receive your IP.",
+  "weatherApproximateLocation": "Approximate IP location, without GPS.",
+  "weatherCompatibleGames": "Real weather for supported games.",
+  "weatherUseIpLocation": "Use IP location again",
+  "weatherChooseCity": "Choose another city",
+  "weatherMyLocation": "Weather at my location",
+  "contacts": "Contacts",
+  "loadingActivatingMap": "Activating the map",
+  "cancelFishing": "Cancel fishing",
+  "page": "Page",
+  "pagePosition": "{label} {current} / {total}",
+  "@pagePosition": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "previousPageWithPosition": "Previous page · {position}",
+  "@previousPageWithPosition": {
+    "placeholders": {
+      "position": {
+        "type": "String"
+      }
+    }
+  },
+  "nextPageWithPosition": "Next page · {position}",
+  "@nextPageWithPosition": {
+    "placeholders": {
+      "position": {
+        "type": "String"
+      }
+    }
+  },
+  "pokemonNameAndLevel": "{name} · Lv. {level}",
+  "@pokemonNameAndLevel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "pokemonNameAndNickname": "{nickname} · {name}",
+  "@pokemonNameAndNickname": {
+    "placeholders": {
+      "nickname": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "partyTradePokemon": "Pokémon: {name}",
+  "@partyTradePokemon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "partyTradePartner": "Partner: {name}",
+  "@partyTradePartner": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pokemonTabStats": "Stats",
+  "actions": "Actions",
+  "shopUnitPrice": "Unit price : {amount} ₽",
+  "@shopUnitPrice": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "shopMoney": "Money : {amount} ₽",
+  "@shopMoney": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "shopBalanceAfter": "Balance after : {amount} ₽",
+  "@shopBalanceAfter": {
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "bagLearnMove": "Learn {move}",
+  "@bagLearnMove": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "bagLearnReplacingMove": "Learn {move} — forget {forgottenMove}",
+  "@bagLearnReplacingMove": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "forgottenMove": {
+        "type": "String"
+      }
+    }
+  },
+  "regionalMapUnavailable": "Regional map unavailable.",
+  "mapZoomOut": "Zoom out",
+  "mapZoomIn": "Zoom in",
+  "mapRecenter": "Recenter",
+  "mapLocations": "Locations",
+  "bagMoney": "Money : {amount}",
+  "@bagMoney": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bagMoneyWithCurrency": "Money : {amount} {currency}",
+  "@bagMoneyWithCurrency": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "pokedexProgress": "Seen {seen} · Caught {caught} / {total}",
+  "@pokedexProgress": {
+    "placeholders": {
+      "seen": {
+        "type": "String"
+      },
+      "caught": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherClear": "Clear sky",
+  "weatherCloudy": "Cloudy",
+  "weatherDrizzle": "Drizzle",
+  "weatherRain": "Rain",
+  "weatherDownpour": "Downpour",
+  "weatherStorm": "Thunderstorm",
+  "weatherSnow": "Snow",
+  "weatherBlizzard": "Blizzard",
+  "weatherHail": "Hail",
+  "weatherMist": "Mist",
+  "weatherFog": "Fog",
+  "weatherDust": "Dust",
+  "weatherSandstorm": "Sandstorm",
+  "weatherPetals": "Petals",
+  "weatherPartlyCloudy": "Partly cloudy",
+  "weatherWindy": "Windy",
+  "weatherHeavySnow": "Heavy snow",
+  "weatherSleet": "Sleet",
+  "weatherTempest": "Severe thunderstorm",
+  "weatherLeaves": "Autumn leaves",
+  "weatherReceived": "Received weather : {weather}",
+  "@weatherReceived": {
+    "placeholders": {
+      "weather": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherCity": "City : {city}",
+  "@weatherCity": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "journal": "Journal",
+  "craftCollect": "Collect",
+  "craftConfirmDeposit": "Confirm deposit",
+  "craftReviewOrder": "Review order",
+  "craftDecreaseQuantity": "Less",
+  "craftIncreaseQuantity": "More",
+  "puzzleTray": "Tray",
+  "puzzleTitle": "Image puzzle",
+  "puzzleInstructions": "Select a piece, then its destination. Press R to rotate the piece.",
+  "puzzleImageUnavailable": "The image could not be displayed. Exit and reopen the puzzle.",
+  "puzzleRotate": "Rotate",
+  "puzzleReset": "Restart",
+  "puzzleCheck": "Check",
+  "puzzleFixed": "fixed",
+  "puzzleSelected": "selected",
+  "quit": "Quit",
+  "mapFly": "Fly",
+  "mapZoom": "Zoom",
+  "englishLanguageName": "English",
+  "frenchLanguageName": "Français",
+  "controllerSouthButton": "South button",
+  "controllerEastButton": "East button",
+  "controllerWestButton": "West button",
+  "controllerNorthButton": "North button",
+  "controllerSelectButton": "Select",
+  "controllerMenuButton": "Menu",
+  "keyboardEnter": "Enter",
+  "craftPendingOrder": "Your order is being prepared: {quantity} × {item}. Come back another day.",
+  "@craftPendingOrder": {
+    "placeholders": {
+      "quantity": {
+        "type": "int"
+      },
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "craftReadyOrder": "Your order is ready: {quantity} × {item}.",
+  "@craftReadyOrder": {
+    "placeholders": {
+      "quantity": {
+        "type": "int"
+      },
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "craftRecipe": "{recipe} · {exchange} · Bag: {owned}",
+  "@craftRecipe": {
+    "placeholders": {
+      "recipe": {
+        "type": "String"
+      },
+      "exchange": {
+        "type": "String"
+      },
+      "owned": {
+        "type": "int"
+      }
+    }
+  },
+  "craftExchange": "{inputQuantity} × {input} → {outputQuantity} × {output}",
+  "@craftExchange": {
+    "placeholders": {
+      "inputQuantity": {
+        "type": "int"
+      },
+      "input": {
+        "type": "String"
+      },
+      "outputQuantity": {
+        "type": "int"
+      },
+      "output": {
+        "type": "String"
+      }
+    }
+  },
+  "craftQuantity": "Quantity: {quantity} · Maximum available: {maximum}",
+  "@craftQuantity": {
+    "placeholders": {
+      "quantity": {
+        "type": "int"
+      },
+      "maximum": {
+        "type": "int"
+      }
+    }
+  },
+  "puzzleEmptySlot": "Empty slot {index}",
+  "@puzzleEmptySlot": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "puzzlePiece": "Piece {index}",
+  "@puzzlePiece": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "puzzleFixedPiece": "Piece {index}, fixed",
+  "@puzzleFixedPiece": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "dialogueSpeakerPortrait": "Portrait of {speaker}",
+  "@dialogueSpeakerPortrait": {
+    "placeholders": {
+      "speaker": {
+        "type": "String"
+      }
+    }
+  },
+  "startupReady": "READY",
+  "startupPreparingJourney": "PREPARING THE JOURNEY",
+  "startupPlayerPreferences": "PLAYER PREFERENCES",
+  "startupFindingSave": "FINDING THE SAVE",
+  "startupWorldAssets": "MAPS AND WORLD ASSETS",
+  "startupPresentationProfile": "PRESENTATION PROFILE",
+  "startupSplashBranding": "PREPARING THE SPLASH",
+  "startupPreparingScene": "PREPARING THE SCENE",
+  "startupMenuAndMusic": "MENU AND MUSIC",
+  "craftPending": "Your order is being prepared. Come back another day.",
+  "craftReady": "Your order is ready."
+}

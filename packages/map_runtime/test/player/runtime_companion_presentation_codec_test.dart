@@ -59,6 +59,42 @@ void main() {
       expect(() => RuntimeCompanionPresentationCodec.decodeRuntimePokemonSummarySnapshot(_crossTransport({...legacy, 'isEgg': value})), throwsA(isA<TypeError>()));
     }
   });
+  test('player language changes cross the companion preference codec', () {
+    final defaults =
+        RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+          const PlayerPreferencesSnapshot(
+            locale: 'en',
+            accessibility: GameSessionAccessibilityOptions(),
+          ),
+        );
+    final language = {'mode': 'followApplication'};
+    final preferred = ['es-MX', 'en-US'];
+    for (final change in [null, language, {'mode': 'explicit', 'tag': 'en'}]) {
+      final encoded = {
+        ...defaults,
+        'playerLanguage': language,
+        'preferredContentLocales': preferred,
+        if (change != null) 'languageChange': change,
+      };
+      final decoded = RuntimeCompanionPresentationCodec
+          .decodePlayerPreferencesSnapshot(_crossTransport(encoded));
+      expect(
+        RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+          decoded,
+        ),
+        encoded,
+      );
+    }
+    expect(
+      RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+        RuntimeCompanionPresentationCodec.decodePlayerPreferencesSnapshot(
+          _crossTransport(defaults),
+        ),
+      ),
+      defaults,
+    );
+  });
+
   test('frame rate defaults and exact limits cross companion transports', () {
     const defaults = PlayerPreferencesSnapshot(
       locale: 'fr',

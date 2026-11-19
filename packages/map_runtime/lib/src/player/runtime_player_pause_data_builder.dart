@@ -73,7 +73,8 @@ final class RuntimePlayerPauseDataBuilder {
     } on Object {
       moveCatalog = null;
     }
-    final isFrench = (uiLocale ?? locale).toLowerCase().startsWith('fr');
+    final displayLocale = uiLocale ?? locale;
+    final isFrench = displayLocale.toLowerCase().startsWith('fr');
     final evolutionItemIds = await _loadEvolutionItemIds(
       gameState,
       itemCatalog: resolvedItemCatalog,
@@ -99,7 +100,7 @@ final class RuntimePlayerPauseDataBuilder {
         ? await _buildPokedex(
             gameState,
             species,
-            locale: locale,
+            locale: displayLocale,
             isFrench: isFrench,
             mediaResolver: mediaResolver,
             catalogInvalid: speciesCatalog.invalid,
@@ -121,7 +122,7 @@ final class RuntimePlayerPauseDataBuilder {
     final party = await _buildParty(
       gameState,
       speciesById,
-      locale: locale,
+      locale: displayLocale,
       isFrench: isFrench,
       itemCatalog: resolvedItemCatalog,
       heldItemOptions: heldItemOptions,
@@ -172,7 +173,7 @@ final class RuntimePlayerPauseDataBuilder {
             projectMaps: projectMaps,
             catalog: regionalMap,
             projectRootDirectory: projectRootDirectory,
-            locale: uiLocale ?? locale,
+            locale: displayLocale,
           ),
       },
     );
@@ -354,7 +355,8 @@ final class RuntimePlayerPauseDataBuilder {
     final summaryBuilder = runtimePokemonSummaryBuilderFor(
       locale: locale,
       speciesLabelFor: (speciesId) =>
-          speciesById[speciesId]?.nameFor(locale) ?? _humanize(speciesId),
+          speciesById[speciesId]?.nameFor(locale) ??
+          runtimePokemonHumanizeId(speciesId),
       calculatedStatsFor: (pokemon) =>
           speciesById[pokemon.speciesId]?.calculatedStatsFor(pokemon),
       itemLabelFor: (itemId) => itemCatalog.definitionFor(itemId)?.displayName,
@@ -378,7 +380,8 @@ final class RuntimePlayerPauseDataBuilder {
       final moveCount = pokemon.knownMoveIds.length;
       final status = pokemon.statusId.trim();
       final speciesLabel =
-          species?.nameFor(locale) ?? _humanize(pokemon.speciesId);
+          species?.nameFor(locale) ??
+          runtimePokemonHumanizeId(pokemon.speciesId);
       final nickname = pokemon.nickname.trim();
       final origin = pokemon.provenance?.kind;
       final provenanceMap = pokemon.provenance?.mapId.trim() ?? '';
@@ -1095,17 +1098,7 @@ final class RuntimePlayerPauseDataBuilder {
       final json = Map<String, dynamic>.from(decoded);
       final id = json['id'];
       if (id is! String || id.trim().isEmpty) return null;
-      final rawNames = json['names'];
-      final names = <String, String>{};
-      if (rawNames is Map) {
-        for (final entry in rawNames.entries) {
-          final key = entry.key;
-          final value = entry.value;
-          if (key is String && value is String && value.trim().isNotEmpty) {
-            names[key.toLowerCase()] = value.trim();
-          }
-        }
-      }
+      final (:names, :legacyName) = readPokemonSpeciesNames(json);
       final rawTyping = json['typing'];
       final rawTypes = rawTyping is Map ? rawTyping['types'] : null;
       final types = rawTypes is List
@@ -1126,6 +1119,7 @@ final class RuntimePlayerPauseDataBuilder {
         nationalDex:
             json['nationalDex'] is int ? json['nationalDex'] as int : null,
         names: names,
+        legacyName: legacyName,
         types: types,
         enabled: enabled,
         baseStats: baseStats,
@@ -1172,6 +1166,7 @@ final class _RuntimeSpeciesPresentation {
     required this.id,
     required this.nationalDex,
     required this.names,
+    required this.legacyName,
     required this.types,
     required this.enabled,
     required this.baseStats,
@@ -1184,6 +1179,7 @@ final class _RuntimeSpeciesPresentation {
   final String id;
   final int? nationalDex;
   final Map<String, String> names;
+  final String? legacyName;
   final List<String> types;
   final bool enabled;
   final Map<String, dynamic>? baseStats;
@@ -1192,13 +1188,11 @@ final class _RuntimeSpeciesPresentation {
   final String? defaultFormId;
   final String? description;
 
-  String nameFor(String locale) {
-    final normalized = locale.toLowerCase().split(RegExp('[-_]')).first;
-    return names[normalized] ??
-        names['en'] ??
-        names['fr'] ??
-        (names.isEmpty ? _humanize(id) : names.values.first);
-  }
+  String nameFor(String locale) => resolvePokemonSpeciesName(
+    names: names,
+    locale: locale,
+    fallback: legacyName ?? runtimePokemonHumanizeId(id),
+  );
 
   int? maxHpFor(PlayerPokemon pokemon) => calculatedStatsFor(pokemon)?.maxHp;
 

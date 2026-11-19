@@ -137,10 +137,17 @@ void main() {
     addTearDown(runtime.dispose);
     await runtime.load((_) {});
     await runtime.gameplayReady;
-    for (final locale in ['fr', 'en', 'fr-CA', 'es', 'de', 'en']) {
+    for (final (locale, content, english) in [
+      for (final locale in ['fr', 'en', 'fr-CA', 'es', 'de', 'en'])
+        (locale, null, locale == 'en'),
+      ('en', ['es'], false),
+      ('en', ['de', 'fr'], false),
+      ('fr', ['de', 'en'], true),
+    ]) {
       runtime.applyPlayerPreferences(
         PlayerPreferencesSnapshot(
           locale: locale,
+          preferredContentLocales: content,
           dialogueTextSpeed: RuntimeDialogueTextSpeed.instant,
           accessibility: const GameSessionAccessibilityOptions(),
         ),
@@ -165,13 +172,13 @@ void main() {
       }
       expect(
         runtime.dialoguePresentationListenable.value!.fullText,
-        locale == 'en' ? 'Hello Yoahn' : 'Bonjour Yoahn',
+        english ? 'Hello Yoahn' : 'Bonjour Yoahn',
       );
       runtime.session!.confirmDialogue();
       final choices = runtime.dialoguePresentationListenable.value!;
       expect(
         choices.choices.map((choice) => choice.label),
-        locale == 'en' ? ['Leave', 'Stay'] : ['Partir', 'Rester'],
+        english ? ['Leave', 'Stay'] : ['Partir', 'Rester'],
       );
       runtime.session!.confirmDialogue();
       final result = await completed;

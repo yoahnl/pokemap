@@ -1,44 +1,39 @@
 import 'package:flutter/widgets.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../localization/player_localizations.dart';
 import 'player_control_profile.dart';
 
 final class PlayerControlStrings {
-  const PlayerControlStrings._(this._isFrench);
+  const PlayerControlStrings._(this._strings);
 
   factory PlayerControlStrings.of(BuildContext context) =>
-      PlayerControlStrings._(
-        Localizations.localeOf(context).languageCode == 'fr',
-      );
+      PlayerControlStrings._(context.playerL10n);
 
-  final bool _isFrench;
+  final PokeMapPlayerLocalizations _strings;
 
-  String get title => _isFrench ? 'Commandes' : 'Controls';
-  String get conflict => _isFrench
-      ? 'Cette entrée est déjà utilisée.'
-      : 'This input is already assigned.';
-  String get reset => _isFrench ? 'Réinitialiser' : 'Reset';
-  String get swapTouch => _isFrench ? 'Inverser A / B' : 'Swap A / B';
+  String get title => _strings.optionsCategoryControls;
+  String get conflict => _strings.controlsConflict;
+  String get reset => _strings.controlsReset;
+  String get swapTouch => _strings.controlsSwapTouch;
 
   String device(PlayerControlDevice device) => switch (device) {
-        PlayerControlDevice.keyboard => _isFrench ? 'Clavier' : 'Keyboard',
-        PlayerControlDevice.gamepad => _isFrench ? 'Manette' : 'Gamepad',
-        PlayerControlDevice.touch => _isFrench ? 'Tactile' : 'Touch',
-      };
+    PlayerControlDevice.keyboard => _strings.controlsDeviceKeyboard,
+    PlayerControlDevice.gamepad => _strings.controlsDeviceGamepad,
+    PlayerControlDevice.touch => _strings.controlsDeviceTouch,
+  };
 
   String control(RuntimeInputControl control) => switch (control) {
-        RuntimeInputControl.up => _isFrench ? 'Haut' : 'Up',
-        RuntimeInputControl.down => _isFrench ? 'Bas' : 'Down',
-        RuntimeInputControl.left => _isFrench ? 'Gauche' : 'Left',
-        RuntimeInputControl.right => _isFrench ? 'Droite' : 'Right',
-        RuntimeInputControl.sprint => _isFrench ? 'Course' : 'Sprint',
-        RuntimeInputControl.primary =>
-          _isFrench ? 'Action principale' : 'Primary action',
-        RuntimeInputControl.secondary =>
-          _isFrench ? 'Action secondaire' : 'Secondary action',
-        RuntimeInputControl.bicycle => _isFrench ? 'Vélo' : 'Bicycle',
-        RuntimeInputControl.menu => 'Menu',
-        RuntimeInputControl.previousTab => _isFrench ? 'Onglet précédent' : 'Previous tab',
-        RuntimeInputControl.nextTab => _isFrench ? 'Onglet suivant' : 'Next tab',
-      };
+    RuntimeInputControl.up => _strings.controlsControlUp,
+    RuntimeInputControl.down => _strings.controlsControlDown,
+    RuntimeInputControl.left => _strings.controlsControlLeft,
+    RuntimeInputControl.right => _strings.controlsControlRight,
+    RuntimeInputControl.sprint => _strings.controlsControlSprint,
+    RuntimeInputControl.primary => _strings.controlsControlPrimary,
+    RuntimeInputControl.secondary => _strings.controlsControlSecondary,
+    RuntimeInputControl.bicycle => _strings.controlsControlBicycle,
+    RuntimeInputControl.menu => _strings.menu,
+    RuntimeInputControl.previousTab => _strings.controlsControlPreviousTab,
+    RuntimeInputControl.nextTab => _strings.controlsControlNextTab,
+  };
 }

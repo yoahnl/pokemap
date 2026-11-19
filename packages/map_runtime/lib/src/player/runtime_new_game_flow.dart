@@ -69,6 +69,7 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
     required RuntimeInitialMapPreloader initialMapPreloader,
     RuntimeNewGamePreSessionRunnerFactory? preSessionRunnerFactory,
     void Function()? cancelActivePreSession,
+    this._readPreferredLocale,
     this.locales,
   })  : _projectFilePath = projectFilePath,
         _initialMapPreloader = initialMapPreloader,
@@ -79,6 +80,7 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
   final RuntimeInitialMapPreloader _initialMapPreloader;
   final RuntimeNewGamePreSessionRunnerFactory? _preSessionRunnerFactory;
   final void Function()? _cancelActivePreSession;
+  final Future<String?> Function()? _readPreferredLocale;
   final ProjectLocalePolicy? locales;
 
   /// Whether this flow can run an authored pre-session Scene. False means a
@@ -142,6 +144,7 @@ final class RuntimeProjectNewGameFlowPort implements RuntimeNewGameFlowPort {
                 project: bundle.manifest,
                 projectRootDirectory: bundle.projectRootDirectory,
                 sceneId: sceneId,
+                readPreferredLocale: _readPreferredLocale,
               )),
     );
   }
@@ -179,6 +182,7 @@ final class RuntimeTextPreSessionSceneRunner
     required String projectRootDirectory,
     required this.sceneId,
     this.presentationCinematic,
+    this._readPreferredLocale,
   }) : projectRootDirectory = p.normalize(p.absolute(projectRootDirectory));
 
   final ProjectManifest project;
@@ -186,6 +190,7 @@ final class RuntimeTextPreSessionSceneRunner
   final String sceneId;
   final ScenePresentationCinematicRuntimeAwaitableAdapter?
       presentationCinematic;
+  final Future<String?> Function()? _readPreferredLocale;
 
   @override
   Future<NewGameDraft> run({
@@ -435,6 +440,14 @@ final class RuntimeTextPreSessionSceneRunner
     );
   }
 
+  Future<String?> _readDialogueLocale(String? fallbackLocale) async {
+    try {
+      return await _readPreferredLocale?.call() ?? fallbackLocale;
+    } on Object {
+      return fallbackLocale;
+    }
+  }
+
   Future<String> _runDialogue({
     String? preferredLocale,
     ProjectLocalePolicy? locales,
@@ -465,7 +478,7 @@ final class RuntimeTextPreSessionSceneRunner
         dialogueId: dialogueId,
         startNode: intent.yarnNodeName ?? entry.defaultStartNode,
         localization: entry.localization,
-        preferredLocale: preferredLocale,
+        preferredLocale: await _readDialogueLocale(preferredLocale),
         locales: locales,
       ),
     );

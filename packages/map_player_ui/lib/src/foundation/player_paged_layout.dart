@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
+import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 
 class PlayerPageIntent extends Intent {
@@ -232,7 +233,7 @@ class _PlayerPagedListState extends State<PlayerPagedList>
         });
       }
       final indices = allMeasured ? pages[_page] : const <int>[];
-      final french = Localizations.maybeLocaleOf(context)?.languageCode != 'en';
+      final strings = context.playerL10n;
       final measuredContent = OverflowBox(
         alignment: Alignment.topCenter,
         minHeight: 0,
@@ -297,12 +298,16 @@ class _PlayerPagedListState extends State<PlayerPagedList>
           ),
         ),
       );
-      final label =
-          '${widget.pageLabel ?? 'Page'} ${_page + 1} / ${pages.length}';
+      final label = strings.pagePosition(
+        label: widget.pageLabel ?? strings.page,
+        current: _page + 1,
+        total: pages.length,
+      );
       Widget previous() => IconButton(
         key: const ValueKey('player-page-previous'),
-        tooltip:
-            '${french ? 'Page précédente' : 'Previous page'}${sideNavigation ? ' · $label' : ''}',
+        tooltip: sideNavigation
+            ? strings.previousPageWithPosition(position: label)
+            : strings.previousPage,
         constraints: const BoxConstraints.tightFor(width: 48, height: 48),
         onPressed: allMeasured && _page > 0
             ? () => _changePage(_page - 1, pages.length)
@@ -311,8 +316,9 @@ class _PlayerPagedListState extends State<PlayerPagedList>
       );
       Widget next() => IconButton(
         key: const ValueKey('player-page-next'),
-        tooltip:
-            '${french ? 'Page suivante' : 'Next page'}${sideNavigation ? ' · $label' : ''}',
+        tooltip: sideNavigation
+            ? strings.nextPageWithPosition(position: label)
+            : strings.nextPage,
         constraints: const BoxConstraints.tightFor(width: 48, height: 48),
         onPressed: allMeasured && _page + 1 < pages.length
             ? () => _changePage(_page + 1, pages.length)

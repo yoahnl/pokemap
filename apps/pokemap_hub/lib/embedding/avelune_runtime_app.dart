@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/core/config/avelune_runtime_splash_branding.dart';
 import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
@@ -33,7 +34,8 @@ class AveluneRuntimeApp extends StatefulWidget {
   State<AveluneRuntimeApp> createState() => _AveluneRuntimeAppState();
 }
 
-class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
+class _AveluneRuntimeAppState extends State<AveluneRuntimeApp>
+    with WidgetsBindingObserver {
   final _frameRate = AveluneFrameRateBridge();
   final _playerController = HubInstalledGamePlayerController();
   final _companion = AveluneGameplayCompanionOwner();
@@ -42,6 +44,9 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
     canStart: () => _probe.value == null,
   );
   late final AveluneLibraryBridge _bridge = AveluneLibraryBridge(
+    onAppLanguageChanged: () async {
+      unawaited(_playerController.refreshLocales());
+    },
     stopPlayer: () async {
       await _companionBridge.stopOwnedSession();
       await _playerController.stop();
@@ -57,6 +62,7 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _frameRate.attach();
     _diagnostics.attach();
     _bridge.playing.addListener(_updateDiagnosticsSession);
@@ -67,6 +73,7 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _frameRate.detach();
     _bridge.playing.removeListener(_updateDiagnosticsSession);
     _diagnostics.dispose();
@@ -83,9 +90,32 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
       _diagnostics.setPlaying(_bridge.playing.value != null);
 
   @override
+  void didChangeLocales(List<Locale>? locales) {
+    unawaited(_refreshNativeLanguage());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshNativeLanguage());
+    }
+  }
+
+  Future<void> _refreshNativeLanguage() async {
+    try {
+      await _bridge.refreshLanguagePreferences();
+    } on Object {
+      return;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      supportedLocales: player_ui.PokeMapPlayerLocalizations.supportedLocales,
+      localizationsDelegates:
+          player_ui.PokeMapPlayerLocalizations.localizationsDelegates,
       home: ListenableBuilder(
         listenable: Listenable.merge([_bridge.playing, _probe]),
         builder: (context, _) {
@@ -114,9 +144,7 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
                 saveRepositoryFactory:
                     (root, identity) =>
                         HubSaveStore(supportRoot: root, identity: identity),
-                preferencesRepository: HubPreferencesStore(
-                  supportRoot: _bridge.supportRoot,
-                ),
+                preferencesRepository: _bridge.preferencesStore,
                 controlProfileRepository: HubControlProfileStore(
                   supportRoot: _bridge.supportRoot,
                 ),

@@ -9,13 +9,13 @@ struct ContentView: View {
                 appState.presentedGame = game
             }
             .tabItem {
-                Label(AppTab.games.rawValue, systemImage: AppTab.games.icon)
+                Label(AppTab.games.title, systemImage: AppTab.games.icon)
             }
             .tag(AppTab.games)
 
-            SettingsView()
+            SettingsView(language: appState.composition.languagePreferences)
                 .tabItem {
-                    Label(AppTab.settings.rawValue, systemImage: AppTab.settings.icon)
+                    Label(AppTab.settings.title, systemImage: AppTab.settings.icon)
                 }
                 .tag(AppTab.settings)
         }
@@ -29,6 +29,7 @@ struct ContentView: View {
                     await appState.gamePlayerViewModel.stop()
                     appState.presentedGame = nil
                     await appState.gameListViewModel.refresh()
+                    await appState.composition.languagePreferences.refresh()
                 }
             }
         }

@@ -4,7 +4,7 @@ import SwiftUI
 
 @MainActor
 final class GamePlayerViewModel: ObservableObject {
-    @Published var errorMessage: String?
+    @Published var errorMessage: LocalizedStringResource?
 
     private let playGameUseCase: PlayGameUseCase
     private let engineManager: FlutterEngineManager
@@ -27,7 +27,7 @@ final class GamePlayerViewModel: ObservableObject {
         do {
             try await playGameUseCase.start(game)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = (error as? RuntimeChannelError)?.userFacingMessage ?? "Impossible de démarrer ce jeu."
         }
     }
 

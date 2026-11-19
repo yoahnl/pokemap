@@ -24,6 +24,14 @@ void main() {
           );
           addTearDown(() => root.delete(recursive: true));
           final config = await writeSceneCatalogPokemonGiftFixture(root);
+          final speciesFile = File(
+            '${root.path}/custom/species/not-a-builtin.json',
+          );
+          final species = jsonDecode(
+            await speciesFile.readAsString(),
+          ) as Map<String, dynamic>;
+          species['names'] = {'en': 'Clockbird', 'fr': 'Horlogeoiseau'};
+          await speciesFile.writeAsString(jsonEncode(species));
           if (forced) {
             final file = File('${root.path}/custom/moves.json');
             final document =
@@ -104,6 +112,7 @@ void main() {
           final requests = <OpenPokemonGiftInteractionService>[];
           final locks = <bool>[];
           var immediateWrites = 0;
+          var uiLocale = 'en';
           final controller = PlayerServiceRuntimeController.contextual(
             currentGameState: () => initial,
             commitAndSave: (_) async {
@@ -114,6 +123,8 @@ void main() {
                 const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {}),
             projectRootDirectory: root.path,
             pokemonConfig: config,
+            locale: 'fr',
+            displayLocale: () => uiLocale,
           );
           addTearDown(controller.dispose);
           final subscription = controller.worldServiceSnapshots.listen((
@@ -122,6 +133,7 @@ void main() {
             if (snapshot?.request
                 case final OpenPokemonGiftInteractionService request) {
               requests.add(request);
+              uiLocale = 'fr';
               final interaction = request.interaction;
               final result = switch (interaction) {
                 SceneChoiceInteractionRequest() =>
@@ -240,8 +252,14 @@ void main() {
               PokemonGiftInteractionStage.received,
             ]);
             final dex = requests.first.pokedexDetail!;
+            expect(requests.map((request) => request.speciesName), [
+              'Clockbird',
+              'Horlogeoiseau',
+              'Horlogeoiseau',
+            ]);
             expect(requests.first.isNewPokedexEntry, isTrue);
             expect(dex.entries, hasLength(1));
+            expect(dex.entries.single.title, 'Clockbird');
             expect(
               dex.entries.single.pokedexEntry!.knowledge,
               RuntimePlayerPokedexKnowledge.caught,

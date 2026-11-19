@@ -394,6 +394,10 @@ final class _PendingPreferencesRepository
   @override
   Future<void> save(PlayerPreferences preferences) =>
       throw UnimplementedError();
+
+  @override
+  Future<void> update(PlayerPreferences Function(PlayerPreferences) change) =>
+      throw UnimplementedError();
 }
 
 final class _PendingLaunchResolver implements SessionLaunchRepositoryInterface {
@@ -429,6 +433,10 @@ final class _UnusedPreferencesRepository
 
   @override
   Future<void> save(PlayerPreferences preferences) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> update(PlayerPreferences Function(PlayerPreferences) change) =>
       throw UnimplementedError();
 }
 

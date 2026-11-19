@@ -515,7 +515,6 @@ class _ShopPurchasePanel extends StatelessWidget {
     final selected = content.entries
         .where((entry) => entry.itemId == content.selectedItemId)
         .firstOrNull;
-    final french = Localizations.localeOf(context).languageCode == 'fr';
     final balance = selling
         ? content.money + content.totalPrice
         : content.money - content.totalPrice;
@@ -542,9 +541,7 @@ class _ShopPurchasePanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(selected.label, style: context.playerMenuTheme.subtitle),
-                Text(
-                  '${french ? 'Prix unitaire' : 'Unit price'} : ${selected.unitPrice} ₽',
-                ),
+                Text(l10n.shopUnitPrice(amount: selected.unitPrice)),
                 if (selling) Text(l10n.shopOwned(selected.ownedQuantity)),
                 if (!selling && selected.remainingStock != null)
                   Text(l10n.shopStock(selected.remainingStock!)),
@@ -594,9 +591,9 @@ class _ShopPurchasePanel extends StatelessWidget {
                 l10n.shopTotal(content.totalPrice),
                 style: context.playerMenuTheme.subtitle,
               ),
-              Text('${french ? 'Argent' : 'Money'} : ${content.money} ₽'),
+              Text(l10n.shopMoney(amount: content.money)),
               Text(
-                '${french ? 'Solde après' : 'Balance after'} : $balance ₽',
+                l10n.shopBalanceAfter(amount: balance),
                 key: const ValueKey('shop-balance-after'),
               ),
             ],

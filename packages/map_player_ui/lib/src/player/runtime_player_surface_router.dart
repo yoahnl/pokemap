@@ -181,17 +181,23 @@ class _RuntimePlayerSurfaceRouterState
     final money = detail?.bagMoney;
     if (money == null) return null;
     final currency = detail!.bagCurrencyLabel;
-    final label = Localizations.localeOf(context).languageCode == 'fr'
-        ? 'Argent'
-        : 'Money';
     return PlayerMenuThemeScope(
       role: ProjectPresentationSurfaceRole.bag,
       child: Builder(
-        builder: (context) => Text(
-          '$label : ${MaterialLocalizations.of(context).formatDecimal(money)}${currency == null ? '' : ' $currency'}',
-          key: const ValueKey('bag-money'),
-          style: context.playerMenuTheme.label,
-        ),
+        builder: (context) {
+          final strings = context.playerL10n;
+          final amount = MaterialLocalizations.of(context).formatDecimal(money);
+          return Text(
+            currency == null
+                ? strings.bagMoney(amount: amount)
+                : strings.bagMoneyWithCurrency(
+                    amount: amount,
+                    currency: currency,
+                  ),
+            key: const ValueKey('bag-money'),
+            style: context.playerMenuTheme.label,
+          );
+        },
       ),
     );
   }
@@ -268,13 +274,16 @@ class _RuntimePlayerSurfaceRouterState
               RuntimePlayerPokedexKnowledge.caught,
         )
         .length;
-    final french = Localizations.localeOf(context).languageCode == 'fr';
     final format = MaterialLocalizations.of(context).formatDecimal;
     return PlayerMenuThemeScope(
       role: ProjectPresentationSurfaceRole.pokedex,
       child: Builder(
         builder: (context) => Text(
-          '${french ? 'Vus' : 'Seen'} ${format(seen)} · ${french ? 'Capturés' : 'Caught'} ${format(caught)} / ${format(entries.length)}',
+          context.playerL10n.pokedexProgress(
+            seen: format(seen),
+            caught: format(caught),
+            total: format(entries.length),
+          ),
           key: const ValueKey('pokedex-progress'),
           style: context.playerMenuTheme.meta,
         ),
@@ -718,16 +727,15 @@ class _RuntimePlayerSurfaceRouterState
 
   String _sessionLoadingStage(BuildContext context) {
     final stage = widget.snapshot.loadingProgress?.stage;
-    final french = Localizations.localeOf(context).languageCode == 'fr';
     return switch (stage) {
-      'project' => french ? 'Ouverture du jeu' : 'Opening game',
-      'save' => french ? 'Lecture de la sauvegarde' : 'Reading save',
-      'world' => french ? 'Préparation du monde' : 'Preparing world',
-      'mount' => french ? 'Construction de la scène' : 'Building scene',
-      'resources' => french ? 'Chargement des ressources' : 'Loading assets',
-      'map' => french ? 'Montage de la carte' : 'Mounting map',
-      'player' => french ? 'Placement du joueur' : 'Placing player',
-      'ready' => french ? 'Prêt' : 'Ready',
+      'project' => context.playerL10n.loadingOpeningGame,
+      'save' => context.playerL10n.loadingReadingSave,
+      'world' => context.playerL10n.loadingPreparingWorld,
+      'mount' => context.playerL10n.loadingBuildingScene,
+      'resources' => context.playerL10n.loadingAssets,
+      'map' => context.playerL10n.loadingMountingMap,
+      'player' => context.playerL10n.loadingPlacingPlayer,
+      'ready' => context.playerL10n.loadingReady,
       _ => stage ?? context.playerL10n.loadingGame,
     };
   }
@@ -822,10 +830,19 @@ class _RuntimePlayerSurfaceRouterState
       barrierColor: PokeMapPlayerMenuTheme.resolve(context).shadow
           .withValues(alpha: .32),
       traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
-      builder: (context) => Localizations.override(
-        context: context,
-        locale: locale,
-        delegates: PokeMapPlayerLocalizations.localizationsDelegates,
+      builder: (context) => ValueListenableBuilder<RuntimePlayerSnapshot>(
+        valueListenable: relay,
+        builder: (context, snapshot, child) {
+          final preference = snapshot.preferences?.locale;
+          return Localizations.override(
+            context: context,
+            locale: preference == null
+                ? locale
+                : Locale(preference.split(RegExp('[-_]')).first),
+            delegates: PokeMapPlayerLocalizations.localizationsDelegates,
+            child: child,
+          );
+        },
         child: MediaQuery(
           data: mediaQuery,
           child: PlayerMenuThemeScope(

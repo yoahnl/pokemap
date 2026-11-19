@@ -42,6 +42,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -102,7 +103,7 @@ fun AveluneMoon(modifier: Modifier) {
 
 @Composable
 fun AveluneWordmark(modifier: Modifier) {
-    Image(painterResource(R.drawable.avelune_glass_wordmark), "Avelune", modifier)
+    Image(painterResource(R.drawable.avelune_glass_wordmark), stringResource(R.string.app_name), modifier)
 }
 
 @Composable

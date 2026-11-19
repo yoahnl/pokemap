@@ -2582,7 +2582,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   RuntimeDialogueTextSpeed get dialogueTextSpeed => _dialogueTextSpeed;
 
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
-    runtimeLocale = runtimeLocales?.resolve(preferences.locale) ?? preferences.locale;
+    runtimeLocale = preferences.contentLocale(runtimeLocales);
     reducedMotion = preferences.accessibility.reducedMotion;
     _battleMotionPolicy = preferences.battleMotion;
     _battleOverlay?.applyMotionPolicy(_battleMotionPolicy,

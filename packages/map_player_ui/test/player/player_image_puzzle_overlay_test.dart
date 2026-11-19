@@ -137,10 +137,7 @@ void main() {
           ),
         ),
       );
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 30)),
-      );
-      await tester.pumpAndSettle();
+      await _waitForPuzzleBoard(tester);
       expect(tester.takeException(), isNull);
       expect(find.byType(CustomPaint), findsWidgets);
       expect(find.text('Réserve'), findsOneWidget);
@@ -260,10 +257,7 @@ void main() {
             ),
           ),
         );
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 30)),
-        );
-        await tester.pumpAndSettle();
+        await _waitForPuzzleBoard(tester);
         expect(tester.takeException(), isNull);
         final verticalViewport = find.byKey(
           const ValueKey('puzzle-content-viewport'),
@@ -360,4 +354,18 @@ void main() {
       },
     );
   }
+}
+
+Future<void> _waitForPuzzleBoard(WidgetTester tester) async {
+  final board = find.byKey(const ValueKey('puzzle-board-viewport'));
+  final elapsed = Stopwatch()..start();
+  while (board.evaluate().isEmpty &&
+      elapsed.elapsed < const Duration(seconds: 5)) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+  }
+  expect(board, findsOneWidget, reason: 'The puzzle bitmap should decode.');
+  await tester.pumpAndSettle();
 }

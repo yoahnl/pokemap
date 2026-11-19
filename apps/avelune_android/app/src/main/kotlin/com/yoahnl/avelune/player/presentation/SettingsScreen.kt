@@ -11,10 +11,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -24,30 +27,46 @@ import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yoahnl.avelune.player.R
+import com.yoahnl.avelune.player.runtime.AppLanguage
+import com.yoahnl.avelune.player.runtime.LanguagePreferencesFailure
+import com.yoahnl.avelune.player.runtime.LanguagePreferencesState
 import com.yoahnl.avelune.player.runtime.SurfaceProbeSession
 
 @Composable
-fun SettingsScreen(
+internal fun SettingsScreen(
+    languageState: LanguagePreferencesState,
+    onAppLanguageSelected: (AppLanguage) -> Unit,
+    onReloadLanguage: () -> Unit,
     modifier: Modifier = Modifier,
     onStartSurfaceProbe: () -> Unit = {},
     canStartSurfaceProbe: Boolean = true,
@@ -70,15 +89,11 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(28.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SettingsSectionTitle("PRÉFÉRENCES")
-                    SettingsRow {
-                        SettingsIcon(Icons.Filled.Public)
-                        SettingsLabels("Langue", "Langue de l’application", Modifier.weight(1f))
-                        Text("Français", color = palette.muted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                    }
+                    SettingsSectionTitle(stringResource(R.string.settings_preferences))
+                    LanguageSettings(languageState, onAppLanguageSelected, onReloadLanguage)
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SettingsSectionTitle("POUR LES CURIEUX")
+                    SettingsSectionTitle(stringResource(R.string.settings_debug_section))
                     SettingsRow(
                         Modifier.focusRing(22).toggleable(
                             value = showDebug,
@@ -87,7 +102,11 @@ fun SettingsScreen(
                         ),
                     ) {
                         SettingsIcon(Icons.Filled.MonitorHeart)
-                        SettingsLabels("Infos de debug", "FPS, latence de rendu, mémoire et CPU dans le jeu", Modifier.weight(1f))
+                        SettingsLabels(
+                            stringResource(R.string.settings_debug_title),
+                            stringResource(R.string.settings_debug_detail),
+                            Modifier.weight(1f),
+                        )
                         Switch(
                             checked = showDebug,
                             onCheckedChange = null,
@@ -103,7 +122,7 @@ fun SettingsScreen(
                     }
                     if (showDebug && SurfaceProbeSession.isEnabled) {
                         AveluneButton(
-                            "Tester les deux écrans",
+                            stringResource(R.string.settings_display_test),
                             onStartSurfaceProbe,
                             Modifier.fillMaxWidth(),
                             enabled = canStartSurfaceProbe && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O,
@@ -112,7 +131,7 @@ fun SettingsScreen(
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SettingsSectionTitle("À PROPOS")
+                    SettingsSectionTitle(stringResource(R.string.settings_about_section))
                     Column(
                         Modifier.fillMaxWidth().background(palette.surface, RoundedCornerShape(24.dp))
                             .border(1.dp, palette.border, RoundedCornerShape(24.dp)).padding(24.dp),
@@ -120,27 +139,114 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(15.dp),
                     ) {
                         Text(
-                            "Des histoires à emporter partout.",
+                            stringResource(R.string.settings_about_detail),
                             color = palette.text,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
                         )
                         Text(
-                            "Avelune pour Android · Version $version",
+                            stringResource(R.string.settings_android_version, version),
                             color = palette.muted,
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
                         )
                         if (showDebug) {
                             HorizontalDivider(color = palette.border)
-                            Text("Moteur Flutter + Flame · map_runtime", color = palette.muted, fontSize = 11.sp)
+                            Text(stringResource(R.string.settings_engine), color = palette.muted, fontSize = 11.sp)
                         }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun LanguageSettings(
+    state: LanguagePreferencesState,
+    onSelect: (AppLanguage) -> Unit,
+    onReload: () -> Unit,
+) {
+    val palette = avelunePalette
+    val confirmed = state.confirmed
+    val loadFailed = state.failure == LanguagePreferencesFailure.LOAD
+    val choiceFocus = remember { AppLanguage.entries.associateWith { FocusRequester() } }
+    val retryFocus = remember { FocusRequester() }
+    val needsRetryFocus = loadFailed && confirmed == null
+    LaunchedEffect(confirmed != null, needsRetryFocus) {
+        val target = confirmed?.appLanguage?.let { choiceFocus.getValue(it) } ?: retryFocus.takeIf { needsRetryFocus }
+        target?.requestFocus()
+    }
+    Column(
+        Modifier.fillMaxWidth().background(palette.surface, RoundedCornerShape(22.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(22.dp)).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(15.dp)) {
+            SettingsIcon(Icons.Filled.Public)
+            SettingsLabels(
+                stringResource(R.string.settings_language),
+                stringResource(R.string.settings_language_detail),
+                Modifier.weight(1f),
+            )
+        }
+        if (confirmed != null) {
+            val currentLocale = AppLanguage.fromWire(confirmed.appLocale)
+            Column(Modifier.fillMaxWidth().selectableGroup()) {
+                val choices = listOf(AppLanguage.SYSTEM) + confirmed.supportedAppLanguages
+                for (choice in choices) key(choice) {
+                    val selected = choice == confirmed.appLanguage
+                    val description = if (choice == AppLanguage.SYSTEM && selected && currentLocale != null) {
+                        stringResource(R.string.settings_language_effective, stringResource(languageLabel(currentLocale)))
+                    } else null
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                            .focusRequester(choiceFocus.getValue(choice))
+                            .focusRing(12)
+                            .selectable(selected = selected, role = Role.RadioButton, onClick = { onSelect(choice) })
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(13.dp),
+                    ) {
+                        RadioButton(selected = selected, onClick = null)
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(stringResource(languageLabel(choice)), color = palette.text, fontSize = 15.sp)
+                            if (description != null) Text(description, color = palette.muted, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+        val status = when {
+            loadFailed -> R.string.settings_language_load_failed
+            state.failure == LanguagePreferencesFailure.SAVE -> R.string.settings_language_save_failed
+            state.isSaving -> R.string.settings_language_saving
+            confirmed == null -> R.string.settings_language_loading
+            else -> null
+        }
+        if (status != null) {
+            Text(
+                stringResource(status),
+                Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                color = if (state.failure != null) palette.rose else palette.muted,
+                fontSize = 13.sp,
+            )
+        }
+        if (loadFailed) {
+            AveluneButton(
+                stringResource(R.string.action_retry),
+                onReload,
+                Modifier.focusRequester(retryFocus),
+            )
+        }
+    }
+}
+
+private fun languageLabel(choice: AppLanguage): Int = when (choice) {
+    AppLanguage.SYSTEM -> R.string.settings_language_system
+    AppLanguage.FRENCH -> R.string.language_french
+    AppLanguage.ENGLISH -> R.string.language_english
 }
 
 @Composable
@@ -156,9 +262,9 @@ private fun SettingsHeader() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AveluneWordmark(Modifier.size(width = 205.dp, height = 58.dp).offset(x = (-18).dp))
-        Text("VOTRE ESPACE", color = palette.cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.5.sp)
-        Text("Réglages", color = palette.text, fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold)
-        Text("Une expérience à votre image.", color = palette.muted, fontSize = 15.sp)
+        Text(stringResource(R.string.settings_header_label), color = palette.cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.5.sp)
+        Text(stringResource(R.string.settings_title), color = palette.text, fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.settings_header_detail), color = palette.muted, fontSize = 15.sp)
     }
 }
 

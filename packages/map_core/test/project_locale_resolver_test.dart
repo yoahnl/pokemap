@@ -38,4 +38,25 @@ void main() {
       );
     });
   });
+
+  group('ProjectLocalePolicy.resolvePreferred', () {
+    final policy = ProjectLocalePolicy(
+      supportedLocales: ['fr-FR', 'en-US', 'es'],
+      fallbackLocale: 'fr-FR',
+    );
+
+    test('tries later content preferences before the declared fallback', () {
+      expect(policy.resolvePreferred(['it-IT', 'EN_us']), 'en-US');
+      expect(policy.resolvePreferred(['it-IT', 'es-MX', 'en-US']), 'es');
+    });
+
+    test('keeps project language matching within each candidate', () {
+      expect(policy.resolvePreferred(['en-GB', 'es']), 'en-US');
+    });
+
+    test('uses the project fallback after exhausting the candidates', () {
+      expect(policy.resolvePreferred(['it-IT', 'de-DE']), 'fr-FR');
+      expect(policy.resolvePreferred([]), 'fr-FR');
+    });
+  });
 }

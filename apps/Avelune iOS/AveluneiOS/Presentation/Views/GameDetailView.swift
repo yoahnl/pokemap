@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GameDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @State private var showsFullDescription = false
 
     let game: Game
@@ -54,7 +55,7 @@ struct GameDetailView: View {
 
                 VStack(alignment: .leading, spacing: 18) {
                     Button(action: onPlay) {
-                        Label(game.canContinue ? "Reprendre" : "Jouer", systemImage: "play.fill")
+                        Label(game.playLabel, systemImage: "play.fill")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                     }
@@ -74,7 +75,8 @@ struct GameDetailView: View {
                                 .lineLimit(showsFullDescription ? nil : 4)
 
                             if description.count > 180 {
-                                Button(showsFullDescription ? "Voir moins" : "Voir plus") {
+                                let disclosure: LocalizedStringKey = showsFullDescription ? "Voir moins" : "Voir plus"
+                                Button(disclosure) {
                                     withAnimation(.smooth(duration: 0.3)) {
                                         showsFullDescription.toggle()
                                     }
@@ -106,22 +108,25 @@ struct GameDetailView: View {
                             information(
                                 "Langues",
                                 value: game.supportedLocales.map {
-                                    Locale(identifier: "fr").localizedString(forIdentifier: $0) ?? $0
-                                }.joined(separator: ", "),
+                                    locale.localizedString(forIdentifier: $0) ?? $0
+                                }.formatted(.list(type: .and).locale(locale)),
                                 symbol: "globe"
                             )
                         }
                         if let lastPlayedAt = game.lastPlayedAt {
                             information(
                                 "Dernière partie",
-                                value: lastPlayedAt.formatted(date: .abbreviated, time: .shortened),
+                                value: lastPlayedAt.formatted(
+                                    Date.FormatStyle(date: .abbreviated, time: .shortened, locale: locale)
+                                ),
                                 symbol: "clock"
                             )
                         }
                         if game.playTimeSeconds > 0 {
                             information(
                                 "Temps de jeu",
-                                value: Duration.seconds(game.playTimeSeconds).formatted(.units(allowed: [.hours, .minutes])),
+                                value: Duration.seconds(game.playTimeSeconds)
+                                    .formatted(.units(allowed: [.hours, .minutes]).locale(locale)),
                                 symbol: "hourglass"
                             )
                         }
@@ -140,7 +145,7 @@ struct GameDetailView: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    private func information(_ title: String, value: String, symbol: String) -> some View {
+    private func information(_ title: LocalizedStringKey, value: String, symbol: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: symbol)
                 .frame(width: 22)
@@ -156,4 +161,8 @@ struct GameDetailView: View {
             }
         }
     }
+}
+
+extension Game {
+    var playLabel: LocalizedStringKey { canContinue ? "Reprendre" : "Jouer" }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../localization/player_localizations.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_menu_components.dart';
 import '../theme/pokemap_player_menu_theme.dart';
@@ -27,8 +28,7 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
     ),
   );
   List<Widget> sections(BuildContext context) {
-    final french = Localizations.localeOf(context).languageCode == 'fr';
-    String text(String fr, String en) => french ? fr : en;
+    final strings = context.playerL10n;
     return [
       Row(
         children: [
@@ -36,7 +36,7 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              text('Météo de ma localisation', 'Weather at my location'),
+              context.playerL10n.weatherMyLocation,
               style: context.playerMenuTheme.label,
             ),
           ),
@@ -57,7 +57,7 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
       PlayerActionButton(
         icon: Icons.location_city_outlined,
         key: const ValueKey('real-weather-city'),
-        label: text('Choisir une autre ville', 'Choose another city'),
+        label: context.playerL10n.weatherChooseCity,
         onPressed: onChanged == null
             ? null
             : () async {
@@ -68,7 +68,7 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
                     role: ProjectPresentationSurfaceRole.options,
                     child: _WeatherCityPicker(
                       provider: weather.provider,
-                      french: french,
+                      strings: strings,
                     ),
                   ),
                 );
@@ -89,7 +89,7 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
         PlayerActionButton(
           icon: Icons.location_city_outlined,
           key: const ValueKey('real-weather-ip'),
-          label: text('Revenir à la détection par IP', 'Use IP location again'),
+          label: context.playerL10n.weatherUseIpLocation,
           onPressed: onChanged == null
               ? null
               : () => onChanged!(
@@ -97,24 +97,15 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
                 ),
         ),
       Text(
-        text(
-          'Météo réelle pour les jeux compatibles.',
-          'Real weather for supported games.',
-        ),
+        context.playerL10n.weatherCompatibleGames,
         style: context.playerMenuTheme.body,
       ),
       Text(
-        text(
-          'Localisation approximative par IP, sans GPS.',
-          'Approximate IP location, without GPS.',
-        ),
+        context.playerL10n.weatherApproximateLocation,
         style: context.playerMenuTheme.body,
       ),
       Text(
-        text(
-          'GeoJS et Open-Meteo reçoivent votre IP.',
-          'GeoJS and Open-Meteo receive your IP.',
-        ),
+        context.playerL10n.weatherIpDisclosure,
         style: context.playerMenuTheme.body,
       ),
       const SizedBox(height: 8),
@@ -123,30 +114,43 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
         builder: (context, status, _) {
           final kind = status.snapshot?.conditions.choice(SpatialVisualParameter.weatherKind);
           if (kind == null) return const SizedBox.shrink();
-          final names = <String, (String, String)>{
-            'clear': ('Ciel dégagé', 'Clear sky'), 'cloudy': ('Couvert', 'Cloudy'),
-            'drizzle': ('Bruine', 'Drizzle'), 'rain': ('Pluie', 'Rain'),
-            'downpour': ('Averse', 'Downpour'), 'storm': ('Orage', 'Thunderstorm'),
-            'snow': ('Neige', 'Snow'), 'blizzard': ('Blizzard', 'Blizzard'),
-            'hail': ('Grêle', 'Hail'), 'mist': ('Brume légère', 'Mist'),
-            'fog': ('Brouillard', 'Fog'), 'dust': ('Poussières', 'Dust'),
-            'sandstorm': ('Tempête de sable', 'Sandstorm'), 'petals': ('Pétales', 'Petals'),
-            'partlyCloudy': ('Éclaircies', 'Partly cloudy'),
-            'windy': ('Vent soutenu', 'Windy'),
-            'heavySnow': ('Forte neige', 'Heavy snow'),
-            'sleet': ('Pluie et neige', 'Sleet'),
-            'tempest': ('Tempête violente', 'Severe thunderstorm'),
-            'leaves': ('Feuilles d’automne', 'Autumn leaves'),
+          final name = switch (kind) {
+            'clear' => strings.weatherClear,
+            'cloudy' => strings.weatherCloudy,
+            'drizzle' => strings.weatherDrizzle,
+            'rain' => strings.weatherRain,
+            'downpour' => strings.weatherDownpour,
+            'storm' => strings.weatherStorm,
+            'snow' => strings.weatherSnow,
+            'blizzard' => strings.weatherBlizzard,
+            'hail' => strings.weatherHail,
+            'mist' => strings.weatherMist,
+            'fog' => strings.weatherFog,
+            'dust' => strings.weatherDust,
+            'sandstorm' => strings.weatherSandstorm,
+            'petals' => strings.weatherPetals,
+            'partlyCloudy' => strings.weatherPartlyCloudy,
+            'windy' => strings.weatherWindy,
+            'heavySnow' => strings.weatherHeavySnow,
+            'sleet' => strings.weatherSleet,
+            'tempest' => strings.weatherTempest,
+            'leaves' => strings.weatherLeaves,
+            _ => kind,
           };
-          final name = names[kind];
-          return Text('${text('Météo reçue', 'Received weather')} : ${name == null ? kind : french ? name.$1 : name.$2}',
+          return Text(
+            strings.weatherReceived(weather: name),
             key: const ValueKey('real-weather-observation'), style: context.playerMenuTheme.body);
         },
       ),
       ValueListenableBuilder<RealWeatherStatus>(
         valueListenable: weather,
         builder: (context, status, _) => Text(
-          '${text('Ville', 'City')} : ${preferences.location?.label ?? status.snapshot?.location.label ?? text('Détection IP à l’ouverture du jeu', 'Detected by IP when gameplay starts')}',
+          strings.weatherCity(
+            city:
+                preferences.location?.label ??
+                status.snapshot?.location.label ??
+                strings.weatherDetectLocation,
+          ),
           key: const ValueKey('real-weather-status'),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -157,16 +161,10 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
         valueListenable: weather,
         builder: (context, status, _) => Text(
           status.loading
-              ? text('Actualisation…', 'Refreshing…')
+              ? context.playerL10n.weatherRefreshing
               : status.offline
-              ? text(
-                  'Hors ligne · cache ou météo du jeu',
-                  'Offline · cached or game weather',
-                )
-              : text(
-                  'Actualisation toutes les 20 minutes',
-                  'Refresh every 20 minutes',
-                ),
+              ? context.playerL10n.weatherOffline
+              : context.playerL10n.weatherRefreshInterval,
           style: context.playerMenuTheme.meta,
         ),
       ),
@@ -187,11 +185,7 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
             } on Object {
               if (context.mounted) {
                 ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      text('Lien indisponible.', 'Link unavailable.'),
-                    ),
-                  ),
+                  SnackBar(content: Text(context.playerL10n.linkUnavailable)),
                 );
               }
             }
@@ -199,10 +193,7 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
           child: Text(entry.key),
         ),
       Text(
-        text(
-          'Données météo adaptées pour le rendu du jeu.',
-          'Weather data adapted for game rendering.',
-        ),
+        context.playerL10n.weatherDataAdapted,
         style: context.playerMenuTheme.meta,
       ),
     ];
@@ -210,9 +201,9 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
 }
 
 class _WeatherCityPicker extends StatefulWidget {
-  const _WeatherCityPicker({required this.provider, required this.french});
+  const _WeatherCityPicker({required this.provider, required this.strings});
   final RealWeatherProvider provider;
-  final bool french;
+  final PokeMapPlayerLocalizations strings;
   @override
   State<_WeatherCityPicker> createState() => _WeatherCityPickerState();
 }
@@ -221,7 +212,6 @@ class _WeatherCityPickerState extends State<_WeatherCityPicker> {
   final query = TextEditingController();
   List<RealWeatherLocation>? results;
   bool loading = false, failed = false;
-  String text(String fr, String en) => widget.french ? fr : en;
   Future<void> search() async {
     if (loading) return;
     setState(() {
@@ -255,7 +245,7 @@ class _WeatherCityPickerState extends State<_WeatherCityPicker> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                text('Ville de référence météo', 'Weather location'),
+                widget.strings.weatherLocationTitle,
                 style: context.playerMenuTheme.title,
               ),
               const SizedBox(height: 12),
@@ -265,10 +255,7 @@ class _WeatherCityPickerState extends State<_WeatherCityPicker> {
                 maxLength: 120,
                 enabled: !loading,
                 decoration: InputDecoration(
-                  labelText: text(
-                    'Ville, région ou pays',
-                    'City, region or country',
-                  ),
+                  labelText: widget.strings.weatherLocationSearchHint,
                 ),
                 onSubmitted: (_) => search(),
               ),
@@ -276,21 +263,18 @@ class _WeatherCityPickerState extends State<_WeatherCityPicker> {
                 icon: Icons.location_city_outlined,
                 key: const ValueKey('real-weather-city-search'),
                 label: loading
-                    ? text('Recherche…', 'Searching…')
-                    : text('Rechercher', 'Search'),
+                    ? widget.strings.weatherSearching
+                    : widget.strings.search,
                 onPressed: loading ? null : search,
               ),
               if (failed)
                 Text(
-                  text(
-                    'Recherche indisponible. Réessayez plus tard.',
-                    'Search unavailable. Please try later.',
-                  ),
+                  widget.strings.weatherSearchUnavailable,
                   style: context.playerMenuTheme.body,
                 ),
               if (results != null && results!.isEmpty && !failed)
                 Text(
-                  text('Aucune ville trouvée.', 'No city found.'),
+                  widget.strings.weatherNoCityFound,
                   style: context.playerMenuTheme.body,
                 ),
               for (final location in results ?? <RealWeatherLocation>[])
@@ -301,7 +285,7 @@ class _WeatherCityPickerState extends State<_WeatherCityPicker> {
                 ),
               PlayerActionButton(
                 icon: Icons.location_city_outlined,
-                label: text('Annuler', 'Cancel'),
+                label: widget.strings.cancel,
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],

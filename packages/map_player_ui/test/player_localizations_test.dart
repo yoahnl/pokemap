@@ -170,6 +170,9 @@ void main() {
 
     await pump(const Locale('en'));
     expect(find.text('Continue|Back to Hub|Quests|Profile'), findsOneWidget);
+
+    await pump(const Locale('es'));
+    expect(find.text('Continue|Back to Hub|Quests|Profile'), findsOneWidget);
   });
 
   test('unsupported locales fall back to English', () {

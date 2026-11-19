@@ -9,7 +9,7 @@ String resolveLocalizedName({
   required String locale,
   required String fallback,
 }) {
-  final normalized = locale.trim().replaceAll('_', '-').toLowerCase();
+  final normalized = _normalizeNameLocale(locale);
   if (normalized.isEmpty) {
     return fallback;
   }
@@ -29,3 +29,43 @@ String resolveLocalizedName({
 
   return fallback;
 }
+
+String resolvePokemonSpeciesName({
+  required Map<String, String> names,
+  required String locale,
+  required String fallback,
+}) {
+  final english = resolveLocalizedName(
+    names: names,
+    locale: 'en',
+    fallback: fallback,
+  );
+  return resolveLocalizedName(names: names, locale: locale, fallback: english);
+}
+
+({Map<String, String> names, String? legacyName}) readPokemonSpeciesNames(
+  Map<String, dynamic> json,
+) {
+  final names = <String, String>{};
+  final rawNames = json['names'];
+  if (rawNames is Map) {
+    for (final MapEntry(:key, :value) in rawNames.entries) {
+      if (key is! String || value is! String || value.trim().isEmpty) continue;
+      final locale = _normalizeNameLocale(key);
+      if (locale.isEmpty) continue;
+      if (key == locale || !names.containsKey(locale)) {
+        names[locale] = value;
+      }
+    }
+  }
+  final name = json['name'];
+  return (
+    names: Map<String, String>.unmodifiable(names),
+    legacyName: name is String && name.trim().isNotEmpty
+        ? name
+        : names['fr'] ?? names.values.firstOrNull,
+  );
+}
+
+String _normalizeNameLocale(String locale) =>
+    locale.trim().replaceAll('_', '-').toLowerCase();

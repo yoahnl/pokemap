@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_distribution/map_distribution.dart';
+import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
 import 'package:pokemap_hub/embedding/install_progress_relay.dart';
 import 'package:pokemap_hub/features/installation/application/use_cases/install_game_package_use_case.dart';
@@ -18,19 +19,31 @@ class AveluneLibraryBridge {
   AveluneLibraryBridge({
     MethodChannel? channel,
     Future<Directory> Function()? supportRootResolver,
-    Future<void> Function()? stopPlayer,
+    this._stopPlayer,
+    this._onAppLanguageChanged,
+    Iterable<String> Function()? systemLocales,
     InstalledGameVerifier? verifier,
   }) : _channel = channel ?? const MethodChannel('com.avelune.runtime/library'),
        _supportRootResolver =
            supportRootResolver ??
            const PathProviderSupportRootAdapter().resolve,
-       _stopPlayer = stopPlayer,
+       _systemLocales = systemLocales ?? _readSystemLocales,
        _verifier = verifier ?? const InstalledGameVerifier();
+
+  static final _supportedAppLanguages = List<String>.unmodifiable(
+    PlayerLanguage.values
+        .where((language) => language != PlayerLanguage.system)
+        .map((language) => language.name),
+  );
 
   final MethodChannel _channel;
   final Future<Directory> Function() _supportRootResolver;
   final Future<void> Function()? _stopPlayer;
+  final Future<void> Function()? _onAppLanguageChanged;
+  final Iterable<String> Function() _systemLocales;
   final InstalledGameVerifier _verifier;
+  Future<void> _languageTail = Future<void>.value();
+  Map<String, Object>? _lastReportedLanguage;
   Future<void>? _stopping;
   int _playerGeneration = 0;
   int get playerGeneration => _playerGeneration;
@@ -40,6 +53,7 @@ class AveluneLibraryBridge {
   );
 
   late final Directory supportRoot;
+  late final HubPreferencesStore preferencesStore;
   late final InstalledGameLaunchResolver launchResolver;
   late final GamePackageInstaller _installer;
   late final GameMaintenanceService _maintenance;
@@ -71,6 +85,11 @@ class AveluneLibraryBridge {
     await _channel.invokeMethod<void>('playerDidExit');
   }
 
+  Future<void> refreshLanguagePreferences() =>
+      _withLanguagePreferences(() async {
+        _publishLanguage(await _readLanguage());
+      });
+
   Future<void> _ensureReady() => _ready ??= _build();
 
   Future<void> _build() async {
@@ -83,14 +102,15 @@ class AveluneLibraryBridge {
       inspector: GamePackageInspector(hostCompatibility: hostCompatibility),
       availableDiskBytes: platform.availableDiskBytes,
       loadSmoke: loadInstalledProjectSmoke,
-      prepareSavesForUpdate:
-          GameSaveUpdatePreparation(supportRoot: supportRoot).call,
+      prepareSavesForUpdate: GameSaveUpdatePreparation(supportRoot: supportRoot)
+          .call,
     );
     _maintenance = GameMaintenanceService(
       supportRoot: supportRoot,
       installer: _installer,
     );
     _library = GameLibraryStore(supportRoot: supportRoot);
+    preferencesStore = HubPreferencesStore(supportRoot: supportRoot);
     launchResolver = InstalledGameLaunchResolver(
       supportRoot: supportRoot,
       hostCompatibility: hostCompatibility,
@@ -104,9 +124,8 @@ class AveluneLibraryBridge {
         verifier: _verifier,
         verificationDepth: InstalledGameVerificationDepth.structure,
       ),
-      saveRepositoryFactory:
-          (root, identity) =>
-              HubSaveStore(supportRoot: root, identity: identity),
+      saveRepositoryFactory: (root, identity) =>
+          HubSaveStore(supportRoot: root, identity: identity),
     );
   }
 
@@ -143,9 +162,90 @@ class AveluneLibraryBridge {
       case 'stopGame':
         await _stopGame();
         return null;
+      case 'getLanguagePreferences':
+        return _withLanguagePreferences(() async {
+          final language = await _readLanguage();
+          _lastReportedLanguage = language;
+          return language;
+        });
+      case 'setAppLanguage':
+        return _setAppLanguage(_argument(call, 'appLanguage'));
       default:
         throw MissingPluginException('Unknown method: ${call.method}');
     }
+  }
+
+  Future<T> _withLanguagePreferences<T>(Future<T> Function() operation) {
+    final result = _languageTail.then((_) async {
+      await _ensureReady();
+      try {
+        return await operation();
+      } on HubPreferencesStorageException catch (error) {
+        throw PlatformException(
+          code: 'preferencesStorage',
+          message: error.message,
+        );
+      }
+    });
+    _languageTail = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  Future<Map<String, Object>> _setAppLanguage(String value) {
+    final choice = PlayerLanguage.values
+        .where((language) => language.name == value)
+        .firstOrNull;
+    if (choice == null) {
+      throw PlatformException(
+        code: 'invalidArguments',
+        message: 'Unsupported appLanguage: $value.',
+      );
+    }
+    return _withLanguagePreferences(() async {
+      late PlayerPreferences saved;
+      await preferencesStore.update(
+        (current) => saved = current.copyWith(language: choice),
+      );
+      await _onAppLanguageChanged?.call();
+      final language = _languagePayload(saved);
+      _publishLanguage(language);
+      return language;
+    });
+  }
+
+  Future<Map<String, Object>> _readLanguage() async =>
+      _languagePayload((await preferencesStore.load()).preferences);
+
+  Map<String, Object> _languagePayload(PlayerPreferences preferences) {
+    final locales = resolvePlayerLocales(
+      preferences: preferences,
+      systemLocales: _systemLocales(),
+      supportedAppLocales: _supportedAppLanguages,
+      supportedPlayerLocales: PokeMapPlayerLocalizations.supportedLocales.map(
+        (locale) => locale.toLanguageTag(),
+      ),
+    );
+    return {
+      'appLanguage': preferences.language.name,
+      'appLocale': locales.appLocale,
+      'supportedAppLanguages': _supportedAppLanguages,
+    };
+  }
+
+  void _publishLanguage(Map<String, Object> language) {
+    if (mapEquals(language, _lastReportedLanguage)) return;
+    _lastReportedLanguage = language;
+    unawaited(
+      _channel
+          .invokeMethod<void>('languagePreferencesChanged', language)
+          .then<void>((_) {}, onError: (Object _) {}),
+    );
+  }
+
+  static Iterable<String> _readSystemLocales() {
+    return PlatformDispatcher.instance.locales.map(
+      (locale) => locale.toLanguageTag(),
+    );
   }
 
   Future<List<Map<String, Object?>>> _listGames() async {
@@ -203,10 +303,9 @@ class AveluneLibraryBridge {
     playing.value = game;
   }
 
-  Future<void> _stopGame() =>
-      _stopping ??= _stopOwnedPlayer().whenComplete(() {
-        _stopping = null;
-      });
+  Future<void> _stopGame() => _stopping ??= _stopOwnedPlayer().whenComplete(() {
+    _stopping = null;
+  });
 
   Future<void> _stopOwnedPlayer() async {
     await _stopPlayer?.call();

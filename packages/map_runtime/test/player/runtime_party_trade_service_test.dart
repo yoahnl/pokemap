@@ -15,6 +15,7 @@ void main() {
   late PlayerServiceRuntimeController controller;
   late List<GameState> commits;
   late List<bool> locks;
+  late String uiLocale;
   var saveFails = false;
   Completer<void>? saveStarted;
   Completer<void>? saveRelease;
@@ -84,6 +85,7 @@ void main() {
     );
     commits = [];
     locks = [];
+    uiLocale = 'fr';
     saveFails = false;
     saveStarted = null;
     saveRelease = null;
@@ -100,6 +102,7 @@ void main() {
       loadRecoveryCaps: (_) async => throw StateError('Trade is not healing.'),
       projectRootDirectory: directory.path,
       pokemonConfig: config,
+      displayLocale: () => uiLocale,
       itemCatalog: ItemCatalogSnapshot.fromCatalog(
         const ProjectItemCatalog(
           schemaVersion: 1,
@@ -199,6 +202,46 @@ void main() {
       await command(RuntimeWorldServiceAction.select, targetId: 'partner');
     }
   }
+
+  test(
+    'trade choices and evolution use the display locale at projection',
+    () async {
+      final file = File('${directory.path}/native/species/machoke.json');
+      final json =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      json['names'] = {'en': 'Machoke', 'fr': 'Machopeur'};
+      await file.writeAsString(jsonEncode(json));
+      state = state.copyWith(
+        party: state.party.copyWith(
+          members: [
+            state.party.members.first,
+            state.party.members.last.copyWith(nickname: 'Granit'),
+          ],
+        ),
+      );
+      uiLocale = 'en';
+      final opening = open();
+      await ready();
+      expect(content().members.map((member) => member.label), [
+        'Machoke',
+        'Granit',
+      ]);
+      uiLocale = 'fr';
+      await choose();
+      expect(content().members.map((member) => member.label), [
+        'Machopeur',
+        'Granit',
+      ]);
+      expect(content().members.map((member) => member.individualId), [
+        'first',
+        'partner',
+      ]);
+      await command(RuntimeWorldServiceAction.confirm);
+      expect(content().completionMessage, 'Machopeur est devenu Machamp.');
+      await command(RuntimeWorldServiceAction.close);
+      expect((await opening).status, PlayerServiceRuntimeStatus.completed);
+    },
+  );
 
   test('awaits real party choices and close; only the first evolves and saves once', () async {
     final original = state;

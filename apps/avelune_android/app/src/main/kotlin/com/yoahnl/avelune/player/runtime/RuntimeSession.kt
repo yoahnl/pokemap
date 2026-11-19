@@ -1,17 +1,22 @@
 package com.yoahnl.avelune.player.runtime
 
 import android.content.Context
+import android.content.res.Configuration
 import android.hardware.input.InputManager
 import android.os.Handler
 import android.os.StatFs
 import android.util.Log
 import com.yoahnl.avelune.host.InstalledGame
+import com.yoahnl.avelune.player.R
 import com.yoahnl.avelune.player.display.DisplayCapabilityAdapter
+import com.yoahnl.avelune.player.localization.NativeFailure
+import com.yoahnl.avelune.player.localization.NativeMessage
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.embedding.engine.FlutterEngineGroup
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugins.GeneratedPluginRegistrant
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,7 +40,7 @@ interface RuntimeLibraryPort {
     suspend fun play(gameId: String)
 }
 
-data class RuntimeRecoveryState(val isStopping: Boolean = false, val error: String? = null)
+internal data class RuntimeRecoveryState(val isStopping: Boolean = false, val error: NativeMessage? = null)
 
 class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : RuntimeLibraryPort {
     private val engineGroup = FlutterEngineGroup(context.applicationContext)
@@ -55,14 +60,19 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
     private var pendingGameId: String? = null
     private var startJob: Job? = null
     private var stopJob: Job? = null
-    private var playbackError: String? = null
+    private var playbackError: NativeMessage? = null
     private var isClosed = false
-    private val mutablePresentationFailure = MutableStateFlow<String?>(null)
+    private val language = LanguagePreferencesController(
+        read = { invoke("getLanguagePreferences") },
+        write = { choice -> invoke("setAppLanguage", mapOf("appLanguage" to choice.wireValue)) },
+    )
+    private val mutablePresentationFailure = MutableStateFlow<NativeMessage?>(null)
     private val mutableRecovery = MutableStateFlow(RuntimeRecoveryState())
     private val mutableActiveGame = MutableStateFlow<String?>(null)
     val activeGame: StateFlow<String?> = mutableActiveGame.asStateFlow()
-    val presentationFailure = mutablePresentationFailure.asStateFlow()
-    val recovery = mutableRecovery.asStateFlow()
+    internal val applicationLanguage = language.state
+    internal val presentationFailure = mutablePresentationFailure.asStateFlow()
+    internal val recovery = mutableRecovery.asStateFlow()
     val frameRateLimit: StateFlow<Int> = frameRate.limit
     val surfaceProbe = SurfaceProbeSession(context, engine, engineGroup, displays, ::awaitReady)
     val gameplayCompanion = RuntimeCompanionSession(context, engine, engineGroup, displays)
@@ -94,8 +104,16 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "runtimeReady" -> {
-                    ready.complete(Unit)
+                    val becameReady = ready.complete(Unit)
                     result.success(null)
+                    if (becameReady) refreshLanguagePreferences()
+                }
+                "languagePreferencesChanged" -> {
+                    if (language.acceptNotification(call.arguments)) {
+                        result.success(null)
+                    } else {
+                        result.error("invalidLanguagePreferences", "Invalid application language preferences.", null)
+                    }
                 }
                 "playerDidExit" -> {
                     gameplayCompanion.beginStop()
@@ -122,26 +140,40 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
         FlutterEngineCache.getInstance().put(ENGINE_ID, engine)
     }
 
-    override suspend fun listGames(): List<InstalledGame> = InstalledGame.listFromPayload(invoke("listGames"))
+    internal fun refreshLanguagePreferences(systemConfiguration: Configuration? = null) {
+        if (isClosed) return
+        systemConfiguration?.let(engine.localizationPlugin::sendLocalesToFlutter)
+        scope.launch { language.refresh() }
+    }
+
+    internal fun setAppLanguage(choice: AppLanguage) {
+        scope.launch { language.select(choice) }
+    }
+
+    override suspend fun listGames(): List<InstalledGame> {
+        val payload = invoke("listGames")
+        return decodeLibraryResponse { InstalledGame.listFromPayload(payload) }
+    }
 
     override suspend fun install(packagePath: String): InstalledGame {
-        check(surfaceProbe.activeSession.value == null) { "Ferme le test des écrans avant d’importer un jeu." }
+        requireDisplayTestClosed()
         val payload = invoke("installGame", mapOf("packagePath" to packagePath))
-        require(payload is Map<*, *>) { "Réponse inattendue après l’import du jeu." }
-        return InstalledGame.fromPayload(payload)
+        return decodeLibraryResponse {
+            require(payload is Map<*, *>)
+            InstalledGame.fromPayload(payload)
+        }
     }
 
     override suspend fun uninstall(gameId: String): List<InstalledGame> {
-        check(surfaceProbe.activeSession.value == null) { "Ferme le test des écrans avant de désinstaller un jeu." }
-        return InstalledGame.listFromPayload(invoke("uninstallGame", mapOf("gameId" to gameId)))
+        requireDisplayTestClosed()
+        val payload = invoke("uninstallGame", mapOf("gameId" to gameId))
+        return decodeLibraryResponse { InstalledGame.listFromPayload(payload) }
     }
 
     override suspend fun play(gameId: String) {
         awaitReady()
-        check(surfaceProbe.activeSession.value == null) { "Ferme le test des écrans avant de lancer un jeu." }
-        check(mutableActiveGame.value == null && stopJob?.isActive != true) {
-            "Un jeu est déjà en cours de lecture ou de fermeture."
-        }
+        requireDisplayTestClosed()
+        if (mutableActiveGame.value != null || stopJob?.isActive == true) throw NativeFailure(R.string.error_game_already_playing)
         mutablePresentationFailure.value = null
         mutableRecovery.value = RuntimeRecoveryState()
         gameplayCompanion.prepare()
@@ -158,8 +190,10 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
                 if (stopJob?.isActive == true) return@launch
                 invoke("playGame", mapOf("gameId" to gameId))
                 diagnostics.invokeMethod("setEnabled", mapOf("enabled" to settings.getBoolean("showDebugInfo", false)))
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
-                playbackError = error.message ?: "Le jeu n’a pas pu être lancé."
+                playbackError = NativeMessage.fromError(error, R.string.error_game_start)
                 mutablePresentationFailure.value = playbackError
             }
         }
@@ -178,14 +212,16 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
                 if (mutableActiveGame.value != null) invoke("stopGame")
                 mutableActiveGame.value = null
                 mutableRecovery.value = RuntimeRecoveryState()
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
-                playbackError = error.message ?: "Le jeu n’a pas pu être fermé correctement."
+                playbackError = NativeMessage.fromError(error, R.string.error_game_stop)
                 mutableRecovery.value = RuntimeRecoveryState(error = playbackError)
             }
         }
     }
 
-    fun consumePlaybackError(): String? = playbackError.also {
+    internal fun consumePlaybackError(): NativeMessage? = playbackError.also {
         playbackError = null
     }
 
@@ -195,9 +231,7 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
 
     suspend fun prepareSurfaceProbe(): String {
         awaitReady()
-        check(mutableActiveGame.value == null && stopJob?.isActive != true) {
-            "Ferme la partie en cours avant de tester les deux écrans."
-        }
+        if (mutableActiveGame.value != null || stopJob?.isActive == true) throw NativeFailure(R.string.error_probe_game_active)
         return surfaceProbe.prepare()
     }
 
@@ -218,11 +252,21 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
         isClosed = true
     }
 
+    private fun requireDisplayTestClosed() {
+        if (surfaceProbe.activeSession.value != null) throw NativeFailure(R.string.error_display_test_active)
+    }
+
+    private inline fun <T> decodeLibraryResponse(decode: () -> T): T = try {
+        decode()
+    } catch (error: IllegalArgumentException) {
+        throw NativeFailure(R.string.error_unexpected_library_response, cause = error)
+    }
+
     private suspend fun invoke(method: String, arguments: Map<String, Any>? = null): Any? {
         awaitReady()
         if (method == "installGame") return awaitResponse(method, arguments)
         val reply = withTimeoutOrNull(40_000) { RuntimeReply(awaitResponse(method, arguments)) }
-        check(reply != null) { "Le moteur Avelune n’a pas répondu à temps. Réessaie l’action." }
+        if (reply == null) throw NativeFailure(R.string.error_runtime_timeout)
         return reply.value
     }
 
@@ -234,21 +278,21 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
                 }
 
                 override fun error(code: String, message: String?, details: Any?) {
-                    Log.w("AveluneRuntime", "$method a échoué : $code $details")
-                    if (continuation.isActive) continuation.resumeWithException(RuntimeException(message ?: code))
+                    Log.w("AveluneRuntime", "$method failed: $code $details")
+                    if (continuation.isActive) continuation.resumeWithException(runtimeChannelFailure(method, code, details))
                 }
 
                 override fun notImplemented() {
                     if (continuation.isActive) continuation.resumeWithException(
-                        IllegalStateException("Le moteur Avelune ne prend pas en charge cette action."),
+                        NativeFailure(R.string.error_runtime_unsupported),
                     )
                 }
             })
         }
 
     private suspend fun awaitReady() {
-        check(withTimeoutOrNull(40_000) { ready.await(); true } == true) {
-            "Le moteur Avelune n’est pas encore prêt. Réessaie dans quelques instants."
+        if (withTimeoutOrNull(40_000) { ready.await() } == null) {
+            throw NativeFailure(R.string.error_runtime_not_ready)
         }
     }
 

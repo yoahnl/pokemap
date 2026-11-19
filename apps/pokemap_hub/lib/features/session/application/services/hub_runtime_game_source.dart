@@ -63,6 +63,10 @@ final class HubRuntimeGameSource implements RuntimeGameSource {
     GameState? initialGameState,
   }) async {
     final preferences = await preferencesGateway.load();
+    final locales = ProjectLocalePolicy(
+      supportedLocales: _launch.manifest.locales.supported,
+      fallbackLocale: _launch.manifest.locales.defaultLocale,
+    );
     return GameSessionDescriptor(
       sessionId: _sessionIdFactory(),
       sessionToken: _sessionTokenFactory(),
@@ -74,15 +78,8 @@ final class HubRuntimeGameSource implements RuntimeGameSource {
       saveReadHandle: saveReadHandle,
       runtimeApiVersion: _launch.runtimeApiVersion,
       grantedCapabilities: _launch.grantedCapabilities,
-      locale: ProjectLocaleResolver.resolve(
-        preferredLocale: preferences.locale,
-        supportedLocales: _launch.manifest.locales.supported,
-        fallbackLocale: _launch.manifest.locales.defaultLocale,
-      ),
-      locales: ProjectLocalePolicy(
-        supportedLocales: _launch.manifest.locales.supported,
-        fallbackLocale: _launch.manifest.locales.defaultLocale,
-      ),
+      locale: preferences.contentLocale(locales),
+      locales: locales,
       accessibility: preferences.accessibility,
       initialGameState: initialGameState,
     );

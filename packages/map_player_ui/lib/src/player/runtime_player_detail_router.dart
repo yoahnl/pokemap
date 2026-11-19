@@ -233,8 +233,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       RuntimePlayerPauseSection.map => l10n.map,
       RuntimePlayerPauseSection.quests => l10n.quests,
       RuntimePlayerPauseSection.contacts =>
-        snapshot.pauseDetailFor(section)?.title ??
-            (l10n.locale.languageCode == 'fr' ? 'Téléphone' : 'Phone'),
+        snapshot.pauseDetailFor(section)?.title ?? (l10n.phone),
       RuntimePlayerPauseSection.profile => l10n.profile,
       RuntimePlayerPauseSection.options => l10n.options,
     };

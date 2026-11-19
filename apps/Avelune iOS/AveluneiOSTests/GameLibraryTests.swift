@@ -69,7 +69,7 @@ final class GameLibraryTests: XCTestCase {
         ]
         var observed: [(Double?, String?)] = []
         useCase.afterProgress = {
-            observed.append((viewModel.installationProgress, viewModel.installationDetail))
+            observed.append((viewModel.installationProgress, viewModel.installationDetail?.key))
         }
 
         await viewModel.install(from: package)
@@ -96,7 +96,7 @@ final class GameLibraryTests: XCTestCase {
             InstallProgress(stage: "completed", completedBytes: nil, totalBytes: nil)
         ]
         var details: [String?] = []
-        useCase.afterProgress = { details.append(viewModel.installationDetail) }
+        useCase.afterProgress = { details.append(viewModel.installationDetail?.key) }
 
         await viewModel.install(from: package)
 
@@ -132,7 +132,7 @@ final class GameLibraryTests: XCTestCase {
 
         let unknown = InstallProgress(payload: ["stage": "inspecting", "completedBytes": NSNull(), "totalBytes": NSNull()])
         XCTAssertNil(unknown?.fraction)
-        XCTAssertEqual(unknown?.detail, "Vérification du paquet")
+        XCTAssertEqual(unknown?.detail?.key, "Vérification du paquet")
 
         XCTAssertNil(InstallProgress(payload: ["completedBytes": 1]))
     }

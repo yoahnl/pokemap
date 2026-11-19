@@ -13,6 +13,7 @@ final class HubPreferencesStore
 
   final Directory supportRoot;
   final Random _random = Random.secure();
+  Future<void> _writeTail = Future<void>.value();
 
   @override
   Future<HubPreferencesRead> load() async {
@@ -56,7 +57,23 @@ final class HubPreferencesStore
   }
 
   @override
-  Future<void> save(PlayerPreferences preferences) async {
+  Future<void> save(PlayerPreferences preferences) =>
+      _write(() => _save(preferences));
+
+  @override
+  Future<void> update(PlayerPreferences Function(PlayerPreferences) change) =>
+      _write(() async {
+        final current = await load();
+        await _save(change(current.preferences));
+      });
+
+  Future<void> _write(Future<void> Function() operation) {
+    final result = _writeTail.then((_) => operation());
+    _writeTail = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  Future<void> _save(PlayerPreferences preferences) async {
     await _assertSafeRoot(create: true);
     final current = File(p.join(supportRoot.path, 'preferences.json'));
     final backup = File(p.join(supportRoot.path, 'preferences.backup.json'));
@@ -73,7 +90,9 @@ final class HubPreferencesStore
         jsonEncode(preferences.toJson()),
         flush: true,
       );
-      await _decode(temporary);
+      if (await _decode(temporary) != preferences) {
+        throw const FormatException('Preference confirmation mismatch.');
+      }
       if (await current.exists()) {
         try {
           await _decode(current);
@@ -90,10 +109,6 @@ final class HubPreferencesStore
         }
       }
       await temporary.rename(current.path);
-      final confirmed = await _decode(current);
-      if (confirmed != preferences) {
-        throw const FormatException('Preference confirmation mismatch.');
-      }
     } on HubPreferencesStorageException {
       rethrow;
     } on Object {

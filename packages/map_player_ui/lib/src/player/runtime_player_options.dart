@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../localization/player_localizations.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_input_scope.dart';
 import '../foundation/player_paged_layout.dart';
@@ -131,7 +132,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     widget.navigation?._back = _back;
     widget.navigation?._actions = _actions;
     widget.navigation?._title = () => _showCategories
-        ? _strings.text('Options', 'Options')
+        ? context.playerL10n.options
         : _strings.category(_category);
     widget.navigation?._header = (_) => _headerAction();
     widget.navigation?._stepTab = _stepCategory;
@@ -204,7 +205,9 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       await widget.onChanged!(next);
       if (!mounted) return;
       setState(() {
-        _confirmed = identical(previousWidget, widget.preferences)
+        _confirmed =
+            identical(previousWidget, widget.preferences) &&
+                next.languageChange == null
             ? next
             : widget.preferences;
       });
@@ -396,7 +399,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       ],
       IconButton(
         key: const ValueKey('options-category-picker'),
-        tooltip: _strings.text('Catégories des options', 'Options categories'),
+        tooltip: context.playerL10n.optionsCategoriesTooltip,
         constraints: const BoxConstraints.tightFor(width: 48, height: 48),
         icon: const Icon(Icons.menu_rounded),
         onPressed: _pending
@@ -478,7 +481,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           const SizedBox(width: 8),
           IconButton(
             key: const ValueKey('options-return-title'),
-            tooltip: _strings.text('Retour au titre', 'Return to title'),
+            tooltip: context.playerL10n.optionsReturnToTitle,
             constraints: const BoxConstraints.tightFor(width: 48, height: 48),
             onPressed: _pending ? null : widget.onReturnToTitle,
             icon: const Icon(Icons.exit_to_app),
@@ -491,7 +494,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   Widget _controlDeviceSwitch() => IconButton(
     key: const ValueKey('options-control-device-switch'),
     tooltip: _showBindings
-        ? _strings.text('Réglages tactiles', 'Touch settings')
+        ? context.playerL10n.optionsTouchSettings
         : PlayerControlStrings.of(context).device(
             widget.activeInputSource == PlayerInputSource.controller
                 ? PlayerControlDevice.gamepad
@@ -515,8 +518,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     final label = _strings.category(category);
     final direction = delta < 0 ? 'previous' : 'next';
     final announcement = delta < 0
-        ? _strings.text('Catégorie précédente', 'Previous category')
-        : _strings.text('Catégorie suivante', 'Next category');
+        ? context.playerL10n.optionsPreviousCategory
+        : context.playerL10n.optionsNextCategory;
     final icon = Icon(
       delta < 0 ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
       size: 20,
@@ -598,7 +601,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   Widget _defaults({bool integrated = true}) => PlayerMenuSelectableRow(
     key: const ValueKey('options-defaults'),
     id: 'options-defaults',
-    label: _strings.text('Rétablir cette catégorie', 'Reset this category'),
+    label: context.playerL10n.optionsResetCategory,
     leading: const Icon(Icons.restart_alt_rounded),
     labelMaxLines: 2,
     integrated: integrated,
@@ -639,7 +642,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
             PlayerMenuSelectableRow(
               key: const ValueKey('options-return-title'),
               id: 'options-return-title',
-              label: _strings.text('Retour au titre', 'Return to title'),
+              label: context.playerL10n.optionsReturnToTitle,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 8,
                 vertical: 4,
@@ -1133,31 +1136,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                   divisions: 14,
                 ),
               ],
-      PlayerOptionsCategory.language => [
-        _choiceRow(
-          _strings.interfaceLanguage,
-          preferences.locale.toLowerCase().startsWith('fr')
-              ? 'Français'
-              : 'English',
-          'locale',
-          compact,
-          () async {
-            final value = await _choose(
-              _strings.interfaceLanguage,
-              preferences.locale,
-              const {'fr': 'Français', 'en': 'English'},
-              (value) => value,
-              focusAfterClose: _choiceNode('locale'),
-            );
-            if (value != null) {
-              await _save(
-                _confirmed.copyWith(locale: value),
-                focusAfterSave: _choiceNode('locale'),
-              );
-            }
-          },
-        ),
-      ],
+      PlayerOptionsCategory.language => [_languageRow(preferences, compact)],
       PlayerOptionsCategory.accessibility => [
         _slider(
           _strings.battleSpeed,
@@ -1479,7 +1458,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                     _profile.bindingFor(device, control),
                     {
                       for (final input in inputs)
-                        input: PlayerControlProfile.glyphForInput(input),
+                        input: PlayerControlProfile.glyphForInput(
+                          input,
+                          localizations: context.playerL10n,
+                        ),
                     },
                     (value) => value,
                     focusAfterClose: _choiceNode('binding-${control.name}'),
@@ -1513,9 +1495,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
               : () async {
                   if (await _confirm(
                     _strings.resetTitle(PlayerOptionsCategory.controls),
-                    _strings.text(
-                      'Seules les touches ${strings.device(device)} seront rétablies. Les autres réglages seront conservés.',
-                      'Only ${strings.device(device)} bindings will be reset. Other settings will be kept.',
+                    context.playerL10n.optionsResetBindings(
+                      device: strings.device(device),
                     ),
                   )) {
                     await _saveProfile(_profile.resetDevice(device));
@@ -1551,7 +1532,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           PlayerActionButton(
             key: const ValueKey('options-choice-back'),
             autofocus: true,
-            label: _strings.text('Retour', 'Back'),
+            label: context.playerL10n.back,
             icon: Icons.arrow_back,
             secondary: true,
             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -1651,6 +1632,45 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         false;
   }
 
+  Widget _languageRow(PlayerPreferencesSnapshot preferences, bool compact) {
+    const followApplication = 'followApplication';
+    final choice = preferences.playerLanguage;
+    final choices = {
+      if (choice != null) followApplication: _strings.followApplicationLanguage,
+      'fr': context.playerL10n.frenchLanguageName,
+      'en': context.playerL10n.englishLanguageName,
+    };
+    final selected = choice == null
+        ? preferences.locale.split(RegExp('[-_]')).first.toLowerCase()
+        : choice.languageTag ?? followApplication;
+    return _choiceRow(
+      _strings.interfaceLanguage,
+      choices[selected] ?? selected,
+      'locale',
+      compact,
+      () async {
+        final value = await _choose(
+          _strings.interfaceLanguage,
+          selected,
+          choices,
+          (value) => value,
+          focusAfterClose: _choiceNode('locale'),
+        );
+        if (value == null) return;
+        await _save(
+          _confirmed.playerLanguage == null
+              ? _confirmed.copyWith(locale: value)
+              : _confirmed.copyWith(
+                  languageChange: value == followApplication
+                      ? const RuntimePlayerLanguageChoice.followApplication()
+                      : RuntimePlayerLanguageChoice.explicit(value),
+                ),
+          focusAfterSave: _choiceNode('locale'),
+        );
+      },
+    );
+  }
+
   bool get _hasCategoryChanges {
     final value = _confirmed;
     final defaults = widget.defaultPreferences;
@@ -1674,7 +1694,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
             value.leftHandedTouchControls != defaults.leftHandedTouchControls ||
             value.showInputHints != defaults.showInputHints ||
             value.touchControlsOpacity != defaults.touchControlsOpacity,
-      PlayerOptionsCategory.language => value.locale != defaults.locale,
+      PlayerOptionsCategory.language =>
+        value.playerLanguage == null
+            ? value.locale != defaults.locale
+            : value.playerLanguage != defaults.playerLanguage,
       PlayerOptionsCategory.accessibility =>
         value.highContrast != defaults.highContrast ||
             (value.battleMotion ?? BattleMotionPolicy(
@@ -1726,12 +1749,19 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         showInputHints: defaults.showInputHints,
         touchControlsOpacity: defaults.touchControlsOpacity,
       ),
-      PlayerOptionsCategory.language => _confirmed.copyWith(
-        locale: defaults.locale,
-      ),
+      PlayerOptionsCategory.language =>
+        _confirmed.playerLanguage == null
+            ? _confirmed.copyWith(locale: defaults.locale)
+            : _confirmed.copyWith(
+                languageChange:
+                    const RuntimePlayerLanguageChoice.followApplication(),
+              ),
       PlayerOptionsCategory.accessibility => _confirmed.copyWith(
-        battleMotion: defaults.battleMotion ?? BattleMotionPolicy(
-          reducedMotion: defaults.accessibility.reducedMotion),
+        battleMotion:
+            defaults.battleMotion ??
+            BattleMotionPolicy(
+              reducedMotion: defaults.accessibility.reducedMotion,
+            ),
         highContrast: defaults.highContrast,
         accessibility: defaults.accessibility.copyWith(
           hapticsEnabled: _hapticsSupported

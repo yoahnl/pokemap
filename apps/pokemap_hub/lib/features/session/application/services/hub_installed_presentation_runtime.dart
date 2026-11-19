@@ -199,6 +199,7 @@ final class HubInstalledPresentationRuntime {
     required bool reducedMotion,
     RuntimePresentationFrameDeltas? frameDeltas,
     RuntimePresentationBeforeTerminal? beforeTerminal,
+    this._readPreferredLocale,
   }) : _session = player_ui.RuntimePresentationSessionRuntime(
          runtimeSourceId: runtimeSourceId,
          catalog: media.catalog,
@@ -211,6 +212,7 @@ final class HubInstalledPresentationRuntime {
        );
 
   final player_ui.RuntimePresentationSessionRuntime _session;
+  final Future<String?> Function()? _readPreferredLocale;
 
   String get runtimeSourceId => _session.runtimeSourceId;
 
@@ -227,6 +229,7 @@ final class HubInstalledPresentationRuntime {
     projectRootDirectory: projectRootDirectory,
     projectRevision: projectRevision,
     sceneId: sceneId,
+    readPreferredLocale: _readPreferredLocale,
   );
 
   void cancelActive() => _session.cancelActive();

@@ -10,13 +10,20 @@ import android.view.Window
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.yoahnl.avelune.player.AveluneApplication
+import com.yoahnl.avelune.player.R
 import com.yoahnl.avelune.player.data.PackageStager
+import com.yoahnl.avelune.player.localization.NativeFailure
+import com.yoahnl.avelune.player.localization.NativeMessage
+import com.yoahnl.avelune.player.localization.PresentationLocale
+import com.yoahnl.avelune.player.runtime.AppLanguage
 import com.yoahnl.avelune.player.runtime.RuntimeActivity
 import com.yoahnl.avelune.player.runtime.SurfaceProbeActivity
 import com.yoahnl.avelune.player.runtime.SurfaceProbeSession
@@ -33,12 +40,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         configureGamepadKeys()
+        val runtime = app.runtime
         val stager = PackageStager(applicationContext)
         viewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 require(modelClass.isAssignableFrom(GameLibraryViewModel::class.java))
                 @Suppress("UNCHECKED_CAST")
-                return GameLibraryViewModel(app.runtime, stager::stage) as T
+                return GameLibraryViewModel(runtime, stager::stage) as T
             }
         })[GameLibraryViewModel::class.java]
         lifecycleScope.launch {
@@ -49,8 +57,11 @@ class MainActivity : ComponentActivity() {
             }
         }
         setContent {
-            AveluneTheme {
-                GameLibraryScreen(viewModel, app.runtime, ::resetRuntime, ::startSurfaceProbe)
+            val language by runtime.applicationLanguage.collectAsStateWithLifecycle()
+            PresentationLocale(language.confirmed?.appLocale ?: AppLanguage.ENGLISH.wireValue) {
+                AveluneTheme {
+                    GameLibraryScreen(viewModel, runtime, language, ::resetRuntime, ::startSurfaceProbe)
+                }
             }
         }
     }
@@ -58,8 +69,10 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         app.displays.useHostDisplay(currentDisplayId())
+        val runtime = app.runtime
+        runtime.refreshLanguagePreferences(resources.configuration)
         if (::viewModel.isInitialized) {
-            val playbackError = app.runtime.consumePlaybackError() ?: app.runtime.surfaceProbe.consumeError()
+            val playbackError = runtime.consumePlaybackError() ?: runtime.surfaceProbe.consumeError()
             if (playbackError != null) viewModel.showError(playbackError) else viewModel.refresh()
         }
     }
@@ -102,7 +115,7 @@ class MainActivity : ComponentActivity() {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
             )
         } catch (error: Exception) {
-            viewModel.showError(error.message ?: "Avelune n’a pas pu être réinitialisé.")
+            viewModel.showError(NativeMessage.fromError(error, R.string.error_runtime_reset))
         }
     }
 
@@ -112,7 +125,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             var prepared = false
             try {
-                check(viewModel.state.value.busy == null) { "Attends la fin de l’action en cours avant de tester les écrans." }
+                if (viewModel.state.value.busy != null) throw NativeFailure(R.string.error_probe_action_busy)
                 val sessionId = app.runtime.prepareSurfaceProbe()
                 prepared = true
                 startActivity(
@@ -121,7 +134,7 @@ class MainActivity : ComponentActivity() {
                 )
             } catch (error: Exception) {
                 if (prepared) app.runtime.surfaceProbe.requestStop()
-                viewModel.showError(error.message ?: "Le test des écrans n’a pas pu être ouvert.")
+                viewModel.showError(NativeMessage.fromError(error, R.string.error_probe_start))
             } finally {
                 launchingSurfaceProbe = false
             }

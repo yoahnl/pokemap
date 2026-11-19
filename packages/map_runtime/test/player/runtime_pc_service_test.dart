@@ -1,8 +1,88 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
+
+import '../support/scene_catalog_pokemon_gift_fixture.dart';
 
 void main() {
+  test(
+    'PC rows and summaries follow the display locale with the same ids',
+    () async {
+      final root = await Directory.systemTemp.createTemp('pc-species-locale-');
+      addTearDown(() => root.delete(recursive: true));
+      final config = await writeSceneCatalogPokemonGiftFixture(root);
+      final file = File('${root.path}/custom/species/not-a-builtin.json');
+      final json =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      json['names'] = {'en': 'Clockbird', 'fr': 'Horlogeoiseau'};
+      await file.writeAsString(jsonEncode(json));
+      final pokemon = _pokemon('clockbird').copyWith(formId: 'bronze');
+      final state = GameState(
+        saveId: 'pc-species-locale',
+        party: PlayerParty(members: [pokemon]),
+        pokemonStorage: PokemonStorage(
+          boxes: [
+            PokemonBox(
+              id: 'box-a',
+              label: 'Box A',
+              pokemon: [
+                pokemon.copyWith(individualId: 'stored', nickname: 'Pendule'),
+              ],
+            ),
+          ],
+        ),
+      );
+      var uiLocale = 'en';
+      final speciesLoader = RuntimePokemonSpeciesLoader();
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (_) async => fail('Refreshing names must not save.'),
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async =>
+            const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {}),
+        projectRootDirectory: root.path,
+        pokemonConfig: config,
+        pokemonSpeciesLoader: speciesLoader,
+        locale: 'fr',
+        displayLocale: () => uiLocale,
+      );
+      addTearDown(controller.dispose);
+      final firstSnapshot = controller.worldServiceSnapshots.firstWhere(
+        (snapshot) => snapshot != null,
+      );
+      final opening = controller.openPc();
+      final first = (await firstSnapshot)!;
+      final english = first.content! as RuntimePcServiceContent;
+      expect(english.party.single.label, 'Clockbird');
+      expect(english.party.single.summary?.speciesLabel, 'Clockbird');
+      expect(english.stored.single.label, 'Pendule');
+      expect(english.stored.single.summary?.speciesLabel, 'Clockbird');
+
+      uiLocale = 'fr';
+      controller.refreshPokemonDisplayNames();
+      final refreshed = controller.worldServiceSnapshot!;
+      expect(refreshed.revision, greaterThan(first.revision));
+      final french = refreshed.content! as RuntimePcServiceContent;
+      expect(french.party.single.label, 'Horlogeoiseau');
+      expect(french.stored.single.label, 'Pendule');
+      expect(french.stored.single.summary?.speciesLabel, 'Horlogeoiseau');
+      expect(french.party.single.targetId, english.party.single.targetId);
+      expect(french.party.single.formId, 'bronze');
+      expect(speciesLoader.debugActualReadCount, 1);
+      await controller.dispatchWorldService(
+        RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.close,
+          snapshotRevision: refreshed.revision,
+        ),
+      );
+      expect((await opening).status, PlayerServiceRuntimeStatus.completed);
+    },
+  );
+
   test('contextual PC deposits and withdraws through runtime transactions',
       () async {
     var state = _state();
