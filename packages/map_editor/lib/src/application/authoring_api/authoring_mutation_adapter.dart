@@ -208,10 +208,11 @@ final class AuthoringMutationAdapter
       final actual = scene.graph.nodes
           .where((node) => node.id == nodeId)
           .single;
-      if (expected != actual)
+      if (expected != actual) {
         throw StateError(
           'Cette condition a changé sur le disque. Votre brouillon est conservé.',
         );
+      }
       final identity = _identity('editor_scene_condition');
       final plan = await mutations.planMutation(
         opened.projectHandle,
@@ -256,8 +257,9 @@ final class AuthoringMutationAdapter
       'world_rule.create',
       'world_rule.update',
       'event_v2.record_upsert',
-    }.contains(actionId))
+    }.contains(actionId)) {
       throw ArgumentError.value(actionId);
+    }
     final root = await _fileReader.canonicalizeDirectory(projectRootPath);
     _requireAllowedRoot(root);
     final policy = await WorkspacePolicy.create(
@@ -306,8 +308,9 @@ final class AuthoringMutationAdapter
         ),
       );
       final projected = plan.projectedProject;
-      if (projected == null)
+      if (projected == null) {
         throw StateError('La projection de la condition est indisponible.');
+      }
       final applied = await mutations.applyMutation(
         opened.projectHandle,
         planId: plan.planId,

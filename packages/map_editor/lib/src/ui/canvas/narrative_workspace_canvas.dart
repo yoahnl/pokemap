@@ -1896,8 +1896,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                       activeMap: current.activeMap,
                     );
                 final latest = ref.read(editorNotifierProvider);
-                if (latest.projectRootPath != root || latest.project != project)
+                if (latest.projectRootPath != root || latest.project != project) {
                   return false;
+                }
                 editorNotifier.applyInMemoryProjectManifest(
                   projected,
                   statusMessage:
@@ -1952,8 +1953,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               final node = scene?.graph.nodes
                   .where((n) => n.id == nodeId)
                   .singleOrNull;
-              if (node == null || node.kind != SceneNodeKind.action)
+              if (node == null || node.kind != SceneNodeKind.action) {
                 return false;
+              }
               final old = node.payload as SceneActionPayload;
               try {
                 final projected = const SceneActions().patchGraph(
@@ -2668,8 +2670,9 @@ Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
                   validate: (snapshot) {
                     if (snapshot.manifest.worldRules.any(
                       (rule) => rule.id == result.createdRule.id,
-                    ))
+                    )) {
                       throw StateError('Cette règle existe déjà.');
+                    }
                   },
                 );
             final current = saved.after.worldRules.singleWhere(
@@ -2731,8 +2734,9 @@ Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
                     if (snapshot.manifest.worldRules
                             .where((rule) => rule.id == ruleId)
                             .firstOrNull !=
-                        previous)
+                        previous) {
                       throw StateError('Cette règle a changé sur le disque.');
+                    }
                   },
                 );
             return editorNotifier.acceptCanonicalWorldRule(

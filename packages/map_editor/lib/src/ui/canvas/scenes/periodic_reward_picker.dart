@@ -37,13 +37,14 @@ class _EditorPeriodicRewardPickerState
     final root = ref.watch(
       editorNotifierProvider.select((state) => state.projectRootPath),
     );
-    if (root == null)
+    if (root == null) {
       return const PokeMapDiagnosticCallout(
         severity: PokeMapDiagnosticSeverity.info,
         title: 'Projet enregistré requis',
         message:
             'Ouvrez un projet pour choisir une action de récompense publiée.',
       );
+    }
     return PeriodicRewardChoiceScope(
       projectRootPath: root,
       query: _query,
@@ -117,8 +118,9 @@ class __PeriodicRewardPickerState extends State<_PeriodicRewardPicker> {
   void didUpdateWidget(_PeriodicRewardPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initial != widget.initial ||
-        oldWidget.expectedValue != widget.expectedValue)
+        oldWidget.expectedValue != widget.expectedValue) {
       _reset();
+    }
   }
 
   void _reset() {
@@ -194,14 +196,16 @@ class __PeriodicRewardPickerState extends State<_PeriodicRewardPicker> {
       }
       if (!more && _sceneId != null) await _loadNodes(_sceneId!);
     } catch (error) {
-      if (mounted && generation == _generation)
+      if (mounted && generation == _generation) {
         setState(
           () => _error =
               'Source publiée indisponible ou modifiée. Actualisez les choix. La condition existante est conservée.',
         );
+      }
     } finally {
-      if (mounted && generation == _generation)
+      if (mounted && generation == _generation) {
         setState(() => _loading = false);
+      }
     }
   }
 
@@ -244,14 +248,16 @@ class __PeriodicRewardPickerState extends State<_PeriodicRewardPicker> {
         cursor = page.nextCursor;
       } while (cursor != null);
     } catch (error) {
-      if (mounted && generation == _generation)
+      if (mounted && generation == _generation) {
         setState(
           () => _error =
               'Cette scène publiée a changé ou reste indisponible. Choisissez sa version enregistrée ; les modifications en brouillon ne sont pas des sources publiées.',
         );
+      }
     } finally {
-      if (mounted && generation == _generation)
+      if (mounted && generation == _generation) {
         setState(() => _loading = false);
+      }
     }
   }
 
@@ -290,9 +296,9 @@ class __PeriodicRewardPickerState extends State<_PeriodicRewardPicker> {
         ),
         if (_cursor != null)
           PokeMapButton(
-            child: const Text('Afficher d’autres scènes'),
             variant: PokeMapButtonVariant.secondary,
             onPressed: _loading ? null : () => _loadScenes(more: true),
+            child: const Text('Afficher d’autres scènes'),
           ),
         PokeMapDropdownField<String?>(
           label: 'Action de récompense',
@@ -344,15 +350,15 @@ class __PeriodicRewardPickerState extends State<_PeriodicRewardPicker> {
                 'La référence existante reste conservée, mais son action ne peut pas être confirmée. Sélectionnez une action publiée pour la remplacer.',
           ),
         PokeMapButton(
-          child: const Text('Actualiser les sources'),
           variant: PokeMapButtonVariant.secondary,
           onPressed: _loading ? null : () => _loadScenes(),
+          child: const Text('Actualiser les sources'),
         ),
         PokeMapButton(
-          child: const Text('Appliquer la condition quotidienne'),
           onPressed: _loading || _error != null || reference == null
               ? null
               : () => widget.onApply(reference, _expected),
+          child: const Text('Appliquer la condition quotidienne'),
         ),
       ],
     );
