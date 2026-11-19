@@ -116,7 +116,7 @@ class _RuntimePlayerSurfaceRouterState
   final _optionsNavigation = RuntimePlayerOptionsNavigation();
   ValueNotifier<RuntimePlayerSnapshot>? _dialogSnapshot;
   DialogRoute<void>? _saveDialogRoute;
-  String? _manualSaveMessage;
+  RuntimePlayerSaveReceipt? _manualSaveReceipt;
 
   RuntimePlayerPokedexNavigation get _pokedexNavigation =>
       widget.pokedexNavigation ?? _ownedPokedexNavigation;
@@ -135,7 +135,7 @@ class _RuntimePlayerSurfaceRouterState
         widget.snapshot.phase == RuntimePlayerPhase.preparingSession ||
         widget.snapshot.phase == RuntimePlayerPhase.externalExit;
     if (sessionChanged) {
-      _manualSaveMessage = null;
+      _manualSaveReceipt = null;
       _manualSaveFailure = null;
     }
     if (sessionChanged) _regionMapNavigation.clearForNewSession();
@@ -469,7 +469,12 @@ class _RuntimePlayerSurfaceRouterState
                   RuntimePlayerAction.openContacts,
                 ),
           ),
-          saveMessage: _manualSaveFailure ?? _manualSaveMessage,
+          saveMessage:
+              _manualSaveFailure ??
+              switch (_manualSaveReceipt) {
+                final receipt? => PlayerSaveStrings.of(context).saved(receipt),
+                null => null,
+              },
           detail: RuntimePlayerDetailRouter(
             optionsNavigation:
                 _pausePresentation.style ==
@@ -792,11 +797,7 @@ class _RuntimePlayerSurfaceRouterState
               receipt.trigger == GameSessionCheckpointTrigger.manual &&
               identical(receipt, widget.snapshot.saveReceipt);
           if (saved) {
-            setState(
-              () =>
-                  _manualSaveMessage = PlayerSaveStrings.of(context)
-                      .saved(receipt),
-            );
+            setState(() => _manualSaveReceipt = receipt);
           } else {
             setState(
               () => _manualSaveFailure =

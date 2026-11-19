@@ -127,7 +127,7 @@ extension _PlayableMapFishing on PlayableMapGame {
       _advanceFishingFlow(flow, ticket, dt);
     } on Object catch (error) {
       _finishPlayerFishing();
-      _showNotification('La pêche a été interrompue.');
+      _showNotification(_overworldFeedback(.fishingInterrupted));
       debugPrint('[fishing] attempt interrupted: $error');
     }
   }
@@ -137,7 +137,7 @@ extension _PlayableMapFishing on PlayableMapGame {
     FishingActionTicket ticket,
     double dt,
   ) {
-    if (_fishingFeedbackPhase == null) _showNotification('Lancer de la ligne…');
+    if (_fishingFeedbackPhase == null) _showNotification(_overworldFeedback(.fishingCasting));
     flow.advance(
       dt,
       resolve: () {
@@ -171,14 +171,14 @@ extension _PlayableMapFishing on PlayableMapGame {
       _fishingFeedbackPhase = flow.phase;
       switch (flow.phase) {
         case FishingAttemptPhase.waiting:
-          _showNotification('La ligne est dans l’eau… Retour pour annuler.');
+          _showNotification(_overworldFeedback(.fishingWaiting));
         case FishingAttemptPhase.bite:
-          _showNotification('Ça mord !');
+          _showNotification(_overworldFeedback(.fishingBite));
         case FishingAttemptPhase.noBite:
           _showNotification(
             flow.result?.reason == null
-                ? 'Pas de touche…'
-                : 'La pêche a été interrompue.',
+                ? _overworldFeedback(.fishingNoBite)
+                : _overworldFeedback(.fishingInterrupted),
           );
         default:
           break;
@@ -203,7 +203,7 @@ extension _PlayableMapFishing on PlayableMapGame {
                 world: _world,
               ),
             )) {
-          _showNotification('Le combat de pêche n’est plus disponible.');
+          _showNotification(_overworldFeedback(.fishingEncounterUnavailable));
         }
       } finally {
         _finishPlayerFishing();
@@ -234,6 +234,6 @@ extension _PlayableMapFishing on PlayableMapGame {
     _fishingAttemptSequence++;
     _fishingFlow?.cancel();
     _finishPlayerFishing();
-    if (notify && !_isRemoved) _showNotification('Pêche annulée.');
+    if (notify && !_isRemoved) _showNotification(_overworldFeedback(.fishingCancelled));
   }
 }

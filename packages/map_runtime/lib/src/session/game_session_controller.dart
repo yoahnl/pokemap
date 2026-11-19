@@ -7,6 +7,7 @@ import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_host.dart';
+import '../player/runtime_player_feedback.dart';
 import '../player/runtime_world_service_models.dart';
 import 'game_session_contract.dart';
 import 'runtime_overworld_interaction_port.dart';
@@ -26,11 +27,15 @@ final class GameSessionController
   GameSessionController({
     required GameSessionAdapterFactory adapterFactory,
     required GameSessionCheckpointCommitter commitCheckpoint,
+    String playerLocale = 'en',
+    RuntimePlayerFeedbackLocalizer? feedbackLocalizer,
     this.savePolicy = const GameSessionSavePolicy(),
     this.prepareTimeout = const Duration(seconds: 30),
     this.startTimeout = const Duration(seconds: 30),
     this.stopTimeout = const Duration(seconds: 5),
   })  : _adapterFactory = adapterFactory,
+        _playerLocale = playerLocale,
+        _feedbackLocalizer = feedbackLocalizer,
         _commitCheckpoint = commitCheckpoint {
     if (prepareTimeout <= Duration.zero ||
         startTimeout <= Duration.zero ||
@@ -41,6 +46,8 @@ final class GameSessionController
 
   final GameSessionAdapterFactory _adapterFactory;
   final GameSessionCheckpointCommitter _commitCheckpoint;
+  final RuntimePlayerFeedbackLocalizer? _feedbackLocalizer;
+  String _playerLocale;
   final GameSessionSavePolicy savePolicy;
   final Duration prepareTimeout;
   final Duration startTimeout;
@@ -95,10 +102,14 @@ final class GameSessionController
 
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
     if (_controllerDisposed) return;
+    _playerLocale = preferences.locale;
     if (_adapter case final RuntimePlayerPreferencesPort port) {
       port.applyPlayerPreferences(preferences);
     }
   }
+
+  String _feedback(RuntimeNavigationFeedback key) =>
+      key.resolve(_feedbackLocalizer, _playerLocale);
 
   Stream<GameSessionSnapshot> get snapshots => _snapshots.stream;
   GameCompletionEvent? get committedCompletion => _committedCompletion;
@@ -142,9 +153,9 @@ final class GameSessionController
     final port = _worldServicePort;
     if (port == null || _controllerDisposed) {
       return Future<RuntimeWorldServiceCommandResult>.value(
-        const RuntimeWorldServiceCommandResult(
+        RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
-          safeMessage: 'Aucun service contextuel n’est actif.',
+          safeMessage: _feedback(.serviceNotActive),
         ),
       );
     }
@@ -185,9 +196,9 @@ final class GameSessionController
         _controllerDisposed ||
         _snapshot.state != GameSessionState.paused) {
       return Future.value(
-        const RuntimePlayerPauseCommandResult(
+        RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Le sac n’est disponible que depuis le menu pause.',
+          safeMessage: _feedback(.bagRequiresPause),
         ),
       );
     }
@@ -201,9 +212,9 @@ final class GameSessionController
         trigger: GameSessionCheckpointTrigger.pauseMutation,
       );
       if (!saved) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.failed,
-          safeMessage: 'L’objet a été utilisé mais la sauvegarde a échoué.',
+          safeMessage: _feedback(.bagItemCheckpointFailed),
         );
       }
       return result;
@@ -244,10 +255,10 @@ final class GameSessionController
             unawaited(
               _serialize(
                 () => _fail(
-                  const GameSessionFailure(
+                  GameSessionFailure(
                     code: GameSessionFailureCode.runtime,
                     recoverability: GameSessionFailureRecoverability.titleOrHub,
-                    safeMessage: 'Le canal d’évènements du runtime a échoué.',
+                    safeMessage: _feedback(.sessionEventStreamFailed),
                   ),
                 ),
               ),
@@ -277,20 +288,20 @@ final class GameSessionController
         _publish(_snapshot.copyWith(state: GameSessionState.prepared));
       } on TimeoutException catch (error) {
         await _failAndDispose(
-          const GameSessionFailure(
+          GameSessionFailure(
             code: GameSessionFailureCode.timeout,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'La session joueur ne s’est pas préparée à temps.',
+            safeMessage: _feedback(.sessionPrepareTimedOut),
           ),
           cause: error,
         );
         rethrow;
       } catch (error) {
         await _failAndDispose(
-          const GameSessionFailure(
+          GameSessionFailure(
             code: GameSessionFailureCode.runtime,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'La session joueur n’a pas pu être préparée.',
+            safeMessage: _feedback(.sessionPrepareFailed),
           ),
           cause: error,
         );
@@ -307,10 +318,10 @@ final class GameSessionController
         await _adapter!.start().timeout(startTimeout);
       } on TimeoutException catch (error) {
         await _fail(
-          const GameSessionFailure(
+          GameSessionFailure(
             code: GameSessionFailureCode.timeout,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'La session joueur n’a pas démarré à temps.',
+            safeMessage: _feedback(.sessionStartTimedOut),
           ),
         );
         throw GameSessionException(
@@ -320,10 +331,10 @@ final class GameSessionController
         );
       } catch (error) {
         await _fail(
-          const GameSessionFailure(
+          GameSessionFailure(
             code: GameSessionFailureCode.runtime,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'La session joueur n’a pas pu démarrer.',
+            safeMessage: _feedback(.sessionStartFailed),
           ),
         );
         throw GameSessionException(
@@ -661,10 +672,10 @@ final class GameSessionController
       case GameSessionHeartbeat():
         if (event.monotonicMillis < 0) {
           await _fail(
-            const GameSessionFailure(
+            GameSessionFailure(
               code: GameSessionFailureCode.protocol,
               recoverability: GameSessionFailureRecoverability.hubOnly,
-              safeMessage: 'Le signal de session était invalide.',
+              safeMessage: _feedback(.sessionSignalInvalid),
             ),
           );
         }
@@ -685,10 +696,10 @@ final class GameSessionController
     if (completion.sessionId != descriptor.sessionId ||
         completion.gameId != descriptor.identity.gameId) {
       await _fail(
-        const GameSessionFailure(
+        GameSessionFailure(
           code: GameSessionFailureCode.contractViolation,
           recoverability: GameSessionFailureRecoverability.hubOnly,
-          safeMessage: 'L’évènement de fin ne correspond pas à cette session.',
+          safeMessage: _feedback(.sessionEndingMismatch),
         ),
       );
       return;
@@ -696,10 +707,10 @@ final class GameSessionController
     if (_snapshot.state != GameSessionState.running &&
         _snapshot.state != GameSessionState.paused) {
       await _fail(
-        const GameSessionFailure(
+        GameSessionFailure(
           code: GameSessionFailureCode.contractViolation,
           recoverability: GameSessionFailureRecoverability.hubOnly,
-          safeMessage: 'L’évènement de fin est arrivé dans un état invalide.',
+          safeMessage: _feedback(.sessionEndingInvalid),
         ),
       );
       return;
@@ -748,10 +759,10 @@ final class GameSessionController
           state: GameSessionState.completing,
           pendingCompletion: completion,
           completionCommitFailed: true,
-          failure: const GameSessionFailure(
+          failure: GameSessionFailure(
             code: GameSessionFailureCode.storage,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'La sauvegarde finale n’a pas pu être enregistrée.',
+            safeMessage: _feedback(.finalSaveFailed),
           ),
         ),
       );
@@ -779,10 +790,10 @@ final class GameSessionController
     } catch (error) {
       _publish(
         _snapshot.copyWith(
-          failure: const GameSessionFailure(
+          failure: GameSessionFailure(
             code: GameSessionFailureCode.storage,
             recoverability: GameSessionFailureRecoverability.retry,
-            safeMessage: 'La sauvegarde n’a pas pu être enregistrée.',
+            safeMessage: _feedback(.saveWriteFailed),
           ),
         ),
       );
@@ -858,10 +869,10 @@ final class GameSessionController
         ),
       );
     }
-    const teardownFailure = GameSessionFailure(
+    final teardownFailure = GameSessionFailure(
       code: GameSessionFailureCode.runtime,
       recoverability: GameSessionFailureRecoverability.titleOrHub,
-      safeMessage: 'La session précédente ne s’est pas fermée proprement.',
+      safeMessage: _feedback(.previousSessionCloseFailed),
     );
     _publish(
       _snapshot.copyWith(

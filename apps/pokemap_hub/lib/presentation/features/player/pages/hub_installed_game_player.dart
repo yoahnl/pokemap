@@ -1367,12 +1367,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final locale = effectiveSnapshot.playerSnapshot?.preferences?.locale;
     final playerLocale = locale == null
         ? _playerLocale ??
-              Locale(
-                widget.game.defaultLocale
-                    .split(RegExp('[-_]'))
-                    .first
-                    .toLowerCase(),
-              )
+              player_ui.PokeMapPlayerLocalizations.lookup(
+                Localizations.maybeLocaleOf(context) ?? const Locale('en'),
+              ).locale
         : Locale(locale.split(RegExp('[-_]')).first);
     return Localizations.override(
       context: context,
@@ -1557,6 +1554,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                     key: ObjectKey(spatial),
                     session: spatial.session!,
                     audioMixer: spatial.audioMixer,
+                    feedback: (key, [arguments = const {}]) => key.resolve(
+                      spatial.feedbackLocalizer,
+                      Localizations.maybeLocaleOf(context)?.languageCode ?? 'en',
+                      arguments,
+                    ),
                     keyboardInputEnabled: false,
                     onReady: () {
                       final ready = _spatialReady;

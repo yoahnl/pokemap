@@ -44,7 +44,6 @@ import '../../application/load_runtime_map_bundle.dart';
 import '../../application/map_activation.dart';
 import '../../application/map_entity_runtime_predicate_evaluator.dart';
 import '../../application/map_enter_production_dispatch_bridge.dart';
-import '../../application/movement_feedback.dart';
 import '../../application/narrative_event_runtime_snapshot.dart';
 import '../../application/narrative_runtime_activity_gate.dart';
 import '../../application/narrative_runtime_activity_port.dart';
@@ -64,6 +63,7 @@ import '../../player/runtime_project_audio_controller.dart';
 import '../../application/load_runtime_project_audio.dart';
 import '../../player/overworld_sfx_player.dart';
 import '../../player/runtime_player_host.dart';
+import '../../player/runtime_player_feedback.dart';
 import '../../player/runtime_world_time_preferences.dart';
 import '../../player/runtime_music_service.dart';
 import '../../player/runtime_scene_music_controller.dart';
@@ -156,6 +156,7 @@ import 'battle_combatant_ball_resolver.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_animation_plan.dart';
 import 'battle_overlay_component.dart';
+import '../runtime_battle_message.dart';
 import 'battle_move_recipe_compiler.dart';
 import 'battle_offline_move_recipe_loader.dart';
 import 'battle_offline_grouped_turn.dart';
@@ -356,6 +357,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     @visibleForTesting this.railJourneySpatialTransition,
     this.runtimeLocale = 'fr-FR',
     this.runtimeLocales,
+    this.battleMessageFormatter,
+    this.feedbackLocalizer,
     String? initialPlayerName,
     String? initialPlayerAvatarCharacterId,
     PlayerPronounSet? initialPlayerPronounSet,
@@ -511,8 +514,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
               _hydrateOwnedPlayerPokemonProgression(
             gameState,
             bundle: bundle),
-          resolveSpeciesDisplayName: (speciesId) =>
-              _battleSpeciesDisplayNames[speciesId] ?? speciesId,
+          resolveSpeciesDisplayName: _battleSpeciesName,
+          loadPresentationSpecies: _battleSpeciesLoader.loadById,
+          presentationLocale: () => _battleDisplayLocale,
+          formatBattleMessage: _battleMessageRenderer,
           resolveMoveDisplayName: (moveId) =>
               _resolveBattleMoveDisplayName(moveId, moveId),
         );
@@ -601,6 +606,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final MapActivationReason initialMapActivationReason;
   String runtimeLocale;
   final ProjectLocalePolicy? runtimeLocales;
+  final RuntimeBattleMessageFormatter? battleMessageFormatter;
+  final RuntimePlayerFeedbackLocalizer? feedbackLocalizer;
+  String? _playerInterfaceLocale;
+
+  String get _battleDisplayLocale => _playerInterfaceLocale ?? runtimeLocale;
+
+  String _overworldFeedback(
+    RuntimeOverworldFeedback feedback, [
+    Map<String, Object> arguments = const {},
+  ]) => feedback.resolve(
+    feedbackLocalizer,
+    _playerInterfaceLocale ?? 'en',
+    arguments,
+  );
+
+  RuntimeBattleMessageRenderer? get _battleMessageRenderer {
+    final formatter = battleMessageFormatter;
+    return formatter == null
+        ? null
+        : (message) => formatter(_battleDisplayLocale, message);
+  }
+
+  String _battleSpeciesName(String id) =>
+      _battleSpecies[id]?.displayName(_battleDisplayLocale) ?? id;
 
   /// Deterministic async instrumentation for activation-dispatch race tests.
   ///
@@ -727,7 +756,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   BattleTransitionOverlayComponent? _battleExitCurtain;
   final _battleExitTransitionVisible = ValueNotifier<bool>(false);
   BattleOverlayComponent? _battleOverlay;
-  Map<String, String> _battleSpeciesDisplayNames = const <String, String>{};
+  Map<String, RuntimePokemonSpecies> _battleSpecies = const {};
   Map<int, double> _battleXpProgressAtMount = const <int, double>{};
   PostBattleProgressionOverlayComponent? _postBattleProgressionOverlay;
   final ValueNotifier<PostBattlePresentationSnapshot?>
@@ -1184,12 +1213,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           '[event_v2] detached $operation left retry pending '
           'delivery=${error.deliveryId} failure=${error.failure}\n$stackTrace',
         );
-        _showNotification('Résultat narratif en attente.');
+        _showNotification(_overworldFeedback(.narrativePending));
       } catch (error, stackTrace) {
         debugPrint(
           '[event_v2] detached $operation failed: $error\n$stackTrace',
         );
-        _showNotification('Évènement impossible.');
+        _showNotification(_overworldFeedback(.narrativeUnavailable));
       }
     }());
   }
@@ -1275,7 +1304,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       if ((result is NarrativeSpatialProductionDispatchFailed &&
               !transientCheckpointBlock) ||
           result is NarrativeSpatialProductionDispatchAuthorityBlocked) {
-        _showNotification('Évènement impossible.');
+        _showNotification(_overworldFeedback(.narrativeUnavailable));
       }
       if (result is NarrativeSpatialProductionDispatchV2Handled) {
         await _drainLiveNarrativeOutcomeOutbox();
@@ -1820,7 +1849,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         ) {
             debugPrint(
               '[game_completion] emission failed: $error\n$stackTrace');
-            _showNotification('Fin de partie impossible.');
+            _showNotification(_overworldFeedback(.cannotEndGame));
           }),
       );
     }
@@ -2583,6 +2612,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
     runtimeLocale = preferences.contentLocale(runtimeLocales);
+    _playerInterfaceLocale = preferences.locale;
     reducedMotion = preferences.accessibility.reducedMotion;
     _battleMotionPolicy = preferences.battleMotion;
     _battleOverlay?.applyMotionPolicy(_battleMotionPolicy,
@@ -4298,7 +4328,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _dismissBattleExitCurtainImmediately();
-    _battleSpeciesDisplayNames = const <String, String>{};
+    _battleSpecies = const {};
     _battleXpProgressAtMount = const <int, double>{};
     _battleSession = null;
     _psdkBattleSession = null;
@@ -5228,7 +5258,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           '[field_action] refused ability=${ticket.ability.name} '
           'reason=${refusal.name} evaluation=${evaluation?.runtimeType}',
         );
-        _showNotification(waterRequiresSurfFeedbackMessage);
+        _showNotification(_overworldFeedback(.waterRequiresSurf));
     }
   }
 
@@ -6782,7 +6812,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           '[connection] no connection for direction=${direction.name} map=${_bundle.map.id}',
         );
         if (_world.map.connections.where((connection) => connection.direction == direction).length == 1) {
-          _showNotification('Connection invalid');
+          _showNotification(_overworldFeedback(.invalidMapConnection));
         }
       }
       _player.syncState(_world.player);
@@ -7795,7 +7825,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       if (runtimeSourceId != null) {
         _cancelNarrativeContinuationBarrier(runtimeSourceId);
       }
-      _showNotification('Don du Pokémon impossible.');
+      _showNotification(_overworldFeedback(.giftFailed));
       return;
     }
     unawaited(
@@ -7824,7 +7854,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             '[pokemon_grant] failed operation=$grantOperationId '
             'error=$error\n$stackTrace',
           );
-          _showNotification('Don du Pokémon impossible.');
+          _showNotification(_overworldFeedback(.giftFailed));
           _cancelNarrativeContinuationBarrier(runtimeSourceId);
         }
       }),
@@ -7850,7 +7880,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             '[event_v2] post-commit effect failed '
             'source=${barrier.runtimeSourceId} error=$error\n$stackTrace',
           );
-          _showNotification('Transition impossible.');
+          _showNotification(_overworldFeedback(.transitionFailed));
         } finally {
           await _advanceNarrativeContinuationBarrier(
             barrier.runtimeSourceId);
@@ -7952,7 +7982,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         '[event_v2] continuation barrier failed '
         'source=$runtimeSourceId error=$error\n$stackTrace',
       );
-      _showNotification('Résultat narratif impossible.');
+      _showNotification(_overworldFeedback(.narrativeResultUnavailable));
       _closeNarrativeContinuationBarrier(barrier);
     }
   }
@@ -8447,7 +8477,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         debugPrint(
           '[scenario_runtime] transitionMap failed: warp "${request.warpId}" not found on map "${request.mapId}"',
         );
-        _showNotification('Transition impossible (warp introuvable)');
+        _showNotification(_overworldFeedback(.transitionPassageMissing));
         return;
       }
 
@@ -8469,7 +8499,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       debugPrint(
         '[scenario_runtime] transitionMap failed map=${request.mapId} warp=${request.warpId}: $e\n$st',
       );
-      _showNotification('Transition impossible');
+      _showNotification(_overworldFeedback(.transitionFailed));
     }
   }
 
@@ -10435,11 +10465,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         pokemonConfig: _bundle.manifest.pokemon,
       );
       if (!_canContinueInteractiveBattle(request)) return;
-      final battleSpeciesDisplayNames =
-          await _loadBattleSpeciesDisplayNames(_battleSession!,
+      final battleSpecies = await loadRuntimeBattleSpecies(
+        bundle: _bundle,
+        speciesLoader: _battleSpeciesLoader,
+        session: _battleSession!,
+        presentation: _psdkBattleSession?.presentation,
       );
       if (!_canContinueInteractiveBattle(request)) return;
-      _battleSpeciesDisplayNames = battleSpeciesDisplayNames;
+      _battleSpecies = battleSpecies;
       final playerExperienceProgressByLineupIndex = await _traceAsync(
         'battle',
         'experienceProgress',
@@ -10524,8 +10557,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             lineupIndex: lineupIndex,
           ),
           resolveMoveDisplayName: _resolveBattleMoveDisplayName,
-          resolveSpeciesDisplayName: (speciesId) =>
-              battleSpeciesDisplayNames[speciesId] ?? speciesId,
+          resolveSpeciesDisplayName: _battleSpeciesName,
+          resolveCombatantDisplayName: (side, combatant) =>
+              (side == BattleSideId.player
+                  ? runtimeBattlePlayerNickname(
+                      _battleRuntimeGameState,
+                      playerLineup.lineupPartyIndices,
+                      combatant.lineupIndex,
+                    )
+                  : null) ??
+              _battleSpeciesName(combatant.speciesId),
+          formatBattleMessage: _battleMessageRenderer,
           onPlayerChoice: _onPlayerBattleChoice,
           presentation: _psdkBattleSession?.presentation,
           onPlayerDecision: (decision, request) => _onPlayerBattleChoice(
@@ -10666,18 +10708,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (move == null) {
       return fallbackName;
     }
-    return move.displayName(runtimeLocale);
+    return move.displayName(_battleDisplayLocale);
   }
-
-  Future<Map<String, String>> _loadBattleSpeciesDisplayNames(
-    BattleSession session,
-  ) => loadRuntimeBattleSpeciesDisplayNames(
-    bundle: _bundle,
-    speciesLoader: _battleSpeciesLoader,
-    session: session,
-    presentation: _psdkBattleSession?.presentation,
-    locale: runtimeLocale,
-  );
 
   /// Mappe BattleStartRequest → BattleSetup.
   ///
@@ -11281,8 +11313,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         outcome: outcome,
         captureAttemptReceipt: _captureAttemptReceipt,
         itemCatalog: _itemCatalogSnapshot,
-        resolveSpeciesDisplayName: (speciesId) =>
-            _battleSpeciesDisplayNames[speciesId] ?? speciesId,
+        resolveSpeciesDisplayName: _battleSpeciesName,
       );
       if (generation != _postBattleFlowGeneration ||
           _flowPhase != _RuntimeFlowPhase.battle ||
@@ -11322,6 +11353,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       late final PostBattleProgressionOverlayComponent postBattleOverlay;
       postBattleOverlay = PostBattleProgressionOverlayComponent(
         initialResult: result,
+        formatBattleMessage: _battleMessageRenderer,
+        resolveMoveDisplayName: (id) => _resolveBattleMoveDisplayName(id, id),
         viewportSize: camera.viewport.size,
         onPresentationSnapshotChanged: _setPostBattlePresentationSnapshot,
         onMoveLearningDecision: (decision) {
@@ -11632,22 +11665,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             .where((message) => promptKinds.contains(message.kind))
             .map((message) => message.text)
             .lastOrNull ??
-        'Que faire ?';
+        const RuntimeBattleMessage(
+          RuntimeBattleMessageId.postBattleChoose,
+          'Que faire ?',
+        ).render(_battleMessageRenderer);
 
-    final List<String> choices;
-    if (pendingMove != null) {
-      if (pendingMove.phase == BattleMoveLearningPhase.awaitingDecision) {
-        choices = const <String>['Apprendre', 'Ne pas apprendre'];
-      } else {
-        choices = <String>[
-          for (final moveId in transaction.pendingPartyMoveIds)
-            _resolveBattleMoveDisplayName(moveId, moveId),
-          'Ne pas apprendre',
-        ];
-      }
-    } else {
-      choices = const <String>['Évoluer', 'Refuser'];
-    }
+    final choices = buildPostBattleDecisionLabels(
+      pendingMove: pendingMove,
+      pendingEvolution: pendingEvolution,
+      pendingPartyMoveIds: transaction.pendingPartyMoveIds,
+      formatBattleMessage: _battleMessageRenderer,
+      resolveMoveDisplayName: (id) => _resolveBattleMoveDisplayName(id, id),
+    );
 
     final chosen = Completer<int>();
     overlay.presentPostBattleDecision(
@@ -11889,7 +11918,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _dismissBattleExitCurtainImmediately();
-    _battleSpeciesDisplayNames = const <String, String>{};
+    _battleSpecies = const {};
     _battleXpProgressAtMount = const <int, double>{};
     _battleSession = null;
     _psdkBattleSession = null;
@@ -12047,7 +12076,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
-    _battleSpeciesDisplayNames = const <String, String>{};
+    _battleSpecies = const {};
     _battleXpProgressAtMount = const <int, double>{};
     _battleSession = null;
     _psdkBattleSession = null;
@@ -12315,7 +12344,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     } catch (error, stackTrace) {
       debugPrint(
         '[event_v2] outcome publication failed: $error\n$stackTrace');
-      _showNotification('Résultat narratif impossible.');
+      _showNotification(_overworldFeedback(.narrativeResultUnavailable));
       return false;
     }
   }
@@ -12448,7 +12477,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           _sceneDefeatRecoveryCompletionEndingIds.remove(completion.endingId);
         } catch (error, stackTrace) {
           debugPrint('[whiteout] recovered state completion failed: $error\n$stackTrace');
-          _showNotification('Fin de partie impossible.');
+          _showNotification(_overworldFeedback(.cannotEndGame));
         }
       }
       if (!_sceneDefeatRecoveryCompletionRetryPending || !_canPublishSceneDefeatRecovery) return;
@@ -12460,7 +12489,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _sceneDefeatRecoveryCompletionEndingIds.remove(endingId);
       } catch (error, stackTrace) {
         debugPrint('[whiteout] recovered state completion retry failed: $error\n$stackTrace');
-        _showNotification('Fin de partie impossible.');
+        _showNotification(_overworldFeedback(.cannotEndGame));
       }
     } finally {
       _sceneDefeatRecoveryPublicationInFlight = false;
@@ -13079,7 +13108,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   ) async {
     if (_isRemoved) return;
     if (_activeNarrativeSceneWorkingSession != null) {
-      _showNotification('Scene V1 impossible.');
+      _showNotification(_overworldFeedback(.sceneUnavailable));
       return;
     }
     _NarrativeSceneWorkingSession? workingSession;
@@ -13146,7 +13175,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             result.executionResult?.errorCode ==
                     SceneRuntimeExecutionErrorCode.conditionUnavailable
                 ? result.message!
-                : 'La scène ne peut pas continuer.',
+                : _overworldFeedback(.sceneCannotContinue),
           );
         }
       } else {
@@ -13217,7 +13246,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         '[scene_runtime] unhandled hook error event=${event.id} '
         'page=${page.pageIndex} error=$error\n$stackTrace',
       );
-      _showNotification('Scene V1 impossible.');
+      _showNotification(_overworldFeedback(.sceneUnavailable));
     } finally {
       if (workingSession != null) _rebaseDurableSceneCheckpoint(workingSession);
       await workingSession?.sceneAudio?.close();
@@ -14113,7 +14142,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           _currentMapActivationId == pending.mapActivationId) {
         _gameState = originalState;
         _applyMovingPlatformFrame(originalWorld);
-        _showNotification('La plate-forme ne peut pas être déplacée.');
+        _showNotification(_overworldFeedback(.movingPlatformUnavailable));
       }
       debugPrint('[platform] control failed: $error\n$stackTrace');
     } finally {
@@ -15448,7 +15477,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       // reçoit un message stable. Le canal joueur ne porte jamais d'identifiant
       // technique — c'est le garde de non-fuite qui le tient.
       debugPrint('[scene] dialogue introuvable id=${request.dialogueId}');
-      _showNotification('Le dialogue est introuvable.');
+      _showNotification(_overworldFeedback(.dialogueMissing));
       if (identical(_pendingSceneDialogueCompleter, completer)) {
         _completePendingSceneDialogue(
           result);
@@ -16134,12 +16163,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         .where((entry) => entry.id == element.elementId)
         .firstOrNull;
     if (projectElement == null || projectElement.frames.length < 2) {
-      _showNotification('Cette entrée ne possède pas d’animation.');
+      _showNotification(_overworldFeedback(.entranceAnimationMissing));
       return false;
     }
     final started = _playPlacedElementAnimationOnce(instanceId: element.id);
     if (!started) {
-      _showNotification('L’animation de cette entrée est indisponible.');
+      _showNotification(_overworldFeedback(.entranceAnimationUnavailable));
       return false;
     }
     final frameDurationsMs = normalizeElementFrameDurationsMs(
@@ -16182,7 +16211,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     _setFlowPhase(_RuntimeFlowPhase.overworld);
     if (!_tryEnqueueWarp(warp)) {
-      _showNotification('Le passage est momentanément indisponible.');
+      _showNotification(_overworldFeedback(.mapPassageUnavailable));
       return true;
     }
     return true;
@@ -16250,7 +16279,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       debugPrint(
         '[placed_behavior] setAnimationEnabled failed instance=$instanceId enabled=$enabled error=$e\n$st',
       );
-      _showNotification('L’animation n’a pas pu être mise à jour.');
+      _showNotification(_overworldFeedback(.elementAnimationUpdateFailed));
     }
   }
 
@@ -17128,10 +17157,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return;
     }
 
-    final session = loadSurfDialogueSession(yarnNode);
+    final session = loadSurfDialogueSession(
+      yarnNode,
+      uiLocale: _playerInterfaceLocale ?? 'en',
+      localizer: feedbackLocalizer,
+    );
     if (session == null) {
       debugPrint('[surf] failed to load dialogue node=$yarnNode');
-      _showNotification(waterRequiresSurfFeedbackMessage);
+      _showNotification(_overworldFeedback(.waterRequiresSurf));
       return;
     }
 
@@ -17152,7 +17185,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     unawaited(_openDialogue(session).catchError((Object error, StackTrace stackTrace) {
       debugPrint('[surf] dialogue failed: $error\n$stackTrace');
       _pendingFieldActionTicket = null;
-      _showNotification(waterRequiresSurfFeedbackMessage);
+      _showNotification(_overworldFeedback(.waterRequiresSurf));
     }));
   }
 
@@ -17940,7 +17973,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _recordEscapeReturnPointAfterTransfer(sourceBundle.map, escapeSourceState);
     } catch (e, st) {
       debugPrint('[warp] transition failed: $e\n$st');
-      if (!_isRemoved) _showNotification('La téléportation a échoué.');
+      if (!_isRemoved) _showNotification(_overworldFeedback(.teleportFailed));
       if (transferGuard == null &&
           !swapCompleted &&
           (!presentedTransfer || !_isRemoved)) {
@@ -18226,7 +18259,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             '[connection] source map visuals missing for id=$_activeMapId',
         );
         _player.syncState(_world.player, snapToGrid: true);
-        _showNotification('Le passage vers la carte voisine a échoué.');
+        _showNotification(_overworldFeedback(.neighboringMapTransferFailed));
         return;
       }
       await _prepareMapResourcesForDemand(
@@ -18238,7 +18271,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
       if (target == null) {
         _player.syncState(_world.player, snapToGrid: true);
-        _showNotification('Le passage vers la carte voisine a échoué.');
+        _showNotification(_overworldFeedback(.neighboringMapTransferFailed));
         return;
       }
       debugPrint('[connection] resolved target map=${target.bundle.map.id}');
@@ -18255,7 +18288,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           selectedConnection.targetMapId != connection.targetMapId ||
           selectedConnection.offset != connection.offset) {
         _player.syncState(_world.player, snapToGrid: true);
-        _showNotification('Connection invalid');
+        _showNotification(_overworldFeedback(.invalidMapConnection));
         return;
       }
       final targetPos = resolveConnectedMapTargetPos(
@@ -18270,7 +18303,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           '[connection] invalid entry coordinates direction=${connection.direction.name} offset=${connection.offset} source=(${connection.sourcePos.x}, ${connection.sourcePos.y}) sourceSize=${source.bundle.map.size.width}x${source.bundle.map.size.height} targetSize=${target.bundle.map.size.width}x${target.bundle.map.size.height}',
         );
         _player.syncState(_world.player, snapToGrid: true);
-        _showNotification('Connection invalid');
+        _showNotification(_overworldFeedback(.invalidMapConnection));
         return;
       }
       debugPrint(
@@ -18322,7 +18355,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           '[connection] blocked entry map=${target.bundle.map.id} pos=(${targetPos.x}, ${targetPos.y})',
         );
         _player.syncState(_world.player, snapToGrid: true);
-        _showNotification('Connection blocked');
+        _showNotification(_overworldFeedback(.mapConnectionBlocked));
         return;
       }
       final targetInstance = nextInstances.instanceRef(targetBundle.map.id);
@@ -18406,7 +18439,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     } catch (e, st) {
       debugPrint('[connection] transition failed: $e\n$st');
       _player.syncState(_world.player, snapToGrid: true);
-      _showNotification('Le passage vers la carte voisine a échoué.');
+      _showNotification(_overworldFeedback(.neighboringMapTransferFailed));
     } finally {
       _resumeMapResourcePrefetch();
       if (!transitionCompleted) {

@@ -3,6 +3,7 @@ import '../foundation/player_image.dart';
 import 'package:flutter/services.dart';
 
 import '../foundation/player_components.dart';
+import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_cinematic_stage.dart';
 import 'player_startup_strings.dart';
@@ -37,6 +38,7 @@ class PlayerTitlePromptSurface extends StatelessWidget {
     final colors = context.playerColors;
     final strings = PlayerStartupStrings.of(context);
     final startPrompt = prompt ?? strings.pressStart;
+    final enterKeyLabel = context.playerL10n.keyboardEnter.toUpperCase();
     final onMedia = colors.background.computeLuminance() >=
             colors.textPrimary.computeLuminance()
         ? colors.background
@@ -213,7 +215,7 @@ class PlayerTitlePromptSurface extends StatelessWidget {
                                                   vertical: PlayerSpacing.xxs,
                                                 ),
                                                 child: Text(
-                                                  'ENTER',
+                                                  enterKeyLabel,
                                                   style: Theme.of(context)
                                                       .textTheme
                                                       .labelSmall

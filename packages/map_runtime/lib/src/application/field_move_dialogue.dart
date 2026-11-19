@@ -1,37 +1,8 @@
+import 'package:map_core/map_core.dart' show FieldAbility;
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../player/runtime_player_feedback.dart';
 import 'dialogue_runtime_models.dart';
-import 'parse_yarn_dialogue.dart';
-
-/// Dialogue Yarn système pour les interactions de field moves.
-///
-/// Ce contenu est embarqué dans le runtime — il ne dépend pas d'un fichier
-/// projet externe et n'est pas pilotable par l'éditeur.
-/// C'est un choix délibéré pour cette première passe ; une future version
-/// pourra externaliser ces dialogues dans un fichier .yarn projet.
-const String _kSurfDialogueYarn = '''
-title: No_surf
----
-Il semble possible de pouvoir surfer sur l'eau.
-===
-
-title: Surf_locked
----
-Un Pokémon de votre équipe connaît Surf, mais vous n'avez pas encore l'autorisation de l'utiliser.
-===
-
-title: Yes_Surf
----
-Voulez-vous surfer ?
--> Oui
--> Non
-===
-''';
-
-// Convention de choix pour Yes_Surf :
-//   index 0 = confirmer Surf ("Oui")
-//   index 1 = décliner      ("Non")
-// PlayableMapGame._confirmDialogueChoice se base sur cet index, pas sur le libellé.
 
 /// Mappe un [SurfAttemptEvaluation] vers le nœud Yarn à ouvrir.
 ///
@@ -53,7 +24,90 @@ String? surfEvaluationToYarnNode(SurfAttemptEvaluation evaluation) {
 }
 
 /// Charge un [DialogueSession] à partir du Yarn système Surf.
-DialogueSession? loadSurfDialogueSession(String startNode) {
-  final nodes = parseYarnFile(_kSurfDialogueYarn);
+DialogueSession? loadSurfDialogueSession(
+  String startNode, {
+  String uiLocale = 'fr',
+  RuntimePlayerFeedbackLocalizer? localizer,
+}) {
+  String text(RuntimeOverworldFeedback feedback) =>
+      feedback.resolve(localizer, uiLocale);
+  final nodes = [
+    YarnNode(
+      title: 'No_surf',
+      steps: [YarnStepLine(text(.surfMissingPokemon))],
+    ),
+    YarnNode(title: 'Surf_locked', steps: [YarnStepLine(text(.surfLocked))]),
+    YarnNode(
+      title: 'Yes_Surf',
+      steps: [
+        YarnStepLine(text(.surfConfirm)),
+        YarnStepChoiceBlock([
+          YarnChoice(text: text(.yes), steps: const []),
+          YarnChoice(text: text(.no), steps: const []),
+        ]),
+      ],
+    ),
+  ];
   return DialogueSession.start(nodes, startNode);
 }
+
+String fieldObstacleDialogueMessage(
+  FieldAbility ability,
+  FieldObstacleBlockReason? reason,
+  RuntimeOverworldFeedbackFormatter feedback,
+) {
+  final (prompt, missing) = switch (ability) {
+    .cut => (
+      RuntimeOverworldFeedback.fieldObstacleCutConfirm,
+      RuntimeOverworldFeedback.fieldObstacleCutMissing,
+    ),
+    .strength => (
+      RuntimeOverworldFeedback.fieldObstacleStrengthConfirm,
+      RuntimeOverworldFeedback.fieldObstacleStrengthMissing,
+    ),
+    .rockSmash => (
+      RuntimeOverworldFeedback.fieldObstacleRockSmashConfirm,
+      RuntimeOverworldFeedback.fieldObstacleRockSmashMissing,
+    ),
+    _ => throw StateError('Unsupported obstacle ability.'),
+  };
+  return switch (reason) {
+    null => feedback(prompt),
+    .missingMove => feedback(missing),
+    .locked => feedback(.fieldObstacleMoveLocked, {
+      'move': _fieldMoveLabel(ability, feedback),
+    }),
+    _ => throw StateError('Unsupported obstacle feedback reason.'),
+  };
+}
+
+String? fieldTraversalDialogueMessage(
+  FieldAbility ability,
+  FieldTraversalBlockReason? reason,
+  RuntimeOverworldFeedbackFormatter feedback,
+) {
+  final RuntimeOverworldFeedback? key = switch (reason) {
+    null => .fieldTraversalConfirm,
+    .missingMove => .fieldTraversalMoveMissing,
+    .locked => .fieldTraversalMoveLocked,
+    .requiresSurf => .fieldTraversalSurfRequired,
+    .wrongDirection => .fieldTraversalWrongDirection,
+    .obstructed => .fieldTraversalObstructed,
+    .requiresWater => .fieldTraversalWaterRequired,
+    _ => null,
+  };
+  if (key == null) return null;
+  return feedback(key, {'move': _fieldMoveLabel(ability, feedback)});
+}
+
+String _fieldMoveLabel(
+  FieldAbility ability,
+  RuntimeOverworldFeedbackFormatter feedback,
+) => feedback(switch (ability) {
+  .cut => .fieldMoveCut,
+  .strength => .fieldMoveStrength,
+  .rockSmash => .fieldMoveRockSmash,
+  .waterfall => .fieldMoveWaterfall,
+  .whirlpool => .fieldMoveWhirlpool,
+  _ => throw StateError('Unsupported field move.'),
+});

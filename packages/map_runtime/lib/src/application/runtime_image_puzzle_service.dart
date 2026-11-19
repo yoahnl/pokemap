@@ -10,8 +10,8 @@ extension RuntimeImagePuzzleService on PlayerServiceRuntimeController {
       );
     }
     if (_commitImagePuzzleAndSave == null) {
-      return const PlayerServiceRuntimeResult.unavailable(
-        'Ce puzzle nécessite une sauvegarde durable fournie par le Player.',
+      return PlayerServiceRuntimeResult.unavailable(
+        _feedback(.puzzleSaveRequired),
       );
     }
     if (_active || _pauseBagMutationBusy) {
@@ -30,7 +30,7 @@ extension RuntimeImagePuzzleService on PlayerServiceRuntimeController {
         if (loader != null) return loader(request.definition.imageResourceId);
         final root = _projectRootDirectory;
         if (root == null) {
-          throw StateError('La médiathèque du projet est indisponible.');
+          throw StateError(_feedback(.puzzleMediaUnavailable));
         }
         final bitmap = await WorldPresentationImageLoader(root)
             .loadBitmap(request.definition.imageResourceId);
@@ -49,13 +49,13 @@ extension RuntimeImagePuzzleService on PlayerServiceRuntimeController {
       if (session.bitmap!.width < request.definition.columns ||
           session.bitmap!.height < request.definition.rows) {
         throw StateError(
-          'L’image doit avoir au moins un pixel par case du puzzle.',
+          _feedback(.puzzleImageTooSmall),
         );
       }
       final current = _currentGameState();
       if (!sameImagePuzzleCheckpointFields(current, initial)) {
         throw StateError(
-          'Le puzzle a changé pendant son ouverture. Rouvrez-le.',
+          _feedback(.puzzleChangedOnOpening),
         );
       }
       final opened = const ImagePuzzleOperations().open(
@@ -65,7 +65,7 @@ extension RuntimeImagePuzzleService on PlayerServiceRuntimeController {
       );
       if (!opened.succeeded) {
         throw StateError(
-          'La définition de ce puzzle a changé. Restaurez sa configuration d’origine.',
+          _feedback(.puzzleDefinitionChanged),
         );
       }
       session.hasDurableState =
@@ -188,7 +188,7 @@ extension RuntimeImagePuzzleService on PlayerServiceRuntimeController {
         return accepted;
       }
       session.message =
-          'Le puzzle a changé. Fermez cette interaction et rouvrez-la.';
+          _feedback(.puzzleChanged);
       _publishPuzzle(session);
       return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.stale,
@@ -239,11 +239,11 @@ extension RuntimeImagePuzzleService on PlayerServiceRuntimeController {
     };
     if (result == null || !result.succeeded) {
       session.message = switch (result?.failure) {
-        ImagePuzzleFailure.unsolved => 'L’image n’est pas encore reconstituée. Vérifiez la place et l’orientation des pièces.',
+        ImagePuzzleFailure.unsolved => _feedback(.puzzleIncomplete),
         ImagePuzzleFailure.occupiedSlot =>
-          'Déplacez cette pièce vers une case libre ou la réserve.',
-        ImagePuzzleFailure.fixedPiece => 'Cette pièce est fixe.',
-        _ => 'Cette action n’est pas disponible pour ce puzzle.',
+          _feedback(.puzzleDestinationOccupied),
+        ImagePuzzleFailure.fixedPiece => _feedback(.puzzlePieceFixed),
+        _ => _feedback(.puzzleActionUnavailable),
       };
       _publishPuzzle(session);
       return RuntimeWorldServiceCommandResult(
@@ -268,7 +268,7 @@ extension RuntimeImagePuzzleService on PlayerServiceRuntimeController {
       }
       return accepted;
     } catch (error) {
-      session.message = 'La sauvegarde a échoué. Votre dernière disposition sauvegardée est conservée. Réessayez ou quittez.';
+      session.message = _feedback(.puzzleSaveFailed);
       if (_puzzleContinues(session)) _publishPuzzle(session);
       return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.failed,

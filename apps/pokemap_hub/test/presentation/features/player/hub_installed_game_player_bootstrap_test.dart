@@ -282,7 +282,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('mounts the runtime splash on the first frame', (tester) async {
+  testWidgets('mounts the runtime splash in the host locale on the first frame', (tester) async {
     final launch = Completer<InstalledGameLaunchContext>();
     const logo = AssetImage('assets/avelune/logo/avelune_moon.png');
     const wordmark = AssetImage(
@@ -325,7 +325,7 @@ void main() {
       Localizations.localeOf(
         tester.element(find.byType(PlayerRuntimeStartupShell)),
       ),
-      const Locale('fr'),
+      const Locale('en'),
     );
     expect(find.byType(PlayerLoadingSurface), findsNothing);
     final timeline = tester.widget<PlayerSplashTimeline>(

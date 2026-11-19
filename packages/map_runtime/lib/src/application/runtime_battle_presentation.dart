@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 
 import 'runtime_map_bundle.dart';
 import 'runtime_pokemon_species_loader.dart';
@@ -9,6 +10,23 @@ Future<Map<String, String>> loadRuntimeBattleSpeciesDisplayNames({
   required BattleSession session,
   required RuntimeBattlePresentation? presentation,
   required String locale,
+}) async {
+  final species = await loadRuntimeBattleSpecies(
+    bundle: bundle,
+    speciesLoader: speciesLoader,
+    session: session,
+    presentation: presentation,
+  );
+  return Map.unmodifiable({
+    for (final entry in species.values) entry.id: entry.displayName(locale),
+  });
+}
+
+Future<Map<String, RuntimePokemonSpecies>> loadRuntimeBattleSpecies({
+  required RuntimeMapBundle bundle,
+  required RuntimePokemonSpeciesLoader speciesLoader,
+  required BattleSession session,
+  required RuntimeBattlePresentation? presentation,
 }) async {
   final state = session.state;
   final speciesIds = <String>{
@@ -29,9 +47,23 @@ Future<Map<String, String>> loadRuntimeBattleSpeciesDisplayNames({
       ),
     ),
   );
-  return Map<String, String>.unmodifiable({
-    for (final entry in species) entry.id: entry.displayName(locale),
-  });
+  return Map.unmodifiable({for (final entry in species) entry.id: entry});
+}
+
+String? runtimeBattlePlayerNickname(
+  GameState state,
+  List<int> lineupPartyIndices,
+  int lineupIndex,
+) {
+  if (lineupIndex < 0 || lineupIndex >= lineupPartyIndices.length) {
+    return null;
+  }
+  final partyIndex = lineupPartyIndices[lineupIndex];
+  if (partyIndex < 0 || partyIndex >= state.party.members.length) {
+    return null;
+  }
+  final nickname = state.party.members[partyIndex].nickname.trim();
+  return nickname.isEmpty ? null : nickname;
 }
 
 enum RuntimeBattleVisualIdentityUnavailableReason {

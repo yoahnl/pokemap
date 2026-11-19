@@ -80,7 +80,7 @@ void main() {
       find.byKey(const ValueKey<String>('player-title-press-start-pill')),
       findsOneWidget,
     );
-    expect(find.text('ENTER'), findsOneWidget);
+    expect(find.text('ENTRÉE'), findsOneWidget);
 
     tester.view.physicalSize = const Size(390, 844);
     await tester.pumpWidget(_app(prompt));
@@ -97,11 +97,14 @@ void main() {
       180,
     );
     expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(_app(prompt, locale: const Locale('en')));
+    expect(find.text('ENTER'), findsOneWidget);
   });
 }
 
-Widget _app(Widget child) => MaterialApp(
-      locale: const Locale('fr'),
+Widget _app(Widget child, {Locale locale = const Locale('fr')}) => MaterialApp(
+      locale: locale,
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),

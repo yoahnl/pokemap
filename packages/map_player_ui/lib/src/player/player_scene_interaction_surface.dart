@@ -1262,11 +1262,12 @@ class _PlayerSceneInteractionSurfaceState
   /// dernier mot (le Studio prévisualise autrement), puis les clés que le
   /// produit possède, puis le texte authoré.
   String _resolvePrompt(SceneInteractionPrompt prompt) {
-    var value =
-        widget.promptResolver?.call(prompt) ??
-        localizeRuntimePrompt(prompt, context.playerL10n) ??
-        prompt.fallbackText ??
-        prompt.localizationKey;
+    final custom = widget.promptResolver?.call(prompt);
+    if (custom == null) {
+      final localized = localizeRuntimePrompt(prompt, context.playerL10n);
+      if (localized != null) return localized;
+    }
+    var value = custom ?? prompt.fallbackText ?? prompt.localizationKey;
     for (final entry in prompt.arguments.entries) {
       value = value.replaceAll('{${entry.key}}', entry.value);
     }

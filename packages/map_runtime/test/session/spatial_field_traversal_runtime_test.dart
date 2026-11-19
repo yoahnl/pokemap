@@ -190,6 +190,15 @@ void main() {
           );
           final movements = <RuntimeCommittedMovement>[];
           final runtime = SpatialExplorationGameSessionRuntime(
+            feedbackLocalizer: (locale, key, arguments) => switch (key) {
+              RuntimeOverworldFeedback.fieldMoveWaterfall => 'Waterfall',
+              RuntimeOverworldFeedback.fieldMoveWhirlpool => 'Whirlpool',
+              RuntimeOverworldFeedback.fieldTraversalConfirm =>
+                'Cross with ${arguments['move']}?',
+              RuntimeOverworldFeedback.yes => 'Yes',
+              RuntimeOverworldFeedback.no => 'No',
+              _ => null,
+            },
             descriptor: support.descriptor(
               initialState: initial,
               additionalCapabilities: {
@@ -242,7 +251,11 @@ void main() {
             await Future<void>.delayed(Duration.zero);
             prompt = runtime.dialoguePresentationListenable.value!;
           }
-          expect(prompt.choices, hasLength(2));
+          expect(
+            prompt.fullText,
+            waterfall ? 'Cross with Waterfall?' : 'Cross with Whirlpool?',
+          );
+          expect(prompt.choices.map((choice) => choice.label), ['Yes', 'No']);
           if (scenario == 'cancel') {
             session.cancelDialogue();
           } else {

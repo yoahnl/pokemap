@@ -17,6 +17,7 @@ final class RuntimePlayerTestHarness {
     ProjectNewGameConfig? newGameConfig,
     List<SceneAsset> scenes = const <SceneAsset>[],
     PlayerInventoryPreferencesGateway? inventoryPreferencesGateway,
+    RuntimePlayerFeedbackLocalizer? feedbackLocalizer,
   })  : source = MemoryRuntimeGameSource(
           descriptorGate: descriptorGate,
           descriptorError: descriptorError,
@@ -43,11 +44,13 @@ final class RuntimePlayerTestHarness {
       },
       commitCheckpoint: saves.commit,
       savePolicy: savePolicy,
+      feedbackLocalizer: feedbackLocalizer,
     );
     coordinator = RuntimePlayerCoordinator(
       gameSource: source,
       saveGateway: saves,
       preferencesGateway: preferences,
+      feedbackLocalizer: feedbackLocalizer,
       inventoryPreferencesGateway: inventoryPreferencesGateway,
       newGameFlow: newGameFlow,
       sessionController: sessions,

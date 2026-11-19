@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_story/map_story.dart';
 
+import '../player/runtime_player_feedback.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_pause_data_builder.dart';
 import '../player/runtime_world_service_models.dart';
@@ -201,10 +202,12 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         const RuntimeItemCatalogLoader(),
     String locale = 'fr-FR',
     String Function()? displayLocale,
+    RuntimePlayerFeedbackLocalizer? feedbackLocalizer,
     this.supportsRepel = false,
     DateTime Function()? civilNow,
   })  : _civilNow = civilNow ?? DateTime.now,
         _displayLocaleReader = displayLocale ?? (() => locale),
+        _feedbackLocalizer = feedbackLocalizer,
         _currentGameState = currentGameState,
         _host = host,
         _commitAndSave = commitAndSave,
@@ -249,10 +252,12 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         const RuntimeItemCatalogLoader(),
     String locale = 'fr-FR',
     String Function()? displayLocale,
+    RuntimePlayerFeedbackLocalizer? feedbackLocalizer,
     this.supportsRepel = false,
     DateTime Function()? civilNow,
   })  : _civilNow = civilNow ?? DateTime.now,
         _displayLocaleReader = displayLocale ?? (() => locale),
+        _feedbackLocalizer = feedbackLocalizer,
         _currentGameState = currentGameState,
         _host = null,
         _commitAndSave = commitAndSave,
@@ -318,9 +323,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         state.bag.entries.any((entry) => entry.itemId == item.id && entry.quantity > 0))
         .firstOrNull;
     if (item == null) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Vous ne possédez pas de vélo utilisable.');
+        safeMessage: _feedback(.bicycleMissing));
     }
     return useBagItemOutsideBattle(
       RuntimePlayerPauseCommand.useBagItem(itemTargetId: item.id));
@@ -353,6 +358,12 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   var _craftingRevision = -1;
   final String Function() _displayLocaleReader;
   String get _displayLocale => _displayLocaleReader();
+  final RuntimePlayerFeedbackLocalizer? _feedbackLocalizer;
+
+  String _feedback(
+    RuntimeServiceFeedback feedback, [
+    Map<String, Object> arguments = const {},
+  ]) => feedback.resolve(_feedbackLocalizer, _displayLocale, arguments);
   final bool supportsRepel;
   final _worldServiceSnapshots =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
@@ -525,7 +536,6 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         _buildHealSnapshot(
           session,
           stage: snapshot.stage,
-          safeMessage: snapshot.safeMessage,
         ),
       );
     } else if (_partyTradeSession case final session?) {
@@ -549,8 +559,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     }
     final currentValue = state.scriptVariables.values[request.variableId];
     if (currentValue != null && currentValue is! ScriptVariableValueString) {
-      return const PlayerServiceRuntimeResult.unavailable(
-        'Cette variable de scénario ne contient pas du texte.',
+      return PlayerServiceRuntimeResult.unavailable(
+        _feedback(.textVariableInvalid),
       );
     }
     _active = true;
@@ -630,9 +640,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimeWorldServiceCommand command,
   ) async {
     if (session.result.isCompleted) {
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.stale,
-        safeMessage: 'Cette demande est déjà terminée.',
+        safeMessage: _feedback(.requestClosed),
       );
     }
     final interaction = session.interaction!;
@@ -640,9 +650,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     if (result != null &&
         (result.requestId != interaction.requestId ||
             result.revision != interaction.revision)) {
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.stale,
-        safeMessage: 'La demande a changé avant cette réponse.',
+        safeMessage: _feedback(.requestChanged),
       );
     }
     if (command.action == RuntimeWorldServiceAction.cancel ||
@@ -653,15 +663,15 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       );
     }
     if (result == null || result is! SceneTextSubmittedInteractionResult) {
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.unavailable,
-        safeMessage: 'Cette réponse ne contient pas du texte.',
+        safeMessage: _feedback(.responseNotText),
       );
     }
     if (interaction.validateResult(result).isNotEmpty) {
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.unavailable,
-        safeMessage: 'La longueur du texte ne respecte pas cette demande.',
+        safeMessage: _feedback(.responseLengthInvalid),
       );
     }
     session.value = result.value;
@@ -697,13 +707,13 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           _buildTextSnapshot(
             session,
             stage: RuntimeWorldServiceStage.failed,
-            safeMessage: 'Le texte n’a pas pu être enregistré.',
+            safeMessage: _feedback(.textSaveFailed),
           ),
         );
       }
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.failed,
-        safeMessage: 'Le texte n’a pas pu être enregistré.',
+        safeMessage: _feedback(.textSaveFailed),
       );
     }
   }
@@ -772,8 +782,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     if (reason != null) return PlayerServiceRuntimeResult.unavailable(reason);
     if (detail.section != RuntimePlayerPauseSection.map ||
         (detail.regionalMap?.regions.isEmpty ?? true)) {
-      return const PlayerServiceRuntimeResult.unavailable(
-        'Aucune carte régionale n’est disponible.',
+      return PlayerServiceRuntimeResult.unavailable(
+        _feedback(.regionalMapUnavailable),
       );
     }
     final session = _ContextualRegionalMapSession(
@@ -837,22 +847,22 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   }
 
   String _flyUnavailableMessage(FlyBlockReason? reason) => switch (reason) {
-    FlyBlockReason.disabled => 'Vol est désactivé dans ce projet.',
+    FlyBlockReason.disabled => _feedback(.flyDisabled),
     FlyBlockReason.underwater =>
-      'Remontez à la surface avec Plongée avant d’utiliser Vol.',
+      _feedback(.flyUnderwater),
     FlyBlockReason.indoor =>
-      'Vol est indisponible à l’intérieur et dans les grottes.',
-    FlyBlockReason.notVisited => 'Visitez ce lieu avant de pouvoir y voler.',
+      _feedback(.flyIndoors),
+    FlyBlockReason.notVisited => _feedback(.flyDestinationUnvisited),
     FlyBlockReason.missingMove =>
-      'Un Pokémon en état de combattre doit connaître Vol.',
+      _feedback(.flyPokemonRequired),
     FlyBlockReason.locked =>
-      'Vol n’est pas encore débloqué dans votre progression.',
+      _feedback(.flyLocked),
     FlyBlockReason.unsupportedMap =>
-      'Vol est disponible uniquement sur les cartes 2D natives.',
+      _feedback(.flyMapUnsupported),
     FlyBlockReason.invalidSpawn =>
-      'Le point d’arrivée de ce lieu est indisponible.',
+      _feedback(.flyArrivalUnavailable),
     FlyBlockReason.invalidDestination ||
-    null => 'Cette destination est indisponible pour Vol.',
+    null => _feedback(.flyDestinationUnavailable),
   };
 
   Future<RuntimeWorldServiceCommandResult> _dispatchRegionalMap(
@@ -891,7 +901,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         ticket = preparation.ticket;
         reason = preparation.reason;
       } on Object {
-        session.message = 'Cette destination est indisponible pour Vol.';
+        session.message = _feedback(.flyDestinationUnavailable);
       }
       if (_disposed ||
           !identical(_regionalMapSession, session) ||
@@ -904,7 +914,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       session.ticket = ticket;
       session.message = ticket == null
           ? _flyUnavailableMessage(reason)
-          : 'Voler vers ${point!.label} ?';
+          : _feedback(.flyConfirm, {'place': point!.label});
       _publishRegionalMap(session);
       return RuntimeWorldServiceCommandResult(
         status: ticket == null
@@ -949,8 +959,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       } else {
         session.applying = false;
         session.message = failed
-            ? 'Le transfert a échoué et sa restauration ne peut pas être confirmée. Relancez la partie.'
-            : 'Le Vol a été annulé. La partie a été conservée.';
+            ? _feedback(.flyRecoveryFailed)
+            : _feedback(.flyCancelled);
         _publishRegionalMap(session);
       }
       return RuntimeWorldServiceCommandResult(
@@ -1071,17 +1081,17 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimePlayerPauseCommand command,
   ) async {
     if (_disposed || _active) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'L’équipe est occupée pour le moment.',
+        safeMessage: _feedback(.partyBusy),
       );
     }
     final state = _currentGameState();
     final firstIndex = _partyIndexFromTarget(state, command.partyTargetId);
     if (firstIndex == null) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Cette cible n’est plus disponible.',
+        safeMessage: _feedback(.targetUnavailable),
       );
     }
     const operations = PlayerStorageOperations();
@@ -1094,16 +1104,16 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         // Opérer ensuite par variante ByIndividualId re-résoudrait le même id
         // dans le même état — mesuré par sabotage, strictement équivalent.
         result = operations.setLead(state: state, partyIndex: firstIndex);
-        successMessage = 'Nouveau Pokémon de tête enregistré.';
+        successMessage = _feedback(.partyLeadSaved);
       case RuntimePlayerPauseCommandKind.reorderPartyMember:
         final secondTarget = command.secondPartyTargetId;
         final secondIndex = secondTarget == null
             ? null
             : _partyIndexFromTarget(state, secondTarget);
         if (secondIndex == null) {
-          return const RuntimePlayerPauseCommandResult(
+          return RuntimePlayerPauseCommandResult(
             status: RuntimePlayerPauseCommandStatus.unavailable,
-            safeMessage: 'Cette cible n’est plus disponible.',
+            safeMessage: _feedback(.targetUnavailable),
           );
         }
         result = operations.swapPartyMembers(
@@ -1111,20 +1121,20 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           firstIndex: firstIndex,
           secondIndex: secondIndex,
         );
-        successMessage = 'Équipe réordonnée et progression sauvegardée.';
+        successMessage = _feedback(.partyReorderSaved);
       case RuntimePlayerPauseCommandKind.useBagItem:
       case RuntimePlayerPauseCommandKind.callContact:
       case RuntimePlayerPauseCommandKind.equipHeldItem:
       case RuntimePlayerPauseCommandKind.unequipHeldItem:
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Cette commande ne concerne pas l’équipe.',
+          safeMessage: _feedback(.partyCommandInvalid),
         );
     }
     if (!result.isSuccess) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Cette cible n’est plus disponible.',
+        safeMessage: _feedback(.targetUnavailable),
       );
     }
     try {
@@ -1134,9 +1144,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         safeMessage: successMessage,
       );
     } catch (_) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.failed,
-        safeMessage: 'L’équipe n’a pas pu être réordonnée ni sauvegardée.',
+        safeMessage: _feedback(.partyReorderFailed),
       );
     }
   }
@@ -1168,9 +1178,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimePlayerPauseCommand command,
   ) async {
     if (_pauseBagMutationBusy) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Le sac est occupé pour le moment.',
+        safeMessage: _feedback(.bagBusy),
       );
     }
     _pauseBagMutationBusy = true;
@@ -1185,9 +1195,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimePlayerPauseCommand command,
   ) async {
     if (_disposed || _active) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Le sac est occupé pour le moment.',
+        safeMessage: _feedback(.bagBusy),
       );
     }
     final refusal = _pauseMutationRefusal();
@@ -1198,9 +1208,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         partyIndex != null) {
       final itemCatalog = await _resolveItemCatalog();
       if (_currentGameState() != state || _pauseMutationRefusal() != null) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Cette cible n’est plus disponible.',
+          safeMessage: _feedback(.targetUnavailable),
         );
       }
       final individualId = state.party.members[partyIndex].individualId;
@@ -1223,21 +1233,21 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     final itemCatalog = await _resolveItemCatalog();
     final definition = itemCatalog.definitionFor(command.itemTargetId);
     if (definition == null) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'La définition de cet objet est absente ou invalide.',
+        safeMessage: _feedback(.bagItemDefinitionInvalid),
       );
     }
     if (_disposed || _currentGameState() != state || _pauseMutationRefusal() != null) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'L’état du jeu a changé. Ouvrez de nouveau le sac.',
+        safeMessage: _feedback(.bagStateChanged),
       );
     }
     if (command.kind == RuntimePlayerPauseCommandKind.useBagItem && _contextualItemUseConsumer != null) {
       if (!state.bag.entries.any((entry) => entry.itemId == definition.id && entry.quantity > 0)) {
-        return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Cet objet n’est plus dans le sac.');
+        return RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: _feedback(.bagItemRemoved));
       }
       try {
         final disposition = await _contextualItemUseConsumer!(definition, state);
@@ -1247,34 +1257,34 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
                 ? RuntimePlayerPauseCommandStatus.accepted : RuntimePlayerPauseCommandStatus.unavailable,
             resumeGameplay: disposition == RuntimeContextualItemUseDisposition.reserved,
             safeMessage: switch (disposition) {
-              RuntimeContextualItemUseDisposition.reserved => 'Utilisation de l’objet dans le décor.',
-              RuntimeContextualItemUseDisposition.cancelled => 'Utilisation annulée. L’objet est conservé.',
-              _ => 'Cette utilisation est indisponible ou ambiguë. L’objet est conservé.',
+              RuntimeContextualItemUseDisposition.reserved => _feedback(.bagContextualUse),
+              RuntimeContextualItemUseDisposition.cancelled => _feedback(.bagContextualCancelled),
+              _ => _feedback(.bagContextualUnavailable),
             },
           );
         }
       } on Object {
-        return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.failed,
-          safeMessage: 'L’utilisation contextuelle a échoué. L’objet est conservé.');
+        return RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.failed,
+          safeMessage: _feedback(.bagContextualFailed));
       }
       if (_disposed || _currentGameState() != state || _pauseMutationRefusal() != null) {
-        return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'L’état du jeu a changé. L’objet est conservé.');
+        return RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: _feedback(.bagContextualStateChanged));
       }
     }
     if (command.kind == RuntimePlayerPauseCommandKind.useBagItem &&
         definition.uses.any((use) => use.effect is ProjectItemFishingEffectDefinition)) {
       final consumer = _fishingConsumer;
       if (consumer == null) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'La pêche nécessite un runtime compatible.',
+          safeMessage: _feedback(.fishingUnsupported),
         );
       }
       if (_currentGameState() != state || _pauseMutationRefusal() != null) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'La pêche n’est pas disponible pour le moment.',
+          safeMessage: _feedback(.fishingUnavailable),
         );
       }
       try {
@@ -1284,21 +1294,21 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
               : RuntimePlayerPauseCommandStatus.unavailable,
           resumeGameplay: reason == null,
           safeMessage: switch (reason) {
-            null => 'Préparation de la pêche.',
-            FishingBlockReason.unsupportedMap => 'La pêche nécessite une carte compatible.',
-            FishingBlockReason.invalidItem => 'Cet objet n’est pas une canne utilisable.',
-            FishingBlockReason.insufficientQuantity => 'Cette canne n’est plus dans le sac.',
-            FishingBlockReason.notWater => 'Placez-vous face à l’eau pour pêcher.',
+            null => _feedback(.fishingPreparing),
+            FishingBlockReason.unsupportedMap => _feedback(.fishingMapUnsupported),
+            FishingBlockReason.invalidItem => _feedback(.fishingRodInvalid),
+            FishingBlockReason.insufficientQuantity => _feedback(.fishingRodMissing),
+            FishingBlockReason.notWater => _feedback(.fishingFaceWater),
             FishingBlockReason.noEncounterSource || FishingBlockReason.encounterUnavailable =>
-              'Aucune rencontre de pêche n’est disponible ici avec cette canne.',
-            FishingBlockReason.checkpointFailed => 'La descente du vélo n’a pas pu être sauvegardée.',
-            _ => 'La pêche n’est pas disponible pour le moment.',
+              _feedback(.fishingNoEncounter),
+            FishingBlockReason.checkpointFailed => _feedback(.fishingDismountSaveFailed),
+            _ => _feedback(.fishingUnavailable),
           },
         );
       } on Object {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.failed,
-          safeMessage: 'La pêche n’a pas pu commencer.',
+          safeMessage: _feedback(.fishingStartFailed),
         );
       }
     }
@@ -1306,14 +1316,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         definition.uses.any((use) => use.effect is ProjectItemBicycleEffectDefinition)) {
       final consumer = _bicycleConsumer;
       if (consumer == null) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Le vélo est disponible uniquement dans un runtime 2D compatible.');
+          safeMessage: _feedback(.bicycleUnsupported));
       }
       if (_currentGameState() != state || _pauseMutationRefusal() != null) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Le vélo n’est pas disponible pour le moment.');
+          safeMessage: _feedback(.bicycleUnavailable));
       }
       _setInputLocked(true);
       try {
@@ -1321,12 +1331,12 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         return RuntimePlayerPauseCommandResult(
           status: applied ? RuntimePlayerPauseCommandStatus.accepted
               : RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: applied ? 'Changement de déplacement sauvegardé.'
-              : 'Le vélo est indisponible ici, ses animations sont incomplètes ou la sauvegarde a échoué.');
+          safeMessage: applied ? _feedback(.bicycleChanged)
+              : _feedback(.bicycleChangeUnavailable));
       } on Object {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.failed,
-          safeMessage: 'Le changement de déplacement n’a pas pu être sauvegardé.');
+          safeMessage: _feedback(.bicycleSaveFailed));
       } finally {
         _setInputLocked(false);
       }
@@ -1339,14 +1349,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         )) {
       final consumer = _escapeRopeConsumer;
       if (consumer == null) {
-        return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'La Corde Sortie nécessite un runtime compatible.');
+        return RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: _feedback(.escapeRopeUnsupported));
       }
       if (_currentGameState() != state ||
           _pauseMutationRefusal() != null) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'La Corde Sortie n’est pas disponible pour le moment.',
+          safeMessage: _feedback(.escapeRopeUnavailable),
         );
       }
       _setInputLocked(true);
@@ -1358,13 +1368,13 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
               ? RuntimePlayerPauseCommandStatus.accepted
               : RuntimePlayerPauseCommandStatus.unavailable,
           safeMessage: applied
-              ? 'Vous êtes de retour à l’entrée. Progression sauvegardée.'
-              : 'La sortie est inconnue, interdite ou bloquée. La Corde Sortie est conservée.',
+              ? _feedback(.escapeRopeReturned)
+              : _feedback(.escapeRopeExitBlocked),
         );
       } on Object {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.failed,
-          safeMessage: 'Le retour n’a pas pu être effectué ni sauvegardé.',
+          safeMessage: _feedback(.escapeRopeSaveFailed),
         );
       } finally {
         _setInputLocked(false);
@@ -1378,9 +1388,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
               use.effect is ProjectItemRepelEffectDefinition,
         )) {
       if (!supportsRepel) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'La Repousse n’est pas disponible dans ce mode de jeu.',
+          safeMessage: _feedback(.repelUnsupported),
         );
       }
       try {
@@ -1396,27 +1406,27 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           return RuntimePlayerPauseCommandResult(
             status: RuntimePlayerPauseCommandStatus.unavailable,
             safeMessage: result.failure == PlayerItemUseFailure.noEffect
-                ? 'Une Repousse est déjà active.'
-                : _bagItemFailureMessage(result.failure!),
+                ? _feedback(.repelAlreadyActive)
+                : _feedback(_bagItemFailureFeedback(result.failure!)),
           );
         }
         final refusal = await _commitPauseMutation(result.state);
         if (refusal != null) return refusal;
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.accepted,
-          safeMessage: 'La Repousse est active. Progression sauvegardée.',
+          safeMessage: _feedback(.repelApplied),
         );
       } catch (_) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.failed,
-          safeMessage: 'La Repousse n’a pas pu être utilisée ni sauvegardée.',
+          safeMessage: _feedback(.repelSaveFailed),
         );
       }
     }
     if (partyIndex == null || _currentGameState() != state) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Cette cible n’est plus disponible.',
+        safeMessage: _feedback(.targetUnavailable),
       );
     }
     if (command.kind == RuntimePlayerPauseCommandKind.equipHeldItem) {
@@ -1426,20 +1436,20 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       );
       switch (heldItemResolution.status) {
         case RuntimeHeldItemSupportStatus.invalidDefinition:
-          return const RuntimePlayerPauseCommandResult(
+          return RuntimePlayerPauseCommandResult(
             status: RuntimePlayerPauseCommandStatus.unavailable,
-            safeMessage: 'La définition de cet objet est absente ou invalide.',
+            safeMessage: _feedback(.bagItemDefinitionInvalid),
           );
         case RuntimeHeldItemSupportStatus.passive:
-          return const RuntimePlayerPauseCommandResult(
+          return RuntimePlayerPauseCommandResult(
             status: RuntimePlayerPauseCommandStatus.unavailable,
-            safeMessage: 'Cet objet ne possède aucun effet tenu.',
+            safeMessage: _feedback(.heldItemNoEffect),
           );
         case RuntimeHeldItemSupportStatus.unsupported:
-          return const RuntimePlayerPauseCommandResult(
+          return RuntimePlayerPauseCommandResult(
             status: RuntimePlayerPauseCommandStatus.unavailable,
             safeMessage:
-                'Cet effet d’objet tenu n’est pas pris en charge en combat.',
+                _feedback(.heldItemUnsupported),
           );
         case RuntimeHeldItemSupportStatus.nativePassive:
         case RuntimeHeldItemSupportStatus.supported:
@@ -1481,9 +1491,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     );
     if (!capability.isAvailable) {
       if (definition.tags.contains('key-item') || definition.capture != null) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Cet objet ne peut pas être utilisé ici.',
+          safeMessage: _feedback(.bagItemCannotUse),
         );
       }
       if (definition.tags.contains('evolution')) {
@@ -1494,24 +1504,24 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           itemCatalog: itemCatalog,
         );
       }
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Cet objet ne peut pas être utilisé ici.',
+        safeMessage: _feedback(.bagItemCannotUse),
       );
     }
     if (partyIndex >= state.party.members.length) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Cette cible n’est plus disponible.',
+        safeMessage: _feedback(.targetUnavailable),
       );
     }
     try {
       final caps = await _loadRecoveryCaps(state);
       final maxHp = caps.maxHpByPartyIndex[partyIndex];
       if (maxHp == null || maxHp <= 0) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Les données de la cible sont incomplètes.',
+          safeMessage: _feedback(.targetDataIncomplete),
         );
       }
       final result = PlayerItemUseService(snapshot: itemCatalog).use(
@@ -1530,19 +1540,19 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       if (!result.isSuccess) {
         return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: _bagItemFailureMessage(result.failure!),
+          safeMessage: _feedback(_bagItemFailureFeedback(result.failure!)),
         );
       }
       final refusal = await _commitPauseMutation(result.state);
       if (refusal != null) return refusal;
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.accepted,
-        safeMessage: 'Objet utilisé et progression sauvegardée.',
+        safeMessage: _feedback(.bagItemUsed),
       );
     } catch (_) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.failed,
-        safeMessage: 'L’objet n’a pas pu être utilisé ni sauvegardé.',
+        safeMessage: _feedback(.bagItemSaveFailed),
       );
     }
   }
@@ -1574,20 +1584,20 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         safeMessage: switch (result.failure!) {
           HeldItemTransferFailure.invalidRequest ||
           HeldItemTransferFailure.invalidTarget =>
-            'Cette cible ou cet objet n’est plus disponible.',
+            _feedback(.heldItemTargetUnavailable),
           HeldItemTransferFailure.itemMissing =>
-            'Cet objet n’est plus présent dans le sac.',
+            _feedback(.heldItemMissing),
           HeldItemTransferFailure.noHeldItem =>
-            'Ce Pokémon ne tient aucun objet.',
+            _feedback(.heldItemNone),
           HeldItemTransferFailure.alreadyEquipped =>
-            'Ce Pokémon tient déjà cet objet.',
+            _feedback(.heldItemUnchanged),
           HeldItemTransferFailure.quantityOverflow =>
-            'Le sac ne peut pas récupérer l’objet actuellement tenu.',
+            _feedback(.heldItemBagCannotReceive),
           HeldItemTransferFailure.bagFull =>
-            'Le sac est plein pour cet objet. Libérez de la place avant de le récupérer.',
+            _feedback(.heldItemBagFull),
           HeldItemTransferFailure.missingItemCatalog ||
           HeldItemTransferFailure.unknownItem =>
-            'Le catalogue des objets ne permet pas de vérifier la place dans le sac.',
+            _feedback(.heldItemBagCapacityUnknown),
         },
       );
     }
@@ -1597,13 +1607,13 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.accepted,
         safeMessage: result.status == HeldItemTransferStatus.unequipped
-            ? 'Objet retiré et progression sauvegardée.'
-            : 'Objet tenu modifié et progression sauvegardée.',
+            ? _feedback(.heldItemRemoved)
+            : _feedback(.heldItemChanged),
       );
     } catch (_) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.failed,
-        safeMessage: 'L’objet tenu n’a pas pu être modifié ni sauvegardé.',
+        safeMessage: _feedback(.heldItemSaveFailed),
       );
     }
   }
@@ -1621,9 +1631,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     if (projectRootDirectory == null || pokemonConfig == null) return null;
     try {
       if (partyIndex >= state.party.members.length) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Cette cible n’est plus disponible.',
+          safeMessage: _feedback(.targetUnavailable),
         );
       }
       final pokemon = state.party.members[partyIndex];
@@ -1644,9 +1654,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         fallbackSpeciesId: pokemon.speciesId,
       );
       if (candidate == null) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Ce Pokémon n’est pas compatible avec cette machine.',
+          safeMessage: _feedback(.moveMachineIncompatible),
         );
       }
       final decision = replacementMoveId == null
@@ -1670,30 +1680,30 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           return RuntimePlayerPauseCommandResult(
             status: RuntimePlayerPauseCommandStatus.accepted,
             safeMessage: result.status == PokemonMoveMachineUseStatus.replaced
-                ? 'Capacité remplacée et progression sauvegardée.'
-                : 'Capacité apprise et progression sauvegardée.',
+                ? _feedback(.moveMachineReplaced)
+                : _feedback(.moveMachineLearned),
           );
         case PokemonMoveMachineUseStatus.replacementRequired:
-          return const RuntimePlayerPauseCommandResult(
+          return RuntimePlayerPauseCommandResult(
             status: RuntimePlayerPauseCommandStatus.unavailable,
-            safeMessage: 'Choisissez une capacité à oublier.',
+            safeMessage: _feedback(.moveMachineForgetPrompt),
           );
         case PokemonMoveMachineUseStatus.declined:
-          return const RuntimePlayerPauseCommandResult(
+          return RuntimePlayerPauseCommandResult(
             status: RuntimePlayerPauseCommandStatus.unavailable,
-            safeMessage: 'Apprentissage annulé.',
+            safeMessage: _feedback(.moveMachineCancelled),
           );
         case PokemonMoveMachineUseStatus.failed:
-          return const RuntimePlayerPauseCommandResult(
+          return RuntimePlayerPauseCommandResult(
             status: RuntimePlayerPauseCommandStatus.unavailable,
-            safeMessage: 'Cette machine ne peut pas être utilisée ici.',
+            safeMessage: _feedback(.moveMachineCannotUse),
           );
       }
     } catch (error, stackTrace) {
       debugPrint('[move_machine] use failed: $error\n$stackTrace');
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.failed,
-        safeMessage: 'La capacité n’a pas pu être apprise ni sauvegardée.',
+        safeMessage: _feedback(.moveMachineSaveFailed),
       );
     }
   }
@@ -1709,17 +1719,17 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     if (projectRootDirectory == null ||
         pokemonConfig == null ||
         partyIndex >= state.party.members.length) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Cet objet ne peut pas être utilisé ici.',
+        safeMessage: _feedback(.bagItemCannotUse),
       );
     }
     try {
       final pokemon = state.party.members[partyIndex];
       final heldPolicy = resolveRuntimeEvolutionHeldItemPolicy(itemCatalog);
       if (!heldPolicy.recognizes(pokemon.heldItemId) || heldPolicy.preventsEvolution(pokemon.heldItemId)) {
-        return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'L’objet tenu ne permet pas cette évolution.');
+        return RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: _feedback(.evolutionHeldItemInvalid));
       }
       final candidates = await _evolutionLoader.loadItemUseCandidates(
         projectRootDirectory: projectRootDirectory,
@@ -1736,24 +1746,24 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           )
           .toList(growable: false);
       if (eligible.isEmpty) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Cet objet ne provoque aucune évolution ici.',
+          safeMessage: _feedback(.evolutionUnavailable),
         );
       }
       if (eligible.length > 1) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
           safeMessage:
-              'Plusieurs évolutions sont possibles pour cette combinaison.',
+              _feedback(.evolutionAmbiguous),
         );
       }
       final caps = await _loadRecoveryCaps(state);
       final maxHp = caps.maxHpByPartyIndex[partyIndex];
       if (maxHp == null || maxHp <= 0) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Les données de la cible sont incomplètes.',
+          safeMessage: _feedback(.targetDataIncomplete),
         );
       }
       final result = pokemon.individualId.isEmpty
@@ -1778,21 +1788,21 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
               heldItemPolicy: heldPolicy,
             );
       if (!result.isSuccess) {
-        return const RuntimePlayerPauseCommandResult(
+        return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Cet objet ne provoque aucune évolution ici.',
+          safeMessage: _feedback(.evolutionUnavailable),
         );
       }
       final refusal = await _commitPauseMutation(result.state);
       if (refusal != null) return refusal;
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.accepted,
-        safeMessage: 'Évolution réussie et progression sauvegardée.',
+        safeMessage: _feedback(.evolutionSaved),
       );
     } catch (_) {
-      return const RuntimePlayerPauseCommandResult(
+      return RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.failed,
-        safeMessage: 'L’évolution n’a pas pu être appliquée ni sauvegardée.',
+        safeMessage: _feedback(.evolutionSaveFailed),
       );
     }
   }
@@ -1878,8 +1888,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       _healSession = session;
       if (!request.requiresConfirmation) {
         if (!_hasAllHealCaps(session)) {
-          return const PlayerServiceRuntimeResult.unavailable(
-            'Les données de soin de l’équipe sont incomplètes.',
+          return PlayerServiceRuntimeResult.unavailable(
+            _feedback(.healCapsIncomplete),
           );
         }
         if (!await _prepareHealPresentation(session)) {
@@ -1913,8 +1923,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
 
   Future<bool> _prepareHealPresentation(_ContextualHealSession session) async {
     if (!_canContinueHeal(session)) return false;
-    final snapshot = _buildHealSnapshot(session, stage: RuntimeWorldServiceStage.applying,
-        safeMessage: 'Soin en cours…');
+    session.feedback = .healApplying;
+    final snapshot = _buildHealSnapshot(
+      session,
+      stage: RuntimeWorldServiceStage.applying,
+    );
     _publishWorldService(snapshot);
     if ((snapshot.content as RuntimeHealServiceContent).display != null) {
       await Future.any<void>([
@@ -1947,13 +1960,13 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       if (_host != null || map == null || map.id != state.currentMapId ||
           state.party.members.length > 6 ||
           resolveHealingDisplayEntity(map, request.displayEntityId!) == null) {
-        return 'L’affichage du soin n’est pas disponible sur cette carte.';
+        return _feedback(.healDisplayUnavailable);
       }
     }
     final missingCapabilities =
         request.requiredCapabilities.difference(_grantedCapabilities);
     if (missingCapabilities.isNotEmpty) {
-      return 'Ce service n’est pas pris en charge par ce jeu.';
+      return _feedback(.serviceUnsupported);
     }
     final condition = request.availabilityCondition;
     if (condition != null &&
@@ -1962,7 +1975,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           state,
           context: _conditionContext,
         )) {
-      return 'Ce service n’est pas disponible pour le moment.';
+      return _feedback(.serviceUnavailable);
     }
     return null;
   }
@@ -1990,36 +2003,36 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimeWorldServiceCommand command,
   ) async {
     if (_disposed) {
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.failed,
-        safeMessage: 'Le service joueur est fermé.',
+        safeMessage: _feedback(.serviceClosed),
       );
     }
     final snapshot = _worldServiceSnapshot;
     if (snapshot == null) {
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.unavailable,
-        safeMessage: 'Aucun service contextuel n’est ouvert.',
+        safeMessage: _feedback(.serviceNotOpen),
       );
     }
     if (command.snapshotRevision != snapshot.revision) {
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.stale,
-        safeMessage: 'Le service a changé avant cette action.',
+        safeMessage: _feedback(.serviceChanged),
       );
     }
     if (command.interactionResult != null &&
         snapshot.request is! OpenTextInputService && snapshot.request is! OpenSceneTextInteractionService && snapshot.request is! OpenPokemonGiftInteractionService) {
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.stale,
-        safeMessage: 'Cette réponse appartient à une autre demande.',
+        safeMessage: _feedback(.serviceWrongRequest),
       );
     }
     if (!snapshot.isActionEnabled(command.action)) {
       return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.unavailable,
         safeMessage: snapshot.unavailableReasonFor(command.action) ??
-            'Cette action n’est pas disponible.',
+            _feedback(.serviceActionUnavailable),
       );
     }
     final gift = _giftSession;
@@ -2041,9 +2054,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     if (trade != null) return _dispatchPartyTrade(trade, command);
     final text = _textSession;
     if (text != null) return _dispatchText(text, command);
-    return const RuntimeWorldServiceCommandResult(
+    return RuntimeWorldServiceCommandResult(
       status: RuntimeWorldServiceCommandStatus.unavailable,
-      safeMessage: 'Ce service n’accepte pas cette action.',
+      safeMessage: _feedback(.serviceActionInvalid),
     );
   }
 
@@ -2057,9 +2070,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         if (boxId == null ||
             !session.gameState.pokemonStorage.boxes
                 .any((box) => box.id == boxId)) {
-          return const RuntimeWorldServiceCommandResult(
+          return RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.unavailable,
-            safeMessage: 'Cette box n’est plus disponible.',
+            safeMessage: _feedback(.pcBoxUnavailable),
           );
         }
         session.selectedBoxId = boxId;
@@ -2069,9 +2082,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         final targetId = command.targetId;
         final target = targetId == null ? null : session.targets[targetId];
         if (target == null || target.action != command.action) {
-          return const RuntimeWorldServiceCommandResult(
+          return RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.unavailable,
-            safeMessage: 'Ce Pokémon n’est plus disponible.',
+            safeMessage: _feedback(.pokemonUnavailable),
           );
         }
         return _applyPcTransfer(
@@ -2090,9 +2103,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         if (moveTarget == null ||
             moveTarget.action != RuntimeWorldServiceAction.withdraw ||
             moveTarget.boxId == null) {
-          return const RuntimeWorldServiceCommandResult(
+          return RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.unavailable,
-            safeMessage: 'Ce Pokémon n’est plus disponible.',
+            safeMessage: _feedback(.pokemonUnavailable),
           );
         }
         // Le null-check est nécessaire au `!` du transfert ; l'EXISTENCE de la
@@ -2100,9 +2113,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         // inconnue. »). La re-vérifier ici était redondant — mesuré par
         // sabotage : la retirer ne changeait aucun comportement observable.
         if (destinationBoxId == null) {
-          return const RuntimeWorldServiceCommandResult(
+          return RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.unavailable,
-            safeMessage: 'Cette box n’est plus disponible.',
+            safeMessage: _feedback(.pcBoxUnavailable),
           );
         }
         return _applyPcTransfer(
@@ -2122,9 +2135,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             boxTarget.action != RuntimeWorldServiceAction.withdraw ||
             partyTarget == null ||
             partyTarget.action != RuntimeWorldServiceAction.deposit) {
-          return const RuntimeWorldServiceCommandResult(
+          return RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.unavailable,
-            safeMessage: 'Cet échange n’est plus disponible.',
+            safeMessage: _feedback(.tradeUnavailable),
           );
         }
         return _applyPcTransfer(
@@ -2148,9 +2161,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       case RuntimeWorldServiceAction.showSales:
       case RuntimeWorldServiceAction.decreaseQuantity:
       case RuntimeWorldServiceAction.increaseQuantity:
-        return const RuntimeWorldServiceCommandResult(
+        return RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
-          safeMessage: 'Cette commande ne concerne pas le PC.',
+          safeMessage: _feedback(.pcCommandInvalid),
         );
     }
     return const RuntimeWorldServiceCommandResult(
@@ -2210,7 +2223,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       _ => throw StateError('Unsupported PC transfer action.'),
     };
     if (!result.isSuccess) {
-      final message = _pcFailureMessage(result.failure!);
+      final message = _feedback(_pcFailureFeedback(result.failure!));
       _publishWorldService(
         _buildPcSnapshot(session, safeMessage: message),
       );
@@ -2224,7 +2237,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       _buildPcSnapshot(
         session,
         stage: RuntimeWorldServiceStage.applying,
-        safeMessage: 'Enregistrement du PC…',
+        safeMessage: _feedback(.pcSaving),
       ),
     );
     try {
@@ -2236,10 +2249,10 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         _buildPcSnapshot(
           session,
           safeMessage: switch (action) {
-            RuntimeWorldServiceAction.deposit => 'Pokémon déposé dans la box.',
-            RuntimeWorldServiceAction.withdraw => 'Pokémon ajouté à l’équipe.',
-            RuntimeWorldServiceAction.swap => 'Échange effectué.',
-            RuntimeWorldServiceAction.move => 'Pokémon déplacé de box.',
+            RuntimeWorldServiceAction.deposit => _feedback(.pcDeposited),
+            RuntimeWorldServiceAction.withdraw => _feedback(.pcWithdrawn),
+            RuntimeWorldServiceAction.swap => _feedback(.pcSwapped),
+            RuntimeWorldServiceAction.move => _feedback(.pcMoved),
             _ => throw StateError('Unsupported PC transfer action.'),
           },
         ),
@@ -2248,11 +2261,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         status: RuntimeWorldServiceCommandStatus.accepted,
       );
     } catch (error) {
-      const message = 'La modification du PC n’a pas pu être enregistrée.';
+      final message = _feedback(.pcSaveFailed);
       _publishWorldService(
         _buildPcSnapshot(session, safeMessage: message),
       );
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.failed,
         safeMessage: message,
       );
@@ -2408,7 +2421,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           knownMoveIds: pokemon.knownMoveIds,
           canTransfer: result.isSuccess,
           unavailableReason:
-              result.isSuccess ? null : _pcFailureMessage(result.failure!),
+              result.isSuccess ? null : _feedback(_pcFailureFeedback(result.failure!)),
           summary: summary,
         ),
       );
@@ -2456,7 +2469,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           knownMoveIds: pokemon.knownMoveIds,
           canTransfer: result.isSuccess,
           unavailableReason:
-              result.isSuccess ? null : _pcFailureMessage(result.failure!),
+              result.isSuccess ? null : _feedback(_pcFailureFeedback(result.failure!)),
           summary: summary,
         ),
       );
@@ -2481,8 +2494,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       request: session.request,
       stage: stage,
       content: RuntimePcServiceContent(
-        title: 'PC Pokémon',
-        message: 'Organisez votre équipe et vos boxes.',
+        title: _feedback(.pcTitle),
+        message: _feedback(.pcHelp),
         selectedBoxId: selectedBox.id,
         boxes: boxes
             .map(
@@ -2513,7 +2526,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
                 RuntimeWorldServiceActionAvailability.disabled(
                   RuntimeWorldServiceAction.deposit,
                   reason: party.firstOrNull?.unavailableReason ??
-                      'Aucun Pokémon ne peut être déposé.',
+                      _feedback(.pcNoDeposit),
                 ),
               if (canWithdraw)
                 const RuntimeWorldServiceActionAvailability.enabled(
@@ -2523,7 +2536,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
                 RuntimeWorldServiceActionAvailability.disabled(
                   RuntimeWorldServiceAction.withdraw,
                   reason: stored.firstOrNull?.unavailableReason ??
-                      'Aucun Pokémon ne peut être retiré.',
+                      _feedback(.pcNoWithdraw),
                 ),
               if (canSwap)
                 const RuntimeWorldServiceActionAvailability.enabled(
@@ -2532,7 +2545,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
               else
                 RuntimeWorldServiceActionAvailability.disabled(
                   RuntimeWorldServiceAction.swap,
-                  reason: 'Aucun échange valide n’est disponible.',
+                  reason: _feedback(.pcNoSwap),
                 ),
               if (stored.isNotEmpty && boxes.length > 1)
                 const RuntimeWorldServiceActionAvailability.enabled(
@@ -2542,8 +2555,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
                 RuntimeWorldServiceActionAvailability.disabled(
                   RuntimeWorldServiceAction.move,
                   reason: stored.isEmpty
-                      ? 'Aucun Pokémon à déplacer dans cette box.'
-                      : 'Aucune autre box de destination.',
+                      ? _feedback(.pcNoMove)
+                      : _feedback(.pcNoDestination),
                 ),
               const RuntimeWorldServiceActionAvailability.enabled(
                 RuntimeWorldServiceAction.close,
@@ -2561,9 +2574,15 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         try {
           if (!await _prepareHealPresentation(session)) {
             if (!_disposed) {
-              session.failure = StateError('The healing session changed before commit.');
-              _publishWorldService(_buildHealSnapshot(session, stage: RuntimeWorldServiceStage.failed,
-                  safeMessage: 'Le soin a été interrompu avant son enregistrement.'));
+              session
+                ..failure = StateError('The healing session changed before commit.')
+                ..feedback = .healInterrupted;
+              _publishWorldService(
+                _buildHealSnapshot(
+                  session,
+                  stage: RuntimeWorldServiceStage.failed,
+                ),
+              );
             }
             return const RuntimeWorldServiceCommandResult(status: RuntimeWorldServiceCommandStatus.stale);
           }
@@ -2574,36 +2593,36 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           session
             ..gameState = recovered
             ..wasHealed = true
-            ..failure = null;
+            ..failure = null
+            ..feedback = recovered == session.initialGameState
+                ? .healAlreadyHealthy
+                : .healPartyHealed;
           if (!_disposed) {
             _publishWorldService(
-            _buildHealSnapshot(
-              session,
-              stage: RuntimeWorldServiceStage.completed,
-              safeMessage: recovered == session.initialGameState
-                  ? 'Votre équipe est déjà entièrement soignée.'
-                  : 'Votre équipe est entièrement soignée.',
-            ),
+              _buildHealSnapshot(
+                session,
+                stage: RuntimeWorldServiceStage.completed,
+              ),
             );
           }
           return const RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.accepted,
           );
         } catch (error) {
-          session.failure = error;
-          const message = 'Le soin n’a pas pu être enregistré.';
+          session
+            ..failure = error
+            ..feedback = .healSaveFailed;
           if (!_disposed) {
             _publishWorldService(
-            _buildHealSnapshot(
-              session,
-              stage: RuntimeWorldServiceStage.failed,
-              safeMessage: message,
-            ),
+              _buildHealSnapshot(
+                session,
+                stage: RuntimeWorldServiceStage.failed,
+              ),
             );
           }
-          return const RuntimeWorldServiceCommandResult(
+          return RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.failed,
-            safeMessage: message,
+            safeMessage: _feedback(.healSaveFailed),
           );
         }
       case RuntimeWorldServiceAction.close:
@@ -2630,9 +2649,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       case RuntimeWorldServiceAction.withdraw:
       case RuntimeWorldServiceAction.swap:
       case RuntimeWorldServiceAction.move:
-        return const RuntimeWorldServiceCommandResult(
+        return RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
-          safeMessage: 'Cette commande ne concerne pas le soin.',
+          safeMessage: _feedback(.healCommandInvalid),
         );
     }
     return const RuntimeWorldServiceCommandResult(
@@ -2643,7 +2662,6 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   RuntimeWorldServiceSnapshot _buildHealSnapshot(
     _ContextualHealSession session, {
     RuntimeWorldServiceStage stage = RuntimeWorldServiceStage.active,
-    String? safeMessage,
   }) {
     final members = <RuntimeHealPartyMemberSnapshot>[];
     final locale = _displayLocale;
@@ -2681,10 +2699,10 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       request: session.request,
       stage: stage,
       content: RuntimeHealServiceContent(
-        title: 'Centre Pokémon',
+        title: _feedback(.healTitle),
         message: stage == RuntimeWorldServiceStage.completed
-            ? 'Le soin est terminé.'
-            : 'Restaurer les PV, les PP et les altérations de statut.',
+            ? _feedback(.healCompleted)
+            : _feedback(.healHelp),
         members: members,
         wasHealed: session.wasHealed,
         display: stage == RuntimeWorldServiceStage.applying &&
@@ -2693,7 +2711,10 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
                 entityId: session.request.displayEntityId!, memberCount: members.length)
             : null,
       ),
-      safeMessage: safeMessage,
+      safeMessage: switch (session.feedback) {
+        final feedback? => _feedback(feedback),
+        null => null,
+      },
       actions: switch (stage) {
         RuntimeWorldServiceStage.applying =>
           const <RuntimeWorldServiceActionAvailability>[],
@@ -2715,8 +2736,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
               RuntimeWorldServiceActionAvailability.disabled(
                 RuntimeWorldServiceAction.confirm,
                 reason: members.isEmpty
-                    ? 'Aucun Pokémon dans l’équipe.'
-                    : 'Les données de soin de l’équipe sont incomplètes.',
+                    ? _feedback(.partyEmpty)
+                    : _feedback(.healCapsIncomplete),
               ),
             const RuntimeWorldServiceActionAvailability.enabled(
               RuntimeWorldServiceAction.cancel,
@@ -2758,9 +2779,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         final targetId = command.targetId;
         if (targetId == null ||
             !_shopEntries(session).any((entry) => entry.itemId == targetId)) {
-          return const RuntimeWorldServiceCommandResult(
+          return RuntimeWorldServiceCommandResult(
             status: RuntimeWorldServiceCommandStatus.unavailable,
-            safeMessage: 'Cet objet n’est plus disponible.',
+            safeMessage: _feedback(.shopItemUnavailable),
           );
         }
         session
@@ -2802,9 +2823,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       case RuntimeWorldServiceAction.withdraw:
       case RuntimeWorldServiceAction.swap:
       case RuntimeWorldServiceAction.move:
-        return const RuntimeWorldServiceCommandResult(
+        return RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
-          safeMessage: 'Cette commande ne concerne pas la Boutique.',
+          safeMessage: _feedback(.shopCommandInvalid),
         );
     }
     return const RuntimeWorldServiceCommandResult(
@@ -2819,14 +2840,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     final itemId = command.targetId ?? session.selectedItemId;
     final quantity = command.quantity ?? session.quantity;
     if (itemId == null) {
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.unavailable,
-        safeMessage: 'Sélectionnez un objet.',
+        safeMessage: _feedback(.shopChooseItem),
       );
     }
     final result = _previewShopPurchase(session, itemId, quantity);
     if (!result.isSuccess) {
-      final message = _shopFailureMessage(result.failure!);
+      final message = _feedback(_shopFailureFeedback(result.failure!));
       _publishWorldService(
         _buildShopSnapshot(session, safeMessage: message),
       );
@@ -2848,8 +2869,12 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       _buildShopSnapshot(
         session,
         safeMessage: result.bonusQuantity > 0
-            ? 'Achat effectué. Cadeau : ${result.bonusQuantity} × ${_shopItemLabel(result.bonusItemId!)}.'
-            : 'Achat effectué.',
+            ? _feedback(.shopPurchaseBonus, {
+                'quantity': result.bonusQuantity,
+                'item': session.itemCatalog.definitionFor(result.bonusItemId!)?.displayName ??
+                    _shopItemLabel(result.bonusItemId!),
+              })
+            : _feedback(.shopPurchaseComplete),
       ),
     );
     return const RuntimeWorldServiceCommandResult(
@@ -2881,9 +2906,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     final itemId = command.targetId ?? session.selectedItemId;
     final quantity = command.quantity ?? session.quantity;
     if (itemId == null) {
-      return const RuntimeWorldServiceCommandResult(
+      return RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.unavailable,
-        safeMessage: 'Sélectionnez un objet.',
+        safeMessage: _feedback(.shopChooseItem),
       );
     }
     final result = const GameStateMutations().sellToResolvedShop(
@@ -2896,7 +2921,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       conditionContext: session.request.conditionContext,
     );
     if (!result.isSuccess) {
-      final message = _shopSaleFailureMessage(result.failure!);
+      final message = _feedback(_shopSaleFailureFeedback(result.failure!));
       _publishWorldService(
         _buildShopSnapshot(session, safeMessage: message),
       );
@@ -2917,7 +2942,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     _publishWorldService(
       _buildShopSnapshot(
         session,
-        safeMessage: 'Vente effectuée.',
+        safeMessage: _feedback(.shopSaleComplete),
       ),
     );
     return const RuntimeWorldServiceCommandResult(
@@ -2951,20 +2976,20 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             ? selected.ownedQuantity >= session.quantity
             : purchaseFailure == null);
     final confirmReason = !session.resolved.isOpen
-        ? 'Cette boutique est fermée.'
+        ? _feedback(.shopClosed)
         : selected == null
             ? session.mode == RuntimeShopMode.sell
-                ? 'Le sac est vide.'
-                : 'Cette boutique est vide.'
+                ? _feedback(.shopBagEmpty)
+                : _feedback(.shopEmpty)
             : !selected.canTransact
                 ? selected.unavailableReason
                 : session.mode == RuntimeShopMode.sell
                     ? selected.ownedQuantity < session.quantity
-                        ? 'Quantité possédée insuffisante.'
+                        ? _feedback(.shopInsufficientQuantity)
                         : null
                     : purchaseFailure == null
                         ? null
-                        : _shopFailureMessage(purchaseFailure);
+                        : _feedback(_shopFailureFeedback(purchaseFailure));
     return RuntimeWorldServiceSnapshot(
       revision: (_worldServiceSnapshot?.revision ?? -1) + 1,
       request: session.request.worldRequest!,
@@ -2992,8 +3017,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           RuntimeWorldServiceActionAvailability.disabled(
             RuntimeWorldServiceAction.select,
             reason: session.mode == RuntimeShopMode.sell
-                ? 'Le sac est vide.'
-                : 'Cette boutique est vide.',
+                ? _feedback(.shopBagEmpty)
+                : _feedback(.shopEmpty),
           )
         else
           const RuntimeWorldServiceActionAvailability.enabled(
@@ -3006,7 +3031,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         else
           RuntimeWorldServiceActionAvailability.disabled(
             RuntimeWorldServiceAction.decreaseQuantity,
-            reason: 'La quantité minimale est 1.',
+            reason: _feedback(.shopMinimumQuantity),
           ),
         if (selected != null &&
             session.quantity < _maximumShopQuantity(session))
@@ -3016,7 +3041,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         else
           RuntimeWorldServiceActionAvailability.disabled(
             RuntimeWorldServiceAction.increaseQuantity,
-            reason: 'Quantité maximale atteinte.',
+            reason: _feedback(.shopMaximumQuantity),
           ),
         if (canTransact)
           const RuntimeWorldServiceActionAvailability.enabled(
@@ -3027,8 +3052,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             RuntimeWorldServiceAction.confirm,
             reason: confirmReason ??
                 (session.mode == RuntimeShopMode.sell
-                    ? 'Vente indisponible.'
-                    : 'Achat indisponible.'),
+                    ? _feedback(.shopSaleUnavailable)
+                    : _feedback(.shopPurchaseUnavailable)),
           ),
         const RuntimeWorldServiceActionAvailability.enabled(
           RuntimeWorldServiceAction.close,
@@ -3045,7 +3070,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         final capacityFailure = bagCapacity.pockets.isNotEmpty &&
                 _previewShopPurchase(session, entry.itemId, 1).failure ==
                     ShopPurchaseFailure.bagFull
-            ? _shopFailureMessage(ShopPurchaseFailure.bagFull)
+            ? _feedback(_shopFailureFeedback(ShopPurchaseFailure.bagFull))
             : null;
         return RuntimeShopEntrySnapshot(
           itemId: entry.itemId,
@@ -3069,7 +3094,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
               session.request.shop.sellPolicy == ShopSellPolicy.catalogPrices
               ? session.itemCatalog.definitionFor(bagEntry.itemId)?.sellPrice
               : shopEntry?.sellPrice;
-          final unavailableReason = _shopSaleUnavailableReason(
+          final unavailable = _shopSaleUnavailableFeedback(
             bagEntry: bagEntry,
             sellPrice: sellPrice,
             itemCatalog: session.itemCatalog,
@@ -3079,8 +3104,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             label: _shopItemLabel(bagEntry.itemId),
             unitPrice: sellPrice ?? 0,
             ownedQuantity: bagEntry.quantity,
-            canTransact: unavailableReason == null,
-            unavailableReason: unavailableReason,
+            canTransact: unavailable == null,
+            unavailableReason: unavailable == null ? null : _feedback(unavailable),
           );
         })
         .toList(growable: false);
@@ -3268,6 +3293,7 @@ final class _ContextualHealSession {
   GameState? pendingState;
   GameState gameState;
   bool wasHealed = false;
+  RuntimeServiceFeedback? feedback;
   Object? failure;
 }
 
@@ -3304,42 +3330,42 @@ final class _PcTransferTarget {
   final String? boxId;
 }
 
-String _shopFailureMessage(ShopPurchaseFailure failure) => switch (failure) {
-  ShopPurchaseFailure.invalidRequest => 'Achat invalide.',
-  ShopPurchaseFailure.unknownItem => 'Objet inconnu.',
-  ShopPurchaseFailure.insufficientFunds => 'Fonds insuffisants.',
-  ShopPurchaseFailure.outOfStock => 'Stock insuffisant.',
+RuntimeServiceFeedback _shopFailureFeedback(ShopPurchaseFailure failure) => switch (failure) {
+  ShopPurchaseFailure.invalidRequest => RuntimeServiceFeedback.shopPurchaseInvalid,
+  ShopPurchaseFailure.unknownItem => RuntimeServiceFeedback.shopItemUnknown,
+  ShopPurchaseFailure.insufficientFunds => RuntimeServiceFeedback.shopFundsInsufficient,
+  ShopPurchaseFailure.outOfStock => RuntimeServiceFeedback.shopStockInsufficient,
   ShopPurchaseFailure.ownershipLimit =>
-    'La quantité maximale possédée est atteinte.',
+    RuntimeServiceFeedback.shopOwnedLimit,
   ShopPurchaseFailure.bagFull =>
-    'Le sac est plein pour cet achat. Libérez de la place avant de réessayer.',
-  ShopPurchaseFailure.shopClosed => 'Cette boutique est fermée.',
+    RuntimeServiceFeedback.shopBagFull,
+  ShopPurchaseFailure.shopClosed => RuntimeServiceFeedback.shopClosed,
   ShopPurchaseFailure.shopStateChanged =>
-    'La boutique a changé. Le catalogue a été actualisé.',
+    RuntimeServiceFeedback.shopStateChanged,
 };
 
-String _shopSaleFailureMessage(ShopSaleFailure failure) => switch (failure) {
-      ShopSaleFailure.invalidRequest => 'Vente invalide.',
-      ShopSaleFailure.unknownItem => 'Objet inconnu.',
-      ShopSaleFailure.insufficientQuantity => 'Quantité possédée insuffisante.',
-      ShopSaleFailure.unsellable => 'Cet objet ne peut pas être vendu.',
-      ShopSaleFailure.keyItem => 'Les objets importants sont invendables.',
-      ShopSaleFailure.shopClosed => 'Cette boutique est fermée.',
+RuntimeServiceFeedback _shopSaleFailureFeedback(ShopSaleFailure failure) => switch (failure) {
+      ShopSaleFailure.invalidRequest => RuntimeServiceFeedback.shopSaleInvalid,
+      ShopSaleFailure.unknownItem => RuntimeServiceFeedback.shopItemUnknown,
+      ShopSaleFailure.insufficientQuantity => RuntimeServiceFeedback.shopInsufficientQuantity,
+      ShopSaleFailure.unsellable => RuntimeServiceFeedback.shopItemUnsellable,
+      ShopSaleFailure.keyItem => RuntimeServiceFeedback.shopItemImportant,
+      ShopSaleFailure.shopClosed => RuntimeServiceFeedback.shopClosed,
       ShopSaleFailure.shopStateChanged =>
-        'La boutique a changé. Le catalogue a été actualisé.',
+        RuntimeServiceFeedback.shopStateChanged,
     };
 
-String? _shopSaleUnavailableReason({
+RuntimeServiceFeedback? _shopSaleUnavailableFeedback({
   required BagEntry bagEntry,
   required int? sellPrice,
   required ItemCatalogSnapshot itemCatalog,
 }) {
   if (itemCatalog.definitionFor(bagEntry.itemId)?.tags.contains('key-item') ??
       false) {
-    return 'Les objets importants sont invendables.';
+    return RuntimeServiceFeedback.shopItemImportant;
   }
   if (sellPrice == null || sellPrice <= 0) {
-    return 'Cette boutique ne reprend pas cet objet.';
+    return RuntimeServiceFeedback.shopItemNotAccepted;
   }
   return null;
 }
@@ -3360,16 +3386,16 @@ String _pokemonDisplayLabel(PlayerPokemon pokemon) {
       : nickname;
 }
 
-String _pcFailureMessage(PlayerStorageFailure failure) => switch (failure) {
-      PlayerStorageFailure.invalidRequest => 'Opération PC invalide.',
-      PlayerStorageFailure.invalidPartyIndex => 'Slot d’équipe invalide.',
-      PlayerStorageFailure.invalidBoxId => 'Box inconnue.',
-      PlayerStorageFailure.invalidBoxIndex => 'Slot de box invalide.',
-      PlayerStorageFailure.partyFull => 'L’équipe est pleine.',
-      PlayerStorageFailure.boxFull => 'Cette box est pleine.',
-      PlayerStorageFailure.storageFull => 'Le PC est plein.',
+RuntimeServiceFeedback _pcFailureFeedback(PlayerStorageFailure failure) => switch (failure) {
+      PlayerStorageFailure.invalidRequest => RuntimeServiceFeedback.pcOperationInvalid,
+      PlayerStorageFailure.invalidPartyIndex => RuntimeServiceFeedback.pcPartySlotInvalid,
+      PlayerStorageFailure.invalidBoxId => RuntimeServiceFeedback.pcBoxUnknown,
+      PlayerStorageFailure.invalidBoxIndex => RuntimeServiceFeedback.pcBoxSlotInvalid,
+      PlayerStorageFailure.partyFull => RuntimeServiceFeedback.pcPartyFull,
+      PlayerStorageFailure.boxFull => RuntimeServiceFeedback.pcBoxFull,
+      PlayerStorageFailure.storageFull => RuntimeServiceFeedback.pcFull,
       PlayerStorageFailure.lastUsablePokemon =>
-        'Impossible de déposer le dernier Pokémon utilisable.',
+        RuntimeServiceFeedback.pcLastUsablePokemon,
     };
 
 int? _partyIndexFromTarget(GameState state, String targetId) {
@@ -3388,24 +3414,24 @@ int? _partyIndexFromTarget(GameState state, String targetId) {
   return int.tryParse(targetId.substring(prefix.length));
 }
 
-String _bagItemFailureMessage(PlayerItemUseFailure failure) =>
+RuntimeServiceFeedback _bagItemFailureFeedback(PlayerItemUseFailure failure) =>
     switch (failure) {
       PlayerItemUseFailure.invalidRequest ||
       PlayerItemUseFailure.invalidTarget =>
-        'Cette cible n’est plus disponible.',
+        RuntimeServiceFeedback.targetUnavailable,
       PlayerItemUseFailure.unknownDefinition =>
-        'La définition de cet objet est absente ou invalide.',
+        RuntimeServiceFeedback.bagItemDefinitionInvalid,
       PlayerItemUseFailure.insufficientQuantity =>
-        'Vous ne possédez plus cet objet.',
+        RuntimeServiceFeedback.bagItemMissing,
       PlayerItemUseFailure.wrongTarget =>
-        'Cet objet ne convient pas à cette cible.',
-      PlayerItemUseFailure.noEffect => 'Cet objet n’aurait aucun effet.',
+        RuntimeServiceFeedback.bagItemWrongTarget,
+      PlayerItemUseFailure.noEffect => RuntimeServiceFeedback.bagItemNoEffect,
       PlayerItemUseFailure.unavailableInContext =>
-        'Cet objet ne peut pas être utilisé ici.',
+        RuntimeServiceFeedback.bagItemCannotUse,
       PlayerItemUseFailure.unsupportedCapability =>
-        'Cette capacité d’objet n’est pas encore prise en charge.',
+        RuntimeServiceFeedback.bagItemUnsupported,
       PlayerItemUseFailure.protectedKeyItem =>
-        'Cet objet important ne peut pas être consommé.',
+        RuntimeServiceFeedback.bagKeyItemProtected,
     };
 
 /// Resolves the real HP and PP caps needed by Bag and healing screens.

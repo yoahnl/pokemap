@@ -1,7 +1,9 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../player/runtime_player_feedback.dart';
 import 'dialogue_runtime_models.dart';
+import 'field_move_dialogue.dart';
 
 final class RuntimeFieldTraversalInteraction {
   const RuntimeFieldTraversalInteraction(this.session, this.ticket);
@@ -17,22 +19,15 @@ RuntimeFieldTraversalInteraction? prepareFieldTraversalInteraction({
   required String zoneId,
   GameplayWorldState? world,
   ProjectManifest? project,
+  RuntimeOverworldFeedbackFormatter feedback = fallbackRuntimeOverworldFeedback,
 }) {
   final configuration = switch (kind) {
-    FieldActionZoneKind.waterfall => (
-      FieldAbility.waterfall,
-      'Cascade',
-      'WaterfallZone',
-    ),
-    FieldActionZoneKind.whirlpool => (
-      FieldAbility.whirlpool,
-      'Tourbillon',
-      'WhirlpoolZone',
-    ),
+    FieldActionZoneKind.waterfall => (FieldAbility.waterfall, 'WaterfallZone'),
+    FieldActionZoneKind.whirlpool => (FieldAbility.whirlpool, 'WhirlpoolZone'),
     _ => null,
   };
   if (configuration == null) return null;
-  final (ability, name, nodeName) = configuration;
+  final (ability, nodeName) = configuration;
   final evaluation = evaluateFieldTraversalAttempt(
     ability: ability,
     kind: kind,
@@ -42,11 +37,11 @@ RuntimeFieldTraversalInteraction? prepareFieldTraversalInteraction({
     world: world,
     project: project,
   );
-  final String text;
-  FieldTraversalActionTicket? ticket;
   final reason = evaluation.reason;
+  final text = fieldTraversalDialogueMessage(ability, reason, feedback);
+  if (text == null) return null;
+  FieldTraversalActionTicket? ticket;
   if (reason == null) {
-    text = 'Voulez-vous utiliser $name pour traverser ce passage ?';
     final fieldAction = FieldActionTicket(
       ability: ability,
       targetCell: gameState.playerPosition,
@@ -60,23 +55,6 @@ RuntimeFieldTraversalInteraction? prepareFieldTraversalInteraction({
       entryState: gameState,
       instance: instance,
     );
-  } else {
-    text = switch (reason) {
-      FieldTraversalBlockReason.missingMove =>
-        'Un Pokémon apte à utiliser $name est nécessaire.',
-      FieldTraversalBlockReason.locked =>
-        'Vous n’avez pas encore l’autorisation d’utiliser $name.',
-      FieldTraversalBlockReason.requiresSurf =>
-        'Vous devez utiliser Surf avant de traverser ce passage.',
-      FieldTraversalBlockReason.wrongDirection =>
-        'Placez-vous dans le sens du passage pour le traverser.',
-      FieldTraversalBlockReason.obstructed =>
-        'Le passage ou sa sortie est occupé.',
-      FieldTraversalBlockReason.requiresWater =>
-        'Le passage de Tourbillon doit se trouver sur l’eau.',
-      _ => '',
-    };
-    if (text.isEmpty) return null;
   }
   final node = YarnNode(
     title: nodeName,
@@ -86,12 +64,12 @@ RuntimeFieldTraversalInteraction? prepareFieldTraversalInteraction({
         YarnStepChoiceBlock(
           [
             YarnChoice(
-              text: 'Oui',
+              text: feedback(.yes),
               steps: const [],
               outcomeId: '${kind.name}-confirmed',
             ),
             YarnChoice(
-              text: 'Non',
+              text: feedback(.no),
               steps: const [],
               outcomeId: '${kind.name}-declined',
             ),

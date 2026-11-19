@@ -618,6 +618,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
       if (zone == null) return;
       final kind = zone.fieldAction!.actionKind;
       final prepared = prepareFieldTraversalInteraction(
+        feedback: _overworldFeedback,
         kind: kind,
         map: _world.map,
         gameState: _gameState,
@@ -635,7 +636,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
             _traverseFieldTerrain(prepared.ticket!).then((completed) {
               if (!completed && !_isRemoved) {
                 _showNotification(
-                  'La traversée n’est plus disponible.',
+                  _overworldFeedback(.fieldCrossingUnavailable),
                 );
               }
             }),
@@ -647,6 +648,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
     final flashZoneId = interaction.flashZoneId;
     if (flashZoneId != null) {
       final prepared = prepareFlashInteraction(
+        feedback: _overworldFeedback,
         projectSettings: _bundle.manifest.settings,
         map: _world.map, gameState: _gameState,
         stateRevision: _gameStateRevision, zoneId: flashZoneId);
@@ -657,12 +659,12 @@ extension _PlayableMapInteractions on PlayableMapGame {
           outcomeId: outcome, map: _world.map,
           gameState: _gameState, currentStateRevision: _gameStateRevision);
         if (result is FlashRefused) {
-          _showNotification('Cette action n’est plus disponible.');
+          _showNotification(_overworldFeedback(.fieldActionChanged));
         } else if (result is FlashApplied) {
           _replaceLogicalMapInstances(result.gameState.mapInstanceWorldState);
           _gameStateRevision += 1;
           unawaited(projectAudio?.play(ProjectSoundCue.fieldFlash));
-          _showNotification('Votre Pokémon utilise Flash ! Cette zone est éclairée.');
+          _showNotification(_overworldFeedback(.fieldFlashUsed));
           _publishOverworldInteractions();
         }
       });
@@ -683,6 +685,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
         return;
       }
       final prepared = prepareFieldObstacleInteraction(
+        feedback: _overworldFeedback,
         projectSettings: _bundle.manifest.settings,
         map: _world.map,
         gameState: _gameState,
@@ -761,7 +764,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
       collisionWorld: _world,
     );
     if (decision is FieldObstacleRefused) {
-      _showNotification('Cette action n’est plus disponible.');
+      _showNotification(_overworldFeedback(.fieldActionChanged));
       return;
     }
     if (decision is! FieldObstacleApplied) return;
@@ -780,9 +783,9 @@ extension _PlayableMapInteractions on PlayableMapGame {
       ));
     }
     _showNotification(switch (ability) {
-      FieldAbility.cut => 'Votre Pokémon utilise Coupe !',
-      FieldAbility.strength => 'Force est active sur cette carte. Avancez vers un rocher pour le pousser.',
-      FieldAbility.rockSmash => 'Votre Pokémon utilise Éclate-Roc !',
+      FieldAbility.cut => _overworldFeedback(.fieldCutUsed),
+      FieldAbility.strength => _overworldFeedback(.fieldStrengthActive),
+      FieldAbility.rockSmash => _overworldFeedback(.fieldRockSmashUsed),
       _ => throw StateError('Unsupported field obstacle ability.'),
     });
     _publishOverworldInteractions();

@@ -29,6 +29,7 @@ extension _PlayableMapDive on PlayableMapGame {
         ? null
         : _projectMovingPlatformBundle(target, state);
     final prepared = prepareDiveInteraction(
+      feedback: _overworldFeedback,
       sourceMap: source,
       targetMap: projected?.map,
       gameState: state,
@@ -46,7 +47,7 @@ extension _PlayableMapDive on PlayableMapGame {
         unawaited(
           _transferDive(prepared.ticket!).then((completed) {
             if (!completed && !_isRemoved) {
-              _showNotification('Le passage de Plongée n’est plus disponible.');
+              _showNotification(_overworldFeedback(.fieldDivePassageUnavailable));
             }
           }),
         );

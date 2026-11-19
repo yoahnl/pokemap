@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../player/runtime_player_feedback.dart';
 import 'dialogue_runtime_models.dart';
 
 final class RuntimeDiveInteraction {
@@ -17,6 +18,7 @@ RuntimeDiveInteraction prepareDiveInteraction({
   required String zoneId,
   ProjectManifest? project,
   GameplayWorldState? world,
+  RuntimeOverworldFeedbackFormatter feedback = fallbackRuntimeOverworldFeedback,
 }) {
   final evaluation = evaluateDiveAttempt(
     sourceMap: sourceMap,
@@ -37,21 +39,17 @@ RuntimeDiveInteraction prepareDiveInteraction({
       issuedAtStateRevision: stateRevision,
     );
     text = evaluation.arrivalMovementMode == MovementMode.dive
-        ? 'Voulez-vous utiliser Plongée pour descendre sous l’eau ?'
-        : 'Voulez-vous utiliser Plongée pour remonter à la surface ?';
+        ? feedback(.fieldDiveConfirmDown)
+        : feedback(.fieldDiveConfirmUp);
   } else {
     ticket = null;
     text = switch ((evaluation as DiveUnavailable).reason) {
-      DiveBlockReason.disabled => 'Plongée est désactivée dans ce projet.',
-      DiveBlockReason.missingMove =>
-        'Un Pokémon apte à utiliser Plongée est nécessaire.',
-      DiveBlockReason.locked =>
-        'Vous n’avez pas encore l’autorisation d’utiliser Plongée.',
-      DiveBlockReason.wrongMode =>
-        'Utilisez Surf pour plonger depuis la surface.',
-      DiveBlockReason.obstructed =>
-        'L’arrivée ou le point de retour de Plongée est occupé.',
-      _ => 'Ce point de Plongée n’est pas relié à une arrivée disponible.',
+      DiveBlockReason.disabled => feedback(.fieldDiveDisabled),
+      DiveBlockReason.missingMove => feedback(.fieldDiveMoveMissing),
+      DiveBlockReason.locked => feedback(.fieldDiveMoveLocked),
+      DiveBlockReason.wrongMode => feedback(.fieldDiveSurfRequired),
+      DiveBlockReason.obstructed => feedback(.fieldDiveObstructed),
+      _ => feedback(.fieldDiveDestinationUnavailable),
     };
   }
   final node = YarnNode(
@@ -62,12 +60,12 @@ RuntimeDiveInteraction prepareDiveInteraction({
         YarnStepChoiceBlock(
           [
             YarnChoice(
-              text: 'Oui',
+              text: feedback(.yes),
               steps: const [],
               outcomeId: 'dive-confirmed',
             ),
             YarnChoice(
-              text: 'Non',
+              text: feedback(.no),
               steps: const [],
               outcomeId: 'dive-declined',
             ),

@@ -37,6 +37,37 @@ void main() {
     expect(harness.snapshot.value.pauseSection, RuntimePlayerPauseSection.root);
   });
 
+  testWidgets('an existing save receipt follows the Player locale', (
+    tester,
+  ) async {
+    final harness = _Harness();
+    await _pump(tester, harness);
+    await _openSave(tester);
+    harness.succeed();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Partie sauvegardée'), findsOneWidget);
+    final receipt = harness.snapshot.value.saveReceipt;
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        supportedLocales: app.supportedLocales,
+        localizationsDelegates: app.localizationsDelegates,
+        theme: app.theme,
+        home: app.home,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Game saved — profile “yoahn”, slot “slot-2”.'),
+      findsOneWidget,
+    );
+    expect(harness.snapshot.value.saveReceipt, same(receipt));
+    expect(harness.actions, [RuntimePlayerAction.save]);
+  });
+
   testWidgets('failed direct save stays on the menu and retries on request', (
     tester,
   ) async {

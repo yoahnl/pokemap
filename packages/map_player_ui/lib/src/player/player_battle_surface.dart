@@ -2616,7 +2616,7 @@ class _BattleDockEntries extends StatelessWidget {
           data.commands.first;
       final info = _BattleFooterButton(
         key: const ValueKey('battle-move-info'),
-        label: 'Infos',
+        label: context.playerL10n.battleMoveInfo,
         compactPaint: sidePanel,
         icon: Icons.info_outline_rounded,
         leadingAccent: true,

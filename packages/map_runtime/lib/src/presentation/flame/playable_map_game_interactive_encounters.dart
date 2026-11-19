@@ -23,14 +23,14 @@ extension _PlayableMapInteractiveEncounters on PlayableMapGame {
     if (!evaluation.isReady) {
       _showNotification(switch (evaluation.reason) {
         InteractiveEncounterBlockReason.missingMove =>
-          'Un Pokémon apte à utiliser Coud’Boule est nécessaire.',
+          _overworldFeedback(.headbuttMoveMissing),
         InteractiveEncounterBlockReason.alreadyConsumed =>
-          'Cet arbre ne cache plus de Pokémon pour le moment.',
+          _overworldFeedback(.headbuttTreeConsumed),
         InteractiveEncounterBlockReason.unavailableContext =>
-          'Placez-vous à pied devant cet arbre pour utiliser Coud’Boule.',
+          _overworldFeedback(.headbuttWrongPosition),
         InteractiveEncounterBlockReason.unsupportedMap =>
-          'Les rencontres sur un objet sont disponibles sur les cartes 2D.',
-        _ => 'Cet arbre ne permet pas de rencontre pour le moment.',
+          _overworldFeedback(.headbuttMapUnsupported),
+        _ => _overworldFeedback(.headbuttUnavailable),
       });
       return;
     }
@@ -40,16 +40,16 @@ extension _PlayableMapInteractiveEncounters on PlayableMapGame {
       YarnNode(
         title: 'Headbutt',
         steps: [
-          YarnStepLine('Voulez-vous utiliser Coud’Boule sur cet arbre ?'),
+          YarnStepLine(_overworldFeedback(.headbuttConfirm)),
           YarnStepChoiceBlock(
             [
               YarnChoice(
-                text: 'Oui',
+                text: _overworldFeedback(.yes),
                 steps: [],
                 outcomeId: 'headbutt-confirmed',
               ),
               YarnChoice(
-                text: 'Non',
+                text: _overworldFeedback(.no),
                 steps: [],
                 outcomeId: 'headbutt-declined',
               ),
@@ -134,8 +134,8 @@ extension _PlayableMapInteractiveEncounters on PlayableMapGame {
     if (encounter == null) {
       _showNotification(
         result.reason == null
-            ? 'Aucun Pokémon ne se manifeste…'
-            : 'Cette rencontre n’est plus disponible.',
+            ? _overworldFeedback(.interactiveEncounterEmpty)
+            : _overworldFeedback(.interactiveEncounterUnavailable),
       );
       return;
     }

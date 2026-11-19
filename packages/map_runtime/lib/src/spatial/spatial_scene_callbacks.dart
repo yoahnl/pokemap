@@ -12,6 +12,7 @@ import '../application/scene_runtime/scene_trainer_defeated_condition.dart';
 import '../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../application/scene_runtime/scene_interactive_pokemon_gift.dart';
 import '../application/scene_runtime/scene_interactive_text_input.dart';
+import '../player/runtime_player_feedback.dart';
 
 final class SpatialSceneCallbacks
     implements SceneDialogueRuntimeLauncher, SceneBattleRuntimeLauncher {
@@ -28,6 +29,7 @@ final class SpatialSceneCallbacks
     this.presentPokemonGift,
     this.presentTextInput,
     this.presentPlayerAvatar,
+    this.feedback = fallbackRuntimeOverworldFeedback,
     this.partyConditionContext = const ScenePartyConditionContext.unavailable(),
   });
 
@@ -35,6 +37,7 @@ final class SpatialSceneCallbacks
   final SceneTextInputPresenter? presentTextInput;
   final Future<void> Function(String?)? presentPlayerAvatar;
   final ScenePartyConditionContext partyConditionContext;
+  final RuntimeOverworldFeedbackFormatter feedback;
   final RuntimePeriodicRewardContext? periodicRewardContext;
   final PeriodicRewardSceneLookup? lookupRewardScenes;
   final ProjectManifest project;
@@ -86,10 +89,11 @@ final class SpatialSceneCallbacks
     if (source.sourceKind == SceneConditionSourceKind.periodicRewardAvailable ||
         source.sourceKind == SceneConditionSourceKind.civilWeekday) {
       final context = periodicRewardContext;
-      if (context == null)
-        throw const SceneRuntimeConditionUnavailable(
-          'Le calendrier de cette récompense est indisponible. Rouvrez le jeu puis réessayez.',
+      if (context == null) {
+        throw SceneRuntimeConditionUnavailable(
+          feedback(.sceneRewardCalendarUnavailable),
         );
+      }
       return context.evaluateScene(
         source: source,
         gameState: state,

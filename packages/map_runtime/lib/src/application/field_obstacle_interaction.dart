@@ -1,7 +1,9 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../player/runtime_player_feedback.dart';
 import 'dialogue_runtime_models.dart';
+import 'field_move_dialogue.dart';
 
 final class RuntimeFieldObstacleInteraction {
   const RuntimeFieldObstacleInteraction._({required this.session, this.ticket});
@@ -43,6 +45,7 @@ RuntimeFieldObstacleInteraction? prepareFieldObstacleInteraction({
   required int stateRevision,
   required String entityId,
   ProjectSettings? projectSettings,
+  RuntimeOverworldFeedbackFormatter feedback = fallbackRuntimeOverworldFeedback,
 }) {
   final evaluation = evaluateFieldObstacleAttempt(
     map: map,
@@ -60,13 +63,6 @@ RuntimeFieldObstacleInteraction? prepareFieldObstacleInteraction({
       .fieldObstacle!
       .ability;
   if (ability == null) return null;
-  final name = switch (ability) {
-    FieldAbility.cut => 'Coupe',
-    FieldAbility.strength => 'Force',
-    FieldAbility.rockSmash => 'Éclate-Roc',
-    _ => throw StateError('Unsupported obstacle ability.'),
-  };
-  final object = ability == FieldAbility.cut ? 'Cet arbre' : 'Ce rocher';
   final String text;
   FieldObstacleTicket? ticket;
   switch (evaluation) {
@@ -75,15 +71,10 @@ RuntimeFieldObstacleInteraction? prepareFieldObstacleInteraction({
           gameState.mapInstanceWorldState.isStrengthActive(
             gameState.mapInstanceWorldState.instanceRef(map.id)!,
           )) {
-        text = 'Force est active. Avancez vers ce rocher pour le pousser.';
+        text = feedback(.fieldObstacleStrengthReady);
         break;
       }
-      text =
-          '$object peut ${ability == FieldAbility.cut
-              ? 'être coupé'
-              : ability == FieldAbility.strength
-              ? 'être poussé'
-              : 'être brisé'}. Voulez-vous utiliser $name ?';
+      text = fieldObstacleDialogueMessage(ability, null, feedback);
       final entity = map.entities.singleWhere(
         (entity) => entity.id == entityId,
       );
@@ -100,11 +91,9 @@ RuntimeFieldObstacleInteraction? prepareFieldObstacleInteraction({
         playerFacing: gameState.playerFacing,
       );
     case FieldObstacleUnavailable(reason: FieldObstacleBlockReason.missingMove):
-      text =
-          '$object bloque le passage. Un Pokémon apte à utiliser $name est nécessaire.';
+      text = fieldObstacleDialogueMessage(ability, .missingMove, feedback);
     case FieldObstacleUnavailable(reason: FieldObstacleBlockReason.locked):
-      text =
-          "Un Pokémon de votre équipe connaît $name, mais vous n’avez pas encore l’autorisation de l’utiliser.";
+      text = fieldObstacleDialogueMessage(ability, .locked, feedback);
     case FieldObstacleUnavailable():
       return null;
   }
@@ -116,12 +105,12 @@ RuntimeFieldObstacleInteraction? prepareFieldObstacleInteraction({
         YarnStepChoiceBlock(
           [
             YarnChoice(
-              text: 'Oui',
+              text: feedback(.yes),
               steps: const [],
               outcomeId: 'field-obstacle-confirmed',
             ),
             YarnChoice(
-              text: 'Non',
+              text: feedback(.no),
               steps: const [],
               outcomeId: 'field-obstacle-declined',
             ),

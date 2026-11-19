@@ -152,6 +152,38 @@ void main() {
     );
   });
 
+  testWidgets('native item feedback renders its item and quantity in both locales',
+      (tester) async {
+    final request = SceneInteractionRequest.message(
+      requestId: 'pickup',
+      revision: 0,
+      prompt: SceneInteractionPrompt(
+        localizationKey: 'overworld.item.received',
+        fallbackText: 'Obtenu : Potion × 3 !',
+        arguments: const {'item': 'Potion', 'quantity': '3'},
+      ),
+    );
+
+    await pump(tester, request, locale: const Locale('en'));
+    expect(find.text('Received 3 × Potion!'), findsOneWidget);
+
+    await pump(tester, request, locale: const Locale('fr'));
+    expect(find.text('Obtenu : Potion × 3 !'), findsOneWidget);
+  });
+
+  testWidgets('a legacy item prompt keeps its already formatted fallback',
+      (tester) async {
+    await pump(
+      tester,
+      confirmation(
+        'overworld.item.received',
+        fallbackText: 'Obtenu : Potion × 3 !',
+      ),
+      locale: const Locale('en'),
+    );
+    expect(find.text('Obtenu : Potion × 3 !'), findsOneWidget);
+  });
+
   group('le contenu authoré n’est jamais détourné', () {
     testWidgets('une réplique de dialogue reste celle de l’auteur',
         (tester) async {
@@ -203,7 +235,13 @@ void main() {
       for (final key in runtimeOwnedPromptKeys) {
         expect(
           key,
-          anyOf(startsWith('player.'), startsWith('scene.pre_session.')),
+          anyOf(
+            startsWith('player.'),
+            startsWith('scene.pre_session.'),
+            startsWith('overworld.'),
+            startsWith('pokemonGift.'),
+            startsWith('crafting.'),
+          ),
           reason: 'une clé produit est préfixée, une clé authorée est libre',
         );
       }

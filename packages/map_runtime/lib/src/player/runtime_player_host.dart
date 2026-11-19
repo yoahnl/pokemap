@@ -6,6 +6,7 @@ import '../presentation/flame/battle_motion_policy.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
 import 'runtime_audio_mixer.dart';
 import 'runtime_graphics_preferences.dart';
+import 'runtime_player_feedback.dart';
 import 'runtime_player_language_choice.dart';
 import 'runtime_world_time_preferences.dart';
 
@@ -52,22 +53,21 @@ enum PlayerSaveUnavailableReason {
 /// Un seul propriétaire de la langue : le host renvoie un code, le runtime le
 /// rend. C'est ce qui empêche deux moitiés de la même phrase d'être écrites dans
 /// deux langues par deux auteurs différents.
-String playerSaveUnavailableReasonText(PlayerSaveUnavailableReason reason) =>
-    switch (reason) {
-      PlayerSaveUnavailableReason.postGameContinuationRefused =>
-        'Cette fin n’autorise pas de reprise après la fin du jeu.',
-      PlayerSaveUnavailableReason.migrationRequired =>
-        'Cette sauvegarde doit être migrée avant de pouvoir être chargée.',
-      PlayerSaveUnavailableReason.incompatibleVersion =>
-        'Cette sauvegarde n’est pas compatible avec la version installée.',
-      PlayerSaveUnavailableReason.corrupt =>
-        'Cette sauvegarde est endommagée et n’a pas pu être récupérée depuis '
-            'sa copie de secours.',
-      PlayerSaveUnavailableReason.missing =>
-        'Aucune sauvegarde n’existe dans cet emplacement.',
-      PlayerSaveUnavailableReason.temporarilyUnavailable =>
-        'Cette sauvegarde est temporairement indisponible.',
-    };
+String playerSaveUnavailableReasonText(
+  PlayerSaveUnavailableReason reason, {
+  String locale = 'fr',
+  RuntimePlayerFeedbackLocalizer? localizer,
+}) {
+  final RuntimeNavigationFeedback feedback = switch (reason) {
+    .postGameContinuationRefused => .saveUnavailablePostGameContinuationRefused,
+    .migrationRequired => .saveUnavailableMigrationRequired,
+    .incompatibleVersion => .saveUnavailableIncompatibleVersion,
+    .corrupt => .saveUnavailableCorrupt,
+    .missing => .saveUnavailableMissing,
+    .temporarilyUnavailable => .saveUnavailableTemporarilyUnavailable,
+  };
+  return feedback.resolve(localizer, locale);
+}
 
 /// Player-safe metadata for one save slot.
 ///

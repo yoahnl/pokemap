@@ -229,9 +229,11 @@ final class WaitTrackedEffectsStep extends BattleAnimationStep {
 final class ShowMessageStep extends BattleAnimationStep {
   const ShowMessageStep({
     required this.message,
+    this.summaryMessage,
   });
 
   final String message;
+  final String? summaryMessage;
 }
 
 final class WaitStep extends BattleAnimationStep {

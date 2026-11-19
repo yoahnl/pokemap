@@ -17,6 +17,13 @@ const runtimeOwnedPromptKeys = <String>{
   'player.new_game.confirm_overwrite',
   'player.new_game.confirm_overwrite_unusable',
   'scene.pre_session.dialogue.choice',
+  'overworld.item.bagFull',
+  'overworld.item.received',
+  'crafting.unavailable',
+  'pokemonGift.received',
+  'pokemonGift.nicknamePrompt',
+  'pokemonGift.continue',
+  'pokemonGift.nickname',
 };
 
 /// L'invite dans la langue du joueur, ou `null` si le produit ne la possède
@@ -49,6 +56,28 @@ String? localizeRuntimePrompt(
       return l10n.confirmOverwriteUnusable(reason);
     case 'scene.pre_session.dialogue.choice':
       return l10n.dialogueChoicePrompt;
+    case 'overworld.item.bagFull':
+      return l10n.runtimeFeedbackOverworldBagFull;
+    case 'overworld.item.received':
+      final item = prompt.arguments['item'];
+      final quantity = int.tryParse(prompt.arguments['quantity'] ?? '');
+      if (item == null || quantity == null || quantity < 1) return null;
+      return l10n.runtimeFeedbackOverworldItemReceived(
+        item: item,
+        quantity: quantity,
+      );
+    case 'crafting.unavailable':
+      return l10n.runtimeFeedbackCraftInventoryBusy;
+    case 'pokemonGift.received':
+      return l10n.runtimeFeedbackGiftReceived;
+    case 'pokemonGift.nicknamePrompt':
+      return l10n.runtimeFeedbackGiftNicknamePrompt;
+    case 'pokemonGift.continue':
+      return l10n.continueGame;
+    case 'pokemonGift.nickname':
+      return prompt.arguments.containsKey('speciesId')
+          ? l10n.runtimeFeedbackGiftNicknamePrompt
+          : l10n.runtimeFeedbackGiftNicknameAction;
     default:
       return null;
   }

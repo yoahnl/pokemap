@@ -21,6 +21,8 @@ final class HubInProcessSessionFactory {
     this.resourceProfile = const RuntimeResourceProfile(),
     this.audioMixer,
     this.presentationCinematicPlayer,
+    this.feedbackLocalizer,
+    this.battleMessageFormatter,
     this.now,
     this.dimension = ProjectDimension.twoD,
     this.mountSpatialSession,
@@ -36,6 +38,8 @@ final class HubInProcessSessionFactory {
   final RuntimeResourceProfile resourceProfile;
   final RuntimeAudioMixer? audioMixer;
   final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
+  final RuntimePlayerFeedbackLocalizer? feedbackLocalizer;
+  final RuntimeBattleMessageFormatter? battleMessageFormatter;
   final DateTime Function()? now;
   final ProjectDimension dimension;
   final SpatialExplorationSessionMount? mountSpatialSession,
@@ -84,6 +88,8 @@ final class HubInProcessSessionFactory {
                   HubSessionCheckpointCommitter(store: saves).commit,
               mountSession: mount,
               audioMixer: audioMixer,
+              feedbackLocalizer: feedbackLocalizer,
+              battleMessageFormatter: battleMessageFormatter,
               unmountSession: unmount,
               preloadedInitialMap: preloadedInitialMap,
               now: now,
@@ -108,6 +114,8 @@ final class HubInProcessSessionFactory {
             resourceProfile: resourceProfile,
             audioMixer: audioMixer,
             presentationCinematicPlayer: presentationCinematicPlayer,
+            feedbackLocalizer: feedbackLocalizer,
+            battleMessageFormatter: battleMessageFormatter,
             now: now,
           ),
     );

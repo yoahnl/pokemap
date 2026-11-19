@@ -168,7 +168,9 @@ Future<ScenePokemonGiftPreparation> receiveScenePokemonFromCatalog({
         ? PokemonGiftInteractionStage.nickname
         : PokemonGiftInteractionStage.received;
     final prompt = SceneInteractionPrompt(
-      localizationKey: 'pokemonGift.${stage.name}',
+      localizationKey: nickname
+          ? 'pokemonGift.nicknamePrompt'
+          : 'pokemonGift.received',
       fallbackText: nickname
           ? 'Choisissez un surnom.'
           : 'Vous recevez un Pokémon !',

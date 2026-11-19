@@ -246,6 +246,7 @@ export 'src/application/npc_runtime_presence.dart'
 export 'src/application/runtime_battle_move_bridge.dart'
     show RuntimeBattleMoveBridge;
 export 'src/application/runtime_battle_presentation.dart';
+export 'src/presentation/runtime_battle_message.dart';
 export 'src/application/runtime_battle_move_bridge_diagnostics.dart'
     show RuntimeBattleMoveBridgeDiagnostics;
 export 'src/application/runtime_battle_setup_exception.dart'
@@ -684,6 +685,7 @@ export 'src/session/playable_map_game_session_runtime.dart';
 export 'src/session/spatial_exploration_game_session_runtime.dart';
 export 'src/session/player_input.dart';
 export 'src/player/runtime_player_host.dart';
+export 'src/player/runtime_player_feedback.dart';
 export 'src/player/runtime_player_language_choice.dart';
 export 'src/presentation/flame/battle_motion_policy.dart';
 export 'src/player/player_inventory_preferences_gateway.dart';

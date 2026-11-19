@@ -35,6 +35,8 @@ import '../application/scene_runtime/scene_wild_battle_request.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_pause_data_builder.dart';
 import '../player/runtime_player_host.dart';
+import '../player/runtime_player_feedback.dart';
+import '../presentation/runtime_battle_message.dart';
 import '../player/runtime_music_service.dart';
 import '../player/runtime_scene_music_controller.dart';
 import '../player/runtime_audio_mixer.dart';
@@ -100,6 +102,8 @@ final class SpatialExplorationGameSessionRuntime
     bool Function()? friendshipRoll,
     @visibleForTesting Random? encounterRandom,
     RuntimeAudioMixer? audioMixer,
+    this.feedbackLocalizer,
+    this.battleMessageFormatter,
     this.onCommittedMovement,
     @visibleForTesting this.projectAudio,
     @visibleForTesting FlameCinematicAudioDriver Function()? sceneAudioDriverFactory,
@@ -123,6 +127,8 @@ final class SpatialExplorationGameSessionRuntime
 
   final GameSessionDescriptor descriptor;
   final RuntimeGen5BattleSourceLoader? gen5BattleSourceLoader;
+  final RuntimePlayerFeedbackLocalizer? feedbackLocalizer;
+  final RuntimeBattleMessageFormatter? battleMessageFormatter;
   final RuntimeCommittedMovementSink? onCommittedMovement;
   int _committedMovementRevision = 0;
   final RuntimeAudioMixer _audioMixer;
@@ -429,7 +435,8 @@ final class SpatialExplorationGameSessionRuntime
           _syncGameState();
           _publishFrame();
         }
-      }));
+      }, uiLocale: _preferences?.locale ?? 'en',
+         feedbackLocalizer: feedbackLocalizer));
       return true;
     }
     if (request.actionId == 'field-traversal') {
@@ -439,7 +446,8 @@ final class SpatialExplorationGameSessionRuntime
       if (zone == null || !isFieldTraversalZone(zone)) return false;
       final ability = zone.fieldAction!.actionKind == FieldActionZoneKind.waterfall
           ? FieldAbility.waterfall : FieldAbility.whirlpool;
-      final interaction = prepareSpatialFieldTraversalInteraction(ability: ability,
+      final interaction = prepareSpatialFieldTraversalInteraction(
+          feedback: _overworldFeedback, ability: ability,
           map: session.bundle.map, gameState: initial, models: session.bundle.manifest.models3d,
           zoneId: zone.id, stateRevision: 0, projectSettings: session.bundle.manifest.settings,
           entityIsPresent: session.fieldObstacleIsPresent,
@@ -459,6 +467,7 @@ final class SpatialExplorationGameSessionRuntime
       final session = _session!;
       final initial = gameStateSnapshot;
       final interaction = prepareSpatialFieldObstacleInteraction(
+          feedback: _overworldFeedback,
           map: session.bundle.map, gameState: initial,
           models: session.bundle.manifest.models3d, entityId: request.targetId,
           x: session.movement.x, z: session.movement.z,
@@ -897,7 +906,13 @@ final class SpatialExplorationGameSessionRuntime
         maps: maps.values)) {
       return;
     }
+    final formatter = battleMessageFormatter;
+    String battleLocale() => _preferences?.locale ?? descriptor.locale;
     _battle = SpatialBattleRuntime(
+        displayLocale: battleLocale,
+        formatBattleMessage: formatter == null
+            ? null
+            : (message) => formatter(battleLocale(), message),
         worldNow: _worldNow,
         gen5BattleSourceLoader: gen5BattleSourceLoader,
         motionPolicy: _preferences?.battleMotion,
@@ -1050,6 +1065,7 @@ final class SpatialExplorationGameSessionRuntime
   SceneRuntimeHostCallbacks _createSceneCallbacks(
           GameState Function() read, void Function(GameState) commit) =>
       SpatialSceneCallbacks(
+    feedback: _overworldFeedback,
     presentPlayerAvatar: (id) async {
       _ensureGameplayActive();
       await _session!.presentPlayerAvatar(id);
@@ -1140,8 +1156,8 @@ final class SpatialExplorationGameSessionRuntime
                     OpenPokemonGiftInteractionService() => throw StateError('Pokemon gifts require the Scene presenter.'),
                     OpenTextInputService() || OpenSceneTextInteractionService() =>
                       Future<PlayerServiceRuntimeResult>.value(
-                        const PlayerServiceRuntimeResult.unavailable(
-                          'La saisie de texte en scène n’est pas disponible en 3D.',
+                        PlayerServiceRuntimeResult.unavailable(
+                          _overworldFeedback(.spatialSceneTextInputUnsupported),
                         ),
                       ),
                     OpenHealService() => openHealCenter(request: request),
@@ -1150,7 +1166,10 @@ final class SpatialExplorationGameSessionRuntime
                     OpenImagePuzzleService() => _openSceneImagePuzzle(request),
                     OpenPartyTradeService() => _playerServices!.openPartyTrade(request: request),
                     OpenRegionalMapService() => Future<PlayerServiceRuntimeResult>.value(
-                        const PlayerServiceRuntimeResult.unavailable('La carte régionale en scène n’est pas disponible en 3D.')),
+                        PlayerServiceRuntimeResult.unavailable(
+                          _overworldFeedback(.spatialSceneRegionalMapUnsupported),
+                        ),
+                      ),
                     OpenShopService(:final shopId) => openShop(
                         _session!.bundle.manifest.shops
                             .firstWhere((shop) => shop.id == shopId),
@@ -2229,6 +2248,7 @@ final class SpatialExplorationGameSessionRuntime
         itemCatalog: _bagItemCatalog,
         pokemonSpeciesLoader: pokemonSpeciesLoader,
         locale: descriptor.locale,
+        feedbackLocalizer: feedbackLocalizer,
         displayLocale: () => _preferences?.locale ?? descriptor.locale);
     services.setFishingConsumer(_reserveSpatialFishing);
     if (descriptor.grantedCapabilities.contains(OverworldItemCapabilities.spatialEscapeRopeCapabilityId)) {
@@ -2244,7 +2264,7 @@ final class SpatialExplorationGameSessionRuntime
                 _pendingContextualItemUse == null &&
                 !(_gameplay?.isBusy ?? false)
             ? null
-            : 'Une action est déjà en cours.');
+            : _serviceFeedback(.actionInProgress));
     _playerServices = services;
     _playerServiceSnapshots =
         services.worldServiceSnapshots.listen(_publishWorldService);
@@ -2271,13 +2291,37 @@ final class SpatialExplorationGameSessionRuntime
     final services = _playerServices;
     if (services == null) throw StateError('The native item presenter is unavailable.');
     final full = result.outcome == SpatialItemPickupOutcome.bagFull;
+    final quantity = entity.item!.quantity;
     final id = 'item-${_runtimeIds.generate(existingRecords: const []).substring(3)}';
-    await services.openSceneTextInteraction(request: OpenSceneTextInteractionService(
-      interactionId: id,
-      interaction: SceneMessageInteractionRequest(requestId: id, revision: 0,
-        prompt: SceneInteractionPrompt(localizationKey: full ? 'overworld.item.bagFull' : 'overworld.item.received',
-          fallbackText: full ? 'Le Sac est plein...' : 'Obtenu : $itemLabel × ${entity.item!.quantity} !'))));
+    await services.openSceneTextInteraction(
+      request: OpenSceneTextInteractionService(
+        interactionId: id,
+        interaction: SceneMessageInteractionRequest(
+          requestId: id,
+          revision: 0,
+          prompt: SceneInteractionPrompt(
+            localizationKey: full
+                ? 'overworld.item.bagFull'
+                : 'overworld.item.received',
+            fallbackText: full
+                ? 'Le Sac est plein...'
+                : 'Obtenu : $itemLabel × $quantity !',
+            arguments: full
+                ? const {}
+                : {'item': itemLabel, 'quantity': quantity.toString()},
+          ),
+        ),
+      ),
+    );
   }
+
+  String _serviceFeedback(RuntimeServiceFeedback feedback) =>
+      feedback.resolve(feedbackLocalizer, _preferences?.locale ?? 'en');
+
+  String _overworldFeedback(
+    RuntimeOverworldFeedback feedback, [
+    Map<String, Object> arguments = const {},
+  ]) => feedback.resolve(feedbackLocalizer, _preferences?.locale ?? 'en', arguments);
 
   NarrativeEventStateCheckpointOwner? _imagePuzzleCheckpointOwner;
   NarrativeRuntimeSceneCheckpointOwner? _imagePuzzleActivityOwner;
@@ -2285,7 +2329,11 @@ final class SpatialExplorationGameSessionRuntime
   Future<PlayerServiceRuntimeResult> _openSceneImagePuzzle(OpenImagePuzzleService request) async {
     final reader = _sceneStateReader;
     final owner = _gameplay?.activeSceneCheckpointOwner;
-    if (reader == null || owner == null || _sceneStateWriter == null) return const PlayerServiceRuntimeResult.unavailable('Ce puzzle nécessite une scène active.');
+    if (reader == null || owner == null || _sceneStateWriter == null) {
+      return PlayerServiceRuntimeResult.unavailable(
+        _overworldFeedback(.puzzleSceneRequired),
+      );
+    }
     if (!sameImagePuzzleCheckpointFields(reader(), _gameplay?.projectedSceneGameState ?? reader())) throw StateError('Pending Scene puzzle changes must finish before opening.');
     _imagePuzzleCheckpointOwner = owner;
     _imagePuzzleActivityOwner = _activityGate.captureSceneCheckpointOwner();
@@ -2368,14 +2416,20 @@ final class SpatialExplorationGameSessionRuntime
   Future<PlayerServiceRuntimeResult> _openSceneCrafting(OpenCraftingService request) async {
     final reader = _sceneStateReader;
     final owner = _gameplay?.activeSceneCheckpointOwner;
-    if (reader == null || owner == null || _sceneStateWriter == null) return const PlayerServiceRuntimeResult.unavailable('Cet atelier nécessite une scène active.');
+    if (reader == null || owner == null || _sceneStateWriter == null) {
+      return PlayerServiceRuntimeResult.unavailable(
+        _serviceFeedback(.craftSceneRequired),
+      );
+    }
     final projected = _gameplay?.projectedSceneGameState ?? reader();
     if (!sameDeferredCraftingCheckpointFields(reader(), projected)) {
       const message = 'Votre sac est en cours de modification. Terminez cette interaction puis réessayez.';
       final id = 'crafting-unavailable:${request.interactionId}';
       await _playerServices!.openSceneTextInteraction(request: OpenSceneTextInteractionService(interactionId: id,
           interaction: SceneMessageInteractionRequest(requestId: id, revision: 0, prompt: SceneInteractionPrompt(localizationKey: 'crafting.unavailable', fallbackText: message))));
-      return const PlayerServiceRuntimeResult.unavailable(message);
+      return PlayerServiceRuntimeResult.unavailable(
+        _serviceFeedback(.craftInventoryBusy),
+      );
     }
     _craftingCheckpointOwner = owner;
     _craftingActivityOwner = _activityGate.captureSceneCheckpointOwner();
@@ -2457,7 +2511,7 @@ final class SpatialExplorationGameSessionRuntime
     if (_disposed || _stopped || services == null) {
       return Future.value(RuntimeWorldServiceCommandResult(
           status: RuntimeWorldServiceCommandStatus.unavailable,
-          safeMessage: RuntimeSessionStrings.forLocale(descriptor.locale)
+          safeMessage: RuntimeSessionStrings.forLocale(_preferences?.locale ?? descriptor.locale)
               .noWorldService));
     }
     return services.dispatchWorldService(command);
@@ -2474,7 +2528,7 @@ final class SpatialExplorationGameSessionRuntime
         services == null) {
       return RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: RuntimeSessionStrings.forLocale(descriptor.locale)
+          safeMessage: RuntimeSessionStrings.forLocale(_preferences?.locale ?? descriptor.locale)
               .bagUnavailable);
     }
     _pauseCommandInFlight = true;
@@ -2487,7 +2541,10 @@ final class SpatialExplorationGameSessionRuntime
           _pendingContactId = contactId;
           return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.accepted, safeMessage: '', resumeGameplay: true);
         } on StateError {
-          return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable, safeMessage: 'Contact indisponible.');
+          return RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.unavailable,
+            safeMessage: _overworldFeedback(.contactUnavailable),
+          );
         }
       }
       return await switch (command.kind) {

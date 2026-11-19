@@ -128,13 +128,27 @@ void main() {
       'native Headbutt $answer validates and consumes no state before preparation',
       (tester) async {
         await tester.runAsync(() async {
-          final fixture = await mountInteractive(tester, chance: 0);
+          final fixture = await mountInteractive(
+            tester,
+            chance: 0,
+            feedbackLocalizer: (locale, key, _) => switch (key) {
+              RuntimeOverworldFeedback.yes => 'Yes',
+              RuntimeOverworldFeedback.no => 'No',
+              _ => null,
+            },
+          );
           final game = fixture.game;
           final request =
               game.overworldInteractionSnapshot.primaryAction!.request;
           expect(game.dispatchOverworldInteraction(request), isTrue);
           await settle(game);
           await press(game, RuntimeInputControl.primary);
+          expect(
+            game.dialoguePresentationListenable.value!.choices.map(
+              (choice) => choice.label,
+            ),
+            ['Yes', 'No'],
+          );
           if (answer == 'no') await press(game, RuntimeInputControl.down);
           if (answer == 'stale') game.setPlayerMovementMode(MovementMode.surf);
           await press(
@@ -359,6 +373,7 @@ Future<({PlayableMapGame game, EncounterRandom random})> mountInteractive(
   int repelSteps = 0,
   bool withRepelCatalog = false,
   MemorySave? repository,
+  RuntimePlayerFeedbackLocalizer? feedbackLocalizer,
 }) async {
   final root = await Directory.systemTemp.createTemp('runtime-interactive-');
   addTearDown(() => root.delete(recursive: true));
@@ -653,6 +668,7 @@ Future<({PlayableMapGame game, EncounterRandom random})> mountInteractive(
     projectFilePath: '${root.path}/project.json',
     saveData: saveDataFromGameState(state),
     saveRepository: repository ?? MemorySave(),
+    feedbackLocalizer: feedbackLocalizer,
     initialMapActivationReason: restored == null
         ? MapActivationReason.initialBoot
         : MapActivationReason.saveRestore,
