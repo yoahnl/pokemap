@@ -145,6 +145,7 @@ extension _SpatialSceneComposition on _SpatialMapEditingViewportState {
   }
 
   Widget sceneView(MapWorkspaceVisuals visuals) {
+    final assets = assetsFor(visuals as SpatialWorkspaceVisuals);
     final freeView = widget.view.spatialFreeView;
     final borderMap = spatialBorderPreview;
     final rampMap =
@@ -193,7 +194,7 @@ extension _SpatialSceneComposition on _SpatialMapEditingViewportState {
           ? _visibilityFor(widget.document)
           : sceneVisibility,
       decorations: decorationVisuals(
-        visuals as SpatialWorkspaceVisuals,
+        assets,
         borderMap ??
             rampMap ??
             terrainSurfaceMap ??
@@ -267,9 +268,9 @@ extension _SpatialSceneComposition on _SpatialMapEditingViewportState {
                 terrainStroke?.preview ??
                 editingDocument.spatialPreviewMap,
       groundProject: widget.project,
-      loadGroundImage: (visuals as SpatialWorkspaceVisuals).readGroundImage,
+      loadGroundImage: assets.loadGroundImage,
       models: widget.project.models3d,
-      loadModel: (visuals as SpatialWorkspaceVisuals).readModel,
+      loadModel: assets.loadModel,
       controller: camera,
       onCell: tap,
       onContextMenu: freeView || editingExterior ? null : widget.onContextMenu,

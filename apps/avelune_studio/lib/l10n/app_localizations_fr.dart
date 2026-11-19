@@ -474,6 +474,33 @@ class AppLocalizationsFr extends AppLocalizations {
   String get resourceSearch => 'Rechercher une ressource';
 
   @override
+  String get libraryAuthorResources => 'Ressources à utiliser';
+
+  @override
+  String get libraryComponents => 'Composants techniques';
+
+  @override
+  String get libraryAllFamilies => 'Toutes les familles';
+
+  @override
+  String get libraryFamilies => 'Familles';
+
+  @override
+  String get libraryRefresh => 'Actualiser la bibliothèque';
+
+  @override
+  String libraryResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count résultats',
+      one: '1 résultat',
+      zero: 'Aucun résultat',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get resourceCategories => 'Catégories';
 
   @override

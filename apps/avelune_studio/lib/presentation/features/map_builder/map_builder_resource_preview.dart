@@ -68,7 +68,14 @@ class _ModelPreview extends StatefulWidget {
 
 class _ModelPreviewState extends State<_ModelPreview> {
   final _controller = ModelPreviewController();
-  late Future<Uint8List> _bytes = widget.visuals.readModel(widget.model.id);
+  late Future<Uint8List> _bytes = _read();
+
+  Future<Uint8List> _read() => switch (widget.visuals) {
+    final SpatialScopedWorkspaceVisuals scoped => scoped.readModelDefinition(
+      widget.model,
+    ),
+    final visuals => visuals.readModel(widget.model.id),
+  };
 
   @override
   void didUpdateWidget(_ModelPreview oldWidget) {
@@ -77,7 +84,7 @@ class _ModelPreviewState extends State<_ModelPreview> {
         oldWidget.model.relativePath != widget.model.relativePath ||
         oldWidget.model.sourceAssetId != widget.model.sourceAssetId ||
         !identical(oldWidget.visuals, widget.visuals)) {
-      _bytes = widget.visuals.readModel(widget.model.id);
+      _bytes = _read();
     }
   }
 

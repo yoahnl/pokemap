@@ -932,6 +932,42 @@ abstract class AppLocalizations {
   /// **'Rechercher une ressource'**
   String get resourceSearch;
 
+  /// No description provided for @libraryAuthorResources.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ressources à utiliser'**
+  String get libraryAuthorResources;
+
+  /// No description provided for @libraryComponents.
+  ///
+  /// In fr, this message translates to:
+  /// **'Composants techniques'**
+  String get libraryComponents;
+
+  /// No description provided for @libraryAllFamilies.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes les familles'**
+  String get libraryAllFamilies;
+
+  /// No description provided for @libraryFamilies.
+  ///
+  /// In fr, this message translates to:
+  /// **'Familles'**
+  String get libraryFamilies;
+
+  /// No description provided for @libraryRefresh.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actualiser la bibliothèque'**
+  String get libraryRefresh;
+
+  /// No description provided for @libraryResultCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun résultat} one{1 résultat} other{{count} résultats}}'**
+  String libraryResultCount(int count);
+
   /// No description provided for @resourceCategories.
   ///
   /// In fr, this message translates to:

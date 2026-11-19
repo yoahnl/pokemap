@@ -4,6 +4,7 @@ mixin _MapWorkspaceCatalogPorts
     implements
         MapWorkspacePort,
         MapWorkspacePreviewSelectionPort,
+        ProjectResourceLibraryPort,
         MapWorkspaceExternalMutationPort,
         MapWorkspaceWorkshopPort,
         MapWorkspaceResourceKindPort,
@@ -12,6 +13,17 @@ mixin _MapWorkspaceCatalogPorts
         MapWorkspaceResourceClosurePort,
         MapWorkspaceModelLightPort {
   LocalMapWorkspaceAdapter get _adapter;
+
+  @override
+  Future<ProjectResourceLibrary> readResourceLibrary(ProjectSession session) {
+    if (session.storage == ProjectSessionStorage.manifest) {
+      return Future.value(ProjectResourceLibrary.fromManifest(_adapter._project(session).manifest));
+    }
+    final reader = _adapter._reader;
+    return reader is LocalProjectFileReader
+        ? Isolate.run(() => _readProjectResourceLibrary(reader, session))
+        : _readProjectResourceLibrary(reader, session);
+  }
 
   @override
   Future<MapWorkspaceCatalog> loadResourceKind(
