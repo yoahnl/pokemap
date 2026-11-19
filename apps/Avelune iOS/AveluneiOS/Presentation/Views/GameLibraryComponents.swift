@@ -222,7 +222,7 @@ private struct FeaturedGameCard: View {
 
                 HStack(spacing: 10) {
                     Button(action: onPlay) {
-                        Label(game.canContinue ? "Reprendre" : "Jouer", systemImage: "play.fill")
+                        Label(game.playLabel, systemImage: "play.fill")
                             .font(.subheadline.weight(.semibold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
@@ -345,6 +345,7 @@ struct GameCollectionView: View {
 }
 
 struct QuickGameView: View {
+    @Environment(\.locale) private var locale
     let game: Game
     let transition: Namespace.ID
     let sourceID: String
@@ -390,14 +391,15 @@ struct QuickGameView: View {
                         }
 
                         if let lastPlayedAt = game.lastPlayedAt {
-                            Label("Dernière partie : \(lastPlayedAt.formatted(date: .abbreviated, time: .omitted))", systemImage: "clock")
+                            let date = lastPlayedAt.formatted(Date.FormatStyle(date: .abbreviated, locale: locale))
+                            Label("Dernière partie : \(date)", systemImage: "clock")
                                 .font(.subheadline)
                                 .foregroundStyle(AveluneTheme.muted)
                         }
 
                         HStack(spacing: 10) {
                             Button(action: onPlay) {
-                                Label(game.canContinue ? "Reprendre" : "Jouer", systemImage: "play.fill")
+                                Label(game.playLabel, systemImage: "play.fill")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.borderedProminent)

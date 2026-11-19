@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_runtime/map_runtime.dart' show RuntimePlayerLanguageChoice;
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 
@@ -53,6 +54,52 @@ void main() {
     expect(read.source, HubPreferencesSource.backup);
     expect(read.preferences.language, PlayerLanguage.fr);
     expect(read.currentCorrupt, isTrue);
+  });
+
+  test('queued edits use the last persisted preferences', () async {
+    final seeded = const PlayerPreferences(highContrast: true);
+    final playerLanguage = RuntimePlayerLanguageChoice.explicit('es');
+
+    await Future.wait([
+      store.save(seeded),
+      store.update(
+        (preferences) => preferences.copyWith(language: PlayerLanguage.en),
+      ),
+      store.update(
+        (preferences) => preferences.copyWith(
+          masterVolume: 0.25,
+          playerLanguage: playerLanguage,
+        ),
+      ),
+    ]);
+
+    final persisted = await HubPreferencesStore(supportRoot: root).load();
+    expect(
+      persisted.preferences,
+      seeded.copyWith(
+        language: PlayerLanguage.en,
+        masterVolume: 0.25,
+        playerLanguage: playerLanguage,
+      ),
+    );
+  });
+
+  test('a failed edit leaves later edits able to save', () async {
+    await store.save(const PlayerPreferences(language: PlayerLanguage.fr));
+    final failed = expectLater(
+      store.update((preferences) => preferences.copyWith(masterVolume: 2)),
+      throwsA(isA<HubPreferencesStorageException>()),
+    );
+    final saved = store.update(
+      (preferences) => preferences.copyWith(musicVolume: 0.25),
+    );
+
+    await failed;
+    await saved;
+    expect(
+      (await store.load()).preferences,
+      const PlayerPreferences(language: PlayerLanguage.fr, musicVolume: 0.25),
+    );
   });
 
   test('unsafe support roots are rejected without following a symlink',

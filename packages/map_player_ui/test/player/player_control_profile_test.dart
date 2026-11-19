@@ -7,6 +7,25 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('controller prompts and keyboard glyphs can follow the Player locale', () {
+    final profile = PlayerControlProfile.standard;
+    final en = PokeMapPlayerLocalizations.lookup(const ui.Locale('en'));
+    final fr = PokeMapPlayerLocalizations.lookup(const ui.Locale('fr'));
+
+    String prompt(PokeMapPlayerLocalizations strings) => profile.promptFor(
+      PlayerControlDevice.gamepad,
+      RuntimeInputControl.primary,
+      localizations: strings,
+    );
+
+    expect(prompt(en), 'South button');
+    expect(prompt(fr), 'Bouton sud');
+    expect(
+      PlayerControlProfile.glyphForInput('enter', localizations: fr),
+      'Entrée',
+    );
+  });
+
   test('tab controls are current optional bindings without overwriting explicit authors', () {
     final source = PlayerControlProfile.standard.toJson();
     for (final device in ['keyboard', 'gamepad', 'touch']) {

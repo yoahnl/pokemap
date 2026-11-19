@@ -86,7 +86,7 @@ class PlayerRegionalMapOverlay extends StatelessWidget {
                               const SizedBox(width: 12),
                               PlayerActionButton(
                                 key: const ValueKey('regional-map-fly-confirm'),
-                                label: 'Voler',
+                                label: context.playerL10n.mapFly,
                                 icon: Icons.flight,
                                 expandWidth: false,
                                 expandContent: false,

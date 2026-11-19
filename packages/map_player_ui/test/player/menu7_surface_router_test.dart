@@ -7,6 +7,36 @@ import 'package:map_player_ui/src/player/runtime_player_pokedex.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('open title confirmation follows a new player locale', (
+    tester,
+  ) async {
+    const french = PlayerPreferencesSnapshot(
+      locale: 'fr',
+      accessibility: GameSessionAccessibilityOptions(),
+    );
+    final snapshot = ValueNotifier(
+      _snapshot(section: RuntimePlayerPauseSection.root).next(
+        preferences: french,
+        actions: const [
+          RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.resume),
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.returnToTitle,
+          ),
+        ],
+      ),
+    );
+    addTearDown(snapshot.dispose);
+    await _pump(tester, snapshot);
+    await _tap(tester, 'pause.returnToTitle');
+    expect(find.text('Retourner au titre ?'), findsOneWidget);
+    snapshot.value = snapshot.value.next(
+      preferences: french.copyWith(locale: 'en'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Return to title?'), findsOneWidget);
+    expect(find.byKey(const ValueKey('runtime-exit-dialog')), findsOneWidget);
+  });
+
   testWidgets('unconfigured router uses current menu for root and detail', (
     tester,
   ) async {

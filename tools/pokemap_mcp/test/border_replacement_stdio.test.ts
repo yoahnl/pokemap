@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
-import { readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import test from "node:test";
+import { promisify } from "node:util";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
@@ -11,9 +14,17 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("live MCP replaces a canonical 2D ledge slot, refuses an unknown primitive, and reopens exact geometry", async () => {
-  const root = process.env.POKEMAP_REPLACEMENT_FIXTURE;
-  assert.ok(root);
+test("live MCP replaces a canonical 2D ledge slot, refuses an unknown primitive, and reopens exact geometry", async (t) => {
+  let root = process.env.POKEMAP_REPLACEMENT_FIXTURE;
+  if (!root) {
+    const directory = await mkdtemp(join(tmpdir(), "pokemap-border-replacement-"));
+    t.after(() => rm(directory, { recursive: true, force: true }));
+    root = join(directory, "project");
+    await promisify(execFile)(process.env.POKEMAP_TEST_DART ?? "dart", [
+      `--packages=${resolve("../../packages/map_authoring/.dart_tool/package_config.json")}`,
+      resolve("test/fixtures/border_replacement_fixture.dart"), root,
+    ]);
+  }
   const mapPath = resolve(root, "maps/original-map.pokemap.json");
   const original = record(JSON.parse(await readFile(mapPath, "utf8")));
   const layers = original.layers as JsonRecord[];
@@ -40,7 +51,7 @@ test("live MCP replaces a canonical 2D ledge slot, refuses an unknown primitive,
     const catalog = await call("pokemap_describe");
     const action = (catalog.mutationActions as JsonRecord[]).find(value => value.id === "border_layer.feature_set_replacement");
     assert.ok(action);
-    assert.deepEqual(record(action.extensions).visualKinds, ["element"]);
+    assert.deepEqual(record(action.extensions).visualKinds, ["element", "model3d"]);
     assert.equal(action.version, 1);
     const schema = record(record(action.extensions).inputSchema);
     assert.equal(schema.additionalProperties, false);
@@ -66,9 +77,11 @@ test("live MCP replaces a canonical 2D ledge slot, refuses an unknown primitive,
       return applied;
     }
     const refused = await mutate("border_layer.feature_set_replacement", { ...params, primitiveId: "missing" }, true);
-    assert.equal(record(refused.details).domainCode, "border.primitive_missing");
+    assert.equal(record(refused.details).domainCode, "border.resolution.override_primitive_missing");
     const badSlot = await mutate("border_layer.feature_set_replacement", { ...params, slotKey: "missing" }, true);
-    assert.equal(record(badSlot.details).domainCode, "border.slot_not_resolved");
+    assert.equal(record(badSlot.details).domainCode, "border.slot_missing");
+    const wrongDirection = await mutate("border_layer.feature_set_replacement", { ...params, primitiveId: "north" }, true);
+    assert.equal(record(wrongDirection.details).domainCode, "border.resolution.ledge_final_placement_invalid");
     await mutate("border_layer.feature_set_replacement", params);
     const republish = record(JSON.parse(await readFile(`${root}-republish-record.json`, "utf8")));
     await mutate("border.blueprint.draft.upsert", { record: republish.record });

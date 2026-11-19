@@ -7,4 +7,6 @@ abstract interface class PlayerPreferencesRepositoryInterface {
   Future<HubPreferencesRead> load();
 
   Future<void> save(PlayerPreferences preferences);
+
+  Future<void> update(PlayerPreferences Function(PlayerPreferences) change);
 }

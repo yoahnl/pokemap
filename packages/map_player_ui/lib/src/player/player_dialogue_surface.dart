@@ -633,7 +633,9 @@ class _DialogueLineContent extends StatelessWidget {
           : Semantics(
               container: true,
               image: true,
-              label: 'Portrait de $speaker',
+              label: context.playerL10n.dialogueSpeakerPortrait(
+                speaker: speaker,
+              ),
               child: framed,
             );
       return SizedBox(

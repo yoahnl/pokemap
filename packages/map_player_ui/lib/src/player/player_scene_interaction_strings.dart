@@ -1,71 +1,65 @@
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core.dart';
 
+import '../localization/player_localizations.dart';
+
 final class PlayerSceneInteractionStrings {
-  const PlayerSceneInteractionStrings._(this._languageCode);
+  const PlayerSceneInteractionStrings._(this._strings);
 
   factory PlayerSceneInteractionStrings.of(BuildContext context) =>
-      PlayerSceneInteractionStrings._(
-        Localizations.localeOf(context).languageCode,
-      );
+      PlayerSceneInteractionStrings._(context.playerL10n);
 
-  final String _languageCode;
+  final PokeMapPlayerLocalizations _strings;
 
-  bool get _isFrench => _languageCode == 'fr';
-
-  String get continueLabel => _isFrench ? 'Continuer' : 'Continue';
-  String get cancel => _isFrench ? 'Annuler' : 'Cancel';
-  String get yes => _isFrench ? 'Oui' : 'Yes';
-  String get no => _isFrench ? 'Non' : 'No';
-  String get submit => _isFrench ? 'Valider' : 'Submit';
-  String get textFieldLabel => _isFrench ? 'Votre réponse' : 'Your answer';
-  String get selected => _isFrench ? 'Sélectionné' : 'Selected';
-  String get optionUnavailable => _isFrench
-      ? 'Cette option est indisponible.'
-      : 'This option is unavailable.';
-  String get maximumReached => _isFrench
-      ? 'Le nombre maximal de choix est atteint.'
-      : 'The maximum number of choices is reached.';
+  String get continueLabel => _strings.continueGame;
+  String get cancel => _strings.cancel;
+  String get yes => _strings.yes;
+  String get no => _strings.no;
+  String get submit => _strings.interactionSubmit;
+  String get textFieldLabel => _strings.interactionTextFieldLabel;
+  String get selected => _strings.interactionSelected;
+  String get optionUnavailable => _strings.interactionOptionUnavailable;
+  String get maximumReached => _strings.interactionMaximumReached;
 
   String characterCount(int current, int? maximum) => maximum == null
-      ? (_isFrench ? '$current caractères' : '$current characters')
-      : '$current / $maximum';
+      ? _strings.interactionCharacterCount(current: current)
+      : _strings.postBattleProgress(current, maximum);
 
-  String selectionCount(int current, int minimum, int maximum) => _isFrench
-      ? '$current sélectionné(s), entre $minimum et $maximum requis'
-      : '$current selected, between $minimum and $maximum required';
+  String selectionCount(int current, int minimum, int maximum) =>
+      _strings.interactionSelectionCount(
+        current: current,
+        minimum: minimum,
+        maximum: maximum,
+      );
 
   String validation(SceneInteractionValidationIssue issue) {
-    final arguments = issue.arguments;
+    final minimum = issue.arguments['minimum'];
+    final maximum = issue.arguments['maximum'];
+    final minimumCount = int.tryParse(minimum ?? '');
+    final maximumCount = int.tryParse(maximum ?? '');
     return switch (issue.code) {
-      SceneInteractionValidationIssueCode.integerOutOfRange =>
-        _isFrench
-            ? 'Saisissez un entier entre ${arguments['minimum']} et ${arguments['maximum']}.'
-            : 'Enter an integer between ${arguments['minimum']} and ${arguments['maximum']}.',
+      SceneInteractionValidationIssueCode.integerOutOfRange
+          when minimum != null && maximum != null =>
+        _strings.interactionIntegerOutOfRange(
+          minimum: minimum,
+          maximum: maximum,
+        ),
       SceneInteractionValidationIssueCode.cancellationForbidden =>
-        _isFrench
-            ? 'Cette saisie doit être validée.'
-            : 'Submit this input to continue.',
-      SceneInteractionValidationIssueCode.textTooShort => _isFrench
-          ? 'Saisissez au moins ${arguments['minimum']} caractères.'
-          : 'Enter at least ${arguments['minimum']} characters.',
-      SceneInteractionValidationIssueCode.textTooLong => _isFrench
-          ? 'Saisissez au maximum ${arguments['maximum']} caractères.'
-          : 'Enter at most ${arguments['maximum']} characters.',
-      SceneInteractionValidationIssueCode.tooFewSelections => _isFrench
-          ? 'Sélectionnez au moins ${arguments['minimum']} options.'
-          : 'Select at least ${arguments['minimum']} options.',
-      SceneInteractionValidationIssueCode.tooManySelections => _isFrench
-          ? 'Sélectionnez au maximum ${arguments['maximum']} options.'
-          : 'Select at most ${arguments['maximum']} options.',
+        _strings.interactionCancellationForbidden,
+      SceneInteractionValidationIssueCode.textTooShort
+          when minimumCount != null =>
+        _strings.interactionTextTooShort(minimum: minimumCount),
+      SceneInteractionValidationIssueCode.textTooLong
+          when maximumCount != null =>
+        _strings.interactionTextTooLong(maximum: maximumCount),
+      SceneInteractionValidationIssueCode.tooFewSelections
+          when minimumCount != null =>
+        _strings.interactionTooFewSelections(minimum: minimumCount),
+      SceneInteractionValidationIssueCode.tooManySelections
+          when maximumCount != null =>
+        _strings.interactionTooManySelections(maximum: maximumCount),
       SceneInteractionValidationIssueCode.optionDisabled => optionUnavailable,
-      SceneInteractionValidationIssueCode.optionUnknown ||
-      SceneInteractionValidationIssueCode.duplicateSelection ||
-      SceneInteractionValidationIssueCode.requestMismatch ||
-      SceneInteractionValidationIssueCode.resultKindMismatch =>
-        _isFrench
-            ? 'Cette réponse ne peut pas être envoyée.'
-            : 'This answer cannot be submitted.',
+      _ => _strings.interactionCannotSubmit,
     };
   }
 }

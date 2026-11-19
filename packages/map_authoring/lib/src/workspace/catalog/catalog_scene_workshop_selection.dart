@@ -56,13 +56,11 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
     ];
     add('worldRules', incomingRules.map((rule) => rule.id));
     final rawScene = parameters['scene'];
-    final rewardSceneIds = <String>{};
+    final references = SceneWorkshopReferences();
     final incomingNodes = <SceneNode>[
       if (rawScene is Map)
-        ...SceneAsset.fromJson(Map<String, dynamic>.from(rawScene)).graph.nodes,
-      if (parameters['upsertNodes'] case final List nodes)
-        for (final node in nodes)
-          SceneNode.fromJson(Map<String, dynamic>.from(node as Map)),
+        ...decodeAuthoringScene(Map<String, dynamic>.from(rawScene)).graph.nodes,
+      if (actionId == 'scene.graph.patch') ...decodeSceneGraphPatchNodes(parameters),
       if (parameters['command'] case final Map command)
         SceneNode(
             id: 'incoming-command',
@@ -74,13 +72,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
         SceneNode(id: 'incoming-condition', kind: SceneNodeKind.condition,
           payload: SceneConditionPayload(conditionSource: SceneConditionSource.fromJson(Map<String, dynamic>.from(source)))),
     ];
-    final itemIds = <String>{};
-    final stepIds = <String>{};
     final resolvedStepIds = <String>{};
-    final starterIds = <String>{};
-    final journeyIds = <String>{};
-    final imageIds = <String>{};
-    final eventIds = <String>{};
     final ownerScenes = <String>{};
     void includeDependencies(ProjectManifest project) {
       final index = buildNarrativeDependencyIndex(
@@ -91,64 +83,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
                   mode: project.eventRegistry?.mode ?? EventSystemMode.legacyOnly,
                   records: incomingEvents, legacyClaims: const []) : project.eventRegistry,
                 worldRules: [...project.worldRules, ...incomingRules]), additionalSceneNodes: incomingNodes);
-      for (final usage in index.usages) {
-        final target = usage.target;
-        if (target.kind == NarrativeDependencyTargetKind.scene &&
-            usage.path.endsWith('.rewardReference.sceneId')) {
-          rewardSceneIds.add(target.id);
-          continue;
-        }
-        switch (target.kind) {
-          case NarrativeDependencyTargetKind.fact:
-            add('facts', [target.id]);
-          case NarrativeDependencyTargetKind.badge:
-            add('badges', [target.id]);
-          case NarrativeDependencyTargetKind.item:
-            itemIds.add(target.id);
-          case NarrativeDependencyTargetKind.scene:
-            add('scenes', [target.id]);
-          case NarrativeDependencyTargetKind.dialogue:
-            add('dialogues', [target.id]);
-          case NarrativeDependencyTargetKind.cinematic:
-            add('cinematics', [target.id]);
-          case NarrativeDependencyTargetKind.media:
-            add('cinematicMediaAssets', [target.id]);
-          case NarrativeDependencyTargetKind.storyline:
-            add('storylines', [target.id]);
-          case NarrativeDependencyTargetKind.step:
-            stepIds.add(target.id);
-          case NarrativeDependencyTargetKind.worldRule:
-            add('worldRules', [target.id]);
-          case NarrativeDependencyTargetKind.railJourney:
-            journeyIds.add(target.id);
-          case NarrativeDependencyTargetKind.sourceMap:
-            if (target.physicalMapId case final String mapId) {
-              add('maps', [mapId]);
-            }
-            switch (target.sourceKind) {
-              case 'encounterTable':
-                add('encounterTables', [target.id]);
-              case 'presentationCinematic':
-                add('presentationCinematics', [target.id]);
-              case 'starterOption':
-                starterIds.add(target.id);
-              case 'projectMedia':
-                imageIds.add(target.id);
-              case 'shop':
-                add('shops', [target.id]);
-              case 'battle':
-                for (final prefix in ['trainer:', 'static:']) {
-                  if (target.id.startsWith(prefix)) {
-                    add('trainers', [target.id.substring(prefix.length)]);
-                  }
-                }
-            }
-          case NarrativeDependencyTargetKind.eventV2:
-            eventIds.add(target.id);
-          case NarrativeDependencyTargetKind.chapter:
-            break;
-        }
-      }
+      references.collect(index.usages, add);
     }
 
     add('scenes', [
@@ -186,30 +121,30 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
     var previous = -1;
     int dependencyCount() =>
         ids.values.fold<int>(0, (total, values) => total + values.length) +
-        stepIds.length +
-        starterIds.length +
-        journeyIds.length +
-        eventIds.length;
+        references.stepIds.length +
+        references.starterIds.length +
+        references.journeyIds.length +
+        references.eventIds.length;
     while (previous != dependencyCount()) {
       previous = dependencyCount();
       final pendingOwners =
           (ids['scenes'] ?? const <String>{}).difference(ownerScenes);
       if (pendingOwners.isNotEmpty) {
         ownerScenes.addAll(pendingOwners);
-        eventIds.addAll(await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+        references.eventIds.addAll(await CatalogNarrativeEventDocuments.readSceneOwnerIds(
             catalog.snapshot, reader.store.projectRoot, pendingOwners));
       }
-      if (eventIds.isNotEmpty && !actionId.startsWith('event_v2.')) {
+      if (references.eventIds.isNotEmpty && !actionId.startsWith('event_v2.')) {
         base = base.copyWith(
             eventRegistry: await CatalogNarrativeEventDocuments.read(
-                catalog.snapshot, eventIds));
+                catalog.snapshot, references.eventIds));
         documents = await CatalogMetadataDocuments.readDocuments(
             snapshot: catalog.snapshot, project: base, ids: ids);
       }
       includeDependencies(documents.project);
       final sharedFields = {
-        if (starterIds.isNotEmpty && starterCatalog == null) 'newGame',
-        if (journeyIds.isNotEmpty && !journeyCatalogLoaded)
+        if (references.starterIds.isNotEmpty && starterCatalog == null) 'newGame',
+        if (references.journeyIds.isNotEmpty && !journeyCatalogLoaded)
           'railJourneyCatalog',
       };
       if (sharedFields.isNotEmpty) {
@@ -226,7 +161,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
                 enabled: starterCatalog.enabled,
                 starterOptions: [
               for (final option in starterCatalog.starterOptions)
-                if (starterIds.contains(option.id)) option
+                if (references.starterIds.contains(option.id)) option
             ]));
         candidates.add(base.newGame.toJson());
       }
@@ -234,7 +169,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
         base = base.copyWith(
             railJourneyCatalog: RailJourneyCatalog(journeys: [
           for (final journey in journeyCatalog.journeys)
-            if (journeyIds.contains(journey.id)) journey
+            if (references.journeyIds.contains(journey.id)) journey
         ]));
         candidates.add(base.railJourneyCatalog!.toJson());
       }
@@ -271,9 +206,9 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
         add(entry.key,
             CatalogWorkshopSelection._referenceIds(candidates, entry.value));
       }
-      stepIds.addAll(
+      references.stepIds.addAll(
           CatalogWorkshopSelection._referenceIds(candidates, {'stepId'}));
-      for (final stepId in stepIds.difference(resolvedStepIds)) {
+      for (final stepId in references.stepIds.difference(resolvedStepIds)) {
         resolvedStepIds.add(stepId);
         add(
             'storylines',
@@ -284,7 +219,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
           snapshot: catalog.snapshot, project: base, ids: ids);
     }
     var manifest = documents.project;
-    final referenceIds = rewardSceneIds.difference(manifest.scenes.map((scene) => scene.id).toSet());
+    final referenceIds = references.rewardSceneIds.difference(manifest.scenes.map((scene) => scene.id).toSet());
     final referenceScenes = referenceIds.isEmpty ? const <SceneAsset>[] :
       (await CatalogMetadataDocuments.readDocuments(
         snapshot: catalog.snapshot, project: const ProjectManifest(name: 'Reward reference sources', maps: [], tilesets: []),
@@ -342,7 +277,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
     for (final entry in readDependencies.entries) {
       await readFile(entry.key, entry.value);
     }
-    if (imageIds.isNotEmpty) {
+    if (references.imageIds.isNotEmpty) {
       await readFile(
           projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
     }
@@ -378,10 +313,10 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
       await readFile(
           dialogueSourceResourceIdentity(dialogue.id), dialogue.relativePath);
     }
-    itemIds.addAll(CatalogWorkshopSelection._referenceIds(
+    references.itemIds.addAll(CatalogWorkshopSelection._referenceIds(
         candidates, {'itemId', 'inputItemId', 'outputItemId', 'ballItemId'}));
     final itemPath = manifest.pokemon.catalogFiles['items'];
-    if (itemIds.isNotEmpty && itemPath != null) {
+    if (references.itemIds.isNotEmpty && itemPath != null) {
       await readFile(itemCatalogResourceIdentity, itemPath);
     }
     final movePath = manifest.pokemon.catalogFiles['moves'];

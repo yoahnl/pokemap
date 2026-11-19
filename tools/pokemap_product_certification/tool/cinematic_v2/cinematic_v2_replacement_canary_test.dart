@@ -678,16 +678,24 @@ GamePackageHostCompatibility _hostCompatibility(
 
 final class _PreferencesRepository
     implements PlayerPreferencesRepositoryInterface {
+  PlayerPreferences _preferences = const PlayerPreferences();
+
   @override
-  Future<HubPreferencesRead> load() async => const HubPreferencesRead(
-    preferences: PlayerPreferences(),
+  Future<HubPreferencesRead> load() async => HubPreferencesRead(
+    preferences: _preferences,
     source: HubPreferencesSource.defaults,
     currentCorrupt: false,
     backupCorrupt: false,
   );
 
   @override
-  Future<void> save(PlayerPreferences preferences) async {}
+  Future<void> save(PlayerPreferences preferences) async {
+    _preferences = preferences;
+  }
+
+  @override
+  Future<void> update(PlayerPreferences Function(PlayerPreferences) change) =>
+      save(change(_preferences));
 }
 
 final class _ControlProfileRepository

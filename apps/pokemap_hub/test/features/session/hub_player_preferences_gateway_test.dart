@@ -25,6 +25,62 @@ void main() {
     if (await root.exists()) await root.delete(recursive: true);
   });
 
+  test('changing the volume keeps the system language mode', () async {
+    var systemLocales = ['en-GB'];
+    final live = HubPlayerPreferencesGateway(
+      store: store,
+      fallbackLocale: 'fr-FR',
+      systemLocales: () => systemLocales,
+    );
+    final loaded = await live.load();
+    expect(loaded.locale, 'en');
+    await live.save(loaded.copyWith(
+      audioMix: const RuntimeAudioMix(masterVolume: 0.4),
+    ));
+
+    final saved = (await store.load()).preferences;
+    expect(saved.language, PlayerLanguage.system);
+    expect(saved.playerLanguage.languageTag, isNull);
+    expect(saved.masterVolume, 0.4);
+    systemLocales = ['fr-CA', 'en'];
+    expect((await live.load()).locale, 'fr');
+  });
+
+  test('player choice and app choice remain separate after stale audio edits',
+      () async {
+    await store.save(const PlayerPreferences(language: PlayerLanguage.fr));
+    final live = HubPlayerPreferencesGateway(
+      store: store,
+      fallbackLocale: 'fr-FR',
+      systemLocales: () => ['en-GB'],
+    );
+    final previous = await live.load();
+    expect(previous.locale, 'fr');
+    await live.save(previous.copyWith(
+      audioMix: const RuntimeAudioMix(masterVolume: 0.6),
+    ));
+    await live.save(previous.copyWith(
+      languageChange: RuntimePlayerLanguageChoice.explicit('en'),
+    ));
+    expect((await live.load()).audioMix.masterVolume, 0.6);
+    await live.save(previous.copyWith(
+      audioMix: const RuntimeAudioMix(masterVolume: 0.4),
+    ));
+    final read = await live.load();
+    expect(read.locale, 'en');
+    expect(read.preferredContentLocales, ['en']);
+    expect(read.playerLanguage?.languageTag, 'en');
+    expect(read.languageChange, isNull);
+    expect(read.audioMix.masterVolume, 0.4);
+    expect((await store.load()).preferences.language, PlayerLanguage.fr);
+
+    await live.save(read.copyWith(
+      languageChange: const RuntimePlayerLanguageChoice.followApplication(),
+    ));
+    expect((await live.load()).locale, 'fr');
+    expect((await store.load()).preferences.toJson(), isNot(contains('playerLanguage')));
+  });
+
   test('frame rate survives runtime save and a fresh gateway load', () async {
     final next = RuntimeCompanionPresentationCodec.decodePlayerPreferencesSnapshot({
       ...RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(

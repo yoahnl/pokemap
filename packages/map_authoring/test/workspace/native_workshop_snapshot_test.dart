@@ -7,7 +7,10 @@ import 'package:map_authoring/src/ports/project_file_reader.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+part 'native_scene_workshop_cases.dart';
+
 void main() {
+  registerNativeSceneWorkshopCases();
   for (final unrelated in [0, 900]) {
     for (final trainerOwner in [false, true]) {
       test('native contact scope closes its actor dependency trainer=$trainerOwner unrelated=$unrelated', () async {

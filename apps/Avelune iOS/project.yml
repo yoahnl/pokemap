@@ -4,6 +4,8 @@ options:
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "16.0"
+  developmentLanguage: fr
+  knownRegions: [en, fr]
   generateEmptyDirectories: true
 
 configs:

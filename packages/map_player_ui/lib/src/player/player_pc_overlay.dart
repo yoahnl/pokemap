@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../localization/player_localizations.dart';
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_paged_layout.dart';
 import '../foundation/player_input_scope.dart';
@@ -126,7 +127,6 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
       (box) => box.boxId == content.selectedBoxId,
     );
     final box = boxIndex < 0 ? null : content.boxes[boxIndex];
-    final french = Localizations.localeOf(context).languageCode == 'fr';
     final action = _party
         ? RuntimeWorldServiceAction.deposit
         : RuntimeWorldServiceAction.withdraw;
@@ -210,7 +210,7 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
                             ? null
                             : () => _showSummary(context, entry),
                         style: footerStyle,
-                        child: Text(french ? 'Résumé' : 'Summary'),
+                        child: Text(context.playerL10n.pokemonSummary),
                       ),
                       if (!_party && entry != null)
                         IconButton(
@@ -324,7 +324,7 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
                         ),
                         IconButton(
                           key: const ValueKey('pc-box-previous'),
-                          tooltip: french ? 'Boîte précédente' : 'Previous box',
+                          tooltip: context.playerL10n.pcPreviousBox,
                           onPressed:
                               !_party &&
                                   boxIndex > 0 &&
@@ -340,7 +340,7 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
                         ),
                         IconButton(
                           key: const ValueKey('pc-box-next'),
-                          tooltip: french ? 'Boîte suivante' : 'Next box',
+                          tooltip: context.playerL10n.pcNextBox,
                           onPressed:
                               !_party &&
                                   boxIndex >= 0 &&
@@ -435,8 +435,10 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
                               PlayerMenuGauge(
                                 value: summary.currentHp.toDouble(),
                                 maximum: summary.maxHp.toDouble(),
-                                label:
-                                    '${summary.currentHp} / ${summary.maxHp} ${french ? 'PV' : 'HP'}',
+                                label: context.playerL10n.hpLabel(
+                                  summary.currentHp,
+                                  summary.maxHp,
+                                ),
                               ),
                             ],
                           ],

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("showDebugInfo") private var showDebug = false
+    @State private var showsLanguageSaveError = false
+    let language: AppLanguageSettings
 
     var body: some View {
         NavigationStack {
@@ -13,27 +15,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             sectionTitle("PRÉFÉRENCES")
 
-                            HStack(spacing: 15) {
-                                settingIcon("globe.europe.africa.fill")
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text("Langue")
-                                        .font(.headline)
-                                        .foregroundStyle(AveluneTheme.text)
-                                    Text("Langue de l’application")
-                                        .font(.caption)
-                                        .foregroundStyle(AveluneTheme.muted)
-                                }
-
-                                Spacer()
-
-                                Text("Français")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(AveluneTheme.muted)
-                            }
-                            .padding(18)
-                            .background(AveluneTheme.surface, in: RoundedRectangle(cornerRadius: 22))
-                            .overlay(RoundedRectangle(cornerRadius: 22).stroke(AveluneTheme.border))
+                            languageSetting
                         }
 
                         VStack(alignment: .leading, spacing: 12) {
@@ -95,7 +77,89 @@ struct SettingsView: View {
             }
             .background(AveluneBackground())
             .toolbar(.hidden, for: .navigationBar)
+            .alert("Langue de l’application", isPresented: $showsLanguageSaveError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Impossible d’enregistrer la langue. Réessayez.")
+            }
         }
+    }
+
+    @ViewBuilder
+    private var languageSetting: some View {
+        if let preferences = language.confirmed {
+            Menu {
+                Picker("Langue de l’application", selection: Binding(
+                    get: { preferences.appLanguage },
+                    set: { choice in
+                        Task {
+                            let saved = await language.select(choice)
+                            showsLanguageSaveError = !saved
+                        }
+                    }
+                )) {
+                    ForEach([AppLanguage.system] + preferences.supportedAppLanguages, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .pickerStyle(.inline)
+            } label: {
+                languageRow {
+                    Text(preferences.appLanguage.title)
+                        .multilineTextAlignment(.trailing)
+
+                    if language.isSaving {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption.weight(.semibold))
+                    }
+                }
+            }
+            .disabled(language.isSaving)
+            .accessibilityLabel("Langue")
+            .accessibilityValue(Text(preferences.appLanguage.title))
+            .accessibilityIdentifier("app-language-menu")
+        } else if language.readFailed {
+            Button {
+                Task { await language.refresh() }
+            } label: {
+                languageRow { Text("Réessayer") }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Réessayer de charger la langue")
+        } else {
+            languageRow {
+                ProgressView()
+                    .accessibilityLabel("Chargement de la langue")
+            }
+        }
+    }
+
+    private func languageRow<Value: View>(@ViewBuilder value: () -> Value) -> some View {
+        HStack(spacing: 15) {
+            settingIcon("globe.europe.africa.fill")
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Langue")
+                    .font(.headline)
+                    .foregroundStyle(AveluneTheme.text)
+                Text("Langue de l’application")
+                    .font(.caption)
+                    .foregroundStyle(AveluneTheme.muted)
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 6, content: value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AveluneTheme.muted)
+        }
+        .padding(18)
+        .background(AveluneTheme.surface, in: RoundedRectangle(cornerRadius: 22))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(AveluneTheme.border))
+        .contentShape(Rectangle())
     }
 
     private var settingsHeader: some View {
@@ -144,7 +208,7 @@ struct SettingsView: View {
         return "\(version) (\(build))"
     }
 
-    private func sectionTitle(_ title: String) -> some View {
+    private func sectionTitle(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.system(size: 11, weight: .bold, design: .rounded))
             .tracking(2)
@@ -158,5 +222,15 @@ struct SettingsView: View {
             .foregroundStyle(AveluneTheme.cyan)
             .frame(width: 42, height: 42)
             .background(AveluneTheme.surfaceRaised, in: RoundedRectangle(cornerRadius: 13))
+    }
+}
+
+private extension AppLanguage {
+    var title: LocalizedStringKey {
+        switch self {
+        case .system: return "Suivre le téléphone"
+        case .french: return "Français"
+        case .english: return "English"
+        }
     }
 }

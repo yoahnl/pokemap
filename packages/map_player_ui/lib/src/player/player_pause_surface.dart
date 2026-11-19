@@ -66,9 +66,8 @@ final class PlayerPauseMenuLabels {
         PlayerPauseAction.bag => bag ?? l10n.bag,
         PlayerPauseAction.pokedex => pokedex ?? l10n.pokedex,
         PlayerPauseAction.map => map ?? l10n.map,
-        PlayerPauseAction.quests => quests ?? 'Journal',
-        PlayerPauseAction.contacts =>
-          l10n.locale.languageCode == 'fr' ? 'Contacts' : 'Contacts',
+        PlayerPauseAction.quests => quests ?? l10n.journal,
+        PlayerPauseAction.contacts => l10n.contacts,
         PlayerPauseAction.profile => profile ?? l10n.profile,
         PlayerPauseAction.save => save ?? l10n.save,
         PlayerPauseAction.options => options ?? l10n.options,

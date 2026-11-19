@@ -20,11 +20,14 @@ final class ProjectLocalePolicy {
   final List<String> supportedLocales;
   final String fallbackLocale;
 
-  String resolve(String preferredLocale) => ProjectLocaleResolver.resolve(
-    preferredLocale: preferredLocale,
-    supportedLocales: supportedLocales,
-    fallbackLocale: fallbackLocale,
-  );
+  String resolve(String preferredLocale) => resolvePreferred([preferredLocale]);
+
+  String resolvePreferred(Iterable<String> preferredLocales) =>
+      ProjectLocaleResolver.resolvePreferred(
+        preferredLocales: preferredLocales,
+        supportedLocales: supportedLocales,
+        fallbackLocale: fallbackLocale,
+      );
 
   static String _normalize(String value) => normalizeProjectLocale(value);
 }

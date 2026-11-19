@@ -65,7 +65,7 @@ export function createPokeMapMcpServer(
   registerReadOnlyTools(server, authoring, artifacts, compact);
   registerMutationTools(server, authoring, compact);
   registerMapCheckTool(server, authoring, runtime);
-  registerMapEditTool(server, authoring);
+  registerMapEditTool(server, authoring, compact);
   if (!compact) {
   registerCharacterContactShadowTools(server, authoring);
   registerMapAtmosphereTools(server, authoring);

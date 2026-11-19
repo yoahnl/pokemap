@@ -941,6 +941,41 @@ void main() {
     },
   );
 
+  for (final viewport in [const Size(390, 844), const Size(844, 390)]) {
+    testWidgets('caught indicator and standard French commands fit $viewport', (tester) async {
+      await tester.binding.setSurfaceSize(viewport);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: viewport,
+          mode: BattleCommandOverlayMode.root,
+          enemyCaught: true,
+          enemyGender: '♀',
+          entries: [
+            for (final (index, label) in [(0, 'FIGHT'), (1, 'BAG'), (2, 'POKÉMON'), (3, 'RUN')])
+              BattleCommandOverlayEntry(
+                index: index,
+                kind: BattleCommandOverlayEntryKind.root,
+                primaryLabel: label,
+                secondaryLabel: '',
+                enabled: true,
+                selected: index == 0,
+                tone: BattleCommandOverlayEntryTone.neutral,
+              ),
+          ],
+        ),
+        onCommand: (_) {},
+      );
+      expect(find.byTooltip('Capturé'), findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('battle-gender-enemy')), findsOneWidget);
+      for (final label in ['ATTAQUER', 'SAC', 'ÉQUIPE', 'FUITE']) {
+        expect(find.text(label), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('portrait root keeps the complete published attack label', (
     tester,
   ) async {
@@ -4283,6 +4318,7 @@ BattleCommandOverlaySnapshot _snapshot({
   String? title,
   List<BattleCommandOverlayEntry>? entries,
   String? enemyGender,
+  bool enemyCaught = false,
   String? playerGender,
   double? playerExperienceProgress,
   double? playerExperienceProgressTarget,
@@ -4351,6 +4387,7 @@ BattleCommandOverlaySnapshot _snapshot({
       maxHp: enemyMaxHp,
       status: enemyStatus,
       gender: enemyGender,
+      isAlreadyCaught: enemyCaught,
     ),
     playerHud: _hud(
       rect: layout.playerHudRect,
@@ -4580,6 +4617,7 @@ BattleCommandOverlayHudSnapshot _hud({
   required int maxHp,
   String? status,
   String? gender,
+  bool isAlreadyCaught = false,
   double? experienceProgress,
   double? experienceProgressTarget,
   int? xpTweenDurationMs,
@@ -4598,6 +4636,7 @@ BattleCommandOverlayHudSnapshot _hud({
     maxHp: maxHp,
     statusLabel: status,
     genderSymbol: gender,
+    isAlreadyCaught: isAlreadyCaught,
     experienceProgress: experienceProgress,
     experienceProgressTarget: experienceProgressTarget,
     xpTweenDurationMs: xpTweenDurationMs,

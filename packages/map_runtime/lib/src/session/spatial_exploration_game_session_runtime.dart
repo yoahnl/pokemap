@@ -13,6 +13,7 @@ import '../application/load_runtime_map_bundle.dart';
 import '../application/runtime_project_catalog.dart';
 import '../application/runtime_item_catalog_loader.dart';
 import '../application/runtime_move_catalog_loader.dart';
+import '../application/runtime_pokemon_species_loader.dart';
 import '../application/runtime_bag_capacity.dart';
 import '../application/narrative_runtime_activity_gate.dart';
 import '../application/player_service_runtime_controller.dart';
@@ -237,8 +238,12 @@ final class SpatialExplorationGameSessionRuntime
       get overworldInteractionSnapshots => _interactionEvents.stream;
   @override
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    final previousLocale = _preferences?.locale ?? descriptor.locale;
     _preferences = preferences;
-    _session?.runtimeLocale = descriptor.locales?.resolve(preferences.locale) ?? preferences.locale;
+    _session?.runtimeLocale = preferences.contentLocale(descriptor.locales);
+    if (previousLocale != preferences.locale) {
+      _playerServices?.refreshPokemonDisplayNames();
+    }
     _battle?.applyMotionPolicy(preferences.battleMotion);
     if (_ownsAudioMixer) _observeMusic(_audioMixer.transitionTo(preferences.audioMix));
     _session?.setTextSpeed(preferences.dialogueTextSpeed);
@@ -1239,7 +1244,11 @@ final class SpatialExplorationGameSessionRuntime
       _ensureGameplayActive();
       if (claimStart != null && !claimStart()) return 'blocked';
       final completed = await _battle!.start(
-          bundle: bundle, request: request, defeatRecovery: defeatRecovery);
+        bundle: bundle,
+        request: request,
+        runtimeLocale: _session!.runtimeLocale,
+        defeatRecovery: defeatRecovery,
+      );
       _ensureGameplayActive();
       if (!completed || _sceneBattleOutcome == null) {
         throw StateError('The spatial battle did not complete.');
@@ -1719,8 +1728,8 @@ final class SpatialExplorationGameSessionRuntime
         throw StateError('The prepared maps require ${SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId}.');
       }
       final loaded = await SpatialExplorationSession.load(bundle,
-          runtimeLocale: descriptor.locales?.resolve(_preferences?.locale ?? descriptor.locale)
-              ?? _preferences?.locale ?? descriptor.locale,
+          runtimeLocale: _preferences?.contentLocale(descriptor.locales)
+              ?? descriptor.locale,
           locales: descriptor.locales,
           allowNpcOverlapRecovery: descriptor.launchMode == GameSessionLaunchMode.continueGame,
           loadMap: (id) async {
@@ -2182,6 +2191,7 @@ final class SpatialExplorationGameSessionRuntime
   }
 
   void _initializePlayerServices(RuntimeMapBundle bundle) {
+    final pokemonSpeciesLoader = RuntimePokemonSpeciesLoader();
     final services = PlayerServiceRuntimeController.contextual(
         civilNow: _now,
         currentGameState: () {
@@ -2207,7 +2217,8 @@ final class SpatialExplorationGameSessionRuntime
             (state) => loadRuntimePlayerServiceRecoveryCaps(
                 gameState: state,
                 projectRootDirectory: bundle.projectRootDirectory,
-                pokemonConfig: bundle.manifest.pokemon),
+                pokemonConfig: bundle.manifest.pokemon,
+                speciesLoader: pokemonSpeciesLoader),
         conditionContext: ScriptEvaluationContext(
             narrativeFactResolver:
                 NarrativeFactRuntimeResolver.fromFacts(bundle.manifest.facts)),
@@ -2216,7 +2227,9 @@ final class SpatialExplorationGameSessionRuntime
         pokemonConfig: bundle.manifest.pokemon,
         bagCapacity: bundle.manifest.bagCapacity,
         itemCatalog: _bagItemCatalog,
-        locale: descriptor.locale);
+        pokemonSpeciesLoader: pokemonSpeciesLoader,
+        locale: descriptor.locale,
+        displayLocale: () => _preferences?.locale ?? descriptor.locale);
     services.setFishingConsumer(_reserveSpatialFishing);
     if (descriptor.grantedCapabilities.contains(OverworldItemCapabilities.spatialEscapeRopeCapabilityId)) {
       services.setEscapeRopeConsumer(_useSpatialEscapeRope, resumeGameplayOnSuccess: true);

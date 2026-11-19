@@ -20,6 +20,7 @@ import '../presentation/flutter/battle_command_overlay_snapshot.dart';
 import '../session/game_session_contract.dart';
 import 'runtime_world_service_models.dart';
 import 'runtime_graphics_preferences.dart';
+import 'runtime_player_language_choice.dart';
 import 'runtime_world_time_preferences.dart';
 
 part 'runtime_world_service_companion_codec.dart';
@@ -1180,6 +1181,7 @@ abstract final class RuntimeCompanionPresentationCodec {
             value.hpTweenDurationMs,
         'hpTweenRevision': value.hpTweenRevision,
         'genderSymbol': value.genderSymbol,
+        if (value.isAlreadyCaught) 'isAlreadyCaught': true,
         'statusLabel': value.statusLabel,
         'experienceProgress':
             value.experienceProgress,
@@ -1217,6 +1219,7 @@ abstract final class RuntimeCompanionPresentationCodec {
         genderSymbol: data['genderSymbol'] == null
             ? null
             : data['genderSymbol'] as String,
+        isAlreadyCaught: data['isAlreadyCaught'] as bool? ?? false,
         statusLabel:
             data['statusLabel'] == null ? null : data['statusLabel'] as String,
         experienceProgress: data['experienceProgress'] == null
@@ -1326,6 +1329,12 @@ abstract final class RuntimeCompanionPresentationCodec {
           PlayerPreferencesSnapshot value) =>
       {
         'locale': value.locale,
+        if (value.playerLanguage case final choice?)
+          'playerLanguage': _encodePlayerLanguageChoice(choice),
+        if (value.preferredContentLocales case final locales?)
+          'preferredContentLocales': locales,
+        if (value.languageChange case final choice?)
+          'languageChange': _encodePlayerLanguageChoice(choice),
         'accessibility':
             encodeGameSessionAccessibilityOptions(value.accessibility),
         'touchControlsOpacity': value.touchControlsOpacity,
@@ -1349,6 +1358,13 @@ abstract final class RuntimeCompanionPresentationCodec {
           Map<String, dynamic> data) =>
       PlayerPreferencesSnapshot(
         locale: data['locale'] as String,
+        playerLanguage: _decodePlayerLanguageChoice(data['playerLanguage']),
+        preferredContentLocales: data['preferredContentLocales'] == null
+            ? null
+            : List<String>.unmodifiable(
+                data['preferredContentLocales'] as List,
+              ),
+        languageChange: _decodePlayerLanguageChoice(data['languageChange']),
         accessibility:
             decodeGameSessionAccessibilityOptions(_map(data['accessibility'])),
         touchControlsOpacity: (data['touchControlsOpacity'] as num).toDouble(),
@@ -1373,6 +1389,24 @@ abstract final class RuntimeCompanionPresentationCodec {
             ? const RuntimeGraphicsPreferences()
             : RuntimeGraphicsPreferences.fromJson(_map(data['graphics'])),
       );
+
+  static Map<String, Object?> _encodePlayerLanguageChoice(
+    RuntimePlayerLanguageChoice choice,
+  ) => switch (choice.languageTag) {
+    final tag? => {'mode': 'explicit', 'tag': tag},
+    null => {'mode': 'followApplication'},
+  };
+
+  static RuntimePlayerLanguageChoice? _decodePlayerLanguageChoice(Object? raw) {
+    if (raw == null) return null;
+    return switch (_map(raw)) {
+      {'mode': 'followApplication'} =>
+        const RuntimePlayerLanguageChoice.followApplication(),
+      {'mode': 'explicit', 'tag': final String tag} =>
+        RuntimePlayerLanguageChoice.explicit(tag),
+      _ => throw const FormatException('Invalid player language choice.'),
+    };
+  }
 
   static int _decodeTargetFramesPerSecond(Map<String, dynamic> data) {
     final value = data.containsKey('targetFramesPerSecond')

@@ -10,35 +10,47 @@ final class ProjectLocaleResolver {
     required String preferredLocale,
     required Iterable<String> supportedLocales,
     required String fallbackLocale,
+  }) => resolvePreferred(
+    preferredLocales: [preferredLocale],
+    supportedLocales: supportedLocales,
+    fallbackLocale: fallbackLocale,
+  );
+
+  static String resolvePreferred({
+    required Iterable<String> preferredLocales,
+    required Iterable<String> supportedLocales,
+    required String fallbackLocale,
   }) {
     final supported = supportedLocales
         .map((locale) => locale.trim())
         .where((locale) => locale.isNotEmpty)
         .toList(growable: false);
-    if (supported.isEmpty) return fallbackLocale.trim();
+    final fallback = fallbackLocale.trim();
+    if (supported.isEmpty) return fallback;
 
-    final preferred = preferredLocale.trim();
-    final exact = _find(
-      supported,
-      (locale) => _normalize(locale) == _normalize(preferred),
-    );
-    if (exact != null) return exact;
-
-    final language = _languageCode(preferred);
-    if (language.isNotEmpty) {
-      final languageMatch = _find(
-        supported,
-        (locale) => _languageCode(locale) == language,
-      );
-      if (languageMatch != null) return languageMatch;
+    for (final preferred in preferredLocales) {
+      final match = _match(supported, preferred);
+      if (match != null) return match;
     }
 
-    final fallback = fallbackLocale.trim();
     return _find(
           supported,
           (locale) => _normalize(locale) == _normalize(fallback),
         ) ??
         supported.first;
+  }
+
+  static String? _match(List<String> supported, String preferred) {
+    final normalized = _normalize(preferred);
+    final exact = _find(
+      supported,
+      (locale) => _normalize(locale) == normalized,
+    );
+    if (exact != null) return exact;
+
+    final language = normalized.split('-').first;
+    if (language.isEmpty) return null;
+    return _find(supported, (locale) => _languageCode(locale) == language);
   }
 
   static String? _find(

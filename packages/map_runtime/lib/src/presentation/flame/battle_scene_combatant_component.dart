@@ -83,8 +83,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
   ui.Image? _ownedStaticSpriteImage;
   Rect? _spriteOpaqueSourceRect;
   String? _spriteSourcePath;
-  (String?, String?, String?, bool?)? _loadedSpritePaths;
-  (String?, String?, String?, bool?)? _pendingSpritePaths;
+  (String?, String?, String?, bool?, bool)? _loadedSpritePaths;
+  (String?, String?, String?, bool?, bool)? _pendingSpritePaths;
   Future<void>? _pendingSpriteLoad;
   bool Function()? _pendingSpriteIsCurrent;
   int _spriteGeneration = 0;
@@ -96,6 +96,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Gen5NativeSprite? _gen5Sprite;
   ui.Image? _ownedGen5Image;
   Rect? _gen5ReferenceRect;
+  Rect? _gifReferenceRect;
+  double? _wildGen5ReferenceHeight;
   RuntimeResourceReservation? _gen5Reservation;
   (String, bool)? _failedGen5Source;
   double _gen5ElapsedSeconds = 0;
@@ -1059,11 +1061,13 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Future<void> _syncSpriteImage() {
     if (_spriteClosed) return Future.value();
     final source = _spriteSpec.gen5Source;
+    final sizeReference = _spriteSpec.gen5SizeReference;
     final paths = (
       _spritePath(_spriteSpec.explicitImageAbsolutePath),
       _spritePath(_spriteSpec.explicitAnimatedImageAbsolutePath),
-      source?.speciesId,
-      source?.shiny,
+      source?.speciesId ?? sizeReference?.speciesId,
+      source?.shiny ?? sizeReference?.shiny,
+      sizeReference != null,
     );
     if (_loadedSpritePaths == paths) return Future.value();
     if (_pendingSpritePaths == paths &&
@@ -1088,7 +1092,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _loadedSpritePaths = null;
     _releaseGen5();
     _releaseGif();
-    final pending = _loadSprite(paths, source, generation, isCurrent);
+    final pending = _loadSprite(
+      paths, source, sizeReference, generation, isCurrent,
+    );
     _pendingSpriteLoad = pending;
     return pending.whenComplete(() {
       if (_spriteGeneration == generation) {
@@ -1100,8 +1106,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   Future<void> _loadSprite(
-    (String?, String?, String?, bool?) paths,
+    (String?, String?, String?, bool?, bool) paths,
     BattleGen5SpriteSource? source,
+    BattleGen5SpriteSource? sizeReference,
     int generation,
     bool Function() isCurrent,
   ) async {
@@ -1110,12 +1117,19 @@ class BattleSceneCombatantComponent extends PositionComponent {
     try {
       await _loadStaticSprite(staticPath, isCurrent);
       if (!isCurrent()) return;
-      if ((source != null || animatedPath != null) && !_spriteMounted) return;
+      if ((source != null || sizeReference != null || animatedPath != null) &&
+          !_spriteMounted) {
+        return;
+      }
       if (source != null && _failedGen5Source != (source.speciesId, source.shiny)) {
         if (await _loadGen5(source, isCurrent)) {
           if (isCurrent()) _loadedSpritePaths = paths;
           return;
         }
+        if (!isCurrent()) return;
+      }
+      if (sizeReference != null && (_spriteImage != null || animatedPath != null)) {
+        await _loadGen5(sizeReference, isCurrent, measureOnly: true);
         if (!isCurrent()) return;
       }
       if (animatedPath != null) {
@@ -1127,8 +1141,13 @@ class BattleSceneCombatantComponent extends PositionComponent {
             resourceBudget: _resourceBudget,
             isCurrent: isCurrent,
           );
+          final reference = _wildGen5ReferenceHeight == null
+              ? null
+              : await _computeOpaqueSourceRect(animation.frameByIndex(0));
           atlas = await buildRuntimeGifAtlas(animation, isCurrent: isCurrent);
           if (!isCurrent()) return;
+          if (reference == null) _wildGen5ReferenceHeight = null;
+          _gifReferenceRect = reference;
           _gifElapsedSeconds = 0;
           if (atlas == null) {
             _gifAnimation = animation;
@@ -1171,8 +1190,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   Future<bool> _loadGen5(
     BattleGen5SpriteSource source,
-    bool Function() isCurrent,
-  ) async {
+    bool Function() isCurrent, {
+    bool measureOnly = false,
+  }) async {
     Gen5NativeSprite? sprite;
     RuntimeResourceReservation? reservation;
     ui.Image? frame;
@@ -1197,6 +1217,11 @@ class BattleSceneCombatantComponent extends PositionComponent {
         rgba, Gen5NativeSprite.canvasWidth, Gen5NativeSprite.canvasHeight,
       );
       if (referenceRect == null) return false;
+      if (measureOnly) {
+        reservation.ensureCurrent();
+        _wildGen5ReferenceHeight = referenceRect.height;
+        return true;
+      }
       frame = await _gen5Image(rgba);
       reservation.ensureCurrent();
       reservation.commit();
@@ -1217,7 +1242,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
       frame = null;
       return true;
     } catch (error) {
-      if (isCurrent()) debugPrint('Gen 5 sprite unavailable: $error');
+      if (isCurrent() && !measureOnly) debugPrint('Gen 5 sprite unavailable: $error');
       return false;
     } finally {
       frame?.dispose();
@@ -1270,6 +1295,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
     if (identical(_spriteImage, image)) _spriteImage = null;
     _ownedGen5Image = null;
     _gen5ReferenceRect = null;
+    _wildGen5ReferenceHeight = null;
+    _gifReferenceRect = null;
     image?.dispose();
     _gen5Sprite?.dispose();
     _gen5Sprite = null;
@@ -1573,25 +1600,29 @@ class BattleSceneCombatantComponent extends PositionComponent {
       return _fallbackDestinationSize();
     }
     final reference = _gen5ReferenceRect;
+    final gen5Scale = _spriteRect.shortestSide /
+        _gen5SceneScaleReference * _battleSpriteDisplayScale;
     if (reference != null) {
-      final scale = _spriteRect.shortestSide /
-          _gen5SceneScaleReference *
-          _battleSpriteDisplayScale;
-      return Size(reference.width * scale, reference.height * scale);
+      return reference.size * gen5Scale;
     }
     final inputSubrect = _currentSpriteInputSubrect();
+    final referenceHeight = _wildGen5ReferenceHeight;
+    final visibleSize = _gifReferenceRect?.size ?? inputSubrect.size;
+    if (referenceHeight != null && !visibleSize.isEmpty) {
+      return visibleSize * (referenceHeight * gen5Scale / visibleSize.height);
+    }
     final fitted = applyBoxFit(BoxFit.contain, inputSubrect.size, _spriteRect.size);
     return fitted.destination * _battleSpriteDisplayScale;
   }
 
   Rect _imageRectForReference(Rect visibleRect) {
-    final reference = _gen5ReferenceRect;
+    final reference = _gen5ReferenceRect ?? _gifReferenceRect;
     final image = _spriteImage;
     if (reference == null || image == null) return visibleRect;
     return gen5SpriteCanvasRectForReference(
       visibleRect,
       reference,
-      Size(image.width.toDouble(), image.height.toDouble()),
+      _currentSpriteInputSubrect().size,
     );
   }
 

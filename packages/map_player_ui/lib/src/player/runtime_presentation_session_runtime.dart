@@ -49,11 +49,13 @@ final class RuntimePresentationSessionRuntime {
     required String projectRootDirectory,
     required String projectRevision,
     required String sceneId,
+    Future<String?> Function()? readPreferredLocale,
   }) =>
       RuntimeTextPreSessionSceneRunner(
         project: project,
         projectRootDirectory: projectRootDirectory,
         sceneId: sceneId,
+        readPreferredLocale: readPreferredLocale,
         presentationCinematic:
             ScenePresentationCinematicRuntimeAwaitableAdapter(
           runtimeSourceId: runtimeSourceId,

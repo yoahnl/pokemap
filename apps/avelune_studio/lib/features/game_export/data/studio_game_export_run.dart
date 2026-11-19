@@ -12,6 +12,7 @@ extension _StudioGameExportRun on StudioGameExportController {
     required bool Function() isCurrentProject,
   }) async {
     if (!canStart) return false;
+    _progress = null;
     final outputFile = File(outputPath);
     if (p.isWithin(projectRoot.absolute.path, outputFile.absolute.path) ||
         p.equals(projectRoot.absolute.path, outputFile.absolute.path)) {
@@ -35,7 +36,13 @@ extension _StudioGameExportRun on StudioGameExportController {
     failure = null;
     warning = null;
     stage = StudioExportStage.preparing;
-    _notify();
+    _showStep(StudioExportStep.saveProject);
+    bool current() => _valid(operation, isCurrentProject);
+    void itemsChecked(StudioExportStep step, int checked, int total) {
+      if (!current() || total == 0) return;
+      _showStep(step, itemsChecked: checked, itemCount: total);
+    }
+
     try {
       final profile = _profileFrom(this.profile, metadata);
       if (!await prepare()) {
@@ -52,13 +59,28 @@ extension _StudioGameExportRun on StudioGameExportController {
         );
       }
       final root = projectRoot.path;
+      _showStep(StudioExportStep.checkItemIcons);
       final prepareAssets = prepareProjectAssets;
       if (prepareAssets != null) {
         await prepareAssets(root);
       } else {
-        await StudioProjectItemIcons.shared.prepare(
+        final assets = StudioProjectItemIcons.shared;
+        await assets.prepareIcons(
           root,
-          shouldContinue: () => _valid(operation, isCurrentProject),
+          shouldContinue: current,
+          onItemsChecked: (checked, total) =>
+              itemsChecked(StudioExportStep.checkItemIcons, checked, total),
+        );
+        if (!current()) return false;
+        _showStep(StudioExportStep.checkCaptureSprites);
+        await assets.prepareCaptureSprites(
+          root,
+          shouldContinue: current,
+          onItemsChecked: (checked, total) => itemsChecked(
+            StudioExportStep.checkCaptureSprites,
+            checked,
+            total,
+          ),
         );
       }
       if (!_valid(operation, isCurrentProject)) return false;
@@ -68,6 +90,7 @@ extension _StudioGameExportRun on StudioGameExportController {
           StudioCheckFamily.launch,
         );
       }
+      _showStep(StudioExportStep.verifyProfile);
       final profileStore = GamePackageExportProfileStore(
         projectRoot: projectRoot,
       );
@@ -83,14 +106,27 @@ extension _StudioGameExportRun on StudioGameExportController {
       final before = await readFingerprints(root);
       if (!_valid(operation, isCurrentProject)) return false;
       stage = StudioExportStage.building;
-      _notify();
-      final artifact = await buildPackage(
-        Directory(root),
-        profile,
-        publication
-            ? GamePackageExportMode.publication
-            : GamePackageExportMode.localTest,
-      );
+      _showStep(StudioExportStep.collectFiles);
+      final mode = publication
+          ? GamePackageExportMode.publication
+          : GamePackageExportMode.localTest;
+      final build = buildPackage;
+      final artifact = await (build == null
+          ? _buildWithProgress(Directory(root), profile, mode, (phase) {
+              if (current()) {
+                _showStep(switch (phase) {
+                  GamePackageBuildPhase.projection =>
+                    StudioExportStep.collectFiles,
+                  GamePackageBuildPhase.validation =>
+                    StudioExportStep.validateGame,
+                  GamePackageBuildPhase.archive =>
+                    StudioExportStep.buildArchive,
+                  GamePackageBuildPhase.inspection =>
+                    StudioExportStep.inspectArchive,
+                });
+              }
+            })
+          : build(Directory(root), profile, mode));
       if (!_valid(operation, isCurrentProject)) return false;
       final after = await readFingerprints(root);
       if (!_valid(operation, isCurrentProject)) return false;
@@ -109,7 +145,7 @@ extension _StudioGameExportRun on StudioGameExportController {
       }
       if (!_valid(operation, isCurrentProject)) return false;
       stage = StudioExportStage.writing;
-      _notify();
+      _showStep(StudioExportStep.writePackage);
       if (writePackage case final write?) {
         await write(artifact, outputFile);
       } else {
@@ -119,6 +155,7 @@ extension _StudioGameExportRun on StudioGameExportController {
         );
       }
       if (!_valid(operation, isCurrentProject)) return false;
+      _showStep(StudioExportStep.finishExport);
       try {
         final latest = await readFingerprints(root);
         if (!_valid(operation, isCurrentProject)) return false;
@@ -218,10 +255,29 @@ Future<GamePackageExportArtifact> _buildInIsolate(
   Directory root,
   GamePackageExportProfile profile,
   GamePackageExportMode mode,
+  SendPort progress,
 ) => Isolate.run(
   () => const CanonicalGamePackageExportService().build(
     projectRoot: root,
     profile: profile,
     mode: mode,
+    onPhase: progress.send,
   ),
 );
+
+Future<GamePackageExportArtifact> _buildWithProgress(
+  Directory root,
+  GamePackageExportProfile profile,
+  GamePackageExportMode mode,
+  void Function(GamePackageBuildPhase phase) onPhase,
+) async {
+  final progress = ReceivePort();
+  progress.listen((message) {
+    if (message is GamePackageBuildPhase) onPhase(message);
+  });
+  try {
+    return await _buildInIsolate(root, profile, mode, progress.sendPort);
+  } finally {
+    progress.close();
+  }
+}

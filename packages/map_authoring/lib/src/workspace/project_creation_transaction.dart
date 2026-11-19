@@ -106,6 +106,7 @@ Future<AuthoringReceipt> writeProjectCreationKit(
         expectedProjectRoot: nativeCreation == null ? null : path);
     final ledger = AuthoringIdempotencyLedger(
         store: FileIdempotencyStore(
+            incrementalWrites: true,
             filePath:
                 '$path${Platform.pathSeparator}.pokemap${Platform.pathSeparator}authoring${Platform.pathSeparator}idempotency.jsonl'));
     final transaction = JournaledAuthoringTransaction(

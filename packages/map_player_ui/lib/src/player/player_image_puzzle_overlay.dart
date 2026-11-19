@@ -8,6 +8,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
 import '../foundation/player_menu_components.dart';
+import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_control_profile.dart';
@@ -101,6 +102,7 @@ class _PlayerImagePuzzleOverlayState extends State<PlayerImagePuzzleOverlay> {
   }
 
   Widget _slot(BuildContext context, int slot, double width, double height) {
+    final strings = context.playerL10n;
     final progress = _content.progress;
     final piece = progress.pieces
         .where((piece) => piece.slot == slot)
@@ -120,12 +122,14 @@ class _PlayerImagePuzzleOverlayState extends State<PlayerImagePuzzleOverlay> {
       child: PlayerMenuSelectableRow(
         id: 'puzzle-slot-$slot',
         label: piece == null
-            ? 'Case libre ${slot + 1}'
-            : 'Pièce ${piece.pieceId + 1}${fixed ? ', fixe' : ''}',
+            ? strings.puzzleEmptySlot(index: slot + 1)
+            : fixed
+            ? strings.puzzleFixedPiece(index: piece.pieceId + 1)
+            : strings.puzzlePiece(index: piece.pieceId + 1),
         semanticValue: fixed
-            ? 'fixe'
+            ? strings.puzzleFixed
             : selected
-            ? 'sélectionnée'
+            ? strings.puzzleSelected
             : null,
         selected: selected,
         showLabel: false,
@@ -196,7 +200,7 @@ class _PlayerImagePuzzleOverlayState extends State<PlayerImagePuzzleOverlay> {
                 ),
               if (definition.trayCapacity > 0) ...[
                 const SizedBox(height: 12),
-                const Text('Réserve'),
+                Text(context.playerL10n.puzzleTray),
                 const SizedBox(height: 4),
                 Wrap(
                   children: [
@@ -224,7 +228,10 @@ class _PlayerImagePuzzleOverlayState extends State<PlayerImagePuzzleOverlay> {
   Widget _panelContent(BuildContext context, bool applying) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text('Puzzle d’image', style: context.playerMenuTheme.title),
+      Text(
+        context.playerL10n.puzzleTitle,
+        style: context.playerMenuTheme.title,
+      ),
       const SizedBox(height: 8),
       Expanded(
         child: SingleChildScrollView(
@@ -232,15 +239,11 @@ class _PlayerImagePuzzleOverlayState extends State<PlayerImagePuzzleOverlay> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Sélectionnez une pièce puis sa destination. R : tourner la pièce.',
-              ),
+              Text(context.playerL10n.puzzleInstructions),
               if (applying) const LinearProgressIndicator(),
               if (_content.message case final message?) Text(message),
               if (_imageError != null)
-                const Text(
-                  'L’image ne peut pas être affichée. Quittez puis rouvrez le puzzle.',
-                ),
+                Text(context.playerL10n.puzzleImageUnavailable),
               if (_image == null && _imageError == null)
                 const LinearProgressIndicator(),
               if (_image != null) _board(context),
@@ -250,7 +253,7 @@ class _PlayerImagePuzzleOverlayState extends State<PlayerImagePuzzleOverlay> {
                   if (_content.progress.definition.allowedQuarterTurns.length >
                       1)
                     PlayerActionButton(
-                      label: 'Tourner',
+                      label: context.playerL10n.puzzleRotate,
                       icon: Icons.rotate_right,
                       secondary: true,
                       onPressed: applying || _content.selectedPieceId == null
@@ -259,7 +262,7 @@ class _PlayerImagePuzzleOverlayState extends State<PlayerImagePuzzleOverlay> {
                     ),
                   if (_content.progress.definition.allowReset)
                     PlayerActionButton(
-                      label: 'Recommencer',
+                      label: context.playerL10n.puzzleReset,
                       icon: Icons.restart_alt,
                       secondary: true,
                       onPressed: applying
@@ -276,14 +279,14 @@ class _PlayerImagePuzzleOverlayState extends State<PlayerImagePuzzleOverlay> {
       PlayerServiceActions(
         children: [
           PlayerActionButton(
-            label: 'Vérifier',
+            label: context.playerL10n.puzzleCheck,
             icon: Icons.check,
             onPressed: applying || _image == null
                 ? null
                 : () => _emit(RuntimeWorldServiceAction.confirm),
           ),
           PlayerActionButton(
-            label: 'Quitter',
+            label: context.playerL10n.quit,
             icon: Icons.close,
             secondary: true,
             onPressed: applying

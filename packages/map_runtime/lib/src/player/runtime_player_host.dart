@@ -6,6 +6,7 @@ import '../presentation/flame/battle_motion_policy.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
 import 'runtime_audio_mixer.dart';
 import 'runtime_graphics_preferences.dart';
+import 'runtime_player_language_choice.dart';
 import 'runtime_world_time_preferences.dart';
 
 /// Host-provided source for one game selected by the player.
@@ -81,9 +82,9 @@ final class PlayerSaveSummary {
     this.unavailableReason,
     String? locationLabel,
   }) : locationLabel = switch (locationLabel?.trim()) {
-          '' => null,
-          final label => label,
-        } {
+         '' => null,
+         final label => label,
+       } {
     if (playTimeSeconds < 0) {
       throw ArgumentError.value(
         playTimeSeconds,
@@ -126,6 +127,9 @@ final class PlayerPreferencesSnapshot {
   const PlayerPreferencesSnapshot({
     required this.locale,
     required this.accessibility,
+    this.playerLanguage,
+    this.preferredContentLocales,
+    this.languageChange,
     this.touchControlsOpacity = 0.82,
     this.leftHandedTouchControls = false,
     this.touchRunMode = RuntimePlayerTouchRunMode.gesture,
@@ -139,21 +143,24 @@ final class PlayerPreferencesSnapshot {
     this.worldTime = const RuntimeWorldTimePreferences(),
     this.graphics = const RuntimeGraphicsPreferences(),
     this.targetFramesPerSecond = AveluneFrameRate.defaultLimit,
-  })  : assert(locale != ''),
-        assert(
-          targetFramesPerSecond == 30 ||
-              targetFramesPerSecond == 45 ||
-              targetFramesPerSecond == 60 ||
-              targetFramesPerSecond == 90 ||
-              targetFramesPerSecond == 120,
-          'targetFramesPerSecond must be a supported frame rate limit',
-        ),
-        assert(
-          touchControlsOpacity >= 0.3 && touchControlsOpacity <= 1,
-          'touchControlsOpacity must be between 0.3 and 1',
-        );
+  }) : assert(locale != ''),
+       assert(
+         targetFramesPerSecond == 30 ||
+             targetFramesPerSecond == 45 ||
+             targetFramesPerSecond == 60 ||
+             targetFramesPerSecond == 90 ||
+             targetFramesPerSecond == 120,
+         'targetFramesPerSecond must be a supported frame rate limit',
+       ),
+       assert(
+         touchControlsOpacity >= 0.3 && touchControlsOpacity <= 1,
+         'touchControlsOpacity must be between 0.3 and 1',
+       );
 
   final String locale;
+  final RuntimePlayerLanguageChoice? playerLanguage;
+  final List<String>? preferredContentLocales;
+  final RuntimePlayerLanguageChoice? languageChange;
   final GameSessionAccessibilityOptions accessibility;
   final double touchControlsOpacity;
   final bool leftHandedTouchControls;
@@ -169,8 +176,18 @@ final class PlayerPreferencesSnapshot {
   final RuntimeWorldTimePreferences worldTime;
   final RuntimeGraphicsPreferences graphics;
 
+  String contentLocale(ProjectLocalePolicy? policy) {
+    final candidates = preferredContentLocales ?? [locale];
+    return policy?.resolvePreferred(candidates) ??
+        candidates.firstOrNull ??
+        locale;
+  }
+
   PlayerPreferencesSnapshot copyWith({
     String? locale,
+    RuntimePlayerLanguageChoice? playerLanguage,
+    List<String>? preferredContentLocales,
+    RuntimePlayerLanguageChoice? languageChange,
     GameSessionAccessibilityOptions? accessibility,
     double? touchControlsOpacity,
     bool? leftHandedTouchControls,
@@ -186,26 +203,28 @@ final class PlayerPreferencesSnapshot {
     RealWeatherPreferences? realWeather,
     RuntimeWorldTimePreferences? worldTime,
     RuntimeGraphicsPreferences? graphics,
-  }) =>
-      PlayerPreferencesSnapshot(
-        locale: locale ?? this.locale,
-        realWeather: realWeather ?? this.realWeather,
-        worldTime: worldTime ?? this.worldTime,
-        graphics: graphics ?? this.graphics,
-        accessibility: accessibility ?? this.accessibility,
-        touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
-        leftHandedTouchControls:
-            leftHandedTouchControls ?? this.leftHandedTouchControls,
-        touchRunMode: touchRunMode ?? this.touchRunMode,
-        audioMix: audioMix ?? this.audioMix,
-        highContrast: highContrast ?? this.highContrast,
-        showInputHints: showInputHints ?? this.showInputHints,
-        dialogueTextSpeed: dialogueTextSpeed ?? this.dialogueTextSpeed,
-        menuEffects: menuEffects ?? this.menuEffects,
-        battleMotion: clearBattleMotion ? null : battleMotion ?? this.battleMotion,
-        targetFramesPerSecond:
-            targetFramesPerSecond ?? this.targetFramesPerSecond,
-      );
+  }) => PlayerPreferencesSnapshot(
+    locale: locale ?? this.locale,
+    playerLanguage: playerLanguage ?? this.playerLanguage,
+    preferredContentLocales:
+        preferredContentLocales ?? this.preferredContentLocales,
+    languageChange: languageChange ?? this.languageChange,
+    realWeather: realWeather ?? this.realWeather,
+    worldTime: worldTime ?? this.worldTime,
+    graphics: graphics ?? this.graphics,
+    accessibility: accessibility ?? this.accessibility,
+    touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
+    leftHandedTouchControls:
+        leftHandedTouchControls ?? this.leftHandedTouchControls,
+    touchRunMode: touchRunMode ?? this.touchRunMode,
+    audioMix: audioMix ?? this.audioMix,
+    highContrast: highContrast ?? this.highContrast,
+    showInputHints: showInputHints ?? this.showInputHints,
+    dialogueTextSpeed: dialogueTextSpeed ?? this.dialogueTextSpeed,
+    menuEffects: menuEffects ?? this.menuEffects,
+    battleMotion: clearBattleMotion ? null : battleMotion ?? this.battleMotion,
+    targetFramesPerSecond: targetFramesPerSecond ?? this.targetFramesPerSecond,
+  );
 }
 
 /// Host-owned persistence for global player preferences.

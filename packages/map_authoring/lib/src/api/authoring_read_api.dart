@@ -133,6 +133,9 @@ final class AuthoringReadApi
   @override
   Map<String, Object?> describe() => describeRead().toJson();
 
+  Future<String?> readCatalogRevision(ProjectHandle projectHandle) async =>
+      (await _openService.catalogProject(projectHandle, metadataFields: const {}))?.revision;
+
   Future<AuthoringMapView> readMapView(
     ProjectHandle projectHandle,
     String mapId,

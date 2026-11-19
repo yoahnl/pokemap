@@ -46,7 +46,7 @@ _NarrativeComponentWrites _reusableEventInputs(
   return _NarrativeComponentWrites.from({
     ...footprint.reads,
     ...footprint.writes,
-  }, const {});
+  });
 }
 
 List<_LegacySymbolicSource> _legacySymbolicSources(

@@ -1,27 +1,23 @@
 import 'package:flutter/widgets.dart';
 
+import '../localization/player_localizations.dart';
+
 final class PlayerDisplayStrings {
-  const PlayerDisplayStrings._(this._fr);
+  const PlayerDisplayStrings._(this._strings);
 
   factory PlayerDisplayStrings.of(BuildContext context) =>
-      PlayerDisplayStrings._(
-        Localizations.localeOf(context).languageCode == 'fr',
-      );
+      PlayerDisplayStrings._(context.playerL10n);
 
-  final bool _fr;
+  final PokeMapPlayerLocalizations _strings;
 
-  String get title => _fr ? 'Affichage' : 'Display';
-  String get mode => _fr ? 'Mode d’affichage' : 'Display mode';
-  String get windowed => _fr ? 'Fenêtré' : 'Windowed';
-  String get fullscreen => _fr ? 'Plein écran' : 'Fullscreen';
-  String get windowSize => _fr ? 'Taille de fenêtre' : 'Window size';
-  String get compact => _fr ? 'Compacte' : 'Compact';
-  String get balanced => _fr ? 'Équilibrée' : 'Balanced';
-  String get spacious => _fr ? 'Spacieuse' : 'Spacious';
-  String get unsupported => _fr
-      ? 'Les réglages de fenêtre sont disponibles sur ordinateur.'
-      : 'Window settings are available on desktop.';
-  String get applyFailed => _fr
-      ? 'Le réglage d’affichage n’a pas pu être appliqué.'
-      : 'The display setting could not be applied.';
+  String get title => _strings.displayTitle;
+  String get mode => _strings.displayMode;
+  String get windowed => _strings.displayWindowed;
+  String get fullscreen => _strings.displayFullscreen;
+  String get windowSize => _strings.displayWindowSize;
+  String get compact => _strings.displayCompact;
+  String get balanced => _strings.displayBalanced;
+  String get spacious => _strings.displaySpacious;
+  String get unsupported => _strings.displayUnsupported;
+  String get applyFailed => _strings.displayApplyFailed;
 }

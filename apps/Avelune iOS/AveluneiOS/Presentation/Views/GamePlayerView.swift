@@ -6,6 +6,7 @@ import SwiftUI
 /// Splash, intro, title menu, saves and gameplay all live inside the runtime,
 /// so this view mounts it and stays out of the way.
 struct GamePlayerView: View {
+    @Environment(\.locale) private var locale
     @AppStorage("showDebugInfo") private var showDebug = false
     @ObservedObject var viewModel: GamePlayerViewModel
     let game: Game
@@ -33,14 +34,14 @@ struct GamePlayerView: View {
         .onDisappear { viewModel.setDebugEnabled(false) }
     }
 
-    private func errorOverlay(_ message: String) -> some View {
+    private func errorOverlay(_ message: LocalizedStringResource) -> some View {
         ZStack {
             Color.black.ignoresSafeArea()
             VStack(spacing: 16) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.largeTitle)
                     .foregroundStyle(.red)
-                Text(message)
+                Text(verbatim: message.localized(for: locale))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                     .padding()

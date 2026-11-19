@@ -1,65 +1,48 @@
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core.dart';
 
+import '../localization/player_localizations.dart';
+
 final class PlayerSaveRecoveryStrings {
-  const PlayerSaveRecoveryStrings._(this._languageCode);
+  const PlayerSaveRecoveryStrings._(this._strings);
 
   factory PlayerSaveRecoveryStrings.of(BuildContext context) =>
-      PlayerSaveRecoveryStrings._(
-        Localizations.localeOf(context).languageCode,
-      );
+      PlayerSaveRecoveryStrings._(context.playerL10n);
 
-  final String _languageCode;
-
-  bool get _isFrench => _languageCode == 'fr';
+  final PokeMapPlayerLocalizations _strings;
 
   String cause(SaveLoadFailureCode code) => switch (code) {
-        SaveLoadFailureCode.unreadable => _isFrench
-            ? 'La sauvegarde est illisible.'
-            : 'The save file cannot be read.',
-        SaveLoadFailureCode.unsupportedSchema => _isFrench
-            ? 'Cette sauvegarde vient d’une autre version du jeu.'
-            : 'This save comes from another version of the game.',
-        SaveLoadFailureCode.invalidState => _isFrench
-            ? 'La sauvegarde est incomplète ou incohérente.'
-            : 'The save is incomplete or inconsistent.',
-      };
+    SaveLoadFailureCode.unreadable => _strings.saveRecoveryCauseUnreadable,
+    SaveLoadFailureCode.unsupportedSchema =>
+      _strings.saveRecoveryCauseUnsupportedSchema,
+    SaveLoadFailureCode.invalidState => _strings.saveRecoveryCauseInvalidState,
+  };
 
   String? versions({int? detected, int? expected}) {
     if (expected == null) return null;
     if (detected == null) {
-      return _isFrench
-          ? 'Ce jeu attend la version $expected.'
-          : 'This game expects version $expected.';
+      return _strings.saveRecoveryExpectedVersion(expected: expected);
     }
-    return _isFrench
-        ? 'Sauvegarde en version $detected, ce jeu attend la version $expected.'
-        : 'Save is version $detected, this game expects version $expected.';
+    return _strings.saveRecoveryVersionMismatch(
+      detected: detected,
+      expected: expected,
+    );
   }
 
   String action(SaveRecoveryAction action) => switch (action) {
-        SaveRecoveryAction.retry =>
-          _isFrench ? 'Réessayer' : 'Try again',
-        SaveRecoveryAction.restoreBackup => _isFrench
-            ? 'Restaurer la sauvegarde précédente'
-            : 'Restore the previous save',
-        SaveRecoveryAction.migrate =>
-          _isFrench ? 'Mettre à jour la sauvegarde' : 'Update the save',
-        SaveRecoveryAction.deleteSave =>
-          _isFrench ? 'Supprimer la sauvegarde' : 'Delete the save',
-        SaveRecoveryAction.returnToTitle =>
-          _isFrench ? 'Retour au titre' : 'Back to title',
-      };
+    SaveRecoveryAction.retry => _strings.saveRecoveryActionRetry,
+    SaveRecoveryAction.restoreBackup =>
+      _strings.saveRecoveryActionRestoreBackup,
+    SaveRecoveryAction.migrate => _strings.saveRecoveryActionMigrate,
+    SaveRecoveryAction.deleteSave => _strings.saveRecoveryActionDeleteSave,
+    SaveRecoveryAction.returnToTitle => _strings.returnToTitle,
+  };
 
-  String get deleteConfirmTitle =>
-      _isFrench ? 'Supprimer définitivement ?' : 'Delete permanently?';
+  String get deleteConfirmTitle => _strings.saveRecoveryDeleteConfirmTitle;
 
-  String get deleteConfirmBody => _isFrench
-      ? 'Cette partie sera effacée et ne pourra pas être récupérée.'
-      : 'This game will be erased and cannot be recovered.';
+  String get deleteConfirmBody => _strings.saveRecoveryDeleteConfirmBody;
 
-  String get deleteConfirm =>
-      _isFrench ? 'Supprimer définitivement' : 'Delete permanently';
+  String get deleteConfirm => _strings.saveRecoveryDeleteConfirm;
 
-  String get deleteCancel => _isFrench ? 'Annuler' : 'Cancel';
+  String get deleteCancel => _strings.cancel;
 }

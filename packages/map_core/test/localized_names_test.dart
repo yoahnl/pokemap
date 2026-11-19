@@ -63,6 +63,46 @@ void main() {
     });
   });
 
+  group('resolvePokemonSpeciesName', () {
+    test('tries the exact locale, base language and English in order', () {
+      const names = {
+        'fr-ca': 'Poussette',
+        'fr': 'Pousse',
+        'en': ' Sproutle ',
+        'es': '   ',
+      };
+      for (final (locale, expected) in [
+        ('FR_ca', 'Poussette'),
+        ('fr-BE', 'Pousse'),
+        ('es-MX', ' Sproutle '),
+        ('en-GB', ' Sproutle '),
+      ]) {
+        expect(
+          resolvePokemonSpeciesName(
+            names: names,
+            locale: locale,
+            fallback: 'X',
+          ),
+          expected,
+        );
+      }
+    });
+
+    test(
+      'keeps the fallback when English and the requested name are blank',
+      () {
+        expect(
+          resolvePokemonSpeciesName(
+            names: const {'fr-ca': ' ', 'fr': ' ', 'en': ' '},
+            locale: 'fr-CA',
+            fallback: ' Ancien nom ',
+          ),
+          ' Ancien nom ',
+        );
+      },
+    );
+  });
+
   group('PokemonMove.displayName', () {
     test('prefers the localized name over the canonical name', () {
       final move = _move(

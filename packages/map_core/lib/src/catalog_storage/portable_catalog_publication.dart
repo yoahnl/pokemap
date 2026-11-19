@@ -258,10 +258,7 @@ final class PortableProjectCatalog {
   }
 
   Future<ProjectManifest> exportProject() async {
-    final units = [
-      for (final unit in await snapshot.readAllUnits())
-        if (unit.key.kind != CatalogDefinitionKind.workspaceState) unit,
-    ];
+    final units = await snapshot.readAllUnits(includeWorkspaceState: false);
     final project = ProjectManifest.fromJson(_reconstruct(units));
     _verifyUnits(units, _projectUnits(project));
     return project;

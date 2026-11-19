@@ -7,6 +7,7 @@ import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
+import { mutationRevision } from "./mutation_revision.js";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 function record(value: unknown): JsonRecord {
@@ -70,13 +71,16 @@ test("L21b real MCP authors individual stats and queries calculated previews ind
       return Promise.all([projectFile, itemsFile, speciesFile].map(async path => sha(await readFile(path))));
     }
     async function plan(value: JsonRecord, failure = false): Promise<JsonRecord> {
+      assert.ok(client);
       const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
       const before = await immutableFiles();
       const id = `stats-${++sequence}`;
+      const parameters = { value };
+      const revision = await mutationRevision(client, String(workspace.projectHandle), "campaign.trainer.upsert", parameters, validation.snapshotRevision);
       const result = await call("pokemap_plan", { projectHandle: workspace.projectHandle,
         request: { requestId: id, actionId: "campaign.trainer.upsert", actionVersion: 1,
-          workspaceHandle: workspace.workspaceHandle, expectedRevision: validation.snapshotRevision,
-          idempotencyKey: id, dryRun: false, parameters: { value } } }, failure);
+          workspaceHandle: workspace.workspaceHandle, ...revision,
+          idempotencyKey: id, dryRun: false, parameters } }, failure);
       assert.deepEqual(await immutableFiles(), before);
       if (failure) {
         const after = await call("pokemap_validate", { projectHandle: workspace.projectHandle });

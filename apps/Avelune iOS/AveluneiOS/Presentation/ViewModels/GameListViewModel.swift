@@ -20,13 +20,13 @@ enum LibraryLoadState {
 final class GameListViewModel: ObservableObject {
     @Published private(set) var games: [Game] = []
     @Published private(set) var libraryState: LibraryLoadState = .loading
-    @Published private(set) var libraryLoadError: String?
+    @Published private(set) var libraryLoadError: LocalizedStringResource?
     @Published private(set) var isBusy = false
     @Published private(set) var installationStage: InstallationStage?
     @Published private(set) var installationName: String?
     @Published private(set) var installationProgress: Double?
-    @Published private(set) var installationDetail: String?
-    @Published var errorMessage: String?
+    @Published private(set) var installationDetail: LocalizedStringResource?
+    @Published var errorMessage: LocalizedStringResource?
 
     private let loadLibraryUseCase: LoadLibraryUseCase
     private let installGameUseCase: InstallGameUseCase
@@ -49,11 +49,12 @@ final class GameListViewModel: ObservableObject {
             libraryState = .loaded
             libraryLoadError = nil
         } catch {
+            let detail = (error as? RuntimeChannelError)?.userFacingMessage
             if isInitialLoad {
-                libraryLoadError = error.localizedDescription
+                libraryLoadError = detail
                 libraryState = .failed
             } else {
-                errorMessage = error.localizedDescription
+                errorMessage = detail ?? "Impossible d’actualiser la bibliothèque."
             }
         }
     }
@@ -77,7 +78,9 @@ final class GameListViewModel: ObservableObject {
             guard let packagePath = await Task.detached(priority: .userInitiated, operation: {
                 Self.copyToLocal(url: url)
             }).value else {
-                throw CocoaError(.fileReadUnknown)
+                importLogger.error("Game package import failed: unable to copy the selected file")
+                errorMessage = "Impossible de copier le fichier .avelunegame."
+                return
             }
             defer { try? FileManager.default.removeItem(atPath: packagePath) }
 
@@ -92,7 +95,7 @@ final class GameListViewModel: ObservableObject {
             importLogger.notice("Game package import completed")
         } catch {
             importLogger.error("Game package import failed: \(error.localizedDescription, privacy: .private)")
-            errorMessage = error.localizedDescription
+            errorMessage = (error as? RuntimeChannelError)?.userFacingMessage ?? "Impossible d’installer ce jeu."
         }
     }
 
@@ -124,7 +127,7 @@ final class GameListViewModel: ObservableObject {
         do {
             games = try await installGameUseCase.uninstall(game)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = (error as? RuntimeChannelError)?.userFacingMessage ?? "Impossible de supprimer ce jeu."
         }
     }
 }

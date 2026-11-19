@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_control_profile.dart';
 import 'player_control_strings.dart';
@@ -117,7 +118,10 @@ class _DeviceBindings extends StatelessWidget {
                       (inputId) => DropdownMenuItem<String>(
                         value: inputId,
                         child: Text(
-                          PlayerControlProfile.glyphForInput(inputId),
+                          PlayerControlProfile.glyphForInput(
+                            inputId,
+                            localizations: context.playerL10n,
+                          ),
                         ),
                       ),
                     )

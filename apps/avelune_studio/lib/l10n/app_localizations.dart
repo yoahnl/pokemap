@@ -200,23 +200,77 @@ abstract class AppLocalizations {
   /// **'Chargement du profil d’export…'**
   String get exportLoading;
 
-  /// No description provided for @exportPreparing.
+  /// No description provided for @exportStepSave.
   ///
   /// In fr, this message translates to:
-  /// **'Enregistrement du projet…'**
-  String get exportPreparing;
+  /// **'Enregistrer le projet'**
+  String get exportStepSave;
 
-  /// No description provided for @exportBuilding.
+  /// No description provided for @exportStepItemIcons.
   ///
   /// In fr, this message translates to:
-  /// **'Construction et vérification du jeu…'**
-  String get exportBuilding;
+  /// **'Préparer les icônes d’objets'**
+  String get exportStepItemIcons;
 
-  /// No description provided for @exportWriting.
+  /// No description provided for @exportStepCaptureSprites.
   ///
   /// In fr, this message translates to:
-  /// **'Écriture du paquet…'**
-  String get exportWriting;
+  /// **'Préparer les sprites de capture'**
+  String get exportStepCaptureSprites;
+
+  /// No description provided for @exportStepProfile.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifier le profil et la version du projet'**
+  String get exportStepProfile;
+
+  /// No description provided for @exportStepCollect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rassembler les fichiers du jeu'**
+  String get exportStepCollect;
+
+  /// No description provided for @exportStepValidate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifier le contenu jouable'**
+  String get exportStepValidate;
+
+  /// No description provided for @exportStepArchive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Assembler l’archive'**
+  String get exportStepArchive;
+
+  /// No description provided for @exportStepInspect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Contrôler l’archive créée'**
+  String get exportStepInspect;
+
+  /// No description provided for @exportStepWrite.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écrire le paquet'**
+  String get exportStepWrite;
+
+  /// No description provided for @exportStepFinish.
+  ///
+  /// In fr, this message translates to:
+  /// **'Finaliser l’export'**
+  String get exportStepFinish;
+
+  /// No description provided for @exportProgressSteps.
+  ///
+  /// In fr, this message translates to:
+  /// **'{completed, plural, =1{1 étape sur {total} terminée} other{{completed} étapes sur {total} terminées}} · {percent} %'**
+  String exportProgressSteps(int completed, int total, int percent);
+
+  /// No description provided for @exportProgressItems.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification des objets · {checked}/{total} · {percent} %'**
+  String exportProgressItems(int checked, int total, int percent);
 
   /// No description provided for @exportCancelling.
   ///

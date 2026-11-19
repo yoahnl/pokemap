@@ -3539,6 +3539,26 @@ void main() {
       expect(snapshot?.playerHud.speciesLabel, 'Grenousse');
     });
 
+    test('does not mark trainer Pokémon as caught in the HUD', () async {
+      const state = GameState(saveId: 'caught-trainer-opponent');
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(speciesId: 'sproutle', lineupIndex: 0, moves: [_tackle()]),
+          enemy: _combatant(speciesId: 'sparkitten', lineupIndex: 0, moves: [_tackle()]),
+          isTrainerBattle: true,
+        ),
+        gameState: state.copyWith(
+          progression: state.progression.copyWith(caughtSpeciesIds: ['sproutle', 'sparkitten']),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      final snapshot = overlay.currentCommandOverlaySnapshot!;
+      expect(snapshot.enemyHud.isAlreadyCaught, isFalse);
+      expect(snapshot.playerHud.isAlreadyCaught, isFalse);
+    });
+
     test('keeps the resolved timeline visible when a real turn exists',
         () async {
       final initialSession = _session(

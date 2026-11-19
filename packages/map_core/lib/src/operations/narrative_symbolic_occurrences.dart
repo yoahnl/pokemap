@@ -4,65 +4,80 @@ const _playerMapFootprintKey = 'player:map';
 
 typedef _SymbolicOccurrence = ({
   Object? sourceKey,
-  List<List<NarrativeEventDefinition>> entries,
+  Map<NarrativeEventSourceRef, List<NarrativeEventDefinition>> entries,
 });
 
-typedef _SymbolicZoneFront = ({String mapId, MapRect area});
+typedef _SymbolicZoneFront = ({
+  String mapId,
+  MapRect area,
+  _SymbolicZoneWalk? walk,
+});
 
-bool _isSymbolicNarrativeZone(MapTrigger trigger) =>
+bool _isSymbolicNarrativeZone(MapData map, MapTrigger trigger) =>
     trigger.id.isNotEmpty &&
     trigger.id.trim() == trigger.id &&
-    (trigger.type == TriggerType.event || trigger.type == TriggerType.custom);
+    (trigger.type == TriggerType.event || trigger.type == TriggerType.custom) &&
+    _zoneHasExteriorCell(map, trigger.area);
 
 Map<NarrativeEventSourceRef, _SymbolicZoneFront> _symbolicZoneFronts(
   List<MapData> maps,
-) => {
-  for (final map in maps)
-    if (map.id.isNotEmpty && map.id == map.id.trim())
-      for (final trigger in map.triggers)
-        if (_isSymbolicNarrativeZone(trigger))
-          NarrativeEventSourceRef.triggerEnter(map.id, trigger.id): (
-            mapId: map.id,
-            area: trigger.area,
-          ),
-};
+  Set<NarrativeEventSourceRef> activeSources,
+) {
+  final fronts = <NarrativeEventSourceRef, _SymbolicZoneFront>{};
+  for (final map in maps) {
+    if (map.id.isEmpty ||
+        map.id != map.id.trim() ||
+        map.size.width <= 0 ||
+        map.size.height <= 0) {
+      continue;
+    }
+    final areas = <NarrativeEventSourceRef, MapRect>{};
+    for (final trigger in map.triggers) {
+      if (!_isSymbolicNarrativeZone(map, trigger)) continue;
+      final source = NarrativeEventSourceRef.triggerEnter(map.id, trigger.id);
+      if (activeSources.contains(source)) areas[source] = trigger.area;
+    }
+    final walks = _symbolicZoneWalks(map, areas);
+    for (final entry in areas.entries) {
+      fronts[entry.key] = (
+        mapId: map.id,
+        area: entry.value,
+        walk: walks[entry.key],
+      );
+    }
+  }
+  return fronts;
+}
 
-Map<String, Set<String>> _symbolicMapTransitions(Map<String, MapData> maps) => {
+typedef _SymbolicMapTransition = ({String mapId, GridPos? arrivalCell});
+
+Map<String, Set<_SymbolicMapTransition>> _symbolicMapTransitions(
+  Map<String, MapData> maps,
+) => {
   for (final map in maps.values)
     map.id: {
       for (final connection in map.connections)
-        if (maps.containsKey(connection.targetMapId)) connection.targetMapId,
+        if (maps.containsKey(connection.targetMapId))
+          (mapId: connection.targetMapId, arrivalCell: null),
       for (final warp in map.warps)
         if (warp.triggerMode != MapWarpTriggerMode.sceneOnly &&
             maps.containsKey(warp.targetMapId))
-          warp.targetMapId,
+          (mapId: warp.targetMapId, arrivalCell: warp.targetPos),
     },
 };
-
-String? _symbolicSceneWarpDestination(
-  SceneNode node,
-  Map<String, MapData> maps,
-) {
-  if (node.payload case SceneActionPayload(
-    interactiveCommand: SceneWarpInteractiveCommand(
-      :final destinationMapId,
-      :final warpId,
-    ),
-  )) {
-    final map = maps[destinationMapId];
-    if (map != null && map.warps.any((warp) => warp.id == warpId)) {
-      return map.id;
-    }
-  }
-  return null;
-}
 
 Object? _playerOccurrenceKey(
   NarrativeEventSourceRef source,
   Map<NarrativeEventSourceRef, _SymbolicZoneFront> zoneFronts,
-) => zoneFronts[source] ?? (_isPlayerControlledSource(source) ? source : null);
+) {
+  final front = zoneFronts[source];
+  return front?.walk ??
+      front ??
+      (_isPlayerControlledSource(source) ? source : null);
+}
 
-Map<Object, List<List<NarrativeEventDefinition>>> _symbolicPlayerOccurrences(
+Map<Object, Map<NarrativeEventSourceRef, List<NarrativeEventDefinition>>>
+_symbolicPlayerOccurrences(
   List<NarrativeEventDefinition> batch,
   Map<NarrativeEventSourceRef, _SymbolicZoneFront> zoneFronts,
 ) {
@@ -78,12 +93,18 @@ Map<Object, List<List<NarrativeEventDefinition>>> _symbolicPlayerOccurrences(
   }
   return {
     for (final entry in byOccurrence.entries)
-      entry.key: entry.value.values.toList()
-        ..sort(
-          (left, right) => compareNarrativeEventUtf16(
-            left.first.source.toJson()['triggerId'] as String,
-            right.first.source.toJson()['triggerId'] as String,
-          ),
-        ),
+      entry.key: entry.value.length == 1
+          ? entry.value
+          : Map.fromEntries(
+              entry.value.entries.toList()..sort(
+                (left, right) => compareNarrativeEventUtf16(
+                  _triggerId(left.key),
+                  _triggerId(right.key),
+                ),
+              ),
+            ),
   };
 }
+
+String _triggerId(NarrativeEventSourceRef source) =>
+    source.toJson()['triggerId'] as String;

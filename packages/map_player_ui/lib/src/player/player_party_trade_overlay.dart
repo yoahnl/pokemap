@@ -43,8 +43,7 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
         memberWidth >= 420 && MediaQuery.textScalerOf(context).scale(1) < 1.5
         ? 2
         : 1;
-    final french = Localizations.localeOf(context).languageCode == 'fr';
-    String text(String fr, String en) => french ? fr : en;
+    final strings = context.playerL10n;
     final applying = snapshot.stage == RuntimeWorldServiceStage.applying;
     final completed = snapshot.stage == RuntimeWorldServiceStage.completed;
     final failed = snapshot.stage == RuntimeWorldServiceStage.failed;
@@ -56,32 +55,22 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
         '';
     final phase = content?.phase;
     final message = completed
-        ? content?.completionMessage ??
-              text('Échange terminé.', 'Trade completed.')
+        ? content?.completionMessage ?? context.playerL10n.partyTradeCompleted
         : failed || content == null
-        ? text('L’échange est indisponible.', 'Trade is unavailable.')
-        : content.completionMessage ?? switch (phase!) {
-            RuntimePartyTradePhase.selectFirst => text(
-              'Choisissez le Pokémon à échanger.',
-              'Choose the Pokémon to trade.',
-            ),
-            RuntimePartyTradePhase.choosePartner => text(
-              'Choisir un autre Pokémon comme partenaire ?',
-              'Choose another Pokémon as partner?',
-            ),
-            RuntimePartyTradePhase.selectPartner => text(
-              'Choisissez son partenaire dans l’équipe.',
-              'Choose its partner from your party.',
-            ),
-            RuntimePartyTradePhase.review => text(
-              'Confirmer cet échange ?',
-              'Confirm this trade?',
-            ),
-            RuntimePartyTradePhase.completed => text(
-              'Échange terminé.',
-              'Trade completed.',
-            ),
-          };
+        ? context.playerL10n.partyTradeUnavailable
+        : content.completionMessage ??
+              switch (phase!) {
+                RuntimePartyTradePhase.selectFirst =>
+                  context.playerL10n.partyTradeSelectPokemon,
+                RuntimePartyTradePhase.choosePartner =>
+                  context.playerL10n.partyTradeChooseAnotherPartner,
+                RuntimePartyTradePhase.selectPartner =>
+                  context.playerL10n.partyTradeSelectPartner,
+                RuntimePartyTradePhase.review =>
+                  context.playerL10n.partyTradeConfirmTrade,
+                RuntimePartyTradePhase.completed =>
+                  context.playerL10n.partyTradeCompleted,
+              };
     return RuntimePlayerActions(
       includeDefaultKeyboardShortcuts: false,
       onBack: () => _emit(
@@ -121,7 +110,7 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                               snapshot.stage,
                             ),
                             title: Text(
-                              text('Échange de l’équipe', 'Party trade'),
+                              context.playerL10n.partyTradeTitle,
                               style: context.playerMenuTheme.title,
                             ),
                             actions: applying
@@ -136,7 +125,7 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                           key: const ValueKey(
                                             'party-trade-confirm',
                                           ),
-                                          label: text('Confirmer', 'Confirm'),
+                                          label: context.playerL10n.confirm,
                                           labelMaxLines: 8,
                                           icon: Icons.check,
                                           autofocus: true,
@@ -159,7 +148,7 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                         ),
                                         label: completed || failed
                                             ? context.playerL10n.close
-                                            : text('Annuler', 'Cancel'),
+                                            : context.playerL10n.cancel,
                                         labelMaxLines: 8,
                                         icon: Icons.close,
                                         secondary: true,
@@ -234,10 +223,9 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                     key: const ValueKey(
                                       'party-trade-other-partner',
                                     ),
-                                    label: text(
-                                      'Choisir un partenaire',
-                                      'Choose a partner',
-                                    ),
+                                    label: context
+                                        .playerL10n
+                                        .partyTradeChoosePartner,
                                     icon: Icons.people_outline,
                                     autofocus: true,
                                     onPressed:
@@ -256,7 +244,8 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                     key: const ValueKey(
                                       'party-trade-same-partner',
                                     ),
-                                    label: text('Avec lui-même', 'With itself'),
+                                    label:
+                                        context.playerL10n.partyTradeWithItself,
                                     icon: Icons.person_outline,
                                     secondary: true,
                                     onPressed:
@@ -276,7 +265,8 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                   LayoutBuilder(
                                     builder: (context, constraints) {
                                       Widget identity(
-                                        String prefix,
+                                        String role,
+                                        String label,
                                         String? id,
                                       ) {
                                         final member = content.members
@@ -287,7 +277,7 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                             .firstOrNull;
                                         return PlayerMenuPanel(
                                           key: ValueKey(
-                                            'party-trade-identity-$prefix',
+                                            'party-trade-identity-$role',
                                           ),
                                           padding: const EdgeInsets.all(12),
                                           child: Column(
@@ -296,7 +286,7 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                '$prefix ${label(id)}',
+                                                label,
                                                 style: context
                                                     .playerMenuTheme
                                                     .label,
@@ -304,7 +294,9 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                               if (member != null) ...[
                                                 const SizedBox(height: 4),
                                                 Text(
-                                                  '${text('Niv.', 'Lv.')} ${member.level}',
+                                                  strings.pokemonLevel(
+                                                    level: member.level,
+                                                  ),
                                                   style: context
                                                       .playerMenuTheme
                                                       .meta,
@@ -316,11 +308,21 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                       }
 
                                       final first = identity(
-                                        text('Pokémon :', 'Pokémon:'),
+                                        'first',
+                                        strings.partyTradePokemon(
+                                          name: label(
+                                            content.firstIndividualId,
+                                          ),
+                                        ),
                                         content.firstIndividualId,
                                       );
                                       final partner = identity(
-                                        text('Partenaire :', 'Partner:'),
+                                        'partner',
+                                        strings.partyTradePartner(
+                                          name: label(
+                                            content.partnerIndividualId,
+                                          ),
+                                        ),
                                         content.partnerIndividualId,
                                       );
                                       return SizedBox(
@@ -391,12 +393,12 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
     RuntimePartyTradePokemonSnapshot member,
     RuntimePartyTradePhase phase,
   ) {
-    final levelLabel = Localizations.localeOf(context).languageCode == 'fr'
-        ? 'Niv.'
-        : 'Lv.';
     return PlayerActionButton(
       key: ValueKey('party-trade-pokemon-${member.individualId}'),
-      label: '${member.label} · $levelLabel ${member.level}',
+      label: context.playerL10n.pokemonNameAndLevel(
+        name: member.label,
+        level: member.level,
+      ),
       labelMaxLines: 2,
       icon: Icons.catching_pokemon,
       secondary: true,

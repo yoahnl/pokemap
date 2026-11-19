@@ -181,9 +181,7 @@ class PlayerCreditsSurface extends StatelessWidget {
     icon: Icons.auto_stories_rounded,
     title: title,
     surfaceRole: ProjectPresentationSurfaceRole.credits,
-    headerTitle: Localizations.localeOf(context).languageCode == 'fr'
-        ? 'Crédits'
-        : 'Credits',
+    headerTitle: context.playerL10n.credits,
     body: [
       Text(author, style: Theme.of(context).textTheme.titleLarge),
       if (endingLabel != null) Text(endingLabel!, textAlign: TextAlign.center),

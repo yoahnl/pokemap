@@ -104,14 +104,16 @@ void main() {
             .content,
         expectedPixels,
       );
-      final provenance = archive.files.singleWhere(
-        (file) =>
-            file.name.startsWith('project/data/pokemon/assets/items/source-') &&
-            file.name.endsWith('.json'),
+      expect(
+        archive.files.where(
+          (file) =>
+              file.name.startsWith(
+                'project/data/pokemon/assets/items/source-',
+              ) &&
+              file.name.endsWith('.json'),
+        ),
+        isEmpty,
       );
-      final metadata = jsonDecode(utf8.decode(provenance.content)) as Map;
-      expect((metadata['icons'] as List).single['projectItemId'], 'potion');
-      expect(metadata['licenseText'], isNotEmpty);
       expect(
         archive.files.where((file) => file.name.endsWith('icons.zip')),
         isEmpty,

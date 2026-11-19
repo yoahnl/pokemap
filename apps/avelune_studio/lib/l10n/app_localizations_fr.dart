@@ -66,13 +66,50 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportLoading => 'Chargement du profil d’export…';
 
   @override
-  String get exportPreparing => 'Enregistrement du projet…';
+  String get exportStepSave => 'Enregistrer le projet';
 
   @override
-  String get exportBuilding => 'Construction et vérification du jeu…';
+  String get exportStepItemIcons => 'Préparer les icônes d’objets';
 
   @override
-  String get exportWriting => 'Écriture du paquet…';
+  String get exportStepCaptureSprites => 'Préparer les sprites de capture';
+
+  @override
+  String get exportStepProfile => 'Vérifier le profil et la version du projet';
+
+  @override
+  String get exportStepCollect => 'Rassembler les fichiers du jeu';
+
+  @override
+  String get exportStepValidate => 'Vérifier le contenu jouable';
+
+  @override
+  String get exportStepArchive => 'Assembler l’archive';
+
+  @override
+  String get exportStepInspect => 'Contrôler l’archive créée';
+
+  @override
+  String get exportStepWrite => 'Écrire le paquet';
+
+  @override
+  String get exportStepFinish => 'Finaliser l’export';
+
+  @override
+  String exportProgressSteps(int completed, int total, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      completed,
+      locale: localeName,
+      other: '$completed étapes sur $total terminées',
+      one: '1 étape sur $total terminée',
+    );
+    return '$_temp0 · $percent %';
+  }
+
+  @override
+  String exportProgressItems(int checked, int total, int percent) {
+    return 'Vérification des objets · $checked/$total · $percent %';
+  }
 
   @override
   String get exportCancelling => 'Annulation en cours…';

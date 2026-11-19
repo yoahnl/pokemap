@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'runtime_catalog_references.dart';
+
 ProjectManifest projectRuntimeBorderRecords({
   required ProjectManifest project,
   required Iterable<Object?> documents,
@@ -15,11 +17,11 @@ ProjectManifest projectRuntimeBorderRecords({
   };
   externalProject.remove('resourceLibraryCatalog');
   final retained =
-      _referencedStrings([externalProject, ...documents], borderIds);
+      referencedRuntimeStrings([externalProject, ...documents], borderIds);
   final pending = retained.toList();
   for (var index = 0; index < pending.length; index++) {
-    for (final reference
-        in _referencedStrings(recordDocuments[pending[index]], borderIds)) {
+    for (final reference in referencedRuntimeStrings(
+        recordDocuments[pending[index]], borderIds)) {
       if (retained.add(reference)) pending.add(reference);
     }
   }
@@ -41,20 +43,4 @@ ProjectManifest projectRuntimeBorderRecords({
           .toList(),
     ),
   );
-}
-
-Set<String> _referencedStrings(Object? value, Set<String> candidates) {
-  final references = <String>{};
-  final pending = <Object?>[value];
-  while (pending.isNotEmpty) {
-    final item = pending.removeLast();
-    if (item is String && candidates.contains(item)) {
-      references.add(item);
-    } else if (item is Map) {
-      pending.addAll(item.values);
-    } else if (item is List) {
-      pending.addAll(item);
-    }
-  }
-  return references;
 }

@@ -1,0 +1,1186 @@
+{
+  "sourceLanguage": "fr",
+  "strings": {
+    "%@, voir la fiche": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, view details"
+          }
+        }
+      }
+    },
+    "%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld"
+          }
+        }
+      }
+    },
+    "%lld aventure": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld adventure"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld adventures"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld aventure"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld aventures"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Activation du jeu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activating the game"
+          }
+        }
+      }
+    },
+    "Actualisation de la bibliothèque": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refreshing the library"
+          }
+        }
+      }
+    },
+    "Ajouter un jeu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a game"
+          }
+        }
+      }
+    },
+    "Avelune": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avelune"
+          }
+        }
+      }
+    },
+    "Avelune ajoute votre jeu à la bibliothèque.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adding your game to the library."
+          }
+        }
+      }
+    },
+    "Avelune ne peut pas utiliser son dossier de jeux sur cet appareil.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avelune can’t access its games folder on this device."
+          }
+        }
+      }
+    },
+    "Avelune pour iOS · Version %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avelune for iOS · Version %@"
+          }
+        }
+      }
+    },
+    "Bibliothèque": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Library"
+          }
+        }
+      }
+    },
+    "Ce jeu nécessite une autre version du Player.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This game requires a different version of the Player."
+          }
+        }
+      }
+    },
+    "Ce jeu ou cette version n’est plus installé sur cet appareil.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This game or version is no longer installed on this device."
+          }
+        }
+      }
+    },
+    "Cette version du jeu est déjà installée.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This version of the game is already installed."
+          }
+        }
+      }
+    },
+    "Chargement de la bibliothèque Avelune": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading the Avelune library"
+          }
+        }
+      }
+    },
+    "Chargement de la langue": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading language preference"
+          }
+        }
+      }
+    },
+    "Choisissez la version à garder, puis désinstallez la version actuelle.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose which version to keep, then uninstall the current one."
+          }
+        }
+      }
+    },
+    "Choisissez un fichier plus récent que la version installée.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a file newer than the installed version."
+          }
+        }
+      }
+    },
+    "Confirmez le retour à l’ancienne version avant de continuer.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm that you want to switch to the older version before continuing."
+          }
+        }
+      }
+    },
+    "Copie de votre fichier dans Avelune.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copying your file into Avelune."
+          }
+        }
+      }
+    },
+    "Copie et vérification du paquet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copying and checking the package"
+          }
+        }
+      }
+    },
+    "Créé par": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Created by"
+          }
+        }
+      }
+    },
+    "Dernière partie": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last played"
+          }
+        }
+      }
+    },
+    "Dernière partie : %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last played: %@"
+          }
+        }
+      }
+    },
+    "Des histoires à emporter partout.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Take your stories with you."
+          }
+        }
+      }
+    },
+    "Détails": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Details"
+          }
+        }
+      }
+    },
+    "En cours": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In progress"
+          }
+        }
+      }
+    },
+    "English": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English"
+          }
+        }
+      }
+    },
+    "Erreur": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Error"
+          }
+        }
+      }
+    },
+    "Extraction des fichiers": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extracting files"
+          }
+        }
+      }
+    },
+    "Fermer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        }
+      }
+    },
+    "Fermer l’aperçu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close preview"
+          }
+        }
+      }
+    },
+    "Fichier .avelunegame": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".avelunegame file"
+          }
+        }
+      }
+    },
+    "FPS, latence de rendu, mémoire et CPU dans le jeu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In-game FPS, render latency, memory and CPU"
+          }
+        }
+      }
+    },
+    "Français": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Français"
+          }
+        }
+      }
+    },
+    "Gardez Avelune ouverte pendant l’installation.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep Avelune open during installation."
+          }
+        }
+      }
+    },
+    "Importer un jeu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import a game"
+          }
+        }
+      }
+    },
+    "Importez votre premier jeu et retrouvez toutes vos aventures au même endroit.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import your first game and find all your adventures in one place."
+          }
+        }
+      }
+    },
+    "Impossible de copier le fichier .avelunegame.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t copy the .avelunegame file."
+          }
+        }
+      }
+    },
+    "Impossible de décompresser le jeu. Réessayez l’installation.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t extract the game. Try installing it again."
+          }
+        }
+      }
+    },
+    "Impossible de démarrer ce jeu.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t start this game."
+          }
+        }
+      }
+    },
+    "Impossible de préparer les sauvegardes pour cette version.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t prepare the saved games for this version."
+          }
+        }
+      }
+    },
+    "Impossible de retrouver vos jeux pour le moment. Réessayons.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your games are temporarily unavailable. Try again."
+          }
+        }
+      }
+    },
+    "Impossible de supprimer ce jeu.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t delete this game."
+          }
+        }
+      }
+    },
+    "Impossible d’actualiser la bibliothèque.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t refresh the library."
+          }
+        }
+      }
+    },
+    "Impossible d’enregistrer la langue. Réessayez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t save the language. Try again."
+          }
+        }
+      }
+    },
+    "Impossible d’installer ce jeu.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t install this game."
+          }
+        }
+      }
+    },
+    "Informations": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Information"
+          }
+        }
+      }
+    },
+    "Infos de debug": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug info"
+          }
+        }
+      }
+    },
+    "INSTALLATION": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "INSTALLATION"
+          }
+        }
+      }
+    },
+    "Installation du jeu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installing the game"
+          }
+        }
+      }
+    },
+    "Jeu %lld sur %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Game %1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "Jeux": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Games"
+          }
+        }
+      }
+    },
+    "Jouer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play"
+          }
+        }
+      }
+    },
+    "La bibliothèque ne s’ouvre pas": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The library couldn’t open"
+          }
+        }
+      }
+    },
+    "Langue": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        }
+      }
+    },
+    "Langue de l’application": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App language"
+          }
+        }
+      }
+    },
+    "Langues": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Languages"
+          }
+        }
+      }
+    },
+    "Le fichier du jeu est incomplet ou a été modifié.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The game file is incomplete or has been modified."
+          }
+        }
+      }
+    },
+    "Le jeu a échoué au démarrage pendant la vérification. Réessayez l’installation.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The game couldn’t start during verification. Try installing it again."
+          }
+        }
+      }
+    },
+    "Les sauvegardes de cette ancienne version ne sont plus disponibles.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved games for the older version are no longer available."
+          }
+        }
+      }
+    },
+    "Libérez de l’espace sur votre appareil pour installer ce jeu.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free up space on your device to install this game."
+          }
+        }
+      }
+    },
+    "L’enregistrement du jeu a échoué. Réinstallez le même fichier pour réparer le jeu.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t save the game to your device. Install the same file again to repair it."
+          }
+        }
+      }
+    },
+    "L’installation a été annulée.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installation was cancelled."
+          }
+        }
+      }
+    },
+    "L’installation de ce jeu est endommagée. Réinstallez-le depuis son fichier.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The game installation is damaged. Reinstall the game from its file."
+          }
+        }
+      }
+    },
+    "Ma collection": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My collection"
+          }
+        }
+      }
+    },
+    "Mise à jour de la bibliothèque": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updating the library"
+          }
+        }
+      }
+    },
+    "Mise à jour de la bibliothèque…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updating the library…"
+          }
+        }
+      }
+    },
+    "Moteur Flutter + Flame · map_runtime": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flutter + Flame engine · map_runtime"
+          }
+        }
+      }
+    },
+    "Nouveau jeu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New game"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "On prépare votre bibliothèque…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Getting your library ready…"
+          }
+        }
+      }
+    },
+    "Options pour %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Options for %@"
+          }
+        }
+      }
+    },
+    "POUR LES CURIEUX": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FOR THE CURIOUS"
+          }
+        }
+      }
+    },
+    "PRÉFÉRENCES": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PREFERENCES"
+          }
+        }
+      }
+    },
+    "Préparation des sauvegardes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing saved games"
+          }
+        }
+      }
+    },
+    "Préparation du fichier": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing the file"
+          }
+        }
+      }
+    },
+    "Préparation du jeu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing the game"
+          }
+        }
+      }
+    },
+    "Reprendre": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume"
+          }
+        }
+      }
+    },
+    "Retour à la bibliothèque": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to the library"
+          }
+        }
+      }
+    },
+    "Réessayer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        }
+      }
+    },
+    "Réessayer de charger la langue": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry loading the language preference"
+          }
+        }
+      }
+    },
+    "Réglages": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "Réponse inattendue du moteur Avelune.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unexpected response from the Avelune runtime."
+          }
+        }
+      }
+    },
+    "Suivre le téléphone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use phone language"
+          }
+        }
+      }
+    },
+    "Supprimer le jeu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete game"
+          }
+        }
+      }
+    },
+    "Temps de jeu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play time"
+          }
+        }
+      }
+    },
+    "Terminée": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete"
+          }
+        }
+      }
+    },
+    "Un monde vous attend": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A world awaits"
+          }
+        }
+      }
+    },
+    "Une expérience à votre image.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make Avelune yours."
+          }
+        }
+      }
+    },
+    "Une nouvelle aventure arrive": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A new adventure is on its way"
+          }
+        }
+      }
+    },
+    "Une opération est déjà en cours pour ce jeu. Attendez la fin, puis réessayez.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An operation is already in progress for this game. Wait for it to finish, then try again."
+          }
+        }
+      }
+    },
+    "Une partie est déjà en cours.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A game is already running."
+          }
+        }
+      }
+    },
+    "Une version %@ au contenu différent est déjà installée. Téléchargez une version plus récente.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@ is already installed with different content. Download a newer version."
+          }
+        }
+      }
+    },
+    "Une version du même numéro au contenu différent est déjà installée. Téléchargez une version plus récente.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A version with the same number and different content is already installed. Download a newer version."
+          }
+        }
+      }
+    },
+    "Utilisez le fichier d’origine de cette version pour réparer le jeu.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the original file for this version to repair the game."
+          }
+        }
+      }
+    },
+    "Validation du projet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validating the project"
+          }
+        }
+      }
+    },
+    "Version": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        }
+      }
+    },
+    "Voir la fiche": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View details"
+          }
+        }
+      }
+    },
+    "Voir moins": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show less"
+          }
+        }
+      }
+    },
+    "Voir plus": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show more"
+          }
+        }
+      }
+    },
+    "Vos aventures commencent ici.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your adventures start here."
+          }
+        }
+      }
+    },
+    "Vos aventures se préparent à être lancées.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Getting your games ready to launch."
+          }
+        }
+      }
+    },
+    "Vos mondes se rassemblent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bringing your worlds together"
+          }
+        }
+      }
+    },
+    "VOTRE ESPACE": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YOUR SPACE"
+          }
+        }
+      }
+    },
+    "Vérification de la compatibilité": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking compatibility"
+          }
+        }
+      }
+    },
+    "Vérification de l’espace disponible": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking available storage"
+          }
+        }
+      }
+    },
+    "Vérification des fichiers": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifying files"
+          }
+        }
+      }
+    },
+    "Vérification du paquet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking the package"
+          }
+        }
+      }
+    },
+    "À la une": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Featured"
+          }
+        }
+      }
+    },
+    "À PROPOS": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ABOUT"
+          }
+        }
+      }
+    },
+    "À propos de ce jeu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About this game"
+          }
+        }
+      }
+    },
+    "À venir": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upcoming"
+          }
+        }
+      }
+    },
+    "Édité par": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Published by"
+          }
+        }
+      }
+    },
+    "Étape %lld sur %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Step %1$lld of %2$lld"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

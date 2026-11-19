@@ -10,6 +10,27 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('explicit language is saved even when it matches inherited UI', (
+    tester,
+  ) async {
+    const inherit = RuntimePlayerLanguageChoice.followApplication();
+    final changes = <PlayerPreferencesSnapshot>[];
+    await _pump(
+      tester,
+      preferences: _preferences.copyWith(locale: 'en', playerLanguage: inherit),
+      onChanged: changes.add,
+    );
+    await _category(tester, 'language');
+    await _tap(tester, 'options-locale-choice');
+    expect(
+      find.byKey(const ValueKey('options-choice-followApplication')),
+      findsOneWidget,
+    );
+    await _tap(tester, 'options-choice-en');
+    expect(changes.single.playerLanguage, inherit);
+    expect(changes.single.languageChange?.languageTag, 'en');
+  });
+
   for (final speed in [.25, 4.0]) {
     testWidgets('valid battle speed $speed opens without editing stored value', (tester) async {
       final changes = <PlayerPreferencesSnapshot>[];
@@ -1051,6 +1072,36 @@ void main() {
     expect(find.text('Interface language'), findsOneWidget);
     expect(find.byKey(const ValueKey('options-locale-choice')), findsOneWidget);
   });
+
+  for (final (locale, label) in [
+    ('fr', 'Suivre l’application'),
+    ('en', 'Follow the app'),
+  ]) {
+    testWidgets('language picker returns to inherited mode in $locale', (
+      tester,
+    ) async {
+      final changes = <PlayerPreferencesSnapshot>[];
+      await _pump(
+        tester,
+        preferences: _preferences.copyWith(
+          locale: locale,
+          playerLanguage: RuntimePlayerLanguageChoice.explicit(locale),
+        ),
+        size: const Size(390, 844),
+        scale: 1.5,
+        onChanged: changes.add,
+      );
+      await _category(tester, 'language');
+      await _tap(tester, 'options-locale-choice');
+      expect(find.text(label), findsOneWidget);
+      await _tap(tester, 'options-choice-followApplication');
+      expect(
+        changes.single.languageChange,
+        const RuntimePlayerLanguageChoice.followApplication(),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('category reset restores the host defaults', (tester) async {
     final changes = <PlayerPreferencesSnapshot>[];

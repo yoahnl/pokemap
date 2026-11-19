@@ -52,6 +52,7 @@ export 'src/security/authorization_policy.dart' show AuthoringSecurityLimits;
 export 'src/support/authoring_performance_observer.dart';
 export 'src/workspace/project_open_service.dart' show ProjectOpenService;
 export 'src/workspace/local_project_creation_service.dart';
+export 'src/workspace/native_project_creation.dart';
 export 'src/workspace/project_template_catalog.dart';
 export 'src/workspace/project_creation_bootstrap_api.dart';
 export 'src/workspace/project_query_service.dart' show ProjectQueryService;

@@ -500,11 +500,13 @@ void main() {
           'resource_pack.cancel_not_allowed');
       final undone = await client.history(
           opened, 'undo', receipt['receiptId']!, 'stdio-undo');
-      final redone = await client.history(
+      await client.history(
           opened, 'redo', receipt['receiptId']!, 'stdio-redo');
+      final head = await client.history(
+          opened, 'undo', receipt['receiptId']!, 'stdio-undo-before-revert');
       final reverted = await client.history(opened, 'revert',
-          (undone['receipt'] as Map)['receiptId']!, 'stdio-revert',
-          expectedHeadEntryId: (redone['receipt'] as Map)['receiptId']);
+          receipt['receiptId']!, 'stdio-revert',
+          expectedHeadEntryId: (head['receipt'] as Map)['receiptId']);
       expect((reverted['receipt'] as Map)['actionId'], 'history.revert');
       await client.call(
           'undo',

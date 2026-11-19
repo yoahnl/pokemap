@@ -4,9 +4,13 @@ import 'narrative_condition_expression_evaluator.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import '../authoring/event_builder_contract.dart';
+import '../collision/pixel_rect.dart';
+import '../collision/player_collision_conventions_v1.dart';
+import '../exceptions/map_exceptions.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
+import '../models/map_layer.dart';
 import '../models/enums.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_source_ref.dart';
@@ -14,6 +18,10 @@ import '../models/narrative_event_registry.dart';
 import '../models/narrative_command_descriptor.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
+import '../models/project_tileset_source.dart';
+import 'map_entity_collision_footprint.dart';
+import 'map_gameplay_zones.dart';
+import 'map_placed_element_collision_geometry.dart';
 import 'narrative_entity_bump_source_reference.dart';
 import 'narrative_trigger_bump_source_reference.dart';
 import 'narrative_entity_autorun_source_reference.dart';
@@ -28,6 +36,8 @@ import '../read_models/narrative_command_catalog.dart';
 
 part 'narrative_symbolic_event_choices.dart';
 part 'narrative_symbolic_occurrences.dart';
+part 'narrative_symbolic_scene_warp.dart';
+part 'narrative_symbolic_zone_walks.dart';
 
 enum NarrativeSymbolicVerdict { pass, fail, indeterminate }
 
@@ -97,6 +107,7 @@ final class NarrativeSymbolicState {
     Set<String> assignedDraftFields = const <String>{},
     this.currentMapId,
     this.mapActivationPending = false,
+    this.zonePosition,
     List<NarrativeSymbolicProvenance> provenance =
         const <NarrativeSymbolicProvenance>[],
     this.indeterminate = false,
@@ -119,6 +130,7 @@ final class NarrativeSymbolicState {
   final Set<String> executedEventIds;
   final String? currentMapId;
   final bool mapActivationPending;
+  final ({String mapId, GridPos cell})? zonePosition;
 
   /// The pre-session draft fields a traversed interaction has bound on this
   /// path. Nothing else can assign one, which is what makes a draft guard
@@ -139,6 +151,8 @@ final class NarrativeSymbolicState {
     Set<String>? assignedDraftFields,
     String? currentMapId,
     bool? mapActivationPending,
+    ({String mapId, GridPos cell})? zonePosition,
+    bool clearZonePosition = false,
     List<NarrativeSymbolicProvenance>? provenance,
     bool? indeterminate,
   }) =>
@@ -154,6 +168,7 @@ final class NarrativeSymbolicState {
         assignedDraftFields: assignedDraftFields ?? this.assignedDraftFields,
         currentMapId: currentMapId ?? this.currentMapId,
         mapActivationPending: mapActivationPending ?? this.mapActivationPending,
+        zonePosition: zonePosition ?? (clearZonePosition ? null : this.zonePosition),
         provenance: provenance ?? this.provenance,
         indeterminate: indeterminate ?? this.indeterminate,
       );
@@ -185,6 +200,7 @@ final class NarrativeSymbolicState {
       'executed=${_sorted(executedEventIds).join(',')}',
       if (currentMapId != null) 'map=$currentMapId',
       if (mapActivationPending) 'mapActivationPending',
+      if (zonePosition != null) 'zonePosition=$zonePosition',
       'draft=${_sorted(assignedDraftFields).join(',')}',
       'indeterminate=$indeterminate',
     ].join('|');
@@ -371,6 +387,8 @@ NarrativeSymbolicReachabilityReport solveNarrativeSceneSymbolically(
   String? eventId,
   bool consumeOneShotOnCompletion = false,
   Map<String, MapData> mapsById = const {},
+  ProjectManifest? project,
+  Set<String> mapsWithOverlappingZones = const {},
 }) {
   if (explorationBudget < 1) {
     throw ArgumentError.value(
@@ -502,7 +520,27 @@ NarrativeSymbolicReachabilityReport solveNarrativeSceneSymbolically(
       continue;
     }
 
-    final edges = _traversableEdges(
+    final warpArrival = mapsById.isEmpty
+        ? null
+        : _symbolicSceneWarpArrival(node, mapsById, project);
+    final warpPort = switch (warpArrival?.traversability) {
+      _WarpTraversability.clear => 'completed',
+      _WarpTraversability.blocked => 'blocked',
+      _ => null,
+    };
+    if (warpArrival?.traversability == _WarpTraversability.indeterminate) {
+      nextState = nextState.copyWith(indeterminate: true);
+      addIssue(NarrativeSymbolicIssue(
+        code: NarrativeSymbolicIssueCode.unsupportedCommand,
+        verdict: NarrativeSymbolicVerdict.indeterminate,
+        message: 'La traversabilité de l’arrivée du passage de scène n’est pas prouvée.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        eventId: eventId,
+        provenance: nextState.provenance,
+      ));
+    }
+    final traversable = _traversableEdges(
       node,
       outgoing[node.id] ?? const <SceneEdge>[],
       nextState,
@@ -521,6 +559,9 @@ NarrativeSymbolicReachabilityReport solveNarrativeSceneSymbolically(
         );
       },
     );
+    final edges = warpPort == null
+        ? traversable
+        : traversable.where((edge) => edge.fromPortId == warpPort).toList(growable: false);
     if (edges.isEmpty) {
       addIssue(
         NarrativeSymbolicIssue(
@@ -536,15 +577,20 @@ NarrativeSymbolicReachabilityReport solveNarrativeSceneSymbolically(
       continue;
     }
     final nextPath = {...cursor.pathKeys, stateKey};
-    final warpDestination = nextState.currentMapId == null
-        ? null
-        : _symbolicSceneWarpDestination(node, mapsById);
     for (final edge in edges.reversed) {
-      final arrivalMap = edge.fromPortId == 'completed' ? warpDestination : null;
+      final arrival = edge.fromPortId == 'completed' ? warpArrival?.map : null;
+      final arrivalCell = warpArrival?.position;
+      final tracksMap = nextState.currentMapId != null;
       final branched = nextState.copyWith(
-        currentMapId: arrivalMap,
+        currentMapId: tracksMap ? arrival?.id : null,
         mapActivationPending: nextState.mapActivationPending ||
-            (arrivalMap != null && arrivalMap != nextState.currentMapId),
+            (tracksMap && arrival != null &&
+                (arrival.spatialScene == null || arrival.id != nextState.currentMapId)),
+        clearZonePosition: arrival != null,
+        zonePosition: arrival != null && arrivalCell != null &&
+                mapsWithOverlappingZones.contains(arrival.id)
+            ? (mapId: arrival.id, cell: arrivalCell)
+            : null,
         provenance: [
           ...nextState.provenance,
           NarrativeSymbolicProvenance(
@@ -712,13 +758,24 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
   ]..sort((left, right) {
       return _compareNarrativeDefinitions(left, right);
     });
-  final zoneFronts = _symbolicZoneFronts(maps);
+  final zoneFronts = _symbolicZoneFronts(
+    maps,
+    definitions.map((definition) => definition.source).toSet(),
+  );
+  final overlapMapIds = {for (final front in zoneFronts.values) if (front.walk != null) front.mapId};
   final configuredStart = project.newGame.startMapId.trim();
   final initialMapId = project.newGame.enabled && mapsById.containsKey(configuredStart)
       ? configuredStart
       : null;
+  final startMap = mapsById[initialMapId];
+  final startCell = startMap != null && overlapMapIds.contains(startMap.id)
+      ? _symbolicZoneSpawnCell(startMap, project.newGame.startSpawnId)
+      : null;
+  final initialZonePosition = startCell != null && initialMapId != null
+      ? (mapId: initialMapId, cell: startCell)
+      : null;
   final mapTransitions = initialMapId == null
-      ? const <String, Set<String>>{}
+      ? const <String, Set<_SymbolicMapTransition>>{}
       : _symbolicMapTransitions(mapsById);
   final activations = <NarrativeEventSourceRef, List<NarrativeEventDefinition>>{};
   if (initialMapId != null) {
@@ -733,6 +790,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     List<NarrativeEventDefinition> batch,
     List<NarrativeSymbolicState> seeds, {
     List<NarrativeSymbolicState>? eventBoundaryStates,
+    Map<String, Set<String>>? successorsByStateKey,
     List<_LegacySymbolicSource> legacy = const [],
     bool activateInitialMap = false,
   }) {
@@ -741,7 +799,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
       for (final entry in playerOccurrences.entries)
         entry.key: _narrativeBatchFootprint(
           project: project,
-          definitions: entry.value.expand((source) => source).toList(),
+          definitions: entry.value.values.expand((source) => source).toList(),
           scenesById: scenesById,
           milestoneWriters: const {},
         ),
@@ -766,7 +824,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
       if (activations.containsKey(definition.source)) continue;
       final key = _playerOccurrenceKey(definition.source, zoneFronts);
       if (key == null) {
-        occurrences.add((sourceKey: null, entries: [[definition]]));
+        occurrences.add((sourceKey: null, entries: {definition.source: [definition]}));
       } else if (addedOccurrences.add(key)) {
         occurrences.add((sourceKey: key, entries: playerOccurrences[key]!));
       }
@@ -867,6 +925,8 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
         eventId: choice.id,
         consumeOneShotOnCompletion: choice.consumesEvent,
         mapsById: mapsById,
+        project: project,
+        mapsWithOverlappingZones: overlapMapIds,
       );
       final inputs = reusableInputs[choice.id];
       if (inputs != null &&
@@ -939,7 +999,10 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     var batchFrontier = [
       for (final state in seeds)
         if (activateInitialMap && initialMapId != null)
-          ...activateMap(initialMapId, state)
+          ...activateMap(
+            initialMapId,
+            state.copyWith(zonePosition: initialZonePosition),
+          )
         else
           state,
     ];
@@ -950,7 +1013,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     final seenArrivals = <String>{
       if (activateInitialMap && initialMapId != null)
         for (final state in seeds)
-          state.copyWith(currentMapId: initialMapId).semanticKey,
+          state.copyWith(currentMapId: initialMapId, zonePosition: initialZonePosition).semanticKey,
     };
     var progress = true;
     while (progress && batchFrontier.isNotEmpty) {
@@ -975,16 +1038,26 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
         bool canExplore(int? group) =>
             !advanced || (firstGroup != null && firstGroup == group);
 
-        void collect(int? group, List<NarrativeSymbolicState> results) {
+        void collect(
+          int? group,
+          List<NarrativeSymbolicState> results, {
+          NarrativeSymbolicState? moveState,
+        }) {
+          final occurrenceKey = moveState?.semanticKey ?? stateKey;
           if (!advanced && (results.isEmpty ||
-              results.any((result) => result.semanticKey != stateKey))) {
+              results.any((result) => result.semanticKey != occurrenceKey))) {
             advanced = true;
             firstGroup = group;
           }
           for (final result in results) {
-            if (result.semanticKey == stateKey) continue;
+            final resultKey = result.semanticKey;
+            if (resultKey == stateKey) continue;
+            successorsByStateKey
+                ?.putIfAbsent(stateKey, () => <String>{})
+                .add(resultKey);
+            progress = true;
             addEventBoundaryState(result);
-            nextFrontier.putIfAbsent(result.semanticKey, () => result);
+            nextFrontier.putIfAbsent(resultKey, () => result);
           }
         }
 
@@ -996,7 +1069,33 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
 
         for (final occurrence in occurrences) {
           final group = groups[occurrence.sourceKey];
-          if (canExplore(group)) collect(group, dispatch(occurrence.entries, state));
+          if (!canExplore(group)) continue;
+          if (occurrence.sourceKey case final _SymbolicZoneWalk walk) {
+            if (state.currentMapId != null && state.currentMapId != walk.map.id) continue;
+            if (!walk.fitsExplorationBudget(explorationBudget)) {
+              collect(group, [budgetExceeded(state)]);
+              continue;
+            }
+            final previous = state.zonePosition;
+            final origin = previous?.mapId == walk.map.id ? previous?.cell : null;
+            for (final move in walk.movesFrom(origin)) {
+              if (remainingBudget < 1) {
+                collect(group, [budgetExceeded(state)]);
+                break;
+              }
+              final moved = state.copyWith(zonePosition: (mapId: walk.map.id, cell: move.cell));
+              final entries = move.entered
+                  .map((source) => occurrence.entries[source])
+                  .nonNulls
+                  .toList(growable: false);
+              if (entries.isEmpty && seen.contains(moved.semanticKey)) continue;
+              remainingBudget--;
+              exploredCount++;
+              collect(group, dispatch(entries, moved), moveState: moved);
+            }
+          } else {
+            collect(group, dispatch(occurrence.entries.values.toList(), state));
+          }
         }
         for (final source in legacy) {
           final group = groups[source];
@@ -1007,9 +1106,16 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
             collect(group, runChoice(choice, state));
           }
         }
-        for (final target in mapTransitions[state.currentMapId] ?? const <String>{}) {
-          final arrivalKey = state.copyWith(currentMapId: target).semanticKey;
-          if (!seenArrivals.add(arrivalKey)) continue;
+        final transitions = mapTransitions[state.currentMapId] ?? const <_SymbolicMapTransition>{};
+        for (final (:mapId, :arrivalCell) in transitions) {
+          final arrival = state.copyWith(
+            currentMapId: mapId,
+            clearZonePosition: true,
+            zonePosition: arrivalCell != null && overlapMapIds.contains(mapId)
+                ? (mapId: mapId, cell: arrivalCell)
+                : null,
+          );
+          if (!seenArrivals.add(arrival.semanticKey)) continue;
           if (remainingBudget < 1) {
             collect(null, [budgetExceeded(state)]);
             break;
@@ -1017,10 +1123,14 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
           remainingBudget--;
           exploredCount++;
           collect(null, activateMap(
-            target,
-            state.copyWith(provenance: [
+            mapId,
+            arrival.copyWith(provenance: [
               ...state.provenance,
-              NarrativeSymbolicProvenance(sceneId: '', nodeId: target, description: 'Arrivée sur la carte'),
+              NarrativeSymbolicProvenance(
+                sceneId: '',
+                nodeId: mapId,
+                description: 'Arrivée sur la carte',
+              ),
             ]),
           ));
         }
@@ -1167,10 +1277,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
       scenesById: scenesById,
       milestoneWriters: milestoneWriters,
     );
-    final componentWrites = _NarrativeComponentWrites.from(
-      footprint.writes,
-      batch.map((definition) => definition.id).toSet(),
-    );
+    final componentWrites = _NarrativeComponentWrites.from(footprint.writes);
     final projectedSeeds = _projectSymbolicSeeds(
       project: project,
       definitions: batch,
@@ -1181,16 +1288,18 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     );
     final seeds = projectedSeeds.states;
     final optionalBoundaryStates = <NarrativeSymbolicState>[...seeds];
+    final successors = <String, Set<String>>{};
     final optionalTerminals = exploreDefinitions(
       batch,
       seeds,
       eventBoundaryStates: optionalBoundaryStates,
+      successorsByStateKey: successors,
     );
     terminals.addAll(optionalTerminals);
     for (final state in optionalBoundaryStates) {
       _addUniqueState(allEventBoundaryStates, state);
     }
-    final compatibleMainKeysBySeedStateKey = <String, Set<String>>{
+    final compatibleMainKeysByStateKey = <String, Set<String>>{
       for (final seed in seeds)
         seed.semanticKey: {
           for (final origin
@@ -1199,18 +1308,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
             ...mainProvenanceIndex.descendantStateKeys(origin.provenance),
         },
     };
-    final compatibleMainKeysByAgreementKey = <String, Set<String>>{};
-    for (final seed in seeds) {
-      compatibleMainKeysByAgreementKey
-          .putIfAbsent(
-            componentWrites.agreementKey(seed),
-            () => <String>{},
-          )
-          .addAll(
-            compatibleMainKeysBySeedStateKey[seed.semanticKey] ??
-                const <String>{},
-          );
-    }
+    _propagateMainEvidence(compatibleMainKeysByStateKey, successors);
     independentFactComponents.add(
       NarrativeSymbolicFactEvidenceComponent(
         factIds: componentWrites.factIds,
@@ -1218,8 +1316,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
         states: optionalBoundaryStates,
         compatibleMainStateKeysByStateKey: {
           for (final state in optionalBoundaryStates)
-            state.semanticKey: compatibleMainKeysByAgreementKey[
-                    componentWrites.agreementKey(state)] ??
+            state.semanticKey: compatibleMainKeysByStateKey[state.semanticKey] ??
                 const <String>{},
         },
       ),
@@ -1276,6 +1373,27 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     evidenceStates: mandatoryEvidenceStates,
     independentFactComponents: independentFactComponents,
   );
+}
+
+void _propagateMainEvidence(
+  Map<String, Set<String>> compatibleMainKeysByStateKey,
+  Map<String, Set<String>> successors,
+) {
+  final pending = compatibleMainKeysByStateKey.keys.toSet();
+  while (pending.isNotEmpty) {
+    final state = pending.first;
+    pending.remove(state);
+    final compatible = compatibleMainKeysByStateKey[state]!;
+    for (final next in successors[state] ?? const <String>{}) {
+      final existing = compatibleMainKeysByStateKey[next];
+      if (existing == null || !existing.containsAll(compatible)) {
+        compatibleMainKeysByStateKey[next] = existing == null
+            ? compatible
+            : {...existing, ...compatible};
+        pending.add(next);
+      }
+    }
+  }
 }
 
 final class _ProjectedSymbolicSeeds {
@@ -1414,6 +1532,7 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
     return <String>[
       ...facts,
       if (state.currentMapId != null) 'map=${state.currentMapId}',
+      if (state.zonePosition != null) 'zonePosition=${state.zonePosition}',
       'steps=${steps.join(',')}',
       'consumed=${consumed.join(',')}',
       'outcomes=${outcomes.join(',')}',
@@ -1556,7 +1675,7 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
       writes.add('source:${definition.source.toJson()}');
     }
     if (zoneFronts[definition.source] case final front?) {
-      writes.add('source:zone:${front.mapId}:${front.area}');
+      writes.add('source:zone:${front.walk?.footprintKey ?? '${front.mapId}:${front.area}'}');
     }
 
     final scene = scenesById[definition.sceneId];
@@ -1704,13 +1823,9 @@ final class _NarrativeComponentWrites {
     required this.badgeIds,
     required this.outcomeKeys,
     required this.fieldAbilityIds,
-    required this.executedEventIds,
   });
 
-  factory _NarrativeComponentWrites.from(
-    Set<String> writes,
-    Set<String> executedEventIds,
-  ) {
+  factory _NarrativeComponentWrites.from(Set<String> writes) {
     Set<String> ids(String prefix) => {
           for (final write in writes)
             if (write.startsWith(prefix)) write.substring(prefix.length),
@@ -1723,7 +1838,6 @@ final class _NarrativeComponentWrites {
       badgeIds: ids('badge:'),
       outcomeKeys: ids('outcome:'),
       fieldAbilityIds: ids('field:'),
-      executedEventIds: executedEventIds,
     );
   }
 
@@ -1733,7 +1847,6 @@ final class _NarrativeComponentWrites {
   final Set<String> badgeIds;
   final Set<String> outcomeKeys;
   final Set<String> fieldAbilityIds;
-  final Set<String> executedEventIds;
 
   String reusableInputKey(NarrativeSymbolicState state) => jsonEncode([
     for (final id in factIds) state.factValues[id]?.toJson(),
@@ -1746,25 +1859,6 @@ final class _NarrativeComponentWrites {
     ...state.assignedDraftFields.toList()..sort(),
     state.indeterminate,
   ]);
-
-  String agreementKey(NarrativeSymbolicState state) {
-    return NarrativeSymbolicState(
-      factValues: {
-        for (final entry in state.factValues.entries)
-          if (!factIds.contains(entry.key)) entry.key: entry.value,
-      },
-      completedStepIds: state.completedStepIds.difference(stepIds),
-      consumedEventIds: state.consumedEventIds.difference(consumedEventIds),
-      badgeIds: state.badgeIds.difference(badgeIds),
-      unlockedFieldAbilities: {
-        for (final ability in state.unlockedFieldAbilities)
-          if (!fieldAbilityIds.contains(ability.moveId)) ability,
-      },
-      emittedOutcomeKeys: state.emittedOutcomeKeys.difference(outcomeKeys),
-      executedEventIds: state.executedEventIds.difference(executedEventIds),
-      currentMapId: state.currentMapId,
-    ).semanticKey;
-  }
 }
 
 final class _NarrativeProvenanceDescendantIndex {
@@ -2167,10 +2261,11 @@ bool? _sourceEligibility(
       }
       return null;
     },
-    triggerEnter: (mapId, triggerId) =>
-        onMap(mapId) &&
-        mapsById[mapId]?.triggers.any((trigger) =>
-          trigger.id == triggerId && _isSymbolicNarrativeZone(trigger)) == true,
+    triggerEnter: (mapId, triggerId) {
+      final map = mapsById[mapId];
+      return map != null && onMap(mapId) && map.triggers.any((trigger) =>
+          trigger.id == triggerId && _isSymbolicNarrativeZone(map, trigger));
+    },
     mapEnter: (mapId) => onMap(mapId) && mapsById.containsKey(mapId),
     outcomeReceived: (outcome) {
       if (outcome.producerKind != NarrativeOutcomeProducerKind.scene) {

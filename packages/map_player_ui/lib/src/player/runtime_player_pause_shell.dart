@@ -315,6 +315,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                 : PlayerControlDevice.keyboard,
             RuntimeInputControl.primary,
             family: widget.controllerFamily,
+            localizations: context.playerL10n,
           );
       final resume =
           widget.actions[PlayerPauseAction.resume] ??
@@ -1187,6 +1188,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             },
             RuntimeInputControl.primary,
             family: widget.controllerFamily,
+            localizations: context.playerL10n,
           ),
       labels: widget.labels,
       presentation: _isIllustrated
@@ -1326,9 +1328,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         PlayerPauseAction.quests,
         l10n,
       ),
-      RuntimePlayerPauseSection.contacts =>
-        widget.detailTitle ??
-            (l10n.locale.languageCode == 'fr' ? 'Téléphone' : 'Phone'),
+      RuntimePlayerPauseSection.contacts => widget.detailTitle ?? (l10n.phone),
       RuntimePlayerPauseSection.profile => _presentation.label(
         PlayerPauseAction.profile,
         l10n,

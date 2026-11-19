@@ -2582,7 +2582,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   RuntimeDialogueTextSpeed get dialogueTextSpeed => _dialogueTextSpeed;
 
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
-    runtimeLocale = runtimeLocales?.resolve(preferences.locale) ?? preferences.locale;
+    runtimeLocale = preferences.contentLocale(runtimeLocales);
     reducedMotion = preferences.accessibility.reducedMotion;
     _battleMotionPolicy = preferences.battleMotion;
     _battleOverlay?.applyMotionPolicy(_battleMotionPolicy,
@@ -10671,29 +10671,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   Future<Map<String, String>> _loadBattleSpeciesDisplayNames(
     BattleSession session,
-  ) async {
-    final state = session.state;
-    final speciesIds = <String>{
-      ...?_psdkBattleSession?.presentation.activeCombatants
-          .map((active) => active.combatant.speciesId),
-      state.player.speciesId,
-      state.enemy.speciesId,
-      for (final combatant in state.playerReserve) combatant.speciesId,
-      for (final combatant in state.enemyReserve) combatant.speciesId,
-    };
-    final species = await Future.wait(
-      speciesIds.map(
-        (speciesId) => _battleSpeciesLoader.loadById(
-          projectRootDirectory: _bundle.projectRootDirectory,
-          pokemonConfig: _bundle.manifest.pokemon,
-          speciesId: speciesId,
-        ),
-      ),
-    );
-    return Map<String, String>.unmodifiable(<String, String>{
-      for (final entry in species) entry.id: entry.displayName(runtimeLocale),
-    });
-  }
+  ) => loadRuntimeBattleSpeciesDisplayNames(
+    bundle: _bundle,
+    speciesLoader: _battleSpeciesLoader,
+    session: session,
+    presentation: _psdkBattleSession?.presentation,
+    locale: runtimeLocale,
+  );
 
   /// Mappe BattleStartRequest → BattleSetup.
   ///

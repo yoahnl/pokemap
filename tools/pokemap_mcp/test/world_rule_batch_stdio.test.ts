@@ -91,8 +91,8 @@ test("L19 MCP discovers and commits one atomic bounded WorldRule batch", { timeo
       planId: prepared.planId, operationId: "l19-batch-apply" };
     const applied = await call("pokemap_apply", applyInput);
     const saved = await readFile(file);
-    assert.deepEqual(record(JSON.parse(saved.toString())).worldRules,
-      [updated, first, second].map(value => ({ ...value, enabled: true, description: "", priority: 0, tags: [] })));
+    const detailedRules = values.map(value => ({ ...value, enabled: true, description: "", priority: 0, tags: [] }));
+    assert.deepEqual(record(JSON.parse(saved.toString())).worldRules, [updated, ...detailedRules.slice(1)]);
     const replay = await call("pokemap_apply", applyInput);
     assert.deepEqual(replay.receipt, applied.receipt);
     assert.deepEqual(await readFile(file), saved);
@@ -103,8 +103,11 @@ test("L19 MCP discovers and commits one atomic bounded WorldRule batch", { timeo
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const queried = await call("pokemap_query", { projectHandle: workspace.projectHandle,
       resourceKind: "worldRule", operation: "list", view: "detail" });
-    assert.equal((queried.items as JsonRecord[]).length, 3);
-    assert.deepEqual((queried.items as JsonRecord[]).map(item => item.id).sort(), values.map(item => item.id).sort());
+    const items = queried.items as JsonRecord[];
+    assert.equal(items.length, values.length);
+    for (const [index, value] of values.entries()) {
+      assert.deepEqual(items.find(item => item.id === value.id), { ...detailedRules[index], resourceKind: "worldRule" });
+    }
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
   } finally {
     await client.close();

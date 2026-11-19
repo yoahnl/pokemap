@@ -8,6 +8,7 @@ final class AppComposition {
     let platformChannel: HubPlatformChannel
     let gameRepository: GameRepositoryImpl
     let useCases: DefaultGameLibraryUseCases
+    let languagePreferences: AppLanguageSettings
 
     init() {
         engineManager = FlutterEngineManager()
@@ -16,6 +17,16 @@ final class AppComposition {
         gameDataSource = FlutterGameDataSource(engine: engine)
         gameRepository = GameRepositoryImpl(dataSource: gameDataSource)
         useCases = DefaultGameLibraryUseCases(repository: gameRepository)
+        languagePreferences = AppLanguageSettings(
+            read: gameDataSource.getLanguagePreferences,
+            write: gameDataSource.setAppLanguage
+        )
+        gameDataSource.onRuntimeReady = { [weak languagePreferences] in
+            Task { await languagePreferences?.runtimeReady() }
+        }
+        gameDataSource.onLanguagePreferencesChange = { [weak languagePreferences] preferences in
+            languagePreferences?.receive(preferences)
+        }
     }
 
     func makeGameListViewModel() -> GameListViewModel {

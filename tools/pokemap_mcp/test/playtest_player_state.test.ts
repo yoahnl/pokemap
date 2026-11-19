@@ -32,7 +32,7 @@ async function toolData(
   return record(envelope.data);
 }
 
-test("authoring MCP refuses Bag commands and cannot write a user save", async () => {
+test("authoring MCP exposes bag capacity and refuses player inventory commands against a user save", async () => {
   const sandbox = await mkdtemp(join(tmpdir(), "pokemap-mcp-player-state-"));
   const projectRoot = join(sandbox, "project");
   const userSave = join(sandbox, "user-save.json");
@@ -58,7 +58,7 @@ test("authoring MCP refuses Bag commands and cannot write a user save", async ()
       (descriptor) => String(descriptor.id),
     );
     assert.ok(mutationActions.includes("item.create"));
-    assert.ok(!mutationActions.some((actionId) => actionId.includes("bag.")));
+    assert.deepEqual(mutationActions.filter((actionId) => actionId.startsWith("bag.")), ["bag.capacity.set"]);
     assert.ok(!mutationActions.some((actionId) => actionId.startsWith("sandbox.")));
 
     const opened = await toolData(client, "pokemap_workspace", {
@@ -74,7 +74,7 @@ test("authoring MCP refuses Bag commands and cannot write a user save", async ()
       view: "summary",
     });
 
-    for (const actionId of ["bag.give", "sandbox.bag.give"]) {
+    for (const actionId of ["bag.give", "bag.consume", "sandbox.bag.give", "sandbox.bag.consume"]) {
       const rejected = await client.callTool({
         name: "pokemap_plan",
         arguments: {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
@@ -8,6 +9,20 @@ import '../../../../packages/map_distribution/test/support/glb_fixture.dart';
 import '../../../../packages/map_distribution/test/support/spatial_package_fixture.dart';
 
 Future<void> main(List<String> args) async {
+  if (args.length == 2 && args.first == '--list-models') {
+    final archive =
+        ZipDecoder().decodeBytes(await File(args.last).readAsBytes());
+    final descriptor = jsonDecode(
+        utf8.decode(archive.findFile('project/project.json')!.content))
+        as Map<String, dynamic>;
+    final project = PortableCatalogPublication.decodeProjectSync(descriptor,
+        readObject: (reference) => archive
+            .findFile('project/${PortableCatalogPublication.objectPath(reference)}')!
+            .content);
+    final ids = project.models3d.map((model) => model.id).toList();
+    stdout.writeln(jsonEncode(ids));
+    return;
+  }
   final root = Directory(args.single).absolute;
   final files = spatialPayload();
   final project = ProjectManifest.fromJson(jsonDecode(

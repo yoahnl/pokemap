@@ -30,6 +30,7 @@ import 'package:map_runtime/src/presentation/flame/runtime_input_event.dart';
 import 'package:map_runtime/src/presentation/flame/battle_transition_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
+import 'package:map_runtime/src/player/runtime_companion_presentation_codec.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/battle_motion_policy.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
@@ -65,6 +66,63 @@ void main() {
     await AudioPlayer.global.ensureInitialized();
   });
   tearDownAll(() => loopbackTransport?.close());
+
+  for (final (locale, enemyName, moveName, alreadyCaught) in [
+    ('fr-FR', 'Étincelin', 'Charge', true),
+    ('en-US', 'Sparkitten', 'Tackle', false),
+  ]) {
+    testWidgets('wild HUD publishes localized species, gender and Pokédex status in $locale', (tester) async {
+      final fixture = (await tester.runAsync(() async {
+        final fixture = await _fixture();
+        final root = fixture.bundle.projectRootDirectory;
+        final pokemon = fixture.bundle.manifest.pokemon;
+        final speciesFile = File(p.join(root, pokemon.speciesDir, '004-sparkitten.json'));
+        final species = jsonDecode(await speciesFile.readAsString()) as Map<String, dynamic>;
+        species['names'] = {'en': 'Sparkitten', 'fr': 'Étincelin'};
+        (species['breeding'] as Map)['genderRatio'] = {'male': 0, 'female': 1};
+        await speciesFile.writeAsString(jsonEncode(species));
+        final movesFile = File(p.join(root, pokemon.catalogFiles['moves']!));
+        final moves = jsonDecode(await movesFile.readAsString()) as Map<String, dynamic>;
+        final tackle = (moves['entries'] as List).cast<Map>().singleWhere((move) => move['id'] == 'tackle');
+        tackle['names'] = {'en': 'Tackle', 'fr': 'Charge'};
+        await movesFile.writeAsString(jsonEncode(moves));
+        return fixture;
+      }))!;
+      final first = fixture.state.party.members.first;
+      final state = fixture.state.copyWith(
+        party: fixture.state.party.copyWith(
+          members: [first.copyWith(gender: 'male')],
+        ),
+        progression: fixture.state.progression.copyWith(
+          seenSpeciesIds: ['sparkitten'],
+          caughtSpeciesIds: [first.speciesId, if (alreadyCaught) 'sparkitten'],
+        ),
+      );
+      final runtime = SpatialBattleRuntime(
+        readGameState: () => state,
+        commitGameState: (_, _) => true,
+      );
+      addTearDown(runtime.dispose);
+      unawaited(runtime.start(bundle: fixture.bundle, request: _wild('wild-hud'), runtimeLocale: locale));
+      await _readyInView(tester, runtime);
+      final snapshot = runtime.battlePresentationListenable.value!;
+      expect(snapshot.enemyHud.speciesLabel, enemyName);
+      expect(snapshot.enemyHud.genderSymbol, '♀');
+      expect(snapshot.playerHud.genderSymbol, '♂');
+      expect(snapshot.enemyHud.isAlreadyCaught, alreadyCaught);
+      expect(snapshot.playerHud.isAlreadyCaught, isFalse);
+      final encoded = RuntimeCompanionPresentationCodec.encodeBattleCommandOverlayHudSnapshot(snapshot.enemyHud);
+      expect(encoded.containsKey('isAlreadyCaught'), alreadyCaught);
+      expect(RuntimeCompanionPresentationCodec.decodeBattleCommandOverlayHudSnapshot(encoded).isAlreadyCaught, alreadyCaught);
+      runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+      await tester.pump();
+      final fight = runtime.battlePresentationListenable.value!;
+      expect(fight.mode, BattleCommandOverlayMode.fight);
+      expect(fight.entries.map((entry) => entry.primaryLabel), contains(moveName));
+      runtime.cancel();
+    });
+  }
+
   for (final moveSourceId in ['flamethrower', 'scratch', 'tackle-bw2-qa', 'karate-bw2-qa', 'poison-bw2-qa']) {
   testWidgets('spatial battle plays a packaged grouped SPL recipe offline: $moveSourceId', (tester) =>
       HttpOverrides.runZoned(() async {

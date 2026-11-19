@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:freezed_annotation/freezed_annotation.dart' show UnrecognizedKeysException;
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
@@ -144,7 +145,7 @@ ProjectItemCatalog _create(
   Map<String, Object?> parameters,
 ) {
   _requireKeys(parameters, const <String>{'definition'});
-  final definition = _definition(parameters['definition']);
+  final definition = _decodeItemParameter(parameters, 'definition', ProjectItemDefinition.fromJson);
   if (catalog.entries.any((entry) => entry.id == definition.id)) {
     throw ItemCatalogAuthoringException(
       'item.id_duplicate',
@@ -163,7 +164,7 @@ ProjectItemCatalog _update(
 ) {
   _requireKeys(parameters, const <String>{'itemId', 'definition'});
   final itemId = _itemId(parameters);
-  final definition = _definition(parameters['definition']);
+  final definition = _decodeItemParameter(parameters, 'definition', ProjectItemDefinition.fromJson);
   if (definition.id != itemId) {
     throw const ItemCatalogAuthoringException(
       'item.identity_change_forbidden',
@@ -253,7 +254,7 @@ ProjectItemCatalog _setUse(
 ) {
   _requireKeys(parameters, const <String>{'itemId', 'use'});
   final itemId = _itemId(parameters);
-  final use = _use(parameters['use']);
+  final use = _decodeItemParameter(parameters, 'use', ProjectItemUseDefinition.fromJson);
   if (use.contexts.length != 1 || !use.contexts.contains(context)) {
     throw ItemCatalogAuthoringException(
       'item.use_context_mismatch',
@@ -403,11 +404,18 @@ AuthoringMutationDraft _draft(
   );
 }
 
-ProjectItemDefinition _definition(Object? value) =>
-    ProjectItemDefinition.fromJson(_jsonObject(value, 'definition'));
-
-ProjectItemUseDefinition _use(Object? value) =>
-    ProjectItemUseDefinition.fromJson(_jsonObject(value, 'use'));
+T _decodeItemParameter<T>(Map<String, Object?> parameters, String key,
+    T Function(Map<String, dynamic>) decode) {
+  try {
+    return decode(_jsonObject(parameters[key], key));
+  } on UnrecognizedKeysException catch (error) {
+    throw ItemCatalogAuthoringException(
+      'item.parameter_invalid',
+      'The $key parameter contains unrecognized fields.',
+      details: {'parameter': key, 'unknown': error.unrecognizedKeys},
+    );
+  }
+}
 
 String _itemId(Map<String, Object?> parameters) =>
     _requiredString(parameters, 'itemId');

@@ -69,6 +69,12 @@ android {
         buildConfig = true
     }
 
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
+
     signingConfigs {
         if (hasAveluneReleaseSigning) {
             create("aveluneRelease") {

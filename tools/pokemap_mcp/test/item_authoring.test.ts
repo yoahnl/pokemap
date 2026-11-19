@@ -11,6 +11,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { LocalAuthoringClient, type JsonRecord } from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { createPokeMapMcpServer } from "../src/server.js";
+import { mutationRevision } from "./mutation_revision.js";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
@@ -247,6 +248,7 @@ test("MCP describes queries and mutates canonical items", async () => {
     const executedActions = new Set<string>();
     const receiptIds = new Set<string>();
     for (const scenario of itemMutationScenarios) {
+      const before = await mutationRevision(client, projectHandle, scenario.actionId, scenario.parameters, snapshotRevision);
       const planned = await toolData(client, "pokemap_plan", {
         projectHandle,
         request: {
@@ -255,7 +257,7 @@ test("MCP describes queries and mutates canonical items", async () => {
           actionVersion: 1,
           workspaceHandle,
           parameters: scenario.parameters,
-          expectedRevision: snapshotRevision,
+          ...before,
           idempotencyKey: `mcp-${scenario.slug}`,
           dryRun: false,
         },
@@ -283,7 +285,7 @@ test("MCP describes queries and mutates canonical items", async () => {
       assert.match(String(receipt.afterRevision), /^sha256:[0-9a-f]{64}$/);
       assert.notEqual(receipt.afterRevision, receipt.beforeRevision);
       const appliedRevision = String(applied.snapshotRevision);
-      assert.notEqual(appliedRevision, snapshotRevision);
+      assert.notEqual(appliedRevision, before.expectedRevision);
 
       const queried = await toolData(client, "pokemap_query", {
         projectHandle,
@@ -291,8 +293,10 @@ test("MCP describes queries and mutates canonical items", async () => {
         operation: "list",
         view: "detail",
       });
+      assert.notEqual(queried.snapshotRevision, snapshotRevision);
       snapshotRevision = String(queried.snapshotRevision);
-      assert.equal(snapshotRevision, appliedRevision);
+      const after = await mutationRevision(client, projectHandle, scenario.actionId, scenario.parameters, snapshotRevision);
+      assert.equal(after.expectedRevision, appliedRevision);
       if (scenario.slug.startsWith("item-set-battle-pp-")) {
         const definition = (queried.items as JsonRecord[]).find((item) => item.id === "potion");
         assert.ok(definition);
@@ -391,14 +395,12 @@ test("MCP describes queries and mutates canonical items", async () => {
         slug: "invalid-id",
         actionId: "item.set_held_effect",
         parameters: { itemId: " potion ", heldEffectId: "leftovers" },
-        expectedRevision: snapshotRevision,
         domainCode: "item.parameter_invalid",
       },
       {
         slug: "referenced-delete",
         actionId: "item.delete_apply",
         parameters: { itemId: "potion" },
-        expectedRevision: snapshotRevision,
         domainCode: "item.delete_references_blocking",
       },
       {
@@ -413,7 +415,6 @@ test("MCP describes queries and mutates canonical items", async () => {
             effect: { kind: "restore_pp", mode: "flat", amount: 10 },
           },
         },
-        expectedRevision: snapshotRevision,
         domainCode: "item.catalog_invalid",
       },
       {
@@ -423,10 +424,11 @@ test("MCP describes queries and mutates canonical items", async () => {
           itemId: "potion",
           heldEffectId: "never_registered_effect",
         },
-        expectedRevision: snapshotRevision,
         domainCode: "item.catalog_invalid",
       },
     ]) {
+      const basis = refusal.expectedRevision !== undefined ? { expectedRevision: refusal.expectedRevision }
+        : await mutationRevision(client, projectHandle, refusal.actionId, refusal.parameters, snapshotRevision);
       const error = await toolFailure(client, "pokemap_plan", {
         projectHandle,
         request: {
@@ -435,7 +437,7 @@ test("MCP describes queries and mutates canonical items", async () => {
           actionVersion: 1,
           workspaceHandle,
           parameters: refusal.parameters,
-          expectedRevision: refusal.expectedRevision,
+          ...basis,
           idempotencyKey: `mcp-refusal-${refusal.slug}`,
           dryRun: false,
         },
@@ -495,7 +497,8 @@ test("MCP bicycle contracts expose restriction, reusable effect and eight direct
       const plan = await toolData(client, "pokemap_plan", { projectHandle, request: {
         requestId: `bicycle-${sequence}`, actionId, actionVersion: 1,
         workspaceHandle: opened.workspaceHandle, parameters,
-        expectedRevision: snapshot.snapshotRevision, idempotencyKey: `bicycle-${sequence}`,
+        ...await mutationRevision(client, projectHandle, actionId, parameters, snapshot.snapshotRevision),
+        idempotencyKey: `bicycle-${sequence}`,
       } });
       await toolData(client, "pokemap_apply", { operation: "apply", projectHandle, planId: plan.planId,
         operationId: `bicycle-${sequence}` });
@@ -573,7 +576,7 @@ test("MCP fishing contracts expose three reusable rods and reject extra effect f
         actionVersion: 1,
         workspaceHandle,
         parameters,
-        expectedRevision: snapshot.snapshotRevision,
+        ...await mutationRevision(client, projectHandle, actionId, parameters, snapshot.snapshotRevision),
         idempotencyKey: `fishing-${sequence}`,
       } });
       const applied = await toolData(client, "pokemap_apply", {
@@ -616,17 +619,19 @@ test("MCP fishing contracts expose three reusable rods and reject extra effect f
       const before = await toolData(client, "pokemap_validate", { projectHandle });
       const beforeCatalog = await readFile(join(root, "data/pokemon/catalogs/items.json"), "utf8");
       sequence++;
-      await toolFailure(client, "pokemap_plan", { projectHandle, request: {
+      const parameters = { itemId: "custom-tool", use: {
+        contexts: ["overworld"], target: "world", consumption: "never", effect,
+      } };
+      const refusal = await toolFailure(client, "pokemap_plan", { projectHandle, request: {
         requestId: `fishing-refuse-${sequence}`,
         actionId: "item.set_overworld_effect",
         actionVersion: 1,
         workspaceHandle,
-        parameters: { itemId: "custom-tool", use: {
-          contexts: ["overworld"], target: "world", consumption: "never", effect,
-        } },
-        expectedRevision: before.snapshotRevision,
+        parameters,
+        ...await mutationRevision(client, projectHandle, "item.set_overworld_effect", parameters, before.snapshotRevision),
         idempotencyKey: `fishing-refuse-${sequence}`,
       } });
+      assert.notEqual(refusal.domainCode, "plan.stale");
       const after = await toolData(client, "pokemap_validate", { projectHandle });
       assert.equal(after.snapshotRevision, before.snapshotRevision);
       assert.equal(await readFile(join(root, "data/pokemon/catalogs/items.json"), "utf8"), beforeCatalog);
@@ -670,10 +675,12 @@ test("fresh stdio MCP authors battle PP and preserves it after cold reopen", asy
         resourceKind: "itemDefinition", operation: "list", view: "detail" });
       const use = { contexts: ["battle"], target: "party_move", consumption: "on_applied",
         effect: { kind: "restore_pp", mode, amount: mode === "flat" ? 10 : null } };
+      const parameters = { itemId: "potion", use };
       const planned = await toolData(client, "pokemap_plan", { projectHandle,
         request: { requestId: `pp-${mode}`, actionId: "item.set_battle_effect", actionVersion: 1,
-          workspaceHandle, parameters: { itemId: "potion", use },
-          expectedRevision: before.snapshotRevision, idempotencyKey: `pp-${mode}`, dryRun: false } });
+          workspaceHandle, parameters,
+          ...await mutationRevision(client, projectHandle, "item.set_battle_effect", parameters, before.snapshotRevision),
+          idempotencyKey: `pp-${mode}`, dryRun: false } });
       await toolData(client, "pokemap_apply", { operation: "apply", projectHandle,
         planId: planned.planId, operationId: `apply-pp-${mode}` });
       const queried = await toolData(client, "pokemap_query", { projectHandle,

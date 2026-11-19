@@ -10,6 +10,25 @@ enum StudioExportStage {
   cancelled,
 }
 
+enum StudioExportStep {
+  saveProject,
+  checkItemIcons,
+  checkCaptureSprites,
+  verifyProfile,
+  collectFiles,
+  validateGame,
+  buildArchive,
+  inspectArchive,
+  writePackage,
+  finishExport,
+}
+
+typedef StudioExportProgress = ({
+  StudioExportStep step,
+  int? itemsChecked,
+  int? itemCount,
+});
+
 final class StudioGameExportDestination {
   const StudioGameExportDestination(this.path, {required this.exists});
   final String path;
@@ -96,6 +115,7 @@ abstract interface class StudioGameExportPort {
   String get projectName;
   StudioGameExportMetadata? get metadata;
   StudioExportStage get stage;
+  StudioExportProgress? get progress;
   String? get error;
   StudioFailureDiagnosis? get failure;
   String? get warning;

@@ -1,6 +1,39 @@
 import XCTest
 
 final class LibraryVisualGateTests: XCTestCase {
+    func testNativeLanguageFollowsPhoneAndKeepsTheSelectedTab() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(fr)", "-AppleLocale", "fr_FR"]
+        app.launch()
+
+        let settingsTab = app.tabBars.buttons.matching(NSPredicate(format: "label IN %@", ["Réglages", "Settings"])).firstMatch
+        XCTAssertTrue(settingsTab.waitForExistence(timeout: 20))
+        settingsTab.tap()
+
+        let language = app.buttons["app-language-menu"]
+        func choose(_ title: String) {
+            XCTAssertTrue(language.waitForExistence(timeout: 10))
+            language.tap()
+            let option = app.buttons[title]
+            XCTAssertTrue(option.waitForExistence(timeout: 5))
+            option.tap()
+        }
+
+        choose("Français")
+        XCTAssertTrue(app.staticTexts["Réglages"].waitForExistence(timeout: 5))
+
+        choose("English")
+        XCTAssertTrue(app.staticTexts["Settings"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Games"].tap()
+        XCTAssertTrue(app.navigationBars["Library"].waitForExistence(timeout: 5))
+
+        app.tabBars.buttons["Settings"].tap()
+        choose("Use phone language")
+        XCTAssertTrue(app.staticTexts["Réglages"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Jeux"].tap()
+        XCTAssertTrue(app.navigationBars["Bibliothèque"].waitForExistence(timeout: 5))
+    }
+
     func testLibraryHeaderCollapsesAndExpands() throws {
         let app = XCUIApplication()
         app.launch()

@@ -109,9 +109,11 @@ test("fresh MCP describes party recording, authors it atomically and cold reopen
     assert.equal((history.entries as unknown[]).length, 2);
     const undone = await call("pokemap_history", { operation: "undo", projectHandle: workspace.projectHandle,
       entryId: batchReceipt.receiptId, idempotencyKey: "undo-completion-batch" });
+    assert.equal(record(undone.receipt).actionId, "history.undo");
     assert.deepEqual(await readFile(projectFile), beforeBatch);
-    await call("pokemap_history", { operation: "undo", projectHandle: workspace.projectHandle,
-      entryId: record(undone.receipt).receiptId, idempotencyKey: "restore-completion-batch" });
+    const redone = await call("pokemap_history", { operation: "redo", projectHandle: workspace.projectHandle,
+      entryId: batchReceipt.receiptId, idempotencyKey: "restore-completion-batch" });
+    assert.equal(record(redone.receipt).actionId, "history.redo");
     assert.deepEqual(await readFile(projectFile), afterBatch);
   } finally {
     if (workspace) await client.callTool({ name: "pokemap_workspace", arguments: {

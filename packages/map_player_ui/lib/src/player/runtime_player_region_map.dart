@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../localization/player_localizations.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_image.dart';
 import '../foundation/player_input_scope.dart';
@@ -82,25 +83,17 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
       .where((point) => point.id == _navigation.selectedPointId)
       .firstOrNull;
 
-  String _text(String fr, String en) =>
-      Localizations.localeOf(context).languageCode == 'fr' ? fr : en;
   bool _known(RuntimePlayerMapPointSnapshot point) =>
       point.status != RuntimePlayerMapPointStatus.unknown;
   String _label(RuntimePlayerMapPointSnapshot point) =>
       _known(point) ? point.label : '???';
   String _status(RuntimePlayerMapPointSnapshot point) => switch (point.status) {
-    RuntimePlayerMapPointStatus.current => _text(
-      'Vous êtes ici',
-      'You are here',
-    ),
-    RuntimePlayerMapPointStatus.discovered => _text(
-      'Lieu découvert',
-      'Discovered',
-    ),
-    RuntimePlayerMapPointStatus.unknown => _text(
-      'Non découvert',
-      'Undiscovered',
-    ),
+    RuntimePlayerMapPointStatus.current =>
+      context.playerL10n.mapCurrentLocation,
+    RuntimePlayerMapPointStatus.discovered =>
+      context.playerL10n.mapDiscoveredLocation,
+    RuntimePlayerMapPointStatus.unknown =>
+      context.playerL10n.mapUndiscoveredLocation,
   };
   IconData _icon(RuntimePlayerMapPointSnapshot point) => switch (point.status) {
     RuntimePlayerMapPointStatus.current => Icons.navigation_rounded,
@@ -331,10 +324,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
             return PlayerMenuPanel(
               child: Center(
                 child: Text(
-                  _text(
-                    'Aucun lieu disponible dans cette région.',
-                    'No locations available in this region.',
-                  ),
+                  context.playerL10n.mapNoLocations,
                   style: context.playerMenuTheme.body,
                 ),
               ),
@@ -346,7 +336,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   PlayerActionButton(
-                    label: _text('Retour à la carte', 'Back to map'),
+                    label: context.playerL10n.backToMap,
                     icon: Icons.arrow_back,
                     onPressed: _back,
                     focusNode: _regionBackFocus,
@@ -398,7 +388,6 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
             label: _label,
             status: _status,
             icon: _icon,
-            text: _text,
             provider: widget.imageProvider,
             locationsFocus: _locationsFocus,
             onShowLocations: _openLocations,
@@ -509,7 +498,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
                       children: [
                         PlayerActionButton(
                           key: const ValueKey('region-map-locations-close'),
-                          label: _text('Retour à la carte', 'Back to map'),
+                          label: context.playerL10n.backToMap,
                           icon: Icons.arrow_back,
                           onPressed: _back,
                         ),
@@ -550,11 +539,11 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
         if (_overlap.isNotEmpty) ...[
           Text(
             key: _overlapKey,
-            _text('Plusieurs lieux à cet endroit', 'Several locations here'),
+            context.playerL10n.mapMultipleLocations,
             style: context.playerMenuTheme.body,
           ),
           PlayerActionButton(
-            label: _text('Fermer le choix', 'Close selection'),
+            label: context.playerL10n.mapCloseSelection,
             focusNode: _overlapFocus,
             icon: Icons.close,
             onPressed: _back,
@@ -595,11 +584,8 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
         children: [
           Text(
             _invalidated
-                ? _text(
-                    'Lieu indisponible. Choisissez un autre lieu.',
-                    'Location unavailable. Choose another location.',
-                  )
-                : _text('Sélectionnez un lieu.', 'Select a location.'),
+                ? context.playerL10n.mapLocationUnavailable
+                : context.playerL10n.mapSelectLocation,
             style: context.playerMenuTheme.body,
           ),
         ],
@@ -630,15 +616,8 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
         }
 
         final description = !_known(point)
-            ? _text(
-                'Ce lieu n’a pas encore été découvert.',
-                'This location has not been discovered yet.',
-              )
-            : point.description ??
-                  _text(
-                    'Aucune description disponible.',
-                    'No description available.',
-                  );
+            ? context.playerL10n.mapLocationNotDiscovered
+            : point.description ?? context.playerL10n.noDescriptionAvailable;
         List<String> split(String value, TextStyle style) {
           final chunks = <String>[];
           var chunk = '';
@@ -712,10 +691,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
                     style: bodyStyle,
                   ),
               if (!point.isLocated)
-                Text(
-                  _text('Position non renseignée.', 'Position not provided.'),
-                  style: theme.meta,
-                ),
+                Text(context.playerL10n.mapPositionMissing, style: theme.meta),
             ],
           ),
         );
@@ -733,7 +709,6 @@ class _RegionImage extends StatefulWidget {
     required this.label,
     required this.status,
     required this.icon,
-    required this.text,
     required this.onSelect,
     required this.onChanged,
     required this.onShowLocations,
@@ -746,7 +721,6 @@ class _RegionImage extends StatefulWidget {
   final String Function(RuntimePlayerMapPointSnapshot) label;
   final String Function(RuntimePlayerMapPointSnapshot) status;
   final IconData Function(RuntimePlayerMapPointSnapshot) icon;
-  final String Function(String, String) text;
   final void Function(List<RuntimePlayerMapPointSnapshot>) onSelect;
   final VoidCallback onChanged;
   final VoidCallback onShowLocations;
@@ -885,10 +859,7 @@ class _RegionImageState extends State<_RegionImage> {
                 if (!_hasSource || _failed) {
                   if (constraints.maxHeight < 100) {
                     return Tooltip(
-                      message: widget.text(
-                        'Carte régionale indisponible.',
-                        'Regional map unavailable.',
-                      ),
+                      message: context.playerL10n.regionalMapUnavailable,
                       child: const Center(
                         child: Icon(Icons.map_outlined, size: 24),
                       ),
@@ -898,10 +869,7 @@ class _RegionImageState extends State<_RegionImage> {
                     child: Padding(
                       padding: const EdgeInsets.all(8),
                       child: Text(
-                        widget.text(
-                          'Carte régionale indisponible.',
-                          'Regional map unavailable.',
-                        ),
+                        context.playerL10n.regionalMapUnavailable,
                         style: theme.meta,
                         textAlign: TextAlign.center,
                       ),
@@ -1073,7 +1041,7 @@ class _RegionImageState extends State<_RegionImage> {
               children: [
                 _control(
                   key: const ValueKey('region-map-zoom-out'),
-                  label: widget.text('Réduire', 'Zoom out'),
+                  label: context.playerL10n.mapZoomOut,
                   icon: Icons.remove,
                   onPressed:
                       _imageSize == null ||
@@ -1087,7 +1055,7 @@ class _RegionImageState extends State<_RegionImage> {
                         },
                 ),
                 Semantics(
-                  label: 'Zoom',
+                  label: context.playerL10n.mapZoom,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Text(
@@ -1100,7 +1068,7 @@ class _RegionImageState extends State<_RegionImage> {
                 ),
                 _control(
                   key: const ValueKey('region-map-zoom-in'),
-                  label: widget.text('Agrandir', 'Zoom in'),
+                  label: context.playerL10n.mapZoomIn,
                   icon: Icons.add,
                   onPressed:
                       _imageSize == null ||
@@ -1115,7 +1083,7 @@ class _RegionImageState extends State<_RegionImage> {
                 ),
                 _control(
                   key: const ValueKey('region-map-recenter'),
-                  label: widget.text('Recentrer', 'Recenter'),
+                  label: context.playerL10n.mapRecenter,
                   icon: Icons.center_focus_strong,
                   onPressed: _imageSize == null || _failed
                       ? null
@@ -1127,7 +1095,7 @@ class _RegionImageState extends State<_RegionImage> {
                 ),
                 _control(
                   key: const ValueKey('region-map-locations'),
-                  label: widget.text('Lieux', 'Locations'),
+                  label: context.playerL10n.mapLocations,
                   icon: Icons.list_rounded,
                   focusNode: widget.locationsFocus,
                   onPressed: widget.onShowLocations,

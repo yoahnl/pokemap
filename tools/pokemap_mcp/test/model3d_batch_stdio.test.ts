@@ -132,18 +132,19 @@ test("live MCP bounds batch plans with a large model library and unrelated prese
     assetCatalog.records = [...assetCatalog.records as JsonRecord[],
       ...existingModels.map((model) => ({ ...templateAsset,
         id: model.sourceAssetId, logicalPath: model.relativePath }))];
+    const grass = { id: "grass", name: "Grass", connectionGroupId: "ground" };
     manifest.smartTileCatalog = { formatVersion: 4,
-      categories: [], atlases: [], materials: [], animations: [], presets: [], patterns: [],
+      categories: [], atlases: [], materials: [grass], animations: [], presets: [], patterns: [],
       drafts: [{ id: "unrelated-draft", targetPresetId: "unrelated-preset",
         sourcePresetId: null, name: "Unrelated large preset", categoryId: "",
         usage: "terrain", lastStage: "image", guideId: null, sourceTilesetIds: [],
-        atlases: [], primaryAtlasId: null, materials: [], animations: [],
-        defaultMaterialId: null, allowedMaterialIds: [], topology: "uniform",
+        atlases: [], primaryAtlasId: null, materials: [grass], animations: [],
+        defaultMaterialId: grass.id, allowedMaterialIds: [grass.id], topology: "uniform",
         templateHint: "simple", boundaryPolicy: "empty", coveragePolicy: "complete",
         coverageProfile: { mode: "explicit", allowFallback: false,
           requiredScenarios: Array.from({ length: 5000 }, (_, i) => ({
             id: `unrelated-scenario-${i}`, centerMaterialId: null, signature: {
-              northEdge: null, eastEdge: null, southEdge: null, westEdge: null,
+              northEdge: i === 0 ? grass.id : null, eastEdge: null, southEdge: null, westEdge: null,
               northEastCorner: null, southEastCorner: null,
               southWestCorner: null, northWestCorner: null } })) },
         transformPolicy: { allowHFlip: false, allowVFlip: false,

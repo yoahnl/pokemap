@@ -729,7 +729,8 @@ abstract class TrainerProfile with _$TrainerProfile {
 }
 
 const currentItemSystemSaveSchemaVersion = 1;
-const maximumBagEntryQuantity = 0x7fffffffffffffff;
+const maximumBagEntryQuantity =
+    identical(1, 1.0) ? 0x1fffffffffffff : (-1 >>> 1);
 const _bagEntryJsonKeys = <String>{'itemId', 'quantity'};
 
 final class UnsupportedSaveSchema implements Exception {

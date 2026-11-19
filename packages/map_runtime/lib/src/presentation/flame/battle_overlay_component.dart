@@ -4639,6 +4639,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     return resolver.resolve(
       speciesId: speciesId,
       isPlayerSide: isPlayerSide,
+      isWildOpponent: !isPlayerSide && !_session.setup.isTrainerBattle,
       visualIdentity: projection?.lineupIndex == lineupIndex &&
               projection?.combatant.speciesId == speciesId
           ? projection?.currentVisualIdentity
@@ -4649,7 +4650,15 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   String? _resolveCombatantGenderSymbol({
     required BattleCombatant combatant,
     required bool isPlayerSide,
+    RuntimeBattleActiveCombatantProjection? projection,
   }) {
+    if (projection?.lineupIndex == combatant.lineupIndex &&
+        projection?.combatant.speciesId == combatant.speciesId) {
+      final symbol = battleGenderSymbolFor(
+        projection?.currentVisualIdentity?.genderId,
+      );
+      if (symbol != null) return symbol;
+    }
     return genderResolver?.resolveGenderSymbol(
       isPlayerSide: isPlayerSide,
       lineupIndex: combatant.lineupIndex,
@@ -4663,6 +4672,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     final genderSymbol = _resolveCombatantGenderSymbol(
       combatant: combatant,
       isPlayerSide: isPlayerSide,
+      projection: _battlePresentation?.combatantAt(BattleSlotRef.active(
+        isPlayerSide ? BattleSideId.player : BattleSideId.enemy,
+      )),
     );
     final speciesName = resolveSpeciesDisplayName(combatant.speciesId);
     return genderSymbol == null ? speciesName : '$speciesName $genderSymbol';
@@ -4963,9 +4975,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     );
     final currentProjection = _battlePresentation?.combatantAt(targetSide);
     final previousProjection = _previousBattlePresentation?.combatantAt(targetSide);
-    final displayedIdentity = currentProjection?.lineupIndex == combatant.lineupIndex
-        ? currentProjection?.combatantId
-        : previousProjection?.combatantId;
+    final displayedProjection = currentProjection?.lineupIndex == combatant.lineupIndex
+        ? currentProjection
+        : previousProjection;
     final presentationStep = _animationRunner?.currentHpTweenStep;
     final isHpTweenStep = presentationStep?.slot == targetSide;
     final xpStep = isPlayerSide && targetSide.slotIndex == 0
@@ -4978,7 +4990,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     return BattleCommandOverlayHudSnapshot(
       rect: rect,
       slot: targetSide,
-      combatantId: displayedIdentity ?? combatantId,
+      combatantId: displayedProjection?.combatantId ?? combatantId,
       isRevealed: _teamInfoRevealed,
       isVisible:
           !(_animationRunner?.areGaugesHidden ?? false) &&
@@ -5006,7 +5018,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       genderSymbol: _resolveCombatantGenderSymbol(
         combatant: combatant,
         isPlayerSide: isPlayerSide,
+        projection: displayedProjection,
       ),
+      isAlreadyCaught: !isPlayerSide && !_session.setup.isTrainerBattle &&
+          _gameState.progression.caughtSpeciesIds.contains(combatant.speciesId),
       statusLabel: statusLabel?.trim().isEmpty ?? true ? null : statusLabel,
       experienceProgress: isPlayerSide
           ? (xpStep?.fromProgress ??

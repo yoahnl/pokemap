@@ -168,6 +168,67 @@ void main() {
       expect(loader.debugActualReadCount, 2);
     });
 
+    test('projects localized species names from one cached snapshot', () async {
+      final speciesDir = Directory(
+        p.join(tempRoot.path, 'data', 'pokemon', 'species'),
+      );
+      await _writeValidSpeciesFile(
+        File(p.join(speciesDir.path, 'regional.json')),
+        declaredId: 'regional',
+        names: {'en': 'Sproutle', 'fr': 'Pousse', ' FR_ca ': ' Poussette '},
+      );
+      await _writeValidSpeciesFile(
+        File(p.join(speciesDir.path, 'english-only.json')),
+        declaredId: 'english-only',
+        names: {'EN': 'Leaflet', 'fr': '   '},
+      );
+      await _writeValidSpeciesFile(
+        File(p.join(speciesDir.path, 'custom.json')),
+        declaredId: 'custom',
+        names: {'fr': 'Éclat-de-Lune'},
+      );
+      await _writeValidSpeciesFile(
+        File(p.join(speciesDir.path, 'old.json')),
+        declaredId: 'old',
+        legacyName: 'Ancien nom',
+      );
+      await _writeValidSpeciesFile(
+        File(p.join(speciesDir.path, 'anonymous-species.json')),
+        declaredId: 'anonymous-species',
+      );
+      final metrics = _CountingRuntimePokemonSpeciesSnapshotMetrics();
+      final loader = RuntimePokemonSpeciesLoader(snapshotMetrics: metrics);
+      const config = ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      );
+      final snapshot = await loader.loadSpeciesSnapshot(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: config,
+      );
+      final regional = snapshot['regional']!;
+      expect(regional.displayName('fr-CA'), ' Poussette ');
+      expect(regional.displayName('fr-BE'), 'Pousse');
+      expect(regional.displayName('en'), 'Sproutle');
+      expect(snapshot['english-only']!.displayName('fr'), 'Leaflet');
+      expect(snapshot['custom']!.displayName('en'), 'Éclat-de-Lune');
+      expect(snapshot['old']!.displayName('en'), 'Ancien nom');
+      expect(
+        snapshot['anonymous-species']!.displayName('en'),
+        'Anonymous Species',
+      );
+      expect(
+        await loader.loadById(
+          projectRootDirectory: tempRoot.path,
+          pokemonConfig: config,
+          speciesId: 'regional',
+        ),
+        same(regional),
+      );
+      expect(metrics.snapshotBuilds, 1);
+      expect(metrics.directoryListings, 1);
+      expect(metrics.speciesJsonReads, 5);
+    });
+
     test(
       'projects the complete runtime species view from the snapshot',
       () async {
@@ -225,7 +286,7 @@ void main() {
         expect(species.weightKg, 99.9);
         expect(species.isBaseForm, isTrue);
         expect(species.displayName('fr-FR'), 'Ciblemon');
-        expect(species.displayName('de'), 'targetmon');
+        expect(species.displayName('de'), 'Targetmon');
         expect(species.primaryAbilityId, 'overgrow');
         expect(species.standardAbilityIds, <String>['overgrow', 'chlorophyll']);
         expect(species.abilityIds, <String>[
@@ -740,12 +801,16 @@ Future<void> _writeValidSpeciesFile(
   Object abilities = const <String, dynamic>{'primary': 'overgrow'},
   int schemaVersion = currentPokemonDataSchemaVersion,
   int baseHp = 45,
+  Map<String, String>? names,
+  String? legacyName,
 }) async {
   await file.parent.create(recursive: true);
   await file.writeAsString(
     jsonEncode(<String, dynamic>{
       'schemaVersion': schemaVersion,
       'id': declaredId,
+      'names': ?names,
+      'name': ?legacyName,
       'typing': <String, dynamic>{
         'types': <String>['grass'],
       },

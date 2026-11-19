@@ -33,6 +33,36 @@ void main() {
 
   tearDown(() => root.delete(recursive: true));
 
+  test('working catalog provisioning imports icons without a full snapshot',
+      () async {
+    final project = await _project(root, 'working', ['potion']);
+    final store = await CatalogStorageStore.open(projectRoot: project.path);
+    final manifest = jsonDecode(
+            await File(p.join(project.path, 'project.json')).readAsString())
+        as Map<String, dynamic>;
+    await WorkingProjectCatalog.create(
+      store: store,
+      projectId: 'icon-provisioning',
+      project: ProjectManifest.fromJson(manifest),
+      expectedProjectRevision:
+          await store.gateway.readResourceRevision('project.json'),
+    );
+    final profiles = <ProjectSnapshotLoadProfile>[];
+
+    final result = await provisionProjectItemIcons(
+      projectPath: project.path,
+      loadPack: () => _loadPack(source),
+      profileSink: profiles.add,
+    );
+
+    expect(profiles, isEmpty);
+    expect(result['importedItems'], ['potion']);
+    expect(result['receipts'], hasLength(1));
+    const path = 'data/pokemon/assets/items/potion.png';
+    expect((await _assets(project)).findByLogicalPath(path), isNotNull);
+    expect(await File(p.join(project.path, path)).readAsBytes(), potion);
+  });
+
   test('imports only project catalog items through canonical assets', () async {
     final manifestFile = File(p.join(source.path, 'manifest.json'));
     final manifest = jsonDecode(await manifestFile.readAsString()) as Map;
@@ -82,13 +112,17 @@ void main() {
           defaultLocale: 'en',
           supportedLocales: const ['en']),
     );
-    final metadata = jsonDecode(utf8.decode(
-        projection.payloadFiles['project/${provenance.logicalPath}']!)) as Map;
+    final metadata = jsonDecode(await File(
+            p.join(project.path, assetBlobStorageKey(provenance.artifact)))
+        .readAsString()) as Map;
     final iconMetadata = (metadata['icons'] as List).single as Map;
     expect(iconMetadata['projectItemId'], 'potion');
     expect(iconMetadata['generation']['generator'], 'Fixture generator');
     expect(iconMetadata.containsKey('sourcePath'), isFalse);
     expect(metadata['licenseText'], 'Fixture license');
+    expect(projection.payloadFiles,
+        isNot(contains('project/${provenance.logicalPath}')));
+    expect(projection.payloadFiles['project/${icon.logicalPath}'], potion);
     final inventory =
         const GamePackageInventoryBuilder().build(projection.payloadFiles);
     const validator = GamePackageContentValidator(GamePackageSecurityPolicy());

@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
+import 'package:avelune_studio/features/game_export/data/studio_export_revision.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
 import 'package:avelune_studio/features/verification/application/studio_failure_diagnosis.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../support/game_export_fixture.dart';
@@ -73,6 +76,67 @@ void main() {
   );
 
   test(
+    'partitioned source fingerprints track the head and authored files',
+    () async {
+      final store = await CatalogStorageStore.open(
+        projectRoot: source.directory.path,
+      );
+      final projectFile = File(p.join(source.directory.path, 'project.json'));
+      await WorkingProjectCatalog.create(
+        store: store,
+        projectId: 'export-control',
+        project: ProjectManifest.fromJson(
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+        ),
+        expectedProjectRevision: await store.gateway.readResourceRevision(
+          'project.json',
+        ),
+      );
+      final original = await sourceFingerprints(source.directory.path);
+      final historicalObject = File(
+        p.join(source.directory.path, 'catalog', 'objects', 'retired.json'),
+      );
+      final lease = File(
+        p.join(
+          source.directory.path,
+          'catalog',
+          'leases',
+          'another-reader.json',
+        ),
+      );
+      await lease.parent.create(recursive: true);
+      await historicalObject.writeAsString('retired content');
+      await lease.writeAsString('new reader');
+      final withCatalogBookkeeping = await sourceFingerprints(
+        source.directory.path,
+      );
+      expect(withCatalogBookkeeping, original);
+      expect(original.keys, contains(CatalogStorageStore.headStorageKey));
+      expect(original.keys, contains('catalog/IDENTITY.json'));
+      expect(
+        original.keys.any((path) => path.startsWith('catalog/objects/')),
+        isFalse,
+      );
+
+      final head = File(
+        p.join(source.directory.path, CatalogStorageStore.headStorageKey),
+      );
+      await head.writeAsString('a new revision');
+      final next = await sourceFingerprints(source.directory.path);
+      expect(
+        next[CatalogStorageStore.headStorageKey],
+        isNot(original[CatalogStorageStore.headStorageKey]),
+      );
+      final authored = File(
+        p.join(source.directory.path, 'assets', 'changed.json'),
+      );
+      await authored.parent.create(recursive: true);
+      await authored.writeAsString('{"author":"Studio"}');
+      expect(await sourceFingerprints(source.directory.path), isNot(next));
+    },
+  );
+
+  test(
     'a concurrent saved profile is preserved and blocks a stale Studio draft',
     () async {
       final store = GamePackageExportProfileStore(
@@ -89,6 +153,23 @@ void main() {
       expect(owner.error, contains('profil d’export a changé'));
       expect(await output.exists(), isFalse);
       expect(await store.profileFile.readAsBytes(), bytes);
+    },
+  );
+
+  test(
+    'the real export reports each phase through to the written archive',
+    () async {
+      final owner = controller();
+      addTearDown(owner.dispose);
+      final steps = <StudioExportStep>{};
+      final subscription = owner.changes.listen((_) {
+        if (owner.progress case final progress?) steps.add(progress.step);
+      });
+      addTearDown(subscription.cancel);
+      expect(await run(owner), isTrue, reason: owner.error);
+      expect(steps, orderedEquals(StudioExportStep.values));
+      expect(owner.stage, StudioExportStage.completed);
+      expect(await output.length(), greaterThan(0));
     },
   );
 

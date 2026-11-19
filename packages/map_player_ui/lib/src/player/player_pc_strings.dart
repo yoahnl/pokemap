@@ -1,67 +1,58 @@
 import 'package:flutter/widgets.dart';
 
-/// Small, PC-scoped localization surface.
-///
-/// The PC overlay predates the generated player localization catalogue. New
-/// PC copy stays localized here until the overlay is migrated as a whole.
+import '../localization/player_localizations.dart';
+
 final class PlayerPcStrings {
-  const PlayerPcStrings._(this._languageCode);
+  const PlayerPcStrings._(this._strings);
 
   factory PlayerPcStrings.of(BuildContext context) =>
-      PlayerPcStrings._(Localizations.localeOf(context).languageCode);
+      PlayerPcStrings._(context.playerL10n);
 
-  final String _languageCode;
-
-  bool get _isFrench => _languageCode == 'fr';
+  final PokeMapPlayerLocalizations _strings;
 
   String summaryTitle(String pokemon) =>
-      _isFrench ? 'Résumé de $pokemon' : '$pokemon summary';
+      _strings.pcSummaryTitle(pokemon: pokemon);
 
-  String get summaryTooltip => _isFrench ? 'Voir le résumé' : 'View summary';
-  String get swapTooltip => _isFrench ? 'Échanger' : 'Swap';
-  String get close => _isFrench ? 'Fermer' : 'Close';
-  String get party => _isFrench ? 'Équipe' : 'Party';
-  String get emptyParty =>
-      _isFrench ? 'Votre équipe est vide.' : 'Your party is empty.';
-  String get emptyBox =>
-      _isFrench ? 'Cette box est vide.' : 'This Box is empty.';
-  String get emptyPokemon => _isFrench ? 'Aucun Pokémon' : 'No Pokémon';
-  String get deposit => _isFrench ? 'Déposer' : 'Deposit';
-  String get withdraw => _isFrench ? 'Retirer' : 'Withdraw';
-  String get unavailable => _isFrench
-      ? 'Le PC ne peut pas être affiché.'
-      : 'The PC cannot be displayed.';
-  String levelValue(int value) => _isFrench ? 'Niv. $value' : 'Lv. $value';
-  String get species => _isFrench ? 'Espèce' : 'Species';
-  String get level => _isFrench ? 'Niveau' : 'Level';
-  String get currentHp => _isFrench ? 'PV actuels' : 'Current HP';
-  String get nature => 'Nature';
-  String get ability => _isFrench ? 'Talent' : 'Ability';
-  String get gender => _isFrench ? 'Genre' : 'Gender';
-  String get status => _isFrench ? 'Statut' : 'Status';
-  String get shiny => _isFrench ? 'Chromatique' : 'Shiny';
-  String get heldItem => _isFrench ? 'Objet tenu' : 'Held item';
-  String get moves => _isFrench ? 'Capacités' : 'Moves';
-  String get nickname => _isFrench ? 'Surnom' : 'Nickname';
-  String get friendship => _isFrench ? 'Amitié' : 'Friendship';
-  String get origin => _isFrench ? 'Origine' : 'Origin';
-  String get metLocation => _isFrench ? 'Lieu de rencontre' : 'Met location';
-  String get metSource => _isFrench ? 'Source' : 'Source';
-  String get metLevel => _isFrench ? 'Niveau rencontré' : 'Met level';
-  String get captureBall => _isFrench ? 'Ball de capture' : 'Capture Ball';
-  String get none => _isFrench ? 'Aucun' : 'None';
-  String get yes => _isFrench ? 'Oui' : 'Yes';
-  String get no => _isFrench ? 'Non' : 'No';
+  String get summaryTooltip => _strings.pcSummaryTooltip;
+  String get swapTooltip => _strings.pcSwapTooltip;
+  String get close => _strings.close;
+  String get party => _strings.party;
+  String get emptyParty => _strings.emptyPartyMessage;
+  String get emptyBox => _strings.pcEmptyBox;
+  String get emptyPokemon => _strings.noPokemon;
+  String get deposit => _strings.pcDeposit;
+  String get withdraw => _strings.pcWithdraw;
+  String get unavailable => _strings.pcUnavailable;
+  String levelValue(int value) => _strings.pokemonLevel(level: value);
+  String get species => _strings.pcSpecies;
+  String get level => _strings.pcLevel;
+  String get currentHp => _strings.pcCurrentHp;
+  String get nature => _strings.pokemonNature;
+  String get ability => _strings.pcAbility;
+  String get gender => _strings.pcGender;
+  String get status => _strings.pcStatus;
+  String get shiny => _strings.pcShiny;
+  String get heldItem => _strings.pcHeldItem;
+  String get moves => _strings.pcMoves;
+  String get nickname => _strings.pcNickname;
+  String get friendship => _strings.pcFriendship;
+  String get origin => _strings.pcOrigin;
+  String get metLocation => _strings.pcMetLocation;
+  String get metSource => _strings.pcMetSource;
+  String get metLevel => _strings.pcMetLevel;
+  String get captureBall => _strings.pcCaptureBall;
+  String get none => _strings.pcNone;
+  String get yes => _strings.yes;
+  String get no => _strings.no;
 
   String originLabel(String origin) => switch (origin) {
-        'captured' => _isFrench ? 'Capturé' : 'Captured',
-        'gift' => _isFrench ? 'Cadeau' : 'Gift',
-        'starter' => _isFrench ? 'Starter' : 'Starter',
-        'trade' => _isFrench ? 'Échange' : 'Trade',
-        'scripted' => _isFrench ? 'Événement' : 'Event',
-        _ => _isFrench ? 'Inconnue' : 'Unknown',
-      };
+    'captured' => _strings.pokemonOriginCaptured,
+    'gift' => _strings.pokemonOriginGift,
+    'starter' => _strings.pokemonOriginStarter,
+    'trade' => _strings.pokemonOriginTrade,
+    'scripted' => _strings.pokemonOriginScripted,
+    _ => _strings.pokemonOriginUnknown,
+  };
 
-  String swapWith(String pokemon) =>
-      _isFrench ? 'Échanger avec $pokemon' : 'Swap with $pokemon';
+  String swapWith(String pokemon) => _strings.pcSwapWith(pokemon: pokemon);
 }

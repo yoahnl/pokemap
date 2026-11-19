@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../assets/asset_store.dart';
+import 'runtime_catalog_references.dart';
 
 final class RuntimeModelResourceProjection {
   RuntimeModelResourceProjection({
@@ -35,6 +36,7 @@ RuntimeModelResourceProjection projectRuntimeModelResources({
   final externalProject = project.toJson()
     ..remove('models3d')
     ..remove('resourceLibraryCatalog')
+    ..remove('resourcePackInstallations')
     ..remove('smartTileCatalog');
   final catalog = project.smartTileCatalog;
   final catalogMetadata = catalog.toJson()
@@ -48,12 +50,12 @@ RuntimeModelResourceProjection projectRuntimeModelResources({
     definitions.putIfAbsent(pattern.id, () => []).add(pattern.toJson());
   }
   final definitionIds = definitions.keys.toSet();
-  final retainedDefinitions = _referencedStrings(
+  final retainedDefinitions = referencedRuntimeStrings(
       [externalProject, catalogMetadata, ...documents], definitionIds);
   final pending = retainedDefinitions.toList();
   for (var index = 0; index < pending.length; index++) {
     final references =
-        _referencedStrings(definitions[pending[index]], definitionIds);
+        referencedRuntimeStrings(definitions[pending[index]], definitionIds);
     for (final reference in references) {
       if (retainedDefinitions.add(reference)) pending.add(reference);
     }
@@ -72,21 +74,25 @@ RuntimeModelResourceProjection projectRuntimeModelResources({
     drafts: catalog.drafts,
   );
   final modelIds = project.models3d.map((model) => model.id).toSet();
-  final retainedModels = _referencedStrings(
+  final retainedModels = referencedRuntimeStrings(
       [externalProject, smartCatalog.toJson(), ...documents], modelIds);
-  var projected = project.copyWith(
+  final projected = project.copyWith(
       models3d: project.models3d
           .where((model) => retainedModels.contains(model.id))
-          .map((model) => model.copyWith(clearRampProfile: true))
+          .map((model) => model.rampProfile == null
+              ? model
+              : model.copyWith(clearRampProfile: true))
           .toList(),
-      smartTileCatalog: smartCatalog);
-  projected = projected.copyWith(
+      smartTileCatalog: smartCatalog,
       resourceLibraryCatalog: ResourceLibraryCatalog(
           families: project.resourceLibraryCatalog.families,
           entries: project.resourceLibraryCatalog.entries
-              .where((entry) => resourceLibraryResourceExists(
-                  projected, entry.resourceKind, entry.resourceId))
-              .toList()));
+              .where((entry) => switch (entry.resourceKind) {
+                    'model3d' => retainedModels.contains(entry.resourceId),
+                    'smartTilePreset' =>
+                      retainedDefinitions.contains(entry.resourceId),
+                    _ => true,
+                  })));
   final removedAssetIds = project.models3d
       .where((model) => !retainedModels.contains(model.id))
       .map((model) => model.sourceAssetId)
@@ -94,16 +100,18 @@ RuntimeModelResourceProjection projectRuntimeModelResources({
   final candidateRecords = assets.records
       .where((record) => removedAssetIds.contains(record.id))
       .toList();
-  final protectedAssetReferences = _referencedStrings([
-    projected.toJson(),
+  if (candidateRecords.isEmpty) {
+    return RuntimeModelResourceProjection(project: projected, assets: assets);
+  }
+  final protectedAssetReferences = referencedRuntimeStrings([
+    projected.toJson()..remove('resourcePackInstallations'),
     ...documents
   ], {
-    for (final record in candidateRecords) ...[record.id, record.logicalPath],
+    for (final record in candidateRecords) ...modelAssetReferences(record),
   });
   final excludedIds = {
     for (final record in candidateRecords)
-      if (!protectedAssetReferences.contains(record.id) &&
-          !protectedAssetReferences.contains(record.logicalPath))
+      if (!modelAssetReferences(record).any(protectedAssetReferences.contains))
         record.id,
   };
   return RuntimeModelResourceProjection(
@@ -116,20 +124,4 @@ RuntimeModelResourceProjection projectRuntimeModelResources({
         for (final record in candidateRecords)
           if (excludedIds.contains(record.id)) record.logicalPath
       });
-}
-
-Set<String> _referencedStrings(Object? value, Set<String> candidates) {
-  final references = <String>{};
-  final pending = <Object?>[value];
-  while (pending.isNotEmpty) {
-    final item = pending.removeLast();
-    if (item is String && candidates.contains(item)) {
-      references.add(item);
-    } else if (item is Map) {
-      pending.addAll(item.values);
-    } else if (item is List) {
-      pending.addAll(item);
-    }
-  }
-  return references;
 }

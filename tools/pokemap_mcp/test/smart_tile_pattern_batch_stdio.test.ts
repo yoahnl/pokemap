@@ -6,6 +6,7 @@ import test from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
+import { mutationRevision } from "./mutation_revision.js";
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === "object" && !Array.isArray(value));
@@ -39,9 +40,12 @@ test("live MCP imports and paints bounded pattern batches atomically", { timeout
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot });
     const mutate = async (actionId: string, parameters: JsonRecord, id: string) => {
       const current = await call("pokemap_validate", { projectHandle: opened.projectHandle });
+      const revision = actionId === "campaign.encounter_table.upsert"
+        ? await mutationRevision(client, String(opened.projectHandle), actionId, parameters, current.snapshotRevision)
+        : { expectedRevision: current.snapshotRevision };
       const planned = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
         requestId: id, actionId, actionVersion: 1, workspaceHandle: opened.workspaceHandle,
-        parameters, expectedRevision: current.snapshotRevision, idempotencyKey: id } });
+        parameters, ...revision, idempotencyKey: id } });
       assert.equal(planned.applicable, true);
       return { planned, applied: await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle, planId: planned.planId, operationId: id }) };
     };

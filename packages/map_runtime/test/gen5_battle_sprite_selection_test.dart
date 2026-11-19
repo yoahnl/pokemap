@@ -250,16 +250,27 @@ void main() {
       },
     }));
     await File('${project.path}/assets/female.gif').writeAsBytes([1]);
+    const identity = RuntimeBattleVisualIdentity(
+      speciesId: 'localmon', formId: 'base', genderId: 'female', isShiny: false,
+    );
     final sprite = await resolver().resolve(
       speciesId: 'localmon',
       isPlayerSide: false,
-      visualIdentity: const RuntimeBattleVisualIdentity(
-        speciesId: 'localmon', formId: 'base', genderId: 'female', isShiny: false,
-      ),
+      visualIdentity: identity,
     );
     expect(sprite.gen5Source, isNull);
+    expect(sprite.gen5SizeReference, isNull);
     expect(sprite.explicitAnimatedImageAbsolutePath, endsWith('/female.gif'));
     expect(requests, isEmpty);
+    final wildSprite = await resolver().resolve(
+      speciesId: 'localmon',
+      isPlayerSide: false,
+      isWildOpponent: true,
+      visualIdentity: identity,
+    );
+    expect(wildSprite.gen5Source, isNull);
+    expect(wildSprite.explicitAnimatedImageAbsolutePath, sprite.explicitAnimatedImageAbsolutePath);
+    expect(await wildSprite.gen5SizeReference!.load(), same(bundle));
   });
 
   test('keeps an unknown visual identity on the existing fallback', () async {

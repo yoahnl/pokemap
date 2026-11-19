@@ -1,4 +1,4 @@
-import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core_project_creation.dart';
 import 'project_template_catalog.dart';
 
 enum ProjectCreationTemplate { empty, playable, catalogue }

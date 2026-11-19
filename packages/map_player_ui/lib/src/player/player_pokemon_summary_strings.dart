@@ -1,54 +1,47 @@
 import 'package:flutter/widgets.dart';
 
-/// Libellés de la fiche Pokémon partagée.
-///
-/// L'Équipe et le PC portaient chacun leur propre copie de ces libellés, avec
-/// des divergences invisibles en test. Ils vivent ici en un seul exemplaire,
-/// suivant le même motif que [PlayerPcStrings] en attendant la migration vers
-/// le catalogue généré.
+import '../localization/player_localizations.dart';
+
 final class PlayerPokemonSummaryStrings {
-  const PlayerPokemonSummaryStrings._(this._languageCode);
+  const PlayerPokemonSummaryStrings._(this._strings);
 
   factory PlayerPokemonSummaryStrings.of(BuildContext context) =>
-      PlayerPokemonSummaryStrings._(
-        Localizations.localeOf(context).languageCode,
-      );
+      PlayerPokemonSummaryStrings._(context.playerL10n);
 
-  final String _languageCode;
+  final PokeMapPlayerLocalizations _strings;
 
-  bool get _isFrench => _languageCode == 'fr';
-
-  String levelValue(int level) => _isFrench ? 'Niv. $level' : 'Lv. $level';
-  String hpValue(int current, int max) => '$current/$max';
+  String levelValue(int level) => _strings.pokemonLevel(level: level);
+  String hpValue(int current, int max) => _strings.hpFraction(current, max);
   String ppValue(int current, int max) =>
-      _isFrench ? 'PP $current/$max' : 'PP $current/$max';
-  String friendshipValue(int friendship) => '$friendship/255';
+      _strings.pokemonPpValue(current: current, max: max);
+  String friendshipValue(int friendship) =>
+      _strings.pokemonFriendshipValue(friendship: friendship);
 
-  String get hp => _isFrench ? 'PV' : 'HP';
-  String get ppUnavailable => '—';
-  String get species => _isFrench ? 'Espèce' : 'Species';
-  String get form => _isFrench ? 'Forme' : 'Form';
-  String get experience => _isFrench ? 'Expérience' : 'Experience';
-  String get nature => _isFrench ? 'Nature' : 'Nature';
-  String get ability => _isFrench ? 'Talent' : 'Ability';
-  String get gender => _isFrench ? 'Sexe' : 'Gender';
-  String get shiny => _isFrench ? 'Chromatique' : 'Shiny';
-  String get heldItem => _isFrench ? 'Objet tenu' : 'Held item';
-  String get friendship => _isFrench ? 'Amitié' : 'Friendship';
-  String get stats => _isFrench ? 'Statistiques' : 'Stats';
-  String get attack => _isFrench ? 'Attaque' : 'Attack';
-  String get defense => _isFrench ? 'Défense' : 'Defense';
-  String get specialAttack => _isFrench ? 'Attaque Spé.' : 'Sp. Attack';
-  String get specialDefense => _isFrench ? 'Défense Spé.' : 'Sp. Defense';
-  String get speed => _isFrench ? 'Vitesse' : 'Speed';
-  String get moves => _isFrench ? 'Capacités' : 'Moves';
-  String get provenance => _isFrench ? 'Provenance' : 'Origin';
-  String get origin => _isFrench ? 'Origine' : 'Origin';
-  String get metLocation => _isFrench ? 'Lieu de rencontre' : 'Met location';
-  String get metSource => _isFrench ? 'Source' : 'Source';
-  String get metLevel => _isFrench ? 'Niveau de rencontre' : 'Met level';
-  String get captureBall => _isFrench ? 'Ball de capture' : 'Capture Ball';
-  String get none => _isFrench ? 'Aucun' : 'None';
-  String get viewSummary => _isFrench ? 'Voir la fiche' : 'View summary';
-  String get close => _isFrench ? 'Fermer' : 'Close';
+  String get hp => _strings.hpAbbreviation;
+  String get ppUnavailable => _strings.pokemonPpUnavailable;
+  String get species => _strings.pokemonSpecies;
+  String get form => _strings.pokemonForm;
+  String get experience => _strings.pokemonExperience;
+  String get nature => _strings.pokemonNature;
+  String get ability => _strings.pokemonAbility;
+  String get gender => _strings.pokemonGender;
+  String get shiny => _strings.pokemonShiny;
+  String get heldItem => _strings.pokemonHeldItem;
+  String get friendship => _strings.pokemonFriendship;
+  String get stats => _strings.pokemonStats;
+  String get attack => _strings.pokemonAttack;
+  String get defense => _strings.pokemonDefense;
+  String get specialAttack => _strings.pokemonSpecialAttack;
+  String get specialDefense => _strings.pokemonSpecialDefense;
+  String get speed => _strings.pokemonSpeed;
+  String get moves => _strings.pokemonMoves;
+  String get provenance => _strings.pokemonProvenance;
+  String get origin => _strings.pokemonOrigin;
+  String get metLocation => _strings.pokemonMetLocation;
+  String get metSource => _strings.pokemonMetSource;
+  String get metLevel => _strings.pokemonMetLevel;
+  String get captureBall => _strings.pokemonCaptureBall;
+  String get none => _strings.pokemonNone;
+  String get viewSummary => _strings.pokemonViewSummary;
+  String get close => _strings.close;
 }

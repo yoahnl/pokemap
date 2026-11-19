@@ -133,7 +133,9 @@ class _GameExportDialogState extends State<GameExportDialog> {
                     label: l10n.exportReload,
                     onPressed: () => unawaited(_load()),
                   ),
-                ] else if (metadata != null && !completed) ...[
+                ] else if (metadata != null &&
+                    !completed &&
+                    !port.operationActive) ...[
                   Text(l10n.exportHint),
                   const SizedBox(height: StudioSpacing.l),
                   GameExportIdentityForm(

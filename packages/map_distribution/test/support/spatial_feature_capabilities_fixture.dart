@@ -93,7 +93,7 @@ Map<String, List<int>> spatialFeaturePayload(String feature) {
     for (final entry in project.pokemon.catalogFiles.entries) {
       files['project/${entry.value}'] = utf8.encode(jsonEncode({
         'schemaVersion': 1,
-        'catalog': entry.key,
+        if (entry.key != 'items') 'catalog': entry.key,
         'entries': [
           if (entry.key == 'types') {'id': 'normal'},
           if (entry.key == 'abilities') {'id': 'calm'},

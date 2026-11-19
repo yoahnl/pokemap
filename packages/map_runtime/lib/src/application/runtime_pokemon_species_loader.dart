@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
+import '../player/runtime_pokemon_summary.dart' show runtimePokemonHumanizeId;
 import 'runtime_battle_setup_exception.dart';
 
 final class RuntimePokemonSpeciesNotFoundException
@@ -396,9 +397,11 @@ class RuntimePokemonSpeciesLoader {
       filePath: filePath,
     );
     final speciesFile = _parseSharedSpeciesFile(rawJson, filePath: filePath);
+    final (:names, :legacyName) = readPokemonSpeciesNames(rawJson);
     final runtimeSpecies = RuntimePokemonSpecies(
       id: expectedSpeciesId,
-      names: Map<String, String>.unmodifiable(speciesFile.names),
+      names: names,
+      legacyName: legacyName,
       formId: speciesFile.forms.formId,
       isBaseForm: speciesFile.forms.isBaseForm,
       weightKg: speciesFile.dexContent.weightKg,
@@ -681,6 +684,7 @@ class RuntimePokemonSpecies {
   const RuntimePokemonSpecies({
     required this.id,
     this.names = const <String, String>{},
+    this.legacyName,
     this.formId = '',
     this.isBaseForm = true,
     this.weightKg,
@@ -706,12 +710,16 @@ class RuntimePokemonSpecies {
 
   final String id;
   final Map<String, String> names;
+  final String? legacyName;
   final String formId;
   final bool isBaseForm;
   final double? weightKg;
 
-  String displayName(String locale) =>
-      resolveLocalizedName(names: names, locale: locale, fallback: id);
+  String displayName(String locale) => resolvePokemonSpeciesName(
+    names: names,
+    locale: locale,
+    fallback: legacyName ?? runtimePokemonHumanizeId(id),
+  );
 
   /// Typing défensif minimal réellement nécessaire à partir de BE5.
   ///

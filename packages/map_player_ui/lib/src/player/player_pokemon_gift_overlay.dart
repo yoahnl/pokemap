@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../localization/player_localizations.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_image.dart';
 import '../foundation/player_menu_components.dart';
@@ -30,8 +31,10 @@ class PlayerPokemonGiftOverlay extends StatelessWidget {
     if (interaction is SceneTextInteractionRequest) {
       return PlayerTextInputOverlay(snapshot: snapshot, onCommand: onCommand);
     }
-    final french = Localizations.localeOf(context).languageCode == 'fr';
-    final name = request.pokemon.isEgg ? (french ? 'L’Œuf' : 'The Egg') : request.speciesName ?? request.pokemon.speciesId;
+    final strings = context.playerL10n;
+    final name = request.pokemon.isEgg
+        ? (context.playerL10n.giftEgg)
+        : request.speciesName ?? request.pokemon.speciesId;
     final nickname = request.pokemon.nickname.isEmpty
         ? name
         : request.pokemon.nickname;
@@ -102,7 +105,7 @@ class PlayerPokemonGiftOverlay extends StatelessWidget {
                     child: PlayerServiceContent(
                       contentIdentity: (snapshot.revision, snapshot.stage),
                       title: Text(
-                        french ? 'Un nouveau compagnon' : 'A new companion',
+                        context.playerL10n.giftTitle,
                         style: context.playerMenuTheme.title,
                       ),
                       actions: PlayerServiceActions(
@@ -110,7 +113,7 @@ class PlayerPokemonGiftOverlay extends StatelessWidget {
                           if (choices.any((choice) => choice.id == 'nickname'))
                             PlayerActionButton(
                               key: const ValueKey('gift-nickname'),
-                              label: french ? 'Surnom' : 'Nickname',
+                              label: context.playerL10n.pcNickname,
                               labelMaxLines: 8,
                               icon: Icons.edit_outlined,
                               secondary: true,
@@ -120,7 +123,7 @@ class PlayerPokemonGiftOverlay extends StatelessWidget {
                             ),
                           PlayerActionButton(
                             key: const ValueKey('gift-continue'),
-                            label: french ? 'Continuer' : 'Continue',
+                            label: context.playerL10n.continueGame,
                             labelMaxLines: 8,
                             icon: Icons.check,
                             autofocus: true,
@@ -132,19 +135,15 @@ class PlayerPokemonGiftOverlay extends StatelessWidget {
                       ),
                       children: [
                         if (request.isNewPokedexEntry)
-                          Text(
-                            french
-                                ? 'Nouvelle entrée Pokédex à ajouter'
-                                : 'New Pokédex entry to add',
-                          ),
+                          Text(context.playerL10n.giftNewPokedexEntry),
                         Text(
                           party
-                              ? (french
-                                    ? '$nickname rejoindra votre équipe.'
-                                    : '$nickname will join your party.')
-                              : (french
-                                    ? '$nickname sera envoyé au PC.'
-                                    : '$nickname will be sent to the PC.'),
+                              ? (context.playerL10n.giftJoinsParty(
+                                  nickname: nickname,
+                                ))
+                              : (context.playerL10n.giftSentToPc(
+                                  nickname: nickname,
+                                )),
                         ),
                         if (media != null)
                           Semantics(
@@ -167,7 +166,15 @@ class PlayerPokemonGiftOverlay extends StatelessWidget {
                             ),
                           ),
                         Text(
-                          '${nickname == name ? name : '$nickname · $name'} · ${french ? 'Niv.' : 'Lv.'} ${request.pokemon.level}',
+                          strings.pokemonNameAndLevel(
+                            name: nickname == name
+                                ? name
+                                : strings.pokemonNameAndNickname(
+                                    nickname: nickname,
+                                    name: name,
+                                  ),
+                            level: request.pokemon.level,
+                          ),
                           key: const ValueKey('gift-pokemon-identity'),
                           textAlign: TextAlign.center,
                           style: context.playerMenuTheme.label,

@@ -16,6 +16,7 @@ import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 import type { JsonRecord } from "../src/authoring_client.js";
+import { mutationRevision } from "./mutation_revision.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
 const fixtureRoot = resolve(
@@ -228,6 +229,7 @@ test(
       const boundReceipts: JsonRecord[] = [];
 
       for (const scenario of itemMutationScenarios) {
+        const before = await mutationRevision(client, projectHandle, scenario.actionId, scenario.parameters, revision);
         const planned = await toolData(client, "pokemap_plan", {
           projectHandle,
           request: {
@@ -236,7 +238,7 @@ test(
             actionVersion: 1,
             workspaceHandle,
             parameters: scenario.parameters,
-            expectedRevision: revision,
+            ...before,
             idempotencyKey: `live-${scenario.slug}`,
             dryRun: false,
           },
@@ -275,8 +277,10 @@ test(
           operation: "list",
           view: "detail",
         });
+        assert.notEqual(queried.snapshotRevision, revision);
         revision = String(queried.snapshotRevision);
-        assert.equal(revision, applied.snapshotRevision);
+        const after = await mutationRevision(client, projectHandle, scenario.actionId, scenario.parameters, revision);
+        assert.equal(after.expectedRevision, applied.snapshotRevision);
         const validation = await toolData(client, "pokemap_validate", {
           projectHandle,
         });

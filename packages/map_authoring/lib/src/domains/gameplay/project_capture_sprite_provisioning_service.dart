@@ -15,12 +15,14 @@ import '../../contracts/artifact_ref.dart';
 import '../../ports/artifact_store.dart';
 import '../../ports/project_file_reader.dart';
 import '../../workspace/project_open_service.dart';
+import '../../workspace/project_snapshot.dart';
 import '../../workspace/project_snapshot_loader.dart';
 import '../../workspace/project_snapshot_cache.dart';
 import '../../workspace/project_snapshot_fingerprint_cache.dart';
 import '../../workspace/workspace_handle_store.dart';
 import '../../workspace/workspace_policy.dart';
 import '../assets/asset_store.dart';
+import 'project_item_asset_sources.dart';
 
 final class ProjectCaptureSpritePack {
   ProjectCaptureSpritePack(
@@ -37,6 +39,7 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
   required Future<ProjectCaptureSpritePack> Function() loadPack,
   bool Function()? shouldContinue,
   ProjectSnapshotLoadProfileSink? profileSink,
+  void Function(int checked, int total)? onItemsChecked,
 }) async {
   _requireCurrent(shouldContinue);
   if (!p.isAbsolute(projectPath) ||
@@ -54,8 +57,12 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
   final policy = await WorkspacePolicy.create(
       allowedRootPaths: [root], fileReader: reader);
   final handles = WorkspaceHandleStore();
-  final opener =
-      ProjectOpenService(policy: policy, fileReader: reader, handles: handles);
+  final opener = ProjectOpenService(
+      policy: policy,
+      fileReader: reader,
+      handles: handles,
+      catalogMetadataFields: const {'pokemon'},
+      initializeSceneOwners: false);
   final opened = await opener.openProject(root);
   final snapshots = ProjectSnapshotLoader(
     handles: handles,
@@ -79,28 +86,32 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
         if (reason != null) 'skippedReason': reason,
       };
   try {
-    final snapshot = await snapshots.load(opened.projectHandle,
-        policy: ProjectSnapshotLoadPolicy.resourceUsageReadProjection);
+    final catalogReader = await opener.catalogProject(opened.projectHandle);
+    final input = await readProjectItemAssetSources(
+        catalog: catalogReader,
+        snapshots: snapshots,
+        handle: opened.projectHandle,
+        projectFile: (path) => _projectFile(root, path));
     _requireCurrent(shouldContinue);
-    if (!snapshot.manifest.pokemon.enabled) return result('pokemon-disabled');
-    final catalogPath = snapshot.manifest.pokemon.catalogFiles['items'];
+    if (!input.pokemon.enabled) return result('pokemon-disabled');
+    final catalogPath = input.pokemon.catalogFiles['items'];
     if (catalogPath == null) return result('item-catalog-not-configured');
-    final catalog = snapshot.itemCatalog;
+    final catalog = input.items;
     if (catalog == null) {
       if (!await (await _projectFile(root, catalogPath)).exists()) {
         return result('item-catalog-missing');
       }
       throw const FormatException('A valid project item catalog is required.');
     }
-    final assetBytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
-    final assets = assetBytes == null
-        ? AssetCatalog()
-        : AssetCatalog.fromJson(
-            jsonDecode(utf8.decode(assetBytes)) as Map<String, dynamic>);
+    final assets = input.assets;
+    final captureItems = catalog.entries
+        .where((definition) => definition.capture != null)
+        .toList(growable: false);
     final missing = <ProjectItemDefinition>[];
     final assignments = <({String id, String path})>[];
-    for (final definition in catalog.entries) {
-      if (definition.capture == null) continue;
+    for (final (index, definition) in captureItems.indexed) {
+      _requireCurrent(shouldContinue);
+      onItemsChecked?.call(index, captureItems.length);
       _requireItemId(definition.id);
       if (definition.capture!.animationSpritePath != null) {
         preserved.add(definition.id);
@@ -139,6 +150,7 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
         missing.add(definition);
       }
     }
+    onItemsChecked?.call(captureItems.length, captureItems.length);
     _requireCurrent(shouldContinue);
     final imports = <({String id, String sourceId, String path})>[];
     _CapturePack? pack;
@@ -236,10 +248,25 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
         });
       }
     }
+    Future<ProjectSnapshot> readMutation(
+            String action, Map<String, Object?> parameters) =>
+        readItemAssetMutationSnapshot(
+            catalogBacked: catalogReader != null,
+            snapshots: snapshots,
+            api: api!,
+            handle: opened.projectHandle,
+            actionId: action,
+            parameters: parameters);
+
     Future<void> apply(String action, Map<String, Object?> parameters,
-        {String? expectedRevision}) async {
-      final fresh = await snapshots.load(opened.projectHandle,
-          policy: ProjectSnapshotLoadPolicy.editorReadProjection);
+        {ProjectSnapshot? itemBaseline}) async {
+      _requireCurrent(shouldContinue);
+      final fresh = await readMutation(action, parameters);
+      if (itemBaseline != null &&
+          itemBaseline.resourceFingerprints[itemCatalogResourceIdentity] !=
+              fresh.resourceFingerprints[itemCatalogResourceIdentity]) {
+        throw const FormatException('The item catalog changed. Retry.');
+      }
       final operation =
           'capture-sprites-${DateTime.now().microsecondsSinceEpoch}-${receipts.length}';
       _requireCurrent(shouldContinue);
@@ -250,7 +277,7 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
               actionId: action,
               actionVersion: 1,
               workspaceHandle: opened.workspaceHandle.value,
-              expectedRevision: expectedRevision ?? fresh.revision,
+              expectedRevision: fresh.revision,
               idempotencyKey: operation,
               parameters: parameters));
       if (!plan.applicable) {
@@ -278,8 +305,12 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
     }
     for (final assignment in assignments) {
       _requireCurrent(shouldContinue);
-      final fresh = await snapshots.load(opened.projectHandle,
-          policy: ProjectSnapshotLoadPolicy.editorReadProjection);
+      if (catalogReader == null) {
+        await snapshots.load(opened.projectHandle,
+            policy: ProjectSnapshotLoadPolicy.editorReadProjection);
+      }
+      final fresh =
+          await readMutation('item.update', {'itemId': assignment.id});
       final definitions =
           fresh.itemCatalog!.entries.where((item) => item.id == assignment.id);
       if (definitions.isEmpty || definitions.single.capture == null) {
@@ -297,7 +328,7 @@ Future<Map<String, Object?>> provisionProjectCaptureSprites({
                         .copyWith(animationSpritePath: assignment.path))
                 .toJson()
           },
-          expectedRevision: fresh.revision);
+          itemBaseline: fresh);
       updated.add(definition.id);
     }
     return {

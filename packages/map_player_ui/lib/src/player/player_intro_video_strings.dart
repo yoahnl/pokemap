@@ -1,24 +1,18 @@
 import 'package:flutter/widgets.dart';
 
+import '../localization/player_localizations.dart';
+
 final class PlayerIntroVideoStrings {
-  const PlayerIntroVideoStrings._(this._languageCode);
+  const PlayerIntroVideoStrings._(this._strings);
 
   factory PlayerIntroVideoStrings.of(BuildContext context) =>
-      PlayerIntroVideoStrings._(
-        Localizations.localeOf(context).languageCode,
-      );
+      PlayerIntroVideoStrings._(context.playerL10n);
 
-  final String _languageCode;
+  final PokeMapPlayerLocalizations _strings;
 
-  bool get _isFrench => _languageCode == 'fr';
-
-  String get skip => _isFrench ? 'Passer' : 'Skip';
-  String get replay => _isFrench ? 'Rejouer' : 'Replay';
-  String get continueAction => _isFrench ? 'Continuer' : 'Continue';
-  String get unavailable => _isFrench
-      ? 'La vidéo ne peut pas être lue.'
-      : 'Video playback is unavailable.';
-  String get reducedMotionSkipped => _isFrench
-      ? 'Intro ignorée avec les animations réduites'
-      : 'Intro skipped with reduced motion';
+  String get skip => _strings.introVideoSkip;
+  String get replay => _strings.introVideoReplay;
+  String get continueAction => _strings.continueGame;
+  String get unavailable => _strings.introVideoUnavailable;
+  String get reducedMotionSkipped => _strings.introVideoReducedMotionSkipped;
 }

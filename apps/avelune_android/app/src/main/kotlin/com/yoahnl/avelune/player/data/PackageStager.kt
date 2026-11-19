@@ -5,6 +5,8 @@ import android.net.Uri
 import android.os.StatFs
 import android.provider.OpenableColumns
 import com.yoahnl.avelune.host.PackageName
+import com.yoahnl.avelune.player.R
+import com.yoahnl.avelune.player.localization.NativeFailure
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -22,16 +24,21 @@ class PackageStager(private val context: Context) {
                 if (sizeIndex >= 0 && !it.isNull(sizeIndex)) size = it.getLong(sizeIndex)
             }
         }
-        val extension = PackageName.extension(name?.takeIf(String::isNotBlank) ?: "package.avelunegame")
+        val extension = try {
+            PackageName.extension(name?.takeIf(String::isNotBlank) ?: "package.avelunegame")
+        } catch (error: IllegalArgumentException) {
+            throw NativeFailure(R.string.error_package_extension, cause = error)
+        }
         val directory = File(context.cacheDir, "imports").apply { mkdirs() }
         val available = StatFs(directory.absolutePath).availableBytes
-        require(size == null || size!! < available) { "L’espace disponible ne suffit pas pour importer ce jeu." }
+        val declaredSize = size
+        if (declaredSize != null && declaredSize >= available) throw NativeFailure(R.string.error_package_disk)
         val staged = File.createTempFile("avelune_", ".$extension", directory)
         try {
             val input = resolver.openInputStream(uri)
-                ?: throw IllegalArgumentException("Impossible d’ouvrir le fichier choisi.")
+                ?: throw NativeFailure(R.string.error_package_open)
             input.use { source -> staged.outputStream().use { target -> source.copyTo(target) } }
-            require(staged.length() > 0) { "Le fichier choisi est vide." }
+            if (staged.length() == 0L) throw NativeFailure(R.string.error_package_empty)
             staged
         } catch (error: Throwable) {
             staged.delete()

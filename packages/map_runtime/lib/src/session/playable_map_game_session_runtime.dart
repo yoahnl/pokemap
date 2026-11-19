@@ -137,8 +137,12 @@ final class PlayableMapGameSessionRuntime
 
   @override
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    final previousLocale = _playerPreferences?.locale ?? descriptor.locale;
     _playerPreferences = preferences;
     _game?.applyPlayerPreferences(preferences);
+    if (previousLocale != preferences.locale) {
+      _playerServices?.refreshPokemonDisplayNames();
+    }
   }
 
   RuntimeSessionStrings get _strings =>
@@ -487,6 +491,8 @@ final class PlayableMapGameSessionRuntime
         pokemonConfig: bundle.manifest.pokemon,
         bagCapacity: bundle.manifest.bagCapacity,
         locale: descriptor.locale,
+        displayLocale: () => _playerPreferences?.locale ?? descriptor.locale,
+        pokemonSpeciesLoader: _recoveryCapsSpeciesLoader,
       );
       _playerServices = playerServices;
       _worldServiceSnapshot = playerServices.worldServiceSnapshot;

@@ -446,26 +446,29 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   }
 
   Widget _buildSplash() => AnimatedBuilder(
-        animation: Listenable.merge(<Listenable>[
-          _splashAnimation,
-          _splashAmbientAnimation,
-          _splashFinishAnimation,
-        ]),
-        child: widget.splashCinematic,
-        builder: (context, cinematic) => PlayerRuntimeSplashSurface(
-          branding: widget.branding,
-          progress: widget.splashLoadingProgress ?? widget.snapshot.progress,
-          animationProgress:
-              widget.splashAnimationProgress ?? _splashAnimation.value,
-          exitProgress: _splashFinishAnimation.value,
-          ambientProgress: _splashAmbientAnimation.value,
-          loadingLabel: _runtimeStartupLoadingLabel(widget.snapshot),
-          logo: widget.splashLogo,
-          wordmark: widget.splashWordmark,
-          cinematic: cinematic,
-          reducedMotion: widget.reducedMotion,
-        ),
-      );
+    animation: Listenable.merge(<Listenable>[
+      _splashAnimation,
+      _splashAmbientAnimation,
+      _splashFinishAnimation,
+    ]),
+    child: widget.splashCinematic,
+    builder: (context, cinematic) => PlayerRuntimeSplashSurface(
+      branding: widget.branding,
+      progress: widget.splashLoadingProgress ?? widget.snapshot.progress,
+      animationProgress:
+          widget.splashAnimationProgress ?? _splashAnimation.value,
+      exitProgress: _splashFinishAnimation.value,
+      ambientProgress: _splashAmbientAnimation.value,
+      loadingLabel: _runtimeStartupLoadingLabel(
+        widget.snapshot,
+        context.playerL10n,
+      ),
+      logo: widget.splashLogo,
+      wordmark: widget.splashWordmark,
+      cinematic: cinematic,
+      reducedMotion: widget.reducedMotion,
+    ),
+  );
 
   void _syncSplashAnimations() {
     if (widget.reducedMotion) {
@@ -966,20 +969,25 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   }
 }
 
-String _runtimeStartupLoadingLabel(RuntimeStartupSnapshot snapshot) {
-  if (snapshot.progress >= 1) return 'PRÊT';
+String _runtimeStartupLoadingLabel(
+  RuntimeStartupSnapshot snapshot,
+  PokeMapPlayerLocalizations strings,
+) {
+  if (snapshot.progress >= 1) return strings.startupReady;
   return switch (snapshot.currentStage) {
     RuntimeStartupPreparationStage.manifestAndIdentity =>
-      'PRÉPARATION DU VOYAGE',
-    RuntimeStartupPreparationStage.playerPreferences => 'PRÉFÉRENCES DU JOUEUR',
-    RuntimeStartupPreparationStage.saveDiscovery =>
-      'RECHERCHE DE LA SAUVEGARDE',
-    RuntimeStartupPreparationStage.initialMap =>
-      'CARTES ET RESSOURCES DU MONDE',
+      strings.startupPreparingJourney,
+    RuntimeStartupPreparationStage.playerPreferences =>
+      strings.startupPlayerPreferences,
+    RuntimeStartupPreparationStage.saveDiscovery => strings.startupFindingSave,
+    RuntimeStartupPreparationStage.initialMap => strings.startupWorldAssets,
     RuntimeStartupPreparationStage.presentationProfile =>
-      'PROFIL DE PRÉSENTATION',
-    RuntimeStartupPreparationStage.splashBranding => 'PRÉPARATION DU SPLASH',
-    RuntimeStartupPreparationStage.introAndPoster => 'PRÉPARATION DE LA SCÈNE',
-    RuntimeStartupPreparationStage.titleMenuAndMusic => 'MENU ET MUSIQUE',
+      strings.startupPresentationProfile,
+    RuntimeStartupPreparationStage.splashBranding =>
+      strings.startupSplashBranding,
+    RuntimeStartupPreparationStage.introAndPoster =>
+      strings.startupPreparingScene,
+    RuntimeStartupPreparationStage.titleMenuAndMusic =>
+      strings.startupMenuAndMusic,
   };
 }

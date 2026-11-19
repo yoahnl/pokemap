@@ -1,28 +1,22 @@
 import 'package:flutter/widgets.dart';
 
+import '../localization/player_localizations.dart';
+
 final class PlayerStartupStrings {
-  const PlayerStartupStrings._(this._languageCode);
+  const PlayerStartupStrings._(this._strings);
 
   factory PlayerStartupStrings.of(BuildContext context) =>
-      PlayerStartupStrings._(Localizations.localeOf(context).languageCode);
+      PlayerStartupStrings._(context.playerL10n);
 
-  final String _languageCode;
+  final PokeMapPlayerLocalizations _strings;
 
-  bool get _isFrench => _languageCode == 'fr';
-
-  String get pressStart => _isFrench ? 'Appuyer sur Start' : 'Press Start';
-  String get replayIntro => _isFrench ? 'Rejouer l’intro' : 'Replay intro';
-  String get replaceSaveTitle => _isFrench
-      ? 'Remplacer la partie actuelle ?'
-      : 'Replace the current game?';
-  String get replaceSaveBody => _isFrench
-      ? 'Une nouvelle partie remplacera la sauvegarde actuelle au prochain enregistrement.'
-      : 'A new game will replace the current save the next time it is saved.';
-  String get cancel => _isFrench ? 'Annuler' : 'Cancel';
-  String get begin => _isFrench ? 'Commencer' : 'Start';
-  String get startupUnavailable => _isFrench
-      ? 'Le démarrage du jeu a rencontré un problème.'
-      : 'The game could not finish starting.';
-  String get retry => _isFrench ? 'Réessayer' : 'Retry';
-  String get preparing => _isFrench ? 'Préparation…' : 'Preparing…';
+  String get pressStart => _strings.startupPressStart;
+  String get replayIntro => _strings.startupReplayIntro;
+  String get replaceSaveTitle => _strings.startupReplaceSaveTitle;
+  String get replaceSaveBody => _strings.startupReplaceSaveBody;
+  String get cancel => _strings.cancel;
+  String get begin => _strings.startupBegin;
+  String get startupUnavailable => _strings.startupStartupUnavailable;
+  String get retry => _strings.retry;
+  String get preparing => _strings.startupPreparing;
 }

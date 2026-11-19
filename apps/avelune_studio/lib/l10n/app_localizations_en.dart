@@ -65,13 +65,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportLoading => 'Loading the export profile…';
 
   @override
-  String get exportPreparing => 'Saving the project…';
+  String get exportStepSave => 'Save the project';
 
   @override
-  String get exportBuilding => 'Building and verifying the game…';
+  String get exportStepItemIcons => 'Prepare item icons';
 
   @override
-  String get exportWriting => 'Writing the package…';
+  String get exportStepCaptureSprites => 'Prepare capture sprites';
+
+  @override
+  String get exportStepProfile => 'Check the profile and project revision';
+
+  @override
+  String get exportStepCollect => 'Collect the game files';
+
+  @override
+  String get exportStepValidate => 'Validate playable content';
+
+  @override
+  String get exportStepArchive => 'Assemble the archive';
+
+  @override
+  String get exportStepInspect => 'Inspect the new archive';
+
+  @override
+  String get exportStepWrite => 'Write the package';
+
+  @override
+  String get exportStepFinish => 'Finalize the export';
+
+  @override
+  String exportProgressSteps(int completed, int total, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      completed,
+      locale: localeName,
+      other: '$completed of $total steps complete',
+      one: '1 of $total steps complete',
+    );
+    return '$_temp0 · $percent%';
+  }
+
+  @override
+  String exportProgressItems(int checked, int total, int percent) {
+    return 'Checking items · $checked/$total · $percent%';
+  }
 
   @override
   String get exportCancelling => 'Cancelling…';

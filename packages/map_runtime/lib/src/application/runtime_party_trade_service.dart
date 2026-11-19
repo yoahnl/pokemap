@@ -58,16 +58,6 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
         );
         if (!_tradeContinues(session)) return await session.result.future;
         session.speciesById[pokemon.speciesId] = species;
-        session.members.add(
-          RuntimePartyTradePokemonSnapshot(
-            individualId: pokemon.individualId,
-            speciesId: pokemon.speciesId,
-            label: pokemon.nickname.isEmpty
-                ? species.displayName(_locale)
-                : pokemon.nickname,
-            level: pokemon.level,
-          ),
-        );
       }
       if (_currentGameState() != initial) {
         throw StateError('The party changed while opening the trade.');
@@ -253,8 +243,7 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
         if (_currentGameState() != session.initialState) {
           throw StateError('The party changed before saving the trade.');
         }
-        session.completionMessage =
-            '${session.members.singleWhere((member) => member.individualId == first.individualId).label} est devenu ${target.displayName(_locale)}.';
+        session.evolvedSpecies = target;
       }
       session.pendingState = result.state;
       session.pendingCommit = Future<void>.sync(
@@ -386,6 +375,7 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
         (_partyTradeRevision > previous ? _partyTradeRevision : previous) + 1;
     final failed = session.failure != null;
     final completed = session.phase == RuntimePartyTradePhase.completed;
+    final locale = _displayLocale;
     _publishWorldService(
       RuntimeWorldServiceSnapshot(
         revision: _partyTradeRevision,
@@ -400,15 +390,27 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
         content: RuntimePartyTradeServiceContent(
           phase: session.phase,
           members: [
-            ...session.members,
+            for (final pokemon in session.members)
+              RuntimePartyTradePokemonSnapshot(
+                individualId: pokemon.individualId,
+                speciesId: pokemon.speciesId,
+                label: _tradeMemberLabel(
+                  pokemon,
+                  session.speciesById[pokemon.speciesId]!,
+                  locale,
+                ),
+                level: pokemon.level,
+              ),
             if (session.request.npcOffer case final offer?
                 when session.phase != RuntimePartyTradePhase.selectFirst)
               RuntimePartyTradePokemonSnapshot(
                 individualId: 'npc-offer:${offer.id}',
                 speciesId: offer.offeredPokemon.speciesId,
-                label: offer.offeredPokemon.nickname.isEmpty
-                    ? session.offeredSpecies!.displayName(_locale)
-                    : offer.offeredPokemon.nickname,
+                label: _tradeMemberLabel(
+                  offer.offeredPokemon,
+                  session.offeredSpecies!,
+                  locale,
+                ),
                 level: offer.matchSelectedLevel
                     ? session.members
                           .singleWhere(
@@ -420,7 +422,7 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
           ],
           firstIndividualId: session.firstIndividualId,
           partnerIndividualId: session.partnerIndividualId,
-          completionMessage: session.completionMessage,
+          completionMessage: _tradeCompletionMessage(session, locale),
         ),
         safeMessage: failed ? 'L’échange n’a pas pu être enregistré.' : null,
         actions: [
@@ -442,6 +444,23 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
         ],
       ),
     );
+  }
+
+  String? _tradeCompletionMessage(
+    _ContextualPartyTradeSession session,
+    String locale,
+  ) {
+    final evolved = session.evolvedSpecies;
+    if (evolved == null) return session.completionMessage;
+    final first = session.members.singleWhere(
+      (member) => member.individualId == session.firstIndividualId,
+    );
+    final name = _tradeMemberLabel(
+      first,
+      session.speciesById[first.speciesId]!,
+      locale,
+    );
+    return '$name est devenu ${evolved.displayName(locale)}.';
   }
 
   Future<void> _disposePartyTrade() async {
@@ -467,6 +486,12 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
   }
 }
 
+String _tradeMemberLabel(
+  PlayerPokemon pokemon,
+  RuntimePokemonSpecies species,
+  String locale,
+) => pokemon.nickname.isEmpty ? species.displayName(locale) : pokemon.nickname;
+
 final class _ContextualPartyTradeSession {
   _ContextualPartyTradeSession({
     required this.request,
@@ -476,12 +501,13 @@ final class _ContextualPartyTradeSession {
   final GameState initialState;
   final result = Completer<PlayerServiceRuntimeResult>();
   final speciesById = <String, RuntimePokemonSpecies>{};
-  final members = <RuntimePartyTradePokemonSnapshot>[];
+  List<PlayerPokemon> get members => initialState.party.members;
   RuntimePartyTradePhase phase = RuntimePartyTradePhase.selectFirst;
   String? firstIndividualId, partnerIndividualId;
   String? completionMessage;
   Object? failure;
   RuntimePokemonSpecies? offeredSpecies;
+  RuntimePokemonSpecies? evolvedSpecies;
   bool applying = false;
   Future<void>? pendingCommit;
   GameState? pendingState, completedState;

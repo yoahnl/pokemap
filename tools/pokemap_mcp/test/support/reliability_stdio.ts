@@ -8,7 +8,9 @@ import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../../src/authoring_client.js";
 
 const execute = promisify(execFile);
-const qaRoot = "/Users/karim/Library/Caches/AveluneQA/mcp-map-reliability/r3";
+const qaRoot = process.env.AVELUNE_QA_ROOT
+  ? resolve(process.env.AVELUNE_QA_ROOT, "map-reliability")
+  : "/Users/karim/Library/Caches/AveluneQA/mcp-map-reliability/r3";
 
 export function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === "object" && !Array.isArray(value));
@@ -17,12 +19,13 @@ export function record(value: unknown): JsonRecord {
 
 export async function reliabilityStdio(variant: string, storage: "classic" | "catalog") {
   const generated = await execute(process.env.POKEMAP_TEST_DART ?? "dart", [
-    "run", "test/support/create_reliability_transport_fixture.dart", variant, storage,
+    "run", "test/support/create_reliability_transport_fixture.dart", variant, storage, qaRoot,
   ], { cwd: resolve("../../packages/map_authoring"), maxBuffer: 2 * 1024 * 1024 });
   const fixture = record(JSON.parse(generated.stdout.trim().split("\n").at(-1)!));
   const root = String(fixture.root);
   assert.ok(root.startsWith(`${qaRoot}/`));
-  const args = [resolve("dist/src/index.js"), "--profile", "map-builder", "--root", root];
+  const args = [resolve("dist/src/index.js"), "--profile", "map-builder", "--root", root,
+    "--authoring-timeout-ms", "60000"];
   if (process.env.POKEMAP_TEST_DART) args.push("--dart", process.env.POKEMAP_TEST_DART);
   const transport = new StdioClientTransport({ command: process.execPath, args,
     cwd: process.cwd(), stderr: "pipe" });

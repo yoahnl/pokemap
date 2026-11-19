@@ -64,8 +64,6 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
   bool _initialFocusPending = true;
   ({String pocketId, String itemId})? _pendingItemFocus;
 
-  String _text(String fr, String en) =>
-      Localizations.localeOf(context).languageCode == 'fr' ? fr : en;
   String _id(RuntimePlayerDetailEntrySnapshot e) => e.bagItem?.itemId ?? e.id;
   String _entryPocket(RuntimePlayerDetailEntrySnapshot e) =>
       e.bagItem?.pocketId ?? '';
@@ -85,7 +83,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
       if (widget.onFavoriteChanged != null)
         RuntimePlayerBagPocketSnapshot(
           id: _favorites,
-          label: _text('Favoris', 'Favorites'),
+          label: context.playerL10n.bagFavorites,
         ),
     ];
   }
@@ -326,8 +324,8 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
           iconOnly: true,
           integrated: true,
           semanticValue: forward
-              ? _text('Poches suivantes', 'Next pockets')
-              : _text('Poches précédentes', 'Previous pockets'),
+              ? context.playerL10n.bagNextPockets
+              : context.playerL10n.bagPreviousPockets,
           leading: Icon(forward ? Icons.chevron_right : Icons.chevron_left),
           onPressed: () => focusPocket(
             forward ? (_pocketPage + 1) * count : _pocketPage * count - 1,
@@ -465,9 +463,8 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
             _pockets.where((p) => p.id == _pocket).firstOrNull?.label ??
             widget.detail.title,
         message: widget.detail.entries.isEmpty
-            ? widget.detail.emptyMessage ??
-                  _text('Votre sac est vide.', 'Your bag is empty.')
-            : _text('Cette poche est vide.', 'This pocket is empty.'),
+            ? widget.detail.emptyMessage ?? context.playerL10n.bagEmpty
+            : context.playerL10n.bagPocketEmpty,
       );
     }
     return LayoutBuilder(
@@ -616,10 +613,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
                 setState(
                   () => _failure =
                       action?.unavailableReason ??
-                      _text(
-                        'Cet objet ne peut pas être utilisé ici.',
-                        'This item cannot be used here.',
-                      ),
+                      context.playerL10n.bagCannotUse,
                 );
               }
             },
@@ -634,7 +628,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
           height: compact ? 56 : 76,
           child: IconButton(
             key: ValueKey('bag-info-$id'),
-            tooltip: '${_text('Informations', 'Information')} · ${entry.title}',
+            tooltip: '${context.playerL10n.information} · ${entry.title}',
             constraints: const BoxConstraints.tightFor(width: 48, height: 48),
             onPressed: _busy
                 ? null
@@ -672,10 +666,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
           final description =
               entry.bagItem?.description ??
               entry.subtitle ??
-              _text(
-                'Aucune description disponible.',
-                'No description available.',
-              );
+              context.playerL10n.noDescriptionAvailable;
           final chunks = <String>[];
           var chunk = '';
           final pageHeight = (constraints.maxHeight - 64).clamp(
@@ -774,8 +765,8 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
       if (widget.onFavoriteChanged != null)
         Tooltip(
           message: widget.favoriteItemIds.contains(_id(entry))
-              ? _text('Retirer des favoris', 'Remove from favorites')
-              : _text('Ajouter aux favoris', 'Add to favorites'),
+              ? context.playerL10n.bagRemoveFavorite
+              : context.playerL10n.bagAddFavorite,
           child: PlayerMenuSelectableRow(
             key: ValueKey('bag-favorite-${_id(entry)}'),
             focusNode: action?.isEnabled == true && widget.onCommand != null
@@ -787,10 +778,10 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
               horizontal: 8,
               vertical: 10,
             ),
-            label: _text('Favori', 'Favorite'),
+            label: context.playerL10n.bagFavorite,
             semanticValue: widget.favoriteItemIds.contains(_id(entry))
-                ? _text('Retirer des favoris', 'Remove from favorites')
-                : _text('Ajouter aux favoris', 'Add to favorites'),
+                ? context.playerL10n.bagRemoveFavorite
+                : context.playerL10n.bagAddFavorite,
             leading: Icon(
               widget.favoriteItemIds.contains(_id(entry))
                   ? Icons.star
@@ -845,12 +836,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
         .toList();
     final world = action.targetKind == RuntimePlayerBagUseTargetKind.world;
     if (!world && eligible.isEmpty) {
-      setState(
-        () => _failure = _text(
-          'Aucun compagnon ne peut recevoir cet objet.',
-          'No companion can receive this item.',
-        ),
-      );
+      setState(() => _failure = context.playerL10n.bagNoEligibleTarget);
       return;
     }
     if (!action.requiresConfirmation &&
@@ -916,10 +902,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
       if (mounted) _failure = e.safeMessage;
     } catch (_) {
       if (mounted) {
-        _failure = _text(
-          'Cette action a échoué. Réessayez.',
-          'The action failed. Try again.',
-        );
+        _failure = context.playerL10n.bagActionFailed;
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -987,8 +970,6 @@ class _BagTargetDialogState extends State<_BagTargetDialog> {
   RuntimePlayerBagMoveTargetSnapshot? _move;
   bool _confirm = false;
   bool _submitted = false;
-  String _text(String fr, String en) =>
-      Localizations.localeOf(context).languageCode == 'fr' ? fr : en;
   bool get _isWorld =>
       widget.action.targetKind == RuntimePlayerBagUseTargetKind.world;
   bool get _needsMove =>
@@ -1136,21 +1117,28 @@ class _BagTargetDialogState extends State<_BagTargetDialog> {
 
   List<Widget> _choices(BuildContext context) {
     if (_isWorld || _confirm) {
+      final strings = context.playerL10n;
+      final move = widget.action.learnedMoveLabel ?? widget.entry.title;
+      final forgottenMove = _move?.label;
       return [
         if (_target != null)
           Text(_target!.label, style: context.playerMenuTheme.subtitle),
         Text(
           widget.action.targetKind ==
                   RuntimePlayerBagUseTargetKind.partyMoveReplacement
-              ? '${_text('Apprendre', 'Learn')} ${widget.action.learnedMoveLabel ?? widget.entry.title}'
-                    '${_move == null ? '' : ' — ${_text('oublier', 'forget')} ${_move!.label}'}'
+              ? (forgottenMove == null
+                    ? strings.bagLearnMove(move: move)
+                    : strings.bagLearnReplacingMove(
+                        move: move,
+                        forgottenMove: forgottenMove,
+                      ))
               : widget.entry.title,
           style: context.playerMenuTheme.body,
         ),
         PlayerActionButton(
           key: const ValueKey('bag-use-confirm'),
           focusNode: _confirmFocus,
-          label: _text('Confirmer', 'Confirm'),
+          label: context.playerL10n.confirm,
           icon: Icons.check,
           onPressed: _submitted ? null : _submit,
         ),
@@ -1179,7 +1167,7 @@ class _BagTargetDialogState extends State<_BagTargetDialog> {
                 widget.action.unavailablePartyTargetReasons[target.targetId] ??
                 (widget.action.allowsPartyTarget(target.targetId)
                     ? null
-                    : _text('Non compatible.', 'Not compatible.')),
+                    : context.playerL10n.bagTargetIncompatible),
             onPressed: () {
               _target = target;
               if (!_needsMove && !widget.action.requiresConfirmation) {

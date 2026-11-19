@@ -2144,7 +2144,11 @@ MapData _setSlotOverride(
     final errors = diagnostics
         .where((issue) =>
             issue.severity == BorderDiagnosticSeverity.error &&
-            (spatial || issue.code.startsWith('border.resolution.override_')))
+            (spatial ||
+                issue.code.startsWith('border.resolution.override_') ||
+                (issue.slotKey == slotKey &&
+                    issue.code ==
+                        'border.resolution.ledge_final_placement_invalid')))
         .toList();
     if (errors.isNotEmpty) {
       throw semanticFailure(

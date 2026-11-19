@@ -315,6 +315,10 @@ final class _MemoryPreferencesStore
   Future<void> save(PlayerPreferences preferences) async {
     _preferences = preferences;
   }
+
+  @override
+  Future<void> update(PlayerPreferences Function(PlayerPreferences) change) =>
+      save(change(_preferences));
 }
 
 GamePackageInstaller _installer({

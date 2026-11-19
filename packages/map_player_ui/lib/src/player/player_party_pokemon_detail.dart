@@ -3,6 +3,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_pokemon_type_badge.dart';
+import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'player_pokemon_image.dart';
 import 'player_pokemon_summary_strings.dart';
@@ -153,8 +154,10 @@ class PlayerPartyPokemonDetail extends StatelessWidget {
                 PlayerPokemonTypeBadge(type: type),
               if (summary.isShiny) PlayerMenuBadge(label: strings.shiny),
               if (summary.isFainted)
-                const PlayerMenuBadge(
-                    label: 'KO', kind: PlayerMenuBadgeKind.status)
+                PlayerMenuBadge(
+                  label: context.playerL10n.pokemonFainted,
+                  kind: PlayerMenuBadgeKind.status,
+                )
               else if (summary.statusLabel case final status?)
                 PlayerMenuBadge(
                     label: status, kind: PlayerMenuBadgeKind.status),

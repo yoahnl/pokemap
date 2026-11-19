@@ -14,6 +14,7 @@ dependencies:
     sdk: flutter
   flutter_joystick: ^0.2.2
   gamepads: 0.1.11
+  intl: any
   map_core:
     path: ../map_core
   map_story:
@@ -34,6 +35,7 @@ dev_dependencies:
     path: ../map_gameplay
 
 flutter:
+  generate: true
   uses-material-design: true
   assets:
     - assets/icons/lucide-LICENSE.txt

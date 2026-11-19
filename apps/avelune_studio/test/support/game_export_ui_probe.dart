@@ -18,6 +18,8 @@ class GameExportUiProbe implements StudioGameExportPort {
   @override
   StudioExportStage stage = StudioExportStage.idle;
   @override
+  StudioExportProgress? progress;
+  @override
   String? error, warning, outputPath, packageSha256, sourceRevision;
   @override
   StudioFailureDiagnosis? failure;
@@ -72,11 +74,21 @@ class GameExportUiProbe implements StudioGameExportPort {
     publicationMode = publication;
     operationActive = true;
     stage = StudioExportStage.preparing;
+    progress = (
+      step: StudioExportStep.saveProject,
+      itemsChecked: null,
+      itemCount: null,
+    );
     notify();
     preparations++;
     final saved = await prepare();
     if (saved && !hasPendingChanges() && isCurrentProject()) {
       stage = heldStage;
+      progress = (
+        step: StudioExportStep.collectFiles,
+        itemsChecked: null,
+        itemCount: null,
+      );
       notify();
       await gate?.future;
       if (stage != StudioExportStage.cancelled && isCurrentProject()) {

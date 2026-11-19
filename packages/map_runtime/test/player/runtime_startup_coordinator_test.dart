@@ -11,6 +11,46 @@ import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playbac
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  test('system language refresh reloads the paused menu after lifecycle pause',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    final initial = harness.preferences.current.copyWith(
+      playerLanguage: const RuntimePlayerLanguageChoice.followApplication(),
+      preferredContentLocales: ['fr'],
+    );
+    harness.preferences.current = initial;
+    await launchHarnessToPlaying(harness);
+    final sessionId = harness.adapter.sessionId;
+    harness.adapter.pauseDetailsLoader = () async => {
+      RuntimePlayerPauseSection.party: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.party,
+        title: harness.adapter.appliedPreferences.last.locale == 'fr'
+            ? 'Équipe'
+            : 'Party',
+      ),
+    };
+    await openHarnessPause(harness);
+    final player = harness.coordinator;
+    expect(player.snapshot.pauseDetails[RuntimePlayerPauseSection.party]?.title,
+        'Équipe');
+    await player.pauseForLifecycle();
+    harness.preferences.current = initial.copyWith(
+      locale: 'en',
+      preferredContentLocales: ['en'],
+    );
+    await player.refreshLocalePreferences();
+    expect(player.snapshot.preferences?.locale, 'fr');
+    await player.resumeFromLifecycle();
+    await player.refreshLocalePreferences();
+    expect(player.snapshot.phase, RuntimePlayerPhase.paused);
+    expect(player.snapshot.preferences?.locale, 'en');
+    expect(player.snapshot.pauseDetails[RuntimePlayerPauseSection.party]?.title,
+        'Party');
+    expect(harness.sessions.snapshot.descriptor?.sessionId, sessionId);
+    expect(harness.preferences.saves, 0);
+  });
+
   test(
     'natural title music ending replays intro and returns to prompt',
     () async {

@@ -109,8 +109,11 @@ test("MCP recovery status reads a completed operation without replay or cross-pr
     const applied = await data("pokemap_apply", { operation: "apply", projectHandle: first.projectHandle, planId: planned.planId, operationId: "status-operation" });
     const receipt = record(applied.receipt);
     const root = roots[0]!;
-    const paths = [join(root, "project.json"), join(root, "maps/town.json"), join(root, ".pokemap/authoring/history.jsonl")];
+    const paths = [join(root, "project.json"), join(root, "maps/town.json")];
     const before = await Promise.all(paths.map(path => readFile(path)));
+    const historyRequest = { operation: "list", projectHandle: first.projectHandle };
+    const historyBefore = await data("pokemap_history", historyRequest);
+    assert.deepEqual((historyBefore.entries as JsonRecord[]).map(entry => entry.entryId), [receipt.receiptId]);
     for (let attempt = 0; attempt < 2; attempt++) {
       const status = await data("pokemap_recovery_status", { projectHandle: first.projectHandle, operationId: "status-operation" });
       assert.equal(status.committed, true);
@@ -131,6 +134,7 @@ test("MCP recovery status reads a completed operation without replay or cross-pr
     assert.ok(!failure.includes(String(receipt.receiptId)));
     for (const path of roots) assert.ok(!failure.includes(path));
     assert.deepEqual(await Promise.all(paths.map(path => readFile(path))), before);
+    assert.deepEqual(await data("pokemap_history", historyRequest), historyBefore);
     await data("pokemap_workspace", { operation: "close", workspaceHandle: first.workspaceHandle });
     await data("pokemap_workspace", { operation: "close", workspaceHandle: second.workspaceHandle });
   } finally {

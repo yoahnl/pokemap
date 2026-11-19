@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
+import { mutationRevision } from "./mutation_revision.js";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 function record(value: unknown): JsonRecord {
@@ -68,13 +69,16 @@ test("fresh MCP authors vitamins and battle preparations with typed cold reload"
       ["battle",{kind:"battle_preparation",effect:"focusEnergy",turns:null}],
       ["battle",{kind:"battle_preparation",effect:"mist",turns:5}],
     ];
-    for(const [index,[context,effect]] of cases.entries()) {
-      const before=await tool(client,"pokemap_validate",{projectHandle:opened.projectHandle});
-      const planned=await tool(client,"pokemap_plan",{projectHandle:opened.projectHandle,request:{
-        requestId:`training-${index}`,actionId:`item.set_${context}_effect`,actionVersion:1,
-        workspaceHandle:opened.workspaceHandle,expectedRevision:before.snapshotRevision,
-        parameters:{itemId:"full-restore",use:{contexts:[context],target:"party_member",consumption:"on_applied",effect}},
-        idempotencyKey:`training-${index}`,dryRun:false}});
+    for (const [index, [context, effect]] of cases.entries()) {
+      const before = await tool(client, "pokemap_validate", { projectHandle: opened.projectHandle });
+      const actionId = `item.set_${context}_effect`;
+      const parameters = { itemId: "full-restore", use: {
+        contexts: [context], target: "party_member", consumption: "on_applied", effect,
+      } };
+      const revision = await mutationRevision(client, String(opened.projectHandle), actionId, parameters, before.snapshotRevision);
+      const planned = await tool(client, "pokemap_plan", { projectHandle: opened.projectHandle, request: {
+        requestId: `training-${index}`, actionId, actionVersion: 1, workspaceHandle: opened.workspaceHandle,
+        ...revision, parameters, idempotencyKey: `training-${index}`, dryRun: false } });
       await tool(client,"pokemap_apply",{operation:"apply",projectHandle:opened.projectHandle,planId:planned.planId,operationId:`training-apply-${index}`});
       const catalog=JSON.parse(await readFile(catalogPath,"utf8")) as {entries: {uses: JsonRecord[]}[]};
       const actual=catalog.entries[0]!.uses.find(u=>(u.contexts as string[]).includes(context));assert.ok(actual);

@@ -39,7 +39,17 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PlayerMenuThemeScope(
     role: surfaceRole,
-    child: summary.isEgg ? Column(mainAxisSize: MainAxisSize.min, children: [PlayerPokemonImage(summary: summary), Text(summary.displayLabel), Text(Localizations.localeOf(context).languageCode == 'fr' ? 'Un Œuf confié à votre équipe.' : 'An Egg entrusted to your party.'), ?actions]) : _PlayerPokemonSummaryTabs(sheet: this),
+    child: summary.isEgg
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PlayerPokemonImage(summary: summary),
+              Text(summary.displayLabel),
+              Text(context.playerL10n.pokemonEggEntrusted),
+              ?actions,
+            ],
+          )
+        : _PlayerPokemonSummaryTabs(sheet: this),
   );
 
   Widget _hpBar(BuildContext context, PlayerPokemonSummaryStrings strings) {
@@ -489,10 +499,13 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
     final sheet = widget.sheet;
     final summary = sheet.summary;
     final strings = PlayerPokemonSummaryStrings.of(context);
-    final french = Localizations.localeOf(context).languageCode == 'fr';
-    final tabs = french
-        ? ['Résumé', 'Capacités', 'Stats', 'Actions']
-        : ['Summary', 'Moves', 'Stats', 'Actions'];
+    final l10n = context.playerL10n;
+    final tabs = [
+      l10n.pokemonSummary,
+      strings.moves,
+      l10n.pokemonTabStats,
+      l10n.actions,
+    ];
     final ids = ['summary', 'moves', 'stats', 'actions'];
     return RuntimePlayerTabActions(
       resetToken: _tab,
@@ -518,7 +531,9 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
                 sheet.actions == null
                     ? <Widget>[
                         Text(
-                          '${strings.heldItem} : ${summary.heldItemLabel ?? strings.none}',
+                          l10n.bagHeldItemSummary(
+                            item: summary.heldItemLabel ?? strings.none,
+                          ),
                         ),
                       ]
                     : _rows(sheet.actions!),

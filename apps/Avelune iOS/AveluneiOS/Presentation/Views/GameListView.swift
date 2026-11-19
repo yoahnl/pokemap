@@ -5,6 +5,7 @@ struct GameListView: View {
     @ObservedObject var viewModel: GameListViewModel
     let onGameSelected: (Game) -> Void
 
+    @Environment(\.locale) private var locale
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var navigationTransition
     @Namespace private var quickTransition
@@ -25,10 +26,16 @@ struct GameListView: View {
                         failedLibrary
                             .padding(.horizontal, 24)
                     } else {
-                        Text(viewModel.games.isEmpty ? "Vos aventures commencent ici." : "\(viewModel.games.count) aventure\(viewModel.games.count > 1 ? "s" : "")")
-                            .font(.subheadline)
-                            .foregroundStyle(AveluneTheme.muted)
-                            .padding(.horizontal, 24)
+                        Group {
+                            if viewModel.games.isEmpty {
+                                Text("Vos aventures commencent ici.")
+                            } else {
+                                Text("\(viewModel.games.count) aventure")
+                            }
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(AveluneTheme.muted)
+                        .padding(.horizontal, 24)
                     }
 
                     if viewModel.libraryState == .loaded && viewModel.games.isEmpty {
@@ -124,7 +131,7 @@ struct GameListView: View {
             )) {
                 InstallationView(
                     stage: viewModel.installationStage ?? .preparing,
-                    gameName: viewModel.installationName ?? "Nouveau jeu",
+                    gameName: viewModel.installationName,
                     progress: viewModel.installationProgress,
                     progressDetail: viewModel.installationDetail
                 )
@@ -142,7 +149,7 @@ struct GameListView: View {
                 Button("OK") { viewModel.errorMessage = nil }
             } message: {
                 if let error = viewModel.errorMessage {
-                    Text(error)
+                    Text(verbatim: error.localized(for: locale))
                 }
             }
         }
@@ -225,7 +232,7 @@ struct GameListView: View {
                 .multilineTextAlignment(.center)
 
             if let detail = viewModel.libraryLoadError {
-                Text(detail)
+                Text(verbatim: detail.localized(for: locale))
                     .font(.caption)
                     .foregroundStyle(AveluneTheme.muted)
                     .multilineTextAlignment(.center)
@@ -341,13 +348,14 @@ private struct LibraryLoadingView: View {
 }
 
 private struct InstallationView: View {
+    @Environment(\.locale) private var locale
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isOrbiting = false
 
     let stage: InstallationStage
-    let gameName: String
+    let gameName: String?
     let progress: Double?
-    let progressDetail: String?
+    let progressDetail: LocalizedStringResource?
 
     var body: some View {
         ZStack {
@@ -381,7 +389,7 @@ private struct InstallationView: View {
                             .foregroundStyle(AveluneTheme.text)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text(gameName)
+                        (gameName.map { Text(verbatim: $0) } ?? Text("Nouveau jeu"))
                             .font(.system(.title3, design: .rounded).weight(.semibold))
                             .foregroundStyle(AveluneTheme.cyan)
                             .lineLimit(2)
@@ -406,7 +414,7 @@ private struct InstallationView: View {
 
                             Spacer()
 
-                            Text("Étape \(stage.index + 1) sur 3")
+                            Text("Étape \(stage.index + 1) sur \(InstallationStage.allCases.count)")
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(AveluneTheme.muted)
                         }
@@ -423,14 +431,14 @@ private struct InstallationView: View {
                                 }
 
                                 HStack {
-                                    Text(progressDetail)
+                                    Text(verbatim: progressDetail.localized(for: locale))
                                         .font(.caption)
                                         .foregroundStyle(AveluneTheme.muted)
 
                                     Spacer()
 
                                     if let progress {
-                                        Text(progress.formatted(.percent.precision(.fractionLength(0))))
+                                        Text(progress, format: .percent.precision(.fractionLength(0)).locale(locale))
                                             .font(.caption.monospacedDigit())
                                             .foregroundStyle(AveluneTheme.muted)
                                     }
@@ -460,6 +468,8 @@ private struct InstallationView: View {
 
                         VStack(spacing: 14) {
                             ForEach(InstallationStage.allCases, id: \.self) { step in
+                                let status: LocalizedStringKey = step.index < stage.index ? "Terminée" : step == stage ? "En cours" : "À venir"
+
                                 HStack(spacing: 13) {
                                     Image(systemName: step.index < stage.index ? "checkmark.circle.fill" : step.symbol)
                                         .font(.system(size: 20, weight: .medium))
@@ -480,7 +490,7 @@ private struct InstallationView: View {
                                     }
                                 }
                                 .accessibilityElement(children: .combine)
-                                .accessibilityValue(step.index < stage.index ? "Terminée" : step == stage ? "En cours" : "À venir")
+                                .accessibilityValue(status)
                             }
                         }
                     }
@@ -550,7 +560,7 @@ private extension InstallationStage {
         }
     }
 
-    var title: String {
+    var title: LocalizedStringKey {
         switch self {
         case .preparing: return "Préparation du fichier"
         case .installing: return "Installation du jeu"
@@ -558,7 +568,7 @@ private extension InstallationStage {
         }
     }
 
-    var detail: String {
+    var detail: LocalizedStringKey {
         switch self {
         case .preparing: return "Copie de votre fichier dans Avelune."
         case .installing: return "Avelune ajoute votre jeu à la bibliothèque."

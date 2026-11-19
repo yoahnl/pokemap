@@ -43,16 +43,13 @@ test("live checkout catalog and planner no longer support map shadows", async ()
   try {
     await client.connect(transport);
     const catalog = await data("pokemap_describe", {});
-    for (const entry of [
-      ...(catalog.resourceKinds as JsonRecord[]),
-      ...(catalog.mutationActions as JsonRecord[]),
-    ]) {
-      assert.doesNotMatch(String(entry.id), /shadow/i);
-    }
+    const shadowIds = (entries: JsonRecord[], key: string) =>
+      entries.map(entry => String(entry[key])).filter(id => /shadow/i.test(id)).sort();
+    const projectContactShadow = ["project.actor_contact_shadows.configure"];
+    assert.deepEqual(shadowIds(catalog.resourceKinds as JsonRecord[], "id"), []);
+    assert.deepEqual(shadowIds(catalog.mutationActions as JsonRecord[], "id"), projectContactShadow);
     const parity = record(catalog.fullParity);
-    for (const entry of parity.mutationActions as JsonRecord[]) {
-      assert.doesNotMatch(String(entry.actionId), /shadow/i);
-    }
+    assert.deepEqual(shadowIds(parity.mutationActions as JsonRecord[], "actionId"), projectContactShadow);
     const opened = await data("pokemap_workspace", { operation: "open", projectRoot: root });
     const validation = await data("pokemap_validate", { projectHandle: opened.projectHandle });
     for (const actionId of [

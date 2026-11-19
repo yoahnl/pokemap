@@ -69,6 +69,13 @@ void main() {
 
     test('rejects missing project manifest, collisions, and quotas', () {
       _expectCode(
+        () => const GamePackageInventoryBuilder(maxFileCount: 1).build({
+          'project/project.json': <int>[256],
+          'project/data/config.json': <int>[1],
+        }),
+        'invalidFileCount',
+      );
+      _expectCode(
         () => builder.build(<String, List<int>>{
           'project/project.json': <int>[256],
         }),

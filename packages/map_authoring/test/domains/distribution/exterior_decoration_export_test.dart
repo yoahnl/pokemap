@@ -8,22 +8,39 @@ import '../../../../map_distribution/test/support/exterior_decoration_fixture.da
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
-  final qaRoot = Directory(
-      '/Users/karim/Library/Caches/AveluneQA/exterior-decoration-export');
-  setUpAll(() => qaRoot.create(recursive: true));
-  tearDownAll(() async {
-    if (await qaRoot.exists() && await qaRoot.list().isEmpty) {
-      await qaRoot.delete();
-    }
-  });
-
   Future<(Directory, Map<String, List<int>>)> fixture(
       {bool decorated = true, bool withBorder = false}) async {
-    final root = await qaRoot.createTemp('case-');
+    final root =
+        await Directory.systemTemp.createTemp('exterior-decoration-export-');
     addTearDown(() => root.delete(recursive: true));
     final files = decorated
         ? exteriorDecorationPayload(withBorder: withBorder)
         : spatialPayload();
+    if (decorated) {
+      const path = 'project/maps/map.json';
+      final map = MapData.fromJson(jsonDecode(utf8.decode(files[path]!)));
+      files[path] = utf8.encode(jsonEncode(map
+          .copyWith(spatialScene: map.spatialScene!.copyWith(instances: []))
+          .toJson()));
+    }
+    if (withBorder) {
+      const path = 'project/maps/map.decoration.json';
+      const sectorPath = 'maps/map.decoration/west.json';
+      final index =
+          jsonDecode(utf8.decode(files[path]!)) as Map<String, dynamic>;
+      final sector = jsonDecode(utf8.decode(files['project/$sectorPath']!));
+      sector['scene']['instances'] = [];
+      final bytes = utf8.encode(jsonEncode(sector));
+      files['project/$sectorPath'] = bytes;
+      index['sectors'].single
+        ..['instances'] = 0
+        ..['resourceIds'] = []
+        ..['revision'] = computeNarrativeProjectFingerprint([
+          NarrativeProjectFingerprintEntry(
+              relativePath: sectorPath, bytes: bytes)
+        ]);
+      files[path] = utf8.encode(jsonEncode(index));
+    }
     for (final entry in files.entries) {
       final file = File('${root.path}/${entry.key.substring(8)}');
       await file.parent.create(recursive: true);
@@ -45,7 +62,7 @@ void main() {
           mode: GamePackageExportMode.localTest);
 
   test(
-      'exports exterior sidecars and all models without changing authored bytes',
+      'exports a model used only in an exterior sector without changing authored bytes',
       () async {
     final (root, files) = await fixture();
     final artifact = await export(root);
@@ -65,11 +82,13 @@ void main() {
     }
   });
 
-  test('exports one whole materialized logical Border document unchanged',
+  test('exports a materialized exterior Border with its exclusive model',
       () async {
     final (root, files) = await fixture(withBorder: true);
     final artifact = await export(root);
     final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
+    expect(archive.findFile('project/assets/models3d/model.glb')?.content,
+        files['project/assets/models3d/model.glb']);
     expect(
         archive
             .findFile('project/maps/map.decoration/borders/fence.json')

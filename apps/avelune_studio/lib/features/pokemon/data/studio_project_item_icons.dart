@@ -13,15 +13,33 @@ final class StudioProjectItemIcons {
     String projectRoot, {
     bool Function()? shouldContinue,
   }) async {
+    await prepareIcons(projectRoot, shouldContinue: shouldContinue);
+    await prepareCaptureSprites(projectRoot, shouldContinue: shouldContinue);
+  }
+
+  Future<void> prepareIcons(
+    String projectRoot, {
+    bool Function()? shouldContinue,
+    void Function(int checked, int total)? onItemsChecked,
+  }) async {
     await provisionProjectItemIcons(
       projectPath: projectRoot,
       loadPack: _loadPack,
       shouldContinue: shouldContinue,
+      onItemsChecked: onItemsChecked,
     );
+  }
+
+  Future<void> prepareCaptureSprites(
+    String projectRoot, {
+    bool Function()? shouldContinue,
+    void Function(int checked, int total)? onItemsChecked,
+  }) async {
     await provisionProjectCaptureSprites(
       projectPath: projectRoot,
       loadPack: _loadCapturePack,
       shouldContinue: shouldContinue,
+      onItemsChecked: onItemsChecked,
     );
   }
 

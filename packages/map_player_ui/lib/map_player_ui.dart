@@ -66,6 +66,7 @@ export 'src/player/runtime_player_region_map.dart';
 export 'src/player/region_map_geometry.dart';
 export 'src/player/runtime_player_pause_shell.dart';
 export 'src/player/runtime_player_touch_controls.dart';
+export 'src/preferences/player_locale_resolution.dart';
 export 'src/preferences/player_preferences.dart';
 export 'src/theme/pokemap_player_theme.dart';
 export 'src/theme/pokemap_player_menu_theme.dart';

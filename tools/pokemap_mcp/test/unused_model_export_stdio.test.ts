@@ -38,19 +38,21 @@ test("canonical MCP export omits unused models without changing source files", a
   const project = join(root, "project");
   const output = join(root, "exports");
   const run = promisify(execFile);
+  const dart = process.env.POKEMAP_TEST_DART ?? "dart";
+  const fixtureArgs = [
+    `--packages=${resolve("../../packages/map_authoring/.dart_tool/package_config.json")}`,
+    resolve("test/fixtures/unused_model_export_fixture.dart"),
+  ];
   let client: Client | undefined;
   try {
     await mkdir(output);
-    const fixture = await run(process.env.POKEMAP_TEST_DART ?? "dart", [
-      `--packages=${resolve("../../packages/map_authoring/.dart_tool/package_config.json")}`,
-      resolve("test/fixtures/unused_model_export_fixture.dart"), project,
-    ]);
+    const fixture = await run(dart, [...fixtureArgs, project]);
     const unused = record(JSON.parse(fixture.stdout.trim()));
     const before = await sourceHashes(project);
     const transport = new StdioClientTransport({
       command: process.execPath,
       args: ["dist/src/index.js", "--root", project, "--export-root", output,
-        "--dart", process.env.POKEMAP_TEST_DART ?? "dart",
+        "--dart", dart,
         "--authoring-timeout-ms", "120000"],
       cwd: process.cwd(), stderr: "pipe",
     });
@@ -74,13 +76,15 @@ test("canonical MCP export omits unused models without changing source files", a
     });
     assert.equal(receipt.mode, "localTest");
     assert.equal(receipt.outputPath, await realpath(outputPath));
-    const exported = record(JSON.parse((await run("unzip", ["-p", outputPath,
-      "project/project.json"])).stdout));
-    assert.deepEqual((exported.models3d as JsonRecord[]).map((model) => model.id), ["model"]);
+    const exported = await run(dart, [...fixtureArgs, "--list-models", outputPath]);
     const entries = (await run("unzip", ["-Z1", outputPath])).stdout.trim().split("\n");
-    assert.ok(!entries.includes(`project/${unused.unusedLogicalPath}`));
-    assert.ok(!entries.includes(`project/${unused.unusedBlobPath}`));
     assert.deepEqual(await sourceHashes(project), before);
+    assert.deepEqual({
+      models: JSON.parse(exported.stdout),
+      usedSource: entries.includes("project/assets/models3d/model.glb"),
+      unusedSource: entries.includes(`project/${unused.unusedLogicalPath}`),
+      unusedBlob: entries.includes(`project/${unused.unusedBlobPath}`),
+    }, { models: ["model"], usedSource: true, unusedSource: false, unusedBlob: false });
     await data("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
   } finally {
     await client?.close();

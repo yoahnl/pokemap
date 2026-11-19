@@ -43,7 +43,7 @@ struct InstallProgress: Equatable {
         return min(1, max(0, Double(completedBytes) / Double(totalBytes)))
     }
 
-    var detail: String? {
+    var detail: LocalizedStringResource? {
         switch stage {
         case "inspecting": return "Vérification du paquet"
         case "checkingCompatibility": return "Vérification de la compatibilité"
