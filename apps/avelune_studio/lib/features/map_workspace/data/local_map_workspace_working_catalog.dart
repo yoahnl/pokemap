@@ -78,11 +78,12 @@ extension _LocalMapWorkingCatalog on LocalMapWorkspaceAdapter {
       if (narrativeEventBytesFingerprint(
             snapshot.resourceBytes('map:${base.mapId}'),
           ) !=
-          base.revision)
+          base.revision) {
         throw const MapWorkspaceFailure(
           MapWorkspaceProblem.conflict,
           'La carte a changé sur le disque. Votre brouillon reste ouvert.',
         );
+      }
       final id =
           'studio_platform_${DateTime.now().microsecondsSinceEpoch}_${_editorOperations++}';
       final plan = await api.planMutation(
@@ -102,11 +103,12 @@ extension _LocalMapWorkingCatalog on LocalMapWorkspaceAdapter {
         planId: plan.planId,
         operationId: id,
         precondition: () async {
-          if (await resourceRevision(session) != expected)
+          if (await resourceRevision(session) != expected) {
             throw const MapWorkspaceFailure(
               MapWorkspaceProblem.conflict,
               'Le projet a changé pendant l’enregistrement.',
             );
+          }
         },
       );
       final revision = await resourceRevision(session);
@@ -124,11 +126,12 @@ extension _LocalMapWorkingCatalog on LocalMapWorkspaceAdapter {
       final saved = MapData.fromJson(
         Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
       );
-      if (saved != current)
+      if (saved != current) {
         throw const MapWorkspaceFailure(
           MapWorkspaceProblem.conflict,
           'La relecture ne correspond pas à la plateforme enregistrée. Rouvrez sans écraser le fichier.',
         );
+      }
       return narrativeEventBytesFingerprint(bytes);
     });
   }

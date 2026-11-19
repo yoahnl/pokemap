@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
+import { runRecipePython } from "./recipe_python.js";
 
 const execute = promisify(execFile);
 
@@ -14,7 +15,7 @@ test("two source geometry recipes cross canonical MCP without game identities", 
   try {
     for (const id of ["aurora", "clockwork"]) {
       const generated = join(root, id);
-      await execute("python3", ["-c", `
+      await runRecipePython(resolve("../../tools/source_geometry"), `
 from pathlib import Path
 from hashlib import sha256
 import sys, zipfile
@@ -30,7 +31,7 @@ with zipfile.ZipFile(archive,'w') as target:
 policy=profile();policy['ground']['floorRules'][0]['selector']['exact']=['material'];policy['output']['namespace']=sys.argv[2]
 record={'id':sys.argv[2],'name':'Independent','local_path':'input.zip','sha256':sha256(archive.read_bytes()).hexdigest(),'page_url':'https://example.invalid/source'}
 build_city({'id':'garden','name':'Garden','sourceId':sys.argv[2],'sourcePolicy':policy,'groupId':'independent-group'},source_root,record,root/'generated')
-`, generated, id], { cwd: resolve("../../tools/source_geometry"), timeout: 10_000 });
+`, generated, id);
       const project = join(root, `${id}-source`);
       await mkdir(project);
       const manifest = JSON.stringify({ name: id, version: "v9", maps: [], tilesets: [],

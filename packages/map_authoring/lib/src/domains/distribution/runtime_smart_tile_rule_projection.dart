@@ -1,10 +1,12 @@
 import 'package:map_core/map_core.dart';
 
+const minimumRuntimeSmartTileRuleCount = 64;
+
 ProjectManifest projectRuntimeSmartTileRules({
   required ProjectManifest project,
   required List<MapData> maps,
   Iterable<Object?> additionalDocuments = const [],
-  int minimumRuleCount = 64,
+  int minimumRuleCount = minimumRuntimeSmartTileRuleCount,
 }) {
   if (project.settings.dimension != ProjectDimension.twoD) return project;
   final ids = maps.map((map) => map.id).toSet();
@@ -15,6 +17,12 @@ ProjectManifest projectRuntimeSmartTileRules({
     throw ArgumentError('Runtime rule projection requires every project map');
   }
   final catalog = project.smartTileCatalog;
+  final dynamicPresets = {
+    for (final declaration
+        in PortableCatalogPublication.projectDynamicDependencies(project))
+      for (final key in [declaration.owner, ...declaration.targets])
+        if (key.kind == CatalogDefinitionKind.smartTilePreset) key.id,
+  };
   final materialIds = catalog.materials.map((material) => material.id).toSet();
   final owners = <String, List<(MapData, SmartTileLayer)>>{};
   for (final map in maps) {
@@ -34,6 +42,7 @@ ProjectManifest projectRuntimeSmartTileRules({
   for (final preset in catalog.presets) {
     final uses = owners[preset.id];
     if (uses == null ||
+        dynamicPresets.contains(preset.id) ||
         preset.rules.length < minimumRuleCount ||
         !const {
           SmartTileTopology.uniform,

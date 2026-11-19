@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
+import { mutationRevision } from "./mutation_revision.js";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 function record(value: unknown): JsonRecord {
@@ -67,28 +68,43 @@ test("fresh stdio authors atomic Full Restore in both contexts and cold reloads"
     const opened = await tool(client, "pokemap_workspace", { operation: "open", projectRoot: root });
     for (const context of ["overworld", "battle"]) {
       const before = await tool(client, "pokemap_validate", { projectHandle: opened.projectHandle });
+      const actionId = `item.set_${context}_effect`;
+      const parameters = { itemId: "full-restore", use: {
+        contexts: [context], target: "party_member", consumption: "on_applied", effect: { kind: "full_restore" },
+      } };
+      const revision = await mutationRevision(client, String(opened.projectHandle), actionId, parameters, before.snapshotRevision);
       const planned = await tool(client, "pokemap_plan", { projectHandle: opened.projectHandle,
-        request: { requestId: `full-restore-${context}`, actionId: `item.set_${context}_effect`, actionVersion: 1,
-          workspaceHandle: opened.workspaceHandle, expectedRevision: before.snapshotRevision,
-          parameters: { itemId: "full-restore", use: {
-            contexts: [context], target: "party_member", consumption: "on_applied", effect: { kind: "full_restore" },
-          } }, idempotencyKey: `full-restore-${context}`, dryRun: false } });
+        request: { requestId: `full-restore-${context}`, actionId, actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle, ...revision, parameters,
+          idempotencyKey: `full-restore-${context}`, dryRun: false } });
       await tool(client, "pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
         planId: planned.planId, operationId: `apply-full-restore-${context}` });
     }
     const beforeInvalid = await readFile(catalogPath, "utf8");
     const valid = await tool(client, "pokemap_validate", { projectHandle: opened.projectHandle });
-    const invalid = await client.callTool({ name: "pokemap_plan", arguments: {
-      projectHandle: opened.projectHandle, request: {
-        requestId: "invalid-full-restore", actionId: "item.set_battle_effect", actionVersion: 1,
-        workspaceHandle: opened.workspaceHandle, expectedRevision: valid.snapshotRevision,
-        parameters: { itemId: "full-restore", use: { contexts: ["battle"], target: "party_member",
-          consumption: "on_applied", effect: { kind: "full_restore", amount: 50 } } },
-        idempotencyKey: "invalid-full-restore", dryRun: false,
-      },
-    } });
-    assert.equal(invalid.isError, true);
-    assert.equal(await readFile(catalogPath, "utf8"), beforeInvalid);
+    const use = { contexts: ["battle"], target: "party_member", consumption: "on_applied",
+      effect: { kind: "full_restore", amount: 50 } };
+    const definition = { id: "full-restore", displayName: "Soin Total", pocketId: "medicine", uses: [use] };
+    const refusals: [string, JsonRecord, string][] = [
+      ["item.set_battle_effect", { itemId: definition.id, use }, "use"],
+      ["item.set_overworld_effect", { itemId: definition.id, use: { ...use, contexts: ["overworld"] } }, "use"],
+      ["item.create", { definition: { ...definition, id: "another-restore" } }, "definition"],
+      ["item.update", { itemId: definition.id, definition }, "definition"],
+    ];
+    for (const [actionId, parameters, field] of refusals) {
+      const revision = await mutationRevision(client, String(opened.projectHandle), actionId, parameters, valid.snapshotRevision);
+      const requestId = `invalid-full-restore-${actionId}`;
+      const invalid = await client.callTool({ name: "pokemap_plan", arguments: {
+        projectHandle: opened.projectHandle, request: { requestId, actionId, actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle, ...revision, parameters, idempotencyKey: requestId, dryRun: false },
+      } });
+      assert.equal(invalid.isError, true);
+      const error = record(record(invalid.structuredContent).error);
+      assert.equal(error.domainCode, "item.parameter_invalid", JSON.stringify(error));
+      assert.equal(record(error.details).parameter, field);
+      assert.deepEqual(record(error.details).unknown, ["amount"]);
+      assert.equal(await readFile(catalogPath, "utf8"), beforeInvalid);
+    }
     await tool(client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
     await client.close(); client = await connect();
     const reopened = await tool(client, "pokemap_workspace", { operation: "open", projectRoot: root });

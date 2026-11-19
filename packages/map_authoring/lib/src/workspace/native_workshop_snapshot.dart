@@ -71,7 +71,10 @@ Set<String> _nativeReferenceIds(Object? value, Set<String> keys, {bool ignorePer
     if (node is Map) {
       for (final entry in node.entries) {
         if (ignorePeriodicRewardReferences && entry.key == 'rewardReference') continue;
-        if (keys.contains(entry.key)) {
+        final isMapInstanceOwner = entry.key == 'eventId' &&
+            (node['kind'] == 'mapEventInstanceBoolean' ||
+                node['kind'] == 'setMapEventInstanceBoolean');
+        if (keys.contains(entry.key) && !isMapInstanceOwner) {
           final referenced = entry.value;
           if (referenced is String && referenced.isNotEmpty) {
             result.add(referenced);
@@ -114,7 +117,9 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       Map3dEditProjection.admittedActions.contains(actionId);
   final modelShadows = actionId == 'model3d.configure' && parameters.length == 2 &&
       parameters.containsKey('modelId') && parameters.containsKey('castsShadowsByDefault');
-  if (!mapEdit && !modelShadows && !_nativeWorkshopActions.contains(actionId)) {
+  final adoptingAsset = actionId == 'asset.import' && parameters['adoptExisting'] == true;
+  final incomingReward = introducesPeriodicReward(actionId, parameters);
+  if (!mapEdit && !modelShadows && !adoptingAsset && !incomingReward && !_nativeWorkshopActions.contains(actionId)) {
     throw const ProjectSnapshotException('project.workshop_scope_required',
         'This action does not have a native workshop dependency scope.');
   }
@@ -169,9 +174,10 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   final conditionRule = actionId.startsWith('world_rule.');
   final conditionEvent = actionId == 'event_v2.record_upsert' ||
       actionId == 'event_v2.record_upsert_batch';
-  final sceneCondition = actionId == 'scene.condition.set' || actionId == 'scene.graph.patch' || conditionRule || conditionEvent;
+  final editingScene = actionId == 'scene.condition.set' || actionId == 'scene.graph.patch' || incomingReward;
+  final sceneCondition = editingScene || conditionRule || conditionEvent;
   final presentationImport =
-      actionId == 'presentationMedia.import' || adoptingAudio;
+      actionId == 'presentationMedia.import' || adoptingAudio || adoptingAsset;
   final guided = actionId == 'event_v2.template.apply' ||
       actionId == 'narrative.publish_document';
   final sections = <String>{
@@ -219,6 +225,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       });
   void collect() {
     for (final entry in ids.entries.toList()) {
+      if (raw[entry.key] is! List) continue;
       final found = selected.putIfAbsent(entry.key, () => {});
       for (final id in entry.value) {
         if (found.containsKey(id)) continue;
@@ -312,8 +319,13 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   }
   if (presentationImport) {
     await read(assetCatalogResourceIdentity, assetCatalogStorageKey);
-    await read(
-        projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
+    if (adoptingAsset) {
+      final path = parameters['logicalPath'];
+      if (path is! String) throw const FormatException('Expected an asset path.');
+      await read(assetAdoptionTargetIdentity(path), path);
+    } else {
+      await read(projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
+    }
     if (adoptingAudio) {
       final assetId = parameters['assetId'];
       if (assetId is! String) {
@@ -554,7 +566,18 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       }
     }
   }
+  final sceneEdit = editingScene
+      ? _NativeSceneWorkshop(actionId, parameters, index('scenes')[parameters['sceneId']]?.singleOrNull)
+      : null;
+  if (sceneEdit != null) {
+    sceneEdit.selectDocuments(add, raw, projected);
+    if (sceneEdit.references.imageIds.isNotEmpty) {
+      await read(projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
+    }
+  }
+  final sceneEntityIds = sceneEdit?.references.entityIds ?? <String, Set<String>>{};
   final eventIds = <String>{
+    ...?sceneEdit?.references.eventIds,
     if (spec != null) ...standardEventTemplateEventIds(spec),
     if (parameters['events'] case final List events)
       for (final event in events.whereType<Map>())
@@ -635,7 +658,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       add(entry.key, _nativeReferenceIds(candidates, entry.value,
         ignorePeriodicRewardReferences: sceneCondition));
     }
-    if (raw['eventRegistry'] case final Map registry when guided) {
+    if (raw['eventRegistry'] case final Map registry when guided || editingScene) {
       eventIds.addAll(_nativeReferenceIds(candidates, const {
         'eventId',
         'eventIds',
@@ -649,9 +672,13 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
           if (id is! String || eventRecords.containsKey(id)) continue;
           final mapRefs = _nativeReferenceIds(record, const {'mapId'});
           final scenes = _nativeReferenceIds(record, const {'sceneId'});
+          final event = record['definition'] ?? record['draft'];
+          final parallelOwner = event is Map && event['parallelPolicy'] != null &&
+              sceneEdit?.targetSceneIds.contains(event['sceneId']) == true;
           if (!eventIds.contains(id) &&
               !mapRefs.contains(ownerMapId) &&
-              !scenes.any(changedSceneIds.contains)) {
+              !scenes.any(changedSceneIds.contains) &&
+              !parallelOwner) {
             continue;
           }
           if (records
@@ -733,13 +760,6 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   if (guided) {
     sections.add('eventRegistry');
     ids['eventRegistry'] = {...eventIds, ...eventRecords.keys};
-    if (raw['eventRegistry'] case final Map registry) {
-      projected['eventRegistry'] = {
-        ...registry,
-        'records': eventRecords.values.toList(),
-        'legacyClaims': <Object?>[]
-      };
-    }
     if (_nativeReferenceIds(candidates, const {'starterOptionId'}).isNotEmpty) {
       sections.add('newGame');
       projected['newGame'] = raw['newGame'];
@@ -760,6 +780,16 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       maps[map.id] = map;
     }
   }
+  if ((guided || editingScene) && raw['eventRegistry'] is Map) {
+    final registry = raw['eventRegistry'] as Map;
+    sections.add('eventRegistry');
+    ids['eventRegistry'] = {...eventIds, ...eventRecords.keys};
+    projected['eventRegistry'] = {
+      ...registry,
+      'records': eventRecords.values.toList(),
+      'legacyClaims': <Object?>[],
+    };
+  }
   if (sceneCondition) {
     for (final entry in selected['maps']?.values ?? <Map<String, dynamic>>[]) {
       final declaration = ProjectMapEntry.fromJson(entry);
@@ -773,13 +803,12 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       maps[map.id] = map;
     }
   }
-  if (conditionEvent) {
+  if (conditionEvent || sceneEntityIds.isNotEmpty) {
     final records = <Map>[
       if (parameters['record'] case final Map record) record,
       if (parameters['records'] case final List records)
         ...records.whereType<Map>(),
     ];
-    final owners = <Object?>[];
     for (final record in records) {
       final body = record['definition'] ?? record['draft'];
       final source = body is Map ? body['source'] : null;
@@ -787,9 +816,33 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       final mapId = source['mapId'];
       final entityId = source['entityId'];
       if (mapId is! String || entityId is! String) continue;
-      for (final entity in maps[mapId]?.entities ?? const <MapEntity>[]) {
-        if (entity.id == entityId) owners.add(entity.toJson());
-      }
+      sceneEntityIds.putIfAbsent(mapId, () => {}).add(entityId);
+    }
+    final owners = [
+      for (final entry in sceneEntityIds.entries)
+        for (final entity in maps[entry.key]?.entities ?? const <MapEntity>[])
+          if (entry.value.contains(entity.id)) entity,
+    ];
+    final visibility = ModelVisibilityDependencies.expressions([
+      for (final entry in sceneEdit?.poseOwners.entries ?? const <MapEntry<String, Set<String>>>[])
+        for (final owner in maps[entry.key]?.entities ?? const <MapEntity>[])
+          if (entry.value.contains(owner.id))
+            for (final variant in owner.presentation?.variants ?? const <MapEntityPresentationVariant>[])
+              variant.condition,
+    ]);
+    add('facts', visibility.factIds);
+    add('scenes', visibility.rewardSceneIds);
+    if (raw['eventRegistry'] case final Map registry
+        when visibility.eventIds.isNotEmpty && !conditionEvent) {
+      sections.add('eventRegistry');
+      final records = registry['records'] as List? ?? const [];
+      final requiredEvents = {...eventRecords.keys, ...visibility.eventIds};
+      ids['eventRegistry'] = {...?ids['eventRegistry'], ...requiredEvents};
+      projected['eventRegistry'] = {
+        ...registry,
+        'records': records.whereType<Map>().where((record) => requiredEvents.contains(_nativeEventId(record))).toList(),
+        'legacyClaims': const [],
+      };
     }
     const visualFields = {'characters', 'trainers', 'tilesets', 'elements', 'models3d'};
     var previous = -1;
@@ -798,12 +851,12 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     while (previous != visualCount()) {
       previous = visualCount();
       final dependencies = <Object?>[
-        ...owners,
+        for (final owner in owners) owner.toJson(),
         for (final field in visualFields)
           ...?selected[field]?.values,
       ];
       for (final field in visualFields) {
-        add(field, _nativeReferenceIds(dependencies, _nativeWorkshopReferences[field]!));
+        add(field, _nativeReferenceIds(dependencies, _nativeWorkshopReferences[field]!).map((id) => id.trim()));
       }
       collect();
     }
@@ -902,27 +955,9 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       }
     }
   }
-  if (actionId == 'scene.graph.patch') {
-    final incoming = (parameters['upsertNodes'] as List? ?? const [])
-        .whereType<Map>()
-        .map((node) => SceneNode.fromJson(Map<String, dynamic>.from(node)))
-        .toList();
-    final replaced = incoming.map((node) => node.id).toSet();
-    final removed = (parameters['removeNodeIds'] as List? ?? const [])
-        .whereType<String>()
-        .toSet();
-    final resultingNodes = [
-      for (final scene in manifest.scenes.where(
-        (scene) => scene.id == parameters['sceneId'],
-      ))
-        for (final node in scene.graph.nodes)
-          if (!replaced.contains(node.id) && !removed.contains(node.id)) node,
-      ...incoming,
-    ];
-    if (sceneNodesNeedPartyMoveCatalog(resultingNodes)) {
-      if (manifest.pokemon.catalogFiles['moves'] case final String path) {
-        await read('pokemonCatalog:moves', path);
-      }
+  if (sceneEdit != null && sceneNodesNeedPartyMoveCatalog(sceneEdit.nodes)) {
+    if (manifest.pokemon.catalogFiles['moves'] case final String path) {
+      await read('pokemonCatalog:moves', path);
     }
   }
   if (actionId == 'scene.condition.set' &&
@@ -982,8 +1017,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       resourceStorageKeys: paths,
       itemCatalog: itemBytes == null
           ? null
-          : decodeProjectItemCatalog(Map<String, dynamic>.from(
-              jsonDecode(utf8.decode(itemBytes.bytes)) as Map)));
+          : await loader._decodeExecutor.decodeItemCatalog(itemBytes.bytes));
 }
 
 Future<ProjectSnapshot> _loadNativeMapProperties(

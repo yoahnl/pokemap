@@ -27,6 +27,7 @@ test("MCP imports a bounded batch, preserves custom moves and reports changes", 
   const authoring = new LocalAuthoringClient({
     allowedRoots: [root],
     onMutation: event => notifications.push(event),
+    requestTimeoutMs: 60_000,
     workerCommand: {
       executable: dart,
       args: [`--packages=${config}`, join(packageRoot, "test/support/battle_recipe_batch_worker.dart")],

@@ -78,7 +78,7 @@ test("live MCP discovers all four native field obstacles and persists set, clear
     assert.ok(action);
     assert.deepEqual(record(record(action.extensions).fieldObstacle), {
       kinds: ["cutTree", "strengthBoulder", "rockSmashRock", "iceBlock"], resetPolicies: ["mapInstance", "persistent"], entityKind: "custom", blocksMovement: true,
-      footprint: { width: 1, height: 1 }, mapMode: "2d_and_3d", visual: "existingProjectElement_or_boundStaticModel", spatialKinds: ["cutTree", "rockSmashRock"], clearValue: null,
+      footprint: { width: 1, height: 1 }, mapMode: "2d_and_3d", visual: "existingProjectElement_or_boundStaticModel", spatialKinds: ["cutTree", "strengthBoulder", "rockSmashRock"], clearValue: null,
       parameters: ["mapId", "entityId", "fieldObstacle"],
       iceBlock: {
         trigger: "movementContact", requiresFieldAbility: false, playerFollows: false,

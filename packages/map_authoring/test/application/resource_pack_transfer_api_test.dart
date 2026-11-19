@@ -1215,50 +1215,26 @@ void main() {
         );
         final receipt =
             ((applied['result'] as Map)['receipt'] as Map)['receiptId'];
-        final undoStart = await api.transfer(
-          fixture.opened.projectHandle,
-          verb: 'start_history',
-          input: {
-            'operation': 'undo',
+        Future<String> applyHistory(String operation, String operationId,
+            {String? expectedHeadEntryId}) async {
+          final project = fixture.opened.projectHandle;
+          final start = await api.transfer(project, verb: 'start_history', input: {
+            'operation': operation,
             'entryId': receipt,
-            'operationId': 'p09-undo',
-            'expectedRevision': (await fixture.loader.load(
-              fixture.opened.projectHandle,
-            )).revision,
-          },
-        );
-        final undone = await waitForJob(
-          api,
-          fixture.opened.projectHandle,
-          undoStart,
-        );
-        expect(
-          (undone['snapshot'] as Map)['state'],
-          'succeeded',
-          reason: undone.toString(),
-        );
-        final redo = await api.transfer(
-          fixture.opened.projectHandle,
-          verb: 'start_history',
-          input: {
-            'operation': 'redo',
-            'entryId': receipt,
-            'operationId': 'p09-redo',
-            'expectedRevision': (await fixture.loader.load(
-              fixture.opened.projectHandle,
-            )).revision,
-          },
-        );
-        final redone = await waitForJob(
-          api,
-          fixture.opened.projectHandle,
-          redo,
-        );
-        expect(
-          (redone['snapshot'] as Map)['state'],
-          'succeeded',
-          reason: redone.toString(),
-        );
+            'operationId': operationId,
+            'expectedRevision': (await fixture.loader.load(project)).revision,
+            if (expectedHeadEntryId != null) 'expectedHeadEntryId': expectedHeadEntryId,
+          });
+          final result = await waitForJob(api, project, start);
+          expect((result['snapshot'] as Map)['state'], 'succeeded',
+              reason: result.toString());
+          final entry = (result['result'] as Map)['receipt'] as Map;
+          expect(entry['actionId'], 'history.$operation');
+          return entry['receiptId'] as String;
+        }
+
+        await applyHistory('undo', 'p09-undo');
+        await applyHistory('redo', 'p09-redo');
         final native = await api.transfer(
           fixture.opened.projectHandle,
           verb: 'selection.create',
@@ -1319,30 +1295,8 @@ void main() {
           ),
         );
         expect((queried['items'] as List).length, 1);
-        final reverted = await waitForJob(
-          api,
-          fixture.opened.projectHandle,
-          await api.transfer(
-            fixture.opened.projectHandle,
-            verb: 'start_history',
-            input: {
-              'operation': 'revert',
-              'entryId':
-                  ((undone['result'] as Map)['receipt'] as Map)['receiptId'],
-              'expectedHeadEntryId':
-                  ((redone['result'] as Map)['receipt'] as Map)['receiptId'],
-              'operationId': 'p09-revert',
-              'expectedRevision': (await fixture.loader.load(
-                fixture.opened.projectHandle,
-              )).revision,
-            },
-          ),
-        );
-        expect(
-          (reverted['snapshot'] as Map)['state'],
-          'succeeded',
-          reason: reverted.toString(),
-        );
+        final head = await applyHistory('undo', 'p09-undo-before-revert');
+        await applyHistory('revert', 'p09-revert', expectedHeadEntryId: head);
       } finally {
         port.close();
         await api.closeTransferWorkspace(fixture.opened.workspaceHandle);

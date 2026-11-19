@@ -120,7 +120,9 @@ test("live MCP paints a relief level, traces its cliff and undoes it as one edit
     const before = await readFile(mapPath);
     const planned = await mutate("map3d.terrain.paint_height", { mapId, level: 1,
       blueprintId: "cliff", region: { x: 2, y: 2, width: 4, height: 3 } });
-    const trace = record((record(planned.preview).traces as unknown[])[0]);
+    const previewedTraces = record(record(planned.plan).preview).traces as JsonRecord[];
+    assert.equal(previewedTraces.length, 1);
+    const trace = record(previewedTraces[0]);
     assert.equal(trace.change, "created");
     assert.equal(trace.featureId, "relief-1");
     const painted = record(JSON.parse(await readFile(mapPath, "utf8")));
@@ -131,11 +133,17 @@ test("live MCP paints a relief level, traces its cliff and undoes it as one edit
     const feature = (record(layer.content).features as JsonRecord[])[0]!;
     assert.equal(feature.id, "relief-1");
     assert.ok((record(feature.materialization).spatialPlacements as unknown[]).length > 0);
-    const history = await call("pokemap_history", { operation: "list", projectHandle, limit: 1 });
-    await call("pokemap_history", { operation: "undo", projectHandle,
+    await call("pokemap_workspace", { operation: "close", workspaceHandle });
+    const reopened = await call("pokemap_workspace", { operation: "open", projectRoot });
+    const map = await call("pokemap_query", { projectHandle: reopened.projectHandle,
+      resourceKind: "map", operation: "get", view: "detail", ids: [mapId] });
+    const reopenedLayer = (record((map.items as JsonRecord[])[0]).layers as JsonRecord[]).find(value => value.id === "reliefs")!;
+    assert.deepEqual(record(reopenedLayer.content).features, record(layer.content).features);
+    const history = await call("pokemap_history", { operation: "list", projectHandle: reopened.projectHandle, limit: 1 });
+    await call("pokemap_history", { operation: "undo", projectHandle: reopened.projectHandle,
       entryId: record((history.entries as unknown[])[0]).entryId, idempotencyKey: "relief-undo" });
     assert.deepEqual(await readFile(mapPath), before);
-    await call("pokemap_workspace", { operation: "close", workspaceHandle });
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
   } finally {
     await client.close();
     await transport.close();

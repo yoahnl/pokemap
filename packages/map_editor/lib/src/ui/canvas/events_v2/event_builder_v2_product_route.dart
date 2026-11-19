@@ -1916,10 +1916,12 @@ class _EventBuilderV2ProductRouteState
     final editor = ref.read(editorNotifierProvider);
     final root = editor.projectRootPath;
     final record = snapshot.record;
-    if (root == null || record == null)
+    if (root == null || record == null) {
       return 'Le projet ou cet événement est fermé.';
-    if (record.enabledOrNull == true)
+    }
+    if (record.enabledOrNull == true) {
       return 'Désactivez cet événement avant de modifier ses conditions.';
+    }
     if (_isAuthoring) return 'Une publication est déjà en cours.';
     setState(() => _isAuthoring = true);
     try {
@@ -1943,8 +1945,9 @@ class _EventBuilderV2ProductRouteState
               if (snapshot.manifest.eventRegistry?.records
                       .where((value) => value.id == record.id)
                       .firstOrNull !=
-                  record)
+                  record) {
                 throw StateError('Cet événement a changé sur le disque.');
+              }
             },
           );
       final accepted = ref
@@ -1954,13 +1957,15 @@ class _EventBuilderV2ProductRouteState
             expectedPreviousRegistry: result.before.eventRegistry,
             nextRegistry: result.after.eventRegistry!,
           );
-      if (!accepted)
+      if (!accepted) {
         return 'La condition est enregistrée. Rechargez la vue pour retrouver la version publiée.';
-      if (mounted)
+      }
+      if (mounted) {
         setState(() {
           _authoringMessage = 'Conditions enregistrées.';
           _pendingSelectionEventId = record.id;
         });
+      }
       return null;
     } on Object catch (error) {
       return 'Les conditions restent dans le brouillon : $error';

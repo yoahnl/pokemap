@@ -148,7 +148,10 @@ test("live MCP keeps source fractional ramp geometry and signed model offsets ex
     await mutate("map3d.navigation.configure", { mapId, navigation: originalNavigation });
     const offsetY = -.375;
     const instanceX = 57.5;
+    const stairPosition = { x: instanceX, y: .75, z: 14 };
     await mutate("map3d.instance.upsert_batch", { mapId, instances: [
+      { id: "stairs", modelId: "unit", position: stairPosition,
+        rotationDegrees: 0, scale: 1, blocksMovement: false },
       { id: "supported", modelId: "unit", position: {
         x: instanceX, y: eastRampHeight(originalRamp, instanceX) + offsetY, z: 14 },
       rotationDegrees: 37, scale: .8, animationIndex: 0,
@@ -167,7 +170,7 @@ test("live MCP keeps source fractional ramp geometry and signed model offsets ex
     assert.equal(beforeScene.levelHeight, .25);
     assert.deepEqual(beforeScene.heightLevels, heightLevels);
     const previousHistory = await call("pokemap_history", { operation: "list", projectHandle, limit: 2 });
-    const navigation = { ...originalNavigation, ramps: [{ ...sourceRamp, surfaceInstanceId: "supported" }, otherRamp] };
+    const navigation = { ...originalNavigation, ramps: [{ ...sourceRamp, surfaceInstanceId: "stairs" }, otherRamp] };
     const invalid = await plan("map3d.navigation.configure", { mapId,
       navigation: { ...navigation, ramps: [{ ...sourceRamp, lowLevel: 0 }, otherRamp] } }, true);
     assert.equal(invalid.code, "validation_failed");
@@ -177,6 +180,8 @@ test("live MCP keeps source fractional ramp geometry and signed model offsets ex
     await apply(await plan("map3d.navigation.configure", { mapId, navigation }));
     const afterBytes = await readFile(mapPath);
     const after = await queryMap();
+    const stairs = (record(after.spatialScene).instances as JsonRecord[]).find(value => value.id === "stairs");
+    assert.deepEqual(stairs?.position, stairPosition);
     const expected = structuredClone(before);
     const expectedScene = record(expected.spatialScene);
     expectedScene.navigation = navigation;

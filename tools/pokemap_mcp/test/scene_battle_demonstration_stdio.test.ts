@@ -25,10 +25,14 @@ test("MCP discovers, persists and validates battle demonstration isolation", { t
     { id: "win", fromNodeId: "battle", fromPortId: "victory", toNodeId: "end", kind: "battleVictory" },
     { id: "lose", fromNodeId: "battle", fromPortId: "defeat", toNodeId: "end", kind: "battleDefeat" },
   ] }, layout: { nodeLayouts: [{ nodeId: "battle", x: 40, y: 80 }], edgeLayouts: [] } };
-  await writeFile(file, JSON.stringify({ name: "Recovery MCP", version: "v9", settings: { dimension: "threeD" }, encounterTables: [{ id: "target", name: "Target", encounterKind: "walk", entries: [{ speciesId: "sproutle", minLevel: 2, maxLevel: 2 }] }], pokemon: canonicalPokemonConfig(),
+  await writeFile(file, JSON.stringify({ name: "Recovery MCP", version: "v9", settings: { dimension: "threeD" }, encounterTables: [{ id: "target", name: "Target", encounterKind: "walk", entries: [{ speciesId: "sproutle", minLevel: 2, maxLevel: 2 }] }], pokemon: { ...canonicalPokemonConfig(), catalogFiles: { items: "items.json" } },
     maps: [], tilesets: [], scenes: [scene], trainers: [
       { id: "rival", name: "Rival", trainerClass: "Rival", team: [{ speciesId: "sproutle", level: 5 }] },
     ] }));
+  await writeFile(join(root, "items.json"), JSON.stringify({ schemaVersion: 1, entries: [
+    { id: "poke-ball", displayName: "Poké Ball", pocketId: "balls",
+      capture: { rateNumerator: 1, rateDenominator: 1, allowedEncounterKinds: ["walk"] } },
+  ] }));
   const args = [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"];
   if (process.env.POKEMAP_TEST_DART) args.push("--dart", process.env.POKEMAP_TEST_DART);
   const client = new Client({ name: "scene-recovery-test", version: "1.0.0" });

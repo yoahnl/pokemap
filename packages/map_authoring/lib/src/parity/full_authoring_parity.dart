@@ -529,7 +529,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli:
           'test/domains/narrative/standard_event_template_transport_test.dart',
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/events/standard_event_template_publication_test.dart',
+          '../../apps/avelune_studio/test/infrastructure/narrative_batch_transport_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/standard_event_template_stdio.test.ts',
     };
@@ -543,7 +543,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/warp_ladder_stdio.test.ts',
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/presentation/map_warp_ladder_editor_test.dart',
+          '../../apps/avelune_studio/test/map_workspace/ladder_entity_interactions_disk_test.dart',
     };
   }
   if (actionId == 'warp.transition.configure') {
@@ -698,7 +698,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/narrative/world_rule_batch_transport_test.dart',
       AuthoringTransport.cli: 'test/domains/narrative/world_rule_batch_transport_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/world_rule_batch_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/infrastructure/narrative_batch_transport_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/world_rule_batch_stdio.test.ts',
     };
   }
@@ -735,14 +735,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   if(actionId=='project.catalog.partition') return const {
     AuthoringTransport.directApi:'test/workspace/catalog_partition_action_test.dart',
     AuthoringTransport.cli:'test/workspace/catalog_partition_action_test.dart',
-    AuthoringTransport.editor:'../../apps/avelune_studio/test/resource_io/project_catalog_partition_test.dart',
+    AuthoringTransport.editor:'../map_editor/test/authoring_api/working_catalog_editor_transport_test.dart',
     AuthoringTransport.mcp:'../../tools/pokemap_mcp/test/catalog_storage_stdio.test.ts',
   };
   if(actionId=='catalog.definition.update') {
     return const {
       AuthoringTransport.directApi:'test/catalog_storage/catalog_project_transport_test.dart',
       AuthoringTransport.cli:'test/catalog_storage/catalog_project_transport_test.dart',
-      AuthoringTransport.editor:'../../apps/avelune_studio/test/resource_io/working_catalog_adapter_test.dart',
+      AuthoringTransport.editor:'../map_editor/test/authoring_api/working_catalog_editor_transport_test.dart',
       AuthoringTransport.mcp:'../../tools/pokemap_mcp/test/catalog_storage_stdio.test.ts',
     };
   }
@@ -762,7 +762,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/surf_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/project/surf_actions_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/project_surf/project_surf_persistence_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/infrastructure/project_settings_transport_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/surf_stdio.test.ts',
     };
   }
@@ -770,7 +770,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/workspace/audio_media_workshop_test.dart',
       AuthoringTransport.cli: 'test/workspace/audio_media_workshop_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/project_surf/project_surf_persistence_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/infrastructure/project_settings_transport_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/project_cs_audio_stdio.test.ts',
     };
   }
@@ -778,7 +778,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/project_cs_audio_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/project/project_cs_audio_actions_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/project_settings/project_cs_audio_controller_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/infrastructure/project_settings_transport_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/project_cs_audio_stdio.test.ts',
     };
   }
@@ -891,7 +891,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/healing_display_transport_test.dart',
       AuthoringTransport.cli: 'test/domains/maps/healing_display_transport_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/healing_display_inspector_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/healing_display_adapter_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/healing_display_stdio.test.ts',
     };
   }
@@ -899,7 +899,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/interactive_encounter_transport_test.dart',
       AuthoringTransport.cli: 'test/domains/maps/interactive_encounter_transport_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/interactive_encounter_inspector_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/ladder_entity_interactions_disk_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/interactive_encounter_stdio.test.ts',
     };
   }
@@ -923,7 +923,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/entity_presentation_transport_test.dart',
       AuthoringTransport.cli: 'test/domains/maps/entity_presentation_transport_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/entity_presentation_controls_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/ladder_entity_interactions_disk_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/entity_presentation_stdio.test.ts',
     };
   }
@@ -1099,7 +1099,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/spatial_lift_controls_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/spatial_lifts_ledge_camera_editor_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/spatial_lift_stdio.test.ts',
     };
   }
@@ -1187,7 +1187,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
-      AuthoringTransport.editor: '../../apps/avelune_studio/test/presentation/spatial_ledge_editor_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/spatial_lifts_ledge_camera_editor_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
     };
   }
@@ -1227,7 +1227,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
             '../map_editor/test/authoring_api/spatial_ramp_surface_editor_test.dart',
       if (actionId == 'map3d.camera.configure')
         AuthoringTransport.editor:
-            '../../apps/avelune_studio/test/map_workspace/map_camera_panel_test.dart',
+            '../map_editor/test/authoring_api/spatial_lifts_ledge_camera_editor_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
     };
@@ -1253,7 +1253,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli:
           'test/domains/assets/resource_usage_replacement_test.dart',
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/resource_io/resource_usage_replacement_host_test.dart',
+          '../../apps/avelune_studio/test/resource_io/resource_definition_lifecycle_transport_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/resource_usage_replacement_stdio.test.ts',
     };
@@ -1273,7 +1273,9 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           ? 'test/domains/assets/resource_source_api_test.dart'
           : 'test/domains/assets/element_definition_transaction_test.dart',
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart',
+          actionId == 'tileset.source.replace'
+              ? '../../apps/avelune_studio/test/resource_io/resource_lifecycle_preparation_test.dart'
+              : '../../apps/avelune_studio/test/resource_io/resource_definition_lifecycle_transport_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/resource_lifecycle_stdio.test.ts',
     };
@@ -1593,7 +1595,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli:
           'test/tooling/jsonl_map_library_reorganize_test.dart',
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart',
+          '../../apps/avelune_studio/test/resource_io/local_resource_adapter_mutations_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1601,7 +1603,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   if (actionId == 'map.update_metadata') {
     return const {
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart',
+          '../../apps/avelune_studio/test/map_workspace/map_catalog_mutation_test.dart',
       AuthoringTransport.directApi:
           'test/domains/maps/map_metadata_transaction_test.dart',
       AuthoringTransport.cli:
@@ -1613,7 +1615,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   if (actionId == 'map.create') {
     return const {
       AuthoringTransport.editor:
-          '../../apps/avelune_studio/test/map_workspace/map_catalogue_host_test.dart',
+          '../../apps/avelune_studio/test/map_workspace/map_library_working_catalog_test.dart',
       AuthoringTransport.directApi:
           'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',

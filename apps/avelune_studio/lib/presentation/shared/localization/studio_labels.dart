@@ -90,7 +90,10 @@ extension StudioLabels on AppLocalizations {
     ResourceUsageCategory.object => categoryObject,
   };
 
-  String resourceType(ResourceItem item) => switch (item.canonicalKind) {
+  String resourceType(ResourceItem item) =>
+      resourceKindLabel(item.canonicalKind);
+
+  String resourceKindLabel(String kind) => switch (kind) {
     'element' => typeDecor,
     'model3d' => typeModel,
     'smartTilePreset' => typeSmartTile,
@@ -98,11 +101,7 @@ extension StudioLabels on AppLocalizations {
     'borderBlueprint' => typeBorder,
     'environmentPreset' => typeEnvironment,
     'character' => typeCharacter,
-    _ => switch (item.kind) {
-      ResourceKind.decors => typeDecor,
-      ResourceKind.terrains => typeSmartTile,
-      ResourceKind.images => typeImage,
-    },
+    _ => typeDecor,
   };
 
   String resourceContext(ResourceCatalogContext context) => switch (context) {

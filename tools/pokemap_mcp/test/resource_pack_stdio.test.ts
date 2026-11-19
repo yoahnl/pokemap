@@ -284,9 +284,13 @@ test("real MCP paginates selection and canonical history across reconstruction",
     assert.ok(Buffer.byteLength(JSON.stringify({ jsonrpc: "2.0", id: "x".repeat(128), result: resource }), "utf8") <= 256 * 1024);
     await connection.call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle, planId: plan.planId,
       operationId: "lifecycle-operation" }, "resource_pack.job_required");
+    const manifestPath = join(root, "target", "project.json");
+    const beforeImport = await readFile(manifestPath);
     const start = await connection.pack(opened, "start_apply", { planId: plan.planId, operationId: "lifecycle-operation" });
     const applied = await connection.result(opened, start);
     const receipt = packRecord(applied.receipt);
+    const afterImport = await readFile(manifestPath);
+    assert.notDeepEqual(afterImport, beforeImport);
     for (const [kind, handle] of [
       ["resourcePackInspection", inspected.inspectionHandle], ["resourcePackSelection", selection.selectionHandle],
       ["resourcePackEntry", selection.selectionHandle], ["resourcePackPreview", packRecord(plan.prepared).previewHandle],
@@ -305,9 +309,14 @@ test("real MCP paginates selection and canonical history across reconstruction",
     const cancel = await connection.pack(opened, "cancel", { jobId: start.jobId }, "resource_pack.cancel_not_allowed");
     assert.equal(packRecord(cancel.details).cancelAllowed, false);
     const undone = await connection.history(opened, "undo", receipt.receiptId, "lifecycle-undo");
-    const redone = await connection.history(opened, "redo", receipt.receiptId, "lifecycle-redo");
-    const reverted = await connection.history(opened, "revert", packRecord(undone.receipt).receiptId, "lifecycle-revert", packRecord(redone.receipt).receiptId);
+    assert.deepEqual(await readFile(manifestPath), beforeImport);
+    await connection.history(opened, "redo", receipt.receiptId, "lifecycle-redo");
+    assert.deepEqual(await readFile(manifestPath), afterImport);
+    const head = await connection.history(opened, "undo", receipt.receiptId, "lifecycle-undo-before-revert");
+    assert.deepEqual(await readFile(manifestPath), beforeImport);
+    const reverted = await connection.history(opened, "revert", receipt.receiptId, "lifecycle-revert", packRecord(head.receipt).receiptId);
     assert.equal(packRecord(reverted.receipt).actionId, "history.revert");
+    assert.deepEqual(await readFile(manifestPath), afterImport);
     await connection.call("pokemap_history", { operation: "undo", projectHandle: opened.projectHandle, entryId: receipt.receiptId,
       idempotencyKey: "legacy-history" }, "resource_pack.job_required");
     await connection.call("pokemap_recovery", { projectHandle: opened.projectHandle, operationId: "lifecycle-operation",

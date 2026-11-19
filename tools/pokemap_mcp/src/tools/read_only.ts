@@ -14,13 +14,12 @@ import { ModelDuplicateJobs } from "../model_duplicate_jobs.js";
 import {
   authoringResult,
   failureEnvelope,
+  jsonRecordSchema,
   readOnlyAnnotations,
   successEnvelope,
   toolResult,
   toolEnvelopeSchema,
 } from "./result.js";
-
-const jsonRecordSchema = z.record(z.string(), z.unknown());
 
 export function registerReadOnlyTools(
   server: McpServer,
@@ -127,7 +126,9 @@ export function registerReadOnlyTools(
     "pokemap_model_duplicates",
     {
       title: "Audit recorded duplicate 3D models",
-      description: "Starts, checks, cancels or releases a session-local audit grouping models by registered digest, byte length and media type. Each model's settingsFingerprint identifies matching recorded settings within a group. Poll status for progress and paginate completed results using nextOffset or nextMemberOffset and expectedAuditRevision. Reads no model bytes and does not check references or establish that deletion is safe.",
+      description: compact
+        ? "Start, poll, cancel or release a duplicate audit. Page status with nextOffset, nextMemberOffset and expectedAuditRevision. Match settingsFingerprint, then verify source bytes and usages before pruning."
+        : "Starts, checks, cancels or releases a session-local audit grouping models by registered digest, byte length and media type. Each model's settingsFingerprint identifies matching recorded settings within a group. Poll status for progress and paginate completed results using nextOffset or nextMemberOffset and expectedAuditRevision. Reads no model bytes and does not check references or establish that deletion is safe.",
       inputSchema: z.discriminatedUnion("operation", [
         z.object({ operation: z.literal("start"), projectHandle: z.string().min(1) }).strict(),
         z.object({ operation: z.literal("status"), projectHandle: z.string().min(1),

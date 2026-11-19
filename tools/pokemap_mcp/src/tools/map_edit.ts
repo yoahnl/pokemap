@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { AuthoringGateway } from "../authoring_client.js";
-import { authoringResult, mutationAnnotations, toolEnvelopeSchema } from "./result.js";
+import { authoringResult, jsonRecordSchema, mutationAnnotations, toolEnvelopeSchema } from "./result.js";
 
 const policy = z.enum(["refuse", "report"]);
 
@@ -13,7 +13,7 @@ export const mapEditSchema = z.object({
   operations: z.array(z.object({
     actionId: z.string().min(1),
     actionVersion: z.number().int().positive(),
-    parameters: z.record(z.string(), z.unknown()),
+    parameters: jsonRecordSchema,
   }).strict()).min(1).max(64),
   guards: z.object({
     groundGaps: policy.optional(),
@@ -25,10 +25,12 @@ export const mapEditSchema = z.object({
   dryRun: z.boolean().default(false),
 }).strict();
 
-export function registerMapEditTool(server: McpServer, authoring: AuthoringGateway): void {
+export function registerMapEditTool(server: McpServer, authoring: AuthoringGateway, compact = false): void {
   server.registerTool("pokemap_map_edit", {
     title: "Edit one map atomically",
-    description: 'Projects 1–64 canonical map operations, checks final guards and persists one transaction. Create operationId before calling; retain it with identical content after a lost response. Use a new identity for a new intention, including after undo. dryRun reserves nothing. Defaults refuse new exposed gaps, worsening overlaps and errors; rematerialize affected Borders. Warnings remain reported. Discover operation schemas using pokemap_describe. Example: {"projectHandle":"<handle>","operationId":"paint-1","mapId":"field","operations":[{"actionId":"smart_tile.cell.paint","actionVersion":1,"parameters":{"layerId":"ground","materialId":"grass","cells":[{"x":2,"y":3}]}}],"dryRun":true}.',
+    description: compact
+      ? "Apply 1–64 map operations atomically. Discover actions with pokemap_describe. Retry identical input with the same operationId. Use a new ID after undo. dryRun reserves nothing. Default guards reject new gaps, worsening overlaps and errors. Rematerialize affected Borders."
+      : 'Projects 1–64 canonical map operations, checks final guards and persists one transaction. Create operationId before calling; retain it with identical content after a lost response. Use a new identity for a new intention, including after undo. dryRun reserves nothing. Defaults refuse new exposed gaps, worsening overlaps and errors; rematerialize affected Borders. Warnings remain reported. Discover operation schemas using pokemap_describe. Example: {"projectHandle":"<handle>","operationId":"paint-1","mapId":"field","operations":[{"actionId":"smart_tile.cell.paint","actionVersion":1,"parameters":{"layerId":"ground","materialId":"grass","cells":[{"x":2,"y":3}]}}],"dryRun":true}.',
     inputSchema: mapEditSchema,
     outputSchema: toolEnvelopeSchema,
     annotations: mutationAnnotations,

@@ -13,7 +13,7 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("live MCP authors a native text Fact Scene and rejects 3D", { timeout: 120_000 }, async () => {
+test("live MCP authors and cold reopens native text Fact input in 2D and 3D", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "scene-text-fact-mcp-"));
   const command = { kind: "inputTextToFact", factId: "rival", prompt: {localizationKey: "rival.name", fallbackText: "Son nom ?"},
     confirmationPrompt: {localizationKey: "rival.confirm", fallbackText: "Confirmer {value} ?"}, constraints: {minGraphemes: 1, maxGraphemes: 7},
@@ -58,6 +58,7 @@ test("live MCP authors a native text Fact Scene and rejects 3D", { timeout: 120_
       assert.equal(contract.factReference, "knownUniqueStringFact");
       assert.equal(contract.atomicity, "orderedSceneConsequenceBuffer");
       assert.deepEqual(contract.outputPorts, ["completed", "cancelled"]);
+      assert.deepEqual(contract.projectDimensions, ["twoD", "threeD"]);
     }
     for (const spatial of [false, true]) {
       const projectRoot = join(root, spatial ? "spatial" : "two-d");
@@ -71,30 +72,36 @@ test("live MCP authors a native text Fact Scene and rejects 3D", { timeout: 120_
           workspaceHandle: workspace.workspaceHandle, expectedRevision: validation.snapshotRevision,
           idempotencyKey: `map-${spatial}`, parameters: { scene },
         },
-      }, spatial);
+      });
       assert.deepEqual(await readFile(file), before);
-      if (spatial) {
-        assert.ok(JSON.stringify(planned).includes("commandUnsupportedDimension"));
-      } else {
-        await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
-          planId: planned.planId, operationId: "apply-map" });
-        const queried = await call("pokemap_query", { projectHandle: workspace.projectHandle,
-          resourceKind: "scene", operation: "get", ids: ["text-fact"], view: "detail" });
-        assert.ok(JSON.stringify(queried).includes('"inputTextToFact"'));
-      }
+      await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
+        planId: planned.planId, operationId: `apply-map-${spatial}` });
+      const queried = await call("pokemap_query", { projectHandle: workspace.projectHandle,
+        resourceKind: "scene", operation: "get", ids: ["text-fact"], view: "detail" });
+      assert.ok(JSON.stringify(queried).includes('"inputTextToFact"'));
+      const persisted = await readFile(file);
+      const current = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
+      const rejected = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
+        requestId: `unknown-fact-${spatial}`, actionId: "scene.interactive_command.set", actionVersion: 1,
+        workspaceHandle: workspace.workspaceHandle, expectedRevision: current.snapshotRevision,
+        idempotencyKey: `unknown-fact-${spatial}`, parameters: {
+          sceneId: scene.id, nodeId: "map", command: { ...command, factId: "missing" },
+        },
+      } }, true);
+      assert.equal(rejected.domainCode, "scene.publication_blocked");
+      assert.ok(JSON.stringify(rejected).includes("consequenceUnknownFact"));
+      assert.deepEqual(await readFile(file), persisted);
       await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
-      if (!spatial) {
-        const reopened = await call("pokemap_workspace", { operation: "open", projectRoot });
-        const cold = await call("pokemap_query", { projectHandle: reopened.projectHandle,
-          resourceKind: "scene", operation: "get", ids: ["text-fact"], view: "detail" });
-        assert.ok(JSON.stringify(cold).includes('"inputTextToFact"'));
-        const manifest = record(JSON.parse(await readFile(file, "utf8")));
-        const stored = record((manifest.scenes as JsonRecord[])[0]);
-        const graph = record(stored.graph);
-        const action = (graph.nodes as JsonRecord[]).find(node => node.id === "map");
-        assert.deepEqual(record(action!.payload).interactiveCommand, command);
-        await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
-      }
+      const reopened = await call("pokemap_workspace", { operation: "open", projectRoot });
+      const cold = await call("pokemap_query", { projectHandle: reopened.projectHandle,
+        resourceKind: "scene", operation: "get", ids: ["text-fact"], view: "detail" });
+      assert.ok(JSON.stringify(cold).includes('"inputTextToFact"'));
+      const manifest = record(JSON.parse(await readFile(file, "utf8")));
+      const stored = record((manifest.scenes as JsonRecord[])[0]);
+      const graph = record(stored.graph);
+      const action = (graph.nodes as JsonRecord[]).find(node => node.id === "map");
+      assert.deepEqual(record(action!.payload).interactiveCommand, command);
+      await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
     }
   } finally {
     await client.close();

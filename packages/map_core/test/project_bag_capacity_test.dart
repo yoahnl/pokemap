@@ -2,6 +2,15 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('the maximum exact bag quantity round trips through its JSON value', () {
+    final maximum = int.parse(
+      identical(1, 1.0) ? '9007199254740991' : '9223372036854775807',
+    );
+    final entry = BagEntry(itemId: 'potion', quantity: maximum);
+    expect(maximumBagEntryQuantity, maximum);
+    expect(BagEntry.fromJson(entry.toJson()).quantity, maximum);
+  });
+
   test('unlimited default is omitted from project JSON', () {
     const manifest = ProjectManifest(name: 'Capacity', maps: [], tilesets: []);
     expect(manifest.bagCapacity.isUnlimited, isTrue);

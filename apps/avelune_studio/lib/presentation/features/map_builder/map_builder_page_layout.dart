@@ -192,6 +192,11 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                                 !_sceneShown,
                             child: _storyPage(),
                           ),
+                          ProjectLibraryPage(
+                            active: _section == StudioRailSection.resources && !_sceneShown,
+                            maps: _maps,
+                            visuals: _visuals,
+                          ),
                         ],
                       ),
                       ?_scenePage(),

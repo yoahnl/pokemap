@@ -7,6 +7,7 @@ import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
+import { mutationRevision } from "./mutation_revision.js";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 function record(value: unknown): JsonRecord {
@@ -80,13 +81,15 @@ test("L21a authors finite trainer medicines through the real MCP server", { time
     return record((page.items as JsonRecord[])[0]).trainers as JsonRecord[];
   }
   async function plan(actionId: string, parameters: JsonRecord, failure = false): Promise<JsonRecord> {
+    assert.ok(client);
     const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
     const before = sha(await readFile(file));
     const catalogBefore = sha(await readFile(itemsFile));
     const key = `stock-${++sequence}`;
+    const revision = await mutationRevision(client, String(workspace.projectHandle), actionId, parameters, validation.snapshotRevision);
     const result = await call("pokemap_plan", { projectHandle: workspace.projectHandle,
       request: { requestId: key, actionId, actionVersion: 1, workspaceHandle: workspace.workspaceHandle,
-        expectedRevision: validation.snapshotRevision, idempotencyKey: key, dryRun: false, parameters } }, failure);
+        ...revision, idempotencyKey: key, dryRun: false, parameters } }, failure);
     assert.equal(sha(await readFile(file)), before);
     assert.equal(sha(await readFile(itemsFile)), catalogBefore);
     if (failure) {
@@ -108,7 +111,7 @@ test("L21a authors finite trainer medicines through the real MCP server", { time
   }
   try {
     await mkdir(join(root, "data/pokemon/catalogs"), { recursive: true });
-    await writeFile(itemsFile, JSON.stringify({ schemaVersion: 1, entries: [tonic, cure,
+    await writeFile(itemsFile, JSON.stringify({ schemaVersion: 1, entries: [tonic, cure, medicine("restore", { kind: "full_restore" }),
       medicine("reusable", { kind: "heal_hp", mode: "flat", amount: 20 }, { consumption: "never" }),
       medicine("overworld", { kind: "heal_hp", mode: "flat", amount: 20 }, { contexts: ["overworld"] }),
       medicine("revive", { kind: "revive", rateNumerator: 1, rateDenominator: 2 }),
@@ -126,14 +129,15 @@ test("L21a authors finite trainer medicines through the real MCP server", { time
     assert.equal(contract.field, "value.battleItems");
     assert.equal(contract.maxDistinctItems, 16);
     assert.deepEqual(contract.quantity, { min: 1, max: 99, integer: true });
-    assert.deepEqual(contract.supportedEffects, ["heal_hp", "cure_status"]);
+    assert.deepEqual(contract.supportedEffects, ["heal_hp", "full_restore", "cure_status"]);
     assert.equal(contract.stockScope, "perBattle");
-    await apply({ tonic: 2, cure: 1 });
+    const stock = { tonic: 2, cure: 1, restore: 1 };
+    await apply(stock);
     const stored = (await trainers()).find(row => row.id === original.id)!;
-    assert.deepEqual(stored.battleItems, { tonic: 2, cure: 1 });
+    assert.deepEqual(stored.battleItems, stock);
     assertTrainerFields(stored, original);
     await reopen();
-    assert.deepEqual((await trainers()).find(row => row.id === original.id)?.battleItems, { tonic: 2, cure: 1 });
+    assert.deepEqual((await trainers()).find(row => row.id === original.id)?.battleItems, stock);
     for (const invalid of [null, [], { tonic: 0 }, { tonic: -1 }, { tonic: 100 }, { tonic: 1.5 },
       { tonic: true }, { tonic: "2" }, { " tonic ": 1 }, { missing: 1 },
       { reusable: 1 }, { overworld: 1 }, { revive: 1 }, { pp: 1 }]) {

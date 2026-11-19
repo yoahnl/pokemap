@@ -51,7 +51,12 @@ export const resourcePackToolSchema = z.discriminatedUnion("verb", [
   z.object({ projectHandle: handle, verb: z.literal("prepare"), input: z.union([
     z.object({ ...selection, expectedRevision: revision, conflictPolicy: z.enum(["preserveProject", "importCopy"]).optional() }).strict(),
     z.object({ ...selection, expectedRevision: revision, metadata, author: z.string().min(1).max(128), sourceUrl: z.string().max(4096).optional(), licenseHandles: z.array(handle).max(200).optional() }).strict(),
-  ]) }).strict(),
+  ], { error: (issue) => {
+    const input = issue.input;
+    if (issue.code !== "invalid_union" || !input || typeof input !== "object") return;
+    const detail = issue.errors.flat().find(({ path }) => path.length > 0 && Object.hasOwn(input, path[0]!));
+    if (detail) return `${detail.path.join(".")}: ${detail.message}`;
+  } }) }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("preview"), input: z.object({ previewHandle: handle, ...page }).strict() }).strict(),
   z.object({ projectHandle: handle, verb: z.literal("start_apply"), input: z.object({
     planId: handle, operationId: handle, confirmationToken: z.string().min(1).max(4096).optional(),

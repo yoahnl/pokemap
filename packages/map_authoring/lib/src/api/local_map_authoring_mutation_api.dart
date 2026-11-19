@@ -59,6 +59,7 @@ import '../transactions/recovery_service.dart';
 import '../transactions/revision_set.dart';
 import '../transactions/transaction_journal.dart';
 import '../workspace/project_snapshot.dart';
+import '../domains/narrative/scene_workshop_input.dart';
 import '../workspace/project_snapshot_cache.dart';
 import '../workspace/project_snapshot_loader.dart';
 import '../workspace/workspace_handle_store.dart';
@@ -114,6 +115,8 @@ bool _isModelShadowConfiguration(AuthoringRequest request) =>
 
 bool _usesNativeWorkshop(AuthoringRequest request) =>
     _nativeLocalWorkshopActions.contains(request.actionId) ||
+    (request.actionId == 'asset.import' && request.parameters['adoptExisting'] == true) ||
+    introducesPeriodicReward(request.actionId, request.parameters) ||
     _isModelShadowConfiguration(request) ||
     (request.actionId == 'characterStudio.animationClip.upsert' &&
         request.parameters['kind'] == 'system' &&
@@ -2071,14 +2074,16 @@ final class _LocalMapAuthoringSession {
               _usesNativeWorkshop(request) || request.actionId == 'pokemon.catalog.write' ? request : null,
         );
     var planningRequest = request;
-    if (suppliedSnapshot == null && (_isModelShadowConfiguration(request) || request.actionId == 'scene.graph.patch' || request.actionId == 'presentationMedia.import' || request.actionId.startsWith('world_rule.') || request.actionId == 'event_v2.record_upsert' || request.actionId == 'event_v2.record_upsert_batch' || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) &&
+    if (suppliedSnapshot == null && (introducesPeriodicReward(request.actionId, request.parameters) || _isModelShadowConfiguration(request) || request.actionId == 'scene.graph.patch' || request.actionId == 'presentationMedia.import' ||
+        request.actionId == 'pokemon.ruleset.set' || request.actionId == 'campaign.encounter_table.upsert' ||
+        request.actionId.startsWith('world_rule.') || request.actionId == 'event_v2.record_upsert' || request.actionId == 'event_v2.record_upsert_batch' || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) &&
         request.expectedRevision != null && request.expectedRevision != snapshot.revision) {
       if (!_snapshotLoader.acceptsObservedNativeRevision(projectHandle,
           expectedRevision: request.expectedRevision,
           resources: snapshot.scopedStorageRevisions ?? const {})) {
         throw AuthoringPlanException(code: 'plan.stale',
             message: 'This full revision was not observed in this workspace or its selected media dependencies changed.',
-            remediation: const ['Read the projectAudio resource with actionId presentationMedia.import and its parameters, then plan from that scoped revision.']);
+            remediation: ['Read the workshop for ${request.actionId} with the same parameters, then plan from its scoped revision.']);
       }
       planningRequest = AuthoringRequest.fromJson({...request.toJson(), 'expectedRevision': snapshot.revision});
     }
@@ -2265,6 +2270,7 @@ final class _LocalMapAuthoringSession {
       refreshUnavailable = plan.payloadCleanupFailed;
       try {
         if (_workshopPlans.containsKey(plan.planId)) {
+          _snapshotLoader.invalidate(projectHandle);
           final request = _workshopPlans[plan.planId]!;
           if (request.actionId == 'gameplay_zone.delete' &&
               (_workshopPreconditions[plan.planId]?.isNotEmpty ?? false)) {
@@ -2743,7 +2749,9 @@ final class _LocalMapAuthoringSession {
     if (snapshot == null && scopedRequest == null && _nativeLocalWorkshopActions.contains(receipt.actionId)) {
       refreshUnavailable = true;
     }
-    if (!refreshUnavailable) {
+    if (refreshUnavailable) {
+      _snapshotLoader.invalidate(projectHandle);
+    } else {
       try {
         final resolvedSnapshot = snapshot ??
             await traceAuthoringPhase<ProjectSnapshot>(

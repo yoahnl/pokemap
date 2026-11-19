@@ -17,6 +17,7 @@ import '../../transactions/plan_store.dart';
 import '../../workspace/project_snapshot.dart';
 import 'asset_actions.dart';
 import 'asset_store.dart';
+import 'resource_information_document.dart';
 import '../../references/resource_usage_walk.dart';
 import '../../references/resource_usage_documents.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -862,6 +863,10 @@ final class Model3dActions {
       final manifest = context.snapshot.manifest.copyWith(
           models3d: [...context.snapshot.manifest.models3d, ...models]);
       final projectDraft = buildVisualManifestDraft(context.snapshot, manifest,
+          encodedManifest: context.snapshot.availableProjectSections == null &&
+                  !context.snapshot.materializedCatalogProject
+              ? encodeResourceInformationDocument(context.snapshot, manifest)
+              : null,
           operation: context.request.actionId, path: '/models3d');
       final result = AuthoringMutationDraft(
           changeSet: AuthoringChangeSet(

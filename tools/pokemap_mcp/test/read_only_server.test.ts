@@ -8,6 +8,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/server";
 import { LocalAuthoringClient } from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { createPokeMapMcpServer } from "../src/server.js";
+import { authoringToolReadOnlyHints } from "./authoring_tool_contract.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
 const projectRoot = resolve(
@@ -61,24 +62,9 @@ test("read-only MCP inspects a real project with cursor pagination", async () =>
   try {
     const tools = await fixture.client.listTools();
     assert.deepEqual(
-      tools.tools.map((tool) => tool.name),
-      [
-        "pokemap_artifact",
-        "pokemap_describe",
-        "pokemap_query",
-        "pokemap_validate",
-      "pokemap_workspace",
-      "pokemap_project_bootstrap",
-      "pokemap_artifact_stage",
-        "pokemap_plan",
-        "pokemap_apply",
-        "pokemap_history",
-        "pokemap_recovery",
-        "pokemap_game_export",
-      ],
+      tools.tools.map((tool) => [tool.name, tool.annotations?.readOnlyHint]),
+      Object.entries(authoringToolReadOnlyHints),
     );
-    assert.ok(tools.tools.slice(0, 5).every((tool) => tool.annotations?.readOnlyHint));
-    assert.ok(tools.tools.slice(5).every((tool) => !tool.annotations?.readOnlyHint));
 
     const description = await toolData(fixture.client, "pokemap_describe");
     assert.equal(description.protocol, "pokemap.authoring.v1");
@@ -370,6 +356,7 @@ test("resource templates project map catalog and diagnostics use explicit handle
     assert.deepEqual(
       templates.resourceTemplates.map((template) => template.uriTemplate),
       [
+        "pokemap://project/{projectHandle}/resource-pack/{resourceKind}/{handle}",
         "pokemap://project/{projectHandle}",
         "pokemap://project/{projectHandle}/catalog/{resourceKind}",
         "pokemap://project/{projectHandle}/diagnostics",

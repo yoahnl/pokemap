@@ -6,6 +6,7 @@ import {Client} from '@modelcontextprotocol/client';
 import {StdioClientTransport} from '@modelcontextprotocol/client/stdio';
 import type {JsonRecord} from '../src/authoring_client.js';
 import {canonicalPokemonConfig} from './pokemon_fixture.js';
+import {mutationRevision} from './mutation_revision.js';
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === 'object' && !Array.isArray(value));
@@ -53,12 +54,22 @@ test('live MCP describes and authors periodic rewards in 2D/3D; invalid items an
       let workspace = await call('pokemap_workspace', {operation: 'open', projectRoot: directory});
       async function plan(actionId: string, parameters: JsonRecord, failed = false): Promise<JsonRecord> {
         const validation = await call('pokemap_validate', {projectHandle: workspace.projectHandle});
+        const revision = await mutationRevision(client, String(workspace.projectHandle), actionId, parameters, validation.snapshotRevision);
         const before = await readFile(file);
         const key = `periodic-${++sequence}`;
-        const result = await call('pokemap_plan', {projectHandle: workspace.projectHandle, request: {requestId: key, actionId, actionVersion: 1, workspaceHandle: workspace.workspaceHandle, expectedRevision: validation.snapshotRevision, idempotencyKey: key, parameters}}, failed);
+        const result = await call('pokemap_plan', {projectHandle: workspace.projectHandle, request: {requestId: key, actionId, actionVersion: 1, workspaceHandle: workspace.workspaceHandle, ...revision, idempotencyKey: key, parameters}}, failed);
         assert.deepEqual(await readFile(file), before);
         return result;
       }
+      const original = await readFile(file);
+      const stale = await plan('scene.upsert', {scene});
+      const itemsFile = join(directory, 'items.json');
+      const items = record(JSON.parse(await readFile(itemsFile, 'utf8')));
+      record((items.entries as JsonRecord[])[0]).displayName = 'Fruit mûr';
+      await writeFile(itemsFile, JSON.stringify(items));
+      const conflict = await call('pokemap_apply', {operation: 'apply', projectHandle: workspace.projectHandle, planId: stale.planId, operationId: `stale-${sequence}`}, true);
+      assert.equal(conflict.domainCode, 'plan.stale');
+      assert.deepEqual(await readFile(file), original);
       const upsert = await plan('scene.upsert', {scene});
       const applied = await call('pokemap_apply', {operation: 'apply', projectHandle: workspace.projectHandle, planId: upsert.planId, operationId: `apply-${sequence}`});
       assert.equal(record(applied.receipt).status, 'applied');

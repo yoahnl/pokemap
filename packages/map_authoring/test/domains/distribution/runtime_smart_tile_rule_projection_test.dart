@@ -57,6 +57,30 @@ void main() {
         isTrue);
   });
 
+  test('a preset exposed by a dynamic declaration keeps its complete rules',
+      () {
+    final source = _project();
+    final preset = source.smartTileCatalog.presets.single;
+    final project = PortableCatalogPublication.withProjectDynamicDependencies(
+      source,
+      [
+        CatalogDynamicDependency(
+          owner: CatalogDefinitionKey(
+              CatalogDefinitionKind.tileset, source.tilesets.single.id),
+          targets: [
+            CatalogDefinitionKey(
+                CatalogDefinitionKind.smartTilePreset, preset.id)
+          ],
+        ),
+      ],
+    );
+    final result = projectRuntimeSmartTileRules(
+      project: project,
+      maps: [_map('first', 'm1'), _map('second', 'm2')],
+    );
+    expect(result.smartTileCatalog.presets.single.rules, preset.rules);
+  });
+
   test('canonical 2D export keeps used and coverage rules across every map',
       () async {
     final root =
@@ -83,17 +107,16 @@ void main() {
       await file.parent.create(recursive: true);
       await file.writeAsBytes(entry.value);
     }
-    final result = await const RuntimeProjectProjectionBuilder().build(
-      projectRoot: root,
-      profile: GamePackageExportProfile(
-        gameId: 'games.test.rules',
-        gameVersion: '0.1.0',
-        title: 'Rules',
-        authorName: 'Tester',
-        defaultLocale: 'fr',
-        supportedLocales: ['fr'],
-      ),
+    final profile = GamePackageExportProfile(
+      gameId: 'games.test.rules',
+      gameVersion: '0.1.0',
+      title: 'Rules',
+      authorName: 'Tester',
+      defaultLocale: 'fr',
+      supportedLocales: ['fr'],
     );
+    final result = await const RuntimeProjectProjectionBuilder()
+        .build(projectRoot: root, profile: profile);
     final preset = result.project.smartTileCatalog.presets.single;
     expect(preset.rules.map((rule) => rule.id), ['r0', 'r1', 'r2', 'r69']);
     expect(result.project.smartTileCatalog.materials,
@@ -117,6 +140,15 @@ void main() {
             as Map<String, dynamic>);
     expect(decoded, result.project);
     ProjectValidator.validate(decoded);
+    final file = File('${root.path}/data/runtime/rule.json');
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode({'ruleId': 'r55'}));
+    final withExternalRule = await const RuntimeProjectProjectionBuilder()
+        .build(projectRoot: root, profile: profile);
+    expect(
+        withExternalRule.project.smartTileCatalog.presets.single.rules
+            .map((rule) => rule.id),
+        ['r0', 'r1', 'r2', 'r55', 'r69']);
   });
 }
 

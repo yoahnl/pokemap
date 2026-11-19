@@ -1,6 +1,3 @@
-import 'dart:convert';
-
-import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 
 import '../support/authoring_fingerprint.dart';
@@ -8,6 +5,7 @@ import '../workspace/catalog/catalog_derivable_indexes.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
 import '../workspace/catalog/catalog_resource_positions.dart';
 import '../workspace/catalog/catalog_narrative_event_documents.dart';
+import 'catalog_history_metadata.dart';
 import 'catalog_storage_store.dart';
 
 final class CatalogHistoryRootConversion {
@@ -110,15 +108,7 @@ abstract final class CatalogHistoryCompatibility {
       if (error.code != 'catalog.preparation_required') rethrow;
     }
     final source = (await store.openRoot(conversion.source)).snapshot;
-    final metadata = <CatalogDefinitionUnit>[];
-    await source.objectReferences(onUnit: (unit) {
-      if (unit.key.kind == CatalogDefinitionKind.catalogMetadata ||
-          unit.key.kind == CatalogDefinitionKind.workspaceState) {
-        metadata.add(unit);
-      }
-    });
-    final prepared =
-        await prepare(store: store, source: source, metadataUnits: metadata);
+    final prepared = (await inspect(store: store, source: source)).conversion;
     if (prepared == null ||
         canonicalAuthoringJson(prepared.conversion.toJson()) !=
             canonicalAuthoringJson(conversion.toJson())) {
@@ -134,32 +124,74 @@ abstract final class CatalogHistoryCompatibility {
     required CatalogSnapshot source,
     required Iterable<CatalogDefinitionUnit> metadataUnits,
   }) async {
-    if (source.admittedStoredBytes == null ||
-        !identical(source.limits, store.limits)) {
+    if (source.admittedStoredBytes == null) {
       throw const CatalogStorageException('catalog.preparation_required',
           'Validate the historical generation before preparing its conversion.');
     }
-    final units = await _authenticate(source, metadataUnits);
-    final expected = CatalogMetadataDocuments.initialize(units.values);
+    return (await inspect(
+            store: store, source: source, metadataUnits: metadataUnits))
+        .conversion;
+  }
+
+  static Future<
+      ({
+        List<CatalogObjectReference> references,
+        bool metadataPrepared,
+        CatalogPreparedHistoryConversion? conversion,
+      })> inspect({
+    required CatalogStorageStore store,
+    required CatalogSnapshot source,
+    Iterable<CatalogDefinitionUnit>? metadataUnits,
+  }) async {
+    if (!identical(source.limits, store.limits)) {
+      throw const CatalogStorageException('catalog.preparation_required',
+          'Validate the historical generation before preparing its conversion.');
+    }
+    final metadata = await CatalogHistoryMetadata.read(source);
+    final references = metadata.references;
+    final units = metadata.units;
+    if (metadataUnits != null) await metadata.authenticate(metadataUnits);
+    final expected = metadata.expectedDocuments;
+    if (expected == null) {
+      return (
+        references: references,
+        metadataPrepared: false,
+        conversion: null
+      );
+    }
     final actual = {
-      for (final unit in units.values)
+      for (final unit in units)
         if (unit.key.kind == CatalogDefinitionKind.workspaceState &&
             unit.key.id != 'workspace' &&
             !CatalogResourcePositions.isSlotKey(unit.key))
           unit.key: unit,
     };
-    final derived = CatalogDerivableIndexes.expected(units.values);
-    if (_matches(actual, [...expected, ...derived])) return null;
-    var supported = false;
+    final derived = CatalogDerivableIndexes.expected(units);
+    if (_matches(actual, [...expected, ...derived])) {
+      return (references: references, metadataPrepared: true, conversion: null);
+    }
     for (final legacyFacts in [false, true]) {
       for (final eventsVersion in [0, 1, 2]) {
         if (!legacyFacts && eventsVersion == 2) continue;
-        final candidate = _legacyProjection(
-            units.values, expected, legacyFacts, eventsVersion);
-        if (_matches(actual, [...candidate, ...derived])) supported = true;
+        final candidate =
+            _legacyProjection(units, expected, legacyFacts, eventsVersion);
+        if (_matches(actual, [...candidate, ...derived])) {
+          if (metadataUnits == null) await metadata.authenticate(units);
+          return (
+            references: references,
+            metadataPrepared: false,
+            conversion: await _prepareConversion(store, source, expected)
+          );
+        }
       }
     }
-    if (!supported) return null;
+    return (references: references, metadataPrepared: false, conversion: null);
+  }
+
+  static Future<CatalogPreparedHistoryConversion?> _prepareConversion(
+      CatalogStorageStore store,
+      CatalogSnapshot source,
+      List<CatalogDefinitionUnit> expected) async {
     final expectedKeys = {for (final unit in expected) unit.key};
     final List<CatalogDefinitionUnit> slots;
     try {
@@ -206,60 +238,6 @@ abstract final class CatalogHistoryCompatibility {
       ),
       Map.unmodifiable(objects),
     );
-  }
-
-  static Future<Map<CatalogDefinitionKey, CatalogDefinitionUnit>> _authenticate(
-      CatalogSnapshot snapshot,
-      Iterable<CatalogDefinitionUnit> metadataUnits) async {
-    final supplied = <CatalogDefinitionKey, CatalogDefinitionUnit>{};
-    for (final unit in metadataUnits) {
-      if (!const {
-            CatalogDefinitionKind.catalogMetadata,
-            CatalogDefinitionKind.workspaceState,
-          }.contains(unit.key.kind) ||
-          supplied.containsKey(unit.key)) {
-        throw const FormatException(
-            'catalog.history_conversion: invalid metadata evidence');
-      }
-      supplied[unit.key] = unit;
-    }
-    var count = 0;
-    for (final kind in [
-      CatalogDefinitionKind.catalogMetadata,
-      CatalogDefinitionKind.workspaceState,
-    ]) {
-      String? cursor;
-      final cursors = <String>{};
-      do {
-        final page = await snapshot.page(
-            kind: kind, limit: snapshot.limits.indexPageSize, cursor: cursor);
-        for (final entry in page.items) {
-          count++;
-          final unit = supplied[entry.key];
-          if (unit == null) {
-            throw const FormatException(
-                'catalog.history_conversion: incomplete metadata evidence');
-          }
-          final bytes = utf8.encode(canonicalAuthoringJson(unit.toJson()));
-          if (bytes.length != entry.reference.byteLength ||
-              crypto.sha256.convert(bytes).toString() !=
-                  entry.reference.sha256) {
-            throw const FormatException(
-                'catalog.history_conversion: mismatched metadata evidence');
-          }
-        }
-        cursor = page.nextCursor;
-        if (cursor != null && !cursors.add(cursor)) {
-          throw const FormatException(
-              'catalog.history_conversion: repeated index cursor');
-        }
-      } while (cursor != null);
-    }
-    if (count != supplied.length) {
-      throw const FormatException(
-          'catalog.history_conversion: unrelated metadata evidence');
-    }
-    return supplied;
   }
 
   static bool _matches(Map<CatalogDefinitionKey, CatalogDefinitionUnit> actual,

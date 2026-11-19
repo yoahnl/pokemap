@@ -8,6 +8,17 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
       ? exterior?.editingDocument ?? widget.document
       : widget.document;
   MapExteriorDecorationController? _exteriorNotifier;
+  SpatialMapAssetSource? _sceneAssets;
+
+  SpatialMapAssetSource assetsFor(SpatialWorkspaceVisuals visuals) {
+    final current = _sceneAssets;
+    if (current != null &&
+        identical(current.project, widget.project) &&
+        identical(current.visuals, visuals)) {
+      return current;
+    }
+    return _sceneAssets = SpatialMapAssetSource(widget.project, visuals);
+  }
 
   void _exteriorChanged() {
     if (_exteriorGestureActive && !editingExterior) {

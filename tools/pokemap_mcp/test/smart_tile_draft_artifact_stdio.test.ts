@@ -133,16 +133,15 @@ test("live MCP imports and publishes a verified large native draft without widen
     assert.equal(Object.hasOwn(storedPart, "offsetX"), false);
     const storedScenario = record((record(storedPreset.coverageProfile).requiredScenarios as JsonRecord[])[0]);
     assert.equal(Object.hasOwn(storedScenario, "signature"), false);
-    const storedMaterial = record((record(finalManifest.smartTileCatalog).materials as JsonRecord[])[0]);
+    const finalMaterials = record(finalManifest.smartTileCatalog).materials as JsonRecord[];
+    const storedMaterial = finalMaterials.find(value => value.id === materialIds[0]);
+    assert.ok(storedMaterial);
     assert.equal(Object.hasOwn(storedMaterial, "isEmpty"), false);
     const oldPreset = (record(finalManifest.smartTileCatalog).presets as JsonRecord[]).find(value => value.id === "old-preset")!;
-    const oldRule = record((oldPreset.rules as JsonRecord[])[0]);
-    assert.equal(Object.hasOwn(oldRule, "signature"), false);
-    const oldPart = record((record((oldRule.candidates as JsonRecord[])[0]).parts as JsonRecord[])[0]);
-    assert.equal(Object.hasOwn(oldPart, "transform"), false);
-    const oldMaterial = (record(finalManifest.smartTileCatalog).materials as JsonRecord[]).find(value => value.id === "old-material")!;
-    assert.equal(Object.hasOwn(oldMaterial, "isEmpty"), false);
-    assert.equal(oldMaterial.extension, "keep");
+    const previousCatalog = record(prior.smartTileCatalog);
+    assert.deepEqual(oldPreset, (previousCatalog.presets as JsonRecord[])[0]);
+    assert.deepEqual(finalMaterials.find(value => value.id === "old-material"),
+      (previousCatalog.materials as JsonRecord[])[0]);
     const initialRoot = { ...mapManifest };
     const finalRoot = { ...finalManifest };
     delete initialRoot.smartTileCatalog;

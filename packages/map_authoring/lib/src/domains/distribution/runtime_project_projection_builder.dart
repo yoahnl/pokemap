@@ -21,9 +21,12 @@ import '../project/regional_map_authoring_gate.dart';
 import 'game_package_export_profile.dart';
 import 'gen5_battle_source_export_guard.dart';
 import 'immutable_byte_snapshot.dart';
+import 'runtime_catalog_references.dart';
+import 'runtime_smart_tile_rule_projection.dart';
 import 'runtime_static_terrain_projection.dart';
 import 'runtime_regular_atlas_projection.dart';
 import 'runtime_unused_border_projection.dart';
+import 'runtime_unused_model_projection.dart';
 import '../../dialogue/dialogue_localization_document.dart';
 
 final class RuntimeProjectProjection {
@@ -765,6 +768,10 @@ final class RuntimeProjectProjectionBuilder {
     final pokemonCatalogPaths = projectedProject.pokemon.catalogFiles.values
         .map(_normalizeRelative)
         .toSet();
+    final modelSourcePaths = {
+      if (projectedProject.settings.dimension == ProjectDimension.threeD)
+        for (final model in projectedProject.models3d) model.relativePath,
+    };
     await for (final entity in _listWorkspace(projectRoot, projectRoot)) {
       budget.visitWorkspaceEntry();
       final type = await FileSystemEntity.type(entity.path, followLinks: false);
@@ -792,6 +799,10 @@ final class RuntimeProjectProjectionBuilder {
         continue;
       }
       final extension = p.extension(relative).toLowerCase();
+      if (modelSourcePaths.contains(relative) &&
+          authorFiles.catalog.findByLogicalPath(relative) != null) {
+        continue;
+      }
       if (relative.startsWith('maps/') &&
           (relative.endsWith('.decoration.json') || relative.contains('.decoration/')) &&
           !exteriorFiles.containsKey(relative) && !playablePaths.contains(relative)) {
@@ -850,6 +861,11 @@ final class RuntimeProjectProjectionBuilder {
     }
     final gen5Plan =
         Gen5BattleSourceExportPlan.fromBindingCandidates(gen5Candidates);
+    final references =
+        RuntimeCatalogReferences(projectedProject, authorFiles.catalog);
+    if (presentationPackage != null) {
+      references.addDocument(presentationPackage.catalog.toJson());
+    }
     final visitedJson = <String>{};
     final pendingJson = <String>[...jsonRoots, ...gen5Plan.exactPaths];
     final pokemonAnimatedPaths = <String>{};
@@ -872,6 +888,7 @@ final class RuntimeProjectProjectionBuilder {
         final bytes = payload[packagePath] ??
             await authorFiles.read(relative, budget, jsonLike: true);
         final decoded = _decodeJsonObject(bytes, relative);
+        references.addDocument(decoded);
         if (jsonEncode(_scrubJson(decoded).value) != jsonEncode(decoded)) {
           throw GamePackageExportException(
             code: 'gen5_battle_source.unsafe_content',
@@ -891,6 +908,7 @@ final class RuntimeProjectProjectionBuilder {
         final bytes = payload[packagePath] ??
             await authorFiles.read(relative, budget, jsonLike: true);
         final decoded = _decodeJsonObject(bytes, relative);
+        references.addDocument(decoded);
         if (jsonEncode(_scrubJson(decoded).value) != jsonEncode(decoded)) {
           throw GamePackageExportException(
             code: 'battle_recipe.unsafe_content',
@@ -939,6 +957,9 @@ final class RuntimeProjectProjectionBuilder {
         runtimeJson = _rewriteLegacyDialogueReferences(scrubbed.value);
         budget.addPayload(
             payload, packagePath, _encodeRuntimeJson(runtimeJson));
+      }
+      if (relative != 'project.json') {
+        references.addDocument(runtimeJson);
       }
       for (final reference in _runtimeAssetReferences(runtimeJson)) {
         if (gifAssetsById.containsKey(reference)) {
@@ -1058,15 +1079,39 @@ final class RuntimeProjectProjectionBuilder {
       );
     }
 
-    if (projectedProject.borderCatalog.records.isNotEmpty) {
-      projectedProject = projectRuntimeBorderRecords(
+    final shouldProjectSmartRules =
+        projectedProject.settings.dimension == ProjectDimension.twoD &&
+        projectedProject.smartTileCatalog.presets.any(
+            (preset) => preset.rules.length >= minimumRuntimeSmartTileRuleCount);
+    final maps = [
+      if (projectedProject.settings.dimension == ProjectDimension.threeD ||
+          shouldProjectSmartRules)
+        for (final entry in projectedProject.maps)
+          MapData.fromJson(_decodeJsonObject(
+              payload['project/${entry.relativePath}']!, entry.relativePath)),
+    ];
+    if (shouldProjectSmartRules) {
+      projectedProject = projectRuntimeSmartTileRules(
         project: projectedProject,
-        documents: [
-          for (final entry in payload.entries)
-            if (entry.key.endsWith('.json'))
-              _decodeJson(entry.value, entry.key),
-        ],
+        maps: maps,
+        additionalDocuments: references.matches,
       );
+    }
+    projectedProject = projectRuntimeBorderRecords(
+      project: projectedProject,
+      documents: references.matches,
+    );
+    var runtimeAssets = authorFiles.catalog;
+    if (projectedProject.settings.dimension == ProjectDimension.threeD &&
+        projectedProject.models3d.isNotEmpty) {
+      final models = projectRuntimeModelResources(
+        project: projectedProject,
+        maps: maps,
+        assets: authorFiles.catalog,
+        additionalDocuments: references.matches,
+      );
+      projectedProject = models.project;
+      runtimeAssets = models.assets;
     }
 
     budget.addPayload(
@@ -1206,6 +1251,7 @@ final class RuntimeProjectProjectionBuilder {
       payload,
       authorFiles,
       budget,
+      assets: runtimeAssets,
       retainedAssetIds: presentationPackage?.catalog.entries
               .map((media) => media.sourceAssetId)
               .toSet() ?? const <String>{},
@@ -1216,12 +1262,6 @@ final class RuntimeProjectProjectionBuilder {
     );
 
     if (projectedProject.settings.dimension == ProjectDimension.threeD) {
-      final maps = [
-        for (final entry in projectedProject.maps)
-          MapData.fromJson(
-              jsonDecode(utf8.decode(payload['project/${entry.relativePath}']!))
-                  as Map<String, dynamic>)
-      ];
       final gameplay =
           SpatialGameplayCapabilities.requiresGameplay(projectedProject, maps: maps, dialogues: [
         for (final entry in projectedProject.dialogues)
@@ -1256,11 +1296,12 @@ final class RuntimeProjectProjectionBuilder {
 
   Future<void> _addPortableAssetClosure(Map<String, List<int>> payload,
       _AuthorProjectFileResolver authorFiles, _ProjectionBudget budget,
-      {Set<String> retainedAssetIds = const <String>{},
+      {required AssetCatalog assets,
+      Set<String> retainedAssetIds = const <String>{},
       Set<String> excludedAssetIds = const <String>{},
       Set<String> referencedGifPaths = const <String>{},
       Set<String> referencedGifAssetIds = const <String>{}}) async {
-    final records = authorFiles.catalog.records
+    final records = assets.records
         .where((record) =>
             (!excludedAssetIds.contains(record.id) ||
                 referencedGifAssetIds.contains(record.id) ||

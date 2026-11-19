@@ -35,13 +35,15 @@ final class EditorAuthoringMutationPlan {
     required this.snapshotRevision,
     required this.receipt,
     required this.preview,
-  });
+    required bool usesWorkshopRevision,
+  }) : _usesWorkshopRevision = usesWorkshopRevision;
 
   final String projectRootPath;
   final String planId;
   final String snapshotRevision;
   final AuthoringReceipt receipt;
   final Map<String, Object?> preview;
+  final bool _usesWorkshopRevision;
 }
 
 final class EditorAuthoringMutationResult {
@@ -206,10 +208,11 @@ final class AuthoringMutationAdapter
       final actual = scene.graph.nodes
           .where((node) => node.id == nodeId)
           .single;
-      if (expected != actual)
+      if (expected != actual) {
         throw StateError(
           'Cette condition a changé sur le disque. Votre brouillon est conservé.',
         );
+      }
       final identity = _identity('editor_scene_condition');
       final plan = await mutations.planMutation(
         opened.projectHandle,
@@ -254,8 +257,9 @@ final class AuthoringMutationAdapter
       'world_rule.create',
       'world_rule.update',
       'event_v2.record_upsert',
-    }.contains(actionId))
+    }.contains(actionId)) {
       throw ArgumentError.value(actionId);
+    }
     final root = await _fileReader.canonicalizeDirectory(projectRootPath);
     _requireAllowedRoot(root);
     final policy = await WorkspacePolicy.create(
@@ -304,8 +308,9 @@ final class AuthoringMutationAdapter
         ),
       );
       final projected = plan.projectedProject;
-      if (projected == null)
+      if (projected == null) {
         throw StateError('La projection de la condition est indisponible.');
+      }
       final applied = await mutations.applyMutation(
         opened.projectHandle,
         planId: plan.planId,
@@ -706,11 +711,31 @@ final class AuthoringMutationAdapter
     String? expectedRevision,
     bool dryRun = false,
   }) async {
-    final snapshot = await session.snapshot(
-      cacheValidation: _locallyMutatedRoots.remove(session.canonicalRoot)
-          ? ProjectSnapshotCacheValidation.canonical
-          : ProjectSnapshotCacheValidation.session,
-    );
+    final catalogRevision = actionId == 'catalog.definition.update'
+        ? expectedRevision ??
+              await session.reads.readCatalogRevision(session.projectHandle)
+        : null;
+    final usesWorkshop = actionId == 'pokemon.ruleset.set' ||
+        actionId == 'campaign.encounter_table.upsert' ||
+        (actionId == 'asset.import' && parameters['adoptExisting'] == true);
+    final String revision;
+    if (usesWorkshop) {
+      final workshop = await session.mutations.readWorkshopSnapshot(
+        session.projectHandle,
+        actionId: actionId,
+        parameters: parameters,
+      );
+      if (expectedRevision != null && expectedRevision != workshop.revision) {
+        await session.snapshot();
+      }
+      revision = workshop.revision;
+    } else {
+      revision = catalogRevision ?? (await session.snapshot(
+        cacheValidation: _locallyMutatedRoots.remove(session.canonicalRoot)
+            ? ProjectSnapshotCacheValidation.canonical
+            : ProjectSnapshotCacheValidation.session,
+      )).revision;
+    }
     final response = await session.mutations.planMutation(
       session.projectHandle,
       AuthoringRequest(
@@ -719,7 +744,7 @@ final class AuthoringMutationAdapter
         actionVersion: 1,
         workspaceHandle: session.workspaceHandle.value,
         parameters: parameters,
-        expectedRevision: expectedRevision ?? snapshot.revision,
+        expectedRevision: expectedRevision ?? revision,
         idempotencyKey: idempotencyKey,
         dryRun: dryRun,
       ),
@@ -730,6 +755,7 @@ final class AuthoringMutationAdapter
       snapshotRevision: response.snapshotRevision,
       receipt: response.receipt,
       preview: response.plan.preview,
+      usesWorkshopRevision: usesWorkshop,
     );
   }
 
@@ -750,7 +776,8 @@ final class AuthoringMutationAdapter
     var diagnostic = response.diagnostic;
     EditorAuthoringMutationProjection? projection;
     try {
-      if (revision != null) {
+      if (revision != null && !plan._usesWorkshopRevision &&
+          response.receipt.actionId != 'catalog.definition.update') {
         final snapshot = await session.snapshot(
           cacheValidation: ProjectSnapshotCacheValidation.session,
         );

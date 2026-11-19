@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../models/narrative_validation_report.dart';
 import 'narrative_event_canonical_json.dart';
+import 'raw_sha256_session.dart' show narrativeEventBytesFingerprint;
 
 /// Stable RFC 8785 JSON representation used by local exports and CI.
 String encodeNarrativeValidationReport(

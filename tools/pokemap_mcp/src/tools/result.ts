@@ -8,8 +8,10 @@ import {
 import { ArtifactReadError } from "../artifacts.js";
 import { PokeMapToolError } from "../tool_error.js";
 
-const jsonRecordSchema = z.record(z.string(), z.unknown());
-const artifactReferenceSchema = z.record(z.string(), z.unknown());
+export const jsonRecordSchema = z.record(z.string(), z.unknown()).meta({
+  propertyNames: undefined,
+  additionalProperties: undefined,
+});
 const errorSchema = z.object({
   code: z.string(),
   domainCode: z.string().optional(),
@@ -22,7 +24,7 @@ const errorSchema = z.object({
 export const toolEnvelopeSchema = z.object({
   ok: z.boolean(),
   data: jsonRecordSchema,
-  artifacts: z.array(artifactReferenceSchema),
+  artifacts: z.array(jsonRecordSchema),
   error: errorSchema.optional(),
 });
 

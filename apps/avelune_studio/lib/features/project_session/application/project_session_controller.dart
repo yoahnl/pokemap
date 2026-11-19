@@ -3,8 +3,7 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
 
 class ProjectSessionController {
-  ProjectSessionController(this._port, {Duration Function()? clock})
-    : _clock = clock;
+  ProjectSessionController(this._port, {this._clock});
 
   final ProjectSessionPort _port;
   final Duration Function()? _clock;

@@ -13,6 +13,7 @@ import 'change_set.dart';
 import 'idempotency_ledger.dart';
 import 'plan_store.dart';
 import 'revision_set.dart';
+import 'required_source_revision.dart';
 import 'transaction_journal.dart';
 
 enum AuthoringTransactionCheckpoint {
@@ -156,6 +157,8 @@ final class JournaledAuthoringTransaction {
       final expected = AuthoringRevisionSet.beforeChangeSet(plan.changeSet);
       final current = await _currentRevisions(plan);
       expected.requireMatches(current);
+      await requireMatchingSources(_gateway, plan.changeSet.changes.map(
+          (change) => (change.resource, change.afterRevision)));
 
       final existingJournal = await _gateway.readJournal(operationId);
       if (existingJournal != null) {

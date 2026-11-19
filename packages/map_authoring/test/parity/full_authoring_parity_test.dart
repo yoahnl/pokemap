@@ -133,7 +133,7 @@ void main() {
           AuthoringTransport.cli:
               'test/tooling/jsonl_map_library_reorganize_test.dart',
           AuthoringTransport.editor:
-              '../../apps/avelune_studio/test/map_workspace/map_catalogue_groups_host_test.dart',
+              '../../apps/avelune_studio/test/resource_io/local_resource_adapter_mutations_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/mutation_server.test.ts',
         },
@@ -173,7 +173,7 @@ void main() {
           AuthoringTransport.cli:
               'test/domains/maps/spatial_map_actions_test.dart',
           AuthoringTransport.editor:
-              '../../apps/avelune_studio/test/map_workspace/map_camera_panel_test.dart',
+              '../map_editor/test/authoring_api/spatial_lifts_ledge_camera_editor_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
         },

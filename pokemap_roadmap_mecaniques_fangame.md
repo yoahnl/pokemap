@@ -1788,7 +1788,7 @@ Objectif : rendre les mécaniques accessibles au joueur.
 | FG-163 | Runtime Save Menu V0 | `⬜ TODO` | — |
 | FG-164 | Runtime Map / Fast Travel UI V0 | `⬜ TODO` | — |
 | FG-165 | Runtime Input Lock Conventions V0 | `✅ DONE` | `reports/gameplay/fg_165_runtime_input_lock_conventions_v0_revalidation_2026-07-26.md` |
-| FG-166 | Player Journal V0 | `🟡 PARTIAL` — édition Studio à venir | tests `player_journal_*`, `storyline_journal_*`, `storyline_journal_stdio.test.ts` |
+| FG-166 | Player Journal V0 | `🟡 PARTIAL` | édition Studio à venir · tests `player_journal_*`, `storyline_journal_*`, `storyline_journal_stdio.test.ts` |
 
 ## FG-160 — Pause Menu Complete V0
 

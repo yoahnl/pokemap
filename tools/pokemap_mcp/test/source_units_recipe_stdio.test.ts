@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
+import { runRecipePython } from "./recipe_python.js";
 
 const execute = promisify(execFile);
 
@@ -13,7 +14,7 @@ test("two explicit source unit recipes import generated GLBs through canonical M
   const root = await mkdtemp(join(tmpdir(), "source-units-mcp-"));
   try {
     const generated = join(root, "generated");
-    await execute("python3", ["-B", "-c", `
+    await runRecipePython(resolve("../../tools/source_units"), `
 from pathlib import Path
 import json,sys
 from test_source_units import dataset,recipe
@@ -22,7 +23,7 @@ root=Path(sys.argv[1])
 first=dataset(root/'bronze','bronze','copper')
 second=dataset(root/'textile','textile','velvet',8)
 build_recipe(recipe([first,second],['copper','velvet']),{'bronze':root/'bronze','textile':root/'textile'},root/'generated')
-`, root], { cwd: resolve("../../tools/source_units"), timeout: 10_000 });
+`, root);
     const units = JSON.parse(await readFile(join(generated, "manifest.json"), "utf8")) as {
       models: { id: string; file: string; sha256: string }[];
     };

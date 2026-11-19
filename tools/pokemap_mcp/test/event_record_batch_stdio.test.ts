@@ -78,8 +78,12 @@ test("packaged MCP describes and atomically applies bounded Event V2 record batc
     ];
     {
       const planned = await plan(authored);
-      const delta = record(record(record(planned.plan).preview).diagnosticDelta);
-      for (const key of ["introduced", "resolved", "unchanged"]) assert.ok(Array.isArray(delta[key]));
+      const scope = record(record(record(planned.plan).preview).inspectionScope);
+      assert.equal(scope.projectWide, false);
+      assert.equal(scope.fullInspection, "explicit");
+      for (const section of ["eventRegistry", "facts", "maps", "scenes"]) {
+        assert.ok((scope.sections as string[]).includes(section), section);
+      }
       const applied = await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
         planId: planned.planId, operationId: `typed-event-apply-${sequence}` });
       assert.equal(record(applied.receipt).status, "applied");

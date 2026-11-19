@@ -595,17 +595,21 @@ final class NativeProjectCreationService {
       throw const ProjectCreationException('project.destination_exists',
           'The native creation destination is unavailable.');
     }
-    final ledgerPath =
-        '${plan.projectPath}/.pokemap/authoring/idempotency.jsonl';
-    try {
-      await const LocalProjectFileReader().readBytes(
-          projectRoot: plan.projectPath,
-          relativePath: '.pokemap/authoring/idempotency.jsonl');
-    } on WorkspaceAccessException {
+    const relativeLedger = '.pokemap/authoring/idempotency.jsonl';
+    const reader = LocalProjectFileReader();
+    var ledger = await reader.probeResource(
+        projectRoot: plan.projectPath,
+        relativePath: '$relativeLedger.incremental');
+    if (ledger.status == ProjectResourceProbeStatus.missing) {
+      ledger = await reader.probeResource(
+          projectRoot: plan.projectPath, relativePath: relativeLedger);
+    }
+    if (ledger.status != ProjectResourceProbeStatus.exists) {
       throw const ProjectCreationException('project.destination_exists',
           'The destination is not this completed native creation.');
     }
-    final lookup = await FileIdempotencyStore(filePath: ledgerPath)
+    final lookup = await FileIdempotencyStore(
+            filePath: '${plan.projectPath}/$relativeLedger')
         .lookupOperation(
             actorId: 'project-creator',
             projectId: 'project-${plan.operationId}',
@@ -622,7 +626,6 @@ final class NativeProjectCreationService {
     }
     _requireReceipt(plan, receipt);
     await _verifyInventory(plan);
-    final reader = const LocalProjectFileReader();
     for (final item in plan.prepared._inventory) {
       final bytes = await reader.readBytes(
           projectRoot: plan.projectPath, relativePath: item.storageKey);

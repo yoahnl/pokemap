@@ -102,12 +102,12 @@ void main() {
               {'projectHandle': handle.value, 'request': invalid.toJson()});
           expect(rejected.status, AuthoringResultStatus.failure);
           expect(rejected.error!.details['domainCode'],
-              'border.primitive_missing');
+              'border.resolution.override_primitive_missing');
         } else {
           await expectLater(
               h.mutations.plan(handle, invalid),
-              throwsA(isA<MapAuthoringException>()
-                  .having((e) => e.code, 'code', 'border.primitive_missing')));
+              throwsA(isA<MapAuthoringException>().having((e) => e.code, 'code',
+                  'border.resolution.override_primitive_missing')));
         }
         expect((await h.snapshots.load(handle)).maps.single, updated);
         if (jsonl) {

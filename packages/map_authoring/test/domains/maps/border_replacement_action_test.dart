@@ -60,7 +60,7 @@ void main() {
         .singleWhere(
             (value) => value.id == 'border_layer.feature_set_replacement');
     expect(descriptor.version, 1);
-    expect(descriptor.extensions['visualKinds'], ['element']);
+    expect(descriptor.extensions['visualKinds'], ['element', 'model3d']);
     final schema = descriptor.extensions['inputSchema'] as Map;
     expect(schema['additionalProperties'], false);
     expect(schema['required'],
@@ -147,10 +147,10 @@ void main() {
               (error) => error.code,
               'code',
               invalid == 'slot'
-                  ? 'border.slot_not_resolved'
+                  ? 'border.slot_missing'
                   : invalid == 'primitive'
-                      ? 'border.primitive_missing'
-                      : 'border.replacement_invalid')));
+                      ? 'border.resolution.override_primitive_missing'
+                      : 'border.resolution.ledge_final_placement_invalid')));
       expect(jsonEncode(f.map.toJson()), before);
     });
   }
