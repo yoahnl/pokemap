@@ -1338,7 +1338,7 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
             width: 47,
             background: foreground?.withValues(alpha: .15),
             child: Text(
-              'ENTER',
+              context.playerL10n.keyboardEnter.toUpperCase(),
               style: context.playerTypography.numbersStyle(
                 TextStyle(
                   color: labelColor,
