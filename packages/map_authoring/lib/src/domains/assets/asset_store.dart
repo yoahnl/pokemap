@@ -322,6 +322,15 @@ String _identity(String value, String field) {
   return normalized;
 }
 
+String assetAdoptionTargetIdentity(String path) {
+  final segments = validateProjectRelativePath(path);
+  if (segments.length < 2 || segments.first != 'assets' ||
+      segments.any((segment) => segment.startsWith('.'))) {
+    throw const FormatException('Asset adoption requires a public project file below assets/.');
+  }
+  return 'mediaTarget:$path';
+}
+
 String _logicalPath(String value) {
   final segments = validateProjectRelativePath(value);
   final normalized = segments.join('/');

@@ -894,18 +894,19 @@ BorderPreparedProjectElementAsset _preparedProjectElement({
   String? assetFingerprint,
   BorderPrimitiveAssetMetrics? metrics,
 }) {
+  final sourceElementId = primitive.sourceElementId!;
   final preparation = _preparation(
     digit: primitive.id == 'two' ? 'b' : 'a',
-    sourceElementId: primitive.sourceElementId,
+    sourceElementId: sourceElementId,
     assetFingerprint:
         assetFingerprint ?? primitive.currentMetrics.assetFingerprint,
     metrics: metrics,
   );
   return BorderPreparedProjectElementAsset(
-    sourceElement: _element(primitive.sourceElementId),
+    sourceElement: _element(sourceElementId),
     primitive: BorderPrimitiveDraft(
       id: primitive.id,
-      sourceElementId: primitive.sourceElementId,
+      sourceElementId: sourceElementId,
       role: primitive.role,
       weight: primitive.weight,
       anchorPx: primitive.anchorPx,

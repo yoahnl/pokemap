@@ -35,13 +35,15 @@ final class EditorAuthoringMutationPlan {
     required this.snapshotRevision,
     required this.receipt,
     required this.preview,
-  });
+    required bool usesWorkshopRevision,
+  }) : _usesWorkshopRevision = usesWorkshopRevision;
 
   final String projectRootPath;
   final String planId;
   final String snapshotRevision;
   final AuthoringReceipt receipt;
   final Map<String, Object?> preview;
+  final bool _usesWorkshopRevision;
 }
 
 final class EditorAuthoringMutationResult {
@@ -710,12 +712,27 @@ final class AuthoringMutationAdapter
         ? expectedRevision ??
               await session.reads.readCatalogRevision(session.projectHandle)
         : null;
-    final revision = catalogRevision ??
-        (await session.snapshot(
-          cacheValidation: _locallyMutatedRoots.remove(session.canonicalRoot)
-              ? ProjectSnapshotCacheValidation.canonical
-              : ProjectSnapshotCacheValidation.session,
-        )).revision;
+    final usesWorkshop = actionId == 'pokemon.ruleset.set' ||
+        actionId == 'campaign.encounter_table.upsert' ||
+        (actionId == 'asset.import' && parameters['adoptExisting'] == true);
+    final String revision;
+    if (usesWorkshop) {
+      final workshop = await session.mutations.readWorkshopSnapshot(
+        session.projectHandle,
+        actionId: actionId,
+        parameters: parameters,
+      );
+      if (expectedRevision != null && expectedRevision != workshop.revision) {
+        await session.snapshot();
+      }
+      revision = workshop.revision;
+    } else {
+      revision = catalogRevision ?? (await session.snapshot(
+        cacheValidation: _locallyMutatedRoots.remove(session.canonicalRoot)
+            ? ProjectSnapshotCacheValidation.canonical
+            : ProjectSnapshotCacheValidation.session,
+      )).revision;
+    }
     final response = await session.mutations.planMutation(
       session.projectHandle,
       AuthoringRequest(
@@ -735,6 +752,7 @@ final class AuthoringMutationAdapter
       snapshotRevision: response.snapshotRevision,
       receipt: response.receipt,
       preview: response.plan.preview,
+      usesWorkshopRevision: usesWorkshop,
     );
   }
 
@@ -755,7 +773,7 @@ final class AuthoringMutationAdapter
     var diagnostic = response.diagnostic;
     EditorAuthoringMutationProjection? projection;
     try {
-      if (revision != null &&
+      if (revision != null && !plan._usesWorkshopRevision &&
           response.receipt.actionId != 'catalog.definition.update') {
         final snapshot = await session.snapshot(
           cacheValidation: ProjectSnapshotCacheValidation.session,

@@ -9,6 +9,7 @@ import '../support/authoring_fingerprint.dart';
 import 'change_set.dart';
 import 'idempotency_ledger.dart';
 import 'revision_set.dart';
+import 'required_source_revision.dart';
 import 'transaction_journal.dart';
 
 enum AuthoringRecoveryDisposition {
@@ -162,6 +163,8 @@ final class AuthoringRecoveryService {
         );
       }
 
+      await requireMatchingSources(_gateway, journal.entries.map(
+          (entry) => (entry.resource, entry.afterRevision)));
       final states = await _states(journal);
       _requireOnlyBeforeOrAfter(states);
       final commitHook = _commitHook;
@@ -279,6 +282,8 @@ final class AuthoringRecoveryService {
       }
       await _requireBulkOrigin(journal);
       await _requireStages(journal);
+      await requireMatchingSources(_gateway, journal.entries.map(
+          (entry) => (entry.resource, entry.beforeRevision)));
       final states = await _states(journal);
       _requireOnlyBeforeOrAfter(states);
 

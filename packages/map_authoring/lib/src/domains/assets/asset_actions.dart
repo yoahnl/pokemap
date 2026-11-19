@@ -12,6 +12,8 @@ import '../../ports/artifact_store.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
+import '../../transactions/required_source_revision.dart';
+import '../../support/authoring_fingerprint.dart';
 import '../../transactions/authoring_payload.dart';
 import '../../transactions/local_authoring_payload.dart';
 import '../../workspace/project_snapshot.dart';
@@ -238,7 +240,7 @@ final class AssetActions {
   final RetainedAssetBlobReader? retainedBlobReader;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
-    _descriptor('asset.import', 'Import one inspected artifact',
+    _descriptor('asset.import', 'Import one inspected artifact or adopt an identical existing project file',
         AuthoringRiskLevel.low),
     _descriptor(
         'asset.import_batch',
@@ -404,6 +406,7 @@ final class AssetActions {
     switch (context.request.actionId) {
       case 'asset.import':
         parameters.allow(const {
+          'adoptExisting',
           'artifactHandle',
           'assetId',
           'logicalPath',
@@ -412,6 +415,15 @@ final class AssetActions {
         });
         addedArtifact =
             _requireArtifact(store!, parameters.string('artifactHandle'));
+        final adoptExisting = context.request.parameters['adoptExisting'];
+        if (context.request.parameters.containsKey('adoptExisting') && adoptExisting is! bool) {
+          throw const FormatException('adoptExisting must be a boolean.');
+        }
+        if (adoptExisting == true && !context.snapshot.resourceMatchesArtifact(
+            assetAdoptionTargetIdentity(parameters.string('logicalPath')), addedArtifact)) {
+          throw AssetActionException('asset.adoption_mismatch',
+              'The existing project file must match the staged artifact.');
+        }
         addedBytes = await store.read(addedArtifact.handle);
         result = import(
           state.catalog,
@@ -513,6 +525,7 @@ final class AssetActions {
       result,
       addedArtifact: addedArtifact,
       addedBytes: addedBytes,
+      adoptExisting: context.request.parameters['adoptExisting'] == true,
       retainedBlobReader: retainedBlobReader,
     );
   }
@@ -1044,14 +1057,23 @@ Future<AuthoringMutationDraft> _draft(
   List<int>? addedBytes,
   RetainedAssetBlobReader? retainedBlobReader,
   bool includeCatalogChange = true,
+  bool adoptExisting = false,
 }) async {
   final changes = <AuthoringResourceChange>[];
   final diff = <AuthoringDiffEntry>[];
   final retainedBlobDigests = <String>[];
+  final catalogBytes = includeCatalogChange ? _encodeCatalog(result.catalog) : null;
   final catalogRef = AuthoringResourceRef(
     kind: 'assetCatalog',
     id: 'project',
     revision: snapshot.resourceFingerprints[assetCatalogResourceIdentity],
+    extensions: adoptExisting
+        ? requiredSourceRevision(
+            targetRevision: computeAuthoringBytesFingerprint(catalogBytes!, logicalName: assetCatalogStorageKey),
+            sourcePath: result.after!.logicalPath,
+            sourceRevision: snapshot.resourceFingerprints[assetAdoptionTargetIdentity(result.after!.logicalPath)]!,
+          )
+        : const {},
   );
   if (includeCatalogChange) {
     changes.add(
@@ -1059,7 +1081,7 @@ Future<AuthoringMutationDraft> _draft(
       resource: catalogRef,
       storageKey: assetCatalogStorageKey,
       beforeBytes: state.bytes,
-      afterBytes: _encodeCatalog(result.catalog),
+      afterBytes: catalogBytes,
     ),
   );
     diff.add(
@@ -1091,6 +1113,7 @@ Future<AuthoringMutationDraft> _draft(
           : await snapshot.captureResourcePayload(beforeIdentity);
   switch (result.operation) {
     case 'import':
+      if (adoptExisting) break;
       await _addLogicalAssetChange(
         snapshot: snapshot,
         changes: changes,
@@ -1428,6 +1451,14 @@ AuthoringActionDescriptor _descriptor(
     summary: summary,
     inputSchemaId: 'pokemap.authoring.$id.input.v1',
     outputSchemaId: 'pokemap.authoring.asset.mutation.v1',
+    extensions: id == 'asset.import' ? const {
+      'adoptExisting': {
+        'type': 'boolean',
+        'default': false,
+        'requires': 'identical unmanaged file under assets/',
+        'undo': 'preserve pre-existing logical file',
+      },
+    } : const {},
     riskLevel: riskLevel,
     resourceKinds: resourceKinds,
     capabilityIds: const ['authoring.assets'],

@@ -117,8 +117,9 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       Map3dEditProjection.admittedActions.contains(actionId);
   final modelShadows = actionId == 'model3d.configure' && parameters.length == 2 &&
       parameters.containsKey('modelId') && parameters.containsKey('castsShadowsByDefault');
+  final adoptingAsset = actionId == 'asset.import' && parameters['adoptExisting'] == true;
   final incomingReward = introducesPeriodicReward(actionId, parameters);
-  if (!mapEdit && !modelShadows && !incomingReward && !_nativeWorkshopActions.contains(actionId)) {
+  if (!mapEdit && !modelShadows && !adoptingAsset && !incomingReward && !_nativeWorkshopActions.contains(actionId)) {
     throw const ProjectSnapshotException('project.workshop_scope_required',
         'This action does not have a native workshop dependency scope.');
   }
@@ -176,7 +177,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   final editingScene = actionId == 'scene.condition.set' || actionId == 'scene.graph.patch' || incomingReward;
   final sceneCondition = editingScene || conditionRule || conditionEvent;
   final presentationImport =
-      actionId == 'presentationMedia.import' || adoptingAudio;
+      actionId == 'presentationMedia.import' || adoptingAudio || adoptingAsset;
   final guided = actionId == 'event_v2.template.apply' ||
       actionId == 'narrative.publish_document';
   final sections = <String>{
@@ -318,8 +319,13 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   }
   if (presentationImport) {
     await read(assetCatalogResourceIdentity, assetCatalogStorageKey);
-    await read(
-        projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
+    if (adoptingAsset) {
+      final path = parameters['logicalPath'];
+      if (path is! String) throw const FormatException('Expected an asset path.');
+      await read(assetAdoptionTargetIdentity(path), path);
+    } else {
+      await read(projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
+    }
     if (adoptingAudio) {
       final assetId = parameters['assetId'];
       if (assetId is! String) {

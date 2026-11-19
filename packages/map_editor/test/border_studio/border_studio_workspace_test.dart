@@ -45,7 +45,12 @@ void main() {
     expect(find.text('Clôture poteaux-traverses'), findsOneWidget);
     expect(find.text('Ligne connectée'), findsOneWidget);
     expect(find.text('Chaîne de pierres'), findsOneWidget);
-    expect(find.text('Publication disponible'), findsNWidgets(5));
+    expect(find.text('Façade horizontale'), findsOneWidget);
+    expect(find.text('Rebord'), findsOneWidget);
+    expect(
+      find.text('Publication disponible'),
+      findsNWidgets(BorderBlueprintTemplate.values.length),
+    );
     expect(find.text('Publication après BORD-06'), findsNothing);
 
     final fenceTemplate = find.byKey(
@@ -1010,7 +1015,7 @@ BorderAssetSnapshotPreparation _snapshotPreparation(
   final fingerprint = digit * 64;
   final relativePath = 'assets/borders/snapshots/$fingerprint/frame_0000.png';
   return BorderAssetSnapshotPreparation(
-    sourceElementId: primitive.sourceElementId,
+    sourceElementId: primitive.sourceElementId!,
     snapshot: BorderVisualSnapshot(
       id: 'border-snapshot-sha256:$fingerprint',
       contentFingerprint: fingerprint,
