@@ -29,7 +29,7 @@ void main() {
     final session = ProjectSession(
       sessionId: 'scene-assets',
       name: 'Carte',
-      directoryPath: root.path,
+      directoryPath: root.resolveSymbolicLinksSync(),
     );
     final visuals = (await tester.runAsync(() async {
       await File('${root.path}/ground.png').writeAsBytes(ground);
