@@ -106,12 +106,14 @@ class MapWorkspaceController {
   ProjectManifest? _combinedVisuals;
   ProjectManifest? _resourceVisualDefinitions;
   ProjectManifest? get visualProject {
-    if (hasCompleteProject)
+    if (hasCompleteProject) {
       return project == null ? null : _withSurfConfiguration(project!);
+    }
     final map = _selections[active?.base.mapId]?.definitions ?? project;
     final family = _resourceVisualDefinitions;
-    if (map == null || family == null)
+    if (map == null || family == null) {
       return map == null ? null : _withSurfConfiguration(map);
+    }
     if (!identical(map, _visualMapSource) ||
         !identical(family, _visualFamilySource)) {
       _cacheVisualComposition(map, family);

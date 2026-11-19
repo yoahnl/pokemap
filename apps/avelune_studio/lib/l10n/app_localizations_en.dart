@@ -508,6 +508,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resourceSearch => 'Search a resource';
 
   @override
+  String get libraryAuthorResources => 'Resources to use';
+
+  @override
+  String get libraryComponents => 'Technical components';
+
+  @override
+  String get libraryAllFamilies => 'All families';
+
+  @override
+  String get libraryFamilies => 'Families';
+
+  @override
+  String get libraryRefresh => 'Refresh library';
+
+  @override
+  String libraryResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count results',
+      one: '1 result',
+      zero: 'No results',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get resourceCategories => 'Categories';
 
   @override
@@ -1285,9 +1312,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get storyTabBehaviour => 'Behaviour';
-
-  @override
   String get storyTabProperties => 'Properties';
 
   @override
@@ -1312,9 +1336,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storyThen => 'THEN';
-
-  @override
-  String get storyAfter => 'AFTER IT RUNS';
 
   @override
   String storyTrigger(String kind) {
@@ -1542,9 +1563,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storyBehaviourActive => 'Trigger enabled';
 
   @override
-  String get storyWhenField => 'When';
-
-  @override
   String get storyThenField => 'Then · scene to run';
 
   @override
@@ -1571,24 +1589,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This behaviour was disabled: enable it again once its setup is complete.';
 
   @override
-  String get storyLineSays => 'This character says…';
-
-  @override
-  String get storyLineShows => 'What is shown…';
-
-  @override
   String get storyLineLoading => 'Reading the line…';
-
-  @override
-  String storyLineShared(String scenes) {
-    return 'This line is also used by $scenes. Detach it to edit it here without changing the others.';
-  }
-
-  @override
-  String get storyLineDetach => 'Detach';
-
-  @override
-  String get storyLineOrScene => 'Or start a scene';
 
   @override
   String storyLineUnavailable(String problem) {
@@ -2329,12 +2330,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openingPhaseMapDirectory => 'Map element index';
 
   @override
-  String get storyTabMemory => 'Game memory';
-
-  @override
-  String get memorySectionFacts => 'Facts';
-
-  @override
   String get memorySectionRules => 'World rules';
 
   @override
@@ -2790,9 +2785,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get memoryPresenceSaveFirst =>
       'Save the map to read this character’s presence.';
-
-  @override
-  String get storyTabWorld => 'Whole game';
 
   @override
   String get behavioursSearch => 'Search a behaviour, a map or an element';

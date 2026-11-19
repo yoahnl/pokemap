@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart' show ResourceLibraryRole;
 
+import '../../../shared/localization/studio_locale.dart';
 import 'resource_library_view_data.dart';
 
 class ResourceLibraryToolbar extends StatelessWidget {
@@ -44,7 +45,7 @@ class ResourceLibraryToolbar extends StatelessWidget {
           key: const ValueKey('library-search'),
           controller: search,
           focusNode: searchFocus,
-          label: 'Rechercher une ressource',
+          label: context.l10n.resourceSearch,
           onChanged: onSearch,
         ),
       ),
@@ -123,8 +124,8 @@ class ResourceLibraryRoles extends StatelessWidget {
         StudioFilterChip(
           key: ValueKey('library-role-${option.name}'),
           label: option == ResourceLibraryRole.standard
-              ? 'Ressources à utiliser'
-              : 'Composants techniques',
+              ? context.l10n.libraryAuthorResources
+              : context.l10n.libraryComponents,
           selected: option == role,
           onSelected: (_) => onRole(option),
         ),
@@ -134,7 +135,7 @@ class ResourceLibraryRoles extends StatelessWidget {
           child: StudioSelect(
             label: 'Famille',
             value: families.containsKey(family) ? family : '',
-            options: {'': 'Toutes les familles', ...families},
+            options: {'': context.l10n.libraryAllFamilies, ...families},
             onChanged: (value) => onFamily(value.isEmpty ? null : value),
           ),
         ),

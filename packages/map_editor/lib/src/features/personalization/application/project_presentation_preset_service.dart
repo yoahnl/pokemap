@@ -129,6 +129,9 @@ final class ProjectPresentationPresetService {
               'artifactHandle': artifact.handle,
               'assetId': _assetId(artifact, knownIds),
               'logicalPath': logicalPath,
+              if (logicalPath != sharedLicensePath ||
+                  await File(p.join(projectRootPath, logicalPath)).exists())
+                'adoptExisting': true,
               'tags': <String>[
                 licensePaths.contains(logicalPath)
                     ? 'presentation-license'

@@ -50,6 +50,7 @@ final class LocalStorylineReadAdapter implements StorylineReadPort {
   Future<List<StorylineAsset>> storylines() =>
       LocalWorkshopReader(session, reader: reader).read(
         metadataFields: const {'storylines'},
+        initializeSceneOwners: false,
         operation: (project, _, _) async => project.storylines,
       );
 }

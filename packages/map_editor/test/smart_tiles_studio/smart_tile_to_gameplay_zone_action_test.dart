@@ -12,6 +12,24 @@ import 'package:map_editor/src/features/smart_tiles_studio/application/smart_til
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
+final _transitionConfig = ProjectBattleTransitionConfig(
+  definitions: [
+    for (final (id, usage) in [
+      ('grass-fade', 'wild'),
+      ('forest-fade', 'wild'),
+      ('trainer-fade', 'trainer'),
+    ])
+      BattleTransitionDefinition.fromJson({
+        'id': id,
+        'label': id,
+        'usages': [usage],
+        'phases': [
+          {'kind': 'fadeToBlack', 'durationSeconds': 0.4},
+        ],
+      }),
+  ],
+);
+
 void main() {
   group('Tall grass Smart Tile to gameplay zone presenter', () {
     test('builds a greedy encounter generation preview from painted cells', () {
@@ -513,6 +531,7 @@ void main() {
                   _smartTilePreset(id: 'tall_grass', name: 'Tall Grass'),
                 ],
               ),
+              transitionConfig: _transitionConfig,
               encounterTables: const [
                 ProjectEncounterTable(
                   id: 'route_1_grass',
@@ -526,13 +545,17 @@ void main() {
         ),
       );
 
-      final firstTransition = battleWildTransitionIds.first;
-      final secondTransition = battleWildTransitionIds[1];
+      const firstTransition = 'grass-fade';
+      const secondTransition = 'forest-fade';
+      expect(
+        find.byKey(const Key('smart-tile-battle-transition-trainer-fade')),
+        findsNothing,
+      );
 
       expect(
         find.byKey(Key('smart-tile-battle-transition-$firstTransition')),
         findsOneWidget,
-        reason: 'chaque transition du contrat partagé est proposée',
+        reason: 'les transitions sauvages du projet sont proposées',
       );
       expect(
         find.textContaining('le défaut du projet s’applique'),
@@ -636,7 +659,7 @@ void main() {
         'BETA-BAT-034 : les transitions déjà posées sur le calque sont '
         'rechargées', (tester) async {
       SmartTileEncounterBehaviorConfiguration? configuration;
-      final existing = battleWildTransitionIds[2];
+      const existing = 'forest-fade';
 
       await tester.pumpWidget(
         MaterialApp(
@@ -661,6 +684,7 @@ void main() {
                   _smartTilePreset(id: 'tall_grass', name: 'Tall Grass'),
                 ],
               ),
+              transitionConfig: _transitionConfig,
               encounterTables: const [
                 ProjectEncounterTable(
                   id: 'route_1_grass',

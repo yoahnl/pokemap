@@ -17,7 +17,7 @@ class StudioPlaytestPerformanceSample {
 }
 
 class StudioPlaytestPerformanceMonitor extends ChangeNotifier {
-  StudioPlaytestPerformanceMonitor({bool active = true}) : _active = active {
+  StudioPlaytestPerformanceMonitor({this._active = true}) {
     SchedulerBinding.instance.addTimingsCallback(_observe);
   }
 

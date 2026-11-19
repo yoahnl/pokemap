@@ -9,7 +9,10 @@ import 'package:flutter_test/flutter_test.dart';
 import '../presentation/story_memory_harness.dart';
 import 'storyline_widget_support.dart';
 
-Future<void> chooseLinkedScene(WidgetTester tester) async {
+Future<void> chooseLinkedScene(
+  WidgetTester tester, {
+  String sceneTitle = 'Scène talk',
+}) async {
   await tester.tap(find.byKey(const ValueKey('trame-milestone-leave')));
   await settleMemory(tester);
   final picker = find.byKey(const ValueKey('trame-link-scene'));
@@ -28,7 +31,7 @@ Future<void> chooseLinkedScene(WidgetTester tester) async {
   await settleMemory(tester);
   await tester.tap(picker);
   await settleMemory(tester);
-  await tester.tap(find.text('Scène talk').last);
+  await tester.tap(find.text(sceneTitle).last);
   await settleMemory(tester);
 }
 
@@ -56,23 +59,7 @@ void main() {
         await openTrameStudio(tester, index: index);
         final trame = tester.widget<StoryPage>(find.byType(StoryPage)).trame!;
         expect(index.documentRequests, isEmpty);
-        await tester.tap(find.byKey(const ValueKey('trame-milestone-leave')));
-        await settleMemory(tester);
-        final picker = find.byKey(const ValueKey('trame-link-scene'));
-        await tester.scrollUntilVisible(
-          picker,
-          200,
-          scrollable: find
-              .descendant(
-                of: find.byKey(const ValueKey('story-inspector')),
-                matching: find.byType(Scrollable),
-              )
-              .first,
-        );
-        await tester.tap(picker);
-        await settleMemory(tester);
-        await tester.tap(find.text('Scène orpheline').last);
-        await settleMemory(tester);
+        await chooseLinkedScene(tester, sceneTitle: 'Scène orpheline');
         expect(index.documentRequests, ['orphan']);
         expect(
           trame.fullMilestone('main', 'chapter_one', 'leave')!.sceneLinkIds,

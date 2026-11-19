@@ -156,6 +156,112 @@ void main() {
     },
   );
 
+  for (final (width, hidesInspector) in [(1280.0, true), (1000.0, false)]) {
+    testWidgets('the Story section bar fits at width $width and 200% text', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('fr'),
+          theme: studioTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(2)),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: StoryWorkspace(
+              section: StorySection.rules,
+              onSelected: (_) {},
+              editable: true,
+              builder: (panels) =>
+                  panels(const Text('Contenu'), const Text('Détails')),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final header = find.byKey(const ValueKey('story-section-header'));
+      final toggle = find.byKey(const ValueKey('story-toggle-inspector'));
+      final inspectorHeader = find.byKey(
+        const ValueKey('story-inspector-header'),
+      );
+      final action = find.descendant(
+        of: header,
+        matching: find.widgetWithText(StudioButton, 'Vérifier'),
+      );
+      final bounds = tester.getRect(header);
+      expect(bounds.contains(tester.getCenter(action)), isTrue);
+      expect(bounds.contains(tester.getCenter(toggle)), isTrue);
+      if (hidesInspector) {
+        final sideBounds = tester.getRect(inspectorHeader);
+        expect(sideBounds.top, bounds.top);
+        expect(sideBounds.left, bounds.right);
+        expect(sideBounds.height, bounds.height);
+      } else {
+        expect(inspectorHeader, findsNothing);
+      }
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.text('Propriétés'), hidesInspector ? findsNothing : findsOne);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('an offstage Story panel cannot take focus at width $width', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final content = FocusNode();
+      final inspector = FocusNode();
+      addTearDown(content.dispose);
+      addTearDown(inspector.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: studioTheme(),
+          home: Scaffold(
+            body: StoryWorkspace(
+              section: StorySection.facts,
+              onSelected: (_) {},
+              editable: true,
+              builder: (panels) => panels(
+                TextField(focusNode: content),
+                TextField(focusNode: inspector),
+              ),
+            ),
+          ),
+        ),
+      );
+      final toggle = find.byKey(const ValueKey('story-toggle-inspector'));
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      final visible = hidesInspector ? content : inspector;
+      final hidden = hidesInspector ? inspector : content;
+      visible.requestFocus();
+      await tester.pump();
+      expect(visible.hasPrimaryFocus, isTrue);
+
+      hidden.requestFocus();
+      await tester.pump();
+      expect(visible.hasPrimaryFocus, isTrue);
+      expect(hidden.hasPrimaryFocus, isFalse);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      hidden.requestFocus();
+      await tester.pump();
+      expect(hidden.hasPrimaryFocus, isTrue);
+    });
+  }
+
   testWidgets('all seven section labels follow the Studio language', (
     tester,
   ) async {

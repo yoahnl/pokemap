@@ -1037,8 +1037,9 @@ class EditorNotifier extends _$EditorNotifier
     required SceneNode current,
   }) {
     final project = state.project;
-    if (project == null || state.projectRootPath != projectRootPath)
+    if (project == null || state.projectRootPath != projectRootPath) {
       return false;
+    }
     final scenes = project.scenes.toList();
     final index = scenes.indexWhere((scene) => scene.id == sceneId);
     if (index < 0) return false;
@@ -1066,8 +1067,9 @@ class EditorNotifier extends _$EditorNotifier
     required WorldRuleDefinition current,
   }) {
     final project = state.project;
-    if (project == null || state.projectRootPath != projectRootPath)
+    if (project == null || state.projectRootPath != projectRootPath) {
       return false;
+    }
     final existing = project.worldRules
         .where((rule) => rule.id == current.id)
         .firstOrNull;

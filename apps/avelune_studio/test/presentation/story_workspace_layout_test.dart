@@ -60,6 +60,37 @@ void main() {
     expect(verification.dialogueReads, isEmpty);
   });
 
+  testWidgets('the Trame header opens Verification with the keyboard', (
+    tester,
+  ) async {
+    final verification = FakeVerificationPort();
+    await openMemoryStudio(
+      tester,
+      memoryIndex(),
+      storylines: FakeStorylineRead(),
+      verification: verification,
+    );
+    await openTrame(tester);
+    final header = find.byKey(const ValueKey('story-section-header'));
+    final action = find.descendant(
+      of: header,
+      matching: find.widgetWithText(StudioButton, 'Vérifier'),
+    );
+    expect(action, findsOneWidget);
+    for (var step = 0; step < 50 && !_focusedWithin(tester, action); step++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await settleMemory(tester);
+    }
+    expect(_focusedWithin(tester, action), isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await settleMemory(tester);
+    final selected = find.byKey(const ValueKey('story-section-verification'));
+    expect(tester.widget<StudioNavigationEntry>(selected).selected, isTrue);
+    expect(find.byKey(const ValueKey('verification-start')), findsOneWidget);
+    expect(verification.analyses, 0);
+    expect(action, findsNothing);
+  });
+
   testWidgets(
     'opening Trame does not load other narrative directories or documents',
     (tester) async {
@@ -81,6 +112,7 @@ void main() {
   );
 
   for (final size in [
+    const Size(1280, 720),
     const Size(1280, 800),
     const Size(1440, 900),
     const Size(1920, 1080),

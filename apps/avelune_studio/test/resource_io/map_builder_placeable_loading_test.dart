@@ -51,10 +51,13 @@ void main() {
         ),
         models3d: [model('bed'), model('bed_leg'), model('lamp')],
         resourceLibraryCatalog: ResourceLibraryCatalog(
+          families: [ResourceFamily(id: 'workshop', name: 'Atelier')],
           entries: [
             ResourceLibraryEntry(
               resourceKind: 'model3d',
               resourceId: 'bed_leg',
+              familyId: 'workshop',
+              description: 'Pièce de lit',
               role: ResourceLibraryRole.component,
             ),
             ResourceLibraryEntry(
@@ -96,6 +99,25 @@ void main() {
       ResourceUsageCategory.furniture,
     );
     expect(models(all), ['bed', 'bed_leg', 'lamp']);
+  });
+
+  test('the project library lists unclassified models and technical components from the working catalogue', () async {
+    final maps = LocalMapWorkspaceAdapter();
+    await maps.loadCatalog(session);
+    final head = File('${root.path}/catalog/HEAD.json');
+    final before = await head.readAsBytes();
+    final library = await maps.readResourceLibrary(session);
+    final bed = library.items.singleWhere((entry) => entry.id == 'bed');
+    expect(bed.role, ResourceLibraryRole.standard);
+    expect(bed.familyId, isNull);
+    final component = library.items.singleWhere(
+      (entry) => entry.id == 'bed_leg',
+    );
+    expect(component.role, ResourceLibraryRole.component);
+    expect(component.familyId, 'workshop');
+    expect(component.description, 'Pièce de lit');
+    expect(library.catalog.families.single.name, 'Atelier');
+    expect(await head.readAsBytes(), before);
   });
 
   test(

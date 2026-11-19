@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show ChangeNotifier, listEquals;
 import 'package:map_core/map_core_domain.dart';
@@ -9,42 +8,11 @@ import '../application/map_workspace_controller.dart';
 import '../domain/map_exterior_decoration_port.dart';
 import '../../rendering/contracts/map_workspace_visuals.dart';
 
-final class _NeighborAssetSource {
-  _NeighborAssetSource(this.project, this.visuals);
-  final ProjectManifest project;
-  final SpatialWorkspaceVisuals visuals;
-  Future<Uint8List> loadModel(String id) {
-    final scoped = visuals;
-    if (scoped is! SpatialScopedWorkspaceVisuals) return visuals.readModel(id);
-    final definition = project.models3d
-        .where((model) => model.id == id)
-        .firstOrNull;
-    if (definition == null) throw StateError('Modèle voisin absent : $id');
-    return (scoped as SpatialScopedWorkspaceVisuals).readModelDefinition(
-      definition,
-    );
-  }
-
-  Future<Uint8List> loadGroundImage(String id) {
-    final scoped = visuals;
-    if (scoped is! SpatialScopedWorkspaceVisuals) {
-      return visuals.readGroundImage(id);
-    }
-    final definition = project.tilesets
-        .where((tileset) => tileset.id == id)
-        .firstOrNull;
-    if (definition == null) throw StateError('Terrain voisin absent : $id');
-    return (scoped as SpatialScopedWorkspaceVisuals).readGroundDefinition(
-      definition,
-    );
-  }
-}
-
 final class _EditorNeighborSource {
   const _EditorNeighborSource(this.map, this.decoration, this.assets);
   final MapData map;
   final MapExteriorDecoration? decoration;
-  final _NeighborAssetSource assets;
+  final SpatialMapAssetSource assets;
 }
 
 class SpatialMapNeighborSession extends ChangeNotifier {
@@ -129,7 +97,7 @@ class SpatialMapNeighborSession extends ChangeNotifier {
             return _EditorNeighborSource(
               neighbor,
               decoration,
-              _NeighborAssetSource(definitions, spatialVisuals),
+              SpatialMapAssetSource(definitions, spatialVisuals),
             );
           } on Object {
             _neighborSources.remove(key);

@@ -217,7 +217,7 @@ extension _SpatialExteriorAuthoring on _SpatialMapEditingViewportState {
   }
 
   List<SpatialSceneDecoration> decorationVisuals(
-    SpatialWorkspaceVisuals visuals,
+    SpatialMapAssetSource assets,
     MapData? preview,
   ) {
     final controller = exterior;
@@ -258,8 +258,8 @@ extension _SpatialExteriorAuthoring on _SpatialMapEditingViewportState {
         decoration: decoration,
         offset: Offset.zero,
         project: widget.project,
-        loadGroundImage: visuals.readGroundImage,
-        loadModel: visuals.readModel,
+        loadGroundImage: assets.loadGroundImage,
+        loadModel: assets.loadModel,
       ),
     ];
   }

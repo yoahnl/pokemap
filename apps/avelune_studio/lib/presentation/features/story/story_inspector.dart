@@ -4,9 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 class StoryInspector extends StatelessWidget {
-  const StoryInspector({super.key, required this.child, this.width = 320});
+  const StoryInspector({
+    super.key,
+    required this.child,
+    required this.showTitle,
+    this.width = 320,
+  });
 
   final Widget child;
+  final bool showTitle;
   final double width;
 
   @override
@@ -15,7 +21,8 @@ class StoryInspector extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        StudioPageHeader(title: context.l10n.inspectorTitle),
+        if (showTitle)
+          StudioPageHeader.section(title: context.l10n.inspectorTitle),
         Expanded(child: child),
       ],
     ),

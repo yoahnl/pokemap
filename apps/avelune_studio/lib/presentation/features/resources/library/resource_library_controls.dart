@@ -1,6 +1,7 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
+import '../../../shared/localization/studio_locale.dart';
 import 'resource_library_view_data.dart';
 
 class ResourceLibraryHeading extends StatelessWidget {
@@ -45,7 +46,7 @@ class ResourceLibraryHeading extends StatelessWidget {
             ),
           if (onRefresh != null)
             StudioTool(
-              label: 'Actualiser la bibliothèque',
+              label: context.l10n.libraryRefresh,
               icon: Icons.refresh,
               onPressed: onRefresh,
             ),

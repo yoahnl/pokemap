@@ -66,6 +66,37 @@ abstract interface class SpatialScopedWorkspaceVisuals {
   Future<Uint8List> readGroundDefinition(ProjectTilesetEntry tileset);
 }
 
+final class SpatialMapAssetSource {
+  SpatialMapAssetSource(this.project, this.visuals);
+  final ProjectManifest project;
+  final SpatialWorkspaceVisuals visuals;
+  Future<Uint8List> loadModel(String id) {
+    final scoped = visuals;
+    if (scoped is! SpatialScopedWorkspaceVisuals) return visuals.readModel(id);
+    final definition = project.models3d
+        .where((model) => model.id == id)
+        .firstOrNull;
+    if (definition == null) throw StateError('Modèle introuvable : $id');
+    return (scoped as SpatialScopedWorkspaceVisuals).readModelDefinition(
+      definition,
+    );
+  }
+
+  Future<Uint8List> loadGroundImage(String id) {
+    final scoped = visuals;
+    if (scoped is! SpatialScopedWorkspaceVisuals) {
+      return visuals.readGroundImage(id);
+    }
+    final definition = project.tilesets
+        .where((tileset) => tileset.id == id)
+        .firstOrNull;
+    if (definition == null) throw StateError('Image de terrain absente : $id');
+    return (scoped as SpatialScopedWorkspaceVisuals).readGroundDefinition(
+      definition,
+    );
+  }
+}
+
 abstract interface class SpatialModelSourceWorkspaceVisuals {
   SpatialModelSourceUpdates get modelSourceUpdates;
   Future<void> updateModelSources(

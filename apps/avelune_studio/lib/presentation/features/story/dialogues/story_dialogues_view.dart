@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 
 import 'package:avelune_studio/features/dialogues/application/dialogue_catalog_controller.dart';
 import 'package:avelune_studio/presentation/features/story/game_memory_states.dart';
@@ -151,7 +151,9 @@ class _StoryDialoguesViewState extends State<StoryDialoguesView> {
                                     StudioSpacing.l,
                                   ),
                                   scrollCacheExtent:
-                                      const ScrollCacheExtent.pixels(0),
+                                      const rendering.ScrollCacheExtent.pixels(
+                                        0,
+                                      ),
                                   itemCount: rows.length,
                                   itemBuilder: (context, index) =>
                                       StoryDialogueRow(

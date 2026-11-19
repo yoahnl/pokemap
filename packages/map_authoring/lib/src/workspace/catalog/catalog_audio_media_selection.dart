@@ -105,9 +105,12 @@ Future<CatalogWorkshopSelection> _readAudioMediaWorkshop({
         }
       }
       if (input['logicalPath'] case final String path when !presentation) {
-        await readFile(
-            importingBytes ? 'mediaTarget:$path' : 'audioTarget', path);
-        if (importingBytes && revisions[path] != null) {
+        final adoptingSource = actionId == 'asset.import' && input['adoptExisting'] == true;
+        final identity = adoptingSource
+            ? assetAdoptionTargetIdentity(path)
+            : importingBytes ? 'mediaTarget:$path' : 'audioTarget';
+        await readFile(identity, path);
+        if (importingBytes && !adoptingSource && revisions[path] != null) {
           throw const FormatException(
               'catalog.media: destination already exists');
         }
