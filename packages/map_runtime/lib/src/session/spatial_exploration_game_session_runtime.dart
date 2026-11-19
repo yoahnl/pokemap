@@ -1244,7 +1244,11 @@ final class SpatialExplorationGameSessionRuntime
       _ensureGameplayActive();
       if (claimStart != null && !claimStart()) return 'blocked';
       final completed = await _battle!.start(
-          bundle: bundle, request: request, defeatRecovery: defeatRecovery);
+        bundle: bundle,
+        request: request,
+        runtimeLocale: _session!.runtimeLocale,
+        defeatRecovery: defeatRecovery,
+      );
       _ensureGameplayActive();
       if (!completed || _sceneBattleOutcome == null) {
         throw StateError('The spatial battle did not complete.');

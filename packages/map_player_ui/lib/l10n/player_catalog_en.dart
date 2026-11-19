@@ -499,6 +499,12 @@ class PlayerCatalogEn extends PlayerCatalog {
   String get battleCommands => 'COMMANDS';
 
   @override
+  String get battleFight => 'FIGHT';
+
+  @override
+  String get battleRun => 'RUN';
+
+  @override
   String get battleMoves => 'MOVES';
 
   @override

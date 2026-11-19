@@ -155,6 +155,7 @@ class BattleCommandOverlayHudSnapshot {
     this.hpTweenDurationMs,
     this.hpTweenRevision = 0,
     this.genderSymbol,
+    this.isAlreadyCaught = false,
     this.statusLabel,
     this.experienceProgress,
     this.experienceProgressTarget,
@@ -198,6 +199,7 @@ class BattleCommandOverlayHudSnapshot {
   final int? hpTweenDurationMs;
   final int hpTweenRevision;
   final String? genderSymbol;
+  final bool isAlreadyCaught;
   final String? statusLabel;
   final double? experienceProgress;
   final double? experienceProgressTarget;

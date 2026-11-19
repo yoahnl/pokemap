@@ -161,6 +161,8 @@
   "progression": "Progress",
   "battleResult": "Battle result",
   "battleCommands": "COMMANDS",
+  "battleFight": "FIGHT",
+  "battleRun": "RUN",
   "battleMoves": "MOVES",
   "battleBag": "BAG",
   "battleBagMedicine": "HEALING",

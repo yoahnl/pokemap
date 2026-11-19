@@ -161,6 +161,8 @@
   "progression": "Progression",
   "battleResult": "Résultat du combat",
   "battleCommands": "COMMANDES",
+  "battleFight": "ATTAQUER",
+  "battleRun": "FUITE",
   "battleMoves": "CAPACITÉS",
   "battleBag": "SAC",
   "battleBagMedicine": "SOIN",

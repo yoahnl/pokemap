@@ -1064,6 +1064,18 @@ abstract class PlayerCatalog {
   /// **'COMMANDS'**
   String get battleCommands;
 
+  /// No description provided for @battleFight.
+  ///
+  /// In en, this message translates to:
+  /// **'FIGHT'**
+  String get battleFight;
+
+  /// No description provided for @battleRun.
+  ///
+  /// In en, this message translates to:
+  /// **'RUN'**
+  String get battleRun;
+
   /// No description provided for @battleMoves.
   ///
   /// In en, this message translates to:

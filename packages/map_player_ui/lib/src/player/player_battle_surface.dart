@@ -103,6 +103,7 @@ final class PlayerBattleHudViewData {
     this.hpTweenRevision = 0,
     this.statusLabel,
     this.genderSymbol,
+    this.isAlreadyCaught = false,
     this.experienceProgress,
     this.experienceProgressTarget,
     this.xpTweenDuration,
@@ -132,6 +133,7 @@ final class PlayerBattleHudViewData {
   final int hpTweenRevision;
   final String? statusLabel;
   final String? genderSymbol;
+  final bool isAlreadyCaught;
   final double? experienceProgress;
   final double? experienceProgressTarget;
   final Duration? xpTweenDuration;
@@ -862,7 +864,7 @@ class _BattleHud extends StatelessWidget {
                   ),
                   container: true,
                   label:
-                      '${data.ownerLabel}, ${data.speciesLabel}, ${context.playerL10n.levelLabel(data.level)}, ${context.playerL10n.hpLabel(data.currentHp, data.maxHp)}${experience == null ? '' : ', ${(experience * 100).round()} %'}',
+                      '${data.ownerLabel}, ${data.speciesLabel}, ${context.playerL10n.levelLabel(data.level)}, ${context.playerL10n.hpLabel(data.currentHp, data.maxHp)}${experience == null ? '' : ', ${(experience * 100).round()} %'}${data.isAlreadyCaught ? ', ${context.playerL10n.pokedexCaught}' : ''}',
                   child: ExcludeSemantics(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -908,6 +910,20 @@ class _BattleHud extends StatelessWidget {
                                           'battle-gender-${identity ?? sideId}',
                                         ),
                                         symbol: gender,
+                                      ),
+                                    ],
+                                    if (data.isAlreadyCaught) ...[
+                                      const SizedBox(width: 4),
+                                      Tooltip(
+                                        message: context.playerL10n.pokedexCaught,
+                                        child: Icon(
+                                          Icons.check_circle_outline_rounded,
+                                          key: ValueKey<String>(
+                                            'battle-caught-${identity ?? sideId}',
+                                          ),
+                                          size: 13,
+                                          color: chrome.experience,
+                                        ),
                                       ),
                                     ],
                                   ],
