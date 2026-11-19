@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
+import { mutationRevision } from "./mutation_revision.js";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 function record(value: unknown): JsonRecord {
@@ -49,10 +50,12 @@ test("live MCP discovers conditional encounters and persists reopens rejects and
     const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
     const id = `variant-${++sequence}`;
     const before = await readFile(projectFile);
+    const parameters = actionId.endsWith("_batch") ? { values: table } : { value: table };
+    const revision = await mutationRevision(client, String(workspace.projectHandle), actionId, parameters, validation.snapshotRevision);
     const result = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
       requestId: id, actionId, actionVersion: 1,
-      workspaceHandle: workspace.workspaceHandle, expectedRevision: validation.snapshotRevision,
-      idempotencyKey: id, parameters: actionId.endsWith("_batch") ? { values: table } : { value: table },
+      workspaceHandle: workspace.workspaceHandle, ...revision,
+      idempotencyKey: id, parameters,
     } }, failure);
     assert.deepEqual(await readFile(projectFile), before);
     assert.deepEqual(await readFile(mapFile), mapBefore);
@@ -89,7 +92,7 @@ test("live MCP discovers conditional encounters and persists reopens rejects and
     const beforeInvalid = await readFile(projectFile);
     for (const timeWindows of [[{ startMinute: 240, endMinute: 240 }], [{ startMinute: -1, endMinute: 600 }], [{ startMinute: 240.5, endMinute: 600 }]]) {
       const rejected = await plan({ ...value, variants: [{ ...value.variants[0], timeWindows }] }, true);
-      assert.notEqual(rejected.domainCode, "worker.internal");
+      assert.equal(rejected.domainCode, "worker.request_invalid");
       assert.deepEqual(await readFile(projectFile), beforeInvalid);
     }
     const history = await call("pokemap_history", { operation: "list", projectHandle: workspace.projectHandle, limit: 1 });
@@ -102,9 +105,14 @@ test("live MCP discovers conditional encounters and persists reopens rejects and
     await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: batch.planId, operationId: "apply-encounter-batch" });
     const batchSaved = await readFile(projectFile);
     assert.equal((record(JSON.parse(batchSaved.toString())).encounterTables as unknown[]).length, 2);
-    for (const values of [[], [value, value], [value, { ...value, id: "missing-species", entries: [{ speciesId: "missing", minLevel: 2, maxLevel: 3 }] }]]) {
+    const invalidBatches = [
+      { values: [], code: "encounter.batch_invalid" },
+      { values: [value, value], code: "encounter.batch_duplicate_id" },
+      { values: [value, { ...value, id: "missing-species", entries: [{ speciesId: "missing", minLevel: 2, maxLevel: 3 }] }], code: "encounter.species_unavailable" },
+    ];
+    for (const { values, code } of invalidBatches) {
       const rejected = await plan(values, true, batchId);
-      assert.notEqual(rejected.domainCode, "worker.internal");
+      assert.equal(rejected.domainCode, code);
       assert.deepEqual(await readFile(projectFile), batchSaved);
     }
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });

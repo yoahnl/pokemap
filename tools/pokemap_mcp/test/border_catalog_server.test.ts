@@ -447,11 +447,13 @@ test("STDIO MCP publishes horizontal facades and refuses unsupported strokes ato
       assert.equal(envelope.ok, !failure, JSON.stringify(envelope));
       return record(envelope[failure ? "error" : "data"]);
     }
-    async function mutate(actionId: string, parameters: JsonRecord): Promise<void> {
+    async function mutate(actionId: string, parameters: JsonRecord): Promise<JsonRecord> {
       const planned = await plan(actionId, parameters);
       const result = await toolData(client, "pokemap_apply", { operation: "apply", projectHandle: opened!.projectHandle,
         planId: planned.planId, operationId: `facade-apply-${++sequence}` });
-      assert.equal(record(result.receipt).status, "applied");
+      const receipt = record(result.receipt);
+      assert.equal(receipt.status, "applied");
+      return receipt;
     }
     const draft = borderRecord("fence", true);
     const definition = record(record(draft.draft).definition);
@@ -486,17 +488,28 @@ test("STDIO MCP publishes horizontal facades and refuses unsupported strokes ato
       ] } });
     }
     const beforeBatch = await readFile(join(root, "map.json"));
+    async function historyEntries(): Promise<JsonRecord[]> {
+      const page = await toolData(client, "pokemap_history", {
+        operation: "list", projectHandle: opened!.projectHandle, limit: 100,
+      });
+      assert.ok(!page.nextCursor);
+      assert.ok(Array.isArray(page.entries));
+      return page.entries.map(record);
+    }
+    const historyBefore = await historyEntries();
     await plan("border_layer.materialize_batch_apply", { mapId: "map", features: [
       { layerId: "border", featureId: "facade-second" }, { layerId: "border", featureId: "missing" },
     ], tileWidthPx: 32, tileHeightPx: 32, resolverVersion: 3 }, true);
     assert.deepEqual(await readFile(join(root, "map.json")), beforeBatch);
-    const historyBefore = (await readFile(join(root, ".pokemap/authoring/history.jsonl"), "utf8")).trimEnd().split("\n");
-    await mutate("border_layer.materialize_batch_apply", { mapId: "map", features: [
+    assert.deepEqual(await historyEntries(), historyBefore);
+    const batchReceipt = await mutate("border_layer.materialize_batch_apply", { mapId: "map", features: [
       { layerId: "border", featureId: "facade-second" }, { layerId: "border", featureId: "facade-third" },
     ], tileWidthPx: 32, tileHeightPx: 32, resolverVersion: 3 });
-    const historyAfter = (await readFile(join(root, ".pokemap/authoring/history.jsonl"), "utf8")).trimEnd().split("\n");
+    const historyAfter = await historyEntries();
     assert.equal(historyAfter.length, historyBefore.length + 1);
-    assert.deepEqual(historyAfter.slice(0, historyBefore.length), historyBefore);
+    assert.deepEqual(historyAfter.slice(1), historyBefore);
+    const batchEntry = historyAfter[0]!;
+    assert.equal(batchEntry.entryId, batchReceipt.receiptId);
     const mapPath = join(root, "map.json"), before = await readFile(mapPath);
     const saved = JSON.parse(before.toString()) as JsonRecord;
     const layer = (saved.layers as JsonRecord[]).find(value => value.id === "border");
@@ -512,15 +525,16 @@ test("STDIO MCP publishes horizontal facades and refuses unsupported strokes ato
     assert.ok(foregroundDescriptor);
     const foregroundInput = record(record(foregroundDescriptor.extensions).inputSchema);
     assert.equal(record(record(foregroundInput.properties).renderInForeground).type, "boolean");
-    await mutate("border_layer.set_foreground", { mapId: "map", layerId: "border", renderInForeground: true });
+    const foregroundReceipt = await mutate("border_layer.set_foreground", { mapId: "map", layerId: "border", renderInForeground: true });
     const foregroundMap = JSON.parse(await readFile(mapPath, "utf8")) as JsonRecord;
     const foregroundLayer = (foregroundMap.layers as JsonRecord[]).find(value => value.id === "border")!;
     assert.equal(foregroundLayer.renderInForeground, true);
     assert.deepEqual(foregroundLayer.content, layer.content);
-    const foregroundHistory = (await readFile(join(root, ".pokemap/authoring/history.jsonl"), "utf8")).trimEnd().split("\n");
-    const foregroundEntry = record(record(JSON.parse(foregroundHistory.at(-1)!)).payload).entry;
+    const [foregroundEntry] = await historyEntries();
+    assert.ok(foregroundEntry);
+    assert.equal(foregroundEntry.entryId, foregroundReceipt.receiptId);
     await toolData(client, "pokemap_history", { operation: "undo", projectHandle: opened.projectHandle,
-      entryId: record(foregroundEntry).entryId, idempotencyKey: "foreground-undo" });
+      entryId: foregroundEntry.entryId, idempotencyKey: "foreground-undo" });
     assert.deepEqual(await readFile(mapPath), before);
     for (const placement of placements) assert.deepEqual(placement.transform, { quarterTurns: 0, flipX: false });
     for (const points of [[{ x: 2, y: 1 }, { x: 2, y: 2 }],
@@ -532,14 +546,16 @@ test("STDIO MCP publishes horizontal facades and refuses unsupported strokes ato
     }
     const manifest = JSON.parse(await readFile(join(root, "project.json"), "utf8")) as JsonRecord;
     assert.equal(record(manifest.borderCatalog).formatVersion, 11);
-    const lastEntry = record(record(JSON.parse(historyAfter.at(-1)!)).payload).entry;
     const undo = await toolData(client, "pokemap_history", { operation: "undo", projectHandle: opened.projectHandle,
-      entryId: record(lastEntry).entryId, idempotencyKey: "facade-batch-undo" });
+      entryId: batchEntry.entryId, idempotencyKey: "facade-batch-undo" });
     assert.ok(undo);
     assert.deepEqual(await readFile(mapPath), beforeBatch);
   } finally {
-    if (opened) await toolData(client, "pokemap_workspace", { operation: "close", projectHandle: opened.projectHandle }).catch(() => {});
-    await client.close();
-    await rm(root, { recursive: true, force: true });
+    try {
+      if (opened) await toolData(client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+    } finally {
+      await client.close();
+      await rm(root, { recursive: true, force: true });
+    }
   }
 });

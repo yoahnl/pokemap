@@ -12,6 +12,7 @@ import '../../domains/narrative/dialogue_authoring_service.dart';
 import '../../domains/narrative/event_actions.dart';
 import '../../domains/narrative/narrative_authoring_exception.dart';
 import '../../domains/narrative/scene_party_move_catalog.dart';
+import '../../domains/narrative/scene_workshop_input.dart';
 import '../../support/authoring_fingerprint.dart';
 import '../../transactions/plan_store.dart';
 import '../../ports/project_file_reader.dart';

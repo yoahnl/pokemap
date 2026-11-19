@@ -38,7 +38,7 @@ test("MCP discovers and authors scoped temporary event state with owner validati
     assert.equal(envelope.ok, !failure, JSON.stringify(envelope));
     return record(envelope[failure ? "error" : "data"]);
   }
-  async function apply(actionId: string, parameters: JsonRecord, failure = false): Promise<void> {
+  async function apply(actionId: string, parameters: JsonRecord, expectedDiagnostic?: string): Promise<void> {
     assert.ok(workspace);
     const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
     const before = await readFile(file);
@@ -47,9 +47,14 @@ test("MCP discovers and authors scoped temporary event state with owner validati
       requestId: id, actionId, actionVersion: 1, parameters,
       workspaceHandle: workspace.workspaceHandle,
       expectedRevision: validation.snapshotRevision, idempotencyKey: id,
-    } }, failure);
+    } }, expectedDiagnostic !== undefined);
     assert.deepEqual(await readFile(file), before);
-    if (failure) return;
+    if (expectedDiagnostic) {
+      assert.equal(planned.domainCode, "scene.publication_blocked");
+      const diagnostics = record(planned.details).diagnostics as JsonRecord[];
+      assert.ok(diagnostics.some((issue) => issue.code === expectedDiagnostic), JSON.stringify(diagnostics));
+      return;
+    }
     const applied = await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
       planId: planned.planId, operationId: `${id}-apply` });
     assert.equal(record(applied.receipt).status, "applied");
@@ -123,11 +128,11 @@ test("MCP discovers and authors scoped temporary event state with owner validati
     assert.deepEqual(record(record(nodes.find((node) => node.id === "set")?.payload).consequence), consequence);
     assert.deepEqual(record(saved.eventRegistry).records, [event]);
     await apply("scene.condition.set", { sceneId: "temporary", nodeId: "condition",
-      conditionSource: { ...condition, sourceId: "missing-owner" } }, true);
+      conditionSource: { ...condition, sourceId: "missing-owner" } }, "conditionMapEntityRefUnknown");
     await apply("scene.upsert", { scene: { ...scene, id: "invalid", graph: { ...scene.graph,
       nodes: scene.graph.nodes.map((node) => node.id === "set"
         ? { ...node, payload: { consequence: { ...consequence, eventId: "missing-owner" } } } : node),
-    } } }, true);
+    } } }, "consequenceUnknownMapEventOwner");
     assert.deepEqual(await readFile(file), savedBytes);
   } finally {
     if (workspace) await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });

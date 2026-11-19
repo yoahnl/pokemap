@@ -35,7 +35,7 @@ for (const dimension of ["twoD", "threeD"]) {
     }));
     await mkdir(join(root, "data"));
     const moves = join(root, "data/moves.json");
-    const catalogue = (entries: unknown[]) => writeFile(moves, JSON.stringify({ schemaVersion: 1, kind: "catalog", catalog: "moves", entries }));
+    const catalogue = (entries: unknown[]) => writeFile(moves, JSON.stringify({ schemaVersion: 1, kind: "pokemon_catalog", catalog: "moves", entries }));
     await catalogue([{ id: "tackle", name: "Charge" }]);
     const args = [process.env.POKEMAP_TEST_MCP_ENTRY ?? resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"];
     if (process.env.POKEMAP_TEST_DART) args.push("--dart", process.env.POKEMAP_TEST_DART);
@@ -61,12 +61,14 @@ for (const dimension of ["twoD", "threeD"]) {
       const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
       let sequence = 0;
       async function plan(source: JsonRecord, failure = false): Promise<JsonRecord> {
-        const validation = await call("pokemap_validate", { projectHandle: opened.projectHandle });
+        const parameters = { sceneId: "scene", nodeId: "check", conditionSource: source };
+        const workshop = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
+          actionId: "scene.condition.set", parameters, includeDocuments: false });
         const id = `party-condition-${++sequence}`;
         return call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
           requestId: id, actionId: "scene.condition.set", actionVersion: 1,
-          workspaceHandle: opened.workspaceHandle, expectedRevision: validation.snapshotRevision,
-          idempotencyKey: id, parameters: { sceneId: "scene", nodeId: "check", conditionSource: source },
+          workspaceHandle: opened.workspaceHandle, expectedRevision: workshop.snapshotRevision,
+          idempotencyKey: id, parameters, extensions: workshop.planExtensions,
         } }, failure);
       }
       const predicates: string[] = contract.predicates as string[];

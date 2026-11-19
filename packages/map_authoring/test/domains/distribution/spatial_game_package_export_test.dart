@@ -9,20 +9,13 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 import '../../support/glb_fixture.dart';
+import '../../support/spatial_game_export_fixture.dart';
 
 void main() {
   late Directory root;
   setUp(() async {
     root = await Directory.systemTemp.createTemp('spatial-export-');
-    final source = Directory(p.normalize(
-        p.join(Directory.current.path, '..', '..', 'apps', 'hgss_first_map')));
-    await for (final file in source.list(recursive: true, followLinks: false)) {
-      final path = p.relative(file.path, from: source.path);
-      if (file is! File || path.startsWith('.pokemap${p.separator}')) continue;
-      final target = File(p.join(root.path, path));
-      await target.parent.create(recursive: true);
-      await file.copy(target.path);
-    }
+    await writeSpatialExportProject(root);
   });
   tearDown(() async => root.delete(recursive: true));
 
@@ -91,7 +84,7 @@ void main() {
         .toJson()));
     final artifact = await const CanonicalGamePackageExportService().build(
         projectRoot: root,
-        profile: _profile(),
+        profile: spatialExportProfile(),
         mode: GamePackageExportMode.localTest);
     expect(artifact.manifest.compatibility.requiredCapabilities,
         contains('map3d.animation@1'));
@@ -191,7 +184,7 @@ void main() {
     await apply('scene.upsert', {'scene': scene.toJson()});
     final artifact = await const CanonicalGamePackageExportService().build(
         projectRoot: root,
-        profile: _profile(),
+        profile: spatialExportProfile(),
         mode: GamePackageExportMode.localTest);
     expect(
         artifact.manifest.compatibility.requiredCapabilities,
@@ -202,7 +195,7 @@ void main() {
           'map3d.story@1'
         ]));
     final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
-    final exported = _publishedProject(archive);
+    final exported = publishedSpatialProject(archive);
     final command =
         (exported.scenes.single.graph.nodes[1].payload as SceneActionPayload)
             .interactiveCommand as ScenePlayModelAnimationInteractiveCommand;
@@ -221,6 +214,8 @@ void main() {
         id: 'cliff',
         name: 'Cliff',
         tilesetId: manifest.tilesets.first.id,
+        cellWidth: 8,
+        cellHeight: 8,
         columns: 4,
         rows: 4);
     await manifestFile.writeAsString(jsonEncode(manifest
@@ -239,7 +234,7 @@ void main() {
         .toJson()));
     final artifact = await const CanonicalGamePackageExportService().build(
         projectRoot: root,
-        profile: _profile(),
+        profile: spatialExportProfile(),
         mode: GamePackageExportMode.localTest);
     expect(artifact.manifest.compatibility.requiredCapabilities,
         contains('map3d@1'));
@@ -247,7 +242,7 @@ void main() {
         isNot(contains('map@1')));
     expect(artifact.manifest.compatibility.projectFormat, 'v9');
     final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
-    final project = _publishedProject(archive).toJson();
+    final project = publishedSpatialProject(archive).toJson();
     final exportedMap = jsonDecode(utf8.decode(archive
         .findFile('project/${manifest.maps.first.relativePath}')!
         .content));
@@ -263,12 +258,10 @@ void main() {
       expect(compiled, isNotNull);
       final document =
           const RuntimeDialogueDocumentCodec().decodeUtf8(compiled!.content);
-      expect(
-          document.nodes
-              .expand((n) => n.steps)
-              .every((step) => step is RuntimeDialogueLine),
-          isTrue);
+      expect(document.nodes.expand((node) => node.steps),
+          [RuntimeDialogueLine('Bienvenue à la halte.')]);
     }
+    expect(project['models3d'], isNotEmpty);
     for (final model in project['models3d']) {
       expect(archive.findFile('project/${model['relativePath']}'), isNotNull);
     }
@@ -277,24 +270,14 @@ void main() {
     root = await Directory.systemTemp.createTemp('spatial-export-clean-');
     final package = File(p.join(root.path, 'exploration.avelunegame'))
       ..writeAsBytesSync(artifact.packageBytes);
-    final source = _FileSource(package.openSync());
-    try {
-      expect(
-          const GamePackageInspector()
-              .inspectSourceSync(source)
-              .manifest
-              .content
-              .treeSha256,
-          artifact.manifest.content.treeSha256);
-    } finally {
-      source.file.closeSync();
-    }
+    expect(inspectSpatialPackageFile(package).content.treeSha256,
+        artifact.manifest.content.treeSha256);
     expect(artifact.certification.isCertified, false);
   });
   test('rejects 3D publication explicitly', () async {
     await expectLater(
         const CanonicalGamePackageExportService()
-            .build(projectRoot: root, profile: _profile()),
+            .build(projectRoot: root, profile: spatialExportProfile()),
         throwsA(isA<GamePackageExportException>().having(
             (e) => e.code, 'code', 'runtime3d.publication_unsupported')));
   });
@@ -310,7 +293,7 @@ void main() {
     ]).toJson()));
     final artifact = await const CanonicalGamePackageExportService().build(
         projectRoot: root,
-        profile: _profile(),
+        profile: spatialExportProfile(),
         mode: GamePackageExportMode.localTest);
     expect(artifact.manifest.compatibility.requiredCapabilities,
         contains(SpatialGameplayCapabilities.capabilityId));
@@ -323,7 +306,7 @@ void main() {
         contains(SpatialGameplayCapabilities.capabilityId));
     await expectLater(
         const CanonicalGamePackageExportService()
-            .build(projectRoot: root, profile: _profile()),
+            .build(projectRoot: root, profile: spatialExportProfile()),
         throwsA(isA<GamePackageExportException>().having((error) => error.code,
             'code', 'runtime3d.publication_unsupported')));
   });
@@ -352,38 +335,14 @@ void main() {
     await expectLater(
         service.build(
             projectRoot: root,
-            profile: _profile(),
+            profile: spatialExportProfile(),
             mode: GamePackageExportMode.localTest),
         throwsA(isA<GamePackageExportException>()
-            .having((error) => error.code, 'code', 'gameplayReadinessFailed')));
+            .having((error) => error.code, 'code', 'gameplayReadinessFailed')
+            .having(
+                (error) => error.gameplayReadinessReport?.diagnostics
+                    .map((diagnostic) => diagnostic.code),
+                'diagnostics',
+                contains('pokemon.fixtureMissingSpecies'))));
   });
 }
-
-GamePackageExportProfile _profile() => GamePackageExportProfile(
-    gameId: 'games.example.spatial',
-    gameVersion: '0.1.0',
-    title: 'La halte des falaises',
-    authorName: 'Yoahn',
-    defaultLocale: 'fr',
-    supportedLocales: ['fr']);
-
-final class _FileSource implements RandomAccessPackageSource {
-  _FileSource(this.file);
-  final RandomAccessFile file;
-  @override
-  int get length => file.lengthSync();
-  @override
-  Uint8List readAtSync(int offset, int length) {
-    file.setPositionSync(offset);
-    return file.readSync(length);
-  }
-}
-
-ProjectManifest _publishedProject(Archive archive) =>
-    PortableCatalogPublication.decodeProjectSync(
-        jsonDecode(
-                utf8.decode(archive.findFile('project/project.json')!.content))
-            as Map<String, dynamic>,
-        readObject: (ref) => archive
-            .findFile('project/${PortableCatalogPublication.objectPath(ref)}')!
-            .content);

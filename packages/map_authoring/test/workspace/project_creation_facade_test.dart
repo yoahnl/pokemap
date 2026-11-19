@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:map_authoring/map_authoring_project_creation.dart';
 import 'package:test/test.dart';
 
@@ -24,10 +26,6 @@ void main() {
     final pending = [
       File('lib/map_authoring_project_creation.dart').absolute.uri
     ];
-    final directives = RegExp(
-        r'^\s*(?:import|export|part(?!\s+of|\s*(?:==|!=)))\s+([^;]+);',
-        multiLine: true);
-    final strings = RegExp("['\"]([^'\"]+)['\"]");
     final directiveExamples = {
       "import r'dart:io';": ['dart:io'],
       "import /* platform */ 'dart:ffi';": ['dart:ffi'],
@@ -37,42 +35,78 @@ void main() {
       ],
       "part 'shared.dart';": ['shared.dart'],
       "part of 'owner.dart';": <String>[],
-      "part == '.' || part != part.trim();": <String>[],
+      "bool matches(String part) => part == '.' || part != part.trim();":
+          <String>[],
     };
     for (final example in directiveExamples.entries) {
-      final specifiers = directives.allMatches(example.key).expand((match) =>
-          strings
-              .allMatches(match.group(1)!)
-              .map((literal) => literal.group(1)!));
-      expect(specifiers, example.value, reason: example.key);
+      expect(_imports(example.key), example.value, reason: example.key);
     }
     while (pending.isNotEmpty) {
       final source = pending.removeLast();
       if (!visited.add(source)) continue;
       final text = File.fromUri(source).readAsStringSync();
-      for (final match in directives.allMatches(text)) {
-        for (final literal in strings.allMatches(match.group(1)!)) {
-          final specifier = literal.group(1)!;
-          expect(
-              specifier,
-              isNot(anyOf(
-                  'dart:io',
-                  'dart:ffi',
-                  startsWith('package:flutter/'),
-                  startsWith('package:flame/'),
-                  startsWith('package:map_editor/'),
-                  startsWith('package:map_runtime/'))),
-              reason: '$source -> $specifier');
-          final uri = Uri.parse(specifier);
-          if (uri.scheme == 'dart') continue;
-          pending.add(uri.scheme == 'package'
-              ? roots[uri.pathSegments.first]!
-                  .resolve(uri.pathSegments.skip(1).join('/'))
-              : source.resolveUri(uri));
-        }
+      for (final specifier in _imports(text)) {
+        expect(
+            specifier,
+            isNot(anyOf(
+                'dart:io',
+                'dart:ffi',
+                startsWith('package:flutter/'),
+                startsWith('package:flame/'),
+                startsWith('package:map_editor/'),
+                startsWith('package:map_runtime/'))),
+            reason: '$source -> $specifier');
+        final uri = Uri.parse(specifier);
+        if (uri.scheme == 'dart') continue;
+        pending.add(uri.scheme == 'package'
+            ? roots[uri.pathSegments.first]!
+                .resolve(uri.pathSegments.skip(1).join('/'))
+            : source.resolveUri(uri));
       }
     }
     expect(
-        visited, contains(roots['map_core']!.resolve('map_core_domain.dart')));
+        visited,
+        containsAll([
+          roots['map_core']!.resolve('map_core_project_creation.dart'),
+          roots['map_core']!.resolve('src/models/project_manifest.dart'),
+        ]));
   });
+
+  test('the portable creation request compiles to JavaScript', () async {
+    final directory = await Directory.systemTemp.createTemp('creation-web-');
+    addTearDown(() => directory.delete(recursive: true));
+    final entry = File.fromUri(directory.uri.resolve('entry.dart'));
+    await entry.writeAsString('''
+import 'package:map_authoring/map_authoring_project_creation.dart';
+
+void main() {
+  const request = ProjectCreationRequest(
+    name: 'Johto', folderName: 'johto', parentPath: '/projects',
+  );
+  request.validate();
+  print(request.name);
+}
+''');
+    final result = await Process.run('dart', [
+      'compile',
+      'js',
+      '--packages=${File('.dart_tool/package_config.json').absolute.path}',
+      entry.path,
+      '-o',
+      File.fromUri(directory.uri.resolve('entry.js')).path,
+    ]);
+    expect(result.exitCode, 0, reason: '${result.stdout}${result.stderr}');
+  });
+}
+
+Iterable<String> _imports(String source) sync* {
+  final unit = parseString(content: source, throwIfDiagnostics: false).unit;
+  for (final directive in unit.directives.whereType<UriBasedDirective>()) {
+    yield directive.uri.stringValue!;
+    if (directive is NamespaceDirective) {
+      for (final configuration in directive.configurations) {
+        yield configuration.uri.stringValue!;
+      }
+    }
+  }
 }

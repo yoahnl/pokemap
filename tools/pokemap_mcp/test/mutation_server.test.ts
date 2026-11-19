@@ -16,6 +16,7 @@ import {
 } from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { createPokeMapMcpServer } from "../src/server.js";
+import { mutationRevision } from "./mutation_revision.js";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
@@ -209,6 +210,7 @@ async function mutationFixture(
   const authoring = new LocalAuthoringClient({
     allowedRoots: [root],
     authoringPackageRoot,
+    requestTimeoutMs: 60_000,
   });
   const server = createPokeMapMcpServer({
     authoring,
@@ -957,6 +959,7 @@ async function applyMutation(
     projectHandle: string;
     workspaceHandle: string;
     expectedRevision: string;
+    extensions?: JsonRecord;
     actionId: string;
     parameters: JsonRecord;
     sequence: string;
@@ -971,6 +974,7 @@ async function applyMutation(
       workspaceHandle: input.workspaceHandle,
       parameters: input.parameters,
       expectedRevision: input.expectedRevision,
+      ...(input.extensions === undefined ? {} : { extensions: input.extensions }),
       idempotencyKey: `idem-cold-start-${input.sequence}`,
       dryRun: false,
     },
@@ -3619,40 +3623,39 @@ test("MCP authors, rereads, and safely deletes an encounter table", async () => 
     const validation = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
     });
-    const afterUpsertRevision = await applyMutation(fixture.client, {
-      projectHandle,
-      workspaceHandle,
-      expectedRevision: String(validation.snapshotRevision),
-      actionId: "campaign.encounter_table.upsert",
-      parameters: {
-        value: {
-          id: "route_one_grass",
-          name: "Route 1 — Hautes herbes",
-          encounterKind: "walk",
-          chancePerStep: 0.14,
-          conditions: [],
-          entries: [
-            {
-              speciesId: "rattata",
-              minLevel: 2,
-              maxLevel: 4,
-              weight: 3,
-              pokemonOverrides: {
-                natureId: "jolly",
-                shinyPolicy: "never",
-                knownMoveIds: [],
-              },
+    const parameters = {
+      value: {
+        id: "route_one_grass",
+        name: "Route 1 — Hautes herbes",
+        encounterKind: "walk",
+        chancePerStep: 0.14,
+        conditions: [],
+        entries: [
+          {
+            speciesId: "rattata",
+            minLevel: 2,
+            maxLevel: 4,
+            weight: 3,
+            pokemonOverrides: {
+              natureId: "jolly",
+              shinyPolicy: "never",
+              knownMoveIds: [],
             },
-            {
-              speciesId: "pidgey",
-              minLevel: 3,
-              maxLevel: 5,
-              weight: 1,
-            },
-          ],
-          tags: ["route", "early-game"],
-        },
+          },
+          {
+            speciesId: "pidgey",
+            minLevel: 3,
+            maxLevel: 5,
+            weight: 1,
+          },
+        ],
+        tags: ["route", "early-game"],
       },
+    };
+    const actionId = "campaign.encounter_table.upsert";
+    const afterUpsertRevision = await applyMutation(fixture.client, {
+      projectHandle, workspaceHandle, actionId, parameters,
+      ...await mutationRevision(fixture.client, projectHandle, actionId, parameters, validation.snapshotRevision),
       sequence: "encounter-upsert",
     });
     const queried = await toolData(fixture.client, "pokemap_query", {

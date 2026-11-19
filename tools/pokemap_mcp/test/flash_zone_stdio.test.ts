@@ -7,6 +7,7 @@ import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
+import { mutationRevision } from "./mutation_revision.js";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 function record(value: unknown): JsonRecord {
@@ -41,15 +42,17 @@ test("live MCP discovers native Flash and proves create, set, cancel, undo, revi
     assert.equal(envelope.ok, !failure, JSON.stringify({ name, envelope }));
     return record(envelope[failure ? "error" : "data"]);
   }
-  async function plan(actionId: string, parameters: JsonRecord, failure = false, revision?: unknown): Promise<JsonRecord> {
+  async function plan(actionId: string, parameters: JsonRecord, failure = false, expectedRevision?: unknown): Promise<JsonRecord> {
     assert.ok(workspace);
     const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
     const before = await readFile(mapFile);
     const id = `flash-${++sequence}`;
+    const zoneParameters = { mapId: "cave", ...parameters };
+    const revision = await mutationRevision(client, String(workspace.projectHandle), actionId, zoneParameters, validation.snapshotRevision);
     const planned = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
       requestId: id, actionId, actionVersion: 1, workspaceHandle: workspace.workspaceHandle,
-      expectedRevision: revision ?? validation.snapshotRevision, idempotencyKey: id,
-      parameters: { mapId: "cave", ...parameters },
+      ...revision, expectedRevision: expectedRevision ?? revision.expectedRevision,
+      idempotencyKey: id, parameters: zoneParameters,
     } }, failure);
     assert.deepEqual(await readFile(mapFile), before);
     return planned;
@@ -67,7 +70,10 @@ test("live MCP discovers native Flash and proves create, set, cancel, undo, revi
     const action = (description.mutationActions as JsonRecord[]).find(entry => entry.id === "gameplay_zone.set_field_action_payload");
     assert.ok(action);
     const contract = record(record(action.extensions).fieldActionZone);
-    assert.equal(contract.mapMode, "2d"); assert.equal(contract.lifetime, "byActionKind");
+    assert.deepEqual(contract.mapModesByActionKind, {
+      darkness: ["2d"], dive: ["2d"], waterfall: ["2d", "3d"], whirlpool: ["2d", "3d"],
+    });
+    assert.equal(contract.lifetime, "byActionKind");
     assert.equal(record(contract.waterfall).lifetime, "traversal");
     assert.equal(record(contract.darkness).lifetime, "mapInstance");
     assert.deepEqual([...(contract.actionKinds as string[])].sort(), ["darkness", "dive", "waterfall", "whirlpool"]); assert.equal(contract.consumesPp, false);

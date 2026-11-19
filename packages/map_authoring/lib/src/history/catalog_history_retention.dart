@@ -8,9 +8,6 @@ import '../catalog_storage/catalog_history_compatibility.dart';
 import '../catalog_storage/catalog_storage_store.dart';
 import '../security/authoring_permission.dart';
 import '../support/authoring_fingerprint.dart';
-import '../workspace/catalog/catalog_derivable_indexes.dart';
-import '../workspace/catalog/catalog_metadata_documents.dart';
-import '../workspace/catalog/catalog_resource_positions.dart';
 import 'authoring_history.dart';
 import 'content_blob_store.dart';
 import 'file_history_store.dart';
@@ -664,28 +661,6 @@ final class _ValidatedHistoricalGeneration {
   final CatalogPreparedHistoryConversion? conversion;
 }
 
-bool _metadataPrepared(List<CatalogDefinitionUnit> units) {
-  final expected = {
-    for (final unit in [
-      ...CatalogMetadataDocuments.initialize(units),
-      ...CatalogDerivableIndexes.expected(units),
-    ])
-      unit.key: unit
-  };
-  final actual = {
-    for (final unit in units)
-      if (unit.key.kind == CatalogDefinitionKind.workspaceState &&
-          unit.key.id != 'workspace' &&
-          !CatalogResourcePositions.isSlotKey(unit.key))
-        unit.key: unit
-  };
-  return actual.length == expected.length &&
-      expected.entries.every((entry) =>
-          actual[entry.key] != null &&
-          canonicalAuthoringJson(actual[entry.key]!.toJson()) ==
-              canonicalAuthoringJson(entry.value.toJson()));
-}
-
 final class _MaintenanceObjectReads {
   _MaintenanceObjectReads(this.store);
   static const _maxBytes = 64 * 1024 * 1024;
@@ -793,18 +768,9 @@ final class _RetentionInventory {
     if (known != null) return known;
     final snapshot =
         (await store.openRoot(root, readObject: readObject)).snapshot;
-    final metadata = <CatalogDefinitionUnit>[];
-    final references = await snapshot.objectReferences(onUnit: (unit) {
-      if (unit.key.kind == CatalogDefinitionKind.catalogMetadata ||
-          unit.key.kind == CatalogDefinitionKind.workspaceState) {
-        metadata.add(unit);
-      }
-    });
-    final ready = _metadataPrepared(metadata);
-    final conversion = ready
-        ? null
-        : await CatalogHistoryCompatibility.prepare(
-            store: store, source: snapshot, metadataUnits: metadata);
+    final inspection = await CatalogHistoryCompatibility.inspect(
+        store: store, source: snapshot);
+    final conversion = inspection.conversion;
     final existing = existingConversions[root.sha256];
     if (existing != null &&
         (conversion == null ||
@@ -813,9 +779,11 @@ final class _RetentionInventory {
       throw const AuthoringHistoryException('history.retention_stale',
           'The retained catalog conversion differs from its canonical source.');
     }
-    _admissions[root.sha256] =
-        _ValidatedHistoricalGeneration(snapshot, ready, conversion);
-    final graph = {for (final ref in references) ref.sha256: ref.byteLength};
+    _admissions[root.sha256] = _ValidatedHistoricalGeneration(
+        snapshot, inspection.metadataPrepared, conversion);
+    final graph = {
+      for (final ref in inspection.references) ref.sha256: ref.byteLength
+    };
     _objects[root.sha256] = graph;
     return graph;
   }

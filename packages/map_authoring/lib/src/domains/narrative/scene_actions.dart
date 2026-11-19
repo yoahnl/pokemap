@@ -12,6 +12,7 @@ import 'dialogue_authoring_service.dart';
 import 'dialogue_source_store.dart';
 import 'dialogue_source_guards.dart';
 import 'scene_party_move_catalog.dart';
+import 'scene_workshop_input.dart';
 import 'narrative_action_support.dart';
 import 'presentation_publication_guards.dart';
 import 'narrative_authoring_exception.dart';
@@ -105,7 +106,7 @@ final class SceneActions {
     'validation': 'graphemeBoundsAndRevision',
     'confirmation': 'yesCommitsNoRestartsInitialChoice',
     'cancellation': 'noTextFactWrite',
-    'projectDimensions': ['twoD'],
+    'projectDimensions': ['twoD', 'threeD'],
     'outputPorts': ['completed', 'cancelled'],
   };
 
@@ -1117,29 +1118,12 @@ final class SceneActions {
           before: payload.choicePolicies.map((item) => item.toJson()).toList(growable: false),
           after: updated.choicePolicies.map((item) => item.toJson()).toList(growable: false));
       case 'scene.upsert_batch':
-        final rawScenes = parameters['scenes'];
-        if (parameters.keys.any((key) => key != 'scenes') ||
-            rawScenes is! List || rawScenes.isEmpty || rawScenes.length > 128) {
-          throw NarrativeAuthoringException('scene.batch_invalid',
-              'A Scene batch must contain between 1 and 128 scenes.');
-        }
         final scenes = <SceneAsset>[];
-        final ids = <String>{};
-        for (var index = 0; index < rawScenes.length; index++) {
-          final raw = rawScenes[index];
-          if (raw is! Map<String, dynamic>) {
-            throw NarrativeAuthoringException('scene.invalid',
-                'The Scene payload is invalid.', details: {'index': index});
-          }
-          final scene = _decodeScene(raw);
-          if (!ids.add(scene.id)) {
-            throw NarrativeAuthoringException('scene.batch_duplicate_id',
-                'Scene identities must be unique within a batch.',
-                details: {'index': index, 'sceneId': scene.id});
-          }
+        for (final scene in decodeAuthoringSceneBatch(parameters)) {
           _validateSceneDialoguePolicies(context.snapshot, scene);
           scenes.add(scene);
         }
+        final ids = scenes.map((scene) => scene.id).toSet();
         final projected = upsertBatch(context.snapshot.manifest,
             maps: context.snapshot.maps, scenes: scenes,
             presentationMediaCatalog: _presentationMedia(context),
@@ -1155,7 +1139,7 @@ final class SceneActions {
       case 'scene.upsert':
         rejectUnknownNarrativeParameters(parameters, const {'scene'});
         final scene =
-            _decodeScene(narrativeObjectParameter(parameters, 'scene'));
+            decodeAuthoringScene(narrativeObjectParameter(parameters, 'scene'));
         _validateSceneDialoguePolicies(context.snapshot, scene);
         final before = context.snapshot.manifest.scenes
             .where((candidate) => candidate.id == scene.id)
@@ -1683,7 +1667,7 @@ final class SceneActions {
           presentationMediaCatalog: _presentationMedia(context),
           maps: context.snapshot.maps,
           sceneId: sceneId,
-          upsertNodes: objects('upsertNodes', SceneNode.fromJson),
+          upsertNodes: decodeSceneGraphPatchNodes(parameters),
           upsertEdges: objects('upsertEdges', SceneEdge.fromJson),
           removeNodeIds: ids('removeNodeIds'),
           removeEdgeIds: ids('removeEdgeIds'),
@@ -3409,18 +3393,6 @@ void _validateSceneDialoguePolicies(ProjectSnapshot snapshot, SceneAsset scene) 
     } on FormatException {
       throw NarrativeAuthoringException('scene.dialogue.line_feedback.invalid', 'The Scene contains incompatible dialogue line feedback.');
     }
-  }
-}
-
-SceneAsset _decodeScene(Map<String, dynamic> json) {
-  try {
-    return SceneAsset.fromJson(json);
-  } on Object catch (error) {
-    throw NarrativeAuthoringException(
-      'scene.invalid',
-      'The Scene payload cannot be decoded.',
-      details: {'validationType': error.runtimeType.toString()},
-    );
   }
 }
 

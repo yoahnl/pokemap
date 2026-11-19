@@ -58,13 +58,15 @@ test("live MCP discovers and edits typed conditional entity presentations", { ti
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const projectBefore = await readFile(projectFile);
     for (const payload of [presentation, null]) {
-      const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
+      const parameters = { mapId: "map", entityId: "owner", presentation: payload };
+      const workshop = await call("pokemap_workshop", { operation: "read", projectHandle: workspace.projectHandle,
+        actionId: "entity.set_presentation", parameters, includeDocuments: false });
       const id = `presentation-${++sequence}`;
       const before = await readFile(mapFile);
       const plan = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
         requestId: id, actionId: "entity.set_presentation", actionVersion: 1,
-        workspaceHandle: workspace.workspaceHandle, expectedRevision: validation.snapshotRevision,
-        idempotencyKey: id, parameters: { mapId: "map", entityId: "owner", presentation: payload },
+        workspaceHandle: workspace.workspaceHandle, expectedRevision: workshop.snapshotRevision,
+        extensions: workshop.planExtensions, idempotencyKey: id, parameters,
       } });
       assert.deepEqual(await readFile(mapFile), before);
       await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
@@ -74,14 +76,19 @@ test("live MCP discovers and edits typed conditional entity presentations", { ti
       assert.deepEqual(saved.pos, { x: 2, y: 1 });
       assert.deepEqual(await readFile(projectFile), projectBefore);
     }
-    const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
+    const parameters = { mapId: "map", entityId: "owner", presentation };
+    const workshop = await call("pokemap_workshop", { operation: "read", projectHandle: workspace.projectHandle,
+      actionId: "entity.set_presentation", parameters, includeDocuments: false });
+    const beforeInvalid = await readFile(mapFile);
     const failure = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
       requestId: "invalid", actionId: "entity.set_presentation", actionVersion: 1,
-      workspaceHandle: workspace.workspaceHandle, expectedRevision: validation.snapshotRevision,
-      idempotencyKey: "invalid", parameters: { mapId: "map", entityId: "owner",
-        presentation: { ...presentation, schemaVersion: 99 } },
+      workspaceHandle: workspace.workspaceHandle, expectedRevision: workshop.snapshotRevision, extensions: workshop.planExtensions,
+      idempotencyKey: "invalid", parameters: { ...parameters, presentation: { ...presentation, schemaVersion: 99 } },
     } }, true);
     assert.notEqual(failure.domainCode, "worker.internal");
+    assert.notEqual(failure.domainCode, "plan.stale");
+    assert.deepEqual(await readFile(mapFile), beforeInvalid);
+    assert.deepEqual(await readFile(projectFile), projectBefore);
   } finally {
     if (workspace) await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     await client.close();

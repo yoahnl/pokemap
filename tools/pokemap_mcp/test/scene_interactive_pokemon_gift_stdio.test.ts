@@ -39,7 +39,7 @@ test("MCP discovers, authors and cold reopens interactive native Pokemon gifts i
     const directory = join(root, dimension);
     await mkdir(directory);
     await mkdir(join(directory, "data"));
-    await writeFile(join(directory, "data/moves.json"), JSON.stringify({ schemaVersion: 1, kind: "catalog", catalog: "moves", entries: [{ id: "tackle" }, { id: "exceptional" }] }));
+    await writeFile(join(directory, "data/moves.json"), JSON.stringify({ schemaVersion: 1, kind: "pokemon_catalog", catalog: "moves", entries: [{ id: "tackle" }, { id: "exceptional" }] }));
     await writeFile(join(directory, "project.json"), JSON.stringify({
       name: "Catalog gift transport", version: dimension === "twoD" ? "v8" : "v9",
       settings: { dimension }, pokemon: { ...canonicalPokemonConfig(), enabled: true, catalogFiles: { moves: "data/moves.json" } }, maps: [], tilesets: [], scenes: [],

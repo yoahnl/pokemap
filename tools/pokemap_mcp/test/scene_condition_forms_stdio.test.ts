@@ -45,7 +45,9 @@ test("live MCP preserves the five guided condition families and refuses invalid 
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     let sequence = 0;
     async function plan(source: JsonRecord, failure = false): Promise<JsonRecord> {
-      const validation = await call("pokemap_validate", { projectHandle: opened.projectHandle });
+      const parameters = { sceneId: "condition_scene", nodeId: "check", conditionSource: source };
+      const workshop = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
+        actionId: "scene.condition.set", parameters, includeDocuments: false });
       const id = `condition-${++sequence}`;
       const before = await readFile(file);
       const planned = await call("pokemap_plan", {
@@ -53,8 +55,7 @@ test("live MCP preserves the five guided condition families and refuses invalid 
         request: {
           requestId: id, actionId: "scene.condition.set", actionVersion: 1,
           workspaceHandle: opened.workspaceHandle,
-          expectedRevision: validation.snapshotRevision, idempotencyKey: id,
-          parameters: { sceneId: "condition_scene", nodeId: "check", conditionSource: source },
+          expectedRevision: workshop.snapshotRevision, extensions: workshop.planExtensions, idempotencyKey: id, parameters,
         },
       }, failure);
       assert.deepEqual(await readFile(file), before);

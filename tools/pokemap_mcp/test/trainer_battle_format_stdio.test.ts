@@ -7,6 +7,7 @@ import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
+import { mutationRevision } from "./mutation_revision.js";
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === "object" && !Array.isArray(value));
@@ -90,22 +91,23 @@ test("L32 real MCP opts into Standard trainer doubles with atomic refusals and f
     }
 
     async function plan(actionId: string, parameters: JsonRecord, failure = false,
-      expectedRevision?: unknown): Promise<JsonRecord> {
-      assert.ok(workspace);
-      const currentRevision = expectedRevision ?? await revision();
+      projectRevision?: unknown): Promise<JsonRecord> {
+      assert.ok(workspace && active);
+      const basis = await mutationRevision(active.client, String(workspace.projectHandle), actionId,
+        parameters, projectRevision ?? await revision());
       const before = await readFile(manifest);
       const id = `trainer-format-${++sequence}`;
       const result = await call("pokemap_plan", { projectHandle: workspace.projectHandle,
         request: { requestId: id, actionId, actionVersion: 1,
-          workspaceHandle: workspace.workspaceHandle, expectedRevision: currentRevision,
+          workspaceHandle: workspace.workspaceHandle, ...basis,
           idempotencyKey: id, parameters } }, failure);
       await unchanged(before);
       return result;
     }
 
     async function refuse(actionId: string, parameters: JsonRecord, code: unknown,
-      expectedRevision?: unknown): Promise<void> {
-      const denied = await plan(actionId, parameters, true, expectedRevision);
+      projectRevision?: unknown): Promise<void> {
+      const denied = await plan(actionId, parameters, true, projectRevision);
       assert.notEqual(denied.domainCode, "worker.internal");
       assert.equal(denied.domainCode, code);
     }
@@ -174,7 +176,10 @@ test("L32 real MCP opts into Standard trainer doubles with atomic refusals and f
       const profileAction = actions.find(action => action.id === "pokemon.ruleset.set");
       assert.deepEqual(record(trainerAction?.extensions).trainerBattleFormat, fixture.descriptor);
       assert.deepEqual(record(profileAction?.extensions).profiles, {
-        default: "pokemap-beta-v1", values: [fixture.betaProfile, fixture.standardProfile],
+        default: "pokemap-beta-v1", values: [fixture.betaProfile, fixture.standardProfile, {
+          ...record(fixture.standardProfile), profileId: "pokemap-contextual-v1",
+          capturePolicyId: "pokemap-contextual-items-mvp-fallback-v1",
+        }],
       });
       workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
       await query("singles", fixture.betaProfile, fixture.singles);

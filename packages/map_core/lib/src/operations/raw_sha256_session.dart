@@ -5,6 +5,16 @@ import 'package:meta/meta.dart';
 
 import 'narrative_fingerprint_sha256.dart';
 
+String narrativeEventBytesFingerprint(List<int> bytes) {
+  final session = RawSha256Session();
+  try {
+    session.add(bytes);
+    return 'sha256:${session.finish()}';
+  } finally {
+    session.dispose();
+  }
+}
+
 final class RawSha256Session {
   RawSha256Session()
     : this.withSinkFactory(createNarrativeFingerprintSha256Sink);

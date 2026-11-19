@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:image/image.dart' as image;
 
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 final class BorderReplacementFixture {
@@ -20,12 +21,13 @@ final class BorderReplacementFixture {
     final primitives = <BorderPublishedPrimitive>[];
     final snapshots = <BorderVisualSnapshot>[];
     final elements = <ProjectElementEntry>[];
-    var index = 0;
-    for (final orientation in BorderPrimitiveOrientation.values.where(
-      (value) => value != BorderPrimitiveOrientation.legacyAxis,
-    )) {
-      final pixels = Uint8List(32 * 32 * 4);
-      final mask = <bool>[];
+    final orientations = BorderPrimitiveOrientation.values
+        .where((orientation) =>
+            orientation != BorderPrimitiveOrientation.legacyAxis)
+        .toList();
+    final atlas = image.Image(
+        width: orientations.length * 32, height: 32, numChannels: 4);
+    for (final (index, orientation) in orientations.indexed) {
       for (var y = 0; y < 32; y++) {
         for (var x = 0; x < 32; x++) {
           final opaque = switch (orientation) {
@@ -35,43 +37,31 @@ final class BorderReplacementFixture {
             BorderPrimitiveOrientation.west => x < 16,
             BorderPrimitiveOrientation.legacyAxis => false,
           };
-          mask.add(opaque);
-          final offset = (y * 32 + x) * 4;
-          pixels[offset] = x * 7;
-          pixels[offset + 1] = y * 7;
-          pixels[offset + 2] = index * 50;
-          pixels[offset + 3] = opaque ? 255 : 0;
+          atlas.setPixelRgba(
+              index * 32 + x, y, x * 7, y * 7, index * 50, opaque ? 255 : 0);
         }
       }
-      final hash = computeBorderSnapshotContentFingerprint(frames: [
-        BorderSnapshotContentFrame(
-          sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 32, height: 32),
-          durationMs: 100,
-          rgbaBytes: pixels,
-        ),
-      ]);
-      final snapshotId = 'border-snapshot-sha256:$hash';
-      final metrics = BorderPrimitiveAssetMetrics(
-        assetFingerprint: 'original-fixture-${orientation.name}',
-        pixelSize: const GridSize(width: 32, height: 32),
-        opaqueBounds: switch (orientation) {
-          BorderPrimitiveOrientation.north =>
-            BorderPixelRect(x: 0, y: 0, width: 32, height: 16),
-          BorderPrimitiveOrientation.south =>
-            BorderPixelRect(x: 0, y: 16, width: 32, height: 16),
-          BorderPrimitiveOrientation.east =>
-            BorderPixelRect(x: 16, y: 0, width: 16, height: 32),
-          BorderPrimitiveOrientation.west ||
-          BorderPrimitiveOrientation.legacyAxis =>
-            BorderPixelRect(x: 0, y: 0, width: 16, height: 32),
-        },
-        defaultAnchorPx: const BorderPixelPos(x: 11, y: 23),
-        occupancyMaskRle: encodeBorderRleMask(mask),
+    }
+    atlasBytes = image.encodePng(atlas);
+    for (final (index, orientation) in orientations.indexed) {
+      final prepared = const CanonicalBorderSnapshotCompiler().prepare(
+        sourceElementId: 'element-${orientation.name}',
+        anchorPx: const BorderPixelPos(x: 11, y: 23),
+        frames: [
+          CanonicalBorderSourceFrame(
+            sourceProjectRelativePath: atlasPath,
+            encodedImageBytes: atlasBytes,
+            sourceRectPx:
+                BorderPixelRect(x: index * 32, y: 0, width: 32, height: 32),
+          )
+        ],
       );
+      snapshots.add(prepared.snapshot);
+      snapshotFiles.addAll(prepared.files);
       primitives.add(BorderPublishedPrimitive(
         id: orientation.name,
-        sourceElementId: 'element-${orientation.name}',
-        visualSnapshotId: snapshotId,
+        sourceElementId: prepared.sourceElementId,
+        visualSnapshotId: prepared.snapshot.id,
         role: BorderPrimitiveRole.structureLarge,
         authoredOrientation: orientation,
         weight: 1,
@@ -80,18 +70,7 @@ final class BorderReplacementFixture {
           allowFlipX: false,
           allowedQuarterTurns: [0],
         ),
-        publishedMetrics: metrics,
-      ));
-      snapshots.add(BorderVisualSnapshot(
-        id: snapshotId,
-        contentFingerprint: hash,
-        frames: [
-          BorderVisualFrameSnapshot(
-            relativeAssetPath: 'assets/borders/snapshots/$hash.png',
-            sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 32, height: 32),
-            durationMs: 100,
-          ),
-        ],
+        publishedMetrics: prepared.metrics,
       ));
       elements.add(ProjectElementEntry(
         id: 'element-${orientation.name}',
@@ -104,7 +83,6 @@ final class BorderReplacementFixture {
         collisionProfile: collisionProfile ??
             const ElementCollisionProfile(cells: [GridPos(x: 0, y: 0)]),
       ));
-      index++;
     }
     final parameters = BorderGenerationParams(
       irregularityPermille: 0,
@@ -222,7 +200,7 @@ final class BorderReplacementFixture {
         ProjectTilesetEntry(
           id: 'original-atlas',
           name: 'Original cardinal modules',
-          relativePath: 'assets/original.png',
+          relativePath: atlasPath,
           source: ProjectRegularAtlasTilesetSource(
             assetId: 'original-image',
             pixelWidth: 128,
@@ -283,44 +261,40 @@ final class BorderReplacementFixture {
   late final BorderFeature feature;
   late final MapData map;
   late final ProjectManifest project;
+  static const atlasPath = 'assets/original.png';
+  late final Uint8List atlasBytes;
+  final snapshotFiles = <CanonicalBorderSnapshotFile>[];
 
   GridPos get carrier => evidence.edges.single.expectedCarrierCell;
 }
 
-Future<void> writeBorderReplacementFixture(Directory root) async {
+Future<BorderReplacementFixture> writeBorderReplacementFixture(
+    Directory root) async {
   final f = BorderReplacementFixture(extraVariant: true);
   await Directory('${root.path}/maps').create(recursive: true);
-  await Directory('${root.path}/assets/borders/snapshots')
-      .create(recursive: true);
   await File('${root.path}/project.json')
       .writeAsString(jsonEncode(f.project.toJson()), flush: true);
   await File('${root.path}/maps/original-map.pokemap.json')
       .writeAsString(jsonEncode(f.map.toJson()), flush: true);
-  final atlas = image.Image(width: 128, height: 32, numChannels: 4);
-  var index = 0;
-  for (final primitive in f.revision.definition.primitives
-      .where((p) => p.id != 'south-alternate')) {
-    final png = image.Image(width: 32, height: 32, numChannels: 4);
-    for (var y = 0; y < 32; y++) {
-      for (var x = 0; x < 32; x++) {
-        final opaque = switch (primitive.authoredOrientation) {
-          BorderPrimitiveOrientation.north => y < 16,
-          BorderPrimitiveOrientation.south => y >= 16,
-          BorderPrimitiveOrientation.east => x >= 16,
-          BorderPrimitiveOrientation.west => x < 16,
-          BorderPrimitiveOrientation.legacyAxis => false,
-        };
-        png.setPixelRgba(x, y, x * 7, y * 7, index * 50, opaque ? 255 : 0);
-        atlas.setPixelRgba(
-            index * 32 + x, y, x * 7, y * 7, index * 50, opaque ? 255 : 0);
-      }
+  final records = <AssetRecord>[];
+  for (final (id, path, bytes) in [
+    ('original-image', BorderReplacementFixture.atlasPath, f.atlasBytes),
+    for (final (index, snapshot) in f.snapshotFiles.indexed)
+      ('snapshot-$index', snapshot.relativePath, snapshot.bytes),
+  ]) {
+    final artifact =
+        ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png');
+    records.add(AssetRecord(id: id, logicalPath: path, artifact: artifact));
+    for (final relativePath in [path, assetBlobStorageKey(artifact)]) {
+      final file = File('${root.path}/$relativePath');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: true);
     }
-    final snapshot = f.project.borderCatalog.visualSnapshots
-        .singleWhere((s) => s.id == primitive.visualSnapshotId);
-    await File('${root.path}/${snapshot.frames.single.relativeAssetPath}')
-        .writeAsBytes(image.encodePng(png), flush: true);
-    index++;
   }
-  await File('${root.path}/assets/original.png')
-      .writeAsBytes(image.encodePng(atlas), flush: true);
+  final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+  await catalogFile.parent.create(recursive: true);
+  await catalogFile.writeAsString(
+      jsonEncode(AssetCatalog(records: records).toJson()),
+      flush: true);
+  return f;
 }

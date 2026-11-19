@@ -52,16 +52,18 @@ test("packaged MCP applies and reopens coordinated standard event pages", { time
     return record(failure ? envelope.error : envelope.data);
   }
   async function plan(entityId: string, dialogueId = "hello", failure = false): Promise<JsonRecord> {
-    const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
     const mapBefore = await readFile(mapPath);
     const projectBefore = await readFile(manifestPath);
     const requestId = `standard-template-${++sequence}`;
+    const parameters = { mapRevision: `sha256:${createHash("sha256").update(mapBefore).digest("hex")}`,
+      spec: { schemaVersion: 1, kind: "conditionalNpc", mapId: "room", entityId, name: "Guide",
+        parameters: { factId: "met", dialogueId, alternateDialogueId: "after", characterId: "person" } } };
+    const workshop = await call("pokemap_workshop", { operation: "read", projectHandle: workspace.projectHandle,
+      actionId: "event_v2.template.apply", parameters, includeDocuments: false });
     const result = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
-      requestId, actionId: "event_v2.template.apply", actionVersion: 1,
-      workspaceHandle: workspace.workspaceHandle, expectedRevision: validation.snapshotRevision, idempotencyKey: requestId,
-      parameters: { mapRevision: `sha256:${createHash("sha256").update(mapBefore).digest("hex")}`,
-        spec: { schemaVersion: 1, kind: "conditionalNpc", mapId: "room", entityId, name: "Guide",
-          parameters: { factId: "met", dialogueId, alternateDialogueId: "after", characterId: "person" } } },
+      requestId, actionId: "event_v2.template.apply", actionVersion: 1, parameters,
+      workspaceHandle: workspace.workspaceHandle, expectedRevision: workshop.snapshotRevision,
+      extensions: workshop.planExtensions, idempotencyKey: requestId,
     } }, failure);
     assert.deepEqual(await readFile(mapPath), mapBefore);
     assert.deepEqual(await readFile(manifestPath), projectBefore);

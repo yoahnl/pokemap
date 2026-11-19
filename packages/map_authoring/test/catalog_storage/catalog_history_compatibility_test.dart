@@ -5,6 +5,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/src/catalog_storage/catalog_history_compatibility.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_narrative_event_documents.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_resource_positions.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -105,9 +106,13 @@ void main() {
         await fixture.store.metadataIndexPrepared(fixture.snapshot), isFalse);
   });
 
-  test('forged extra facet and altered v1 records never receive a conversion',
-      () async {
-    for (final defect in ['extra-facet', 'altered-record']) {
+  test('inconsistent derived metadata never receives a conversion', () async {
+    for (final defect in [
+      'extra-facet',
+      'altered-record',
+      'wrong-tileset-count',
+      'gap-in-tileset-positions',
+    ]) {
       final fixture = await _Fixture.open(
           eventsVersion: 1, legacyFacts: false, defect: defect);
       addTearDown(fixture.close);
@@ -115,7 +120,7 @@ void main() {
           .list()
           .map((file) => file.path)
           .toList();
-      expect(await fixture.prepare(), isNull);
+      expect(await fixture.prepare(), isNull, reason: defect);
       expect(
           await Directory('${fixture.project.path}/catalog/objects')
               .list()
@@ -308,7 +313,10 @@ final class _Fixture {
     final build = PortableCatalogPublication.encodeProject(ProjectManifest(
         name: 'Compatibility',
         maps: const [],
-        tilesets: const [],
+        tilesets: const [
+          ProjectTilesetEntry(
+              id: 'floor', name: 'Floor', relativePath: 'assets/floor.png')
+        ],
         facts: [
           NarrativeFactDefinition(
               id: 'fact', label: 'Fact', legacyFlagName: 'legacy-alias')
@@ -343,6 +351,11 @@ final class _Fixture {
           legacy.add(CatalogDefinitionUnit(
               key: unit.key, payload: {...unit.payload, 'indexVersion': 1}));
         }
+      } else if (defect == 'wrong-tileset-count' &&
+          unit.key ==
+              CatalogResourcePositions.key(CatalogDefinitionKind.tileset)) {
+        legacy.add(CatalogDefinitionUnit(
+            key: unit.key, payload: {...unit.payload, 'count': 0}));
       } else {
         legacy.add(unit);
       }
@@ -373,8 +386,16 @@ final class _Fixture {
     }
     await store.publish(
         CatalogStorageBuilder(limits: store.limits).build([
-          ...source.where(
-              (unit) => unit.key.kind != CatalogDefinitionKind.workspaceState),
+          for (final unit in source)
+            if (unit.key.kind != CatalogDefinitionKind.workspaceState)
+              if (defect == 'gap-in-tileset-positions' &&
+                  unit.key.kind == CatalogDefinitionKind.tileset)
+                CatalogDefinitionUnit(
+                    key: unit.key,
+                    payload: {...unit.payload, 'position': 1},
+                    references: unit.references)
+              else
+                unit,
           ...legacy,
         ]),
         expectedRootRevision: null);

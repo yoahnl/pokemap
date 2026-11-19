@@ -18,6 +18,7 @@ import {
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { PokeMapRequestGuard } from "../src/request_guard.js";
 import { createPokeMapMcpServer } from "../src/server.js";
+import { authoringToolReadOnlyHints } from "./authoring_tool_contract.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
 const authoringPackageRoot = resolve(repositoryRoot, "packages/map_authoring");
@@ -59,49 +60,7 @@ test("all tools publish strict schemas, outputs and annotations", async () => {
     const tools = (await fixture.client.listTools()).tools;
     assert.deepEqual(
       tools.map((tool) => tool.name),
-      [
-        "pokemap_artifact",
-        "pokemap_describe",
-        "pokemap_query",
-        "pokemap_validate",
-        "pokemap_workspace",
-      "pokemap_workshop",
-        "pokemap_project_bootstrap",
-        "pokemap_artifact_stage",
-        "pokemap_plan",
-        "pokemap_apply",
-        "pokemap_history",
-        "pokemap_recovery_discard",
-        "pokemap_recovery_status",
-        "pokemap_recovery",
-        "pokemap_character_contact_shadow_inspect",
-        "pokemap_character_contact_shadow_set",
-        "pokemap_map_atmosphere_inspect",
-        "pokemap_map_atmosphere_set",
-        "pokemap_map_atmosphere_undo",
-      "pokemap_visual_settings_inspect",
-      "pokemap_visual_settings_set",
-      "pokemap_visual_settings_undo",
-        "pokemap_map_editor_inspect",
-        "pokemap_map_editor_set",
-        "pokemap_map_editor_undo",
-        "pokemap_map_elements_inspect",
-        "pokemap_map_elements_reorder",
-        "pokemap_map_elements_undo",
-        "pokemap_game_export_profile_read",
-        "pokemap_game_export_profile_validate",
-        "pokemap_game_export_profile_save",
-        "pokemap_game_export",
-        "pokemap_project_templates",
-        "pokemap_project_create_preview",
-        "pokemap_project_create",
-        "pokemap_project_native_prepare",
-        "pokemap_project_native_plan",
-        "pokemap_project_native_publish",
-        "pokemap_project_native_release",
-        "pokemap_resource_pack",
-        "pokemap_projection",
-      ],
+      Object.keys(authoringToolReadOnlyHints),
     );
     for (const tool of tools) {
       assert.ok(tool.inputSchema);

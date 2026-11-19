@@ -33,7 +33,7 @@ test("packaged MCP publishes source and authoritative dirty map coherently", { t
   const map = record(JSON.parse(before.toString("utf8")));
   map.name = "M3 coherent publication";
   const source = "title: Start\n---\nBonjour depuis le transport MCP !\n===\n";
-  const args = [resolve(process.cwd(), "dist/src/index.js"), "--root", projectRoot];
+  const args = [resolve(process.cwd(), "dist/src/index.js"), "--root", projectRoot, "--authoring-timeout-ms", "60000"];
   if (process.env.POKEMAP_TEST_DART) args.push("--dart", process.env.POKEMAP_TEST_DART);
   const transport = new StdioClientTransport({ command: process.execPath, args, cwd: process.cwd(), stderr: "pipe" });
   const client = new Client({ name: "studio-narrative-test", version: "1.0.0" });
@@ -43,13 +43,16 @@ test("packaged MCP publishes source and authoritative dirty map coherently", { t
     assert.ok((description.mutationActions as JsonRecord[]).some((action) => action.id === "narrative.publish_document"));
     const opened = await data(client, "pokemap_workspace", { operation: "open", projectRoot });
     const projectHandle = String(opened.projectHandle);
-    const validated = await data(client, "pokemap_validate", { projectHandle });
+    const parameters = {
+      map, mapRevision: `sha256:${createHash("sha256").update(before).digest("hex")}`,
+      dialogues: [{ entry: { id: "studio-hello", name: "Bonjour", relativePath: "dialogues/studio-hello.yarn" }, source, revision: null }],
+    };
+    const workshop = await data(client, "pokemap_workshop", { operation: "read", projectHandle,
+      actionId: "narrative.publish_document", parameters, includeDocuments: false });
     const planned = await data(client, "pokemap_plan", { projectHandle, request: {
       requestId: "studio-narrative", actionId: "narrative.publish_document", actionVersion: 1,
-      workspaceHandle: opened.workspaceHandle, parameters: {
-        map, mapRevision: `sha256:${createHash("sha256").update(before).digest("hex")}`,
-        dialogues: [{ entry: { id: "studio-hello", name: "Bonjour", relativePath: "dialogues/studio-hello.yarn" }, source, revision: null }],
-      }, expectedRevision: validated.snapshotRevision, idempotencyKey: "studio-narrative", dryRun: false,
+      workspaceHandle: opened.workspaceHandle, parameters, expectedRevision: workshop.snapshotRevision,
+      extensions: workshop.planExtensions, idempotencyKey: "studio-narrative", dryRun: false,
     } });
     assert.deepEqual(await readFile(mapPath), before);
     const applied = await data(client, "pokemap_apply", {
@@ -77,7 +80,7 @@ test("packaged MCP publishes UI07 story ownership without touching maps", { time
     path: join(projectRoot, String(entry.relativePath)),
     bytes: await readFile(join(projectRoot, String(entry.relativePath))),
   })));
-  const args = [resolve(process.cwd(), "dist/src/index.js"), "--root", projectRoot];
+  const args = [resolve(process.cwd(), "dist/src/index.js"), "--root", projectRoot, "--authoring-timeout-ms", "60000"];
   if (process.env.POKEMAP_TEST_DART) args.push("--dart", process.env.POKEMAP_TEST_DART);
   const transport = new StdioClientTransport({ command: process.execPath, args, cwd: process.cwd(), stderr: "pipe" });
   const client = new Client({ name: "studio-story-test", version: "1.0.0" });

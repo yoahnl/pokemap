@@ -706,11 +706,16 @@ final class AuthoringMutationAdapter
     String? expectedRevision,
     bool dryRun = false,
   }) async {
-    final snapshot = await session.snapshot(
-      cacheValidation: _locallyMutatedRoots.remove(session.canonicalRoot)
-          ? ProjectSnapshotCacheValidation.canonical
-          : ProjectSnapshotCacheValidation.session,
-    );
+    final catalogRevision = actionId == 'catalog.definition.update'
+        ? expectedRevision ??
+              await session.reads.readCatalogRevision(session.projectHandle)
+        : null;
+    final revision = catalogRevision ??
+        (await session.snapshot(
+          cacheValidation: _locallyMutatedRoots.remove(session.canonicalRoot)
+              ? ProjectSnapshotCacheValidation.canonical
+              : ProjectSnapshotCacheValidation.session,
+        )).revision;
     final response = await session.mutations.planMutation(
       session.projectHandle,
       AuthoringRequest(
@@ -719,7 +724,7 @@ final class AuthoringMutationAdapter
         actionVersion: 1,
         workspaceHandle: session.workspaceHandle.value,
         parameters: parameters,
-        expectedRevision: expectedRevision ?? snapshot.revision,
+        expectedRevision: expectedRevision ?? revision,
         idempotencyKey: idempotencyKey,
         dryRun: dryRun,
       ),
@@ -750,7 +755,8 @@ final class AuthoringMutationAdapter
     var diagnostic = response.diagnostic;
     EditorAuthoringMutationProjection? projection;
     try {
-      if (revision != null) {
+      if (revision != null &&
+          response.receipt.actionId != 'catalog.definition.update') {
         final snapshot = await session.snapshot(
           cacheValidation: ProjectSnapshotCacheValidation.session,
         );
