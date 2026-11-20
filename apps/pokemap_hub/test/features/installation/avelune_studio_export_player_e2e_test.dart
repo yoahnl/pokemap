@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flame/components.dart';
+import 'package:flame/game.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -14,9 +15,7 @@ import '../../../../avelune_studio/test/support/game_export_fixture.dart';
 import '../../../../avelune_studio/test/support/authoring_export_fixture.dart';
 
 void main() {
-  testWidgets('Studio package installs and plays from Avelune Player storage', (
-    tester,
-  ) async {
+  testWidgets('Studio export plays its cinematic in Player', (tester) async {
     final temporary = (await tester.runAsync(
       () => Directory.systemTemp.createTemp('as-exp-player-'),
     ))!;
@@ -24,11 +23,23 @@ void main() {
     final packageFile = File(p.join(temporary.path, 'demo.avelunegame'));
     late MapData expectedMap;
     late ProjectManifest expectedProject;
+    late SceneAsset expectedArrivalScene;
+    late CinematicAsset expectedCinematic;
     void expectTransformedBundle(RuntimeMapBundle bundle) {
       expect(bundle.manifest.version, ProjectVersion.v8);
       expect(bundle.map.placedElements, expectedMap.placedElements);
       expect(bundle.manifest.tilesets, expectedProject.tilesets);
       expect(bundle.manifest.elements, expectedProject.elements);
+      final arrivalScene = bundle.manifest.scenes.singleWhere(
+        (scene) => scene.id == expectedArrivalScene.id,
+      );
+      expect(arrivalScene.graph, expectedArrivalScene.graph);
+      expect(
+        bundle.manifest.cinematics
+            .singleWhere((cinematic) => cinematic.id == expectedCinematic.id)
+            .toJson(),
+        expectedCinematic.toJson(),
+      );
       expect(bundle.manifest.toJson(), isNot(contains('shadowCatalog')));
       expect(
         bundle.manifest.toJson(),
@@ -71,6 +82,34 @@ void main() {
         final map = MapData.fromJson(
           jsonDecode(await mapFile.readAsString()) as Map<String, dynamic>,
         );
+        expectedCinematic = CinematicAsset(
+          id: 'quay_welcome',
+          title: 'Arrivée sur le quai',
+          mapId: map.id,
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'welcome',
+                kind: CinematicTimelineStepKind.dialogueLine,
+                dialogueText: _cinematicLine,
+              ),
+            ],
+          ),
+        );
+        final withCinematic = project.copyWith(
+          cinematics: [...project.cinematics, expectedCinematic],
+        );
+        final arrival = project.scenes.singleWhere(
+          (scene) => scene.graph.nodes
+              .map((node) => node.payload)
+              .whereType<SceneYarnDialoguePayload>()
+              .any((payload) => payload.dialogueId == 'zone'),
+        );
+        expectedArrivalScene = _insertArrivalCinematic(
+          withCinematic,
+          arrival,
+          expectedCinematic.id,
+        );
         expectedMap = map.copyWith(
           placedElements: [
             map.placedElements.first.copyWith(
@@ -85,7 +124,11 @@ void main() {
             ...map.placedElements.skip(1),
           ],
         );
-        expectedProject = project.copyWith(
+        expectedProject = withCinematic.copyWith(
+          scenes: [
+            for (final scene in project.scenes)
+              scene.id == arrival.id ? expectedArrivalScene : scene,
+          ],
           tilesets: [
             project.tilesets.first.copyWith(
               source: const ProjectTilesetSource.regularAtlas(
@@ -159,13 +202,22 @@ void main() {
         mapId: manifest.newGame.startMapId,
       );
       expectTransformedBundle(bundle);
-      final game = _InstalledDemoGame(
+      final game = PlayableMapGame(
         bundle: bundle,
         projectFilePath: installedProject.path,
       );
-      game.onGameResize(Vector2(640, 480));
-      await game.onLoad();
-      addTearDown(game.onRemove);
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: SizedBox(
+            width: 640,
+            height: 480,
+            child: GameWidget(game: game),
+          ),
+        ),
+      );
+      await game.loaded;
+      await tester.pump();
       await _until(
         game,
         () =>
@@ -174,6 +226,21 @@ void main() {
       );
       await _move(game, RuntimeInputControl.up);
       expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 8, y: 8));
+      await _until(
+        game,
+        () => game.debugCinematicDialogueLine == _cinematicLine,
+      );
+      expect(
+        game.inputAuthoritySnapshot.context,
+        RuntimeInputContext.cinematic,
+      );
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      );
+      game.update(.016);
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.release(RuntimeInputControl.primary),
+      );
       await _until(game, () => game.debugFlowPhaseName == 'dialogue');
       expect(game.gameStateSnapshot.currentMapId, 'jardin');
       for (var i = 0; i < 10 && game.debugFlowPhaseName == 'dialogue'; i++) {
@@ -198,14 +265,40 @@ void main() {
   }, timeout: const Timeout(Duration(minutes: 5)));
 }
 
+const _cinematicLine = 'Le départ approche.';
+
+SceneAsset _insertArrivalCinematic(
+  ProjectManifest project,
+  SceneAsset scene,
+  String cinematicId,
+) {
+  final startId = scene.graph.startNodeId;
+  final entry = scene.graph.edges.singleWhere(
+    (edge) => edge.fromNodeId == startId,
+  );
+  final arrival = addSceneCinematicNodeDraft(
+    scene,
+    project: project,
+    cinematicId: cinematicId,
+    afterNodeId: startId,
+  );
+  final detached = removeSceneEdgeDraft(arrival.updatedScene, entry.id);
+  final incoming = addSceneEdgeDraft(
+    detached.updatedScene,
+    fromNodeId: startId,
+    fromPortId: entry.fromPortId,
+    toNodeId: arrival.createdNode.id,
+  );
+  return addSceneEdgeDraft(
+    incoming.updatedScene,
+    fromNodeId: arrival.createdNode.id,
+    fromPortId: 'completed',
+    toNodeId: entry.toNodeId,
+  ).updatedScene;
+}
+
 GamePackageHostCompatibility _compatibility() =>
     AveluneRuntimeCompatibility.host();
-
-class _InstalledDemoGame extends PlayableMapGame {
-  _InstalledDemoGame({required super.bundle, required super.projectFilePath});
-  @override
-  bool get isLoaded => true;
-}
 
 Future<void> _move(PlayableMapGame game, RuntimeInputControl direction) async {
   expect(
@@ -229,5 +322,10 @@ Future<void> _until(PlayableMapGame game, bool Function() done) async {
     game.update(.016);
     await Future<void>.delayed(Duration.zero);
   }
-  throw StateError('Le parcours Player n’a pas atteint l’état attendu.');
+  throw StateError(
+    'Phase ${game.debugFlowPhaseName}, verrou ${game.inputAuthoritySnapshot.context}, '
+    'déclenchement ${game.debugIsNarrativeSpatialDispatchInFlight}, '
+    'cinématique ${game.debugIsCinematicPlaying}, '
+    'ligne ${game.debugCinematicDialogueLine}.',
+  );
 }
