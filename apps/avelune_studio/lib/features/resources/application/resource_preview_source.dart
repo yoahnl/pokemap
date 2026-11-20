@@ -18,8 +18,16 @@ final class ElementPreviewSource extends ResourcePreviewSource {
 }
 
 final class CharacterPreviewSource extends ResourcePreviewSource {
-  const CharacterPreviewSource(this.character);
+  const CharacterPreviewSource(
+    this.character, {
+    this.facing = EntityFacing.south,
+    this.animationState = CharacterAnimationState.idle,
+    this.elapsedMs = 0,
+  });
   final ProjectCharacterEntry character;
+  final EntityFacing facing;
+  final CharacterAnimationState animationState;
+  final int elapsedMs;
 }
 
 final class AtlasPreviewSource extends ResourcePreviewSource {
