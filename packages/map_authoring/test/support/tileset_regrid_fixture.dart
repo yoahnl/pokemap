@@ -34,11 +34,30 @@ Future<Set<String>> writeTilesetRegridFixture(Directory root) async {
     tilesets: [
       atlas('sheet'),
       atlas('used'),
+      atlas('linked'),
       atlas('tagged', properties: const [VisualTileProperty(tileId: 0)]),
       const ProjectTilesetEntry(
           id: 'legacy', name: 'Historique', relativePath: 'legacy.png'),
       ...foreign.map(atlas),
     ],
+    smartTileCatalog: ProjectSmartTileCatalog(
+      atlases: const [
+        ProjectSmartTileAtlas(
+          id: 'dallage',
+          name: 'dallage',
+          tilesetId: 'linked',
+          columns: 2,
+          rows: 2,
+        ),
+        ProjectSmartTileAtlas(
+          id: 'garden-atlas',
+          name: 'Dallage du jardin',
+          tilesetId: 'linked',
+          columns: 2,
+          rows: 2,
+        ),
+      ],
+    ),
   );
   final map = MapData(
     id: 'garden',
@@ -54,6 +73,7 @@ Future<Set<String>> writeTilesetRegridFixture(Directory root) async {
   final atlasBytes = encodePng(Image(width: 64, height: 64));
   await File('${root.path}/assets/sheet.png').writeAsBytes(atlasBytes);
   await File('${root.path}/assets/used.png').writeAsBytes(atlasBytes);
+  await File('${root.path}/assets/linked.png').writeAsBytes(atlasBytes);
   final store = await CatalogStorageStore.open(projectRoot: root.path);
   final working = await WorkingProjectCatalog.create(
       store: store, projectId: 'regrid-fixture', project: manifest);

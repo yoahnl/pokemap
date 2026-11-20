@@ -54,6 +54,38 @@ void main() {
       final before = await head.readAsBytes();
       final image = File('$path/assets/sheet.png');
       final imageBefore = await image.readAsBytes();
+      final observed = <String>{};
+      final outside = Zone.current;
+      Future<String> refusalFor(String id) async {
+        final selected = library.items.singleWhere(
+          (item) => item.identity == 'tileset:$id',
+        );
+        try {
+          await editor.saveTilesetGrid(
+            selected,
+            tileSize: (width: 16, height: 16),
+            expectedRevision: prepared.revision,
+          );
+        } on ResourceFailure catch (error) {
+          return error.message;
+        }
+        throw StateError('Le redécoupage aurait dû être refusé.');
+      }
+
+      final refusals = await IOOverrides.runZoned(
+        () async => [await refusalFor('used'), await refusalFor('linked')],
+        createFile: (path) {
+          observed.add(path);
+          return outside.run(() => File(path));
+        },
+      );
+      expect(refusals, [
+        'Cette planche est utilisée par la carte « Jardin ».',
+        'Cette planche est utilisée par l’atlas de terrain « dallage » et '
+            'l’atlas de terrain « Dallage du jardin ».',
+      ]);
+      expect(await head.readAsBytes(), before);
+
       const blocked = 'Un brouillon utilise cette planche.';
       Future<ResourceMutationReceipt> save() => editor.saveTilesetGrid(
         item,
@@ -76,8 +108,6 @@ void main() {
       newDraftDuringCommit = false;
       draftUsesAtlas = false;
       interruptReread = true;
-      final observed = <String>{};
-      final outside = Zone.current;
       final receipt = await IOOverrides.runZoned(
         () async {
           try {
