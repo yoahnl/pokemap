@@ -188,18 +188,38 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
         );
       }
       final operationId = _identity('resource');
-      final planned = await context.api.planMutation(
-        opened.projectHandle,
-        AuthoringRequest(
-          requestId: operationId,
-          workspaceHandle: opened.workspaceHandle.value,
-          actionId: action,
-          actionVersion: 1,
-          idempotencyKey: operationId,
-          expectedRevision: catalog.revision,
-          parameters: parameters,
-        ),
-      );
+      final planned = await context.api
+          .planMutation(
+            opened.projectHandle,
+            AuthoringRequest(
+              requestId: operationId,
+              workspaceHandle: opened.workspaceHandle.value,
+              actionId: action,
+              actionVersion: 1,
+              idempotencyKey: operationId,
+              expectedRevision: catalog.revision,
+              parameters: parameters,
+            ),
+          )
+          .onError<MapAuthoringException>((error, stackTrace) async {
+            if (action != 'tileset.regrid' ||
+                error.code != 'catalog.definition_in_use') {
+              Error.throwWithStackTrace(error, stackTrace);
+            }
+            final maps = before.manifest.maps;
+            final message = await catalog
+                .read(
+                  (project) => _tilesetGridUseMessage(
+                    project.snapshot,
+                    error.details,
+                    maps,
+                  ),
+                )
+                .onError<Object>(
+                  (_, _) => _libraryUseMessage(error.details, maps),
+                );
+            throw ResourceFailure(message);
+          });
       try {
         final plan = planned.plan;
         if (plan.changeSet.changes.isEmpty) {
