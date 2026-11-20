@@ -1,0 +1,74 @@
+{
+  "id": "map",
+  "name": "Proof map",
+  "version": "v8",
+  "size": {
+    "width": 8,
+    "height": 6
+  },
+  "layers": [
+    {
+      "id": "ground",
+      "name": "Ground",
+      "runtimeType": "tile",
+      "cells": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "growth",
+      "name": "Growth",
+      "runtimeType": "environment",
+      "content": {
+        "areas": []
+      }
+    }
+  ]
+}

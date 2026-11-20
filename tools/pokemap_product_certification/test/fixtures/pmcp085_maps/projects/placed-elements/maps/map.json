@@ -1,0 +1,88 @@
+{
+  "id": "map",
+  "name": "Proof map",
+  "version": "v8",
+  "size": {
+    "width": 8,
+    "height": 6
+  },
+  "layers": [
+    {
+      "id": "props",
+      "name": "Props",
+      "runtimeType": "tile",
+      "cells": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "placedElements": [
+    {
+      "id": "lantern",
+      "layerId": "props",
+      "elementId": "sign-prop",
+      "pos": {
+        "x": 1,
+        "y": 1
+      },
+      "visualOrder": 5
+    },
+    {
+      "id": "ornament",
+      "layerId": "props",
+      "elementId": "sign-prop",
+      "pos": {
+        "x": 1,
+        "y": 1
+      },
+      "visualOrder": 9
+    }
+  ]
+}

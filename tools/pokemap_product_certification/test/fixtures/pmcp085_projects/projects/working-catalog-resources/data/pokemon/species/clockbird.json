@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "clockbird",
+  "name": {
+    "en": "Clockbird"
+  },
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 48,
+    "atk": 47,
+    "def": 46,
+    "spa": 45,
+    "spd": 44,
+    "spe": 43
+  },
+  "abilities": {
+    "primary": "chord"
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 60,
+    "catchRate": 100
+  },
+  "nationalDex": 1,
+  "slug": "clockbird",
+  "names": {
+    "en": "Clockbird"
+  },
+  "genIntroduced": 1
+}

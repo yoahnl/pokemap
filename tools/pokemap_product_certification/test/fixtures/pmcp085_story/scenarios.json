@@ -1,0 +1,519 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "storyline",
+      "projectRoot": "project",
+      "steps": [
+        {
+          "actionId": "storyline.upsert",
+          "actionVersion": 1,
+          "parameters": {
+            "storyline": {"id": "detour", "title": "A detour", "type": "sideQuest"}
+          },
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 1, "id"], "equals": "detour"}
+          ]
+        },
+        {
+          "actionId": "storyline.chapter.create",
+          "actionVersion": 1,
+          "parameters": {"storylineId": "main", "chapterId": "act_2", "title": "Act 2"},
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 1, "id"], "equals": "act_2"}
+          ]
+        },
+        {
+          "actionId": "storyline.chapter.rename",
+          "actionVersion": 1,
+          "parameters": {"storylineId": "main", "chapterId": "act_2", "title": "Finale"},
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 1, "title"], "equals": "Finale"}
+          ]
+        },
+        {
+          "actionId": "storyline.milestone.create",
+          "actionVersion": 1,
+          "parameters": {
+            "storylineId": "main",
+            "chapterId": "act_2",
+            "stepId": "leave_town",
+            "title": "Leave town"
+          },
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 1, "steps", 0, "id"], "equals": "leave_town"},
+            {"path": "project.json", "at": ["facts", 1, "id"], "equals": "fact_leave_town"},
+            {"path": "project.json", "at": ["facts", 1, "defaultValue"], "equals": false}
+          ]
+        },
+        {
+          "actionId": "storyline.milestone.rename",
+          "actionVersion": 1,
+          "parameters": {
+            "storylineId": "main",
+            "chapterId": "act_2",
+            "stepId": "leave_town",
+            "title": "Leave the town"
+          },
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 1, "steps", 0, "title"], "equals": "Leave the town"},
+            {"path": "project.json", "at": ["facts", 1, "id"], "equals": "fact_leave_town"},
+            {"path": "project.json", "at": ["facts", 1, "label"], "equals": "Leave the town"}
+          ]
+        },
+        {
+          "actionId": "storyline.milestone.attach_scene",
+          "actionVersion": 1,
+          "parameters": {
+            "storylineId": "main", "chapterId": "act_2", "stepId": "leave_town", "sceneId": "scene_gate"
+          },
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 0, "steps", 0, "sceneLinkIds"], "equals": []},
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 1, "steps", 0, "sceneLinkIds"], "equals": ["scene_gate"]}
+          ]
+        },
+        {
+          "actionId": "storyline.milestone.detach_scene",
+          "actionVersion": 1,
+          "parameters": {
+            "storylineId": "main", "chapterId": "act_2", "stepId": "leave_town", "sceneId": "scene_gate"
+          },
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 1, "steps", 0, "sceneLinkIds"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "storyline.milestone.move",
+          "actionVersion": 1,
+          "parameters": {
+            "storylineId": "main",
+            "chapterId": "act_2",
+            "stepId": "leave_town",
+            "targetChapterId": "act_1",
+            "targetIndex": 0
+          },
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 0, "steps", 0, "id"], "equals": "leave_town"},
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 1, "steps"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "storyline.milestone.set_journal",
+          "actionVersion": 1,
+          "parameters": {
+            "storylineId": "main",
+            "chapterId": "act_1",
+            "stepId": "leave_town",
+            "journal": {
+              "title": {"fallback": "Le rival", "translations": {"en": "The rival"}},
+              "text": {"fallback": "Il attend au labo."}
+            }
+          },
+          "observations": [
+            {
+              "path": "project.json",
+              "at": ["storylines", 0, "chapters", 0, "steps", 0, "journal"],
+              "equals": {
+                "title": {"fallback": "Le rival", "translations": {"en": "The rival"}},
+                "text": {"fallback": "Il attend au labo."}
+              }
+            }
+          ]
+        },
+        {
+          "actionId": "storyline.clues.set",
+          "actionVersion": 1,
+          "parameters": {
+            "storylineId": "main",
+            "clues": [{"id": "tracks", "factId": "fact_tracks", "text": {"fallback": "Des traces au nord."}}]
+          },
+          "observations": [
+            {
+              "path": "project.json",
+              "at": ["storylines", 0, "journalClues"],
+              "equals": [{"id": "tracks", "factId": "fact_tracks", "text": {"fallback": "Des traces au nord."}}]
+            }
+          ]
+        },
+        {
+          "actionId": "storyline.reorder_steps",
+          "actionVersion": 1,
+          "parameters": {"storylineId": "main", "chapterId": "act_1", "orderedStepIds": ["wake_up", "leave_town"]},
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 0, "steps", 0, "id"], "equals": "wake_up"},
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 0, "steps", 0, "order"], "equals": 0},
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 0, "steps", 1, "id"], "equals": "leave_town"},
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 0, "steps", 1, "order"], "equals": 1}
+          ]
+        },
+        {
+          "actionId": "storyline.reorder_chapters",
+          "actionVersion": 1,
+          "parameters": {"storylineId": "main", "orderedChapterIds": ["act_2", "act_1"]},
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 0, "id"], "equals": "act_2"},
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 0, "order"], "equals": 0},
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 1, "id"], "equals": "act_1"},
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 1, "order"], "equals": 1}
+          ]
+        },
+        {
+          "actionId": "storyline.milestone.set_archived",
+          "actionVersion": 1,
+          "parameters": {"storylineId": "main", "chapterId": "act_1", "stepId": "leave_town", "archived": true},
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 1, "steps", 1, "status"], "equals": "archived"}
+          ]
+        },
+        {
+          "actionId": "storyline.chapter.set_archived",
+          "actionVersion": 1,
+          "parameters": {"storylineId": "main", "chapterId": "act_2", "archived": true},
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "chapters", 0, "status"], "equals": "archived"}
+          ]
+        },
+        {
+          "actionId": "storyline.delete",
+          "actionVersion": 1,
+          "parameters": {"storylineId": "detour"},
+          "confirm": true,
+          "observations": [
+            {"path": "project.json", "at": ["storylines", 0, "id"], "equals": "main"},
+            {"path": "project.json", "at": ["storylines", 1], "absent": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "facts",
+      "projectRoot": "project",
+      "steps": [
+        {
+          "actionId": "fact.create",
+          "actionVersion": 1,
+          "parameters": {"fact": {"id": "fact_gate_open", "label": "Gate open", "defaultValue": false}},
+          "observations": [
+            {"path": "project.json", "at": ["facts", 1, "id"], "equals": "fact_gate_open"},
+            {"path": "project.json", "at": ["facts", 1, "defaultValue"], "equals": false}
+          ]
+        },
+        {
+          "actionId": "fact.update",
+          "actionVersion": 1,
+          "parameters": {"fact": {"id": "fact_gate_open", "label": "Gate opened", "defaultValue": true}},
+          "observations": [
+            {"path": "project.json", "at": ["facts", 1, "label"], "equals": "Gate opened"},
+            {"path": "project.json", "at": ["facts", 1, "defaultValue"], "equals": true}
+          ]
+        },
+        {
+          "actionId": "fact.delete",
+          "actionVersion": 1,
+          "parameters": {"factId": "fact_gate_open"},
+          "confirm": true,
+          "observations": [
+            {"path": "project.json", "at": ["facts", 0, "id"], "equals": "fact_tracks"},
+            {"path": "project.json", "at": ["facts", 1], "absent": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dialogues",
+      "projectRoot": "project",
+      "steps": [
+        {
+          "actionId": "dialogue.create",
+          "actionVersion": 1,
+          "parameters": {
+            "entry": {"id": "welcome", "name": "Bienvenue", "relativePath": "dialogues/welcome.yarn", "defaultStartNode": "Start"},
+            "source": "title: Start\n---\nBonjour.\n===\n"
+          },
+          "observations": [
+            {"path": "project.json", "at": ["dialogues", 0, "id"], "equals": "welcome"},
+            {"path": "dialogues/welcome.yarn", "sha256": "sha256:9387fa609ece4ad8ca564b136b74472454a21c7a7c7beba239758db926c1fdb8"}
+          ]
+        },
+        {
+          "actionId": "dialogue.create_batch",
+          "actionVersion": 1,
+          "parameters": {
+            "dialogues": [
+              {
+                "entry": {"id": "farewell", "name": "Au revoir", "relativePath": "dialogues/farewell.yarn", "defaultStartNode": "Start"},
+                "source": "title: Start\n---\nÀ bientôt.\n===\n"
+              },
+              {
+                "entry": {"id": "hint", "name": "Indice", "relativePath": "dialogues/hint.yarn", "defaultStartNode": "Start"},
+                "source": "title: Start\n---\nSuivez les traces.\n===\n"
+              }
+            ]
+          },
+          "observations": [
+            {"path": "project.json", "at": ["dialogues", 1, "id"], "equals": "farewell"},
+            {"path": "project.json", "at": ["dialogues", 2, "id"], "equals": "hint"},
+            {"path": "dialogues/farewell.yarn", "sha256": "sha256:ef3e1acdbc810c715bacf7892c3adf52e0fc69b8f19c3ee699668268cc9bd7cd"},
+            {"path": "dialogues/hint.yarn", "sha256": "sha256:ff2cdde8eb020b644878447bd593a1c5d0ee159d50b6545cb043e028f11f8f12"}
+          ]
+        },
+        {
+          "actionId": "dialogue.delete",
+          "actionVersion": 1,
+          "parameters": {"dialogueId": "welcome"},
+          "confirm": true,
+          "observations": [
+            {"path": "project.json", "at": ["dialogues", 0, "id"], "equals": "farewell"},
+            {"path": "dialogues/welcome.yarn", "absent": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "legacy-dialogue",
+      "projectRoot": "legacy-dialogue",
+      "steps": [
+        {
+          "actionId": "dialogue.migrate_legacy",
+          "actionVersion": 1,
+          "parameters": {"dialogueId": "greeting"},
+          "confirm": true,
+          "observations": [
+            {"path": "project.json", "at": ["dialogues", 0, "relativePath"], "equals": "dialogues/greeting.yarn"},
+            {"path": "dialogues/greeting.txt", "sha256": "sha256:2ab4bc36fc2006a6ddaf49ac03b16ee622c7c4ad4316df3c8ca5591ccd3871a0"},
+            {"path": "dialogues/greeting.yarn", "sha256": "sha256:4a9361f09c6501f3aceb1a8551bdb5d23de683110a23e823268df30732d9a15b"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scripts",
+      "projectRoot": "project",
+      "steps": [
+        {
+          "actionId": "script.upsert",
+          "actionVersion": 1,
+          "parameters": {
+            "entry": {
+              "id": "check_gate", "name": "Check gate",
+              "asset": {
+                "id": "check_gate",
+                "nodes": [{"id": "start", "commands": [{"type": "end"}]}]
+              }
+            }
+          },
+          "observations": [
+            {"path": "project.json", "at": ["scripts", 0, "id"], "equals": "check_gate"},
+            {"path": "project.json", "at": ["scripts", 0, "asset", "nodes", 0, "commands", 0, "type"], "equals": "end"}
+          ]
+        },
+        {
+          "actionId": "script.delete",
+          "actionVersion": 1,
+          "parameters": {"scriptId": "check_gate"},
+          "confirm": true,
+          "observations": [{"path": "project.json", "at": ["scripts", 0], "absent": true}]
+        }
+      ]
+    },
+    {
+      "id": "dialogue-policies",
+      "projectRoot": "dialogue-policies",
+      "steps": [
+        {
+          "actionId": "scene.dialogue.choicePolicy.update",
+          "actionVersion": 1,
+          "parameters": {
+            "sceneId": "crossroads",
+            "nodeId": "dialogue",
+            "choicePolicy": {
+              "nodeName": "Start", "choiceIndex": 0, "defaultOutcomeId": "yes",
+              "cancellation": {"kind": "choice", "outcomeId": "no"}
+            }
+          },
+          "observations": [
+            {
+              "path": "project.json",
+              "at": ["scenes", 0, "graph", "nodes", 1, "payload", "choicePolicies", 0],
+              "equals": {
+                "nodeName": "Start", "choiceIndex": 0, "defaultOutcomeId": "yes",
+                "cancellation": {"kind": "choice", "outcomeId": "no"}
+              }
+            }
+          ]
+        },
+        {
+          "actionId": "scene.dialogue.lineFeedback.update",
+          "actionVersion": 1,
+          "parameters": {
+            "sceneId": "crossroads",
+            "nodeId": "dialogue",
+            "linePolicy": {
+              "nodeName": "Start",
+              "lineIndex": 0,
+              "feedback": {
+                "segments": [{"kind": "text", "text": "Found!"}],
+                "advance": {"kind": "confirm"},
+                "revealIntervalMicros": 25000
+              }
+            }
+          },
+          "observations": [
+            {
+              "path": "project.json",
+              "at": ["scenes", 0, "graph", "nodes", 1, "payload", "linePolicies", 0, "feedback", "revealIntervalMicros"],
+              "equals": 25000
+            },
+            {
+              "path": "project.json",
+              "at": ["scenes", 0, "graph", "nodes", 1, "payload", "choicePolicies", 0, "defaultOutcomeId"],
+              "equals": "yes"
+            }
+          ]
+        },
+        {
+          "actionId": "scene.dialogue.audioMedia.import",
+          "actionVersion": 1,
+          "artifact": {"path": "source.wav", "mediaType": "audio/wav"},
+          "parameters": {
+            "assetId": "choice_audio", "mediaId": "choice_sound",
+            "label": "Choice", "logicalPath": "assets/dialogue/choice.wav"
+          },
+          "observations": [
+            {"path": "project.json", "at": ["cinematicMediaAssets", 0, "id"], "equals": "choice_sound"},
+            {"path": "project.json", "at": ["cinematicMediaAssets", 0, "kind"], "equals": "sound"},
+            {"path": "assets/dialogue/choice.wav", "sha256": "sha256:2eeb55e08e1a51af2003fabdfc8572539de6c3f0fa1c182a5b3d3a4806b84db5"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scenes",
+      "projectRoot": "project",
+      "steps": [
+        {
+          "actionId": "scene.upsert",
+          "actionVersion": 1,
+          "parameters": {
+            "scene": {
+              "id": "scene_encounter", "name": "Encounter",
+              "graph": {
+                "startNodeId": "start",
+                "nodes": [
+                  {"id": "start", "kind": "start"},
+                  {
+                    "id": "check", "kind": "condition",
+                    "payload": {
+                      "conditionSource": {
+                        "sourceKind": "fact", "sourceId": "fact_tracks", "operator": "equals",
+                        "factOperator": "equals", "factValueType": "bool", "factValue": false
+                      }
+                    }
+                  },
+                  {
+                    "id": "wait", "kind": "action",
+                    "payload": {"interactiveCommand": {"kind": "wait", "durationMs": 100}}
+                  },
+                  {"id": "end", "kind": "end"}
+                ],
+                "edges": [
+                  {"id": "enter", "fromNodeId": "start", "fromPortId": "completed", "toNodeId": "check", "kind": "default"},
+                  {"id": "yes", "fromNodeId": "check", "fromPortId": "true", "toNodeId": "wait", "kind": "conditionTrue"},
+                  {"id": "no", "fromNodeId": "check", "fromPortId": "false", "toNodeId": "end", "kind": "conditionFalse"},
+                  {"id": "finished", "fromNodeId": "wait", "fromPortId": "completed", "toNodeId": "end", "kind": "actionCompleted"}
+                ]
+              }
+            }
+          },
+          "observations": [
+            {"path": "project.json", "at": ["scenes", 1, "id"], "equals": "scene_encounter"},
+            {"path": "project.json", "at": ["scenes", 1, "graph", "edges", 0, "toNodeId"], "equals": "check"}
+          ]
+        },
+        {
+          "actionId": "scene.condition.set",
+          "actionVersion": 1,
+          "parameters": {
+            "sceneId": "scene_encounter",
+            "nodeId": "check",
+            "conditionSource": {
+              "sourceKind": "fact", "sourceId": "fact_tracks", "operator": "equals",
+              "factOperator": "equals", "factValueType": "bool", "factValue": true
+            }
+          },
+          "observations": [
+            {"path": "project.json", "at": ["scenes", 1, "graph", "nodes", 1, "payload", "conditionSource", "sourceId"], "equals": "fact_tracks"},
+            {"path": "project.json", "at": ["scenes", 1, "graph", "nodes", 1, "payload", "conditionSource", "factValue"], "equals": true}
+          ]
+        },
+        {
+          "actionId": "scene.interactive_command.set",
+          "actionVersion": 1,
+          "parameters": {"sceneId": "scene_encounter", "nodeId": "wait", "command": {"kind": "wait", "durationMs": 200}},
+          "observations": [
+            {"path": "project.json", "at": ["scenes", 1, "graph", "nodes", 2, "payload", "interactiveCommand", "durationMs"], "equals": 200}
+          ]
+        },
+        {
+          "actionId": "scene.character_animation.set",
+          "actionVersion": 1,
+          "parameters": {
+            "sceneId": "scene_encounter", "nodeId": "wait",
+            "runtimeCommand": {
+              "actorId": "player", "definitionId": "wave", "playback": {"kind": "once"},
+              "interruptionPolicy": "replaceActive", "fallbackPolicy": "fail"
+            }
+          },
+          "observations": [
+            {"path": "project.json", "at": ["scenes", 1, "graph", "nodes", 2, "payload", "interactiveCommand", "kind"], "equals": "playCharacterAnimation"},
+            {"path": "project.json", "at": ["scenes", 1, "graph", "nodes", 2, "payload", "interactiveCommand", "runtimeCommand", "definitionId"], "equals": "wave"}
+          ]
+        },
+        {
+          "actionId": "scene.delete",
+          "actionVersion": 1,
+          "parameters": {"sceneId": "scene_encounter"},
+          "confirm": true,
+          "observations": [
+            {"path": "project.json", "at": ["scenes", 0, "id"], "equals": "scene_gate"},
+            {"path": "project.json", "at": ["scenes", 1], "absent": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "publish-document",
+      "projectRoot": "project",
+      "steps": [
+        {
+          "actionId": "narrative.publish_document",
+          "actionVersion": 1,
+          "parameters": {
+            "scenes": [
+              {
+                "id": "published_scene", "name": "Published scene",
+                "graph": {
+                  "startNodeId": "start",
+                  "nodes": [{"id": "start", "kind": "start"}, {"id": "end", "kind": "end"}],
+                  "edges": [{"id": "finish", "fromNodeId": "start", "fromPortId": "completed", "toNodeId": "end", "kind": "default"}]
+                }
+              }
+            ],
+            "dialogues": [
+              {
+                "entry": {"id": "welcome", "name": "Bienvenue", "relativePath": "dialogues/welcome.yarn"},
+                "source": "title: Start\n---\nBonjour.\n===\n",
+                "revision": null
+              }
+            ]
+          },
+          "observations": [
+            {"path": "project.json", "at": ["scenes", 1, "id"], "equals": "published_scene"},
+            {"path": "project.json", "at": ["dialogues", 0, "id"], "equals": "welcome"},
+            {"path": "dialogues/welcome.yarn", "sha256": "sha256:9387fa609ece4ad8ca564b136b74472454a21c7a7c7beba239758db926c1fdb8"}
+          ]
+        }
+      ]
+    }
+  ]
+}

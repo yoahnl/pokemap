@@ -874,7 +874,25 @@ void main() {
         output['summary'],
         containsPair('itemTransportCertificationComplete', true),
       );
-    });
+
+      final strict = await Process.run(
+        Platform.resolvedExecutable,
+        <String>[
+          'run',
+          'tool/pmcp085_conformance.dart',
+          '--transport-receipts',
+          bundle.path,
+          '--require-transports',
+        ],
+      );
+      final strictOutput =
+          jsonDecode(strict.stdout as String) as Map<String, dynamic>;
+      expect(strict.exitCode, 1, reason: strict.stderr as String);
+      expect(
+        strictOutput['summary'],
+        containsPair('transportCertificationComplete', false),
+      );
+    }, timeout: const Timeout(Duration(minutes: 2)));
 
     test('PMCP tool refuses an Item transport claim without receipts',
         () async {

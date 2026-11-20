@@ -1,0 +1,24 @@
+{
+  "id": "map",
+  "name": "Proof map",
+  "version": "v8",
+  "size": {
+    "width": 8,
+    "height": 6
+  },
+  "layers": [],
+  "warps": [
+    {
+      "id": "side-path",
+      "pos": {
+        "x": 4,
+        "y": 0
+      },
+      "targetMapId": "beta",
+      "targetPos": {
+        "x": 2,
+        "y": 2
+      }
+    }
+  ]
+}

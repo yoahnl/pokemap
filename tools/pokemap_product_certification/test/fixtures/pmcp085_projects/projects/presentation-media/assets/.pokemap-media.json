@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "image",
+      "label": "Image",
+      "kind": "image",
+      "sourceAssetId": "proof"
+    }
+  ]
+}

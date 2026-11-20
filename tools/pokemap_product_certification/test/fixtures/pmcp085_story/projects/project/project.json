@@ -1,0 +1,62 @@
+{
+  "name": "Story transport certification",
+  "version": "v8",
+  "maps": [],
+  "tilesets": [],
+  "pokemon": {
+    "enabled": false,
+    "ruleset": {
+      "schemaVersion": 1,
+      "profileId": "pokemap-beta-v1",
+      "typeChartId": "mainline-modern-v1",
+      "maxLevel": 100,
+      "experiencePolicyId": "pokemap-simple-exp-v1",
+      "capturePolicyId": "pokemap-capture-mvp-v1",
+      "moveMachinePolicyId": "authored-consumability-v1",
+      "criticalHitPolicyId": "mainline-gen9-critical",
+      "speedTiePolicyId": "mainline-gen9-seeded-random",
+      "friendshipPolicyId": "mainline-0-255-v1",
+      "evolutionPolicyId": "pokemap-beta-evolution-v1",
+      "disabledFeatures": ["breeding", "double-battles", "modern-gimmicks", "online"]
+    }
+  },
+  "facts": [
+    {"id": "fact_tracks", "label": "Tracks", "defaultValue": false}
+  ],
+  "characterStudioCatalog": {
+    "customAnimationDefinitions": [{"id": "wave", "displayName": "Wave", "mode": "single"}]
+  },
+  "scenes": [
+    {
+      "id": "scene_gate",
+      "name": "Gate",
+      "graph": {
+        "startNodeId": "start",
+        "nodes": [{"id": "start", "kind": "start"}],
+        "edges": []
+      }
+    }
+  ],
+  "storylines": [
+    {
+      "id": "main",
+      "type": "main",
+      "title": "Main quest",
+      "chapters": [
+        {
+          "id": "act_1",
+          "title": "Act 1",
+          "order": 0,
+          "steps": [
+            {
+              "id": "wake_up",
+              "title": "Wake up",
+              "order": 0,
+              "sceneLinkIds": ["scene_gate"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

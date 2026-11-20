@@ -1,0 +1,195 @@
+{
+  "name": "Transport parity fixture",
+  "version": "v8",
+  "maps": [
+    {
+      "id": "map",
+      "name": "Proof map",
+      "relativePath": "maps/map.json"
+    }
+  ],
+  "tilesets": [
+    {
+      "id": "proof",
+      "name": "Proof",
+      "relativePath": "assets/proof.png",
+      "source": {
+        "kind": "regular_atlas",
+        "assetId": "proof",
+        "tileProperties": [],
+        "tileWidth": 16,
+        "tileHeight": 16,
+        "pixelWidth": 32,
+        "pixelHeight": 32
+      }
+    }
+  ],
+  "pokemon": {
+    "ruleset": {
+      "schemaVersion": 1,
+      "profileId": "pokemap-beta-v1",
+      "typeChartId": "mainline-modern-v1",
+      "maxLevel": 100,
+      "experiencePolicyId": "pokemap-simple-exp-v1",
+      "capturePolicyId": "pokemap-capture-mvp-v1",
+      "moveMachinePolicyId": "authored-consumability-v1",
+      "criticalHitPolicyId": "mainline-gen9-critical",
+      "speedTiePolicyId": "mainline-gen9-seeded-random",
+      "friendshipPolicyId": "mainline-0-255-v1",
+      "evolutionPolicyId": "pokemap-beta-evolution-v1",
+      "disabledFeatures": [
+        "breeding",
+        "double-battles",
+        "modern-gimmicks",
+        "online"
+      ]
+    }
+  },
+  "elementCategories": [
+    {
+      "id": "props",
+      "name": "Props"
+    }
+  ],
+  "elements": [
+    {
+      "id": "sign-prop",
+      "name": "Sign",
+      "tilesetId": "proof",
+      "categoryId": "props",
+      "frames": [
+        {
+          "source": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "durationMs": 100
+        },
+        {
+          "source": {
+            "x": 1,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "durationMs": 100
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "id": "ranger",
+      "name": "Ranger",
+      "tilesetId": "proof"
+    }
+  ],
+  "settings": {
+    "tileWidth": 16,
+    "tileHeight": 16
+  },
+  "smartTileCatalog": {
+    "formatVersion": 9,
+    "atlases": [
+      {
+        "id": "atlas",
+        "name": "Raster atlas",
+        "tilesetId": "proof",
+        "cellWidth": 16,
+        "cellHeight": 16,
+        "columns": 2,
+        "rows": 2
+      }
+    ],
+    "materials": [
+      {
+        "id": "grass",
+        "name": "Grass",
+        "connectionGroupId": "earth"
+      },
+      {
+        "id": "spare",
+        "name": "Spare earth",
+        "connectionGroupId": "earth"
+      }
+    ],
+    "presets": [
+      {
+        "id": "grass-path",
+        "name": "Grass path",
+        "usage": "path",
+        "topology": "uniform",
+        "templateHint": "simple",
+        "status": "published",
+        "defaultMaterialId": "grass",
+        "allowedMaterialIds": [
+          "grass",
+          "spare"
+        ],
+        "coveragePolicy": "sparse",
+        "coverageProfile": {
+          "mode": "template"
+        },
+        "transformPolicy": {},
+        "rules": [
+          {
+            "id": "grass-rule",
+            "centerMatch": {
+              "kind": "material",
+              "materialId": "grass"
+            },
+            "candidates": [
+              {
+                "id": "grass-image",
+                "parts": [
+                  {
+                    "source": {
+                      "kind": "frame",
+                      "frame": {
+                        "atlasId": "atlas",
+                        "column": 1,
+                        "row": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "spare-rule",
+            "centerMatch": {
+              "kind": "material",
+              "materialId": "spare"
+            },
+            "candidates": [
+              {
+                "id": "spare-image",
+                "parts": [
+                  {
+                    "source": {
+                      "kind": "frame",
+                      "frame": {
+                        "atlasId": "atlas",
+                        "column": 0,
+                        "row": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "id": "z-unused",
+        "name": "Unused"
+      }
+    ]
+  }
+}

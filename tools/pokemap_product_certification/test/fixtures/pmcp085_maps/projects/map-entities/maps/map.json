@@ -1,0 +1,54 @@
+{
+  "id": "map",
+  "name": "Proof map",
+  "version": "v8",
+  "size": {
+    "width": 8,
+    "height": 6
+  },
+  "layers": [],
+  "entities": [
+    {
+      "id": "sign",
+      "kind": "sign",
+      "pos": {
+        "x": 0,
+        "y": 0
+      },
+      "sign": {
+        "plainText": "Welcome"
+      }
+    },
+    {
+      "id": "arrival",
+      "kind": "spawn",
+      "pos": {
+        "x": 0,
+        "y": 1
+      },
+      "spawn": {
+        "spawnKey": "entry"
+      }
+    },
+    {
+      "id": "guide",
+      "kind": "npc",
+      "pos": {
+        "x": 0,
+        "y": 2
+      },
+      "npc": {
+        "displayName": "Guide",
+        "movement": {
+          "mode": "patrol",
+          "waypoints": [
+            {
+              "x": 1,
+              "y": 1
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

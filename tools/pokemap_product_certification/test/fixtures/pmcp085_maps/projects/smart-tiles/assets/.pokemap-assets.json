@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "records": [
+    {
+      "id": "proof",
+      "logicalPath": "assets/proof.png",
+      "artifact": {
+        "digest": "sha256:7c2ac387f27677d5e0ed7e97131956400f95cec65aa25f534c2ca275a8e84396",
+        "handle": "artifact://sha256/7c2ac387f27677d5e0ed7e97131956400f95cec65aa25f534c2ca275a8e84396",
+        "mediaType": "image/png",
+        "byteLength": 104
+      },
+      "usages": [],
+      "tags": []
+    }
+  ]
+}

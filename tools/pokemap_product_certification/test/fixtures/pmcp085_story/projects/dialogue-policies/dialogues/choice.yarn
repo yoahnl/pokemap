@@ -1,0 +1,9 @@
+title: Start
+---
+Found!
+-> Yes
+    <<outcome yes>>
+-> No
+    <<outcome no>>
+After.
+===
