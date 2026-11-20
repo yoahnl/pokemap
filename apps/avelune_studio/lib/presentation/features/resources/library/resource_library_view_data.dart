@@ -60,6 +60,17 @@ enum ResourceLibrarySort {
 
 enum ResourceLibrarySection { library, workshops }
 
+typedef ResourceLibraryWorkshopAction = ({
+  String label,
+  IconData icon,
+  VoidCallback open,
+});
+
+typedef ResourceLibraryWorkshopsBuilder = Widget Function(
+  VoidCallback back,
+  Future<bool> Function(String)? openMap,
+);
+
 typedef ResourceLibraryRelationsView = ({
   List<ResourceLibraryItemView> sources,
   List<ResourceLibraryItemView>? consumers,

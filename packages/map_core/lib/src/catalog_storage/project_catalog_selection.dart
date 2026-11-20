@@ -223,7 +223,10 @@ final class ProjectCatalogSelection {
     return roots;
   }
 
-  Future<ProjectManifest> resolve(Iterable<CatalogDefinitionKey> roots) async {
+  Future<ProjectManifest> resolve(
+    Iterable<CatalogDefinitionKey> roots, {
+    bool allowUnpublishedBorders = false,
+  }) async {
     final selected = <CatalogDefinitionKey, CatalogDefinitionUnit>{};
     final active = <CatalogDefinitionKey>{};
     final dynamic = {
@@ -266,7 +269,10 @@ final class ProjectCatalogSelection {
           key.kind == CatalogDefinitionKind.resourceFamily;
       for (final dependency in {
         if (!isClassification)
-          ..._dependencies(catalog.definitionValue(unit)),
+          ..._dependencies(
+            catalog.definitionValue(unit),
+            allowUnpublishedBorder: allowUnpublishedBorders && depth == 0,
+          ),
         if (familyId != null &&
             !ResourceLibraryCatalog.predefinedFamilies.any(
               (family) => family.id == familyId,
@@ -386,7 +392,10 @@ Set<String> _mapSceneIds(MapData map, ProjectManifest metadata) {
   return ids;
 }
 
-Iterable<CatalogDefinitionKey> _dependencies(Object definition) sync* {
+Iterable<CatalogDefinitionKey> _dependencies(
+  Object definition, {
+  required bool allowUnpublishedBorder,
+}) sync* {
   CatalogDefinitionKey key(CatalogDefinitionKind kind, String id) =>
       CatalogDefinitionKey(kind, id);
   if (definition case final ProjectTilesetEntry tileset) {
@@ -508,12 +517,12 @@ Iterable<CatalogDefinitionKey> _dependencies(Object definition) sync* {
   }
   if (definition case final BorderBlueprintRecord record) {
     final published = record.latestPublished?.definition;
-    if (published == null) {
+    if (published == null && !allowUnpublishedBorder) {
       throw const FormatException('catalog.selection: unpublished Border');
     }
     for (final definition in <BorderBlueprintDefinition>[
       record.draft.definition,
-      published,
+      ?published,
     ]) {
       if (definition.categoryId case final id?) {
         yield key(CatalogDefinitionKind.elementCategory, id);

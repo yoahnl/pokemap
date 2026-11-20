@@ -60,10 +60,7 @@ class _StudioLibraryImagePreviewState extends State<StudioLibraryImagePreview> {
           size: size,
           facing: EntityFacing.south,
         ),
-        AtlasPreviewSource(:final tilesetId) => StudioAtlasPreview(
-          resources: resources,
-          tilesetId: studioLibraryAtlasImageId(widget.project, tilesetId),
-        ),
+        AtlasPreviewSource source => _atlasPreview(resources, source),
         ElementPreviewSource(:final element) => StudioResourceThumbnail(
           resources: resources,
           element: element,
@@ -80,6 +77,27 @@ class _StudioLibraryImagePreviewState extends State<StudioLibraryImagePreview> {
     },
   );
 
+  Widget _atlasPreview(
+    StudioThumbnailResources resources,
+    AtlasPreviewSource source,
+  ) {
+    final tilesetId = source.tilesetId;
+    final imageId = studioLibraryAtlasImageId(
+      widget.project,
+      tilesetId,
+      pageId: source.pageId,
+    );
+    if (imageId == null) return _unavailable;
+    final layout = resources.tilesets[tilesetId]?.source;
+    return StudioAtlasPreview(
+      resources: resources,
+      tilesetId: imageId,
+      grid: source.showGrid && layout is ProjectRegularAtlasTilesetSource
+          ? layout
+          : null,
+    );
+  }
+
   Widget get _unavailable => const Center(
     child: Tooltip(
       message: 'Aperçu indisponible',
@@ -90,7 +108,7 @@ class _StudioLibraryImagePreviewState extends State<StudioLibraryImagePreview> {
 
 Object? _identity(ResourcePreviewSource source) => switch (source) {
   CharacterPreviewSource(:final character) => character,
-  AtlasPreviewSource(:final tilesetId) => tilesetId,
+  AtlasPreviewSource(:final tilesetId, :final pageId) => (tilesetId, pageId),
   ElementPreviewSource(:final element) => element,
   TileFramePreviewSource(:final entry) => entry,
   _ => null,

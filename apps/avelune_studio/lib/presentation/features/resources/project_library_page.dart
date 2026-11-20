@@ -20,6 +20,7 @@ import '../../../features/resources/domain/resource_port.dart';
 import '../../../features/resources/domain/studio_search_text.dart';
 import 'library/resource_library_view.dart';
 import 'library/resource_library_view_data.dart';
+import 'project_border_workshop.dart';
 import 'project_library_catalog_view.dart';
 import 'project_library_delete_dialog.dart';
 import 'project_library_edit_dialog.dart';
@@ -28,6 +29,7 @@ import 'project_library_pack_dialog.dart';
 import 'project_library_preview.dart';
 import 'project_model_replacement_panel.dart';
 import 'project_model_workshop.dart';
+import 'project_tileset_workshop.dart';
 
 part 'project_library_page_edits.dart';
 part 'project_library_page_lifecycle.dart';
@@ -37,6 +39,7 @@ part 'project_library_page_navigation.dart';
 part 'project_library_page_organization.dart';
 part 'project_library_page_packs.dart';
 part 'project_library_page_workshops.dart';
+part 'project_library_workshop_picker.dart';
 
 class ProjectLibraryPage extends StatefulWidget {
   const ProjectLibraryPage({
@@ -72,11 +75,13 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
   ResourcePackTransferController? _packTransfer;
   MapWorkspaceController? _packWorkspace;
   bool _pickingFile = false;
-  String? _workshopModel;
+  var _workshopKind = _ProjectWorkshopKind.models;
+  String? _workshopEntry;
   bool _workshopBusy = false;
   final _workshopReceipts = <String, ResourceMutationReceipt>{};
   ModelReplacementPanelStatus? _modelReplacementStatus;
-  ({String entryId, Map<String, Set<String>> usages})? _replacementUsageProjection;
+  ({String entryId, Map<String, Set<String>> usages})?
+  _replacementUsageProjection;
 
   void _updateView(VoidCallback update) => setState(update);
 
@@ -118,7 +123,8 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
     }
     if (oldWidget.maps != widget.maps) {
       _reading = null;
-      _workshopModel = null;
+      _workshopKind = _ProjectWorkshopKind.models;
+      _workshopEntry = null;
       _workshopBusy = false;
       _workshopReceipts.clear();
       _modelReplacementStatus = null;
@@ -289,9 +295,10 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
       showMapScopes: catalog.hasMapUsages,
       loadingMapUsages: loadingMapUsages,
       dimensionStatus: dimensionStatus,
-      buildWorkshops: (back) => _workshops(read, visuals, management, back),
+      buildWorkshops: (back, openMap) =>
+          _workshops(read, visuals, management, back, openMap),
       canLeaveWorkshops: () => !_workshopBusy,
-      workshopAction: (item) => _modelWorkshopAction(read, item.id),
+      workshopAction: (item) => _workshopAction(read, item.id),
       onManageFamilies: organization == null
           ? null
           : () => _manageFamilies(context, read, organization),

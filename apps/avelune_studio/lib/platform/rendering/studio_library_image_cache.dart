@@ -76,8 +76,8 @@ final class StudioLibraryImageCache {
     final index = StudioResourceIndex(scope);
     final requiredIds = switch (source) {
       TileFramePreviewSource(:final entry) => index.forTile(entry),
-      AtlasPreviewSource(:final tilesetId) => {
-        studioLibraryAtlasImageId(project, tilesetId),
+      AtlasPreviewSource(:final tilesetId, :final pageId) => {
+        ?studioLibraryAtlasImageId(project, tilesetId, pageId: pageId),
       },
       ElementPreviewSource() => index.expand(tilesetIds),
       CharacterPreviewSource(:final character) => index.forCharacter(character),
@@ -148,14 +148,20 @@ final class StudioLibraryImageCache {
   }
 }
 
-String studioLibraryAtlasImageId(ProjectManifest project, String tilesetId) {
+String? studioLibraryAtlasImageId(
+  ProjectManifest project,
+  String tilesetId, {
+  String? pageId,
+}) {
   final source = project.tilesets
       .where((item) => item.id == tilesetId)
       .firstOrNull
       ?.source;
   return switch (source) {
+    ProjectImageCollectionTilesetSource(:final pages) when pageId == null =>
+      pages.firstOrNull?.assetId,
     ProjectImageCollectionTilesetSource(:final pages) =>
-      pages.firstOrNull?.assetId ?? tilesetId,
+      pages.where((page) => page.id == pageId).firstOrNull?.assetId,
     _ => tilesetId,
   };
 }

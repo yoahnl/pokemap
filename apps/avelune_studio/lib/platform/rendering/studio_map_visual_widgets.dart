@@ -21,9 +21,10 @@ RuntimeAuthoringMapRenderer createStudioMapRenderer(
   MapData map,
   StudioMapResources resources, {
   StudioBorderPreview? previewBorders,
+  ProjectManifest? previewProject,
 }) => RuntimeAuthoringMapRenderer(
   bundle: RuntimeMapBundle(
-    manifest: resources.manifest,
+    manifest: previewProject ?? resources.manifest,
     map: map,
     projectRootDirectory: resources.projectRoot,
     tilesetAbsolutePathsById: resources.paths,
@@ -39,13 +40,15 @@ class StudioMapVisual extends StatefulWidget {
     required this.map,
     required this.resources,
     this.preview = false,
+    this.previewProject,
     this.placedElementPreview,
     this.collisionColor,
-  });
+  }) : assert(previewProject == null || preview);
 
   final MapData map;
   final StudioMapResources resources;
   final bool preview;
+  final ProjectManifest? previewProject;
   final MapPlacedElement? placedElementPreview;
   final Color? collisionColor;
 
@@ -79,6 +82,8 @@ class _StudioMapVisualState extends State<StudioMapVisual>
 
   StudioBorderPreview get _borders =>
       _previewBorders ?? widget.resources.borderPreview;
+  ProjectManifest get _project =>
+      widget.previewProject ?? widget.resources.manifest;
 
   void _prepareBorders() {
     final previous = _previewBorders;
@@ -91,7 +96,7 @@ class _StudioMapVisualState extends State<StudioMapVisual>
             }),
           )
         : null;
-    _previewBorders?.setActiveMap(widget.resources.manifest, widget.map);
+    _previewBorders?.setActiveMap(_project, widget.map);
   }
 
   @override
@@ -107,6 +112,7 @@ class _StudioMapVisualState extends State<StudioMapVisual>
       widget.map,
       widget.resources,
       previewBorders: _previewBorders,
+      previewProject: widget.previewProject,
     )..update(0);
     _borderAssets = _borders.assetsFor(widget.map);
     _catalogVersion = widget.resources.catalogVersion;
@@ -152,8 +158,9 @@ class _StudioMapVisualState extends State<StudioMapVisual>
     if (!mounted) return;
     _clockViewport = null;
     if (_previewBorders != null &&
+        widget.previewProject == null &&
         _catalogVersion != widget.resources.catalogVersion) {
-      _previewBorders!.setActiveMap(widget.resources.manifest, widget.map);
+      _previewBorders!.setActiveMap(_project, widget.map);
     }
     if (_catalogVersion != widget.resources.catalogVersion ||
         !identical(_borderAssets, _borders.assetsFor(widget.map))) {
@@ -167,8 +174,11 @@ class _StudioMapVisualState extends State<StudioMapVisual>
           widget.map,
           widget.resources,
           previewBorders: _previewBorders,
+          previewProject: widget.previewProject,
         )..update(0),
       );
+    } else if (widget.previewProject != null) {
+      setState(() {});
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -185,6 +195,7 @@ class _StudioMapVisualState extends State<StudioMapVisual>
   void didUpdateWidget(StudioMapVisual oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.map, widget.map) ||
+        !identical(oldWidget.previewProject, widget.previewProject) ||
         !identical(oldWidget.resources, widget.resources)) {
       _resetClock();
       renderer.dispose();
@@ -193,11 +204,12 @@ class _StudioMapVisualState extends State<StudioMapVisual>
       oldWidget.resources.removeListener(_changed);
       if (widget.preview &&
           (oldWidget.map != widget.map ||
+              oldWidget.previewProject != widget.previewProject ||
               oldWidget.resources.manifest != widget.resources.manifest)) {
         if (oldWidget.resources != widget.resources) {
           _prepareBorders();
         } else {
-          _previewBorders?.setActiveMap(widget.resources.manifest, widget.map);
+          _previewBorders?.setActiveMap(_project, widget.map);
         }
       } else if (oldWidget.preview != widget.preview) {
         _prepareBorders();
@@ -211,6 +223,7 @@ class _StudioMapVisualState extends State<StudioMapVisual>
         widget.map,
         widget.resources,
         previewBorders: _previewBorders,
+        previewProject: widget.previewProject,
       )..update(0);
       _borderAssets = _borders.assetsFor(widget.map);
     }
@@ -230,7 +243,17 @@ class _StudioMapVisualState extends State<StudioMapVisual>
 
   @override
   Widget build(BuildContext context) {
-    final settings = widget.resources.manifest.settings;
+    if (widget.previewProject != null) {
+      if (_borders.loading) {
+        return const Center(
+          child: CircularProgressIndicator(semanticsLabel: 'Chargement du tracé'),
+        );
+      }
+      if (_borders.issue != null) {
+        return const Center(child: Text('Images de la bordure indisponibles'));
+      }
+    }
+    final settings = _project.settings;
     final editorState = MapEditorVisibilityScope.maybeOf(context);
     renderer.setEditorState(editorState);
     renderer.setCollisionOverlay(

@@ -1,6 +1,22 @@
 part of 'resource_library_view.dart';
 
 extension _ResourceLibraryInspection on _ResourceLibraryViewState {
+  Future<bool> Function(String)? get _linkedMapOpener {
+    final openMap = widget.navigation?.openMap;
+    if (openMap == null) return null;
+    return (id) {
+      if (_scope != ResourceLibraryScope.project) _referenceMap ??= _map;
+      return openMap(id);
+    };
+  }
+
+  Widget _workshopSection() =>
+      widget.buildWorkshops?.call(
+        () => _setSection(ResourceLibrarySection.library),
+        _linkedMapOpener,
+      ) ??
+      widget.workshops!;
+
   Widget _inspection(
     ResourceLibraryItemView item,
     VoidCallback close, {
@@ -34,10 +50,9 @@ extension _ResourceLibraryInspection on _ResourceLibraryViewState {
             if (saved != null && mounted) update?.call(saved);
           };
     final delete = widget.onDelete;
-    final openWorkshop = widget.workshopAction?.call(item);
+    final workshop = widget.workshopAction?.call(item);
     final navigation = widget.navigation;
     final loadRelations = navigation?.loadRelations;
-    final openMap = navigation?.openMap;
     return ResourceLibraryInspector(
       key: ValueKey('library-detail-${item.id}'),
       item: item,
@@ -55,27 +70,24 @@ extension _ResourceLibraryInspection on _ResourceLibraryViewState {
       loadRelations: loadRelations == null
           ? null
           : () => loadRelations(item.id),
-      onOpenMap: openMap == null
-          ? null
-          : (id) {
-              if (_scope != ResourceLibraryScope.project) {
-                _referenceMap ??= _map;
-              }
-              return openMap(id);
-            },
+      onOpenMap: _linkedMapOpener,
       onMapOpened: dismiss,
       onClose: close,
       onBack: onBack,
       onRelated: select,
       preview: widget.detailPreview?.call(item),
       previewActions: widget.previewActions,
-      onOpenWorkshop: openWorkshop == null
+      workshop: workshop == null
           ? null
-          : () {
-              dismiss?.call();
-              openWorkshop();
-              _setSection(ResourceLibrarySection.workshops);
-            },
+          : (
+              label: workshop.label,
+              icon: workshop.icon,
+              open: () {
+                dismiss?.call();
+                workshop.open();
+                _setSection(ResourceLibrarySection.workshops);
+              },
+            ),
       onRename: action(widget.onRename),
       onClassify: action(widget.onClassify),
       onModify: action(widget.onModify),

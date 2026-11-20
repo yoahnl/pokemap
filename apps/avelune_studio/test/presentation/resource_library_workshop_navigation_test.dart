@@ -113,9 +113,12 @@ Future<void> _library(
           ],
           maps: const {},
           showMapScopes: false,
-          workshopAction: (item) =>
-              () => open(item.id),
-          buildWorkshops: (back) => Column(
+          workshopAction: (item) => (
+            label: 'Atelier 3D',
+            icon: Icons.view_in_ar_outlined,
+            open: () => open(item.id),
+          ),
+          buildWorkshops: (back, _) => Column(
             children: [
               const Text('Réglages du modèle'),
               StudioButton(label: 'Retour à la bibliothèque', onPressed: back),

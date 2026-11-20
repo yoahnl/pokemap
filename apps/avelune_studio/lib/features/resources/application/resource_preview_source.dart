@@ -23,8 +23,14 @@ final class CharacterPreviewSource extends ResourcePreviewSource {
 }
 
 final class AtlasPreviewSource extends ResourcePreviewSource {
-  const AtlasPreviewSource(this.tilesetId);
+  const AtlasPreviewSource(
+    this.tilesetId, {
+    this.pageId,
+    this.showGrid = false,
+  });
   final String tilesetId;
+  final String? pageId;
+  final bool showGrid;
 }
 
 final class TerrainPatternPreviewSource extends ResourcePreviewSource {

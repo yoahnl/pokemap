@@ -150,8 +150,10 @@ mixin _MapWorkspaceCatalogPorts
   ) => _adapter._readScopedCatalog(
     session,
     (catalog, revision) async => (
-      project: await ProjectCatalogSelection(catalog)
-          .resolve([CatalogDefinitionKey(_catalogFamily(kind), id)]),
+      project: await ProjectCatalogSelection(catalog).resolve(
+        [CatalogDefinitionKey(_catalogFamily(kind), id)],
+        allowUnpublishedBorders: kind == 'borderBlueprint',
+      ),
       revision: revision,
     ),
     metadataFields: const {},

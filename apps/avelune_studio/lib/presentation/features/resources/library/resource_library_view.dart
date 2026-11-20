@@ -62,9 +62,10 @@ class ResourceLibraryView extends StatefulWidget {
   final Map<String, String> maps;
   final String? activeMapId;
   final Widget? workshops;
-  final Widget Function(VoidCallback back)? buildWorkshops;
+  final ResourceLibraryWorkshopsBuilder? buildWorkshops;
   final bool Function()? canLeaveWorkshops;
-  final VoidCallback? Function(ResourceLibraryItemView)? workshopAction;
+  final ResourceLibraryWorkshopAction? Function(ResourceLibraryItemView)?
+  workshopAction;
   final VoidCallback? onManageFamilies;
   final Future<void> Function(BuildContext, Set<String>)? onClassifySelection;
   final ValueChanged<BuildContext>? onImport;
@@ -292,12 +293,7 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
                       child:
                           _section == ResourceLibrarySection.workshops &&
                               _hasWorkshops
-                          ? widget.buildWorkshops?.call(
-                                  () => _setSection(
-                                    ResourceLibrarySection.library,
-                                  ),
-                                ) ??
-                                widget.workshops!
+                          ? _workshopSection()
                           : _library(
                               context,
                               matches,

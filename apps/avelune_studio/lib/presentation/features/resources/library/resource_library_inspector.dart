@@ -26,7 +26,7 @@ class ResourceLibraryInspector extends StatelessWidget {
     this.onModify,
     this.onDuplicate,
     this.onDelete,
-    this.onOpenWorkshop,
+    this.workshop,
   });
 
   final ResourceLibraryItemView item;
@@ -47,14 +47,14 @@ class ResourceLibraryInspector extends StatelessWidget {
   final VoidCallback? onModify;
   final VoidCallback? onDuplicate;
   final VoidCallback? onDelete;
-  final VoidCallback? onOpenWorkshop;
+  final ResourceLibraryWorkshopAction? workshop;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     const actionsLabel = 'Autres actions';
     final actions = <StudioContextMenuItem>[
-      if (onOpenWorkshop != null && onModify != null)
+      if (workshop != null && onModify != null)
         StudioContextMenuEntry(
           label: 'Modifier',
           icon: Icons.edit_outlined,
@@ -129,18 +129,18 @@ class ResourceLibraryInspector extends StatelessWidget {
                 Text(item.name, style: theme.textTheme.titleLarge),
                 const SizedBox(height: StudioSpacing.xs),
                 Text(item.type, style: theme.textTheme.bodySmall),
-                if (onOpenWorkshop != null || onModify != null || showMenu) ...[
+                if (workshop != null || onModify != null || showMenu) ...[
                   const SizedBox(height: StudioSpacing.l),
                   Wrap(
                     spacing: StudioSpacing.m,
                     runSpacing: StudioSpacing.s,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      if (onOpenWorkshop case final open?)
+                      if (workshop case final action?)
                         StudioButton(
-                          label: 'Atelier 3D',
-                          icon: Icons.view_in_ar_outlined,
-                          onPressed: open,
+                          label: action.label,
+                          icon: action.icon,
+                          onPressed: action.open,
                         )
                       else if (onModify != null || previewActions)
                         StudioButton(

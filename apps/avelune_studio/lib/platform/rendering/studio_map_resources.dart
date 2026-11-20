@@ -12,6 +12,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
+import '../../features/rendering/contracts/border_workshop_visuals.dart';
 import '../../features/rendering/contracts/map_workspace_visuals.dart';
 import '../../features/rendering/contracts/scoped_resource_preview_visuals.dart';
 import '../../features/rendering/contracts/workspace_resource_diagnostic.dart';
@@ -28,6 +29,7 @@ import 'studio_character_thumbnail.dart';
 import 'studio_cinematic_media.dart';
 import 'studio_resource_notifications.dart';
 import 'studio_border_preview.dart';
+import 'studio_border_workshop_visual.dart';
 import 'studio_library_image_cache.dart';
 import 'studio_library_image_preview.dart';
 import 'studio_thumbnail_resources.dart';
@@ -58,6 +60,7 @@ final class StudioMapResources
         CinematicMediaWorkspaceVisuals,
         PresentationMediaWorkspaceVisuals,
         MapBorderPreviewVisuals,
+        BorderWorkshopVisuals,
         MapWorkspacePreviewVisuals {
   StudioMapResources._(this.projectRoot, this.manifest)
     : _index = StudioResourceIndex(manifest);
@@ -301,6 +304,9 @@ final class StudioMapResources
   @override
   Widget previewCanvas(MapData map) =>
       StudioMapVisual(map: map, resources: this, preview: true);
+  @override
+  Widget borderAssemblyPreview(MapData map, ProjectManifest project) =>
+      buildStudioBorderAssemblyPreview(map, project, this);
   @override
   Widget thumbnail(ProjectElementEntry element, {double size = 48}) =>
       StudioResourceThumbnail(element: element, resources: this, size: size);

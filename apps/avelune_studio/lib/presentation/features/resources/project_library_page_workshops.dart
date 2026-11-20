@@ -1,30 +1,106 @@
 part of 'project_library_page.dart';
 
 extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
-  VoidCallback? _modelWorkshopAction(
+  ResourceLibraryWorkshopAction? _workshopAction(
     _ProjectLibraryRead read,
     String identity,
   ) {
-    if (read.catalog.entries[identity]?.kind != 'model3d') return null;
-    return () => _showModelWorkshop(identity);
+    final resourceKind = read.catalog.entries[identity]?.kind;
+    final workshop = _ProjectWorkshopKind.values
+        .where((option) => option.resourceKind == resourceKind)
+        .firstOrNull;
+    if (workshop == null) return null;
+    return (
+      label: workshop.actionLabel,
+      icon: workshop.icon,
+      open: () => _selectWorkshop(workshop, identity),
+    );
   }
 
-  void _showModelWorkshop(String? identity) =>
-      _updateView(() => _workshopModel = identity);
+  void _selectWorkshop(_ProjectWorkshopKind kind, [String? identity]) =>
+      _updateView(() {
+        _workshopKind = kind;
+        _workshopEntry = identity;
+      });
 
   Widget _workshops(
     _ProjectLibraryRead read,
     MapWorkspaceVisuals? visuals,
     ProjectLibraryManagement? management,
     VoidCallback back,
+    Future<bool> Function(String)? openMap,
   ) {
-    final selected = read.catalog.entries[_workshopModel];
+    final selected = read.catalog.entries[_workshopEntry];
     if (selected == null) {
-      return _ModelWorkshopPicker(
+      return _ProjectWorkshopPicker(
+        key: ValueKey(_workshopKind),
         catalog: read.catalog,
-        onSelected: _showModelWorkshop,
+        workshop: _workshopKind,
+        onWorkshop: _selectWorkshop,
+        onSelected: (identity) => _selectWorkshop(_workshopKind, identity),
       );
     }
+    void leave() {
+      _selectWorkshop(_workshopKind);
+      back();
+    }
+
+    return switch (_workshopKind) {
+      _ProjectWorkshopKind.models => _modelWorkshop(
+        read,
+        selected,
+        visuals,
+        management,
+        leave,
+      ),
+      _ProjectWorkshopKind.tilesets => ProjectTilesetWorkshop(
+        key: ValueKey(selected.identity),
+        item: selected,
+        previews: read.previews,
+        visuals: visuals,
+        usages: _workshopMapUsages(read, selected.identity),
+        onOpenMap: openMap,
+        onBack: leave,
+      ),
+      _ProjectWorkshopKind.borders => ProjectBorderWorkshop(
+        key: ValueKey(selected.identity),
+        item: selected,
+        loadProject: () => _loadWorkshopProject(selected),
+        visuals: visuals,
+        onBack: leave,
+      ),
+    };
+  }
+
+  Map<String, String>? _workshopMapUsages(
+    _ProjectLibraryRead read,
+    String identity,
+  ) {
+    final mapIds = read.enriched?.item(identity)?.usedOn;
+    if (mapIds == null) return null;
+    return {
+      for (final map in widget.maps.project?.maps ?? const <ProjectMapEntry>[])
+        if (mapIds.contains(map.id)) map.id: map.name,
+    };
+  }
+
+  Future<ProjectManifest> _loadWorkshopProject(ProjectLibraryItem entry) async {
+    final maps = widget.maps;
+    final port = maps.port;
+    if (maps.hasCompleteProject) return maps.project!;
+    if (port case final ProjectResourcePreviewPort reader) {
+      return reader.readResourcePreview(maps.session, entry.kind, entry.id);
+    }
+    throw StateError('Lecteur d’aperçu indisponible.');
+  }
+
+  Widget _modelWorkshop(
+    _ProjectLibraryRead read,
+    ProjectLibraryItem selected,
+    MapWorkspaceVisuals? visuals,
+    ProjectLibraryManagement? management,
+    VoidCallback back,
+  ) {
     final editor = management?.editor;
     final workshop = editor is ProjectModelWorkshopPort
         ? editor as ProjectModelWorkshopPort
@@ -60,10 +136,7 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
         management,
         visuals,
       ),
-      onBack: () {
-        _showModelWorkshop(null);
-        back();
-      },
+      onBack: back,
     );
   }
 
@@ -134,80 +207,5 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
     } finally {
       if (current()) _updateView(() => _workshopBusy = false);
     }
-  }
-}
-
-class _ModelWorkshopPicker extends StatefulWidget {
-  const _ModelWorkshopPicker({required this.catalog, required this.onSelected});
-
-  final ProjectLibraryCatalogView catalog;
-  final ValueChanged<String> onSelected;
-
-  @override
-  State<_ModelWorkshopPicker> createState() => _ModelWorkshopPickerState();
-}
-
-class _ModelWorkshopPickerState extends State<_ModelWorkshopPicker> {
-  final _search = TextEditingController();
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final query = studioSearchText(_search.text).trim();
-    final models = [
-      for (final item in widget.catalog.entries.values)
-        if (item.kind == 'model3d' && item.searchText.contains(query)) item,
-    ];
-    return Padding(
-      padding: const EdgeInsets.all(StudioSpacing.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Ateliers', style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: StudioSpacing.xl),
-          Text('Modèles 3D', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: StudioSpacing.l),
-          StudioSearchField(
-            key: const ValueKey('library-workshop-model-search'),
-            label: 'Chercher un modèle 3D',
-            controller: _search,
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: StudioSpacing.l),
-          Expanded(
-            child: models.isEmpty
-                ? StudioEmptyState(
-                    title: query.isEmpty
-                        ? 'Aucun modèle 3D'
-                        : 'Aucun modèle trouvé',
-                    description: query.isEmpty
-                        ? 'Importez un modèle GLB dans la bibliothèque.'
-                        : 'Essayez un autre nom de modèle.',
-                  )
-                : ListView.builder(
-                    itemCount: models.length,
-                    itemBuilder: (context, index) {
-                      final model = models[index];
-                      return Align(
-                        alignment: Alignment.centerLeft,
-                        child: StudioButton(
-                          key: ValueKey('library-workshop-${model.identity}'),
-                          label: model.name,
-                          icon: Icons.view_in_ar_outlined,
-                          variant: StudioButtonVariant.quiet,
-                          onPressed: () => widget.onSelected(model.identity),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
   }
 }
