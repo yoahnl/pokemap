@@ -7,7 +7,7 @@ void main() {
     final script = _windowsReleaseBuildScript();
     for (final lastLine in [
       'flutter pub get',
-      'flutter test test/release',
+      'flutter test test/release --exclude-tags product-certification',
       'flutter analyze',
       r'  "--build-number=$env:RELEASE_BUILD_NUMBER"',
     ]) {
@@ -94,20 +94,18 @@ void main() {
   );
 
   test('Windows installer upgrades the existing PokeMap installation', () {
-    final previous = File(
-      '../../packages/map_editor/windows/installer/pokemap.iss',
-    ).readAsStringSync();
     final studio = File('windows/installer/avelune_studio.iss')
         .readAsStringSync();
 
-    for (final setting in [
-      'AppId',
-      'DefaultDirName',
-      'PrivilegesRequired',
-      'ArchitecturesAllowed',
-      'ArchitecturesInstallIn64BitMode',
-    ]) {
-      expect(_setupValue(studio, setting), _setupValue(previous, setting));
+    const installedSettings = {
+      'AppId': '{{B7B33F1A-5D6C-4D62-9B32-65F9FBC8B22A}',
+      'DefaultDirName': r'{localappdata}\Programs\PokeMap',
+      'PrivilegesRequired': 'lowest',
+      'ArchitecturesAllowed': 'x64compatible',
+      'ArchitecturesInstallIn64BitMode': 'x64compatible',
+    };
+    for (final setting in installedSettings.entries) {
+      expect(_setupValue(studio, setting.key), setting.value);
     }
     expect(_setupValue(studio, 'AppName'), 'Avelune Studio');
     expect(
@@ -130,13 +128,8 @@ void main() {
   });
 
   test('Windows runner uses the Studio name and icon', () {
-    final previous = File('../../packages/map_editor/windows/CMakeLists.txt')
-        .readAsStringSync();
     final studio = File('windows/CMakeLists.txt').readAsStringSync();
-    expect(
-      _cmakeValue(studio, 'BINARY_NAME'),
-      _cmakeValue(previous, 'BINARY_NAME'),
-    );
+    expect(_cmakeValue(studio, 'BINARY_NAME'), 'PokeMap');
     final runnerBuild = File('windows/runner/CMakeLists.txt')
         .readAsStringSync();
     expect(runnerBuild, isNot(contains('WinSparkle')));
@@ -159,17 +152,9 @@ void main() {
   });
 
   test('Linux keeps the install identity and displays Avelune Studio', () {
-    final previous = File('../../packages/map_editor/linux/CMakeLists.txt')
-        .readAsStringSync();
     final studio = File('linux/CMakeLists.txt').readAsStringSync();
-    expect(
-      _cmakeValue(studio, 'BINARY_NAME'),
-      _cmakeValue(previous, 'BINARY_NAME'),
-    );
-    expect(
-      _cmakeValue(studio, 'APPLICATION_ID'),
-      _cmakeValue(previous, 'APPLICATION_ID'),
-    );
+    expect(_cmakeValue(studio, 'BINARY_NAME'), 'pokemap');
+    expect(_cmakeValue(studio, 'APPLICATION_ID'), 'com.yoahnl.pokemap.editor');
     expect(studio, contains('RENAME "studio_icon.png"'));
 
     final runner = File('linux/runner/my_application.cc').readAsStringSync();
