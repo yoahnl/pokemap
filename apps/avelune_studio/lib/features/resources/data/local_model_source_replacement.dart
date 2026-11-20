@@ -66,8 +66,9 @@ Future<void> _undoReviewedReplacement(
     idempotencyKey: operationId,
     precondition: () async {
       adapter._requireAvailable();
-      if (await revision() != commit.publication.revision)
+      if (await revision() != commit.publication.revision) {
         throw _staleReplacement;
+      }
       _requireCleanDrafts(checkDrafts);
     },
   );
