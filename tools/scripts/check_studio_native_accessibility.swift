@@ -95,7 +95,7 @@ do {
         throw ProbeFailure.unavailable("The probe requires an existing macOS accessibility permission")
     }
     guard let process = NSRunningApplication(processIdentifier: pid),
-          process.bundleIdentifier == "com.yoahnl.pokemap.editor",
+          process.bundleIdentifier == "com.yoahnl.avelune.studio",
           !process.isTerminated else {
         throw ProbeFailure.unavailable("The PID must identify a running Avelune Studio")
     }

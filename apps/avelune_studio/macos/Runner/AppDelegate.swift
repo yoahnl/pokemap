@@ -16,7 +16,7 @@ class AppDelegate: FlutterAppDelegate {
   private func migrateInstalledBundleNameIfNeeded() {
     let installedBundle = Bundle.main.bundleURL
     guard installedBundle.lastPathComponent == "PokeMap.app",
-          Bundle.main.bundleIdentifier == "com.yoahnl.pokemap.editor",
+          Bundle.main.bundleIdentifier == "com.yoahnl.avelune.studio",
           !installedBundle.path.contains("/AppTranslocation/") else {
       return
     }

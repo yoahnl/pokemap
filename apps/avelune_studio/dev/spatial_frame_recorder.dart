@@ -32,6 +32,7 @@ Future<Directory> requireStudioCaptureRoot(String configuredPath) async {
   const qaRoots = {
     '/Users/karim/Library/Caches/AveluneQA',
     '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Library/Caches/AveluneQA',
+    '/Users/karim/Library/Containers/com.yoahnl.avelune.studio/Data/Library/Caches/AveluneQA',
   };
   final qaRun =
       p.isAbsolute(configuredPath) &&

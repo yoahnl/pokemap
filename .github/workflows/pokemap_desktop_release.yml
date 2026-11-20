@@ -222,7 +222,7 @@ jobs:
           node ../../tools/pokemap_mcp/tool/build_runtime.mjs \
             --work-root "$RUNNER_TEMP/studio-mcp" \
             --output "$APP_PATH/Contents/Resources/mcp"
-          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.pokemap.editor
+          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.avelune.studio
           test "$(plutil -extract CFBundleName raw "$APP_PATH/Contents/Info.plist")" = 'Avelune Studio'
           test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")" = "$RELEASE_BUILD_NUMBER"
           test "$(plutil -extract SUFeedURL raw "$APP_PATH/Contents/Info.plist")" = 'https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml'
@@ -637,7 +637,7 @@ jobs:
             --manifest ../../tools/flutter_engine_patches/macos_release_engine.json \
             --producer-flutter-sdk "$RUNNER_TEMP/flutter" \
             --receipt "$RUNNER_TEMP/studio-engine-receipt.json"
-          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.pokemap.editor
+          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.avelune.studio
           test "$(plutil -extract CFBundleName raw "$APP_PATH/Contents/Info.plist")" = 'Avelune Studio'
           test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")" = "$RELEASE_BUILD_NUMBER"
           test "$(plutil -extract SUFeedURL raw "$APP_PATH/Contents/Info.plist")" = 'https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml'

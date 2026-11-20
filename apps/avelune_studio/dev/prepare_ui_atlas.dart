@@ -4,7 +4,7 @@ import 'package:path/path.dart' as p;
 
 Future<void> main(List<String> args) async {
   const root =
-      '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Library/Caches/AveluneQA';
+      '/Users/karim/Library/Containers/com.yoahnl.avelune.studio/Data/Library/Caches/AveluneQA';
   if (args.length != 1 ||
       p.normalize(args.single) != args.single ||
       p.dirname(args.single) != root ||
