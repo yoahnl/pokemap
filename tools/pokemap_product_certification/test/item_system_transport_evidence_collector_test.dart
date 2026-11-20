@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -17,7 +18,12 @@ void main() {
           'examples/playable_runtime_host/golden_item_system',
         ),
       );
-      final mcpRoot = Directory(p.join(repositoryRoot, 'tools/pokemap_mcp'));
+      const mcpRootOverride = String.fromEnvironment('POKEMAP_MCP_ROOT');
+      final mcpRoot = Directory(
+        mcpRootOverride.isEmpty
+            ? p.join(repositoryRoot, 'tools/pokemap_mcp')
+            : mcpRootOverride,
+      );
       final sourceRevision = await _sourceRevision(repositoryRoot);
       final catalogFile = File(
         p.join(projectRoot.path, 'data/pokemon/catalogs/items.json'),
@@ -38,7 +44,11 @@ void main() {
       );
 
       expect(receipt.level, ItemSystemProofLevel.mcpParityL5);
-      expect(receipt.verdict, ItemSystemExecutionVerdict.passed);
+      expect(
+        receipt.verdict,
+        ItemSystemExecutionVerdict.passed,
+        reason: jsonEncode(receipt.payload),
+      );
       expect(
         receipt.succeededCapabilities,
         ItemSystemV1CertificationProfile.requiredCapabilitiesFor(
@@ -100,6 +110,17 @@ void main() {
         isA<List<Object?>>().having((items) => items.length, 'length', 36),
       );
       expect(await catalogFile.readAsBytes(), catalogBefore);
+      const receiptPath = String.fromEnvironment(
+        'POKEMAP_ITEM_TRANSPORT_RECEIPTS_OUTPUT',
+      );
+      if (receiptPath.isNotEmpty) {
+        final output = File(receiptPath);
+        await output.parent.create(recursive: true);
+        await output.writeAsString(
+          '${const JsonEncoder.withIndent('  ').convert(bundle)}\n',
+          flush: true,
+        );
+      }
     },
     timeout: const Timeout(Duration(minutes: 3)),
   );

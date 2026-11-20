@@ -18,8 +18,19 @@ void main() {
       final f = await _Fixture.create();
       addTearDown(f.dispose);
       final initial = await f.manifest.readAsBytes();
+      final sideStory = StorylineAsset(
+        id: 'side-story',
+        type: StorylineType.sideQuest,
+        title: 'A detour',
+      );
+      final upsert = await f.run('storyline.upsert', wire, {
+        'storyline': sideStory.toJson(),
+      });
+      expect((upsert['receipt'] as Map)['status'], 'applied');
       await f.run('storyline.chapter.create', wire,
           {'storylineId': 'main', 'chapterId': 'act_2', 'title': 'Act 2'});
+      await f.run('storyline.chapter.rename', wire,
+          {'storylineId': 'main', 'chapterId': 'act_2', 'title': 'Finale'});
       final created = await f.run('storyline.milestone.create', wire, {
         'storylineId': 'main',
         'chapterId': 'act_2',
@@ -53,6 +64,12 @@ void main() {
           {'storylineId': 'main', 'chapterId': 'act_1', 'stepId': 'wake_up'}
         ]
       });
+      await f.run('storyline.milestone.detach_scene', wire, {
+        'storylineId': 'main',
+        'chapterId': 'act_2',
+        'stepId': 'leave_town',
+        'sceneId': 'scene_gate',
+      });
       await f.run('storyline.milestone.move', wire, {
         'storylineId': 'main',
         'chapterId': 'act_2',
@@ -60,19 +77,29 @@ void main() {
         'targetChapterId': 'act_1',
         'targetIndex': 0,
       });
+      await f.run('storyline.milestone.set_archived', wire, {
+        'storylineId': 'main',
+        'chapterId': 'act_1',
+        'stepId': 'leave_town',
+        'archived': true,
+      });
       await f.run('storyline.chapter.set_archived', wire,
           {'storylineId': 'main', 'chapterId': 'act_2', 'archived': true});
 
       await f.reopen();
       final project = (await f.snapshots.load(f.project)).manifest;
-      final chapters = project.storylines.single.chapters;
-      expect(chapters.map((chapter) => (chapter.id, chapter.status)), [
-        ('act_1', null),
-        ('act_2', StorylineStatus.archived),
-      ]);
+      expect(project.storylines, contains(sideStory));
+      final chapters = project.storylines
+          .singleWhere((story) => story.id == 'main')
+          .chapters;
+      expect(
+        chapters.map((chapter) => (chapter.id, chapter.title, chapter.status)),
+        [('act_1', 'Act 1', null), ('act_2', 'Finale', StorylineStatus.archived)],
+      );
       final moved = chapters.first.steps.first;
-      expect((moved.id, moved.title), ('leave_town', 'Leave the town'));
-      expect(moved.sceneLinkIds, ['scene_gate']);
+      expect((moved.id, moved.title, moved.status),
+          ('leave_town', 'Leave the town', StorylineStatus.archived));
+      expect(moved.sceneLinkIds, isEmpty);
       expect(chapters.first.steps.last.sceneLinkIds, isEmpty);
       final fact = project.facts.last;
       expect((
@@ -159,9 +186,7 @@ final class _Fixture {
   File get manifest => File('${directory.path}/project.json');
 
   static Future<_Fixture> create() async {
-    final root = await Directory('/Users/karim/Library/Caches/AveluneQA/c2')
-        .create(recursive: true);
-    final directory = await root.createTemp('trame-');
+    final directory = await Directory.systemTemp.createTemp('trame-');
     final scene = SceneAsset(
       id: 'scene_gate',
       name: 'Gate',

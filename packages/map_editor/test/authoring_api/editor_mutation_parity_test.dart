@@ -970,6 +970,71 @@ void main() {
       },
     );
 
+    test(
+      'item creation uses the workshop revision and rejects a stale one',
+      () async {
+        final fixture = await _MutationFixture.create(enableSnapshotCache: true);
+        addTearDown(fixture.dispose);
+        const catalogPath = 'data/pokemon/catalogs/items.json';
+        final catalogFile = File(p.join(fixture.root.path, catalogPath));
+        await catalogFile.parent.create(recursive: true);
+        await catalogFile.writeAsString(
+          jsonEncode(encodeProjectItemCatalog(
+            const ProjectItemCatalog(schemaVersion: 1, entries: []),
+          )),
+        );
+        final unrelatedMap = File(fixture.mapPath);
+        final mapBefore = await unrelatedMap.readAsBytes();
+
+        Future<EditorAuthoringMutationPlan> planItem(
+          String id, {
+          String? expectedRevision,
+        }) => fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'item.create',
+          parameters: {
+            'definition': ProjectItemDefinition(
+              id: id,
+              displayName: 'Workshop Item',
+              pocketId: 'custom',
+            ).toJson(),
+          },
+          idempotencyKey: id,
+          expectedRevision: expectedRevision,
+        );
+
+        final plan = await planItem('new-item');
+        final applied = await fixture.mutations.apply(
+          plan,
+          operationId: 'new-item',
+        );
+        expect(applied.receipt.status, AuthoringReceiptStatus.applied);
+        expect(applied.receipt.affectedResources, hasLength(1));
+        expect(applied.snapshotRevision, isNotNull);
+        expect(applied.snapshotRevision, isNot(plan.snapshotRevision));
+        expect(fixture.countingReader!.readPaths, contains(catalogPath));
+        expect(fixture.countingReader!.readPaths, isNot(contains('maps/alpha.json')));
+        expect(await unrelatedMap.readAsBytes(), mapBefore);
+        await expectLater(
+          planItem('stale-item', expectedRevision: plan.snapshotRevision),
+          throwsA(isA<EditorAuthoringMutationFailure>().having(
+            (error) => error.code,
+            'code',
+            'plan.stale',
+          )),
+        );
+
+        await fixture.mutations.closeAll();
+        final reopened = await fixture.queries.open(fixture.root.path);
+        final item = reopened.query(AuthoringQueryRequest(
+          resourceKind: 'itemDefinition',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+        ));
+        expect((item['items']! as List).single, containsPair('id', 'new-item'));
+      },
+    );
+
     test('enables Pokemon data through the editor canonical adapter', () async {
       final fixture = await _MutationFixture.create();
       addTearDown(fixture.dispose);
@@ -2330,10 +2395,12 @@ final class _CountingEditorReader
   static const _roots = EditorProjectFileReader();
   var byteReads = 0;
   var identityReads = 0;
+  final readPaths = <String>{};
 
   void resetCounts() {
     byteReads = 0;
     identityReads = 0;
+    readPaths.clear();
   }
 
   @override
@@ -2358,6 +2425,7 @@ final class _CountingEditorReader
     required String relativePath,
   }) {
     byteReads += 1;
+    readPaths.add(relativePath);
     return _files.readBytes(
       projectRoot: projectRoot,
       relativePath: relativePath,

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {mkdir, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {test} from 'node:test';
 import {Client} from '@modelcontextprotocol/client';
@@ -13,7 +14,7 @@ function record(value: unknown): JsonRecord {
 }
 
 test('fresh MCP discovers model visibility and persists a daily condition with stable anchors and undo', {timeout: 120000}, async () => {
-  const root = '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-authoring/fixture';
+  const root = await mkdtemp(join(tmpdir(), 'model-visibility-mcp-'));
   await mkdir(join(root, 'maps'), {recursive: true});
   const mapFile = join(root, 'maps/route.json');
   const reference = {schemaVersion: 1, sceneId: 'source', nodeId: 'claim', rewardId: 'daily'};

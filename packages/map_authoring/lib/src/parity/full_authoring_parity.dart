@@ -603,6 +603,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/narrative_publication_without_map_stdio.test.ts',
     };
   }
+  if (actionId == 'storyline.upsert') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/narrative/storyline_trame_actions_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/narrative/storyline_trame_actions_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/storyline/storyline_journal_catalog_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/studio_narrative_publication.test.ts',
+    };
+  }
   if (actionId == 'storyline.milestone.set_journal' ||
       actionId == 'storyline.clues.set') {
     return const {

@@ -8,6 +8,7 @@ import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 import type { JsonRecord } from "./authoring_client.js";
+import { mutationRevision } from "./mutation_revision.js";
 
 const actions = [
   {
@@ -100,7 +101,7 @@ async function main(): Promise<void> {
   await cp(projectRoot, workingRoot, { recursive: true });
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [serverPath, "--root", workingRoot],
+    args: [serverPath, "--root", workingRoot, "--authoring-timeout-ms", "60000"],
     cwd: resolve(dirname(serverPath), "../.."),
     stderr: "pipe",
   });
@@ -131,6 +132,9 @@ async function main(): Promise<void> {
     const receiptIds = new Set<string>();
 
     for (const [index, action] of actions.entries()) {
+      const before = await mutationRevision(
+        client, projectHandle, action.actionId, action.parameters, revision,
+      );
       const planned = await toolData(client, "pokemap_plan", {
         projectHandle,
         request: {
@@ -139,7 +143,7 @@ async function main(): Promise<void> {
           actionVersion: 1,
           workspaceHandle,
           parameters: action.parameters,
-          expectedRevision: revision,
+          ...before,
           idempotencyKey: `cert-mcp-${index}`,
           dryRun: false,
         },
@@ -166,7 +170,8 @@ async function main(): Promise<void> {
       const receipt = record(applied.receipt);
       assert.equal(receipt.actionId, action.actionId);
       assert.equal(receipt.status, "applied");
-      assert.ok(receiptIds.add(String(receipt.receiptId)));
+      assert.ok(!receiptIds.has(String(receipt.receiptId)));
+      receiptIds.add(String(receipt.receiptId));
       const queried = await toolData(client, "pokemap_query", {
         projectHandle,
         resourceKind: "itemDefinition",
@@ -174,7 +179,10 @@ async function main(): Promise<void> {
         view: "detail",
       });
       revision = String(queried.snapshotRevision);
-      assert.equal(revision, applied.snapshotRevision);
+      const after = await mutationRevision(
+        client, projectHandle, action.actionId, action.parameters, revision,
+      );
+      assert.equal(after.expectedRevision, applied.snapshotRevision);
       const definitions = (queried.items as JsonRecord[]).map(record);
       verifySemanticState(definitions, action.actionId);
       const queriedCatalog = await toolData(client, "pokemap_query", {
@@ -196,7 +204,7 @@ async function main(): Promise<void> {
         transport: "mcp",
         receiptSha256: canonicalSha256(normalizedReceipt(receipt)),
         semanticStateSha256: canonicalSha256(catalog),
-        afterRevision: revision,
+        afterRevision: receipt.afterRevision,
       });
     }
 

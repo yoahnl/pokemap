@@ -36,7 +36,18 @@ void main() {
         sourceRevision: sourceRevision,
         recordedAtUtc: DateTime.now().toUtc(),
       );
-      expect(result.technicalCertificationPassed, isTrue);
+      expect(
+        result.technicalCertificationPassed,
+        isTrue,
+        reason: const JsonEncoder.withIndent('  ').convert(<String, Object?>{
+          for (final level in result.levelResults)
+            if (level.status != ItemSystemCertificationStatus.certified)
+              level.level.wireName: <String, Object?>{
+                ...level.toJson(),
+                'payload': result.executionReceipts[level.level]?.payload,
+              },
+        }),
+      );
       final l5 = result.executionReceipts[ItemSystemProofLevel.mcpParityL5];
       if (l5 == null) throw StateError('The L5 receipt is missing.');
       final bundle = const ItemSystemTransportEvidenceCollector()

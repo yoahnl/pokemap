@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, readFile, rm } from "node:fs/promises";
-import { homedir } from "node:os";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
@@ -15,8 +15,7 @@ function record(value: unknown): JsonRecord {
 }
 
 test("scoped map relations cross live MCP and JSONL with two-map undo", { timeout: 120_000 }, async () => {
-  const root = join(homedir(), "Library/Caches/AveluneQA/hgss-mauville-maps/api/mcp-relations");
-  await mkdir(root, { recursive: true });
+  const root = await mkdtemp(join(tmpdir(), "catalog-map-relations-mcp-"));
   const packageRoot = resolve("../../packages/map_authoring");
   const dart = process.env.POKEMAP_TEST_DART ?? "dart";
   const client = new Client({ name: "scoped-map-relations", version: "1.0.0" });

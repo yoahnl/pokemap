@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, readFile, rm } from "node:fs/promises";
-import { homedir } from "node:os";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
@@ -15,8 +15,7 @@ function record(value: unknown): JsonRecord {
 }
 
 test("scoped 3D map creation crosses live MCP with replay, undo and reopen", { timeout: 120_000 }, async () => {
-  const root = join(homedir(), "Library/Caches/AveluneQA/hgss-mauville-maps/api/mcp");
-  await mkdir(root, { recursive: true });
+  const root = await mkdtemp(join(tmpdir(), "catalog-map-creation-mcp-"));
   const packageRoot = resolve("../../packages/map_authoring");
   const dart = process.env.POKEMAP_TEST_DART ?? "dart";
   const client = new Client({ name: "scoped-map-creation", version: "1.0.0" });

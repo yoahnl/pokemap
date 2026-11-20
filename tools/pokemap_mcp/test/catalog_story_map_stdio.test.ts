@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
@@ -16,8 +16,7 @@ function record(value: unknown): JsonRecord {
 }
 
 test("partitioned story entities and triggers cross live MCP and preserve unrelated maps", { timeout: 120_000 }, async () => {
-  const root = join(homedir(), "Library/Caches/AveluneQA/targeted-story-authoring/mcp");
-  await mkdir(root, { recursive: true });
+  const root = await mkdtemp(join(tmpdir(), "catalog-story-map-mcp-"));
   const dart = process.env.POKEMAP_TEST_DART ?? "dart";
   const packageRoot = resolve("../../packages/map_authoring");
   const client = new Client({ name: "catalog-story-map-proof", version: "1.0.0" });

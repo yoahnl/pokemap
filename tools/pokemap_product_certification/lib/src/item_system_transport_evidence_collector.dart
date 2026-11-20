@@ -51,15 +51,20 @@ final class ItemSystemTransportEvidenceCollector {
       final pairIds = <String>{
         for (final pair in pairs) '${pair['actionId']}@${pair['transport']}',
       };
+      if (pairs.length != required.length * ItemSystemTransport.values.length ||
+          pairIds.length != pairs.length) {
+        throw StateError('The Item transport execution matrix is incomplete.');
+      }
       for (final actionId in required) {
         final complete = ItemSystemTransport.values.every(
           (transport) => pairIds.contains('$actionId@${transport.wireName}'),
         );
-        (complete ? succeeded : failed).add(actionId);
-      }
-      if (pairs.length != required.length * ItemSystemTransport.values.length ||
-          pairIds.length != pairs.length) {
-        throw StateError('The Item transport execution matrix is incomplete.');
+        final semanticStates = pairs
+            .where((pair) => pair['actionId'] == actionId)
+            .map((pair) => pair['semanticStateSha256'])
+            .toSet();
+        (complete && semanticStates.length == 1 ? succeeded : failed)
+            .add(actionId);
       }
       payload
         ..['transportPairs'] = pairs
@@ -215,7 +220,13 @@ Future<List<Map<String, Object?>>> _runDirect(Directory source) async {
       projectHandle: opened.projectHandle,
     );
     for (final action in itemSystemAuthoringProbeActions) {
-      final snapshot = await snapshots.load(opened.projectHandle);
+      final snapshot = action.usesWorkshop
+          ? await mutations.readWorkshopSnapshot(
+              opened.projectHandle,
+              actionId: action.actionId,
+              parameters: action.parameters,
+            )
+          : await snapshots.load(opened.projectHandle);
       final plan = await mutations.plan(
         opened.projectHandle,
         _request(
@@ -289,24 +300,29 @@ Future<List<Map<String, Object?>>> _runJsonl(Directory source) async {
     });
     final projectHandle = opened.data['projectHandle']! as String;
     final workspaceHandle = opened.data['workspaceHandle']! as String;
-    var revision =
-        (await _workerRequest(worker, 'query', <String, Object?>{
+    for (final action in itemSystemAuthoringProbeActions) {
+      final observed = action.usesWorkshop
+          ? await _workerRequest(worker, 'workshop_snapshot', <String, Object?>{
+              'projectHandle': projectHandle,
+              'actionId': action.actionId,
+              'parameters': action.parameters,
+              'includeDocuments': false,
+            })
+          : await _workerRequest(worker, 'query', <String, Object?>{
               'projectHandle': projectHandle,
               'request': AuthoringQueryRequest(
                 resourceKind: 'itemDefinition',
                 operation: AuthoringQueryOperation.list,
                 view: AuthoringQueryView.detail,
               ).toJson(),
-            })).data['snapshotRevision']!
-            as String;
-    for (final action in itemSystemAuthoringProbeActions) {
+            });
       final plan = await _workerRequest(worker, 'plan', <String, Object?>{
         'projectHandle': projectHandle,
         'request': _request(
           action,
           transport: 'jsonl',
           workspaceHandle: workspaceHandle,
-          revision: revision,
+          revision: observed.data['snapshotRevision']! as String,
         ).toJson(),
       });
       String? confirmationToken;
@@ -331,7 +347,6 @@ Future<List<Map<String, Object?>>> _runJsonl(Directory source) async {
         applied.data['receipt']! as Map,
       );
       _requireObservedReceipt(receipt, action.actionId, observedReceiptIds);
-      revision = applied.data['snapshotRevision']! as String;
       pairs.add(
         await fixture.pair(action.actionId, ItemSystemTransport.jsonl, receipt),
       );
@@ -354,15 +369,14 @@ Future<List<Map<String, Object?>>> _runEditor(Directory source) async {
   final pairs = <Map<String, Object?>>[];
   final observedReceiptIds = <String>{};
   try {
-    var revision = (await queries.open(fixture.project.path)).snapshotRevision;
     for (final action in itemSystemAuthoringProbeActions) {
+      final before = (await queries.open(fixture.project.path)).snapshotRevision;
       final plan = await mutations.plan(
         fixture.project.path,
         actionId: action.actionId,
         parameters: action.parameters,
         idempotencyKey: 'cert-editor-${action.slug}',
         requestId: 'cert-editor-${action.slug}',
-        expectedRevision: revision,
       );
       final confirmationToken = action.actionId == 'item.delete_apply'
           ? await mutations.confirm(plan)
@@ -372,22 +386,28 @@ Future<List<Map<String, Object?>>> _runEditor(Directory source) async {
         operationId: 'cert-editor-${action.slug}',
         confirmationToken: confirmationToken,
       );
-      revision = (await queries.open(fixture.project.path)).snapshotRevision;
       final receipt = applied.receipt.toJson();
       _requireObservedReceipt(receipt, action.actionId, observedReceiptIds);
-      pairs.add(
-        await fixture.pair(
-          action.actionId,
-          ItemSystemTransport.editor,
-          receipt,
-        ),
+      final pair = await fixture.pair(
+        action.actionId,
+        ItemSystemTransport.editor,
+        receipt,
       );
       final queried = await queries.open(fixture.project.path);
-      if (queried.snapshotRevision != revision) {
+      final page = queried.query(AuthoringQueryRequest(
+        resourceKind: 'itemCatalog',
+        operation: AuthoringQueryOperation.list,
+        view: AuthoringQueryView.detail,
+      ));
+      final item = (page['items']! as List).single as Map;
+      if (queried.snapshotRevision == before ||
+          applied.snapshotRevision == null ||
+          _canonicalSha256(item['catalog']) != pair['semanticStateSha256']) {
         throw StateError(
-          'Editor requery revision differs after ${action.actionId}.',
+          'Editor requery did not observe the mutation after ${action.actionId}.',
         );
       }
+      pairs.add(pair);
     }
   } finally {
     await mutations.closeAll();
@@ -442,6 +462,7 @@ AuthoringRequest _request(
     parameters: action.parameters,
     expectedRevision: revision,
     idempotencyKey: 'cert-$transport-${action.slug}',
+    extensions: action.usesWorkshop ? const {'workshopScope': true} : const {},
   );
 }
 
@@ -586,6 +607,8 @@ Future<Map<String, String>> _transportExecutorSha256(Directory mcpRoot) async {
   const collector =
       'tools/pokemap_product_certification/lib/src/'
       'item_system_transport_evidence_collector.dart';
+  const probe = 'tools/pokemap_product_certification/lib/src/'
+      'item_system_authoring_probe.dart';
   const actions =
       'packages/map_authoring/lib/src/domains/gameplay/'
       'item_catalog_actions.dart';
@@ -595,17 +618,20 @@ Future<Map<String, String>> _transportExecutorSha256(Directory mcpRoot) async {
   return <String, String>{
     'direct_api': await _sourceFilesSha256(repositoryRoot, const <String>[
       collector,
+      probe,
       actions,
       direct,
     ]),
     'jsonl': await _sourceFilesSha256(repositoryRoot, const <String>[
       collector,
+      probe,
       actions,
       direct,
       'packages/map_authoring/lib/src/tooling/jsonl_worker.dart',
     ]),
     'editor': await _sourceFilesSha256(repositoryRoot, const <String>[
       collector,
+      probe,
       actions,
       direct,
       'packages/map_editor/lib/src/application/authoring_api/'

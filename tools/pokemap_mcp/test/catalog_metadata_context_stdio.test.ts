@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -8,6 +8,7 @@ import test from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
+import { fixtureAdmissionCleanup } from "./support/fixture_admissions.js";
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === "object" && !Array.isArray(value));
@@ -15,11 +16,12 @@ function record(value: unknown): JsonRecord {
 }
 
 test("metadata context preparation crosses live MCP and the canonical CLI", { timeout: 120_000 }, async () => {
-  const qa = join(homedir(), "Library/Caches/AveluneQA/3d-performance-implementation/p8-metadata-context");
+  const qa = process.env.AVELUNE_QA_ROOT ?? join(homedir(), "Library/Caches/AveluneQA/3d-performance-implementation/p8-metadata-context");
   await mkdir(qa, { recursive: true });
   const temporary = await mkdtemp(join(qa, "mcp-"));
   const root = join(temporary, "project");
   await mkdir(root);
+  const removeAdmissions = await fixtureAdmissionCleanup(root);
   const packageRoot = resolve("../../packages/map_authoring");
   const dart = process.env.POKEMAP_TEST_DART ?? "dart";
   const fixture = join(packageRoot, "test/support/create_metadata_context_fixture.dart");
@@ -58,17 +60,7 @@ test("metadata context preparation crosses live MCP and the canonical CLI", { ti
   } finally {
     await client.close();
     await transport.close();
-    const authority = join(homedir(), ".avelune/authoring/catalog-admissions");
-    for (const name of await readdir(authority)) {
-      if (!name.endsWith(".json")) continue;
-      const path = join(authority, name);
-      let value: JsonRecord;
-      try { value = record(JSON.parse(await readFile(path, "utf8"))); } catch { continue; }
-      const admission = value.admission;
-      if (value.projectRoot === root || admission && record(admission).projectRoot === root) {
-        await rm(path);
-      }
-    }
+    await removeAdmissions();
     await rm(temporary, { recursive: true, force: true });
   }
 });

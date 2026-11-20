@@ -715,9 +715,18 @@ final class AuthoringMutationAdapter
         ? expectedRevision ??
               await session.reads.readCatalogRevision(session.projectHandle)
         : null;
-    final usesWorkshop = actionId == 'pokemon.ruleset.set' ||
+    final canUseObservedProjectRevision = actionId == 'pokemon.ruleset.set' ||
         actionId == 'campaign.encounter_table.upsert' ||
         (actionId == 'asset.import' && parameters['adoptExisting'] == true);
+    final usesWorkshop = canUseObservedProjectRevision ||
+        const {
+          'item.create',
+          'item.update',
+          'item.set_overworld_effect',
+          'item.set_battle_effect',
+          'item.set_held_effect',
+          'item.set_capture_effect',
+        }.contains(actionId);
     final String revision;
     if (usesWorkshop) {
       final workshop = await session.mutations.readWorkshopSnapshot(
@@ -725,7 +734,9 @@ final class AuthoringMutationAdapter
         actionId: actionId,
         parameters: parameters,
       );
-      if (expectedRevision != null && expectedRevision != workshop.revision) {
+      if (canUseObservedProjectRevision &&
+          expectedRevision != null &&
+          expectedRevision != workshop.revision) {
         await session.snapshot();
       }
       revision = workshop.revision;

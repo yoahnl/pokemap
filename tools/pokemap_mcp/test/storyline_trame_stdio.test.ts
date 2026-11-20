@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { homedir } from "node:os";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
@@ -21,9 +21,7 @@ const trameActions = [
 ];
 
 test("storyline trame actions edit a working catalog through live MCP", { timeout: 180_000 }, async () => {
-  const base = join(homedir(), "Library/Caches/AveluneQA/c2/mcp");
-  await mkdir(base, { recursive: true });
-  const temporary = await mkdtemp(join(base, "fixture-"));
+  const temporary = await mkdtemp(join(tmpdir(), "storyline-trame-mcp-"));
   const root = join(temporary, "project");
   const packageRoot = resolve("../../packages/map_authoring");
   const client = new Client({ name: "storyline-trame", version: "1.0.0" });
@@ -44,8 +42,9 @@ test("storyline trame actions edit a working catalog through live MCP", { timeou
     const description = await call("pokemap_describe", {});
     const described = (description.mutationActions as JsonRecord[]).map(action => action.id);
     for (const id of trameActions) assert.ok(described.includes(id), id);
-    const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    let opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     let sequence = 0;
+    const appliedActions = new Set<string>();
     async function run(actionId: string, parameters: JsonRecord, failure = false): Promise<JsonRecord> {
       const snapshot = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle, actionId, parameters });
       const id = `trame-${++sequence}`;
@@ -54,13 +53,23 @@ test("storyline trame actions edit a working catalog through live MCP", { timeou
         expectedRevision: snapshot.snapshotRevision, idempotencyKey: id, parameters, extensions: snapshot.planExtensions,
       } }, failure);
       if (failure) return planned;
-      return call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle, planId: planned.planId, operationId: id });
+      const applied = await call("pokemap_apply", {
+        operation: "apply", projectHandle: opened.projectHandle, planId: planned.planId, operationId: id,
+      });
+      const receipt = record(applied.receipt);
+      assert.equal(receipt.actionId, actionId);
+      assert.equal(receipt.status, "applied");
+      appliedActions.add(actionId);
+      return applied;
     }
     await run("storyline.chapter.create", { storylineId: "main", chapterId: "act_2", title: "Act 2" });
     const created = await run("storyline.milestone.create",
       { storylineId: "main", chapterId: "act_2", stepId: "leave_town", title: "Leave town" });
     const createdPaths = (record(record(created.receipt).diff).entries as JsonRecord[]).map(entry => entry.path);
     assert.deepEqual(createdPaths, ["/facts/fact_leave_town", "/storylines/main", "/workshopRevision"]);
+    await run("storyline.milestone.rename", {
+      storylineId: "main", chapterId: "act_2", stepId: "leave_town", title: "Leave the town",
+    });
     const attach = { storylineId: "main", chapterId: "act_2", stepId: "leave_town", sceneId: "scene_gate" };
     const read = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
       actionId: "storyline.milestone.attach_scene", parameters: attach });
@@ -73,14 +82,30 @@ test("storyline trame actions edit a working catalog through live MCP", { timeou
     const missing = await run("storyline.milestone.create",
       { storylineId: "main", chapterId: "missing", stepId: "lost", title: "Lost" }, true);
     assert.ok(JSON.stringify(missing).includes("chapterNotFound"), JSON.stringify(missing));
+    await run("storyline.milestone.detach_scene", attach);
+    await run("storyline.milestone.move", {
+      storylineId: "main", chapterId: "act_2", stepId: "leave_town", targetChapterId: "act_1", targetIndex: 0,
+    });
+    await run("storyline.milestone.set_archived", {
+      storylineId: "main", chapterId: "act_1", stepId: "leave_town", archived: true,
+    });
+    await run("storyline.chapter.rename", { storylineId: "main", chapterId: "act_2", title: "Finale" });
+    await run("storyline.chapter.set_archived", { storylineId: "main", chapterId: "act_2", archived: true });
+    assert.deepEqual(appliedActions, new Set(trameActions));
+
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+    opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const after = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
       actionId: "storyline.chapter.rename", parameters: { storylineId: "main", chapterId: "act_2", title: "Finale" } });
     const storyline = (record(after.project).storylines as JsonRecord[])[0]!;
     const chapters = storyline.chapters as JsonRecord[];
-    assert.deepEqual(chapters.map(chapter => chapter.id), ["act_1", "act_2"]);
-    const steps = chapters[1]!.steps as JsonRecord[];
-    assert.deepEqual(steps.map(step => [step.id, step.sceneLinkIds]), [["leave_town", ["scene_gate"]]]);
-    assert.deepEqual((chapters[0]!.steps as JsonRecord[])[0]!.sceneLinkIds, []);
+    assert.deepEqual(chapters.map(chapter => [chapter.id, chapter.title]), [["act_1", "Act 1"], ["act_2", "Finale"]]);
+    assert.equal(chapters[1]!.status, "archived");
+    assert.deepEqual(chapters[1]!.steps, []);
+    const steps = chapters[0]!.steps as JsonRecord[];
+    assert.deepEqual(steps.map(step => [step.id, step.sceneLinkIds]), [["leave_town", []], ["wake_up", []]]);
+    assert.equal(steps[0]!.title, "Leave the town");
+    assert.equal(steps[0]!.status, "archived");
     await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
   } finally {
     await client.close();

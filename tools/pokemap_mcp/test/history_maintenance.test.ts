@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -13,27 +13,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/server";
 import type { JsonRecord } from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { createPokeMapMcpServer } from "../src/server.js";
-
-async function removeFixtureAdmissions(canonicalRoot: string): Promise<number> {
-  const admissions = join(homedir(), ".avelune/authoring/catalog-admissions");
-  let removed = 0;
-  for (const name of await readdir(admissions).catch(() => [])) {
-    if (!/^[a-f0-9]{64}\.json$/.test(name)) continue;
-    const path = join(admissions, name);
-    const stat = await lstat(path).catch(() => undefined);
-    if (!stat?.isFile() || stat.size > 8192) continue;
-    const bytes = await readFile(path, "utf8").catch(() => undefined);
-    if (bytes === undefined) continue;
-    let value: JsonRecord;
-    try { value = JSON.parse(bytes) as JsonRecord; } catch { continue; }
-    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
-    if (value.projectRoot === canonicalRoot || (value.admission as JsonRecord | undefined)?.projectRoot === canonicalRoot) {
-      await rm(path);
-      removed++;
-    }
-  }
-  return removed;
-}
+import { fixtureAdmissionCleanup } from "./support/fixture_admissions.js";
 
 test("history maintenance previews by default and rejects unbound application", async () => {
   const calls: Array<{ command: string; args?: JsonRecord }> = [];
@@ -95,7 +75,7 @@ test("MCP legacy history converts then survives undo and redo across reopenings"
   const qaRoot = process.env.AVELUNE_QA_ROOT ?? join(homedir(), "Library/Caches/AveluneQA/studio-project-lifecycle");
   await mkdir(qaRoot, { recursive: true });
   const root = await mkdtemp(join(qaRoot, "legacy-history-mcp-"));
-  const canonicalRoot = await realpath(root);
+  const removeAdmissions = await fixtureAdmissionCleanup(root);
   const evidence = join(qaRoot, "legacy-history-mcp.json");
   const state: JsonRecord = { owner: "retention", projectRoot: root, status: "running", runnerPid: process.pid };
   const dart = process.env.POKEMAP_TEST_DART ?? "dart";
@@ -196,7 +176,7 @@ test("MCP legacy history converts then survives undo and redo across reopenings"
     await client.close();
     await transport.close();
     await rm(root, { recursive: true, force: true });
-    state.removedOwnedAdmissions = await removeFixtureAdmissions(canonicalRoot);
+    state.removedOwnedAdmissions = await removeAdmissions();
     state.fixtureRemoved = true;
     state.processesClosed = true;
     await persist();
@@ -207,7 +187,7 @@ test("MCP stdio previews and applies canonical history maintenance without chang
   const qaRoot = process.env.AVELUNE_QA_ROOT ?? join(homedir(), "Library/Caches/AveluneQA/studio-project-lifecycle");
   await mkdir(qaRoot, { recursive: true });
   const root = await mkdtemp(join(qaRoot, "maintenance-stdio-"));
-  const canonicalRoot = await realpath(root);
+  const removeAdmissions = await fixtureAdmissionCleanup(root);
   const dart = process.env.POKEMAP_TEST_DART ?? "dart";
   const packageRoot = resolve("../../packages/map_authoring");
   const client = new Client({ name: "history-maintenance-stdio", version: "1.0.0" });
@@ -270,6 +250,6 @@ test("MCP stdio previews and applies canonical history maintenance without chang
     await client.close();
     await transport.close();
     await rm(root, { recursive: true, force: true });
-    await removeFixtureAdmissions(canonicalRoot);
+    await removeAdmissions();
   }
 });

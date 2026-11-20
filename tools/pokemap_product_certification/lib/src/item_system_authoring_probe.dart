@@ -7,6 +7,11 @@ final class ItemSystemAuthoringProbeAction {
   final Map<String, Object?> parameters;
 
   String get slug => actionId.replaceAll('.', '-').replaceAll('_', '-');
+
+  bool get usesWorkshop => switch (actionId) {
+    'item.clone' || 'item.delete_apply' || 'item.set_tm_hm_move' => false,
+    _ => true,
+  };
 }
 
 final itemSystemAuthoringProbeActions = <ItemSystemAuthoringProbeAction>[
