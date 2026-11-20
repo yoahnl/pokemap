@@ -38,8 +38,10 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
     required VoidCallback onCollapse,
   }) {
     final libraryWidth = (MediaQuery.sizeOf(context).width - studioRailWidth)
-        .clamp(0.0, double.infinity)
-        .toDouble();
+        .clamp(0.0, double.infinity);
+    final management = ref.watch(
+      projectLibraryManagementProvider(widget.session),
+    );
     final project = _maps.project;
     final document = _maps.active;
     final entry = _activeEntry;
@@ -200,13 +202,7 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                             child: SizedBox(
                               width: libraryWidth,
                               height: double.infinity,
-                              child: ProjectLibraryPage(
-                                active:
-                                    _section == StudioRailSection.resources &&
-                                    !_sceneShown,
-                                maps: _maps,
-                                visuals: _visuals,
-                              ),
+                              child: _resourceLibrary(management),
                             ),
                           ),
                         ],

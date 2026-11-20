@@ -70,6 +70,7 @@ final class Model3dActions {
   static final descriptors = [
     for (final action in [
       'import',
+      'duplicate',
       'import_batch',
       'source.replace',
       'source.replace_batch',
@@ -83,6 +84,7 @@ final class Model3dActions {
         version: 1,
         summary: switch (action) {
           'import' => 'Import an inspected standalone GLB model atomically',
+          'duplicate' => 'Copy a model with its settings and an independent logical source backed by the same retained GLB.',
           'import_batch' =>
             'Import 1 to 50 inspected GLB models in one recoverable publication',
           'source.replace' =>
@@ -114,6 +116,7 @@ final class Model3dActions {
         requiredPermissions: [
           AuthoringPermission.projectWrite,
           if (action.startsWith('import') ||
+              action == 'duplicate' ||
               action.startsWith('source.replace'))
             AuthoringPermission.importRun
         ],
@@ -226,8 +229,9 @@ final class Model3dActions {
               'additionalProperties': false,
               'required': [
                 'modelId',
-                if (action == 'import') 'name',
-                if (action == 'import' || action == 'source.replace')
+                if (action == 'import' || action == 'duplicate') 'name',
+                if (action == 'duplicate') 'sourceModelId',
+                if (const {'import', 'duplicate', 'source.replace'}.contains(action))
                   'artifactHandle'
               ],
               'properties': {
@@ -235,9 +239,11 @@ final class Model3dActions {
                   'type': 'string',
                   'pattern': r'^[a-zA-Z0-9_-]{1,128}$'
                 },
-                if (action == 'import' || action == 'source.replace')
+                if (const {'import', 'duplicate', 'source.replace'}.contains(action))
                   'artifactHandle': {'type': 'string', 'minLength': 1},
-                if (action == 'import' || action == 'configure')
+                if (action == 'duplicate')
+                  'sourceModelId': {'type': 'string', 'minLength': 1},
+                if (const {'import', 'duplicate', 'configure'}.contains(action))
                   'name': {'type': 'string', 'minLength': 1, 'maxLength': 256},
                 if (action == 'configure') ..._configurationProperties()
               }
@@ -268,6 +274,7 @@ final class Model3dActions {
     final action = context.request.actionId;
     parameters.allow(switch (action) {
       'model3d.import' => {'modelId', 'name', 'artifactHandle'},
+      'model3d.duplicate' => {'modelId', 'sourceModelId', 'name', 'artifactHandle'},
       'model3d.source.replace' => {'modelId', 'artifactHandle'},
       'model3d.configure' => {
           'modelId',
@@ -292,7 +299,7 @@ final class Model3dActions {
     if (action == 'model3d.source.replace') {
       return _replaceSource(context, parameters, current);
     }
-    if (action == 'model3d.import') {
+    if (action == 'model3d.import' || action == 'model3d.duplicate') {
       if (current != null) {
         throw const FormatException('Model identity is already in use.');
       }
@@ -313,21 +320,43 @@ final class Model3dActions {
             actual.byteLength != artifact.byteLength) {
           throw const FormatException('The staged model content changed.');
         }
-        final inspection = const GlbModel3dInspector().inspect(bytes);
+        final source = action == 'model3d.duplicate'
+            ? _sourceModelForCopy(context.snapshot, parameters.string('sourceModelId'), actual)
+            : null;
         final model = ProjectModel3dEntry(
             id: id,
             name: parameters.string('name'),
             sourceAssetId: 'model3d_$id',
             relativePath: 'assets/models3d/$id.glb',
-            inspection: inspection);
+            inspection: source?.inspection ?? const GlbModel3dInspector().inspect(bytes),
+            scale: source?.scale ?? 1,
+            pivot: source?.pivot,
+            collisionBounds: source?.collisionBounds,
+            rampProfile: source?.rampProfile,
+            blocksMovementByDefault: source?.blocksMovementByDefault ?? true,
+            castsShadowsByDefault: source?.castsShadowsByDefault ?? false,
+            light: source?.light);
         final assetDraft =
             await _asset(context, context.snapshot, 'asset.import', {
           'artifactHandle': handle,
           'assetId': model.sourceAssetId,
           'logicalPath': model.relativePath
         });
-        final manifest = context.snapshot.manifest
-            .copyWith(models3d: [...context.snapshot.manifest.models3d, model]);
+        final before = context.snapshot.manifest;
+        final library = before.resourceLibraryCatalog;
+        final classification = source == null
+            ? null : library.entryFor('model3d', source.id);
+        final manifest = before.copyWith(
+            models3d: [...before.models3d, model],
+            resourceLibraryCatalog: classification == null
+                ? library
+                : ResourceLibraryCatalog(families: library.families, entries: [
+                    ...library.entries,
+                    ResourceLibraryEntry.fromJson({
+                      ...classification.toJson(),
+                      'resourceId': model.id,
+                    }),
+                  ]));
         final result = _compose(context, manifest,
             before: null, after: model, assetDraft: assetDraft);
         if (context.request.dryRun) await store.release(handle);
@@ -927,6 +956,23 @@ final class Model3dActions {
                   parameters: parameters),
               planId: context.planId,
               seed: context.seed));
+}
+
+ProjectModel3dEntry _sourceModelForCopy(
+    ProjectSnapshot snapshot, String id, ContentArtifactRef artifact) {
+  final original = snapshot.manifest.models3d.where((model) => model.id == id).firstOrNull;
+  if (original == null) {
+    throw const FormatException('The source model of the copy does not exist.');
+  }
+  final catalog = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+      snapshot.resourceBytes(assetCatalogResourceIdentity))) as Map<String, dynamic>);
+  final source = catalog.require(original.sourceAssetId);
+  if (source.logicalPath != original.relativePath ||
+      source.artifact != artifact ||
+      artifact.mediaType != 'model/gltf-binary') {
+    throw const FormatException('The staged bytes differ from the registered model source.');
+  }
+  return original;
 }
 
 bool _isLocalModelSourceSnapshot(ProjectSnapshot snapshot) =>

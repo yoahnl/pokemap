@@ -32,7 +32,7 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
     if (project.revision == receipt.revision &&
         project.manifest == receipt.manifest) {
       await _requireProjectRevision(session, project);
-      _acceptModelSourceProjections(session.sessionId, receipt.changedModels);
+      _acceptResourceProjections(session.sessionId, receipt);
       return;
     }
     final originalMaps = project.manifest.maps;
@@ -65,16 +65,19 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
       metadataFields: project.metadataFields,
     );
     await _requireProjectRevision(session, next);
-    _acceptModelSourceProjections(session.sessionId, receipt.changedModels);
+    _acceptResourceProjections(session.sessionId, receipt);
     _projects[session.sessionId] = next;
   }
 
-  void _acceptModelSourceProjections(
+  void _acceptResourceProjections(
     String sessionId,
-    Map<String, ProjectModel3dEntry> changes,
+    ResourceMutationReceipt receipt,
   ) {
-    if (changes.isEmpty) return;
+    final changes = receipt.changedModels;
+    final removed = receipt.removedLibraryResource;
+    if (changes.isEmpty && removed == null) return;
     ProjectManifest updated(ProjectManifest value) {
+      if (removed != null) return withoutLibraryResource(value, removed);
       final entries = value.models3d;
       if (entries is! ProjectModel3dEntries) {
         throw const MapWorkspaceFailure(

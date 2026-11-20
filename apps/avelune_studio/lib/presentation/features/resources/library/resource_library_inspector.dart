@@ -15,6 +15,12 @@ class ResourceLibraryInspector extends StatelessWidget {
     required this.onClose,
     this.preview,
     this.previewActions = false,
+    this.onRename,
+    this.onClassify,
+    this.onModify,
+    this.onDuplicate,
+    this.onDelete,
+    this.onOpenWorkshop,
   });
 
   final ResourceLibraryItemView item;
@@ -25,10 +31,55 @@ class ResourceLibraryInspector extends StatelessWidget {
   final VoidCallback onClose;
   final Widget? preview;
   final bool previewActions;
+  final VoidCallback? onRename;
+  final VoidCallback? onClassify;
+  final VoidCallback? onModify;
+  final VoidCallback? onDuplicate;
+  final VoidCallback? onDelete;
+  final VoidCallback? onOpenWorkshop;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    const actionsLabel = 'Autres actions';
+    final actions = <StudioContextMenuItem>[
+      if (onOpenWorkshop != null && onModify != null)
+        StudioContextMenuEntry(
+          label: 'Modifier',
+          icon: Icons.edit_outlined,
+          onSelected: onModify,
+        ),
+      if (onRename != null)
+        StudioContextMenuEntry(
+          label: 'Renommer',
+          icon: Icons.drive_file_rename_outline,
+          onSelected: onRename,
+        ),
+      if (onClassify != null)
+        StudioContextMenuEntry(
+          label: 'Classer',
+          icon: Icons.folder_outlined,
+          onSelected: onClassify,
+        ),
+      if (onDuplicate != null)
+        StudioContextMenuEntry(
+          label: 'Dupliquer',
+          icon: Icons.copy_outlined,
+          onSelected: onDuplicate,
+        ),
+    ];
+    if (onDelete != null) {
+      if (actions.isNotEmpty) actions.add(const StudioContextMenuSeparator());
+      actions.add(
+        StudioContextMenuEntry(
+          label: 'Supprimer…',
+          icon: Icons.delete_outline,
+          onSelected: onDelete,
+          destructive: true,
+        ),
+      );
+    }
+    final showMenu = actions.isNotEmpty || previewActions;
     return ColoredBox(
       color: theme.colorScheme.surface,
       child: Column(
@@ -61,29 +112,46 @@ class ResourceLibraryInspector extends StatelessWidget {
                 Text(item.name, style: theme.textTheme.titleLarge),
                 const SizedBox(height: StudioSpacing.xs),
                 Text(item.type, style: theme.textTheme.bodySmall),
-                const SizedBox(height: StudioSpacing.l),
-                if (previewActions)
-                  const Wrap(
+                if (onOpenWorkshop != null || onModify != null || showMenu) ...[
+                  const SizedBox(height: StudioSpacing.l),
+                  Wrap(
                     spacing: StudioSpacing.m,
-                    runSpacing: StudioSpacing.m,
+                    runSpacing: StudioSpacing.s,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      StudioButton(
-                        label: 'Modifier',
-                        icon: Icons.edit_outlined,
-                        onPressed: null,
-                      ),
-                      StudioTool(
-                        label: 'Dupliquer',
-                        icon: Icons.copy_outlined,
-                        onPressed: null,
-                      ),
-                      StudioTool(
-                        label: 'Supprimer',
-                        icon: Icons.delete_outline,
-                        onPressed: null,
-                      ),
+                      if (onOpenWorkshop case final open?)
+                        StudioButton(
+                          label: 'Atelier 3D',
+                          icon: Icons.view_in_ar_outlined,
+                          onPressed: open,
+                        )
+                      else if (onModify != null || previewActions)
+                        StudioButton(
+                          label: 'Modifier',
+                          icon: Icons.edit_outlined,
+                          onPressed: onModify,
+                        ),
+                      if (showMenu)
+                        Builder(
+                          builder: (anchor) => MergeSemantics(
+                            child: Semantics(
+                              label: actionsLabel,
+                              child: StudioTool(
+                                label: actionsLabel,
+                                icon: Icons.more_horiz,
+                                onPressed: actions.isEmpty
+                                    ? null
+                                    : () => StudioContextMenu.showBelow(
+                                        anchor,
+                                        items: actions,
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
+                ],
                 if (item.description case final description?) ...[
                   const SizedBox(height: StudioSpacing.l),
                   Text(description, style: theme.textTheme.bodySmall),
@@ -94,8 +162,10 @@ class ResourceLibraryInspector extends StatelessWidget {
                 _property('Catégorie', item.category.label),
                 if (item.familyPath case final path?)
                   _property('Famille', path),
-                if (item.dimension case final dimension?)
-                  _property('Compatibilité', dimension.label),
+                if (item.placement case final placement?)
+                  _property('Contexte de pose', placement),
+                if (item.dimensionLabel case final label?)
+                  _property('Compatibilité', label),
                 if (item.collision case final collision?)
                   _property('Collision', collision),
                 if (item.animationCount case final animationCount?)

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui show Image;
 
 import 'package:flame_3d/camera.dart';
 import 'package:flame_3d/components.dart';
@@ -157,6 +158,8 @@ class ModelPreview extends StatefulWidget {
     required this.loadingBuilder,
     required this.errorBuilder,
     this.lightOverlayBuilder,
+    this.interactive = true,
+    this.onFirstFrame,
   });
 
   final Widget Function(BuildContext, ModelPreviewController)?
@@ -168,6 +171,8 @@ class ModelPreview extends StatefulWidget {
   final Color background;
   final WidgetBuilder loadingBuilder;
   final Widget Function(BuildContext, Object) errorBuilder;
+  final bool interactive;
+  final ValueChanged<ui.Image>? onFirstFrame;
 
   @override
   State<ModelPreview> createState() => _ModelPreviewState();
@@ -192,6 +197,9 @@ class _ModelPreviewState extends State<ModelPreview> {
         Vector3.array(widget.minimum),
         Vector3.array(widget.maximum),
         widget.background,
+        widget.onFirstFrame == null
+            ? null
+            : (image) => widget.onFirstFrame?.call(image),
       );
       _initializationFailure = null;
     } on Exception catch (error) {
@@ -203,7 +211,8 @@ class _ModelPreviewState extends State<ModelPreview> {
   void didUpdateWidget(ModelPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(widget.bytes, oldWidget.bytes) ||
-        widget.controller != oldWidget.controller) {
+        widget.controller != oldWidget.controller ||
+        (widget.onFirstFrame == null) != (oldWidget.onFirstFrame == null)) {
       _createGame();
     }
   }
@@ -214,42 +223,46 @@ class _ModelPreviewState extends State<ModelPreview> {
     null => _surface(context),
   };
 
-  Widget _surface(BuildContext context) => Listener(
-    onPointerSignal: (event) {
-      if (event is PointerScrollEvent) {
-        GestureBinding.instance.pointerSignalResolver.register(
-          event,
-          (_) => widget.controller.dolly(event.scrollDelta.dy),
-        );
-      }
-    },
-    child: GestureDetector(
-      onPanUpdate: (details) =>
-          widget.controller.orbit(details.delta.dx, details.delta.dy),
-      child: ListenableBuilder(
-        listenable: widget.controller,
-        builder: (context, _) => Stack(
-          fit: StackFit.expand,
-          children: [
-            SpatialGameSurface<_ModelPreviewGame>(
-              key: ObjectKey(game),
-              game: game,
-              continuous:
-                  widget.controller.animation != null &&
-                      !widget.controller.animationPaused ||
-                  (widget.controller.light?.colorCycle != null &&
-                      (widget.controller.nightPreview ||
-                          widget.controller.light?.nightOnly == false)),
-              autofocus: true,
-              loadingBuilder: widget.loadingBuilder,
-              errorBuilder: (context, error) =>
-                  widget.errorBuilder(context, error),
-            ),
-            if (widget.lightOverlayBuilder != null)
-              widget.lightOverlayBuilder!(context, widget.controller),
-          ],
-        ),
+  Widget _surface(BuildContext context) {
+    final view = ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) => Stack(
+        fit: StackFit.expand,
+        children: [
+          SpatialGameSurface<_ModelPreviewGame>(
+            key: ObjectKey(game),
+            game: game,
+            continuous:
+                widget.controller.animation != null &&
+                    !widget.controller.animationPaused ||
+                (widget.controller.light?.colorCycle != null &&
+                    (widget.controller.nightPreview ||
+                        widget.controller.light?.nightOnly == false)),
+            autofocus: widget.interactive,
+            loadingBuilder: widget.loadingBuilder,
+            errorBuilder: (context, error) =>
+                widget.errorBuilder(context, error),
+          ),
+          if (widget.lightOverlayBuilder != null)
+            widget.lightOverlayBuilder!(context, widget.controller),
+        ],
       ),
-    ),
-  );
+    );
+    if (!widget.interactive) return IgnorePointer(child: view);
+    return Listener(
+      onPointerSignal: (event) {
+        if (event is PointerScrollEvent) {
+          GestureBinding.instance.pointerSignalResolver.register(
+            event,
+            (_) => widget.controller.dolly(event.scrollDelta.dy),
+          );
+        }
+      },
+      child: GestureDetector(
+        onPanUpdate: (details) =>
+            widget.controller.orbit(details.delta.dx, details.delta.dy),
+        child: view,
+      ),
+    );
+  }
 }

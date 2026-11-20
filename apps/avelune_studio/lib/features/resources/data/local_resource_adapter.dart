@@ -11,15 +11,21 @@ import 'package:map_authoring/map_authoring.dart'
         AssetCatalog,
         JournaledAuthoringTransactionException,
         AuthoringIdempotencyException,
+        ResourceLibraryActions,
         VisualLibraryException;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../map_workspace/domain/map_workspace_workshop.dart';
 import '../../dialogues/data/local_dialogue_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../project_session/data/studio_project_document_revision.dart';
+import '../application/project_resource_library.dart';
+import '../domain/project_library_editor.dart';
+import '../domain/project_library_organization.dart';
+import '../domain/project_model_workshop_port.dart';
 import '../domain/resource_port.dart';
 import '../domain/model_resource_port.dart';
 import '../domain/resource_mutation_preparation.dart';
@@ -46,14 +52,20 @@ part 'local_character_removal_adapter.dart';
 part 'local_resource_classification.dart';
 part 'local_resource_classified_manifest.dart';
 part 'local_resource_index_preparation.dart';
+part 'local_project_library_edits.dart';
+part 'local_project_library_lifecycle.dart';
+part 'local_project_library_organization.dart';
+part 'local_project_model_workshop.dart';
 
 final class LocalResourceAdapter
+    with _LocalProjectLibraryOrganization, _LocalProjectModelWorkshop
     implements
         ResourcePort,
         ModelResourcePort,
         ResourceMutationPreparationPort,
         ResourceIndexPreparationPort,
         ResourceLifecyclePreparationPort,
+        ProjectLibraryEditor,
         ResourceUsageProvider {
   LocalResourceAdapter({
     required this.session,
@@ -64,6 +76,10 @@ final class LocalResourceAdapter
   });
 
   final ProjectSession session;
+  @override
+  LocalResourceAdapter get _libraryOrganizationAdapter => this;
+  @override
+  LocalResourceAdapter get _modelWorkshopAdapter => this;
   @override
   bool get resourceIndexPreparationAvailable =>
       session.storage == ProjectSessionStorage.workingCatalog;
@@ -111,6 +127,59 @@ final class LocalResourceAdapter
   @override
   Future<ResourceMutationReceipt> importImage(ResourceImageImport request) =>
       _importResourceImage(this, request);
+
+  @override
+  Future<ProjectLibraryEdit> importResource(
+    PickedProjectLibraryFile file, {
+    required String name,
+    required LibraryImageSize? tileSize,
+    required String expectedRevision,
+  }) => _importLibraryResource(file, name, tileSize, expectedRevision);
+
+  @override
+  Future<ProjectLibraryEdit> renameResource(
+    ProjectLibraryItem item, {
+    required String name,
+    required String expectedRevision,
+  }) => _renameLibraryResource(item, name, expectedRevision);
+
+  @override
+  Future<ProjectLibraryEdit> classifyResource(
+    ProjectLibraryItem item, {
+    required String? familyId,
+    required ResourceLibraryRole role,
+    required String expectedRevision,
+  }) => _classifyLibraryResource(item, familyId, role, expectedRevision);
+
+  @override
+  Future<ProjectLibraryEdit> modifyLibraryResource(
+    ProjectLibraryItem item, {
+    required String? description,
+    required ResourcePlacementContext? placementContext,
+    required String expectedRevision,
+  }) => _publishLibraryClassification(item, {
+    'description': description,
+    'placementContext': placementContext?.name,
+  }, expectedRevision);
+
+  @override
+  Future<ProjectLibraryEdit> duplicateLibraryResource(
+    ProjectLibraryItem item, {
+    required String name,
+    required String expectedRevision,
+  }) => _copyLibraryResource(item, name, expectedRevision);
+
+  @override
+  Future<ResourceMutationPreparation> prepareLibraryDeletion(
+    ProjectLibraryItem item, {
+    required String expectedRevision,
+  }) => _prepareLibraryDeletion(item, expectedRevision);
+
+  @override
+  bool libraryDraftUses(
+    ProjectLibraryItem item,
+    Iterable<Map<String, Object?>> drafts,
+  ) => _draftUsesLibraryResource(item, drafts);
 
   @override
   Future<ResourceMutationReceipt> importModel({

@@ -36,11 +36,23 @@ extension _LocalResourceMutation on LocalResourceAdapter {
       final before = await mapAdapter.resourceBaseline(session);
       phase('baseline.end');
       _requireAvailable();
+      final scopedImport =
+          session.storage == ProjectSessionStorage.workingCatalog &&
+          const {
+            'tileset.import_image',
+            'model3d.import',
+            'model3d.duplicate',
+          }.contains(actionId);
       if (expectedBeforeRevision != null &&
           before.revision != expectedBeforeRevision) {
-        throw const ResourceFailure(
-          'Le projet a changé pendant la préparation. Reprenez la bordure.',
-        );
+        throw ResourceFailure(switch (actionId) {
+          'model3d.configure' =>
+            'Le catalogue a changé. Votre réglage est conservé.',
+          _ when scopedImport =>
+            'Le catalogue a changé. Actualisez la bibliothèque puis réessayez.',
+          _ =>
+            'Le projet a changé pendant la préparation. Reprenez la bordure.',
+        });
       }
       final fields = Map<String, Object?>.from(parameters(before.manifest));
       final scopedModelMutation =
@@ -130,7 +142,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         phase('attach.start');
         await context.attach();
         phase('attach.end');
-        final snapshot = scopedModelMutation
+        final snapshot = scopedModelMutation || scopedImport
             ? await api.readWorkshopSnapshot(
                 opened.projectHandle,
                 actionId: actionId,
@@ -146,10 +158,12 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             'Le projet a changé depuis la préparation. Votre saisie est conservée.',
           );
         }
-        if ((scopedModelMutation
-                ? _modelSourceDocumentRevision(snapshot)
-                : studioProjectSnapshotRevision(snapshot)) !=
-            before.revision) {
+        final observedRevision = scopedImport
+            ? await mapAdapter.resourceRevision(session)
+            : scopedModelMutation
+            ? _modelSourceDocumentRevision(snapshot)
+            : studioProjectSnapshotRevision(snapshot);
+        if (observedRevision != before.revision) {
           throw const ResourceFailure(
             'Le projet a changé sur le disque. Rien n’a été écrasé.',
           );
@@ -166,12 +180,13 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             parameters: fields,
             expectedRevision: snapshot.revision,
             idempotencyKey: operationId,
+            extensions: scopedImport ? const {'workshopScope': true} : const {},
           ),
         );
         ownedPlan = planned.plan;
         phase('plan.end');
         final changes = planned.plan.changeSet.changes;
-        final mapPaths = scopedModelMutation
+        final mapPaths = scopedModelMutation || scopedImport
             ? const <String>{}
             : before.manifest.maps.map((map) => map.relativePath).toSet();
         if (changes.any(
@@ -196,7 +211,13 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             changedPaths: const [],
           );
         }
-        final projectedProject = scopedModelMutation
+        final projectedProject = scopedImport
+            ? _mergeImportedLibraryResource(
+                before.manifest,
+                planned.projectedProject!,
+                modelId: fields['modelId'] as String?,
+              )
+            : scopedModelMutation
             ? _mergeModelSourceProjection(
                 before.manifest,
                 planned.projectedProject ?? snapshot.manifest,
@@ -209,7 +230,9 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           createdTilesetId,
           operationId,
           projectedProject: projectedProject,
-          projectedRevision: snapshot.materializedCatalogProject
+          projectedRevision: scopedImport
+              ? await _projectedLibraryRevision(planned.plan)
+              : snapshot.materializedCatalogProject
               ? scopedModelMutation
                     ? _modelSourceDocumentRevision(snapshot, plan: planned.plan)
                     : studioProjectPlanRevision(snapshot, planned.plan)
@@ -241,6 +264,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           actionId: actionId,
           fields: fields,
           scopedModelMutation: scopedModelMutation,
+          scopedImport: scopedImport,
           phase: phase,
         );
         phase('reconciliation.end');

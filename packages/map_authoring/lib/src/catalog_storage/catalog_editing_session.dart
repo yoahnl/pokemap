@@ -350,12 +350,22 @@ final class CatalogEditingSession {
                 journal: journal, history: history, blobs: blobs));
       });
 
-  Future<void> prepareAssetImport({bool nativeResources = false}) => _serialize(() async {
+  Future<void> prepareAssetImport({bool nativeResources = false}) =>
+      _prepareResourcePositions(nativeResources
+          ? CatalogResourcePositions.sections.keys
+              .where((kind) => kind != CatalogDefinitionKind.model3d && kind != CatalogDefinitionKind.tileset)
+              .toSet()
+          : {CatalogDefinitionKind.model3d, CatalogDefinitionKind.tileset});
+
+  Future<void> prepareLibraryPositions() => _prepareResourcePositions({
+        ...CatalogResourcePositions.libraryKinds,
+        CatalogDefinitionKind.resourceLibraryEntry,
+      });
+
+  Future<void> _prepareResourcePositions(Set<CatalogDefinitionKind> kinds) => _serialize(() async {
         _requireOpen();
         await store.requireMetadataIndexAdmission(snapshot);
-        final upserts = await CatalogResourcePositions.prepare(snapshot, kinds: nativeResources
-            ? CatalogResourcePositions.sections.keys.where((kind) => kind != CatalogDefinitionKind.model3d && kind != CatalogDefinitionKind.tileset).toSet()
-            : {CatalogDefinitionKind.model3d, CatalogDefinitionKind.tileset});
+        final upserts = await CatalogResourcePositions.prepare(snapshot, kinds: kinds);
         if (upserts.isEmpty) return;
         final plan = await _planPatch(upserts: upserts,
             removals: const [], additionalChanges: const [],

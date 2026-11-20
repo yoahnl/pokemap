@@ -15,16 +15,20 @@ extension _ResourceLibraryResults on _ResourceLibraryViewState {
           if (_category == null || _category == item.category)
             ...item.familyIds,
     };
+    final organization = _organizationControls(context);
     Widget tile(int index) {
       final item = matches[index];
       return ResourceLibraryTile(
         key: ValueKey('library-item-${item.id}'),
         item: item,
         maps: widget.maps,
-        selected: selected?.id == item.id,
+        selected: _marking
+            ? _marked.contains(item.id)
+            : selected?.id == item.id,
         grid: _grid,
         preview: widget.tilePreview?.call(item),
-        onSelected: () => _select(item, docked: docked),
+        onSelected: () =>
+            _marking ? _toggleMark(item.id) : _select(item, docked: docked),
       );
     }
 
@@ -46,6 +50,7 @@ extension _ResourceLibraryResults on _ResourceLibraryViewState {
                       ? null
                       : () => _setSection(ResourceLibrarySection.workshops),
                   onRefresh: widget.onRefresh,
+                  loadingMapUsages: widget.loadingMapUsages,
                 ),
                 const SizedBox(height: StudioSpacing.xxl),
                 if (widget.showMapScopes) ...[
@@ -92,14 +97,16 @@ extension _ResourceLibraryResults on _ResourceLibraryViewState {
                     searchFocus: _searchFocus,
                     onSearch: (_) => _updateView(() {}),
                     dimension: _dimension,
+                    dimensionStatus: widget.dimensionStatus,
                     onDimension: (value) =>
                         _updateView(() => _dimension = value),
                     sort: _sort,
                     onSort: (value) => _updateView(() => _sort = value),
                     grid: _grid,
                     onGrid: (value) => _updateView(() => _grid = value),
-                    detailsVisible: docked && _showDetails && selected != null,
-                    onDetails: selected == null
+                    detailsVisible:
+                        docked && !_marking && _showDetails && selected != null,
+                    onDetails: selected == null || _marking
                         ? null
                         : () {
                             if (docked) {
@@ -110,6 +117,10 @@ extension _ResourceLibraryResults on _ResourceLibraryViewState {
                           },
                   ),
                 ),
+                if (organization != null) ...[
+                  const SizedBox(height: StudioSpacing.m),
+                  organization,
+                ],
               ],
             ),
           ),

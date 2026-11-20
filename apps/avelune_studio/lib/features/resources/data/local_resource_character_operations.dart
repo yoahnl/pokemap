@@ -74,8 +74,9 @@ Future<ResourceMutationReceipt> _importCharacterAnimation(
 
 Future<ResourceMutationReceipt> _importResourceImage(
   LocalResourceAdapter adapter,
-  ResourceImageImport request,
-) {
+  ResourceImageImport request, {
+  String? expectedBeforeRevision,
+}) {
   final id = adapter._identity('source');
   return adapter._run(
     'tileset.import_image',
@@ -87,6 +88,7 @@ Future<ResourceMutationReceipt> _importResourceImage(
     },
     sourcePath: request.sourcePath,
     createdTilesetId: id,
+    expectedBeforeRevision: expectedBeforeRevision,
   );
 }
 

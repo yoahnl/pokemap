@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 import '../../../theme/studio_tokens.dart';
 
 class StudioTab<T> {
-  const StudioTab({required this.value, required this.label, this.key});
+  const StudioTab({
+    required this.value,
+    required this.label,
+    this.key,
+    this.enabled = true,
+  });
 
   final T value;
   final String label;
   final Key? key;
+  final bool enabled;
 }
 
 class StudioTabBar<T> extends StatelessWidget {
@@ -33,7 +39,7 @@ class StudioTabBar<T> extends StatelessWidget {
       key: tab.key,
       label: tab.label,
       selected: tab.value == selected,
-      onTap: () => onSelected(tab.value),
+      onTap: tab.enabled ? () => onSelected(tab.value) : null,
     );
     return Ink(
       height: height,
@@ -64,7 +70,7 @@ class _StudioTabEntry extends StatefulWidget {
 
   final String label;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   State<_StudioTabEntry> createState() => _StudioTabEntryState();
@@ -85,6 +91,7 @@ class _StudioTabEntryState extends State<_StudioTabEntry> {
     return Semantics(
       container: true,
       button: true,
+      enabled: widget.onTap != null,
       selected: widget.selected,
       label: widget.label,
       child: InkWell(
@@ -100,7 +107,9 @@ class _StudioTabEntryState extends State<_StudioTabEntry> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelLarge?.copyWith(
-                color: widget.selected
+                color: widget.onTap == null
+                    ? theme.disabledColor
+                    : widget.selected
                     ? scheme.onSurface
                     : scheme.onSurfaceVariant,
                 fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w500,

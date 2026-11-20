@@ -3,6 +3,7 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_pack_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
+import 'package:avelune_studio/features/resources/domain/project_library_editor.dart';
 
 final resourcePortProvider = Provider.autoDispose
     .family<ResourcePort, ProjectSession>(
@@ -11,6 +12,8 @@ final resourcePortProvider = Provider.autoDispose
 final resourceImagePickerProvider = Provider<PickResourceImage>(
   (ref) => throw StateError('Resource image picker must be configured'),
 );
+final projectLibraryManagementProvider = Provider.autoDispose
+    .family<ProjectLibraryManagement?, ProjectSession>((ref, session) => null);
 final resourcePackPortProvider = Provider.autoDispose
     .family<ResourcePackPort?, ProjectSession>((ref, session) => null);
 final resourcePackPickerProvider = Provider<PickResourcePack>(

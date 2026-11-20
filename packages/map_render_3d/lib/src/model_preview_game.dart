@@ -2,7 +2,9 @@ part of 'model_preview.dart';
 
 class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
   @override
-  late final GraphicsDevice device = FlutterFrameGraphicsDevice();
+  late final GraphicsDevice device = FlutterFrameGraphicsDevice(
+    onPresented: onFirstFrame == null ? null : _firstFrame,
+  );
 
   @override
   late final RenderContext3D context = SpatialRenderContext(device);
@@ -13,6 +15,7 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
     this.minimum,
     this.maximum,
     this.background,
+    this.onFirstFrame,
   ) : super(world: World3D(), camera: AdaptiveCamera3D(fovY: 40));
 
   final Uint8List bytes;
@@ -20,6 +23,8 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
   final Vector3 minimum;
   final Vector3 maximum;
   final Color background;
+  final ValueChanged<ui.Image>? onFirstFrame;
+  bool _firstFrameDelivered = false;
   AnimatedModelComponent? component;
   MeshComponent? _lightFloor;
   double _lightElapsed = 0;
@@ -39,6 +44,12 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
   int? activeAnimation;
   int activeAnimationVersion = -1;
   bool closed = false;
+
+  void _firstFrame(ui.Image image) {
+    if (_firstFrameDelivered || component?.isMounted != true) return;
+    _firstFrameDelivered = true;
+    onFirstFrame?.call(image);
+  }
 
   @override
   Color backgroundColor() => background;

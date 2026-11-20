@@ -31,7 +31,10 @@ test("MCP stdio queries and edits working catalogs with pinned pages and partial
   try {
     await client.connect(transport);
     const described = await call("pokemap_describe");
-    assert.ok((described.mutationActions as JsonRecord[]).some(action => action.id === "catalog.definition.update"));
+    const actions = new Set((described.mutationActions as JsonRecord[]).map(action => action.id));
+    for (const actionId of ["catalog.definition.update", "catalog.definition.duplicate", "catalog.definition.delete"]) {
+      assert.ok(actions.has(actionId), actionId);
+    }
     const tilesetKind = (described.resourceKinds as JsonRecord[]).find(kind => kind.id === "tileset");
     assert.equal(record(record(tilesetKind!.extensions).partitionedStorage).summary, "indexOnly");
     const mapHealthKind = (described.resourceKinds as JsonRecord[]).find(kind => kind.id === "mapHealth");
@@ -42,6 +45,7 @@ test("MCP stdio queries and edits working catalogs with pinned pages and partial
     assert.ok((described.commands as JsonRecord[]).some(command => command.id === "workshop_snapshot"));
     const preparedWorkshop = await call("pokemap_workshop", { operation: "prepare", projectHandle: opened.projectHandle });
     assert.equal(preparedWorkshop.prepared, true);
+    await call("pokemap_workshop", { operation: "prepare", projectHandle: opened.projectHandle, scope: "resourceIndexes" });
     const trainerParameters = { value: { id: "local-trainer", name: "Local trainer", trainerClass: "Trainer", team: [] } };
     const workshop = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
       actionId: "campaign.trainer.upsert", parameters: trainerParameters });
@@ -85,12 +89,44 @@ test("MCP stdio queries and edits working catalogs with pinned pages and partial
     const found = await call("pokemap_query", { projectHandle: opened.projectHandle, resourceKind: "tileset", operation: "search", searchTerm: "Outside object", filters: { placementContext: "exterior" } });
     assert.equal(found.returned, 1);
     assert.equal(record((found.items as JsonRecord[])[0]).name, "Renamed");
+    const duplicate = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
+      requestId: "copy-tile", actionId: "catalog.definition.duplicate", actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle, expectedRevision: found.snapshotRevision,
+      idempotencyKey: "copy-tile", parameters: {
+        resourceKind: "tileset", id: "tile-204", targetId: "tile-copy", name: "Copied tileset",
+      },
+    } });
+    await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
+      planId: duplicate.planId, operationId: "copy-tile-apply" });
+    const copies = await call("pokemap_query", { projectHandle: opened.projectHandle,
+      resourceKind: "tileset", operation: "batch_get", ids: ["tile-204", "tile-copy"], view: "detail" });
+    const copy = (copies.items as JsonRecord[]).find(item => item.id === "tile-copy");
+    assert.equal(copy?.name, "Copied tileset");
+    assert.equal(copy?.relativePath, "assets/object.png");
+    assert.equal(copy?.description, "Outside object");
+    assert.equal(copy?.placementContext, "exterior");
+    const removal = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
+      requestId: "remove-tile-copy", actionId: "catalog.definition.delete", actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle, expectedRevision: copies.snapshotRevision,
+      idempotencyKey: "remove-tile-copy", parameters: { resourceKind: "tileset", id: "tile-copy" },
+    } });
+    const denied = await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
+      planId: removal.planId, operationId: "remove-tile-copy-apply" }, true);
+    assert.match(JSON.stringify(denied), /confirm/i);
+    const confirmed = await call("pokemap_apply", { operation: "confirm", projectHandle: opened.projectHandle,
+      planId: removal.planId });
+    const removed = await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
+      planId: removal.planId, operationId: "remove-tile-copy-apply", confirmationToken: confirmed.confirmationToken });
+    assert.equal(record(removed.receipt).actionId, "catalog.definition.delete");
     assert.deepEqual(await readFile(join(root, "project.json")), descriptor);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
     const reopened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const after = await call("pokemap_query", { projectHandle: reopened.projectHandle, resourceKind: "tileset", operation: "get", ids: ["tile-204"] });
     assert.equal(record((after.items as JsonRecord[])[0]).name, "Renamed");
     assert.equal(record((after.items as JsonRecord[])[0]).placementContext, "exterior");
+    const absent = await call("pokemap_query", { projectHandle: reopened.projectHandle,
+      resourceKind: "tileset", operation: "get", ids: ["tile-copy"] }, true);
+    assert.equal(absent.domainCode, "query.resource_not_found");
     const mapQuery = { projectHandle: reopened.projectHandle, resourceKind: "map", operation: "list", view: "detail" };
     const mapsBefore = await call("pokemap_query", { projectHandle: reopened.projectHandle, resourceKind: "project", operation: "get", ids: ["project"], view: "detail", extensions: { materializeProject: true } });
     const mapPlan = await call("pokemap_plan", { projectHandle: reopened.projectHandle, request: { requestId: "create-map", actionId: "map.create", actionVersion: 1, workspaceHandle: reopened.workspaceHandle, expectedRevision: mapsBefore.snapshotRevision, idempotencyKey: "create-map", parameters: { mapId: "garden", name: "Garden", width: 8, height: 6 } } });

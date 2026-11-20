@@ -91,6 +91,7 @@ extension StudioMapResourcesCatalog on StudioMapResources {
       ..clear()
       ..addAll(next.colors);
     store.invalidate(invalid);
+    invalidateResourcePreviews(changedRelativePaths);
     catalogVersion++;
     if (_activeMap != null) {
       if (borderChanged) {

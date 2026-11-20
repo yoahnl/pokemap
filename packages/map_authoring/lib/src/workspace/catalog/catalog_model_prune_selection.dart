@@ -89,7 +89,6 @@ Future<CatalogWorkshopSelection> _readModelPruneWorkshop({
         }
       }
     }
-    final units = await catalog.snapshot.readAllUnits();
     final removals = <CatalogDefinitionKey>{};
     final moves = <CatalogDefinitionKey, int>{};
     final counts = <CatalogDefinitionKind, int>{};
@@ -97,7 +96,8 @@ Future<CatalogWorkshopSelection> _readModelPruneWorkshop({
       CatalogDefinitionKind.model3d,
       CatalogDefinitionKind.resourceLibraryEntry
     ]) {
-      final rows = units.where((unit) => unit.key.kind == kind).toList();
+      final rows =
+          await CatalogResourcePositions.readUnits(catalog.snapshot, kind);
       final count = CatalogResourcePositions.contiguousCount(rows);
       final deleted = rows
           .where((unit) => kind == CatalogDefinitionKind.model3d

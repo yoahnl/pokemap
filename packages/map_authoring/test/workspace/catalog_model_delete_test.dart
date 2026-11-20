@@ -118,10 +118,33 @@ void main() {
       () async {
     final f = await _pruneFixture(
         modelIds: ['first', 'keep', 'middle', 'last-a', 'last-b']);
+    await f.mutate('resource.family.create',
+        {'familyId': 'unrelated', 'name': 'Unrelated'});
+    for (final family in [null, 'relief']) {
+      await f.mutate('resource.classify', {
+        'resourceKind': 'model3d',
+        'resourceId': 'first',
+        'familyId': family,
+      });
+    }
+    CatalogDefinitionKey classification(String id) => CatalogDefinitionKey(
+        CatalogDefinitionKind.resourceLibraryEntry, 'model3d:$id');
+    final catalog = await f.catalog();
+    expect(
+        (await catalog.lookup(classification('first')))!.payload['position'], 4);
+    expect(
+        (await catalog.lookup(classification('middle')))!.payload['position'],
+        0);
     final keptKey = CatalogDefinitionKey(CatalogDefinitionKind.model3d, 'keep');
-    final keptBefore =
-        (await (await f.catalog()).indexEntry(keptKey))!.reference;
-    final plan = await _prunePlan(f, ['first', 'middle'], 'order');
+    final keptBefore = (await catalog.indexEntry(keptKey))!.reference;
+    const ids = ['first', 'middle'];
+    f.reader.clear();
+    final snapshot = await f.api.readWorkshopSnapshot(f.opened.projectHandle,
+        actionId: 'model3d.prune_unused', parameters: {'modelIds': ids});
+    expect(f.reader.decodedUnits['resourceFamily:unrelated'], 1);
+    expect(f.reader.decodedUnits,
+        isNot(contains('workspaceState:resourceUsageIndex')));
+    final plan = await _prunePlan(f, ids, 'order', snapshot: snapshot);
     final confirmation = await f.api
         .confirmMutation(f.opened.projectHandle, planId: plan.planId);
     await f.api.applyMutation(f.opened.projectHandle,
@@ -142,6 +165,11 @@ void main() {
               .map((entry) => entry.resourceId)
               .toSet(),
           {'keep', 'last-a', 'last-b'});
+      final updated = await f.catalog();
+      expect({
+        for (final id in ['keep', 'last-a', 'last-b'])
+          id: (await updated.lookup(classification(id)))!.payload['position'],
+      }, {'keep': 1, 'last-a': 2, 'last-b': 0});
     } finally {
       await reopened.close();
     }
@@ -681,10 +709,12 @@ Future<ResourceIndexFixture> _pruneFixture(
 }
 
 Future<AuthoringMutationPlanResult> _prunePlan(
-    ResourceIndexFixture f, List<String> ids, String id) async {
+    ResourceIndexFixture f, List<String> ids, String id,
+    {ProjectSnapshot? snapshot}) async {
   final parameters = <String, Object?>{'modelIds': ids};
-  final snapshot = await f.api.readWorkshopSnapshot(f.opened.projectHandle,
-      actionId: 'model3d.prune_unused', parameters: parameters);
+  final selected = snapshot ??
+      await f.api.readWorkshopSnapshot(f.opened.projectHandle,
+          actionId: 'model3d.prune_unused', parameters: parameters);
   return f.api.planMutation(
       f.opened.projectHandle,
       AuthoringRequest(
@@ -693,7 +723,7 @@ Future<AuthoringMutationPlanResult> _prunePlan(
           actionVersion: 1,
           workspaceHandle: f.opened.workspaceHandle.value,
           parameters: parameters,
-          expectedRevision: snapshot.revision,
+          expectedRevision: selected.revision,
           idempotencyKey: id,
           extensions: const {'workshopScope': true}));
 }

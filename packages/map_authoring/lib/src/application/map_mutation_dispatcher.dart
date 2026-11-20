@@ -225,6 +225,17 @@ final class MapMutationDispatcher {
       MapMutationActionRegistration(descriptor: Map3dEditBatchActions.descriptor, build: const Map3dEditBatchActions().build),
       MapMutationActionRegistration(descriptor:projectCatalogPartitionDescriptor,evidence:MutationContractEvidence(proofs:{...MutationContractEvidence.mandatoryCore,MutationContractProof.nonUndoablePolicy},nonUndoableReason:'catalog.partition_not_undoable'),build:projectCatalogPartitionBuilder??(_) => throw AuthoringPlanException(code:'catalog.partition_unavailable',message:'Catalog partitioning requires a local authoring session.')),
       MapMutationActionRegistration(descriptor: catalogDefinitionUpdateDescriptor, build: (_) => throw AuthoringPlanException(code:'catalog.working_project_required',message:'Catalog metadata editing requires a working catalog project.')),
+      for (final descriptor in [
+        catalogDefinitionDuplicateDescriptor,
+        catalogDefinitionDeleteDescriptor,
+      ])
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: (_) => throw AuthoringPlanException(
+            code: 'catalog.working_project_required',
+            message: 'Library definition actions require a working catalog project.',
+          ),
+        ),
       MapMutationActionRegistration(
           descriptor: BorderMaterializationBatchActions.descriptor,
           build: const BorderMaterializationBatchActions().build),

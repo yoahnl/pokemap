@@ -59,13 +59,21 @@ void main() {
       maximumBytes: fixture.decodedAtlasBytes,
     );
     addTearDown(resources.dispose);
-    final mapA = MapData(
-      id: 'a',
-      name: 'A',
-      tilesetId: 'a',
+    MapData mapWithPalette(String atlas) => MapData(
+      id: atlas,
+      name: atlas,
       size: const GridSize(width: 1, height: 1),
+      layers: [
+        TileLayer(
+          id: 'ground',
+          name: 'Sol',
+          palette: [TileLayerPaletteEntry(tilesetId: atlas, localTileId: 0)],
+          cells: const [1],
+        ),
+      ],
     );
-    final mapB = mapA.copyWith(id: 'b', tilesetId: 'b');
+    final mapA = mapWithPalette('a');
+    final mapB = mapWithPalette('b');
     resources.setActiveMap(mapA);
     await resources.settled;
     final firstA = resources.images['a']!;

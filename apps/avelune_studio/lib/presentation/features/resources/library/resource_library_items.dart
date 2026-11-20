@@ -122,8 +122,8 @@ class ResourceLibraryTile extends StatelessWidget {
                             children: [title, type, usageLine],
                           ),
                         ),
-                        if (item.dimension case final dimension?)
-                          StudioBadge(dimension.label),
+                        if (item.dimensionLabel case final label?)
+                          StudioBadge(label),
                       ],
                     ),
                   ),
@@ -160,11 +160,11 @@ class ResourceLibraryArt extends StatelessWidget {
           checkerboard: preview == null && item.art == null,
           child: preview ?? item.art ?? Icon(item.category.icon, size: 40),
         ),
-        if (showDimension && item.dimension != null)
+        if (item.dimensionLabel case final label? when showDimension)
           Positioned(
             left: StudioSpacing.m,
             top: StudioSpacing.m,
-            child: StudioBadge(item.dimension!.label),
+            child: StudioBadge(label),
           ),
         if (selected)
           Positioned(

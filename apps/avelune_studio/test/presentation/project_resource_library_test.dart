@@ -1,10 +1,56 @@
+import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
+import '../support/spatial_narrative_fixture.dart';
 import 'map_builder_selection_harness.dart';
 
 void main() {
+  testWidgets('dimension filters include resources that work in both modes', (
+    tester,
+  ) async {
+    final host = await openSelectionHost(
+      tester,
+      manifest: selectionProject().copyWith(
+        maps: [],
+        characters: spatialNarrativeProject().characters,
+      ),
+    );
+    Finder item(String id) => find.byKey(ValueKey('library-item-$id'));
+    final filter = find.byWidgetPredicate(
+      (widget) => widget is StudioSelect && widget.label == 'Dimension',
+    );
+    Future<void> select(String label) async {
+      await tester.tap(filter);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+
+    await tester.tap(find.byKey(const ValueKey('studio-rail-resources')));
+    await host.settle();
+    await select('2D');
+
+    expect(item('element:tree'), findsOneWidget);
+    expect(item('model3d:windmill'), findsNothing);
+    expect(item('environmentPreset:woodland'), findsNothing);
+    expect(
+      find.descendant(
+        of: item('character:guide'),
+        matching: find.text('2D / 3D'),
+      ),
+      findsOneWidget,
+    );
+
+    await select('3D');
+
+    expect(item('element:tree'), findsNothing);
+    expect(item('model3d:windmill'), findsOneWidget);
+    expect(item('environmentPreset:woodland'), findsOneWidget);
+    expect(item('character:guide'), findsOneWidget);
+  });
+
   testWidgets(
     'the project library browses families and components without a map',
     (tester) async {

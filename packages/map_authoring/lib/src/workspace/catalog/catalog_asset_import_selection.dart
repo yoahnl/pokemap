@@ -7,6 +7,7 @@ Future<CatalogWorkshopSelection> _readAssetImportWorkshop({
   required Map<String, Object?> parameters,
 }) async {
   final model = actionId.startsWith('model3d.');
+  final duplicate = actionId == 'model3d.duplicate';
   final kind =
       model ? CatalogDefinitionKind.model3d : CatalogDefinitionKind.tileset;
   final inputs =
@@ -37,7 +38,7 @@ Future<CatalogWorkshopSelection> _readAssetImportWorkshop({
       }
     }
     final settings = catalog.projectMetadata.settings;
-    final manifest = ProjectManifest(
+    var manifest = ProjectManifest(
         name: catalog.projectMetadata.name,
         version: settings.dimension == ProjectDimension.threeD
             ? ProjectVersion.v9
@@ -49,6 +50,26 @@ Future<CatalogWorkshopSelection> _readAssetImportWorkshop({
             tileHeight: settings.tileHeight),
         maps: const [],
         tilesets: const []);
+    if (duplicate) {
+      final sourceId = parameters['sourceModelId'];
+      if (sourceId is! String || sourceId.isEmpty) {
+        throw const FormatException('catalog.model_copy: source identity required');
+      }
+      final classification =
+          CatalogDefinitionKey(CatalogDefinitionKind.resourceLibraryEntry, 'model3d:$sourceId');
+      final selection = await ProjectCatalogSelection(catalog).resolve([
+        CatalogDefinitionKey(CatalogDefinitionKind.model3d, sourceId),
+        if (await catalog.snapshot.indexEntry(classification) != null) classification,
+      ]);
+      manifest = manifest.copyWith(
+          models3d: selection.models3d,
+          resourceLibraryCatalog: selection.resourceLibraryCatalog);
+    }
+    final librarySection = CatalogResourcePositions.sections[CatalogDefinitionKind.resourceLibraryEntry]!;
+    final sections = {
+      CatalogResourcePositions.sections[kind]!,
+      if (duplicate) 'resourceLibraryCatalog',
+    };
     final values = <String, List<int>>{};
     final paths = <String, String>{};
     final revisions = <String, String?>{};
@@ -95,10 +116,18 @@ Future<CatalogWorkshopSelection> _readAssetImportWorkshop({
         maps: const [],
         availableProjectSections: {
           'settings',
-          CatalogResourcePositions.sections[kind]!
+          ...sections,
         },
         availableProjectDocuments: {
-          CatalogResourcePositions.sections[kind]!: ids
+          CatalogResourcePositions.sections[kind]!: {
+            ...ids,
+            if (duplicate) parameters['sourceModelId'] as String,
+          },
+          if (duplicate) librarySection: {
+            for (final id in ids) 'model3d:$id',
+            if (manifest.resourceLibraryCatalog.entries.isNotEmpty)
+              manifest.resourceLibraryCatalog.entries.single.identity,
+          },
         },
         resourceBytes: {
           ...values,
@@ -114,8 +143,13 @@ Future<CatalogWorkshopSelection> _readAssetImportWorkshop({
           for (final entry in paths.entries) entry.key: revisions[entry.value]!,
         });
     final result = CatalogWorkshopSelection._(selected, snapshot,
-        {CatalogResourcePositions.sections[kind]!}, revisions,
-        resourceCounts: {kind: count});
+        sections, revisions,
+        resourceCounts: {
+          kind: count,
+          if (duplicate)
+            CatalogDefinitionKind.resourceLibraryEntry:
+                await CatalogResourcePositions.read(catalog.snapshot, CatalogDefinitionKind.resourceLibraryEntry),
+        });
     await result.requireCurrent();
     return result;
   });

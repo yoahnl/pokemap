@@ -30,6 +30,7 @@ import 'catalog_narrative_titles.dart';
 import 'catalog_narrative_usages.dart';
 import 'catalog_map_directory.dart';
 import 'catalog_resource_usage_index.dart';
+import 'catalog_resource_positions.dart';
 import 'catalog_resource_index_snapshot.dart';
 import 'catalog_scoped_working_mutation.dart';
 import '../../catalog_storage/catalog_editing_session.dart';
@@ -38,6 +39,7 @@ import '../../catalog_storage/catalog_generation_retention.dart';
 import 'catalog_action_contracts.dart';
 import '../../contracts/authoring_request.dart';
 import '../../contracts/json_contract_support.dart';
+import '../../contracts/map_authoring_exception.dart';
 import '../../support/authoring_fingerprint.dart';
 import '../../history/history_store.dart';
 import '../../history/content_blob_store.dart';
@@ -57,6 +59,8 @@ import '../../contracts/action_descriptor.dart';
 import '../../history/authoring_history.dart';
 import '../workspace_handle_store.dart';
 import 'catalog_project_reader.dart';
+
+part 'catalog_definition_lifecycle.dart';
 
 final class CatalogAuthoringSession {
   CatalogAuthoringSession(
@@ -253,6 +257,10 @@ final class CatalogAuthoringSession {
       return scope == 'project' ? _planProject(request) : _planModelSource(request);
     }
     if (CatalogSpatialMapSelection.supports(request.actionId, parameters: request.parameters)) return _planSpatialMap(request);
+    if (request.actionId == catalogDefinitionDuplicateDescriptor.id ||
+        request.actionId == catalogDefinitionDeleteDescriptor.id) {
+      return _planLibraryDefinition(request);
+    }
     if (request.actionId != catalogDefinitionUpdateDescriptor.id) {
       return request.extensions['workshopScope'] == true || CatalogWorkshopSelection.supports(request.actionId,parameters:request.parameters)
           ? _planWorkshop(request) : _planProject(request);
@@ -461,6 +469,7 @@ final class CatalogAuthoringSession {
     _authorize(AuthoringSecurityOperation.plan);
     if (scope == 'resourceIndexes') {
       final editing = await _editing();
+      await editing.prepareLibraryPositions();
       if (await CatalogResourceUsageIndex.prepared(editing.snapshot) &&
           await CatalogReverseReferences.prepared(editing.snapshot)) {
         return;

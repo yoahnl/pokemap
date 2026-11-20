@@ -146,6 +146,7 @@ final class ResourceMutationReceipt {
     this.changedModels = const {},
     this.modelSourceRevisions = const {},
     this.sceneChanges = const {},
+    this.removedLibraryResource,
   });
 
   final ProjectManifest before;
@@ -164,6 +165,7 @@ final class ResourceMutationReceipt {
   final Map<String, ProjectModel3dEntry> changedModels;
   final Map<String, String> modelSourceRevisions;
   final Map<String, ({SceneAsset before, SceneAsset after})> sceneChanges;
+  final ({String kind, String id})? removedLibraryResource;
   bool get noChange => changedPaths.isEmpty;
 }
 

@@ -9,6 +9,7 @@ class FlutterFrameGraphicsDevice extends GraphicsDevice {
   FlutterFrameGraphicsDevice({
     GpuBackend? backend,
     Image Function(Image)? presentImage,
+    this.onPresented,
     super.clearValue,
   }) : _presentImage = presentImage ?? createFlutterImagePresenter(),
        super(
@@ -16,6 +17,7 @@ class FlutterFrameGraphicsDevice extends GraphicsDevice {
        );
 
   final Image Function(Image) _presentImage;
+  final void Function(Image)? onPresented;
   GpuRenderTarget? currentRenderTarget;
   Size renderSize = Size.zero;
   Image Function(GpuRenderTarget, Size)? postProcess;
@@ -80,6 +82,12 @@ class FlutterFrameGraphicsDevice extends GraphicsDevice {
           : process(target, renderSize);
       final presented = _presentImage(processed);
       _successfulPresentations++;
+      try {
+        onPresented?.call(presented);
+      } on Object {
+        presented.dispose();
+        rethrow;
+      }
       return presented;
     } finally {
       if (processed != null && !identical(processed, image)) {

@@ -27,6 +27,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_element_cl
 import 'package:avelune_studio/features/map_workspace/application/map_library_history.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
+import 'package:avelune_studio/features/resources/application/project_resource_library.dart';
 
 part 'map_workspace_catalog_commands.dart';
 part 'map_workspace_catalog_preparation.dart';
@@ -230,7 +231,15 @@ class MapWorkspaceController {
     ProjectManifest before,
     ProjectManifest updated, {
     Map<String, ProjectModel3dEntry> changedModels = const {},
-  }) => _acceptResources(before, updated, changedModels: changedModels);
+    ({String kind, String id})? removedLibraryResource,
+    bool notifyChange = true,
+  }) => _acceptResources(
+    before,
+    updated,
+    changedModels: changedModels,
+    removedLibraryResource: removedLibraryResource,
+    notifyChange: notifyChange,
+  );
 
   void notify() {
     if (_disposed) return;

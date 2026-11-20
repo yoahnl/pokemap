@@ -26,6 +26,21 @@ void main() {
             utf8.encode('title: Start\n---\n<<speaker person>>\nBonjour\n===')
       });
       final indexed = await _index(snapshot);
+      expect(
+          await readCatalogResourceLibraryMapUsages(indexed.snapshot,
+              identities: {
+                'character:person',
+                'tileset:sheet',
+                'element:unused'
+              },
+              mapIds: {
+                'a',
+                'b'
+              }),
+          {
+            'character:person': {'b'},
+            'tileset:sheet': {'b'},
+          });
       for (final kind in ['character', 'tileset']) {
         final id = kind == 'character' ? 'person' : 'sheet';
         expect(
@@ -86,6 +101,27 @@ void main() {
         await CatalogResourceUsageIndex.mapUsages(
             indexed.snapshot, 'character', 'person', ['a', 'b']),
         {'a', 'b'});
+    expect(
+        await readCatalogResourceLibraryMapUsages(indexed.snapshot,
+            identities: {'character:person', 'tileset:sheet'},
+            mapIds: {'a', 'b'}),
+        {
+          'character:person': {'a', 'b'},
+          'tileset:sheet': {'a', 'b'}
+        });
+  });
+
+  test('an index without preparation does not assert absence of use', () async {
+    final project = librarySceneProject(
+        [catalogMap('a')], SceneYarnDialoguePayload(dialogueId: 'talk'));
+    final build = PortableCatalogPublication.encodeProject(project);
+    final snapshot = await CatalogSnapshot.open(
+        root: build.storage.root,
+        readObject: (ref) async => build.storage.objects[ref.sha256]!);
+    expect(
+        await readCatalogResourceLibraryMapUsages(snapshot,
+            identities: {'character:person'}, mapIds: {'a'}),
+        isNull);
   });
 }
 

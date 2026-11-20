@@ -1,12 +1,32 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
+import '../../../features/project_session/domain/project_session.dart';
 import '../../../features/rendering/contracts/map_workspace_visuals.dart';
+import '../../../features/rendering/contracts/scoped_resource_preview_visuals.dart';
 import '../../../features/resources/application/project_resource_library.dart';
+import '../../../features/resources/application/project_resource_preview.dart';
+import '../../../features/resources/domain/project_library_editor.dart';
+import '../../../features/resources/domain/project_library_organization.dart';
+import '../../../features/resources/domain/project_model_workshop_port.dart';
+import '../../../features/resources/domain/resource_port.dart';
+import '../../../features/resources/domain/studio_search_text.dart';
 import 'library/resource_library_view.dart';
+import 'library/resource_library_view_data.dart';
 import 'project_library_catalog_view.dart';
+import 'project_library_delete_dialog.dart';
+import 'project_library_edit_dialog.dart';
+import 'project_library_organization_dialog.dart';
 import 'project_library_preview.dart';
+import 'project_model_workshop.dart';
+
+part 'project_library_page_edits.dart';
+part 'project_library_page_lifecycle.dart';
+part 'project_library_page_loading.dart';
+part 'project_library_page_organization.dart';
+part 'project_library_page_workshops.dart';
 
 class ProjectLibraryPage extends StatefulWidget {
   const ProjectLibraryPage({
@@ -14,18 +34,51 @@ class ProjectLibraryPage extends StatefulWidget {
     required this.active,
     required this.maps,
     required this.visuals,
+    this.management,
+    this.onModelWorkshopPublished,
   });
 
   final bool active;
   final MapWorkspaceController maps;
   final MapWorkspaceVisuals? visuals;
+  final ProjectLibraryManagement? management;
+  final Future<void> Function(ResourceMutationReceipt)?
+  onModelWorkshopPublished;
 
   @override
   State<ProjectLibraryPage> createState() => _ProjectLibraryPageState();
 }
 
 class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
-  Future<ProjectLibraryCatalogView>? _reading;
+  Future<_ProjectLibraryRead>? _reading;
+  bool _pickingFile = false;
+  String? _workshopModel;
+  bool _workshopBusy = false;
+  final _workshopReceipts = <String, ResourceMutationReceipt>{};
+
+  void _updateView(VoidCallback update) => setState(update);
+
+  void _refresh() => setState(_read);
+
+  void _setPickingFile(bool value) => setState(() => _pickingFile = value);
+
+  void _removeEntry(_ProjectLibraryRead read, String id, String revision) {
+    setState(() {
+      read.revision = revision;
+      read.catalog.remove(id);
+      read.enriched?.remove(id);
+    });
+  }
+
+  ResourceLibraryItemView _publish(
+    _ProjectLibraryRead read,
+    ProjectLibraryEdit edit, {
+    required bool imported,
+  }) {
+    final item = read.publish(edit, imported: imported);
+    setState(() {});
+    return item;
+  }
 
   @override
   void initState() {
@@ -36,7 +89,12 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
   @override
   void didUpdateWidget(ProjectLibraryPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.maps != widget.maps) _reading = null;
+    if (oldWidget.maps != widget.maps) {
+      _reading = null;
+      _workshopModel = null;
+      _workshopBusy = false;
+      _workshopReceipts.clear();
+    }
     if (widget.active && _reading == null) _read();
   }
 
@@ -45,18 +103,58 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
     final manifest = maps.project;
     if (manifest == null) return;
     final port = maps.port;
+    final complete = maps.hasCompleteProject;
+    final previews = ProjectResourcePreviews(
+      (entry) => switch (port) {
+        _ when complete => Future.value(maps.project ?? manifest),
+        final ProjectResourcePreviewPort reader => reader.readResourcePreview(
+          maps.session,
+          entry.kind,
+          entry.id,
+        ),
+        _ => Future.error(StateError('Lecteur d’aperçu indisponible.')),
+      },
+    );
     final result = switch (port) {
+      final ProjectResourceLibraryDimensionsPort reader =>
+        reader.readResourceLibraryIndex(maps.session),
       final ProjectResourceLibraryPort reader => reader.readResourceLibrary(
         maps.session,
       ),
-      _ when maps.hasCompleteProject => Future.value(
+      _ when complete => Future.value(
         ProjectResourceLibrary.fromManifest(manifest),
       ),
       _ => Future<ProjectResourceLibrary>.error(
         StateError('Lecteur de bibliothèque indisponible.'),
       ),
     };
-    _reading = result.then(ProjectLibraryCatalogView.new);
+    late final Future<_ProjectLibraryRead> reading;
+    bool isCurrent() => mounted && identical(_reading, reading);
+    reading = result.then((library) {
+      final revision = library.revision;
+      final read = _ProjectLibraryRead(library, previews);
+      if (revision != null && isCurrent()) {
+        if (port case final ProjectResourceLibraryDimensionsPort reader) {
+          read.withDimensions = _withDimensions(
+            reader,
+            maps.session,
+            read,
+            isCurrent,
+          );
+        }
+        if (port case final ProjectResourceLibraryMapUsagesPort reader) {
+          read.withUsages = _withUsages(
+            reader,
+            maps.session,
+            library,
+            revision,
+            read,
+          );
+        }
+      }
+      return read;
+    });
+    _reading = reading;
   }
 
   @override
@@ -67,10 +165,9 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
           ? const Center(child: CircularProgressIndicator())
           : const SizedBox.shrink();
     }
-    final maps = widget.maps;
     return ExcludeFocus(
       excluding: !widget.active,
-      child: FutureBuilder<ProjectLibraryCatalogView>(
+      child: FutureBuilder<_ProjectLibraryRead>(
         future: reading,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -84,52 +181,151 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
                         'Le catalogue des ressources n’a pas pu être lu.',
                   ),
                   const SizedBox(height: StudioSpacing.l),
-                  StudioButton(
-                    label: 'Réessayer',
-                    onPressed: () => setState(_read),
-                  ),
+                  StudioButton(label: 'Réessayer', onPressed: _refresh),
                 ],
               ),
             );
           }
-          final catalog = snapshot.data;
-          if (catalog == null) {
+          final result = snapshot.data;
+          if (result == null) {
             return const Center(child: CircularProgressIndicator());
           }
-          final visuals = widget.active ? widget.visuals : null;
-          final visualProject = visuals == null ? null : maps.visualProject;
-          return ResourceLibraryView(
-            key: ValueKey(maps.session.sessionId),
-            items: catalog.items,
-            familyLabels: catalog.familyLabels,
-            maps: {
-              for (final entry in maps.project?.maps ?? const [])
-                entry.id: entry.name,
-            },
-            showRoles: true,
-            showMapScopes: false,
-            onRefresh: snapshot.connectionState == ConnectionState.done
-                ? () => setState(_read)
-                : null,
-            tilePreview: visuals == null
-                ? null
-                : (item) =>
-                      projectLibraryThumbnail(item.id, visualProject, visuals),
-            detailPreview: visuals == null
-                ? null
-                : (item) {
-                    final entry = catalog.entries[item.id];
-                    return entry == null
-                        ? null
-                        : ProjectLibraryPreview(
-                            entry: entry,
-                            maps: maps,
-                            visuals: visuals,
-                          );
-                  },
+          return FutureBuilder<void>(
+            future: result.withDimensions,
+            builder: (context, dimensions) => FutureBuilder<void>(
+              future: result.withUsages,
+              builder: (context, usage) => _library(
+                result,
+                refreshing: snapshot.connectionState != ConnectionState.done,
+                loadingMapUsages:
+                    result.withUsages != null &&
+                    usage.connectionState != ConnectionState.done,
+                dimensionStatus: result.dimensionStatus(
+                  dimensions.connectionState,
+                ),
+              ),
+            ),
           );
         },
       ),
     );
+  }
+
+  Widget _library(
+    _ProjectLibraryRead read, {
+    required bool refreshing,
+    required bool loadingMapUsages,
+    required ResourceLibraryDimensionStatus dimensionStatus,
+  }) {
+    final catalog = read.enriched ?? read.catalog;
+    final maps = widget.maps;
+    final visuals = widget.active ? widget.visuals : null;
+    final management = refreshing || _pickingFile ? null : widget.management;
+    final editable = management != null && read.revision != null;
+    final organization =
+        editable && management.editor is ProjectLibraryOrganization
+        ? management.editor as ProjectLibraryOrganization
+        : null;
+    Widget? preview(String identity, {required bool compact}) {
+      final entry = catalog.entries[identity];
+      if (entry == null || visuals == null) return null;
+      return ProjectLibraryPreview(
+        entry: entry,
+        previews: read.previews,
+        visuals: visuals,
+        compact: compact,
+      );
+    }
+
+    return ResourceLibraryView(
+      key: ValueKey(maps.session.sessionId),
+      items: catalog.items,
+      familyLabels: catalog.familyLabels,
+      maps: {
+        for (final entry in maps.project?.maps ?? const [])
+          entry.id: entry.name,
+      },
+      activeMapId: maps.active?.base.mapId,
+      showRoles: true,
+      showMapScopes: catalog.hasMapUsages,
+      loadingMapUsages: loadingMapUsages,
+      dimensionStatus: dimensionStatus,
+      buildWorkshops: (back) =>
+          _workshops(read, visuals, management?.editor, back),
+      canLeaveWorkshops: () => !_workshopBusy,
+      workshopAction: (item) => _modelWorkshopAction(read, item.id),
+      onManageFamilies: organization == null
+          ? null
+          : () => _manageFamilies(context, read, organization),
+      onClassifySelection: organization == null
+          ? null
+          : (context, identities) =>
+                _classifySelection(context, read, organization, identities),
+      onRefresh: refreshing || _pickingFile ? null : _refresh,
+      onImport: editable
+          ? (context) => _importFile(context, read, management)
+          : null,
+      onRename: editable
+          ? (context, item) =>
+                _rename(context, read, management.editor, item.id)
+          : null,
+      onClassify: editable
+          ? (context, item) =>
+                _classify(context, read, management.editor, item.id)
+          : null,
+      onModify: editable
+          ? (context, item) =>
+                _modify(context, read, management.editor, item.id)
+          : null,
+      onDuplicate: editable
+          ? (context, item) =>
+                _duplicate(context, read, management.editor, item.id)
+          : null,
+      onDelete: editable
+          ? (context, item) =>
+                _delete(context, read, management.editor, item.id)
+          : null,
+      publication: read.publication,
+      tilePreview: (item) => preview(item.id, compact: true),
+      detailPreview: (item) => preview(item.id, compact: false),
+    );
+  }
+}
+
+class _ProjectLibraryRead {
+  _ProjectLibraryRead(ProjectResourceLibrary library, this.previews)
+    : catalog = ProjectLibraryCatalogView(library),
+      revision = library.revision;
+
+  final ProjectLibraryCatalogView catalog;
+  final ProjectResourcePreviews previews;
+  ProjectLibraryCatalogView? enriched;
+  Future<void>? withUsages;
+  Future<void>? withDimensions;
+  bool dimensionsReady = false;
+  String? revision;
+  ResourceLibraryPublication? publication;
+
+  ResourceLibraryDimensionStatus dimensionStatus(ConnectionState state) =>
+      switch ((withDimensions, dimensionsReady, state)) {
+        (null, _, _) || (_, true, _) => ResourceLibraryDimensionStatus.ready,
+        (_, _, ConnectionState.done) =>
+          ResourceLibraryDimensionStatus.unavailable,
+        _ => ResourceLibraryDimensionStatus.loading,
+      };
+
+  ResourceLibraryItemView publish(
+    ProjectLibraryEdit edit, {
+    required bool imported,
+  }) {
+    revision = edit.receipt.revision;
+    final base = catalog.upsert(edit.item);
+    final item = enriched?.upsert(edit.item) ?? base;
+    publication = (
+      item: item,
+      token: (publication?.token ?? 0) + 1,
+      imported: imported,
+    );
+    return item;
   }
 }

@@ -15,28 +15,10 @@ import 'package:map_runtime/map_runtime.dart'
 Future<Map<String, String>> resolveStudioResourcePaths(
   String projectRoot,
   ProjectManifest manifest,
-  Set<String> supported,
-) async {
-  const reader = LocalProjectFileReader();
-  AssetCatalog? catalog;
-  final probe = await reader.probeResource(
-    projectRoot: projectRoot,
-    relativePath: assetCatalogStorageKey,
-  );
-  if (probe.status == ProjectResourceProbeStatus.exists) {
-    catalog = AssetCatalog.fromJson(
-      jsonDecode(
-        utf8.decode(
-          await reader.readBytes(
-            projectRoot: projectRoot,
-            relativePath: assetCatalogStorageKey,
-          ),
-        ),
-      ) as Map<String, dynamic>,
-    );
-  } else if (probe.status != ProjectResourceProbeStatus.missing) {
-    throw StateError('Catalogue: ${probe.status.name}');
-  }
+  Set<String> supported, {
+  Future<AssetCatalog?>? catalogRead,
+}) async {
+  final catalog = await (catalogRead ?? readStudioAssetCatalog(projectRoot));
   final paths = resolveTilesetAbsolutePaths(
     manifest: manifest,
     projectRoot: projectRoot,
@@ -52,6 +34,29 @@ Future<Map<String, String>> resolveStudioResourcePaths(
     paths[characterAnimationRuntimeImageId(entry.key)] = entry.value;
   }
   return paths;
+}
+
+Future<AssetCatalog?> readStudioAssetCatalog(String projectRoot) async {
+  const reader = LocalProjectFileReader();
+  final probe = await reader.probeResource(
+    projectRoot: projectRoot,
+    relativePath: assetCatalogStorageKey,
+  );
+  if (probe.status == ProjectResourceProbeStatus.exists) {
+    return AssetCatalog.fromJson(
+      jsonDecode(
+        utf8.decode(
+          await reader.readBytes(
+            projectRoot: projectRoot,
+            relativePath: assetCatalogStorageKey,
+          ),
+        ),
+      ) as Map<String, dynamic>,
+    );
+  } else if (probe.status != ProjectResourceProbeStatus.missing) {
+    throw StateError('Catalogue: ${probe.status.name}');
+  }
+  return null;
 }
 
 Future<Map<String, String>> resolveStudioPreviewImagePaths({

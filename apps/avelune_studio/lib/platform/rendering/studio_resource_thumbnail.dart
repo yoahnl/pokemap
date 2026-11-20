@@ -1,10 +1,11 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
 
-import 'studio_map_resources.dart';
+import 'studio_thumbnail_resources.dart';
 
 class StudioResourceThumbnail extends StatefulWidget {
   const StudioResourceThumbnail({
@@ -14,12 +15,14 @@ class StudioResourceThumbnail extends StatefulWidget {
     required this.resources,
     this.size = 48,
     this.canvasSize,
+    this.showTransparentIndicator = false,
   });
   final ProjectElementEntry? element;
   final TileLayerPaletteEntry? tile;
-  final StudioMapResources resources;
+  final StudioThumbnailResources resources;
   final double size;
   final Size? canvasSize;
+  final bool showTransparentIndicator;
   @override
   State<StudioResourceThumbnail> createState() =>
       _StudioResourceThumbnailState();
@@ -30,6 +33,7 @@ class _StudioResourceThumbnailState extends State<StudioResourceThumbnail> {
   Set<String> _ids = {};
   Map<String, RuntimeTilesetImage?> _observed = {};
   List<_ThumbnailSlice> _slices = [];
+  Future<bool>? _visiblePixels;
   bool _failed = false;
   int _catalogVersion = -1;
 
@@ -52,6 +56,9 @@ class _StudioResourceThumbnailState extends State<StudioResourceThumbnail> {
     _catalogVersion = widget.resources.catalogVersion;
     _observed = {for (final id in _ids) id: widget.resources.images[id]};
     _slices = _resolveSlices(widget.resources, widget.element, widget.tile);
+    _visiblePixels = widget.showTransparentIndicator && _slices.isNotEmpty
+        ? _hasVisiblePixels(_slices)
+        : null;
     _failed = widget.resources.hasFailure(_ids);
   }
 
@@ -77,7 +84,8 @@ class _StudioResourceThumbnailState extends State<StudioResourceThumbnail> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.resources != widget.resources ||
         oldWidget.element != widget.element ||
-        oldWidget.tile != widget.tile) {
+        oldWidget.tile != widget.tile ||
+        oldWidget.showTransparentIndicator != widget.showTransparentIndicator) {
       oldWidget.resources.removeListener(_changed);
       oldWidget.resources.release(_owner);
       _attach();
@@ -105,18 +113,83 @@ class _StudioResourceThumbnailState extends State<StudioResourceThumbnail> {
         ),
       );
     }
-    return CustomPaint(
+    final artwork = CustomPaint(
       size: widget.canvasSize ?? Size.square(widget.size),
       painter: _ThumbnailPainter(
         _slices,
         widget.tile?.transform ?? const SmartTileSpriteTransform(),
       ),
     );
+    final visiblePixels = _visiblePixels;
+    if (visiblePixels == null) return artwork;
+    return FutureBuilder<bool>(
+      future: visiblePixels,
+      builder: (context, snapshot) =>
+          snapshot.connectionState == ConnectionState.done &&
+              snapshot.data == false
+          ? const Center(
+              child: Tooltip(
+                message: 'Tuile sans pixels visibles',
+                child: Icon(Icons.layers_clear_outlined, size: 18),
+              ),
+            )
+          : artwork,
+    );
+  }
+}
+
+final _visibleFrames = Expando<Map<Rect, Future<bool>>>();
+
+Future<bool> _hasVisiblePixels(List<_ThumbnailSlice> slices) async {
+  for (final slice in slices) {
+    final frames = _visibleFrames[slice.image] ??= {};
+    final known = frames[slice.source];
+    if (await (known ?? _readVisibility(slice, frames))) return true;
+  }
+  return false;
+}
+
+Future<bool> _readVisibility(
+  _ThumbnailSlice slice,
+  Map<Rect, Future<bool>> frames,
+) {
+  if (frames.length >= 256) frames.remove(frames.keys.first);
+  return frames[slice.source] = _hasFramePixels(slice);
+}
+
+Future<bool> _hasFramePixels(_ThumbnailSlice slice) async {
+  final width = slice.source.width.ceil();
+  final height = slice.source.height.ceil();
+  if (width * height > 65536) return true;
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  ui.Picture? picture;
+  ui.Image? image;
+  try {
+    slice.image.drawImageRect(
+      canvas,
+      slice.source,
+      Offset.zero & slice.source.size,
+      Paint()..filterQuality = FilterQuality.none,
+    );
+    picture = recorder.endRecording();
+    image = await picture.toImage(width, height);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (bytes == null) return true;
+    for (var alpha = 3; alpha < bytes.lengthInBytes; alpha += 4) {
+      if (bytes.getUint8(alpha) != 0) return true;
+    }
+    return false;
+  } on Object {
+    return true;
+  } finally {
+    image?.dispose();
+    (picture ?? recorder.endRecording()).dispose();
   }
 }
 
 List<_ThumbnailSlice> _resolveSlices(
-  StudioMapResources resources,
+  StudioThumbnailResources resources,
   ProjectElementEntry? element,
   TileLayerPaletteEntry? tile,
 ) {

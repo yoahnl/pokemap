@@ -334,7 +334,7 @@ test("live MCP replaces an inspected model source and restores it without changi
   }
 });
 
-test("live MCP catalog model source replacements use explicit scoped and project contracts", { timeout: 120_000 }, async () => {
+test("live MCP copies catalog models and uses explicit scopes for source replacement", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "pokemap-model-source-catalog-"));
   const transport = new StdioClientTransport({ command: process.execPath,
     args: [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"],
@@ -390,11 +390,47 @@ test("live MCP catalog model source replacements use explicit scoped and project
     const mapId = "room";
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot });
     await call("pokemap_workshop", { operation: "prepare", projectHandle: workspace.projectHandle });
+    await call("pokemap_workshop", { operation: "prepare", projectHandle: workspace.projectHandle, scope: "resourceIndexes" });
+    const described = await call("pokemap_describe", { actionIds: ["model3d.duplicate", "catalog.definition.delete"] });
+    assert.deepEqual((described.mutationActions as JsonRecord[]).map(action => action.id).sort(),
+      ["catalog.definition.delete", "model3d.duplicate"]);
     const descriptor = await readFile(manifestPath);
     const mapPath = join(projectRoot, "maps", `${mapId}.json`);
     const mapBytes = await readFile(mapPath);
     const staticPath = join(projectRoot, "assets/models3d/static.glb");
     const doorPath = join(projectRoot, "assets/models3d/door.glb");
+    const copyParameters = { modelId: "door-copy", sourceModelId: "door", name: "Copie de la porte" };
+    await plan("model3d.duplicate", { ...copyParameters, artifactHandle: await stage(originalStatic) },
+      { scoped: true, failure: true });
+    await apply(await plan("model3d.duplicate", {
+      ...copyParameters, artifactHandle: await stage(originalDoor),
+    }, { scoped: true }));
+    const definitions = await call("pokemap_query", { projectHandle: workspace.projectHandle,
+      resourceKind: "model3d", operation: "batch_get", ids: ["door", "door-copy"], view: "detail" });
+    const models = definitions.items as JsonRecord[];
+    const original = models.find(model => model.id === "door");
+    const copy = models.find(model => model.id === "door-copy");
+    assert.equal(copy?.name, "Copie de la porte");
+    assert.deepEqual(copy?.inspection, original?.inspection);
+    assert.deepEqual(copy?.collisionBounds, original?.collisionBounds);
+    const copyPath = join(root, "assets/models3d/door-copy.glb");
+    assert.deepEqual(await readFile(copyPath), originalDoor);
+    async function planWithdrawal(id: string, failure = false): Promise<JsonRecord> {
+      const requestId = `withdraw-${id}`;
+      return call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
+        requestId, actionId: "catalog.definition.delete", actionVersion: 1,
+        workspaceHandle: workspace.workspaceHandle, parameters: { resourceKind: "model3d", id },
+        expectedRevision: definitions.snapshotRevision, idempotencyKey: requestId,
+      } }, failure);
+    }
+    assert.equal((await planWithdrawal("door", true)).domainCode, "catalog.definition_in_use");
+    const withdrawal = await planWithdrawal("door-copy");
+    const confirmation = await call("pokemap_apply", { operation: "confirm", projectHandle: workspace.projectHandle,
+      planId: withdrawal.planId });
+    await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
+      planId: withdrawal.planId, operationId: "withdraw-door-copy-apply", confirmationToken: confirmation.confirmationToken });
+    assert.deepEqual(await readFile(copyPath), originalDoor);
+    assert.deepEqual(await readFile(mapPath), mapBytes);
     const firstStatic = glb(false, 1, 2);
     const first = await plan("model3d.source.replace", {
       modelId: "static", artifactHandle: await stage(firstStatic),
@@ -451,9 +487,12 @@ test("live MCP catalog model source replacements use explicit scoped and project
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot });
     const reopened = await call("pokemap_query", { projectHandle: workspace.projectHandle,
       resourceKind: "model3d", operation: "batch_get", ids: ["door", "static"], view: "detail" });
-    const models = reopened.items as JsonRecord[];
-    assert.equal((record(models.find(model => model.id === "door")!.inspection).animations as unknown[]).length, 2);
-    assert.equal((record(models.find(model => model.id === "static")!.inspection).animations as unknown[]).length, 1);
+    const reopenedModels = reopened.items as JsonRecord[];
+    assert.equal((record(reopenedModels.find(model => model.id === "door")!.inspection).animations as unknown[]).length, 2);
+    assert.equal((record(reopenedModels.find(model => model.id === "static")!.inspection).animations as unknown[]).length, 1);
+    const absent = await call("pokemap_query", { projectHandle: workspace.projectHandle,
+      resourceKind: "model3d", operation: "get", ids: ["door-copy"] }, true);
+    assert.equal(absent.domainCode, "query.resource_not_found");
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
   } finally {
     await client.close();

@@ -76,6 +76,7 @@ Future<ResourceMutationReceipt?> _applyScopedClassification(
   LocalResourceAdapter adapter,
   ResourceMutationPreparation preparation, {
   String? Function()? validateBeforeApply,
+  bool explicitIndexPreparation = false,
 }) => adapter.mapAdapter.withResourceMutation(() async {
   adapter._resourceMutationActive = true;
   final trace = developer.TimelineTask()..start('studio.resource.classify');
@@ -219,8 +220,17 @@ Future<ResourceMutationReceipt?> _applyScopedClassification(
   } on ResourceFailure {
     rethrow;
   } on Object catch (error) {
+    if (error is VisualLibraryException &&
+        error.code == 'resource_library.family_not_empty') {
+      throw const ResourceFailure(
+        'Cette famille contient des ressources ou des sous-familles. Déplacez-les avant de la supprimer.',
+      );
+    }
     if (error is CatalogStorageException &&
         error.code == 'catalog.resource_usage.preparation_required') {
+      if (explicitIndexPreparation) {
+        throw const ProjectLibraryNeedsPreparation();
+      }
       throw const ResourceFailure(
         'Préparez les usages et les familles depuis « Familles » dans la bibliothèque, puis réessayez. Rien n’a été modifié.',
       );

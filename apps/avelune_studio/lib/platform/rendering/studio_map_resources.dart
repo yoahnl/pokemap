@@ -13,7 +13,9 @@ import 'package:map_render_3d/map_render_3d.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
 import '../../features/rendering/contracts/map_workspace_visuals.dart';
+import '../../features/rendering/contracts/scoped_resource_preview_visuals.dart';
 import '../../features/rendering/contracts/workspace_resource_diagnostic.dart';
+import '../../features/resources/application/resource_preview_source.dart';
 
 import 'studio_image_store.dart';
 import 'studio_map_visual_widgets.dart';
@@ -26,6 +28,9 @@ import 'studio_character_thumbnail.dart';
 import 'studio_cinematic_media.dart';
 import 'studio_resource_notifications.dart';
 import 'studio_border_preview.dart';
+import 'studio_library_image_cache.dart';
+import 'studio_library_image_preview.dart';
+import 'studio_thumbnail_resources.dart';
 import '../../features/rendering/contracts/character_workspace_visuals.dart';
 import '../../features/rendering/contracts/cinematic_workspace_visuals.dart';
 import '../../features/rendering/contracts/presentation_workspace_visuals.dart';
@@ -44,6 +49,8 @@ final class StudioMapResources
         SpatialScopedWorkspaceVisuals,
         SpatialModelSourceWorkspaceVisuals,
         ResourceWorkspaceVisuals,
+        ScopedResourcePreviewVisuals,
+        StudioThumbnailResources,
         ResourceImageDimensionsVisuals,
         CharacterWorkspaceVisuals,
         CinematicWorkspaceVisuals,
@@ -99,9 +106,11 @@ final class StudioMapResources
         projectRoot: projectRoot,
         assets: project.cinematicMediaAssets,
       );
+  @override
   ProjectManifest manifest;
   StudioResourceIndex _index;
   final Map<String, String> paths = {};
+  @override
   Map<String, ProjectTilesetEntry> get tilesets => _index.tilesets;
   Map<String, ProjectElementEntry> get elements => _index.elements;
   final Map<String, WorkspaceResourceDiagnostic> _diagnostics = {};
@@ -114,11 +123,17 @@ final class StudioMapResources
   TileLayerPaletteEntry? _brushTile;
   ProjectSmartTilePreset? _terrainPreset;
   ProjectCharacterEntry? _characterBrush;
+  @override
   int catalogVersion = 0;
   @override
   final SpatialModelSourceUpdates modelSourceUpdates =
       SpatialModelSourceUpdates();
   late final StudioImageStore store;
+  StudioLibraryImageCache? _libraryImages;
+
+  @override
+  void invalidateResourcePreviews(Set<String> changedRelativePaths) =>
+      _libraryImages?.invalidate(changedRelativePaths);
   late final StudioBorderPreview borderPreview = StudioBorderPreview(
     projectRoot: projectRoot,
     changed: _notify,
@@ -132,6 +147,7 @@ final class StudioMapResources
   bool _disposed = false;
   @override
   Set<String> activeResourceIds = {};
+  @override
   Map<String, RuntimeTilesetImage> get images => store.images;
   @override
   Size? cachedImageDimensions(String id) => _cachedImageDimensions(id);
@@ -167,6 +183,17 @@ final class StudioMapResources
   Widget atlasPreview(String tilesetId) =>
       StudioAtlasPreview(resources: this, tilesetId: tilesetId);
   @override
+  Widget scopedResourcePreview(
+    ResourcePreviewSource source,
+    ProjectManifest project, {
+    required double size,
+  }) => StudioLibraryImagePreview(
+    cache: _libraryImages ??= StudioLibraryImageCache(projectRoot),
+    source: source,
+    project: project,
+    size: size,
+  );
+  @override
   ProjectRegularAtlasTilesetSource? characterAtlas(
     ProjectCharacterEntry character,
   ) => _characterAtlas(character);
@@ -189,6 +216,7 @@ final class StudioMapResources
     store.retain(_brushOwner, _brushIds);
   }
 
+  @override
   void retain(Object owner, Set<String> ids) => store.retain(owner, ids);
   @override
   void setCharacterBrush(ProjectCharacterEntry? character) =>
@@ -214,7 +242,20 @@ final class StudioMapResources
     state: state,
     elapsedMs: elapsedMs,
   );
+  @override
   void release(Object owner) => store.release(owner);
+
+  @override
+  Set<String> elementResourceIds(ProjectElementEntry element) =>
+      _index.forElement(element);
+  @override
+  Set<String> characterResourceIds(ProjectCharacterEntry character) =>
+      _index.forCharacter(character);
+  @override
+  Set<String> tileResourceIds(TileLayerPaletteEntry tile) =>
+      _index.forTile(tile);
+  @override
+  bool hasFailure(Iterable<String> ids) => ids.any(_diagnostics.containsKey);
 
   @override
   Widget cinematicActor(
@@ -281,6 +322,7 @@ final class StudioMapResources
     store.release(_activeOwner);
     store.release(_brushOwner);
     store.close();
+    _libraryImages?.dispose();
     await borderPreview.dispose();
     _changes.dispose();
   }

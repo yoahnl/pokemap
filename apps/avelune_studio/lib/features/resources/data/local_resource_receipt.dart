@@ -48,6 +48,12 @@ ResourceMutationReceipt _resourceReceipt(
     createdTilesetId: createdTilesetId,
     operationId: operationId,
     actionId: plan.request.actionId,
+    removedLibraryResource: plan.request.actionId == _libraryDeletionAction
+        ? (
+            kind: plan.request.parameters['resourceKind'] as String,
+            id: plan.request.parameters['id'] as String,
+          )
+        : null,
     snapshotBeforeRevision: plan.baseRevision,
     changedModels: Map.unmodifiable(changedModels),
     modelSourceRevisions: Map.unmodifiable({

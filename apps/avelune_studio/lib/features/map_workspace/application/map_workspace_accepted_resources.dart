@@ -37,6 +37,8 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
     ProjectManifest before,
     ProjectManifest updated, {
     Map<String, ProjectModel3dEntry> changedModels = const {},
+    ({String kind, String id})? removedLibraryResource,
+    required bool notifyChange,
   }) {
     if (_disposed) return;
     if (changedModels.isEmpty) {
@@ -138,6 +140,27 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
         _visualFamilySource = _resourceVisualDefinitions;
       }
     }
-    notify();
+    if (removedLibraryResource case final removed?) {
+      _resourceClosures.remove('${removed.kind}:${removed.id}');
+      if (removed.kind == 'borderBlueprint') {
+        _borderBlueprints.remove(removed.id);
+      }
+      if (removed.kind == 'model3d') {
+        _acceptedModelDefinitions.remove(removed.id);
+      }
+      final family = _familyDefinitions;
+      final onDemand = _onDemandDefinitions;
+      if (family != null) {
+        _familyDefinitions = withoutLibraryResource(family, removed);
+      }
+      if (onDemand != null) {
+        _onDemandDefinitions = withoutLibraryResource(onDemand, removed);
+      }
+      if (!identical(family, _familyDefinitions) ||
+          !identical(onDemand, _onDemandDefinitions)) {
+        _composeResourceVisuals();
+      }
+    }
+    if (notifyChange) notify();
   }
 }

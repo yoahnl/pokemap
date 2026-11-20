@@ -47,6 +47,7 @@ part 'map_exterior_decoration_reference_admission.dart';
 part 'map_exterior_decoration_dependency_guard.dart';
 part 'map_exterior_decoration_reference_index.dart';
 part 'map_exterior_decoration_worker.dart';
+part 'map_exterior_decoration_visual_reads.dart';
 
 final class MapExteriorDecorationSnapshot {
   MapExteriorDecorationSnapshot(
@@ -1275,87 +1276,3 @@ bool _sameBytes(List<int>? a, List<int>? b) {
 
 String _identity(String prefix) =>
     '$prefix${List.generate(16, (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0')).join()}';
-
-Future<MapExteriorDecoration?> loadMapExteriorDecoration({
-  required String projectRoot,
-  required MapData map,
-  ProjectFileReader? reader,
-  String? mapRelativePath,
-}) async {
-  final files = reader ?? const LocalProjectFileReader();
-  if (mapRelativePath == 'maps/${map.id}.decoration.json') return null;
-  if (map.id.contains('/') || map.id.contains(r'\') || map.id == '..') {
-    return null;
-  }
-  final definitionBytes = await _readExteriorDecorationResource(
-      files,
-      projectRoot,
-      'maps/${map.id}.decoration.json',
-      LocalMapExteriorDecorationAuthoring.maximumDefinitionBytes);
-  if (definitionBytes == null) return null;
-  _safeId(map.id);
-  final index = _DecorationIndex.fromJson(_decode(definitionBytes),
-      bytes: definitionBytes);
-  index.validateForMap(map);
-  final sectors = <ExteriorDecorationSector>[];
-  for (final summary in index.sectors.values) {
-    final path = _sectorPath(map.id, summary.id);
-    final bytes = await _readExteriorDecorationResource(files, projectRoot,
-        path, LocalMapExteriorDecorationAuthoring.maximumSectorBytes);
-    if (bytes == null ||
-        computeAuthoringBytesFingerprint(bytes, logicalName: path) !=
-            summary.revision) {
-      throw const FormatException(
-          'Required exterior decoration sector is missing or changed.');
-    }
-    final sector = ExteriorDecorationSector.fromJson(_decode(bytes));
-    if (jsonEncode(
-            _SectorSummary.fromSector(sector, summary.revision).toJson()) !=
-        jsonEncode(summary.toJson())) {
-      throw const FormatException(
-          'Exterior decoration sector summary mismatch.');
-    }
-    sectors.add(sector);
-  }
-  final borders = <ExteriorDecorationBorder>[];
-  for (final summary in index.borders.values) {
-    final path = _borderPath(map.id, summary.id);
-    final bytes = await _readExteriorDecorationResource(files, projectRoot,
-        path, LocalMapExteriorDecorationAuthoring.maximumBorderBytes);
-    if (bytes == null ||
-        computeAuthoringBytesFingerprint(bytes, logicalName: path) !=
-            summary.revision) {
-      throw const FormatException(
-          'Required exterior Border is missing or changed.');
-    }
-    final border = ExteriorDecorationBorder.fromJson(_decode(bytes));
-    if (jsonEncode(
-            _SectorSummary.fromBorder(border, summary.revision).toJson()) !=
-        jsonEncode(summary.toJson())) {
-      throw const FormatException('Exterior Border summary mismatch.');
-    }
-    borders.add(border);
-  }
-  return _withVisuals(index.definition!, sectors, borders);
-}
-
-Future<List<int>?> _readExteriorDecorationResource(
-    ProjectFileReader reader, String root, String path, int maxBytes) async {
-  if (reader is! ProjectResourceProbeReader) {
-    throw const FormatException(
-        'Exterior decoration loading requires a metadata-only resource probe.');
-  }
-  final probe = await (reader as ProjectResourceProbeReader)
-      .probeResource(projectRoot: root, relativePath: path);
-  if (probe.status == ProjectResourceProbeStatus.missing) return null;
-  if (probe.status != ProjectResourceProbeStatus.exists ||
-      probe.identity!.byteLength > maxBytes) {
-    throw const FormatException(
-        'Exterior decoration resource is unsafe or oversized.');
-  }
-  final bytes = await reader.readBytes(projectRoot: root, relativePath: path);
-  if (bytes.length > maxBytes) {
-    throw const FormatException('Exterior decoration resource is oversized.');
-  }
-  return bytes;
-}

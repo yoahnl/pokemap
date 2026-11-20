@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
+import 'package:avelune_studio/features/resources/application/resource_preview_source.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -144,6 +146,116 @@ void main() {
     expect(resources.images.keys, ['rock-page']);
     expect(resources.diagnostics, isEmpty);
     expect(resources.store.decoder.decodes, 1);
+    await tester.pumpWidget(const SizedBox());
+    await resources.dispose();
+    await tester.runAsync(fixture.dispose);
+  });
+
+  testWidgets('library finishes image reads outside the active map', (
+    tester,
+  ) async {
+    final fixture = (await tester.runAsync(
+      () => ResourceStressFixture.create(errorCount: 0),
+    ))!;
+    addTearDown(fixture.dispose);
+    final resources = (await tester.runAsync(
+      () => StudioMapResources.load(
+        fixture.session,
+        fixture.manifest.copyWith(tilesets: [], elements: []),
+      ),
+    ))!;
+    final tile = TileLayerPaletteEntry(
+      tilesetId: fixture.lateAtlasId,
+      localTileId: 1,
+    );
+    final catalog = fixture.manifest.copyWith(
+      tilesets: [
+        fixture.manifest.tilesets.firstWhere(
+          (entry) => entry.id == tile.tilesetId,
+        ),
+      ],
+    );
+    final key = GlobalKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: RepaintBoundary(
+            key: key,
+            child: resources.scopedResourcePreview(
+              TileFramePreviewSource(tile),
+              catalog,
+              size: 32,
+            ),
+          ),
+        ),
+      ),
+    );
+    final watch = Stopwatch()..start();
+    while (find.byIcon(Icons.hourglass_empty).evaluate().isNotEmpty &&
+        watch.elapsed < const Duration(seconds: 20)) {
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+    }
+    await tester.pump();
+    expect(await tester.runAsync(() => _pixel(key)), [191, 166, 112, 255]);
+    expect(resources.images, isEmpty);
+    expect(resources.manifest.tilesets, isEmpty);
+    await tester.pumpWidget(const SizedBox());
+    await resources.dispose();
+    await tester.runAsync(fixture.dispose);
+  });
+
+  testWidgets('a transparent library tile has a visible explanation', (
+    tester,
+  ) async {
+    final fixture = (await tester.runAsync(
+      () => ResourceStressFixture.create(errorCount: 0),
+    ))!;
+    addTearDown(fixture.dispose);
+    await tester.runAsync(() async {
+      final recorder = ui.PictureRecorder();
+      Canvas(recorder);
+      final frame = recorder.endRecording();
+      final image = await frame.toImage(32, 32);
+      frame.dispose();
+      final png = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+      await File('${fixture.directory.path}/assets/transparent.png')
+          .writeAsBytes(png!.buffer.asUint8List());
+    });
+    const tileset = ProjectTilesetEntry(
+      id: 'transparent',
+      name: 'Transparent',
+      relativePath: 'assets/transparent.png',
+    );
+    final resources = (await tester.runAsync(
+      () => StudioMapResources.load(fixture.session, fixture.manifest),
+    ))!;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: resources.scopedResourcePreview(
+            const TileFramePreviewSource(
+              TileLayerPaletteEntry(tilesetId: 'transparent', localTileId: 0),
+            ),
+            fixture.manifest.copyWith(tilesets: [tileset]),
+            size: 32,
+          ),
+        ),
+      ),
+    );
+    final label = find.byTooltip('Tuile sans pixels visibles');
+    final watch = Stopwatch()..start();
+    while (label.evaluate().isEmpty &&
+        watch.elapsed < const Duration(seconds: 5)) {
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+    }
+    expect(label, findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await resources.dispose();
     await tester.runAsync(fixture.dispose);

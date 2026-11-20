@@ -36,6 +36,8 @@ enum ResourceLibraryDimension {
   final String label;
 }
 
+enum ResourceLibraryDimensionStatus { ready, loading, unavailable }
+
 enum ResourceLibraryScope {
   project('Tout le projet'),
   used('Sur la carte'),
@@ -66,6 +68,7 @@ class ResourceLibraryItemView {
     required this.category,
     required this.type,
     required this.dimension,
+    this.compatibleDimensions = const {},
     this.usedOn = const {},
     this.art,
     this.description,
@@ -77,6 +80,8 @@ class ResourceLibraryItemView {
     this.familyPath,
     this.mapId,
     this.searchText,
+    this.placement,
+    this.canDuplicate = true,
   });
 
   final String id;
@@ -84,6 +89,7 @@ class ResourceLibraryItemView {
   final ResourceLibraryCategory category;
   final String type;
   final ResourceLibraryDimension? dimension;
+  final Set<ResourceLibraryDimension> compatibleDimensions;
   final Set<String>? usedOn;
   final Widget? art;
   final String? description;
@@ -95,6 +101,14 @@ class ResourceLibraryItemView {
   final String? familyPath;
   final String? mapId;
   final String? searchText;
+  final String? placement;
+  final bool canDuplicate;
+
+  bool matchesDimension(ResourceLibraryDimension value) =>
+      dimension == value || compatibleDimensions.contains(value);
+
+  String? get dimensionLabel =>
+      dimension?.label ?? (compatibleDimensions.length == 2 ? '2D / 3D' : null);
 
   String usageLabel(Map<String, String> maps) {
     final usage = usedOn;

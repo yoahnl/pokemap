@@ -103,6 +103,7 @@ final class CatalogWorkshopSelection {
 
   static bool supports(String action, {Map<String, Object?>? parameters}) =>
       action == 'model3d.prune_unused' ||
+      action == 'model3d.duplicate' ||
       (action == 'resource.usages.replace' &&
           parameters?['family'] == 'models3d') ||
       const {'resource.classify', 'resource.classify_batch', 'resource.family.create',
@@ -245,7 +246,7 @@ final class CatalogWorkshopSelection {
       if (readDependencies.isNotEmpty) unsupported(actionId);
       return _readNativeResourceWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
     }
-    if (const {'model3d.import', 'model3d.import_batch', 'tileset.import_image'}.contains(actionId)) {
+    if (const {'model3d.import', 'model3d.import_batch', 'model3d.duplicate', 'tileset.import_image'}.contains(actionId)) {
       if (readDependencies.isNotEmpty) unsupported(actionId);
       return _readAssetImportWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
     }

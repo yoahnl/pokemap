@@ -14,6 +14,7 @@ class StudioReviewDialog extends StatelessWidget {
     this.secondaryActionLabel,
     this.onSecondaryAction,
     this.contentWidth = 600,
+    this.confirmVariant = StudioButtonVariant.primary,
   });
 
   final String title;
@@ -25,6 +26,7 @@ class StudioReviewDialog extends StatelessWidget {
   final String? secondaryActionLabel;
   final VoidCallback? onSecondaryAction;
   final double contentWidth;
+  final StudioButtonVariant confirmVariant;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
@@ -44,6 +46,7 @@ class StudioReviewDialog extends StatelessWidget {
       StudioButton(
         key: const ValueKey('confirm-reviewed-plan'),
         label: confirmLabel,
+        variant: confirmVariant,
         onPressed: onConfirmed,
       ),
     ],

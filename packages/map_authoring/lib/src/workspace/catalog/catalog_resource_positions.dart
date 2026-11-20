@@ -7,6 +7,7 @@ abstract final class CatalogResourcePositions {
     CatalogDefinitionKind.resourceFamily: 'resourceLibraryCatalog.families',
     CatalogDefinitionKind.model3d: 'models3d',
     CatalogDefinitionKind.tileset: 'tilesets',
+    CatalogDefinitionKind.element: 'elements',
     CatalogDefinitionKind.character: 'characters',
     CatalogDefinitionKind.resourceLibraryEntry:
         'resourceLibraryCatalog.entries',
@@ -83,11 +84,12 @@ abstract final class CatalogResourcePositions {
 
   static Future<List<CatalogDefinitionUnit>> prepare(CatalogSnapshot snapshot,
       {required Set<CatalogDefinitionKind> kinds}) async {
+    final slotted = kinds.intersection(slotKinds);
     final result = <CatalogDefinitionUnit>[
-      if (kinds.any(defaultSlotKinds.contains)) ...await prepareSlots(snapshot),
+      if (slotted.isNotEmpty) ...await prepareSlots(snapshot, kinds: slotted),
     ];
     for (final kind in kinds) {
-      if (defaultSlotKinds.contains(kind)) continue;
+      if (slotted.contains(kind)) continue;
       final state = await snapshot.lookup(key(kind));
       if (state?.payload['valid'] == true &&
           state?.payload['schemaVersion'] == 1) {
@@ -103,9 +105,18 @@ abstract final class CatalogResourcePositions {
     CatalogDefinitionKind.resourceLibraryEntry,
     CatalogDefinitionKind.resourceFamily,
   };
+  static const libraryKinds = {
+    CatalogDefinitionKind.model3d,
+    CatalogDefinitionKind.tileset,
+    CatalogDefinitionKind.element,
+    CatalogDefinitionKind.character,
+    CatalogDefinitionKind.environmentPreset,
+    CatalogDefinitionKind.smartTilePreset,
+    CatalogDefinitionKind.borderRecord,
+  };
   static const slotKinds = {
     ...defaultSlotKinds,
-    CatalogDefinitionKind.model3d,
+    ...libraryKinds,
   };
   static const slotChunkSize = 256;
 

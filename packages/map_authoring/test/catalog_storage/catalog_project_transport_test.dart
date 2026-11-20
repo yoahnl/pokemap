@@ -6,6 +6,78 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('a catalogue copy preserves its source and a confirmed withdrawal is reversible', () async {
+    final f = await _Fixture.create();
+    addTearDown(f.close);
+    await f.mutations.prepareWorkshopCatalog(f.opened.projectHandle);
+    await f.mutations.prepareWorkshopCatalog(f.opened.projectHandle, scope: 'resourceIndexes');
+    final ready = await f.api.openProject(f.root.path);
+    addTearDown(() => f.api.closeWorkspace(ready.workspaceHandle));
+    final before = await f.inventory();
+    final request = AuthoringRequest(
+        requestId: 'duplicate-image',
+        actionId: 'catalog.definition.duplicate',
+        actionVersion: 1,
+        workspaceHandle: f.opened.workspaceHandle.value,
+        expectedRevision: ready.fingerprint,
+        idempotencyKey: 'duplicate-image',
+        parameters: const {
+          'resourceKind': 'tileset',
+          'id': 'a',
+          'targetId': 'a-copy',
+          'name': 'Copy'
+        });
+    final planned = await f.mutations.planMutation(f.opened.projectHandle, request);
+    expect((await f.inventory())['project.json'], before['project.json']);
+    expect(planned.plan.changeSet.changes.where((c) => c.storageKey.endsWith('.png')),
+        isEmpty);
+    await f.mutations.applyMutation(f.opened.projectHandle,
+        planId: planned.planId, operationId: 'duplicate-image-operation');
+    final opened = await f.api.openProject(f.root.path);
+    addTearDown(() => f.api.closeWorkspace(opened.workspaceHandle));
+    final result = await f.api.queryProject(
+        opened.projectHandle,
+        AuthoringQueryRequest(
+            resourceKind: 'tileset',
+            operation: AuthoringQueryOperation.batchGet,
+            view: AuthoringQueryView.detail,
+            ids: const ['a', 'a-copy']));
+    expect(result.items.map((item) => item['name']), unorderedEquals(['First', 'Copy']));
+    expect(result.items.map((item) => item['relativePath']).toSet(), {'a.png'});
+    final worker = JsonlWorker(api: f.api, mutations: f.mutations);
+    final deletion = AuthoringRequest(
+        requestId: 'delete-image',
+        actionId: 'catalog.definition.delete',
+        actionVersion: 1,
+        workspaceHandle: f.opened.workspaceHandle.value,
+        expectedRevision: result.snapshotRevision,
+        idempotencyKey: 'delete-image',
+        parameters: const {'resourceKind': 'tileset', 'id': 'a'});
+    final prepared = await _command(worker, 'plan', {
+      'projectHandle': f.opened.projectHandle.value,
+      'request': deletion.toJson(),
+    });
+    final token = await f.mutations.confirmMutation(f.opened.projectHandle,
+        planId: prepared['planId'] as String);
+    final applied = await _command(worker, 'apply', {
+      'projectHandle': f.opened.projectHandle.value,
+      'planId': prepared['planId'],
+      'operationId': 'withdraw-image',
+      'confirmationToken': token.confirmationToken,
+    });
+    final remaining = await f.api.queryProject(
+        f.opened.projectHandle,
+        AuthoringQueryRequest(resourceKind: 'tileset', operation: AuthoringQueryOperation.list));
+    expect(remaining.items.map((item) => item['id']), unorderedEquals(['b', 'a-copy']));
+    final receipt = applied['receipt'] as Map;
+    await f.mutations.undoMutation(f.opened.projectHandle,
+        entryId: receipt['receiptId'] as String, idempotencyKey: 'restore-image');
+    final restored = await f.api.queryProject(
+        f.opened.projectHandle,
+        AuthoringQueryRequest(resourceKind: 'tileset', operation: AuthoringQueryOperation.list));
+    expect(restored.items.map((item) => item['id']), unorderedEquals(['a', 'b', 'a-copy']));
+  });
+
   test('classified catalogue queries scan indexes without per-resource rereads',
       () async {
     final root = await Directory.systemTemp.createTemp('catalog-classified-');

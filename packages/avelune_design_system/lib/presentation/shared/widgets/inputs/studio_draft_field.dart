@@ -13,6 +13,8 @@ class StudioDraftField extends StatefulWidget {
     this.keyboardType,
     this.obscureText = false,
     this.matchesValue,
+    this.autofocus = false,
+    this.onSubmitted,
   });
   final String value, label;
   final ValueChanged<String> onChanged;
@@ -23,6 +25,8 @@ class StudioDraftField extends StatefulWidget {
   final TextInputType? keyboardType;
   final bool obscureText;
   final bool Function(String text, String value)? matchesValue;
+  final bool autofocus;
+  final ValueChanged<String>? onSubmitted;
   @override
   State<StudioDraftField> createState() => _StudioDraftFieldState();
 }
@@ -56,6 +60,8 @@ class _StudioDraftFieldState extends State<StudioDraftField> {
   Widget build(BuildContext context) => TextField(
     controller: controller,
     onChanged: widget.onChanged,
+    onSubmitted: widget.onSubmitted,
+    autofocus: widget.autofocus,
     enabled: widget.enabled,
     keyboardType: widget.keyboardType,
     obscureText: widget.obscureText,

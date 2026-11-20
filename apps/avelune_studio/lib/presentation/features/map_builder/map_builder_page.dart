@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:avelune_studio/app/di/game_export_providers.dart';
+import 'package:avelune_studio/app/di/resource_providers.dart';
 import 'package:avelune_studio/presentation/features/game_export/game_export_dialog.dart';
 
 import 'package:avelune_design_system/avelune_design_system.dart';
@@ -71,6 +72,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_sid
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_map_tree.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
 import 'package:avelune_studio/presentation/features/resources/project_library_page.dart';
+import 'package:avelune_studio/features/resources/domain/project_library_editor.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_status_bar.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_playtest_page.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';

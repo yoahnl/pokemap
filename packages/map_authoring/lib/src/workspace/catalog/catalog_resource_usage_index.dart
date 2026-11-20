@@ -14,6 +14,7 @@ import '../project_snapshot.dart';
 
 part 'catalog_resource_usage_sources.dart';
 part 'catalog_resource_usage_mutations.dart';
+part 'catalog_resource_library_map_usages.dart';
 
 abstract final class CatalogResourceUsageIndex {
   static final marker = CatalogDefinitionKey(
@@ -96,15 +97,18 @@ abstract final class CatalogResourceUsageIndex {
     return owners;
   }
 
+  static Future<Set<String>> libraryConsumerOwners(
+      CatalogSnapshot snapshot, String kind, String id) async {
+    final identity = _mapUsageIdentity(kind, id);
+    final owners = await consumerOwners(snapshot, identity);
+    return owners..remove(identity);
+  }
+
   static Future<Set<String>> mapUsages(
       CatalogSnapshot snapshot, String kind, String id, Iterable<String> mapIds,
       {Future<Iterable<String>> Function()? readMapIds}) async {
     await requirePrepared(snapshot);
-    final first = '${switch (kind) {
-      'smartTilePreset' => 'preset',
-      'borderBlueprint' => 'border',
-      _ => kind,
-    }}:$id';
+    final first = _mapUsageIdentity(kind, id);
     final pending = <String>[first];
     final visited = <String>{first};
     final maps = <String>{};
@@ -135,6 +139,12 @@ abstract final class CatalogResourceUsageIndex {
     }
     return Set.unmodifiable(maps);
   }
+
+  static String _mapUsageIdentity(String kind, String id) => '${switch (kind) {
+        'smartTilePreset' => 'preset',
+        'borderBlueprint' || 'borderRecord' => 'border',
+        _ => kind,
+      }}:$id';
 
   static Set<String> _strings(
       CatalogDefinitionUnit? unit, String identity, String field) {

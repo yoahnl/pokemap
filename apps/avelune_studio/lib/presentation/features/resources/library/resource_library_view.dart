@@ -7,37 +7,79 @@ import '../../../../features/resources/domain/studio_search_text.dart';
 import 'resource_library_controls.dart';
 import 'resource_library_inspector.dart';
 import 'resource_library_items.dart';
+import 'resource_library_scope_panel.dart';
 import 'resource_library_toolbar.dart';
 import 'resource_library_view_data.dart';
 
 part 'resource_library_results.dart';
+part 'resource_library_inspection.dart';
+part 'resource_library_organization.dart';
+
+typedef ResourceLibraryEditAction = Future<ResourceLibraryItemView?> Function(
+  BuildContext context,
+  ResourceLibraryItemView item,
+);
+
+typedef ResourceLibraryPublication = ({
+  ResourceLibraryItemView item,
+  int token,
+  bool imported,
+});
 
 class ResourceLibraryView extends StatefulWidget {
   const ResourceLibraryView({
     super.key,
     required this.items,
     required this.maps,
+    this.activeMapId,
     this.workshops,
+    this.buildWorkshops,
+    this.canLeaveWorkshops,
+    this.workshopAction,
+    this.onManageFamilies,
+    this.onClassifySelection,
     this.onImport,
     this.onRefresh,
+    this.onRename,
+    this.onClassify,
+    this.onModify,
+    this.onDuplicate,
+    this.onDelete,
+    this.publication,
     this.detailPreview,
     this.tilePreview,
     this.familyLabels = const {},
     this.showRoles = false,
     this.showMapScopes = true,
+    this.loadingMapUsages = false,
+    this.dimensionStatus = ResourceLibraryDimensionStatus.ready,
     this.previewActions = false,
   });
 
   final List<ResourceLibraryItemView> items;
   final Map<String, String> maps;
+  final String? activeMapId;
   final Widget? workshops;
+  final Widget Function(VoidCallback back)? buildWorkshops;
+  final bool Function()? canLeaveWorkshops;
+  final VoidCallback? Function(ResourceLibraryItemView)? workshopAction;
+  final VoidCallback? onManageFamilies;
+  final Future<void> Function(BuildContext, Set<String>)? onClassifySelection;
   final ValueChanged<BuildContext>? onImport;
   final VoidCallback? onRefresh;
+  final ResourceLibraryEditAction? onRename;
+  final ResourceLibraryEditAction? onClassify;
+  final ResourceLibraryEditAction? onModify;
+  final ResourceLibraryEditAction? onDuplicate;
+  final Future<bool> Function(BuildContext, ResourceLibraryItemView)? onDelete;
+  final ResourceLibraryPublication? publication;
   final Widget? Function(ResourceLibraryItemView)? detailPreview;
   final Widget? Function(ResourceLibraryItemView)? tilePreview;
   final Map<String, String> familyLabels;
   final bool showRoles;
   final bool showMapScopes;
+  final bool loadingMapUsages;
+  final ResourceLibraryDimensionStatus dimensionStatus;
   final bool previewActions;
 
   @override
@@ -59,10 +101,20 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
   String? _selection;
   var _showDetails = true;
   var _grid = true;
+  var _marking = false;
+  final _marked = <String>{};
   late Map<String, String> _searchable;
   late Map<String, String> _names;
 
-  String? get _map => _referenceMap ?? widget.maps.keys.firstOrNull;
+  String? get _map =>
+      _referenceMap ?? widget.activeMapId ?? widget.maps.keys.firstOrNull;
+  bool get _hasWorkshops =>
+      widget.workshops != null || widget.buildWorkshops != null;
+  bool get _canLeaveWorkshops => widget.canLeaveWorkshops?.call() ?? true;
+  ResourceLibraryDimension? get _activeDimension =>
+      widget.dimensionStatus == ResourceLibraryDimensionStatus.ready
+      ? _dimension
+      : null;
   Iterable<ResourceLibraryItemView> get _roleItems => widget.showRoles
       ? widget.items.where((item) => item.role == _role)
       : widget.items;
@@ -78,8 +130,29 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
   void didUpdateWidget(ResourceLibraryView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(widget.items, oldWidget.items)) _indexItems();
+    if (!widget.showMapScopes) _scope = ResourceLibraryScope.project;
+    if (!widget.maps.containsKey(_referenceMap)) _referenceMap = null;
     if (_family != null && !widget.familyLabels.containsKey(_family)) {
       _family = null;
+    }
+    final publication = widget.publication;
+    if (publication != null &&
+        publication.token != oldWidget.publication?.token) {
+      final item = publication.item;
+      final name = studioSearchText(item.name);
+      _names[item.id] = name;
+      _searchable[item.id] = item.searchText ?? name;
+      final revealInResults =
+          publication.imported ||
+          (widget.showRoles && _role != item.role) ||
+          !_matchesFilters(item, _searchWords);
+      if (revealInResults) _search.text = item.name;
+      _reveal(item);
+      if (revealInResults) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _scroll.hasClients) _scroll.jumpTo(0);
+        });
+      }
     }
   }
 
@@ -115,67 +188,31 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
     _searchFocus.requestFocus();
   }
 
-  void _reveal(ResourceLibraryItemView item) => setState(() {
+  void _reveal(ResourceLibraryItemView item) {
     _selection = item.id;
     _showDetails = true;
     _role = item.role;
     if (_category != null && _category != item.category) _setCategory(null);
     if (_family != null && !item.familyIds.contains(_family)) _family = null;
-    if (_dimension != null && _dimension != item.dimension) _dimension = null;
+    if (_dimension case final dimension?
+        when !item.matchesDimension(dimension)) {
+      _dimension = null;
+    }
     if (!_inScope(item, _scope)) _scope = ResourceLibraryScope.project;
-    if (!(_searchable[item.id] ?? '').contains(
-      studioSearchText(_search.text).trim(),
-    )) {
+    if (!_searchWords.every((_searchable[item.id] ?? '').contains)) {
       _search.clear();
     }
-  });
-
-  Widget _inspector(
-    ResourceLibraryItemView item,
-    VoidCallback close,
-    ValueChanged<ResourceLibraryItemView> select,
-  ) => ResourceLibraryInspector(
-    key: ValueKey('library-detail-${item.id}'),
-    item: item,
-    maps: widget.maps,
-    source: widget.items
-        .where((entry) => entry.id == item.sourceId)
-        .firstOrNull,
-    consumers: widget.items
-        .where((entry) => entry.sourceId == item.id)
-        .toList(),
-    onClose: close,
-    onRelated: select,
-    preview: widget.detailPreview?.call(item),
-    previewActions: widget.previewActions,
-  );
-
-  Future<void> _select(
-    ResourceLibraryItemView item, {
-    required bool docked,
-  }) async {
-    setState(() {
-      _selection = item.id;
-      _showDetails = true;
-    });
-    if (docked) return;
-    var detail = item;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      clipBehavior: Clip.antiAlias,
-      builder: (context) => FractionallySizedBox(
-        heightFactor: .85,
-        child: StatefulBuilder(
-          builder: (context, setDetail) =>
-              _inspector(detail, () => Navigator.of(context).pop(), (target) {
-                _reveal(target);
-                setDetail(() => detail = target);
-              }),
-        ),
-      ),
-    );
   }
+
+  Iterable<String> get _searchWords =>
+      studioSearchText(_search.text).trim().split(RegExp(r'\s+'));
+
+  bool _matchesFilters(ResourceLibraryItemView item, Iterable<String> words) =>
+      (_category == null || _category == item.category) &&
+      (_family == null || item.familyIds.contains(_family)) &&
+      (_activeDimension == null || item.matchesDimension(_activeDimension!)) &&
+      _inScope(item, _scope) &&
+      words.every((_searchable[item.id] ?? '').contains);
 
   @override
   Widget build(BuildContext context) => CallbackShortcuts(
@@ -190,19 +227,14 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
         builder: (context, bounds) {
           final sidebar = bounds.maxWidth >= 740;
           final docked = bounds.maxWidth >= 910;
-          final words = studioSearchText(_search.text)
-              .trim()
-              .split(RegExp(r'\s+'));
-          final roleItems = _roleItems;
+          final words = _searchWords;
+          final roleItems = _section == ResourceLibrarySection.library
+              ? _roleItems
+              : const <ResourceLibraryItemView>[];
           final categoryCounts = <ResourceLibraryCategory, int>{};
           final matches = [
             for (final item in roleItems)
-              if ((_category == null || _category == item.category) &&
-                  (_family == null || item.familyIds.contains(_family)) &&
-                  (_dimension == null || _dimension == item.dimension) &&
-                  _inScope(item, _scope) &&
-                  words.every((_searchable[item.id] ?? '').contains))
-                item,
+              if (_matchesFilters(item, words)) item,
           ];
           var total = 0;
           for (final item in roleItems) {
@@ -231,7 +263,8 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
                   child: ResourceLibrarySidebar(
                     section: _section,
                     onSection: _setSection,
-                    showWorkshops: widget.workshops != null,
+                    showWorkshops: _hasWorkshops,
+                    allowLibraryNavigation: _canLeaveWorkshops,
                     category: _category,
                     categoryCounts: categoryCounts,
                     onCategory: (category) =>
@@ -248,13 +281,19 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
                       ResourceLibraryTabs(
                         section: _section,
                         onSelected: _setSection,
-                        showWorkshops: widget.workshops != null,
+                        showWorkshops: _hasWorkshops,
+                        allowLibraryNavigation: _canLeaveWorkshops,
                       ),
                     Expanded(
                       child:
                           _section == ResourceLibrarySection.workshops &&
-                              widget.workshops != null
-                          ? widget.workshops!
+                              _hasWorkshops
+                          ? widget.buildWorkshops?.call(
+                                  () => _setSection(
+                                    ResourceLibrarySection.library,
+                                  ),
+                                ) ??
+                                widget.workshops!
                           : _library(
                               context,
                               matches,
@@ -268,6 +307,7 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
               ),
               if (_section == ResourceLibrarySection.library &&
                   docked &&
+                  !_marking &&
                   _showDetails &&
                   selected != null) ...[
                 const VerticalDivider(),
@@ -276,7 +316,7 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
                   child: _inspector(
                     selected,
                     () => setState(() => _showDetails = false),
-                    _reveal,
+                    (item) => setState(() => _reveal(item)),
                   ),
                 ),
               ],
@@ -287,8 +327,13 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
     ),
   );
 
-  void _setSection(ResourceLibrarySection section) =>
-      setState(() => _section = section);
+  void _setSection(ResourceLibrarySection section) {
+    if (section == _section ||
+        (section == ResourceLibrarySection.library && !_canLeaveWorkshops)) {
+      return;
+    }
+    setState(() => _section = section);
+  }
 
   void _updateView(VoidCallback update) => setState(update);
 

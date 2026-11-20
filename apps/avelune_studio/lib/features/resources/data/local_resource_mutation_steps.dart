@@ -3,6 +3,7 @@ part of 'local_resource_adapter.dart';
 final _resourceMutationActions = {
   'project.actor_contact_shadows.configure',
   'model3d.import',
+  'model3d.duplicate',
   'model3d.source.replace',
   'model3d.source.replace_batch',
   'model3d.configure',
@@ -134,13 +135,20 @@ extension _LocalResourceMutationSteps on LocalResourceAdapter {
     required String actionId,
     required Map<String, Object?> fields,
     required bool scopedModelMutation,
+    required bool scopedImport,
     required void Function(String name) phase,
   }) async {
     try {
       phase('apply.end');
       await beforeReconciliation?.call();
       _requireAvailable();
-      if (snapshot.materializedCatalogProject || scopedModelMutation) {
+      if (scopedImport) {
+        if (await mapAdapter.resourceRevision(session) != receipt.revision) {
+          throw const ResourceFailure(
+            'La publication a changé avant sa relecture. Actualisez la bibliothèque.',
+          );
+        }
+      } else if (snapshot.materializedCatalogProject || scopedModelMutation) {
         final after = scopedModelMutation
             ? await api.readWorkshopSnapshot(
                 opened.projectHandle,

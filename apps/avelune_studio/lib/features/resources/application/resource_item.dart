@@ -93,28 +93,45 @@ class ResourceItem {
             (border!.latestPublished != null && !border!.isDeprecated));
   }
 
-  bool compatibleWith(ProjectDimension dimension) => switch (canonicalKind) {
-    'model3d' => dimension == ProjectDimension.threeD,
-    'smartTilePreset' =>
-      dimension == ProjectDimension.threeD ||
-          terrain?.rules.every(
-                (rule) => rule.candidates.every(
-                  (candidate) => candidate.parts.every(
-                    (part) => part.source is! SmartTileModel3dSource,
-                  ),
-                ),
-              ) ==
-              true,
-    'environmentPreset' =>
-      environment?.isSpatial == (dimension == ProjectDimension.threeD),
-    'borderBlueprint' =>
-      (border?.latestPublished?.definition.isSpatial ??
-              border?.draft.definition.isSpatial) ==
-          (dimension == ProjectDimension.threeD),
-    'element' || 'tileset' => dimension == ProjectDimension.twoD,
-    _ => true,
-  };
+  Set<ProjectDimension> get compatibleDimensions =>
+      resourceCompatibleDimensions(
+        canonicalKind,
+        definition: terrain ?? border ?? environment,
+      );
+
+  bool compatibleWith(ProjectDimension dimension) =>
+      compatibleDimensions.contains(dimension);
 
   ResourceLibraryEntry? metadata(ProjectManifest project) =>
       _catalogEntry(project.resourceLibraryCatalog, identity);
 }
+
+const _planarDimensions = {ProjectDimension.twoD};
+const _spatialDimensions = {ProjectDimension.threeD};
+const _bothDimensions = {ProjectDimension.twoD, ProjectDimension.threeD};
+
+Set<ProjectDimension> resourceCompatibleDimensions(
+  String kind, {
+  Object? definition,
+}) => switch ((kind, definition)) {
+  ('model3d', _) => _spatialDimensions,
+  ('element' || 'tileset', _) => _planarDimensions,
+  ('character', _) => _bothDimensions,
+  ('smartTilePreset', final ProjectSmartTilePreset preset) =>
+    preset.rules.any(
+          (rule) => rule.candidates.any(
+            (candidate) => candidate.parts.any(
+              (part) => part.source is SmartTileModel3dSource,
+            ),
+          ),
+        )
+        ? _spatialDimensions
+        : _bothDimensions,
+  ('environmentPreset', final EnvironmentPreset preset) =>
+    preset.isSpatial ? _spatialDimensions : _planarDimensions,
+  ('borderBlueprint', final BorderBlueprintRecord border) =>
+    (border.latestPublished?.definition ?? border.draft.definition).isSpatial
+        ? _spatialDimensions
+        : _planarDimensions,
+  _ => const {},
+};

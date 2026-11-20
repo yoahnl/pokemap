@@ -93,7 +93,17 @@ Future<ResourceMutationReceipt> _applyLifecycleOperation(
     try {
       await adapter.beforeReconciliation?.call();
       adapter._requireAvailable();
-      if (retained.projectedRevision != null) {
+      if (preparation.actionId == _libraryDeletionAction) {
+        final context = adapter._mutationContext;
+        adapter._mutationContext = null;
+        await context?.close();
+        if (await adapter.mapAdapter.resourceRevision(adapter.session) !=
+            receipt.revision) {
+          throw const ResourceFailure(
+            'La publication a changé avant la relecture du catalogue.',
+          );
+        }
+      } else if (retained.projectedRevision != null) {
         final after = await ProjectSnapshotLoader(handles: retained.handles)
             .load(
               retained.opened.projectHandle,

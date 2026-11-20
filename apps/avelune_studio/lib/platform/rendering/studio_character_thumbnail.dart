@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
 
-import 'studio_map_resources.dart';
+import 'studio_thumbnail_resources.dart';
 
 class StudioCharacterThumbnail extends StatefulWidget {
   const StudioCharacterThumbnail({
@@ -15,7 +15,7 @@ class StudioCharacterThumbnail extends StatefulWidget {
     this.elapsedMs = 0,
     this.customAnimation,
   });
-  final StudioMapResources resources;
+  final StudioThumbnailResources resources;
   final ProjectCharacterEntry character;
   final double size;
   final EntityFacing facing;

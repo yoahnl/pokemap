@@ -26,7 +26,8 @@ extension _LocalResourcePreparedApply on LocalResourceAdapter {
           validateBeforeApply: validateBeforeApply,
         );
       }
-      if (_lifecycleActions.contains(preparation.actionId)) {
+      if (preparation.actionId == _libraryDeletionAction ||
+          _lifecycleActions.contains(preparation.actionId)) {
         return await _applyLifecycleOperation(
           this,
           preparation,

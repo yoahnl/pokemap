@@ -1,12 +1,10 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:map_render_3d/map_render_3d.dart';
 
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/features/resources/application/resource_preview_source.dart';
 import 'package:avelune_studio/features/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/presentation/features/resources/model_resource_preview.dart';
 
 class MapBuilderResourcePreview extends StatelessWidget {
   const MapBuilderResourcePreview({
@@ -35,10 +33,7 @@ class MapBuilderResourcePreview extends StatelessWidget {
       child: switch (resourcePreviewSource(item, project)) {
         ModelPreviewSource(:final model)
             when visuals is SpatialWorkspaceVisuals =>
-          _ModelPreview(
-            model: model,
-            visuals: visuals as SpatialWorkspaceVisuals,
-          ),
+          ModelResourcePreview(model: model, visuals: visuals),
         ElementPreviewSource(:final element) => visuals.thumbnail(
           element,
           size: size,
@@ -51,78 +46,6 @@ class MapBuilderResourcePreview extends StatelessWidget {
             when visuals is ResourceWorkspaceVisuals =>
           (visuals as ResourceWorkspaceVisuals).atlasPreview(tilesetId),
         _ => Center(child: fallback),
-      },
-    );
-  }
-}
-
-class _ModelPreview extends StatefulWidget {
-  const _ModelPreview({required this.model, required this.visuals});
-
-  final ProjectModel3dEntry model;
-  final SpatialWorkspaceVisuals visuals;
-
-  @override
-  State<_ModelPreview> createState() => _ModelPreviewState();
-}
-
-class _ModelPreviewState extends State<_ModelPreview> {
-  final _controller = ModelPreviewController();
-  late Future<Uint8List> _bytes = _read();
-
-  Future<Uint8List> _read() => switch (widget.visuals) {
-    final SpatialScopedWorkspaceVisuals scoped => scoped.readModelDefinition(
-      widget.model,
-    ),
-    final visuals => visuals.readModel(widget.model.id),
-  };
-
-  @override
-  void didUpdateWidget(_ModelPreview oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.model.id != widget.model.id ||
-        oldWidget.model.relativePath != widget.model.relativePath ||
-        oldWidget.model.sourceAssetId != widget.model.sourceAssetId ||
-        !identical(oldWidget.visuals, widget.visuals)) {
-      _bytes = _read();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final unavailable = Center(
-      child: Icon(Icons.view_in_ar_outlined, color: scheme.onSurfaceVariant),
-    );
-    return FutureBuilder<Uint8List>(
-      future: _bytes,
-      builder: (context, snapshot) {
-        final bytes = snapshot.data;
-        if (snapshot.hasError) return unavailable;
-        if (bytes == null) {
-          return const Center(
-            child: SizedBox.square(
-              dimension: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          );
-        }
-        final bounds = widget.model.inspection.bounds;
-        return ModelPreview(
-          bytes: bytes,
-          controller: _controller,
-          minimum: [bounds.min.x, bounds.min.y, bounds.min.z],
-          maximum: [bounds.max.x, bounds.max.y, bounds.max.z],
-          background: scheme.surfaceContainerLowest,
-          loadingBuilder: (_) => const SizedBox(),
-          errorBuilder: (_, _) => unavailable,
-        );
       },
     );
   }

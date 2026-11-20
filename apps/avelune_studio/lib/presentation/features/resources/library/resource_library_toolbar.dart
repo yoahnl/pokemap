@@ -12,6 +12,7 @@ class ResourceLibraryToolbar extends StatelessWidget {
     required this.searchFocus,
     required this.onSearch,
     required this.dimension,
+    required this.dimensionStatus,
     required this.onDimension,
     required this.sort,
     required this.onSort,
@@ -25,6 +26,7 @@ class ResourceLibraryToolbar extends StatelessWidget {
   final FocusNode searchFocus;
   final ValueChanged<String> onSearch;
   final ResourceLibraryDimension? dimension;
+  final ResourceLibraryDimensionStatus dimensionStatus;
   final ValueChanged<ResourceLibraryDimension?> onDimension;
   final ResourceLibrarySort sort;
   final ValueChanged<ResourceLibrarySort> onSort;
@@ -50,20 +52,28 @@ class ResourceLibraryToolbar extends StatelessWidget {
         ),
       ),
       SizedBox(
-        width: 100,
+        width: 128,
         child: StudioSelect(
           label: 'Dimension',
-          value: dimension?.name ?? '',
-          options: {
-            '': 'Tout',
-            for (final item in ResourceLibraryDimension.values)
-              item.name: item.label,
+          value: dimensionStatus == ResourceLibraryDimensionStatus.ready
+              ? dimension?.name ?? ''
+              : '',
+          options: switch (dimensionStatus) {
+            ResourceLibraryDimensionStatus.ready => {
+              '': 'Tout',
+              for (final item in ResourceLibraryDimension.values)
+                item.name: item.label,
+            },
+            ResourceLibraryDimensionStatus.loading => {'': 'Calcul…'},
+            ResourceLibraryDimensionStatus.unavailable => {'': 'Indisponible'},
           },
-          onChanged: (value) => onDimension(
-            value.isEmpty
-                ? null
-                : ResourceLibraryDimension.values.byName(value),
-          ),
+          onChanged: dimensionStatus != ResourceLibraryDimensionStatus.ready
+              ? null
+              : (value) => onDimension(
+                  value.isEmpty
+                      ? null
+                      : ResourceLibraryDimension.values.byName(value),
+                ),
         ),
       ),
       PopupMenuButton<ResourceLibrarySort>(

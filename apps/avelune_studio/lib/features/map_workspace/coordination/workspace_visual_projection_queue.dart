@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../rendering/contracts/map_workspace_visuals.dart';
+import '../../resources/domain/resource_port.dart';
 import '../application/map_workspace_controller.dart';
 import 'workspace_workshop_routes.dart';
 
@@ -30,6 +31,57 @@ class WorkspaceVisualProjectionQueue {
 
   void acknowledgeDefinitions(ProjectManifest? value) {
     definitions = value;
+  }
+
+  Future<void> acceptModelWorkshopReceipt(
+    MapWorkspaceController controller,
+    ResourceMutationReceipt receipt,
+  ) async {
+    if (controller.isDisposed || receipt.noChange) return;
+    final previous = controller.visualProject;
+    controller.acceptResources(
+      receipt.before,
+      receipt.manifest,
+      changedModels: receipt.changedModels,
+      notifyChange: false,
+    );
+    final publication = _publishModels(
+      previous,
+      controller.visualProject,
+      receipt,
+    );
+    controller.notify();
+    await publication;
+  }
+
+  Future<void> _publishModels(
+    ProjectManifest? previous,
+    ProjectManifest? updated,
+    ResourceMutationReceipt receipt,
+  ) async {
+    final visuals = currentVisuals();
+    if (visuals is! SpatialModelSourceWorkspaceVisuals ||
+        updated == null ||
+        !identical(definitions, previous) ||
+        receipt.changedModels.isEmpty) {
+      return;
+    }
+    definitions = updated;
+    final ticket = generation;
+    final queued = queue.then((_) async {
+      if (!isActive() ||
+          ticket != generation ||
+          !identical(visuals, currentVisuals())) {
+        return;
+      }
+      await (visuals as SpatialModelSourceWorkspaceVisuals).updateModelSources(
+        updated,
+        receipt.changedModels,
+        receipt.modelSourceRevisions,
+      );
+    });
+    queue = queued.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+    await queued;
   }
 
   void synchronize(ProjectManifest? project, {bool suspended = false}) {

@@ -61,6 +61,13 @@ List<Override> studioSessionAdapterOverrides() => [
     ref.onDispose(port.dispose);
     return port;
   }),
+  projectLibraryManagementProvider.overrideWith((ref, session) {
+    if (session.storage != ProjectSessionStorage.workingCatalog) return null;
+    return (
+      editor: ref.watch(resourcePortProvider(session)) as LocalResourceAdapter,
+      pickFile: const NativeResourceImagePicker().chooseLibraryFile,
+    );
+  }),
   resourcePackPortProvider.overrideWith((ref, session) {
     final port = LocalResourcePackAdapter(
       session: session,

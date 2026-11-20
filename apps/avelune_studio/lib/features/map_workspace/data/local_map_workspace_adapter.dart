@@ -24,6 +24,9 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 import 'package:avelune_studio/features/map_workspace/data/map_document_retention.dart';
 import 'package:avelune_studio/features/resources/application/project_resource_library.dart';
+import 'package:avelune_studio/features/resources/application/project_resource_preview.dart';
+import 'package:avelune_studio/features/resources/application/resource_item.dart'
+    show resourceCompatibleDimensions;
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
 import '../../project_session/data/studio_project_document_revision.dart';
@@ -143,13 +146,16 @@ final class LocalMapWorkspaceAdapter
     return (manifest: project.manifest, revision: project.revision);
   }
 
-  Future<String> resourceRevision(ProjectSession session) async {
+  Future<String> resourceRevision(
+    ProjectSession session, {
+    List<int>? projectedCatalogHead,
+  }) async {
     final descriptor = await _reader.readBytes(
       projectRoot: session.directoryPath,
       relativePath: 'project.json',
     );
     final head = session.storage == ProjectSessionStorage.workingCatalog
-        ? await _reader.readBytes(
+        ? projectedCatalogHead ?? await _reader.readBytes(
             projectRoot: session.directoryPath,
             relativePath: CatalogStorageStore.headStorageKey,
           )

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
 
-import 'studio_map_resources.dart';
+import 'studio_thumbnail_resources.dart';
 
 class StudioAtlasPreview extends StatefulWidget {
   const StudioAtlasPreview({
@@ -9,7 +9,7 @@ class StudioAtlasPreview extends StatefulWidget {
     required this.resources,
     required this.tilesetId,
   });
-  final StudioMapResources resources;
+  final StudioThumbnailResources resources;
   final String tilesetId;
   @override
   State<StudioAtlasPreview> createState() => _StudioAtlasPreviewState();

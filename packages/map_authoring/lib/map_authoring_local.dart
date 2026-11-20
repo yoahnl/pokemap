@@ -84,6 +84,8 @@ export 'src/api/local_resource_pack_transfer_api.dart';
 export 'src/workspace/catalog_project_materialization.dart';
 export 'src/workspace/catalog/catalog_targeted_map_edit.dart'
     show CatalogTargetedMapRevision, CatalogTargetedMapSelection;
+export 'src/workspace/catalog/catalog_resource_usage_index.dart'
+    show readCatalogResourceLibraryMapUsages;
 
 export 'src/documents/character_contact_shadow_authoring.dart';
 
@@ -107,3 +109,4 @@ export 'src/support/companion_process_access.dart';
 
 export 'src/api/local_periodic_reward_choice_reader.dart';
 export 'src/domains/gameplay/pokemon_external/io_pokemon_external_transport.dart';
+export 'src/references/resource_usage_walk.dart' show resourceReferences;

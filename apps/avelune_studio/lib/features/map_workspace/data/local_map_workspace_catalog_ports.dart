@@ -4,7 +4,9 @@ mixin _MapWorkspaceCatalogPorts
     implements
         MapWorkspacePort,
         MapWorkspacePreviewSelectionPort,
-        ProjectResourceLibraryPort,
+        ProjectResourceLibraryDimensionsPort,
+        ProjectResourceLibraryMapUsagesPort,
+        ProjectResourcePreviewPort,
         MapWorkspaceExternalMutationPort,
         MapWorkspaceWorkshopPort,
         MapWorkspaceResourceKindPort,
@@ -15,7 +17,18 @@ mixin _MapWorkspaceCatalogPorts
   LocalMapWorkspaceAdapter get _adapter;
 
   @override
-  Future<ProjectResourceLibrary> readResourceLibrary(ProjectSession session) {
+  Future<ProjectResourceLibrary> readResourceLibrary(ProjectSession session) =>
+      _readLibrary(session, includeCompositeDimensions: true);
+
+  @override
+  Future<ProjectResourceLibrary> readResourceLibraryIndex(
+    ProjectSession session,
+  ) => _readLibrary(session, includeCompositeDimensions: false);
+
+  Future<ProjectResourceLibrary> _readLibrary(
+    ProjectSession session, {
+    required bool includeCompositeDimensions,
+  }) {
     if (session.storage == ProjectSessionStorage.manifest) {
       return Future.sync(
         () => ProjectResourceLibrary.fromManifest(
@@ -25,9 +38,110 @@ mixin _MapWorkspaceCatalogPorts
     }
     final reader = _adapter._reader;
     return reader is LocalProjectFileReader
-        ? _readProjectResourceLibraryInBackground(reader, session)
-        : _readProjectResourceLibrary(reader, session);
+        ? _readProjectResourceLibraryInBackground(
+            reader,
+            session,
+            includeCompositeDimensions: includeCompositeDimensions,
+          )
+        : _readProjectResourceLibrary(
+            reader,
+            session,
+            includeCompositeDimensions: includeCompositeDimensions,
+          );
   }
+
+  @override
+  Future<Map<String, Set<ProjectDimension>>?> readResourceLibraryDimensions(
+    ProjectSession session, {
+    required String revision,
+  }) => _readProjectResourceLibraryDimensions(
+    _adapter._reader,
+    session,
+    revision,
+  );
+
+  @override
+  Future<Map<String, Set<String>>?> readResourceLibraryMapUsages(
+    ProjectSession session, {
+    required String revision,
+    required Iterable<String> identities,
+  }) => _readProjectResourceLibraryMapUsages(
+    _adapter._reader,
+    session,
+    revision,
+    identities,
+  );
+
+  Future<ProjectLibraryItem> readResourceLibraryItem(
+    ProjectSession session,
+    String kind,
+    String id, {
+    required String expectedRevision,
+  }) async => (await readResourceLibraryItems(session, [
+    (kind: kind, id: id),
+  ], expectedRevision: expectedRevision)).single;
+
+  Future<List<ProjectLibraryItem>> readResourceLibraryItems(
+    ProjectSession session,
+    Iterable<({String kind, String id})> resources, {
+    required String expectedRevision,
+  }) => _adapter._readScopedCatalog(session, (catalog, revision) async {
+    if (revision != expectedRevision) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'Le catalogue a changé. Actualisez la bibliothèque et réessayez.',
+      );
+    }
+    final items = <ProjectLibraryItem>[];
+    for (final (:kind, :id) in resources) {
+      final index = await catalog.snapshot.indexEntry(
+        CatalogDefinitionKey(_catalogFamily(kind), id),
+      );
+      if (index == null) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.unavailable,
+          'Cette ressource est introuvable dans le catalogue.',
+        );
+      }
+      final classification = await catalog.snapshot.indexEntry(
+        CatalogDefinitionKey(
+          CatalogDefinitionKind.resourceLibraryEntry,
+          '$kind:$id',
+        ),
+      );
+      items.add(
+        _projectLibraryItem(
+          kind,
+          index,
+          classification?.summary,
+          compatibleDimensions: await _readLibraryDimensions(catalog, index),
+        ),
+      );
+    }
+    return List.unmodifiable(items);
+  }, metadataFields: const {});
+
+  @override
+  Future<ProjectManifest> readResourcePreview(
+    ProjectSession session,
+    String kind,
+    String id,
+  ) async => (await readResourcePreviewWithRevision(session, kind, id)).project;
+
+  Future<({ProjectManifest project, String revision})>
+  readResourcePreviewWithRevision(
+    ProjectSession session,
+    String kind,
+    String id,
+  ) => _adapter._readScopedCatalog(
+    session,
+    (catalog, revision) async => (
+      project: await ProjectCatalogSelection(catalog)
+          .resolve([CatalogDefinitionKey(_catalogFamily(kind), id)]),
+      revision: revision,
+    ),
+    metadataFields: const {},
+  );
 
   @override
   Future<MapWorkspaceCatalog> loadResourceKind(

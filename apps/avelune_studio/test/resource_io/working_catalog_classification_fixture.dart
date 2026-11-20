@@ -110,7 +110,11 @@ final class ClassificationFixture {
   }
 
   void accept(ResourceMutationReceipt receipt) {
-    workspace.acceptResources(receipt.before, receipt.manifest);
+    workspace.acceptResources(
+      receipt.before,
+      receipt.manifest,
+      removedLibraryResource: receipt.removedLibraryResource,
+    );
   }
 
   Future<ResourceLibraryCatalog> readPersistedCatalog() async {

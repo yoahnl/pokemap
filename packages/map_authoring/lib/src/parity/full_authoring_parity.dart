@@ -746,6 +746,31 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp:'../../tools/pokemap_mcp/test/catalog_storage_stdio.test.ts',
     };
   }
+  if (const {'catalog.definition.duplicate', 'catalog.definition.delete'}
+      .contains(actionId)) {
+    return {
+      AuthoringTransport.directApi:
+          'test/catalog_storage/catalog_project_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/catalog_storage/catalog_project_transport_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/resource_io/project_library_lifecycle_storage_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/catalog_storage_stdio.test.ts',
+    };
+  }
+  if (actionId == 'model3d.duplicate') {
+    return const {
+      AuthoringTransport.directApi:
+          '../../apps/avelune_studio/test/resource_io/project_library_lifecycle_storage_test.dart',
+      AuthoringTransport.cli:
+          '../../tools/pokemap_mcp/test/model3d_source_replace_stdio.test.ts',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/resource_io/project_library_lifecycle_storage_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/model3d_source_replace_stdio.test.ts',
+    };
+  }
   if (actionId == 'environment.preset.upsert_batch' ||
       actionId == 'resource.family.apply_batch') {
     return {
@@ -2140,6 +2165,13 @@ String _contractTestFor(String actionId) {
   }
   if(actionId=='project.catalog.partition') return 'test/workspace/catalog_partition_action_test.dart';
   if(actionId=='catalog.definition.update') return 'test/catalog_storage/catalog_project_transport_test.dart';
+  if (const {'catalog.definition.duplicate', 'catalog.definition.delete'}
+      .contains(actionId)) {
+    return 'test/catalog_storage/catalog_project_transport_test.dart';
+  }
+  if (actionId == 'model3d.duplicate') {
+    return '../../apps/avelune_studio/test/resource_io/project_library_lifecycle_storage_test.dart';
+  }
   if(actionId=='map3d.edit_batch') return 'test/domains/maps/map3d_edit_batch_actions_test.dart';
   if (actionId == 'map3d.terrain.paint_height') {
     return 'test/domains/maps/spatial_terrain_relief_actions_test.dart';

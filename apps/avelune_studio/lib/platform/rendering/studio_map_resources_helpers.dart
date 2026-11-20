@@ -115,18 +115,7 @@ extension StudioMapResourcesHelpers on StudioMapResources {
     store.retain(_brushOwner, _brushIds);
   }
 
-  Set<String> elementResourceIds(ProjectElementEntry element) =>
-      _index.forElement(element);
-
-  Set<String> characterResourceIds(ProjectCharacterEntry character) =>
-      _index.forCharacter(character);
-
-  Set<String> tileResourceIds(TileLayerPaletteEntry tile) =>
-      _index.forTile(tile);
-
   Set<String> mapResourceIds(MapData map) => _index.forMap(map);
-
-  bool hasFailure(Iterable<String> ids) => ids.any(_diagnostics.containsKey);
 
   RuntimeAuthoringMapRenderer renderer(MapData map) {
     if (_disposed) throw StateError('Ressources fermées');

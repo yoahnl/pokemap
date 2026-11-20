@@ -72,6 +72,26 @@ void main() {
     result.dispose();
   });
 
+  test(
+    'a preview can retain the presented frame after the surface releases it',
+    () {
+      final backend = _Backend();
+      ui.Image? captured;
+      final device = FlutterFrameGraphicsDevice(
+        backend: backend,
+        presentImage: (image) => image.clone(),
+        onPresented: (image) => captured = image.clone(),
+      );
+      render(device).dispose();
+
+      expect(device.successfulPresentations, 1);
+      expect(backend.target.texture.lastImage!.debugDisposed, isTrue);
+      expect(captured!.debugDisposed, isFalse);
+      expect(captured!.width, 8);
+      captured!.dispose();
+    },
+  );
+
   test('a failed presentation releases both images and closes the frame', () {
     final backend = _Backend();
     final processed = makeImage();
