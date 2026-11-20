@@ -153,9 +153,11 @@ void main() {
     await _open(tester, size: const Size(1280, 720));
     final canvas = find.byType(SceneGraphCanvas).first;
     final state = tester.state<SceneGraphCanvasState>(canvas);
+    final canvasBounds = tester.getRect(graphKey('scene-graph-canvas'));
+    expect(canvasBounds.width, 764);
     expect(
-      tester.getSize(graphKey('scene-graph-canvas')).width,
-      inInclusiveRange(760, 770),
+      tester.getRect(graphKey('scene-graph-show-all')).bottom,
+      lessThan(canvasBounds.top),
     );
     final cardWidth = tester.getRect(graphKey('scene-graph-card-check')).width;
     expect(cardWidth / state.camera!.scale * .75, inInclusiveRange(188, 192));

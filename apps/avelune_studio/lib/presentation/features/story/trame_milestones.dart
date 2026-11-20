@@ -149,7 +149,11 @@ class TrameMilestones extends StatelessWidget {
                   ),
                   if (archived) StudioBadge(l10n.trameArchivedBadge),
                   if (milestone.issues.isNotEmpty)
-                    StudioBadge(l10n.trameEditorial, tone: StudioTone.warning),
+                    StudioBadge(
+                      l10n.trameEditorial,
+                      tone: StudioTone.warning,
+                      wrapLabel: true,
+                    ),
                 ],
               ),
             ),

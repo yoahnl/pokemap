@@ -1,5 +1,6 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -12,7 +13,13 @@ void main() {
     tester,
   ) async {
     await openTrameStudio(tester);
+    tester.view.physicalSize = const Size(1280, 720);
+    await settleMemory(tester);
     final row = find.byKey(const ValueKey('trame-milestone-meet'));
+    final outline = find.byKey(const ValueKey('trame-outline'));
+    final chapter = find.byKey(const ValueKey('trame-chapter-chapter_one'));
+    expect(tester.getRect(row).left - tester.getRect(outline).left, 22);
+    expect(tester.getSize(chapter).width, 260);
     final accent = find.descendant(
       of: row,
       matching: find.byKey(const ValueKey('studio-choice-selection-accent')),
@@ -24,6 +31,32 @@ void main() {
     expect(accent, findsOneWidget);
     expect(tester.getRect(accent).left, tester.getRect(row).left);
     expect(find.byKey(const ValueKey('trame-milestone-name-meet')), findsOne);
+  });
+
+  testWidgets('the milestone warning stays readable at 1280 pixels', (
+    tester,
+  ) async {
+    await openTrameStudio(tester);
+    tester.view.physicalSize = const Size(1280, 720);
+    await settleMemory(tester);
+
+    const label = 'À vérifier dans la trame';
+    final warning = find.descendant(
+      of: find.byKey(const ValueKey('trame-milestone-leave')),
+      matching: find.text(label),
+    );
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.descendant(of: warning, matching: find.byType(RichText)),
+    );
+    expect(
+      paragraph.getBoxesForSelection(
+        TextSelection(
+          baseOffset: label.length - 'trame'.length,
+          extentOffset: label.length,
+        ),
+      ),
+      isNotEmpty,
+    );
   });
 
   for (final milestone in [false, true]) {

@@ -21,11 +21,13 @@ class GameBehaviourEditor extends StatefulWidget {
     super.key,
     required this.binding,
     required this.editable,
+    required this.contextAlongside,
     this.allowCreation = true,
   });
 
   final MapBuilderStoryBinding binding;
   final bool editable;
+  final bool contextAlongside;
   final bool allowCreation;
 
   @override
@@ -82,7 +84,8 @@ class _GameBehaviourEditorState extends State<GameBehaviourEditor> {
         ),
         LayoutBuilder(
           builder: (context, area) {
-            final inline = area.maxWidth >= detailsBreakpoint;
+            final inline =
+                widget.contextAlongside && area.maxWidth >= detailsBreakpoint;
             return Flex(
               direction: inline ? Axis.horizontal : Axis.vertical,
               mainAxisSize: MainAxisSize.min,
@@ -117,6 +120,7 @@ class _GameBehaviourEditorState extends State<GameBehaviourEditor> {
       child: StudioPanel(
         key: ValueKey('story-trigger-block-$section'),
         compact: true,
+        bandedHeader: true,
         title: switch (section) {
           'when' => l10n.storyWhen,
           'if' => l10n.storyIf,

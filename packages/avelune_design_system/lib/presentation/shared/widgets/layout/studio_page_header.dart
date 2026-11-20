@@ -12,18 +12,21 @@ class StudioPageHeader extends StatelessWidget {
     this.prominent = false,
     this.compact = false,
     this.titleMaxLines,
-  }) : _section = false;
+  }) : _section = false,
+       _minimumHeight = 52;
 
   const StudioPageHeader.section({
     super.key,
     required this.title,
     this.actions = const [],
+    double minHeight = 52,
   }) : description = null,
        alignActionsToEnd = true,
        prominent = false,
        compact = true,
        titleMaxLines = null,
-       _section = true;
+       _section = true,
+       _minimumHeight = minHeight;
 
   final String title;
   final String? description;
@@ -33,6 +36,7 @@ class StudioPageHeader extends StatelessWidget {
   final bool compact;
   final int? titleMaxLines;
   final bool _section;
+  final double _minimumHeight;
 
   @override
   Widget build(BuildContext context) =>
@@ -103,7 +107,7 @@ class StudioPageHeader extends StatelessWidget {
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: Container(
-                  constraints: const BoxConstraints(minHeight: 52),
+                  constraints: BoxConstraints(minHeight: _minimumHeight),
                   padding: const EdgeInsets.symmetric(
                     horizontal: StudioSpacing.xs,
                     vertical: StudioSpacing.m,

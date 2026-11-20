@@ -17,6 +17,7 @@ class StoryBehaviourContext extends StatefulWidget {
     required this.retry,
     required this.editable,
     required this.onSelected,
+    required this.contextAlongside,
     this.filtered = false,
   });
 
@@ -24,6 +25,7 @@ class StoryBehaviourContext extends StatefulWidget {
   final Future<bool> Function(String id) openMap;
   final Future<bool> Function(String id) retry;
   final bool editable;
+  final bool contextAlongside;
   final ValueChanged<String?> onSelected;
   final bool filtered;
 
@@ -92,6 +94,7 @@ class _StoryBehaviourContextState extends State<StoryBehaviourContext> {
               GameBehaviourEditor(
                 binding: editor,
                 editable: widget.editable,
+                contextAlongside: widget.contextAlongside,
                 allowCreation: !widget.filtered,
               )
             else

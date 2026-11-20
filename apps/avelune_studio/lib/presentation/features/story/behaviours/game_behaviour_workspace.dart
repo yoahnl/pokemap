@@ -8,31 +8,34 @@ class GameBehaviourWorkspace extends StatelessWidget {
   });
 
   final Widget list;
-  final Widget editor;
+  final Widget Function(bool contextAlongside) editor;
 
   @override
-  Widget build(BuildContext context) {
-    final listWidth = switch (MediaQuery.sizeOf(context).width) {
-      <= 1100 => 185.0,
-      <= 1150 => 214.0,
-      _ => 228.0,
-    };
-    return LayoutBuilder(
-      key: const ValueKey('story-trigger-workspace'),
-      builder: (context, area) => area.maxWidth >= 720
+  Widget build(BuildContext context) => LayoutBuilder(
+    key: const ValueKey('story-trigger-workspace'),
+    builder: (context, area) {
+      final contextAlongside = area.maxWidth > 1150;
+      final largeText = MediaQuery.textScalerOf(context).scale(12) >= 18;
+      final listWidth = switch ((largeText, MediaQuery.sizeOf(context).width)) {
+        (true, _) => 228.0,
+        (false, <= 1100) => 185.0,
+        _ => contextAlongside ? 228.0 : 214.0,
+      };
+      final content = editor(contextAlongside);
+      return area.maxWidth >= 720
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(width: listWidth, child: list),
-                Expanded(child: editor),
+                Expanded(child: content),
               ],
             )
           : Column(
               children: [
                 SizedBox(height: area.maxHeight * .4, child: list),
-                Expanded(child: editor),
+                Expanded(child: content),
               ],
-            ),
-    );
-  }
+            );
+    },
+  );
 }

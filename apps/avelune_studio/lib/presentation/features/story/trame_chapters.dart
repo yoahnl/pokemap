@@ -47,39 +47,52 @@ class TrameChapters extends StatelessWidget {
         if (chapters.isEmpty)
           Text(l10n.trameNoChapter)
         else
-          SingleChildScrollView(
-            key: PageStorageKey('trame-chapters-${story.id}'),
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final chapter in chapters)
-                  Padding(
-                    padding: const EdgeInsets.only(right: StudioSpacing.m),
-                    child: SizedBox(
-                      width: 240,
-                      child: StudioChoice(
-                        key: ValueKey('trame-chapter-${chapter.id}'),
-                        leading: Text(
-                          '${story.chapters.indexOf(chapter) + 1}'.padLeft(
-                            2,
-                            '0',
+          LayoutBuilder(
+            builder: (context, area) {
+              final gaps = (chapters.length - 1) * StudioSpacing.m;
+              final width = ((area.maxWidth - gaps) / chapters.length).clamp(
+                160.0,
+                260.0,
+              );
+              final theme = Theme.of(context);
+              return SingleChildScrollView(
+                key: PageStorageKey('trame-chapters-${story.id}'),
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  spacing: StudioSpacing.m,
+                  children: [
+                    for (final chapter in chapters)
+                      SizedBox(
+                        width: width,
+                        child: StudioChoice(
+                          key: ValueKey('trame-chapter-${chapter.id}'),
+                          leading: Text(
+                            '${story.chapters.indexOf(chapter) + 1}'.padLeft(
+                              2,
+                              '0',
+                            ),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: StudioAccent.water.color(context),
+                            ),
                           ),
-                          style: Theme.of(context).textTheme.titleLarge,
+                          label: l10n.trameName(
+                            chapter.title,
+                            l10n.trameUnnamed,
+                          ),
+                          subtitle: l10n.trameMilestoneCount(
+                            chapter.milestones.length,
+                          ),
+                          trailing: trameArchived(chapter.status)
+                              ? StudioBadge(l10n.trameArchivedBadge)
+                              : const Icon(Icons.chevron_right, size: 16),
+                          selected: chapter.id == selectedId,
+                          onTap: () => onSelected(chapter.id),
                         ),
-                        label: l10n.trameName(chapter.title, l10n.trameUnnamed),
-                        subtitle: l10n.trameMilestoneCount(
-                          chapter.milestones.length,
-                        ),
-                        trailing: trameArchived(chapter.status)
-                            ? StudioBadge(l10n.trameArchivedBadge)
-                            : const Icon(Icons.chevron_right, size: 16),
-                        selected: chapter.id == selectedId,
-                        onTap: () => onSelected(chapter.id),
                       ),
-                    ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
+              );
+            },
           ),
       ],
     );

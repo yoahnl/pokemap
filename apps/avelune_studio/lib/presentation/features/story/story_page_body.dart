@@ -47,7 +47,8 @@ extension _StoryPageBody on _StoryPageState {
                 ? () => unawaited(_createTrigger())
                 : null,
           ),
-          editor: _creation && widget.behaviourCatalog != null
+          editor: (contextAlongside) =>
+              _creation && widget.behaviourCatalog != null
               ? StoryTriggerCreation(
                   key: ValueKey('trigger-creation-${_behaviours!.mapId}'),
                   catalog: widget.behaviourCatalog!,
@@ -73,6 +74,7 @@ extension _StoryPageBody on _StoryPageState {
               : widget.behaviourCatalog != null
               ? StoryBehaviourContext(
                   catalog: widget.behaviourCatalog!,
+                  contextAlongside: contextAlongside,
                   openMap: widget.behaviours.open,
                   retry: _openCatalogBehaviour,
                   editable: widget.staging.editable,

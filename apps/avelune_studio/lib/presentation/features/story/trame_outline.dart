@@ -69,9 +69,19 @@ class TrameOutline extends StatelessWidget {
             .firstOrNull ??
         chapters.firstOrNull;
     final editable = trame.staging.editable;
+    final (horizontal, top) = switch (MediaQuery.sizeOf(context).width) {
+      <= 1150 => (StudioSpacing.xl, 22.0),
+      <= 1390 => (22.0, 28.0),
+      _ => (28.0, 28.0),
+    };
     return ListView(
       key: const ValueKey('trame-outline'),
-      padding: const EdgeInsets.all(StudioSpacing.xl),
+      padding: EdgeInsets.fromLTRB(
+        horizontal,
+        top,
+        horizontal,
+        StudioSpacing.xl,
+      ),
       children: [
         if (trame.refusal case final code?)
           StudioNotice(

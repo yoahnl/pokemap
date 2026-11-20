@@ -102,6 +102,8 @@ void main() {
     await settleMemory(tester);
     expect(find.byKey(const ValueKey('studio-story')), findsOneWidget);
     final editor = find.byKey(const ValueKey('story-trigger-editor'));
+    final workspace = find.byKey(const ValueKey('story-trigger-workspace'));
+    expect(tester.getRect(editor).left - tester.getRect(workspace).left, 214);
     expect(tester.getSize(editor).width, greaterThan(500));
     final event = find.byKey(const ValueKey('map-story-when'));
     final source = find.byKey(const ValueKey('story-trigger-source'));
@@ -130,8 +132,12 @@ void main() {
       const ValueKey('story-trigger-context-$guideTalk'),
     );
     expect(
-      tester.getTopLeft(details).dx,
-      greaterThan(tester.getTopLeft(event).dx),
+      tester.getRect(details).top,
+      greaterThan(
+        tester
+            .getRect(find.byKey(const ValueKey('story-trigger-block-repeat')))
+            .bottom,
+      ),
     );
     for (final section in ['when', 'if', 'then', 'repeat']) {
       expect(
@@ -192,7 +198,7 @@ void main() {
     tester,
   ) async {
     await openMemoryStudio(tester, memoryIndex(), world: MapOnlyWorld.new);
-    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.physicalSize = const Size(1550, 900);
     await openWholeGame(tester);
     await tester.tap(find.byKey(const ValueKey('behaviour-$guideTalk')));
     await settleMemory(tester);
@@ -213,6 +219,7 @@ void main() {
     );
     await tester.enterText(name, 'Brouillon en cours');
 
+    tester.view.physicalSize = const Size(1280, 720);
     tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await settleMemory(tester);

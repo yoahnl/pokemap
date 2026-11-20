@@ -43,6 +43,7 @@ class SceneGraphCanvas extends StatefulWidget {
     this.checks,
     this.onSelectionChanged,
     this.preparing = false,
+    this.showFitAction = true,
   });
 
   final SceneAsset scene;
@@ -58,6 +59,7 @@ class SceneGraphCanvas extends StatefulWidget {
   final SceneGraphChecks? checks;
   final ValueChanged<Set<String>>? onSelectionChanged;
   final bool preparing;
+  final bool showFitAction;
 
   @override
   State<SceneGraphCanvas> createState() => SceneGraphCanvasState();
@@ -303,10 +305,12 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
                 camera: camera,
                 editable: _editable,
                 preparing: widget.preparing,
-                onShowAll: () {
-                  showAll();
-                  requestFocus();
-                },
+                onShowAll: widget.showFitAction
+                    ? () {
+                        showAll();
+                        requestFocus();
+                      }
+                    : null,
                 onZoom: _toolbarZoom,
               ),
             ),

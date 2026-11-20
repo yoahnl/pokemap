@@ -11,6 +11,7 @@ class StudioPanel extends StatelessWidget {
     this.accent,
     this.actions = const [],
     this.compact = false,
+    this.bandedHeader = false,
     this.radius = StudioMetrics.panelRadius,
   });
   final List<Widget> children;
@@ -19,50 +20,86 @@ class StudioPanel extends StatelessWidget {
   final StudioAccent? accent;
   final List<Widget> actions;
   final bool compact;
+  final bool bandedHeader;
   final double radius;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: accent == null
-        ? Theme.of(context).colorScheme.surface
-        : Color.alphaBlend(
-            accent!.color(context).withValues(alpha: 0.055),
-            Theme.of(context).colorScheme.surface,
-          ),
-    shape: RoundedRectangleBorder(
-      side: BorderSide(
-        color:
-            accent?.color(context).withValues(alpha: 0.4) ??
-            Theme.of(context).colorScheme.outlineVariant,
-      ),
-      borderRadius: BorderRadius.circular(radius),
-    ),
-    child: Padding(
-      padding: EdgeInsets.all(compact ? 12 : StudioMetrics.panelPadding),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tint = accent?.color(context);
+    final heading = title;
+    final band = bandedHeader && heading != null;
+    final inset = compact ? StudioSpacing.l : StudioMetrics.panelPadding;
+    final header = heading == null
+        ? null
+        : Wrap(
+            spacing: StudioSpacing.l,
+            runSpacing: StudioSpacing.m,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (icon != null) Icon(icon, size: 21, color: tint),
+              Text(
+                heading,
+                style: band
+                    ? theme.textTheme.labelLarge?.copyWith(color: tint)
+                    : theme.textTheme.titleMedium,
+              ),
+              ...actions,
+            ],
+          );
+    final content = Padding(
+      padding: EdgeInsets.all(inset),
       child: SizedBox(
         width: double.infinity,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (title != null) ...[
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (icon != null)
-                    Icon(icon, size: 21, color: accent?.color(context)),
-                  Text(title!, style: Theme.of(context).textTheme.titleMedium),
-                  ...actions,
-                ],
-              ),
-              const SizedBox(height: 12),
+            if (!band && header != null) ...[
+              header,
+              const SizedBox(height: StudioSpacing.l),
             ],
             ...children,
           ],
         ),
       ),
-    ),
-  );
+    );
+    return Material(
+      color: tint == null || band
+          ? colors.surface
+          : Color.alphaBlend(tint.withValues(alpha: .055), colors.surface),
+      clipBehavior: band ? Clip.antiAlias : Clip.none,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(
+          color: tint?.withValues(alpha: .4) ?? colors.outlineVariant,
+        ),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: band
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ColoredBox(
+                  color: tint == null
+                      ? colors.surfaceContainer
+                      : Color.alphaBlend(
+                          tint.withValues(alpha: .12),
+                          colors.surface,
+                        ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: inset,
+                      vertical: StudioSpacing.m,
+                    ),
+                    child: header,
+                  ),
+                ),
+                content,
+              ],
+            )
+          : content,
+    );
+  }
 }

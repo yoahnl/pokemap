@@ -40,7 +40,7 @@ class SceneFocusSide extends StatelessWidget {
     final launchers = focus.launchers;
     final facts = focus.changedFactIds;
     final path = focus.path;
-    return ListView(
+    final details = ListView(
       key: const ValueKey('scene-focus-side'),
       padding: const EdgeInsets.all(StudioSpacing.l),
       children: [
@@ -114,6 +114,26 @@ class SceneFocusSide extends StatelessWidget {
           ],
         ),
       ],
+    );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 1),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            StudioPageHeader.section(
+              title: l10n.inspectorTitle,
+              minHeight: StudioMetrics.controlHeight,
+            ),
+            Expanded(child: details),
+          ],
+        ),
+      ),
     );
   }
 

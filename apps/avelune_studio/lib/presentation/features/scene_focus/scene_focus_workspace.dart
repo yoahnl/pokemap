@@ -21,6 +21,7 @@ import 'package:avelune_studio/presentation/features/story/story_dialogue_link.d
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
 
 part 'scene_focus_dialogues.dart';
+part 'scene_focus_toolbar.dart';
 
 class SceneFocusWorkspace extends StatefulWidget {
   const SceneFocusWorkspace({
@@ -116,6 +117,9 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace>
     _outlineFocus.requestFocus();
   }
 
+  void _selectPreviewLanguage(String value) =>
+      setState(() => _language = value);
+
   @override
   void dispose() {
     _outlineSearch.dispose();
@@ -158,8 +162,6 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace>
     final scene = widget.scene;
     final checks = _currentChecks;
     final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final (outlineWidth, detailsWidth) = switch (MediaQuery.sizeOf(context)
         .width) {
       <= 850 => (150.0, 205.0),
@@ -169,63 +171,14 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: StudioSpacing.l),
-          child: Row(
-            children: [
-              Icon(
-                Icons.account_tree_outlined,
-                size: 16,
-                color: scheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: StudioSpacing.s),
-              Expanded(
-                child: Text(
-                  l10n.sceneGraphSummary(
-                    scene.graph.nodes.length,
-                    scene.graph.edges.length,
-                  ),
-                  style: theme.textTheme.labelMedium,
-                ),
-              ),
-              if (dialogues.options.length > 1) ...[
-                SizedBox(
-                  width: 160,
-                  child: StudioSelect(
-                    key: const ValueKey('scene-graph-preview-language'),
-                    label: l10n.dialogueCatalogPreviewLanguage,
-                    value: dialogues.language,
-                    options: dialogues.options,
-                    onChanged: (value) => setState(() => _language = value),
-                    compact: true,
-                  ),
-                ),
-                const SizedBox(width: StudioSpacing.s),
-              ],
-              if (dialogues.fallbackLocales.isNotEmpty)
-                StudioBadge(
-                  l10n.dialogueCatalogFallback(
-                    dialogues.fallbackLocales.join(', ').toUpperCase(),
-                  ),
-                  tone: StudioTone.warning,
-                ),
-              StudioButton(
-                key: const ValueKey('scene-graph-open-palette'),
-                label: l10n.sceneGraphSearch,
-                icon: Icons.add,
-                variant: StudioButtonVariant.quiet,
-                onPressed: _editable ? () => _setPalette(true) : null,
-              ),
-            ],
-          ),
-        ),
+        _graphToolbar(context, dialogues),
         const Divider(height: 1),
         Expanded(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                width: outlineWidth,
+                width: outlineWidth - 1,
                 child: SceneGraphSidebar(
                   outline: SceneGraphOutline(
                     scene: scene,
@@ -248,27 +201,41 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace>
               ),
               const VerticalDivider(width: 1),
               Expanded(
-                child: KeyedSubtree(
-                  key: ValueKey('scene-focus-graph-${scene.id}'),
-                  child: SceneGraphCanvas(
-                    key: _canvas,
-                    scene: scene,
-                    project: widget.project,
-                    map: widget.map,
-                    checks: checks,
-                    pathNodeIds: focus.path?.nodeIds ?? const [],
-                    pathChoices: focus.choices,
-                    dialogues: dialogues.entries,
-                    choiceLabels: dialogues.labels,
-                    factNames: _currentFactNames,
-                    onChanged: _editable ? focus.edit : null,
-                    onSelectionChanged: (ids) =>
-                        setState(() => _selection = ids),
-                    preparing: focus.draft.preparing,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    StudioPageHeader.section(
+                      title: l10n.sceneGraphSummary(
+                        scene.graph.nodes.length,
+                        scene.graph.edges.length,
+                      ),
+                      minHeight: StudioMetrics.controlHeight,
+                    ),
+                    Expanded(
+                      child: KeyedSubtree(
+                        key: ValueKey('scene-focus-graph-${scene.id}'),
+                        child: SceneGraphCanvas(
+                          key: _canvas,
+                          scene: scene,
+                          project: widget.project,
+                          map: widget.map,
+                          checks: checks,
+                          pathNodeIds: focus.path?.nodeIds ?? const [],
+                          pathChoices: focus.choices,
+                          dialogues: dialogues.entries,
+                          choiceLabels: dialogues.labels,
+                          factNames: _currentFactNames,
+                          onChanged: _editable ? focus.edit : null,
+                          onSelectionChanged: (ids) =>
+                              setState(() => _selection = ids),
+                          preparing: focus.draft.preparing,
+                          showFitAction: false,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const VerticalDivider(width: 1),
               SizedBox(
                 key: const ValueKey('scene-graph-details-pane'),
                 width: detailsWidth,
