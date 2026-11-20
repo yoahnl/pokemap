@@ -1,11 +1,13 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/features/dialogues/application/dialogue_choice_preview.dart';
 import 'package:avelune_studio/features/dialogues/domain/dialogue_catalog_port.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/editor_shortcuts.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_checks.dart';
 import 'package:avelune_studio/features/scenes/application/graph/scene_graph_edits.dart';
 import 'package:avelune_studio/features/scenes/application/scene_focus_controller.dart';
@@ -137,11 +139,17 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace>
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<DialogueCatalogLanguages>(
-    future: _languages,
-    builder: (context, snapshot) => _buildGraph(
-      context,
-      _dialoguePreview(snapshot.data ?? const DialogueCatalogLanguages()),
+  Widget build(BuildContext context) => CallbackShortcuts(
+    bindings: textAwareEditorShortcuts({
+      const SingleActivator(LogicalKeyboardKey.keyF, meta: true): _findStep,
+      const SingleActivator(LogicalKeyboardKey.keyF, control: true): _findStep,
+    }),
+    child: FutureBuilder<DialogueCatalogLanguages>(
+      future: _languages,
+      builder: (context, snapshot) => _buildGraph(
+        context,
+        _dialoguePreview(snapshot.data ?? const DialogueCatalogLanguages()),
+      ),
     ),
   );
 
@@ -256,7 +264,6 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace>
                     onChanged: _editable ? focus.edit : null,
                     onSelectionChanged: (ids) =>
                         setState(() => _selection = ids),
-                    onFind: _findStep,
                     preparing: focus.draft.preparing,
                   ),
                 ),

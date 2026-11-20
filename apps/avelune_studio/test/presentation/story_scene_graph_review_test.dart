@@ -39,6 +39,40 @@ final _scene = SceneAsset(
 );
 
 void main() {
+  testWidgets('Command-F finds an existing step after keyboard traversal', (
+    tester,
+  ) async {
+    await _open(tester);
+    expect(FocusManager.instance.primaryFocus?.debugLabel, 'scene-graph');
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await settleMemory(tester);
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      isNot('scene-graph'),
+    );
+
+    final search = find.descendant(
+      of: graphKey('scene-graph-outline-search'),
+      matching: find.byType(EditableText),
+    );
+    final searchFocus = tester.widget<EditableText>(search).focusNode;
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await settleMemory(tester);
+    expect(searchFocus.hasPrimaryFocus, isFalse);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await settleMemory(tester);
+    expect(searchFocus.hasPrimaryFocus, isTrue);
+
+    tester.testTextInput.enterText('pause du guide');
+    await settleMemory(tester);
+    expect(graphKey('scene-graph-outline-custom'), findsOneWidget);
+    expect(graphKey('scene-graph-outline-check'), findsNothing);
+    expect(_graph(tester), _scene.graph);
+  });
+
   for (final fromPort in [false, true]) {
     testWidgets(
       'the sidebar inserts once with a ${fromPort ? 'port' : 'background'} menu open',

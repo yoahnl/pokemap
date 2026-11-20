@@ -42,7 +42,6 @@ class SceneGraphCanvas extends StatefulWidget {
     this.onChanged,
     this.checks,
     this.onSelectionChanged,
-    this.onFind,
     this.preparing = false,
   });
 
@@ -58,7 +57,6 @@ class SceneGraphCanvas extends StatefulWidget {
   final bool Function(SceneAsset scene)? onChanged;
   final SceneGraphChecks? checks;
   final ValueChanged<Set<String>>? onSelectionChanged;
-  final VoidCallback? onFind;
   final bool preparing;
 
   @override

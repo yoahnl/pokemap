@@ -243,10 +243,6 @@ extension _SceneGraphCanvasPointer on SceneGraphCanvasState {
       _mutate(() => _selected = _view.cards.map((card) => card.id).toSet());
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.keyF && widget.onFind != null) {
-      widget.onFind!();
-      return KeyEventResult.handled;
-    }
     if (key == LogicalKeyboardKey.keyC && _selected.isNotEmpty) {
       _copy();
       return KeyEventResult.handled;
