@@ -123,19 +123,40 @@ void main() {
         limits: limits,
       ).build([_unit('a'), _unit('b')]);
       final objects = {...built.objects};
-      final original = await _open(built.root, objects, limits);
+      final reads = <String>[];
+      final original = await _open(built.root, objects, limits, reads);
       await original.validate();
       final patch = await original.patch(
-        upserts: [_unit('b', version: 2), _unit('c'), _unit('d'), _unit('e')],
+        upserts: [_unit('b'), _unit('c'), _unit('d'), _unit('e')],
       );
+      final patchReads = reads.length;
+      expect(patch.delta.upserts.map((unit) => unit.key.id), ['c', 'd', 'e']);
+      expect(reads, hasLength(patchReads));
       objects.addAll(patch.objects);
       final target = await _open(patch.root, objects, limits);
       final delta = await target.admitFrom(original);
-      expect(delta.upserts.map((unit) => unit.key.id), ['b', 'c', 'd', 'e']);
+      expect(delta.upserts.map((unit) => unit.key.id), ['c', 'd', 'e']);
       expect(delta.removals, isEmpty);
+      expect(patch.delta.addedObjects, unorderedEquals(delta.addedObjects));
+      expect(patch.delta.removedObjects, unorderedEquals(delta.removedObjects));
       final bytes = target.admittedStoredBytes;
       await target.validate();
       expect(target.admittedStoredBytes, bytes);
+      final collapsed = await target.patch(
+        removals: [
+          for (final id in ['c', 'd', 'e']) _unit(id).key,
+        ],
+      );
+      expect(collapsed.root, built.root);
+      final reverse = await original.deltaFrom(target);
+      expect(
+        collapsed.delta.addedObjects,
+        unorderedEquals(reverse.addedObjects),
+      );
+      expect(
+        collapsed.delta.removedObjects,
+        unorderedEquals(reverse.removedObjects),
+      );
     },
   );
 
@@ -169,6 +190,19 @@ void main() {
     final objects = {...before.objects, ...after.objects};
     final current = await _open(before.root, objects, limits);
     await current.validate();
+    for (final dependency in [
+      _unit('missing').key,
+      CatalogDefinitionKey(CatalogDefinitionKind.workspaceState, 'internal'),
+    ]) {
+      await expectLater(
+        current.patch(
+          upserts: [
+            _unit('a', references: [dependency]),
+          ],
+        ),
+        throwsFormatException,
+      );
+    }
     final root =
         jsonDecode(utf8.decode(objects[after.root.sha256]!))
             as Map<String, dynamic>;
@@ -291,24 +325,22 @@ void main() {
         );
         objects.addAll(patch.objects);
         current = await _open(patch.root, objects, limits);
-        final delta = await current.deltaFrom(previous);
-        expect(
-          delta.upserts.map((unit) => unit.key).toSet(),
-          upserts.map((unit) => unit.key).toSet(),
-        );
-        expect(delta.removals.toSet(), removals.toSet());
-        final expectedBytes = delta.storedBytes;
-        final refs = await current.objectReferences();
-        final oldRefs = await previous.objectReferences();
-        expect(
-          delta.addedObjects.toSet(),
-          refs.toSet().difference(oldRefs.toSet()),
-        );
-        expect(
-          delta.removedObjects.toSet(),
-          oldRefs.toSet().difference(refs.toSet()),
-        );
-        expect(current.admittedStoredBytes, expectedBytes);
+        final verified = await current.deltaFrom(previous);
+        final refs = (await current.objectReferences()).toSet();
+        final oldRefs = (await previous.objectReferences()).toSet();
+        for (final delta in [verified, patch.delta]) {
+          expect(delta.beforeRoot, previous.root);
+          expect(delta.root, current.root);
+          expect(delta.limits, same(limits));
+          expect(
+            delta.upserts.map((unit) => unit.toJson()),
+            unorderedEquals(upserts.map((unit) => unit.toJson())),
+          );
+          expect(delta.removals.toSet(), removals.toSet());
+          expect(delta.addedObjects.toSet(), refs.difference(oldRefs));
+          expect(delta.removedObjects.toSet(), oldRefs.difference(refs));
+          expect(current.admittedStoredBytes, delta.storedBytes);
+        }
       }
     },
   );

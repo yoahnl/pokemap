@@ -61,7 +61,7 @@ final class CatalogEditingPlan {
   List<CatalogDefinitionKey>? _exteriorRemovals;
   bool _settled = false;
   bool _invalidated = false;
-  CatalogGenerationLease _lease;
+  final CatalogGenerationLease _lease;
 }
 
 final class CatalogEditingSession {
@@ -755,7 +755,7 @@ final class CatalogEditingSession {
             additionalChanges: additional,
             currentProjectRevision: currentProjectRevision);
         prepared._exteriorRemovals = deleted;
-        await _checkRetentionCosts(prepared, projected: next);
+        await _checkRetentionCosts(prepared, patchDelta: patch.delta);
         await store.publishObjectsUnderLock(patch.objects,
             maxConcurrentWrites: objectWriteConcurrency);
         await store.publishIndexAdmissionUnderLock(next);
@@ -817,12 +817,8 @@ final class CatalogEditingSession {
           throw const CatalogStorageException('catalog.operation_mismatch',
               'The operation identity is already in use.');
         }
-        final lease = await retention.protectUnderLock(
-            roots: prepared._lease.roots,
-            ownerId: operationId,
-            purpose: CatalogLeasePurpose.preparation);
-        await retention.releaseUnderLock(prepared._lease.id);
-        prepared._lease = lease;
+        await retention.assignPreparationOwnerUnderLock(
+            prepared._lease, operationId);
         prepared._operationId = operationId;
       });
     }
@@ -852,7 +848,6 @@ final class CatalogEditingSession {
     final currentRevision = prepared._currentProjectRevision == null
         ? 'sha256:${snapshot.root.sha256}'
         : await prepared._currentProjectRevision();
-    await _checkRetentionCosts(prepared);
     final receipt = await _transaction.apply(
         planId: prepared.plan.planId,
         request: prepared.plan.request,
@@ -943,7 +938,7 @@ final class CatalogEditingSession {
   }
 
   Future<void> _checkRetentionCosts(CatalogEditingPlan prepared,
-      {CatalogSnapshot? projected}) async {
+      {CatalogSnapshot? projected, CatalogSnapshotDelta? patchDelta}) async {
     final context = AuthoringHistoryContext.fromExtensions(
         prepared.plan.request.extensions);
     if (context.kind == AuthoringHistoryKind.undo ||
@@ -956,8 +951,9 @@ final class CatalogEditingSession {
       return;
     }
     if (prepared._retentionCosts == null) {
-      final next = projected ?? (await store.openRoot(prepared.root)).snapshot;
-      final delta = await next.deltaFrom(snapshot);
+      final delta = patchDelta ??
+          await (projected ?? (await store.openRoot(prepared.root)).snapshot)
+              .deltaFrom(snapshot);
       prepared.plan.bindCatalogDelta(delta);
       final costs = <String, int>{
         for (final reference in [

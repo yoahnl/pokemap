@@ -20,12 +20,15 @@ import 'catalog_storage_store.dart';
 enum CatalogLeasePurpose { reader, preparation }
 
 final class CatalogGenerationLease {
-  CatalogGenerationLease._(this._retention, this.id, this.ownerId, this.roots);
+  CatalogGenerationLease._(
+      this._retention, this.id, this._ownerId, this.roots, this._purpose);
 
   final CatalogGenerationRetention _retention;
   final String id;
-  final String ownerId;
+  String _ownerId;
+  String get ownerId => _ownerId;
   final List<CatalogObjectReference> roots;
+  final CatalogLeasePurpose _purpose;
   bool _closed = false;
   bool get closed => _closed;
 
@@ -158,17 +161,15 @@ final class CatalogGenerationRetention {
     required String ownerId,
     required CatalogLeasePurpose purpose,
   }) async {
-    if (ownerId.isEmpty ||
-        ownerId.length > 256 ||
-        ownerId.runes.any((value) => value < 32 || value == 127)) {
-      throw const FormatException('catalog.lease: invalid owner');
-    }
+    _requireOwner(ownerId);
     final values = roots.toSet().toList()
       ..sort((a, b) => a.sha256.compareTo(b.sha256));
     if (values.isEmpty || values.length > 16) {
       throw const FormatException('catalog.lease: invalid roots');
     }
     final id = _token();
+    final lease = CatalogGenerationLease._(
+        this, id, ownerId, List.unmodifiable(values), purpose);
     final directory = await _directory('catalog/lease-locks', create: true);
     final guard = File('${directory.path}/$id.lock');
     await guard.create(exclusive: true);
@@ -177,24 +178,47 @@ final class CatalogGenerationRetention {
     try {
       await handle.lock(FileLock.exclusive);
       _guards[identity] = handle;
-      final record = {
-        'schemaVersion': 1,
-        'id': id,
-        'ownerId': ownerId,
-        'ownerPid': pid,
-        'purpose': purpose.name,
-        'roots': values.map((root) => root.toJson()).toList(),
-      };
-      await _replace('catalog/leases/$id.json',
-          utf8.encode(canonicalAuthoringJson(record)));
+      await _writeLease(lease, ownerId);
     } catch (_) {
       _guards.remove(identity);
       await handle.close();
       if (await guard.exists()) await guard.delete();
       rethrow;
     }
-    return CatalogGenerationLease._(
-        this, id, ownerId, List.unmodifiable(values));
+    return lease;
+  }
+
+  Future<void> assignPreparationOwnerUnderLock(
+      CatalogGenerationLease lease, String ownerId) async {
+    _requireOwner(ownerId);
+    if (!identical(lease._retention, this) ||
+        lease.closed ||
+        lease._purpose != CatalogLeasePurpose.preparation ||
+        !_guards.containsKey('${await _root}/${lease.id}')) {
+      throw const CatalogStorageException(
+          'catalog.lease_closed', 'The preparation lease is not active.');
+    }
+    await _writeLease(lease, ownerId);
+    lease._ownerId = ownerId;
+  }
+
+  Future<void> _writeLease(CatalogGenerationLease lease, String ownerId) =>
+      _replace('catalog/leases/${lease.id}.json',
+          utf8.encode(canonicalAuthoringJson({
+        'schemaVersion': 1,
+        'id': lease.id,
+        'ownerId': ownerId,
+        'ownerPid': pid,
+        'purpose': lease._purpose.name,
+        'roots': lease.roots.map((root) => root.toJson()).toList(),
+      })));
+
+  static void _requireOwner(String ownerId) {
+    if (ownerId.isEmpty ||
+        ownerId.length > 256 ||
+        ownerId.runes.any((value) => value < 32 || value == 127)) {
+      throw const FormatException('catalog.lease: invalid owner');
+    }
   }
 
   Future<void> releaseUnderLock(String id) async {

@@ -530,24 +530,20 @@ final class CatalogStorageRead {
 
 final class CatalogStoragePatch {
   CatalogStoragePatch._(
-    this.beforeRoot,
-    this.root,
+    this.delta,
     this.definitionCount,
     Map<String, List<int>> objects,
-    this._limits,
-    this._storedBytes,
   ) : objects = Map.unmodifiable(
         objects.map(
           (key, value) => MapEntry(key, List<int>.unmodifiable(value)),
         ),
       );
 
-  final CatalogObjectReference beforeRoot;
-  final CatalogObjectReference root;
+  final CatalogSnapshotDelta delta;
+  CatalogObjectReference get beforeRoot => delta.beforeRoot;
+  CatalogObjectReference get root => delta.root;
   final int definitionCount;
   final Map<String, List<int>> objects;
-  final CatalogStorageLimits _limits;
-  final int _storedBytes;
   bool get isEmpty => beforeRoot == root;
 
   Future<CatalogSnapshot> nextSnapshot({
@@ -556,9 +552,9 @@ final class CatalogStoragePatch {
     final snapshot = await CatalogSnapshot.open(
       root: root,
       readObject: readObject,
-      limits: _limits,
+      limits: delta.limits,
     );
-    snapshot._admittedStoredBytes = _storedBytes;
+    snapshot._admittedStoredBytes = delta.storedBytes;
     return snapshot;
   }
 }
@@ -1702,6 +1698,8 @@ final class _CatalogPatchBuilder {
   final CatalogSnapshot snapshot;
   final _objects = <String, List<int>>{};
   final _removed = <String, CatalogObjectReference>{};
+  final _upserts = <CatalogDefinitionUnit>[];
+  final _removals = <CatalogDefinitionKey>[];
   CatalogStorageLimits get limits => snapshot.limits;
 
   CatalogObjectReference _put(Map<String, Object?> value, int maxBytes) {
@@ -1805,6 +1803,7 @@ final class _CatalogPatchBuilder {
           if (previous != null) {
             _removed[previous.reference.sha256] = previous.reference;
             entries.remove(mutation.key);
+            _removals.add(mutation.key);
             modified = true;
           }
         } else {
@@ -1818,6 +1817,7 @@ final class _CatalogPatchBuilder {
               reference: reference,
               summary: CatalogDefinitionSummary.fromUnit(unit),
             );
+            _upserts.add(unit);
             modified = true;
           } else {
             _objects.remove(reference.sha256);
@@ -1902,12 +1902,18 @@ final class _CatalogPatchBuilder {
     }
     if (index?.reference == snapshot._index?.reference) {
       return CatalogStoragePatch._(
-        snapshot.root,
-        snapshot.root,
+        CatalogSnapshotDelta._(
+          beforeRoot: snapshot.root,
+          root: snapshot.root,
+          limits: limits,
+          upserts: const [],
+          removals: const [],
+          addedObjects: const [],
+          removedObjects: const [],
+          storedBytes: snapshot._admittedStoredBytes!,
+        ),
         snapshot.definitionCount,
         {},
-        limits,
-        snapshot._admittedStoredBytes!,
       );
     }
     final root = _put({
@@ -1918,12 +1924,21 @@ final class _CatalogPatchBuilder {
     }, limits.maxIndexBytes);
     _removed[snapshot.root.sha256] = snapshot.root;
     final reachable = <String, List<int>>{};
+    final addedObjects = <CatalogObjectReference>[];
     void visit(CatalogObjectReference reference) {
       final bytes = _objects[reference.sha256];
-      if (bytes == null || reachable.containsKey(reference.sha256)) {
-        return;
+      if (bytes == null) return;
+      if (bytes.length != reference.byteLength) {
+        throw const FormatException('catalog.patch: conflicting reference');
       }
+      if (reachable.containsKey(reference.sha256)) return;
       reachable[reference.sha256] = bytes;
+      final previous = _removed.remove(reference.sha256);
+      if (previous == null) {
+        addedObjects.add(reference);
+      } else if (previous != reference) {
+        throw const FormatException('catalog.patch: conflicting reference');
+      }
       final json = _map(jsonDecode(utf8.decode(bytes)));
       if (json['type'] == 'root') {
         if (json['index'] != null) {
@@ -1947,22 +1962,25 @@ final class _CatalogPatchBuilder {
       0,
       (sum, ref) => sum + ref.byteLength,
     );
-    final addedBytes = reachable.values.fold(
-      0,
-      (sum, bytes) => sum + bytes.length,
-    );
+    final addedBytes = addedObjects.fold(0, (sum, ref) => sum + ref.byteLength);
     final storedBytes =
         snapshot._admittedStoredBytes! - removedBytes + addedBytes;
-    if (storedBytes > limits.maxStoredBytes) {
+    if (storedBytes < root.byteLength || storedBytes > limits.maxStoredBytes) {
       throw const FormatException('catalog.patch: total byte limit');
     }
     return CatalogStoragePatch._(
-      snapshot.root,
-      root,
+      CatalogSnapshotDelta._(
+        beforeRoot: snapshot.root,
+        root: root,
+        limits: limits,
+        upserts: _upserts..sort((left, right) => left.key.compareTo(right.key)),
+        removals: _removals..sort(),
+        addedObjects: addedObjects,
+        removedObjects: _removed.values,
+        storedBytes: storedBytes,
+      ),
       count,
       reachable,
-      limits,
-      storedBytes,
     );
   }
 }
