@@ -35,10 +35,7 @@ void main() {
       );
 
   setUp(() async {
-    final root = Directory('/Users/karim/Library/Caches/AveluneQA/'
-        'studio-project-lifecycle/history-compatibility-editing-tests');
-    await root.create(recursive: true);
-    fixture = await root.createTemp('fixture-');
+    fixture = await Directory.systemTemp.createTemp('catalog-history-compat-');
     final project = await Directory('${fixture.path}/project').create();
     store = await CatalogStorageStore.open(
         projectRoot: project.path,
@@ -127,8 +124,21 @@ void main() {
       for (final pair in [(second, 'b'), (first, 'a')]) {
         await session.undo(entryId: pair.$1, idempotencyKey: 'undo-${pair.$2}');
         final head = await history.latestLocalEntry(projectId: 'game');
-        expect(head!.receipt.diff.entries.single.path, '/elements/item/name');
-        expect(head.receipt.diff.entries.single.after, pair.$2);
+        final diff = head!.receipt.diff.entries.single;
+        if (bulk) {
+          final original = (await history.get(
+                  projectId: 'game', entryId: pair.$1))!
+              .receipt
+              .diff
+              .entries
+              .single;
+          expect(diff.path, '/');
+          expect(diff.before, original.after);
+          expect(diff.hasAfter, isFalse);
+        } else {
+          expect(diff.path, '/elements/item/name');
+          expect(diff.after, pair.$2);
+        }
         expect((await session.snapshot.lookup(_key))!.payload['name'], pair.$2);
         final root = session.snapshot.root;
         await session.close();
@@ -206,4 +216,4 @@ void main() {
 
 final _key = CatalogDefinitionKey(CatalogDefinitionKind.element, 'item');
 CatalogDefinitionUnit _unit(String name) =>
-    CatalogDefinitionUnit(key: _key, payload: {'name': name});
+    CatalogDefinitionUnit(key: _key, payload: {'name': name, 'position': 0});

@@ -9,11 +9,14 @@ import '../errors/application_errors.dart';
 import '../models/pokemon_media_preimage.dart';
 import '../services/editor_performance_telemetry.dart';
 import '../services/editor_snapshot_profile_recorder.dart';
+import '../services/map_lifecycle_transaction_service.dart';
 import '../services/tiled_image_collection_raster_codec.dart';
 import '../use_cases/update_pokedex_species_media_use_case.dart';
 import 'authoring_query_adapter.dart';
 import 'authoring_session_lifecycle.dart';
 import 'editor_receipt_presenter.dart';
+
+part 'editor_map_lifecycle_mutations.dart';
 
 abstract interface class EditorProjectRootLocator {
   Future<String> locateForResource(String resourcePath);
