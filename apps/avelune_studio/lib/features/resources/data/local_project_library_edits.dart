@@ -97,6 +97,7 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
           tileHeight: tileSize.height,
         ),
         expectedBeforeRevision: expectedRevision,
+        expectedSource: file.artifact,
       );
       return _readLibraryEdit('tileset', receipt.createdTilesetId!, receipt);
     }
@@ -107,6 +108,7 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
       sourcePath: file.path,
       sourceMediaType: 'model/gltf-binary',
       expectedBeforeRevision: expectedRevision,
+      expectedSource: file.artifact,
     );
     return _readLibraryEdit('model3d', id, receipt);
   }
@@ -252,3 +254,26 @@ String _libraryName(String value) {
   if (name.isEmpty) throw const ResourceFailure('Saisissez un nom.');
   return name;
 }
+
+ResourceFailure _libraryImportFailure(Object error) =>
+    ResourceFailure(switch (error) {
+      ArtifactStoreException(
+        code: 'artifact.source_changed_after_authorization' ||
+            'artifact.source_changed_during_read' ||
+            'artifact.mime_mismatch',
+      ) =>
+        'Le fichier choisi a changé. Sélectionnez-le à nouveau.',
+      ArtifactStoreException(code: 'artifact.too_large') =>
+        'Le fichier choisi dépasse la taille maximale d’import.',
+      ArtifactStoreException() =>
+        'Le fichier choisi est inaccessible. Sélectionnez-le à nouveau.',
+      AuthoringPlanException(code: 'plan.stale') ||
+      CatalogStorageException(
+        code: 'catalog.revision_conflict',
+      ) => 'Le catalogue a changé. Actualisez la bibliothèque puis réessayez.',
+      CatalogStorageException(code: 'catalog.preparation_required') ||
+      FormatException(
+        message: 'catalog.resource_positions.preparation_required',
+      ) => 'Le catalogue doit être préparé. Rouvrez le projet puis réessayez.',
+      _ => 'L’import a échoué. Vérifiez la source et réessayez.',
+    });

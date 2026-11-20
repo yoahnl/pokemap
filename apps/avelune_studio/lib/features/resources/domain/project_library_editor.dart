@@ -1,3 +1,4 @@
+import 'package:map_authoring/map_authoring_api.dart' show ContentArtifactRef;
 import 'package:map_core/map_core_domain.dart';
 
 import '../application/project_resource_library.dart';
@@ -10,12 +11,16 @@ final class PickedProjectLibraryFile {
   const PickedProjectLibraryFile({
     required this.path,
     required this.name,
+    required this.artifact,
     this.imageSize,
+    this.modelInspection,
   });
 
   final String path;
   final String name;
+  final ContentArtifactRef artifact;
   final LibraryImageSize? imageSize;
+  final Model3dInspection? modelInspection;
 }
 
 typedef ProjectLibraryEdit = ({

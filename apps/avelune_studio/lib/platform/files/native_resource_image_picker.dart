@@ -1,10 +1,20 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:avelune_studio/features/resources/domain/project_library_editor.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
+import 'package:map_authoring/map_authoring_api.dart' show ContentArtifactRef;
+import 'package:map_authoring/map_authoring_local.dart'
+    show decodesAsSingleFramePng;
+import 'package:map_distribution/map_distribution.dart';
+import 'package:path/path.dart' as p;
+
+const _maximumLibraryPngBytes = 64 * 1024 * 1024;
+const _maximumLibraryPngPixels = _maximumLibraryPngBytes ~/ 4;
+const _maximumLibraryGlbBytes = 128 * 1024 * 1024;
 
 class NativeResourceImagePicker {
   const NativeResourceImagePicker();
@@ -38,25 +48,13 @@ class NativeResourceImagePicker {
       dialogTitle: 'Importer une ressource PNG ou GLB',
       lockParentWindow: true,
     );
-    final selection = result?.files.single;
-    final path = selection?.path;
+    final path = result?.files.single.path;
     if (path == null) return null;
-    if (path.toLowerCase().endsWith('.glb')) {
-      return PickedProjectLibraryFile(path: path, name: _stem(selection!.name));
-    }
-    final file = File(path);
-    await _checkLength(file);
-    final input = await file.open();
-    try {
-      return PickedProjectLibraryFile(
-        path: path,
-        name: _stem(selection!.name),
-        imageSize: _pngSize(await input.read(24)),
-      );
-    } finally {
-      await input.close();
-    }
+    return inspectLibraryFile(path);
   }
+
+  Future<PickedProjectLibraryFile> inspectLibraryFile(String path) =>
+      Isolate.run(() => _inspectLibraryFile(path));
 
   static String _stem(String name) =>
       name.replaceFirst(RegExp(r'\.(png|glb)$', caseSensitive: false), '');
@@ -87,4 +85,79 @@ class NativeResourceImagePicker {
     }
     return (width: width, height: height);
   }
+}
+
+Future<PickedProjectLibraryFile> _inspectLibraryFile(String path) async {
+  final extension = p.extension(path).toLowerCase();
+  if (extension != '.png' && extension != '.glb') {
+    throw const ResourceFailure('Choisissez un fichier PNG ou GLB.');
+  }
+  final isPng = extension == '.png';
+  final bytes = await _readLibraryFile(
+    File(path),
+    isPng ? _maximumLibraryPngBytes : _maximumLibraryGlbBytes,
+  );
+  final name = p.basenameWithoutExtension(path);
+  if (isPng) {
+    final size = _inspectLibraryPng(bytes);
+    return PickedProjectLibraryFile(
+      path: path,
+      name: name,
+      artifact: ContentArtifactRef.fromBytes(bytes, mediaType: 'image/png'),
+      imageSize: size,
+    );
+  }
+  try {
+    final model = const GlbModel3dInspector().inspect(bytes);
+    return PickedProjectLibraryFile(
+      path: path,
+      name: name,
+      artifact: ContentArtifactRef.fromBytes(
+        bytes,
+        mediaType: 'model/gltf-binary',
+      ),
+      modelInspection: model,
+    );
+  } on FormatException {
+    throw const ResourceFailure(
+      'Ce modèle ne peut pas être lu. Choisissez un fichier GLB 2.0 autonome.',
+    );
+  }
+}
+
+Future<Uint8List> _readLibraryFile(File file, int maximumBytes) async {
+  const inaccessible = ResourceFailure(
+    'Le fichier choisi est inaccessible. Sélectionnez-le à nouveau.',
+  );
+  final tooLarge = ResourceFailure(
+    'Le fichier dépasse la limite de ${maximumBytes ~/ (1024 * 1024)} Mio.',
+  );
+  try {
+    final metadata = await file.stat();
+    if (metadata.type != FileSystemEntityType.file) throw inaccessible;
+    if (metadata.size > maximumBytes) throw tooLarge;
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk in file.openRead(0, maximumBytes + 1)) {
+      if (bytes.length + chunk.length > maximumBytes) throw tooLarge;
+      bytes.add(chunk);
+    }
+    return bytes.takeBytes();
+  } on FileSystemException {
+    throw inaccessible;
+  }
+}
+
+LibraryImageSize _inspectLibraryPng(Uint8List bytes) {
+  const unreadable = ResourceFailure(
+    'Cette image ne peut pas être lue. Choisissez un PNG statique complet.',
+  );
+  final size = decodeRasterImageDimensions(bytes, mediaType: 'image/png');
+  if (size == null) throw unreadable;
+  if (size.width > _maximumLibraryPngPixels ~/ size.height) {
+    throw const ResourceFailure('Cette image dépasse 64 Mio une fois décodée.');
+  }
+  if (!decodesAsSingleFramePng(bytes, width: size.width, height: size.height)) {
+    throw unreadable;
+  }
+  return (width: size.width, height: size.height);
 }

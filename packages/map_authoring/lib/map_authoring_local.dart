@@ -22,6 +22,7 @@ export 'src/domains/assets/resource_management_actions.dart'
 export 'src/domains/assets/resource_source_actions.dart'
     show ResourceSourceActions;
 export 'src/domains/assets/asset_store.dart' show assetBlobResourceIdentity;
+export 'src/domains/assets/png_decoding.dart' show decodesAsSingleFramePng;
 export 'src/domains/assets/tiled_image_collection_packer.dart'
     show TiledImageCollectionRasterCodec;
 export 'src/domains/gameplay/pokemon_catalog_coherence_loader.dart'

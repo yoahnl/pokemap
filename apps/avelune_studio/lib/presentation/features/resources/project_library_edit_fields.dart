@@ -42,9 +42,11 @@ extension _ProjectLibraryEditFields on _ProjectLibraryEditDialogState {
       const SizedBox(height: StudioSpacing.m),
     ],
     if (widget.file case final file?) ...[
-      Text(switch (file.imageSize) {
-        final size? => 'Image PNG · ${size.width} × ${size.height} px',
-        null => 'Modèle 3D GLB',
+      Text(switch ((file.imageSize, file.modelInspection)) {
+        (final size?, _) => 'Image PNG · ${size.width} × ${size.height} px',
+        (_, final model?) =>
+          'Modèle 3D GLB · ${model.meshCount} ${model.meshCount == 1 ? 'maillage' : 'maillages'}',
+        _ => 'Modèle 3D GLB',
       }),
       const SizedBox(height: StudioSpacing.m),
     ],

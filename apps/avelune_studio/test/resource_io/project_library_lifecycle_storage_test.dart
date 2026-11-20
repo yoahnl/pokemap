@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:avelune_studio/features/resources/domain/project_library_editor.dart';
+import 'package:avelune_studio/platform/files/native_resource_image_picker.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -46,7 +46,9 @@ void main() {
     final sourceFile = File('${fixture.root.path}/pilote.glb');
     await sourceFile.writeAsBytes(triangleGlb());
     final imported = await editor.importResource(
-      PickedProjectLibraryFile(path: sourceFile.path, name: 'Pilote'),
+      await const NativeResourceImagePicker().inspectLibraryFile(
+        sourceFile.path,
+      ),
       name: 'Pilote',
       tileSize: null,
       expectedRevision: revision,

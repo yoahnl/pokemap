@@ -6,6 +6,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
     Map<String, Object?> Function(ProjectManifest manifest) parameters, {
     String? sourcePath,
     String sourceMediaType = 'image/png',
+    ContentArtifactRef? expectedSource,
     String? createdTilesetId,
     List<BorderResourcePrimitive>? borderSources,
     String? expectedBeforeRevision,
@@ -127,6 +128,11 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           );
           artifactHandle = staged.reference.handle;
           stagedHandles.add(artifactHandle);
+          if (expectedSource != null && staged.reference != expectedSource) {
+            throw const ResourceFailure(
+              'Le fichier choisi a changé. Sélectionnez-le à nouveau.',
+            );
+          }
           fields['artifactHandle'] = artifactHandle;
           phase('artifact.staged');
         }
@@ -282,7 +288,9 @@ extension _LocalResourceMutation on LocalResourceAdapter {
     } on ResourceFailure {
       rethrow;
     } on Object catch (error) {
-      throw _resourceFailure(error);
+      throw expectedSource == null
+          ? _resourceFailure(error)
+          : _libraryImportFailure(error);
     } finally {
       _resourceMutationActive = false;
       try {

@@ -76,6 +76,7 @@ Future<ResourceMutationReceipt> _importResourceImage(
   LocalResourceAdapter adapter,
   ResourceImageImport request, {
   String? expectedBeforeRevision,
+  ContentArtifactRef? expectedSource,
 }) {
   final id = adapter._identity('source');
   return adapter._run(
@@ -89,6 +90,7 @@ Future<ResourceMutationReceipt> _importResourceImage(
     sourcePath: request.sourcePath,
     createdTilesetId: id,
     expectedBeforeRevision: expectedBeforeRevision,
+    expectedSource: expectedSource,
   );
 }
 

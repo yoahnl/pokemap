@@ -11,6 +11,7 @@ import 'package:avelune_studio/presentation/features/resources/project_library_p
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring_api.dart' show ContentArtifactRef;
 import 'package:map_core/map_core.dart';
 
 import '../support/scoped_map_workspace_port.dart';
@@ -164,11 +165,24 @@ void main() {
       final (_, editor) = await _open(
         tester,
         port,
-        file: const PickedProjectLibraryFile(
+        file: PickedProjectLibraryFile(
           path: '/picked.png',
           name: 'Planche',
-          imageSize: (width: 160, height: 64),
+          artifact: ContentArtifactRef.fromBytes(const [
+            1,
+          ], mediaType: 'image/png'),
+          imageSize: const (width: 160, height: 64),
         ),
+      );
+      await tester.tap(find.text('Importer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Image PNG · 160 × 64 px'), findsOneWidget);
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+      expect(editor.revisions, isEmpty);
+      expect(
+        find.byKey(const ValueKey('library-item-tileset:imported')),
+        findsNothing,
       );
       await tester.tap(find.text('Importer'));
       await tester.pumpAndSettle();
