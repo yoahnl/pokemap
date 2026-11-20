@@ -145,7 +145,6 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
         durationSeconds: 0.1,
       ),
     );
-    steps.add(PlayCryStep(speciesId: session.state.player.speciesId));
   } else {
     steps.add(
       CombatantMotionStep(
@@ -156,6 +155,7 @@ BattleAnimationPlan buildBattleIntroAnimationPlan({
       ),
     );
   }
+  steps.add(PlayCryStep(speciesId: session.state.player.speciesId));
   if (playerSendMessage != null) {
     steps.add(ShowMessageStep(message: playerSendMessage));
   }

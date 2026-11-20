@@ -143,6 +143,10 @@ void main() {
           .having((s) => s.durationSeconds, 'durée', 0.1),
       reason: 'ya.scalar(0.1, self, :zoom=, 0, sprite_zoom)',
     );
+    expect(
+      steps.whereType<PlayCryStep>().map((step) => step.speciesId),
+      ['sparkitten', 'sproutle'],
+    );
   });
 
   test(
@@ -162,5 +166,16 @@ void main() {
           'les deux camps glissent, comme avant BAT-022',
     );
     expect(plan.steps.whereType<PlayBallSequenceStep>(), isEmpty);
+    final playerArrival = plan.steps.indexWhere(
+      (step) => step is CombatantMotionStep && step.side == BattleSideId.player,
+    );
+    expect(
+      plan.steps[playerArrival + 1],
+      isA<PlayCryStep>().having((step) => step.speciesId, 'espèce', 'sproutle'),
+    );
+    expect(
+      plan.steps.whereType<PlayCryStep>().map((step) => step.speciesId),
+      ['sparkitten', 'sproutle'],
+    );
   });
 }

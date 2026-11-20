@@ -969,6 +969,7 @@ void main() {
         contains('roucoups est K.O. !'),
       );
       expect(plan.steps.whereType<FaintCombatantStep>(), hasLength(1));
+      expect(plan.steps.whereType<PlayCryStep>(), isEmpty);
     });
 
     test('switch event produces switchOut swap switchIn', () {
@@ -1047,6 +1048,9 @@ void main() {
       expect(balls.first.kind, BattleBallSequenceKind.recall);
       expect(balls.last.kind, BattleBallSequenceKind.sendOutHeld);
       expect(plan.steps.whereType<SwapCombatantVisualStep>(), hasLength(1));
+      final cry = plan.steps.whereType<PlayCryStep>().single;
+      expect(cry.speciesId, 'aquaffe');
+      expect(plan.steps.indexOf(cry), plan.steps.indexOf(motions.last) + 1);
     });
 
     test('field event produces screen effect', () {

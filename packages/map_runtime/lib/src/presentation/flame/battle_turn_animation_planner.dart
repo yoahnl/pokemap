@@ -1140,6 +1140,9 @@ final class BattleTurnAnimationPlanner {
                 durationSeconds: 0.1,
               ),
             );
+            if (incomingSpeciesId != null) {
+              steps.add(PlayCryStep(speciesId: incomingSpeciesId));
+            }
             trackedDisplayName[event.slot] = incomingName;
           } else {
             steps.add(
