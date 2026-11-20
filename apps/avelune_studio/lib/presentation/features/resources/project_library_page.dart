@@ -23,6 +23,7 @@ import '../../../features/resources/domain/studio_search_text.dart';
 import 'library/resource_library_view.dart';
 import 'library/resource_library_view_data.dart';
 import 'project_border_workshop.dart';
+import 'project_character_workshop.dart';
 import 'project_library_catalog_view.dart';
 import 'project_library_delete_dialog.dart';
 import 'project_library_edit_dialog.dart';
@@ -31,6 +32,7 @@ import 'project_library_pack_dialog.dart';
 import 'project_library_preview.dart';
 import 'project_model_replacement_panel.dart';
 import 'project_model_workshop.dart';
+import 'project_terrain_workshop.dart';
 import 'project_tileset_workshop.dart';
 
 part 'project_library_page_edits.dart';
@@ -97,14 +99,6 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
   }
 
   void _setPickingFile(bool value) => setState(() => _pickingFile = value);
-
-  void _removeEntry(_ProjectLibraryRead read, String id, String revision) {
-    setState(() {
-      read.revision = revision;
-      read.catalog.remove(id);
-      read.enriched?.remove(id);
-    });
-  }
 
   ResourceLibraryItemView _publish(
     _ProjectLibraryRead read,
@@ -305,8 +299,14 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
       showMapScopes: catalog.hasMapUsages,
       loadingMapUsages: loadingMapUsages,
       dimensionStatus: dimensionStatus,
-      buildWorkshops: (back, openMap) =>
-          _workshops(read, visuals, management, back, openMap),
+      buildWorkshops: (back, openMap) => _workshops(
+        read,
+        visuals,
+        management,
+        back,
+        openMap,
+        loadingMapUsages: loadingMapUsages,
+      ),
       canLeaveWorkshops: () => !_workshopBusy && !_workshopHasDraft,
       workshopAction: (item) => _workshopAction(read, item.id),
       onManageFamilies: organization == null

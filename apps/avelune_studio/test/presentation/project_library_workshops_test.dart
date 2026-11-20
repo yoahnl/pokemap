@@ -66,6 +66,49 @@ void main() {
     expect(port.previewReads, ['borderBlueprint:fence']);
   });
 
+  for (final (:kind, :id, :name, :action) in const [
+    (
+      kind: 'character',
+      id: 'hero',
+      name: 'Héros repère',
+      action: 'Atelier Personnages',
+    ),
+    (
+      kind: 'smartTilePreset',
+      id: 'path',
+      name: 'Chemin repère',
+      action: 'Atelier Terrains',
+    ),
+  ]) {
+    testWidgets('$kind opens the selected workshop through its card', (
+      tester,
+    ) async {
+      final (maps, port) = await _openLibrary(tester);
+      final draft = maps.active!;
+      draft.commit(draft.current.copyWith(name: 'Brouillon en cours'));
+      final search = find.descendant(
+        of: find.byKey(const ValueKey('library-search')),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(search, name);
+      await tester.pumpAndSettle();
+      final item = find.byKey(ValueKey('library-item-$kind:$id'));
+      await tester.tap(item);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(action));
+      await tester.pumpAndSettle();
+
+      expect(port.previewReads, ['$kind:$id']);
+      await tester.tap(find.text('Retour à la bibliothèque'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(ValueKey('library-detail-$kind:$id')), findsOneWidget);
+      expect(maps.active, same(draft));
+      expect(draft.current.name, 'Brouillon en cours');
+      expect(port.fullReads, 0);
+    });
+  }
+
   testWidgets('a workshop map link preserves the reference map filter', (
     tester,
   ) async {
@@ -145,6 +188,12 @@ final class _WorkshopLibraryPort extends ScopedTestMapPort
       id: 'fence',
       name: 'Clôture repère',
     ),
+    ProjectLibraryItem(kind: 'character', id: 'hero', name: 'Héros repère'),
+    ProjectLibraryItem(
+      kind: 'smartTilePreset',
+      id: 'path',
+      name: 'Chemin repère',
+    ),
   ], revision: 'catalog-1');
 
   @override
@@ -171,6 +220,30 @@ final class _WorkshopLibraryPort extends ScopedTestMapPort
           relativePath: 'atlas.png',
         ),
       ],
+      characters: const [
+        ProjectCharacterEntry(
+          id: 'hero',
+          name: 'Héros repère',
+          tilesetId: 'atlas',
+        ),
+      ],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        presets: const [
+          ProjectSmartTilePreset(
+            id: 'path',
+            name: 'Chemin repère',
+            usage: SmartTileUsage.path,
+            topology: SmartTileTopology.uniform,
+            coveragePolicy: SmartTileCoveragePolicy.complete,
+            coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: SmartTileTransformPolicy(),
+            defaultMaterialId: 'path-material',
+            allowedMaterialIds: ['path-material'],
+          ),
+        ],
+      ),
     );
   }
 }

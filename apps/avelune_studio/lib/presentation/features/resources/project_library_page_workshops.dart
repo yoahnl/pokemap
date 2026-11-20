@@ -28,8 +28,9 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
     MapWorkspaceVisuals? visuals,
     ProjectLibraryManagement? management,
     VoidCallback back,
-    Future<bool> Function(String)? openMap,
-  ) {
+    Future<bool> Function(String)? openMap, {
+    required bool loadingMapUsages,
+  }) {
     final selected = read.catalog.entries[_workshopEntry];
     if (selected == null) {
       return _ProjectWorkshopPicker(
@@ -44,6 +45,12 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
       _selectWorkshop(_workshopKind);
       back();
     }
+
+    final rename = management == null || read.revision == null
+        ? null
+        : () => _withWorkshopBusy(() async {
+            await _rename(context, read, management.editor, selected.identity);
+          });
 
     return switch (_workshopKind) {
       _ProjectWorkshopKind.models => _modelWorkshop(
@@ -69,6 +76,26 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
         management?.editor,
         visuals,
         leave,
+      ),
+      _ProjectWorkshopKind.characters => ProjectCharacterWorkshop(
+        key: ValueKey(selected.identity),
+        item: selected,
+        previews: read.previews,
+        visuals: visuals,
+        active: widget.active,
+        onBack: leave,
+        onRename: rename,
+      ),
+      _ProjectWorkshopKind.terrains => ProjectTerrainWorkshop(
+        key: ValueKey(selected.identity),
+        item: selected,
+        previews: read.previews,
+        visuals: visuals,
+        usages: _workshopMapUsages(read, selected.identity),
+        loadingMapUsages: loadingMapUsages,
+        onOpenMap: openMap,
+        onBack: leave,
+        onRename: rename,
       ),
     };
   }

@@ -1,6 +1,14 @@
 part of 'project_library_page.dart';
 
 extension _ProjectLibraryPageLifecycle on _ProjectLibraryPageState {
+  void _removeEntry(_ProjectLibraryRead read, String id, String revision) {
+    _updateView(() {
+      read.revision = revision;
+      read.catalog.remove(id);
+      read.enriched?.remove(id);
+    });
+  }
+
   Future<ResourceLibraryItemView?> _modify(
     BuildContext context,
     _ProjectLibraryRead read,

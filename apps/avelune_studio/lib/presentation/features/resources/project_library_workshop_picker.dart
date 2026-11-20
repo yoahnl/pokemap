@@ -21,6 +21,20 @@ enum _ProjectWorkshopKind {
     'Atelier Bordures',
     'Chercher une bordure',
     Icons.fence_outlined,
+  ),
+  characters(
+    'character',
+    'Personnages',
+    'Atelier Personnages',
+    'Chercher un personnage',
+    Icons.person_outline,
+  ),
+  terrains(
+    'smartTilePreset',
+    'Terrains',
+    'Atelier Terrains',
+    'Chercher un terrain ou un chemin',
+    Icons.terrain_outlined,
   );
 
   const _ProjectWorkshopKind(
@@ -113,7 +127,7 @@ class _ProjectWorkshopPickerState extends State<_ProjectWorkshopPicker> {
                         : 'Aucune ressource trouvée',
                     description: query.isEmpty
                         ? 'Les ressources de ce type apparaissent ici.'
-                        : 'Essayez un autre nom de modèle.',
+                        : 'Essayez une autre recherche.',
                   )
                 : ListView.builder(
                     itemCount: resources.length,

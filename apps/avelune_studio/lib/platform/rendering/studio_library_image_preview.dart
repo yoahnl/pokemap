@@ -54,11 +54,13 @@ class _StudioLibraryImagePreviewState extends State<StudioLibraryImagePreview> {
       if (resources == null) return _unavailable;
       final size = widget.size;
       return switch (widget.source) {
-        CharacterPreviewSource(:final character) => StudioCharacterThumbnail(
+        CharacterPreviewSource source => StudioCharacterThumbnail(
           resources: resources,
-          character: character,
+          character: source.character,
           size: size,
-          facing: EntityFacing.south,
+          facing: source.facing,
+          animationState: source.animationState,
+          elapsedMs: source.elapsedMs,
         ),
         AtlasPreviewSource source => _atlasPreview(resources, source),
         ElementPreviewSource(:final element) => StudioResourceThumbnail(
