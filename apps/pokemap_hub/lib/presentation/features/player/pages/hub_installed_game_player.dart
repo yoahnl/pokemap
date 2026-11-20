@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:map_runtime/map_runtime.dart';
-import 'package:video_player/video_player.dart';
 
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
@@ -21,6 +20,9 @@ import 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_spatial_render_resolution.dart';
+import 'package:pokemap_hub/presentation/features/player/splash/avelune_mobile_splash.dart';
+import 'package:pokemap_hub/presentation/features/player/splash/avelune_mobile_splash_palette.dart';
+import 'package:pokemap_hub/presentation/features/player/splash/avelune_mobile_splash_painter.dart';
 import 'package:pokemap_hub/embedding/avelune_gameplay_companion.dart';
 import 'package:flutter/services.dart';
 
@@ -783,8 +785,6 @@ class HubInstalledGamePlayer extends StatefulWidget {
     required this.hostBranding,
     required this.splashLogo,
     this.splashWordmark,
-    this.splashMovieAsset = 'assets/avelune/splash/avelune_eclipse.mp4',
-    this.splashMoviePackage = 'pokemap_hub',
     this.splashAudioDriver,
     this.diagnosticLogFile,
     this.controller,
@@ -808,8 +808,6 @@ class HubInstalledGamePlayer extends StatefulWidget {
   final RuntimeHostSplashBranding hostBranding;
   final ImageProvider? splashLogo;
   final ImageProvider? splashWordmark;
-  final String splashMovieAsset;
-  final String? splashMoviePackage;
   final FlameCinematicAudioDriver? splashAudioDriver;
   final File? diagnosticLogFile;
   final HubInstalledGamePlayerController? controller;
@@ -822,8 +820,8 @@ class HubInstalledGamePlayer extends StatefulWidget {
 }
 
 class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
-    with WidgetsBindingObserver {
-  static const _splashMovieRevealDuration = Duration(milliseconds: 2600);
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+  static const _iosSplashWorkDelay = Duration(milliseconds: 2600);
   final _startupImageBudget = RuntimeResourceBudget();
 
   final _gameplayViewportKey = GlobalKey();
@@ -844,7 +842,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   late final RuntimeSplashJingleController _splashJingle;
   late final Future<HubPreferencesRead> _preferencesRead;
   late final Future<void> _splashSequenceStarted;
-  VideoPlayerController? _splashMovie;
+  late final AveluneMobileSplashPalette? _mobileSplashPalette;
+  AnimationController? _mobileSplashProgress;
+  final Completer<void> _mobileSplashFinished = Completer<void>();
   final Completer<void> _splashImagesReady = Completer<void>();
   Completer<void>? _splashResume;
   bool _splashImagesRequested = false;
@@ -864,11 +864,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   _HubGameplayCompanionPort? _companionPort;
   StreamSubscription<RuntimePlayerSnapshot>? _companionSubscription;
 
-  bool get _useSplashMovie =>
-      Platform.isIOS &&
-      widget.hostBranding.displayName == 'AVELUNE' &&
-      widget.splashAudioDriver == null;
-
   @override
   void initState() {
     super.initState();
@@ -876,12 +871,29 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     widget.controller?._refreshLocales = _refreshLocales;
     widget.companionOwner?.addListener(_handleCompanionChanged);
     WidgetsBinding.instance.addObserver(this);
+    _mobileSplashPalette = widget.hostBranding.displayName == 'AVELUNE'
+        ? AveluneMobileSplashPalette.forPlatform(defaultTargetPlatform)
+        : null;
+    if (_mobileSplashPalette != null) {
+      _mobileSplashProgress =
+          AnimationController(
+            vsync: this,
+            duration: aveluneMobileSplashDuration,
+            animationBehavior: AnimationBehavior.preserve,
+          )..addStatusListener((status) {
+            if (status == AnimationStatus.completed) _finishMobileSplash();
+          });
+    }
     final mixer = RuntimeAudioMixer();
     _audioMixer = mixer;
     _splashJingle = RuntimeSplashJingleController(
       mixer: mixer,
       driver: widget.splashAudioDriver,
-      enabled: !_useSplashMovie,
+      enabled: _mobileSplashProgress == null,
+      asset: _mobileSplashProgress == null
+          ? runtimePremiumSplashJingleAsset
+          : 'avelune_lagune_jingle.wav',
+      resumeOnLifecycle: _mobileSplashProgress != null,
     );
     _preferencesRead = Future<HubPreferencesRead>.sync(
       widget.preferencesRepository.load,
@@ -893,17 +905,19 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_useSplashMovie) return;
     _precacheSplashImages();
   }
 
   void _precacheSplashImages() {
     if (_splashImagesRequested) return;
     _splashImagesRequested = true;
+    final palette = _mobileSplashPalette;
     final images = <ImageProvider>[
       if (widget.splashLogo != null) widget.splashLogo!,
       if (widget.splashWordmark != null) widget.splashWordmark!,
-      if (widget.hostBranding.displayName == 'AVELUNE') ...<ImageProvider>[
+      if (palette != null)
+        palette.wordmark
+      else if (widget.hostBranding.displayName == 'AVELUNE') ...<ImageProvider>[
         const AssetImage(
           'assets/splash/eclipse_orbit_soft.png',
           package: 'map_player_ui',
@@ -933,6 +947,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     try {
       final preferences = (await _preferencesRead).preferences;
       if (_closing) return;
+      _reducedMotion = preferences.reducedMotion;
       await mixer.transitionTo(
         RuntimeAudioMix(
           masterVolume: preferences.masterVolume,
@@ -940,53 +955,23 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
           effectsVolume: preferences.effectsVolume,
         ),
       );
-      if (!_lifecycleActive) {
+      await _splashImagesReady.future;
+      while (!_lifecycleActive && !_closing) {
         await (_splashResume ??= Completer<void>()).future;
       }
-      if (!mounted || _closing) return;
-      if (_useSplashMovie) {
-        final movie = VideoPlayerController.asset(
-          widget.splashMovieAsset,
-          package: widget.splashMoviePackage,
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-        );
-        try {
-          await movie.initialize();
-          await movie.setVolume(
-            mixer.mix.volumeFor(RuntimeAudioRoute.splash, sourceVolume: .6),
-          );
-          await movie.setLooping(false);
-          if (!mounted || _closing) {
-            await movie.dispose();
-            return;
-          }
-          _splashMovie = movie;
-          setState(() {});
-          await WidgetsBinding.instance.endOfFrame;
-          if (!mounted || _closing) return;
-          await movie.play();
-          if (mounted && !_closing) {
-            setState(() => _splashAnimationReady = true);
-          }
-          return;
-        } on Object {
-          if (identical(_splashMovie, movie)) {
-            _splashMovie = null;
-            if (mounted) setState(() {});
-          }
-          if (!mounted || _closing) return;
-          await movie.dispose();
-          _precacheSplashImages();
-        }
-      }
-      await _splashImagesReady.future;
-      if (!mounted) return;
+      if (!mounted || _closing || _mobileSplashFinished.isCompleted) return;
       _splashJingle.enabled = true;
       await _splashJingle.playOnce();
     } on Object {
-      if (!mounted) return;
+      if (!mounted || _closing) return;
     }
-    if (mounted) setState(() => _splashAnimationReady = true);
+    if (!mounted || _closing || _mobileSplashFinished.isCompleted) return;
+    setState(() => _splashAnimationReady = true);
+    if (_lifecycleActive) unawaited(_mobileSplashProgress?.forward());
+  }
+
+  void _finishMobileSplash() {
+    if (!_mobileSplashFinished.isCompleted) _mobileSplashFinished.complete();
   }
 
   void _startRuntimeBootstrap() {
@@ -998,9 +983,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             saveRepositoryFactory: widget.saveRepositoryFactory,
             preferencesRepository: widget.preferencesRepository,
             preferencesRead: _preferencesRead,
-            startupWorkGate: _useSplashMovie
+            startupWorkGate:
+                _mobileSplashPalette == AveluneMobileSplashPalette.ios
                 ? _splashSequenceStarted.then(
-                    (_) => Future<void>.delayed(_splashMovieRevealDuration),
+                    (_) => Future<void>.delayed(_iosSplashWorkDelay),
                   )
                 : null,
             audioMixer: _audioMixer,
@@ -1019,7 +1005,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             diagnosticLogFile: widget.diagnosticLogFile,
           ),
           hostBranding: widget.hostBranding,
-          splashSequenceStarted: _splashSequenceStarted,
+          minimumSplashDuration: _mobileSplashProgress == null
+              ? null
+              : widget.hostBranding.exitTransitionDuration,
+          splashSequenceStarted: _mobileSplashProgress == null
+              ? _splashSequenceStarted
+              : _mobileSplashFinished.future,
           onPrepared: _acceptRuntimeBootstrap,
         );
     _startupCoordinator = startup;
@@ -1058,10 +1049,14 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
 
   void _handleStartupSnapshot(RuntimeStartupSnapshot snapshot) {
     if (!mounted || _closing) return;
-    if (snapshot.phase != RuntimeStartupPhase.splash &&
-        snapshot.phase != RuntimeStartupPhase.preparing) {
-      final movie = _splashMovie;
-      if (movie != null) unawaited(movie.pause());
+    if (_mobileSplashProgress != null &&
+        !_mobileSplashFinished.isCompleted &&
+        snapshot.phase != RuntimeStartupPhase.splash &&
+        snapshot.phase != RuntimeStartupPhase.preparing &&
+        snapshot.phase != RuntimeStartupPhase.lifecyclePaused) {
+      _mobileSplashProgress?.stop(canceled: false);
+      _finishMobileSplash();
+      unawaited(_splashJingle.stop());
     }
     setState(() => _startupSnapshot = snapshot);
     widget.companionOwner?.invalidate();
@@ -1199,13 +1194,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (!_lifecycleActive && mounted) {
         setState(() => _lifecycleActive = true);
       }
-      unawaited(_resumeStartupAndRefreshLocales(startup?.resumeFromLifecycle()));
-      unawaited(_splashJingle.resumeFromLifecycle());
-      if (_splashMovie != null &&
-          (_startupSnapshot?.phase == RuntimeStartupPhase.splash ||
-              _startupSnapshot?.phase == RuntimeStartupPhase.preparing)) {
-        unawaited(_splashMovie!.play());
-      }
+      unawaited(
+        _resumeStartupAndRefreshLocales(startup?.resumeFromLifecycle()),
+      );
+      unawaited(_resumeSplash());
       unawaited(_presentationRuntime?.controller.resumeAfterLifecycle());
       return;
     }
@@ -1220,9 +1212,18 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         unawaited(startup.pauseForLifecycle());
       }
       unawaited(_splashJingle.pauseForLifecycle());
-      final movie = _splashMovie;
-      if (movie != null) unawaited(movie.pause());
+      _mobileSplashProgress?.stop(canceled: false);
       unawaited(_presentationRuntime?.controller.pauseForLifecycle());
+    }
+  }
+
+  Future<void> _resumeSplash() async {
+    await _splashJingle.resumeFromLifecycle();
+    if (!_closing &&
+        _lifecycleActive &&
+        _splashAnimationReady &&
+        !_mobileSplashFinished.isCompleted) {
+      unawaited(_mobileSplashProgress?.forward());
     }
   }
 
@@ -1326,15 +1327,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         titleMenuPoster: _startupImage(resolvedPresentation?.titleMenuPoster),
         splashLogo: widget.splashLogo,
         splashWordmark: widget.splashWordmark,
-        splashCinematic: _splashMovie == null
+        splashCinematic: _mobileSplashProgress == null
             ? null
-            : FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _splashMovie!.value.size.width,
-                  height: _splashMovie!.value.size.height,
-                  child: VideoPlayer(_splashMovie!),
-                ),
+            : AveluneMobileSplash(
+                key: const ValueKey<String>('avelune-mobile-splash'),
+                progress: _mobileSplashProgress!,
+                palette: _mobileSplashPalette!,
+                reducedMotion: _reducedMotion,
               ),
         reducedMotion: _reducedMotion,
         splashAnimationReady: _splashAnimationReady,
@@ -1635,6 +1634,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
 
   Future<void> _stopOwnedResources() async {
     _closing = true;
+    _mobileSplashProgress?.stop(canceled: false);
+    _finishMobileSplash();
     final preparationClosed = _bootstrapLifetime.close();
     await widget.beforePlayerStops?.call();
     widget.companionOwner?.removeListener(_handleCompanionChanged);
@@ -1667,8 +1668,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     _presentationRuntime = null;
     final startupSubscription = _startupSubscription;
     _startupSubscription = null;
-    final movie = _splashMovie;
-    _splashMovie = null;
     await Future.wait<void>([
       preparationClosed,
       if (companionSubscription != null) companionSubscription.cancel(),
@@ -1676,7 +1675,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (startupSubscription != null) startupSubscription.cancel(),
       if (startupCoordinator != null) startupCoordinator.dispose(),
       _splashJingle.dispose(),
-      if (movie != null) movie.dispose(),
     ]);
   }
 
@@ -1701,6 +1699,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       widget.controller?._refreshLocales = null;
     }
     unawaited(_stop());
+    _mobileSplashProgress?.dispose();
     super.dispose();
   }
 }

@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/core/config/avelune_runtime_splash_branding.dart';
 import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
+import 'package:pokemap_hub/presentation/features/player/splash/avelune_mobile_splash_palette.dart';
 
 import 'avelune_library_bridge.dart';
 import 'avelune_frame_rate_bridge.dart';
@@ -17,18 +19,10 @@ import 'avelune_debug_hud.dart';
 import 'avelune_runtime_diagnostics.dart';
 
 class AveluneRuntimeApp extends StatefulWidget {
-  const AveluneRuntimeApp({
-    super.key,
-    this.splashLogo,
-    this.splashWordmark,
-    this.splashMovieAsset = 'assets/avelune/splash/avelune_eclipse.mp4',
-    this.splashMoviePackage = 'pokemap_hub',
-  });
+  const AveluneRuntimeApp({super.key, this.splashLogo, this.splashWordmark});
 
   final ImageProvider? splashLogo;
   final ImageProvider? splashWordmark;
-  final String splashMovieAsset;
-  final String? splashMoviePackage;
 
   @override
   State<AveluneRuntimeApp> createState() => _AveluneRuntimeAppState();
@@ -161,12 +155,13 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp>
                     ),
                 splashWordmark:
                     widget.splashWordmark ??
+                    AveluneMobileSplashPalette.forPlatform(
+                      defaultTargetPlatform,
+                    )?.wordmark ??
                     const AssetImage(
                       'assets/avelune/logo/avelune_glass_wordmark.png',
                       package: 'pokemap_hub',
                     ),
-                splashMovieAsset: widget.splashMovieAsset,
-                splashMoviePackage: widget.splashMoviePackage,
                 diagnosticLogFile: File(
                   p.join(
                     _bridge.supportRoot.path,

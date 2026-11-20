@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -15,6 +16,8 @@ import 'package:pokemap_hub/features/session/domain/entities/installed_game_laun
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_game_player.dart';
+import 'package:pokemap_hub/presentation/features/player/splash/avelune_mobile_splash.dart';
+import 'package:pokemap_hub/presentation/features/player/splash/avelune_mobile_splash_palette.dart';
 
 import '../../../support/runtime_player_hub_fixture.dart';
 
@@ -282,6 +285,107 @@ void main() {
     await tester.pump();
   });
 
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets(
+      'keeps the Flutter splash mounted on rotation on ${platform.name}',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(390, 844));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final launch = Completer<InstalledGameLaunchContext>();
+        final preferences = Completer<HubPreferencesRead>();
+        final audio = _GateSplashAudioDriver();
+        final bundle = _MobileSplashAssets();
+        final palette = AveluneMobileSplashPalette.forPlatform(platform)!;
+        await tester.runAsync(() async {
+          final stream = palette.wordmark.resolve(
+            ImageConfiguration(bundle: bundle),
+          );
+          final image = Completer<void>();
+          final listener = ImageStreamListener((info, _) {
+            info.dispose();
+            image.complete();
+          }, onError: image.completeError);
+          stream.addListener(listener);
+          try {
+            await image.future;
+          } finally {
+            stream.removeListener(listener);
+          }
+        });
+        await tester.pumpWidget(
+          DefaultAssetBundle(
+            bundle: bundle,
+            child: MaterialApp(
+              home: HubInstalledGamePlayer(
+                supportRoot: Directory.systemTemp,
+                saveRepositoryFactory: (_, _) => throw UnimplementedError(),
+                preferencesRepository: _PendingPreferencesRepository(
+                  preferences.future,
+                ),
+                controlProfileRepository: _UnusedControlProfileRepository(),
+                launchResolver: _PendingLaunchResolver(launch.future),
+                game: _game(),
+                hostBranding: const RuntimeHostSplashBranding(
+                  displayName: 'AVELUNE',
+                  signature: 'RUNTIME',
+                ),
+                splashLogo: null,
+                splashAudioDriver: audio,
+                onHubRequested: () async {},
+                diagnosticLogFile: File('/dev/null'),
+              ),
+            ),
+          ),
+        );
+        final splash = find.byKey(const ValueKey('avelune-mobile-splash'));
+        expect(splash, findsOneWidget);
+        expect(tester.getSize(splash), const Size(390, 844));
+        final state = tester.state(splash);
+        await tester.binding.setSurfaceSize(const Size(844, 390));
+        await tester.pump();
+        expect(tester.getSize(splash), const Size(844, 390));
+        expect(tester.state(splash), same(state));
+        preferences.complete(
+          const HubPreferencesRead(
+            preferences: PlayerPreferences(masterVolume: .5, musicVolume: .4),
+            source: HubPreferencesSource.current,
+            currentCorrupt: false,
+            backupCorrupt: false,
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+        expect(audio.playCalls, 1);
+        expect(audio.lastAsset, 'avelune_lagune_jingle.wav');
+        audio.start();
+        await tester.pump();
+        await tester.pump();
+        expect(
+          tester.widget<PlayerRuntimeStartupShell>(
+            find.byType(PlayerRuntimeStartupShell),
+          ).splashAnimationReady,
+          isTrue,
+        );
+        await tester.pump(const Duration(milliseconds: 900));
+        final progress = tester.widget<AveluneMobileSplash>(splash).progress;
+        final beforeRotation = progress.value;
+        expect(beforeRotation, inExclusiveRange(0, 1));
+        await tester.binding.setSurfaceSize(const Size(390, 844));
+        await tester.pump();
+        expect(tester.state(splash), same(state));
+        expect(progress.value, closeTo(beforeRotation, .002));
+        expect(audio.playCalls, 1);
+        await tester.pump(const Duration(milliseconds: 3500));
+        expect(progress.value, 1);
+        launch.completeError(StateError('bootstrap test completed'));
+        await tester.pump();
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(milliseconds: 2600));
+      },
+      variant: TargetPlatformVariant({platform}),
+    );
+  }
+
   testWidgets('mounts the runtime splash in the host locale on the first frame', (tester) async {
     final launch = Completer<InstalledGameLaunchContext>();
     const logo = AssetImage('assets/avelune/logo/avelune_moon.png');
@@ -357,9 +461,16 @@ void main() {
   });
 }
 
+final class _MobileSplashAssets extends CachingAssetBundle {
+  @override
+  Future<ByteData> load(String key) =>
+      rootBundle.load(key.replaceFirst('packages/pokemap_hub/', ''));
+}
+
 final class _GateSplashAudioDriver implements FlameCinematicAudioDriver {
   final Completer<Object> _started = Completer<Object>();
   int playCalls = 0;
+  String? lastAsset;
   double? lastVolume;
 
   void start() => _started.complete(Object());
@@ -371,6 +482,7 @@ final class _GateSplashAudioDriver implements FlameCinematicAudioDriver {
     required bool loop,
   }) {
     playCalls++;
+    lastAsset = path;
     lastVolume = volume;
     return _started.future;
   }

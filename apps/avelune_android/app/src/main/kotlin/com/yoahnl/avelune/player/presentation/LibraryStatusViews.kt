@@ -187,7 +187,7 @@ internal fun InstallationScreen(stage: LibraryInstallationStage, gameName: Strin
             verticalArrangement = Arrangement.spacedBy(25.dp),
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                AveluneWordmark(Modifier.size(width = 170.dp, height = 50.dp).offset(x = (-14).dp))
+                AveluneWordmark(Modifier.size(width = 116.dp, height = 50.dp))
                 Spacer(Modifier.weight(1f))
                 Text(stringResource(R.string.install_label), color = palette.cyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
             }

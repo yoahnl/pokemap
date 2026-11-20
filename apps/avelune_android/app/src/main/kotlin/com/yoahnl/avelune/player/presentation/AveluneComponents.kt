@@ -103,7 +103,7 @@ fun AveluneMoon(modifier: Modifier) {
 
 @Composable
 fun AveluneWordmark(modifier: Modifier) {
-    Image(painterResource(R.drawable.avelune_glass_wordmark), stringResource(R.string.app_name), modifier)
+    Image(painterResource(R.drawable.avelune_wordmark), stringResource(R.string.app_name), modifier)
 }
 
 @Composable

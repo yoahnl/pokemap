@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -261,7 +260,7 @@ private fun SettingsHeader() {
             .padding(horizontal = 24.dp).padding(top = 8.dp, bottom = 22.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        AveluneWordmark(Modifier.size(width = 205.dp, height = 58.dp).offset(x = (-18).dp))
+        AveluneWordmark(Modifier.size(width = 134.dp, height = 58.dp))
         Text(stringResource(R.string.settings_header_label), color = palette.cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.5.sp)
         Text(stringResource(R.string.settings_title), color = palette.text, fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold)
         Text(stringResource(R.string.settings_header_detail), color = palette.muted, fontSize = 15.sp)

@@ -57,7 +57,8 @@ flutter:
   assets:
     - assets/avelune/artwork/
     - assets/avelune/logo/
-    - assets/avelune/splash/
+    - assets/avelune/splash/avelune-ios-lettrage-vague.png
+    - assets/avelune/splash/avelune-android-lettrage-vague.png
     - assets/avelune/materials/
     - assets/avelune/objects/cartridge/
     - assets/avelune/objects/console/
