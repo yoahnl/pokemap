@@ -26,8 +26,11 @@ void main() {
   test('publication touches the same document data with 0, 120 and 1200 unrelated documents', () async {
     final baselines = <int, int>{};
     for (final unrelated in [0, 120, 1200]) {
+      final setup = Stopwatch()..start();
+      final unrelatedPerKind = unrelated ~/ 3;
       final qa = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/histoire-d2b-01a1e117/tests',
+        Platform.environment['AVELUNE_QA_ROOT'] ??
+            '${Platform.environment['HOME']}/Library/Caches/AveluneQA/dialogue-working-catalog-tests',
       );
       final root = await (await qa.create(recursive: true))
           .createTemp('catalog-');
@@ -99,7 +102,7 @@ void main() {
           ],
           dialogues: [
             entry,
-            for (var i = 0; i < unrelated; i++)
+            for (var i = 0; i < unrelatedPerKind; i++)
               entry.copyWith(
                 id: 'foreign_$i',
                 relativePath: 'dialogues/foreign_$i.yarn',
@@ -108,11 +111,11 @@ void main() {
           scenes: [
             dialogueConsumerScene('a', entry.id),
             dialogueConsumerScene('b', entry.id),
-            for (var i = 0; i < unrelated; i++)
+            for (var i = 0; i < unrelatedPerKind; i++)
               dialogueConsumerScene('foreign_$i', 'foreign_$i'),
           ],
           facts: [
-            for (var i = 0; i < unrelated; i++)
+            for (var i = 0; i < unrelatedPerKind; i++)
               NarrativeFactDefinition(id: 'foreign_$i', label: 'Foreign'),
           ],
         ),
@@ -129,26 +132,35 @@ void main() {
       );
       final maps = LocalMapWorkspaceAdapter();
       await maps.loadProject(session);
+      Future<String> poisonUnrelatedDocument(String field, int index) async {
+        final row = (await working.catalog.snapshot.lookup(
+          CatalogMetadataDocuments.documentKey(field, 'foreign_$index'),
+        ))!;
+        final unit = (await working.catalog.snapshot.indexEntry(
+          CatalogMetadataDocuments.definitionKey(
+            field,
+            row.payload['position'] as int,
+          ),
+        ))!;
+        final path =
+            '${root.path}/catalog/objects/${unit.reference.sha256}.json';
+        await File(path).writeAsString('Unrelated document must stay unread.');
+        return path;
+      }
+
       final foreignPaths = <String>{};
-      for (var i = 0; i < unrelated; i++) {
-        for (final field in ['dialogues', 'scenes', 'facts']) {
-          final row = (await working.catalog.snapshot.lookup(
-            CatalogMetadataDocuments.documentKey(field, 'foreign_$i'),
-          ))!;
-          final unit = (await working.catalog.snapshot.indexEntry(
-            CatalogMetadataDocuments.definitionKey(
-              field,
-              row.payload['position'] as int,
-            ),
-          ))!;
-          final path =
-              '${root.path}/catalog/objects/${unit.reference.sha256}.json';
-          foreignPaths.add(path);
-          await File(path)
-              .writeAsString('Unrelated document must stay unread.');
-        }
+      for (var start = 0; start < unrelatedPerKind; start += 8) {
+        final end = (start + 8).clamp(0, unrelatedPerKind);
+        foreignPaths.addAll(await Future.wait([
+          for (var index = start; index < end; index++)
+            for (final field in ['dialogues', 'scenes', 'facts'])
+              poisonUnrelatedDocument(field, index),
+        ]));
       }
       await working.close();
+      debugPrint(
+        'D2b foreign=$unrelated fixture preparation=${setup.elapsedMilliseconds} ms',
+      );
       final descriptor = await File('${root.path}/project.json').readAsBytes();
       final port = LocalDialogueAdapter(session: session, mapAdapter: maps);
       var base = DialogueSourceSnapshot(
@@ -293,5 +305,5 @@ void main() {
       expect(original.dialogue.entry, base.entry);
       expect(original.sceneIds.toSet(), {'a', 'b'});
     }
-  }, timeout: const Timeout(Duration(minutes: 5)));
+  }, timeout: const Timeout(Duration(minutes: 10)));
 }

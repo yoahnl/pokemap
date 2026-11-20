@@ -41,6 +41,21 @@ class LocalDialogueTransaction {
         ? 'dialogue.source_update'
         : 'dialogue.update';
     final path = entry?.relativePath ?? base!.entry.relativePath;
+    final variantsOnly =
+        session.storage == ProjectSessionStorage.workingCatalog &&
+        action == 'dialogue.update' &&
+        base != null &&
+        entry != null &&
+        lineTextEdits == null &&
+        source == base.source &&
+        base.entry.localization != null &&
+        entry.localization != null &&
+        base.entry.copyWith(localization: entry.localization) == entry;
+    final sourceRevision = source == null
+        ? null
+        : variantsOnly
+        ? base.revision
+        : narrativeEventBytesFingerprint(utf8.encode(source));
     final resources =
         await LocalNarrativeCatalogTransaction(
           session: session,
@@ -57,7 +72,7 @@ class LocalDialogueTransaction {
               'dialogueId': id
             else
               'entry': entry!.toJson(),
-            'source': ?source,
+            if (!variantsOnly) 'source': ?source,
             if (lineTextEdits != null)
               'lineTextEdits': lineTextEdits
                   .map((edit) => edit.toJson())
@@ -85,8 +100,7 @@ class LocalDialogueTransaction {
         projectRoot: session.directoryPath,
         relativePath: path,
       );
-      if (narrativeEventBytesFingerprint(written) !=
-          narrativeEventBytesFingerprint(utf8.encode(source))) {
+      if (narrativeEventBytesFingerprint(written) != sourceRevision) {
         throw const DialogueFailure(
           'Le reçu ne correspond pas à la source. Le brouillon reste ouvert.',
         );
@@ -109,7 +123,7 @@ class LocalDialogueTransaction {
           : DialogueSourceSnapshot(
               entry: entry,
               source: source!,
-              revision: narrativeEventBytesFingerprint(utf8.encode(source)),
+              revision: sourceRevision!,
             ),
     );
   }

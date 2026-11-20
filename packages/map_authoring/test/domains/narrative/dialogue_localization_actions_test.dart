@@ -3,17 +3,20 @@ import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/map_authoring_dialogue.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import 'dialogue_atomic_fixture.dart';
+import '../../support/reliability_map_fixture.dart';
 
-Future<ProjectDialogueEntry> _localize(DialogueAtomicFixture f) async {
+Future<ProjectDialogueEntry> _localize(DialogueAtomicFixture f,
+    {ProjectDialogueEntry initial = DialogueAtomicFixture.entry}) async {
   final draft = readLocalizedDialogue(
       source: DialogueAtomicFixture.sourceText, sourceLocale: 'fr');
   final catalog = draft.localization
       .translate(draft.localization.units.single.id, 'en', 'Hello');
-  final entry = DialogueAtomicFixture.entry.copyWith(localization: catalog);
+  final entry = initial.copyWith(localization: catalog);
   final plan = await f.api.planMutation(
       f.opened.projectHandle,
       await f.request('dialogue.update',
@@ -54,6 +57,131 @@ void main() {
     final disk = await f.loader.load(opened.projectHandle);
     expect(disk.manifest.dialogues.single, entry);
     expect(await f.source.readAsString(), DialogueAtomicFixture.sourceText);
+  });
+
+  test('working catalog saves variants without loading dialogue consumers',
+      () async {
+    final initial = DialogueAtomicFixture.entry.copyWith(folderId: 'arrivals');
+    final linked = SceneAsset(
+      id: 'arrival',
+      name: 'Arrival',
+      graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(
+            id: 'greeting',
+            kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(
+                dialogueId: DialogueAtomicFixture.entry.id,
+                yarnNodeName: 'Accueil')),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ], edges: [
+        for (final (from, to) in [('start', 'greeting'), ('greeting', 'end')])
+          SceneEdge(
+              id: '$from-$to',
+              fromNodeId: from,
+              fromPortId: 'completed',
+              toNodeId: to,
+              kind: SceneEdgeKind.defaultFlow),
+      ]),
+    );
+    final reader = ReliabilityCountingReader();
+    final f = await DialogueAtomicFixture.create(
+      catalog: true,
+      reader: reader,
+      manifest: ProjectManifest(
+        name: 'Dialogue variants',
+        version: ProjectVersion.v9,
+        settings: ProjectSettings(
+          dimension: ProjectDimension.threeD,
+          spatialCamera: SpatialCameraProfile(),
+        ),
+        maps: [],
+        tilesets: [],
+        dialogueFolders: const [
+          ProjectDialogueFolder(id: 'stations', name: 'Stations'),
+          ProjectDialogueFolder(
+              id: 'arrivals', name: 'Arrivals', parentFolderId: 'stations'),
+        ],
+        scenes: [linked],
+        dialogues: [
+          initial,
+          for (var index = 0; index < 24; index++)
+            ProjectDialogueEntry(
+                id: 'unrelated-$index',
+                name: 'Unrelated $index',
+                relativePath: 'dialogues/unrelated-$index.yarn'),
+        ],
+      ),
+    );
+    addTearDown(f.dispose);
+    var entry = await _localize(f, initial: initial);
+    final source = await f.source.readAsString();
+    final store = await CatalogStorageStore.open(projectRoot: f.directory.path);
+    Future<CatalogObjectReference> documentRef(String field, String id) async {
+      final snapshot =
+          (await store.openRoot((await store.readHead())!)).snapshot;
+      final address = (await snapshot
+          .lookup(CatalogMetadataDocuments.documentKey(field, id)))!;
+      final key = CatalogMetadataDocuments.definitionKey(
+          field, address.payload['position'] as int);
+      return (await snapshot.indexEntry(key))!.reference;
+    }
+
+    final scene = await documentRef('scenes', linked.id);
+    final unrelated = await documentRef('dialogues', 'unrelated-23');
+    final blockedReads = {
+      for (final reference in [scene, unrelated])
+        'catalog/objects/${reference.sha256}.json',
+    };
+    const action = 'dialogue.update';
+    final handle = f.opened.projectHandle;
+    for (final (index, text) in ['Good day', 'Good morning'].indexed) {
+      final locale = entry.localization!;
+      entry = entry.copyWith(
+          localization: locale.translate(locale.units.single.id, 'en', text));
+      final parameters = {'entry': entry.toJson()};
+      reader.paths.clear();
+      final snapshot = await f.api.readWorkshopSnapshot(handle,
+          actionId: action, parameters: parameters);
+      expect(reader.paths.where(blockedReads.contains), isEmpty);
+      expect(snapshot.availableProjectDocuments, {
+        'dialogues': {entry.id},
+        'dialogueFolders': {'arrivals', 'stations'},
+      });
+      final operation = 'variant-$index';
+      final plan = await f.api.planMutation(
+          handle,
+          AuthoringRequest(
+              requestId: operation,
+              actionId: action,
+              actionVersion: 1,
+              workspaceHandle: f.opened.workspaceHandle.value,
+              expectedRevision: snapshot.revision,
+              parameters: parameters,
+              extensions: const {'workshopScope': true},
+              idempotencyKey: operation));
+      expect(plan.plan.changeSet.changes.map((change) => change.storageKey),
+          [CatalogStorageStore.headStorageKey]);
+      await f.api.apply(handle, planId: plan.planId, operationId: operation);
+      final reread = await f.api.readWorkshopSnapshot(handle,
+          actionId: action, parameters: parameters);
+      expect(reread.manifest.dialogues.single, entry);
+      expect(reader.paths.where(blockedReads.contains), isEmpty);
+    }
+    expect(await documentRef('scenes', linked.id), scene);
+    expect(await documentRef('dialogues', 'unrelated-23'), unrelated);
+    expect(await f.source.readAsString(), source);
+    final reopened = await f.readApi.openProject(f.directory.path);
+    addTearDown(() => f.readApi.closeWorkspace(reopened.workspaceHandle));
+    final disk = await f.loader.load(reopened.projectHandle);
+    expect(disk.manifest.dialogues.first, entry);
+    expect(disk.manifest.scenes.single, linked);
+    for (final text in [source, source.replaceFirst('Accueil', 'Autre')]) {
+      final structural = await f.api.readWorkshopSnapshot(handle,
+          actionId: action,
+          parameters: {'entry': entry.toJson(), 'source': text});
+      expect(structural.availableProjectDocuments?['scenes'], {linked.id});
+    }
   });
 
   test(

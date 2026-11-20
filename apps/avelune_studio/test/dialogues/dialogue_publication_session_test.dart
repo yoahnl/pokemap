@@ -84,6 +84,40 @@ void main() {
     },
   );
 
+  test(
+    'a translation retains the exact Yarn bytes and source revision',
+    () async {
+      final f = await _fixture(
+        source: 'title: Start\n---\nBonjour {{ fact.name }}\n===\n',
+        withBom: true,
+        facts: [NarrativeFactDefinition(id: 'name', label: 'Name')],
+      );
+      final base = await f.port.load('shared');
+      final file = File('${f.root.path}/dialogues/shared.yarn');
+      final original = await file.readAsBytes();
+      final localization = base.entry.localization!;
+      final translated = base.entry.copyWith(
+        localization: localization.translate(
+          localization.units.single.id,
+          'en',
+          'Hello {{ fact.name }}',
+        ),
+      );
+      final receipt = await f.port.publish(
+        id: base.entry.id,
+        base: base,
+        entry: translated,
+        source: base.source,
+      );
+      expect(receipt.resources.changedPaths, ['catalog/HEAD.json']);
+      expect(receipt.snapshot!.revision, base.revision);
+      expect(await file.readAsBytes(), original);
+      final reopened = await f.port.load('shared');
+      expect(reopened.entry, translated);
+      expect(reopened.revision, base.revision);
+    },
+  );
+
   test('an external catalog revision renews the connection without losing its edit', () async {
     final f = await _fixture();
     final before = await _context(f);
@@ -193,7 +227,12 @@ Future<DialoguePublicationReceipt> _save(
   );
 }
 
-Future<_Fixture> _fixture({AuthoringTransactionFaultInjector? fault}) async {
+Future<_Fixture> _fixture({
+  AuthoringTransactionFaultInjector? fault,
+  String source = 'title: Start\n---\nBonjour\n===\n',
+  bool withBom = false,
+  List<NarrativeFactDefinition> facts = const [],
+}) async {
   final home = Platform.environment['HOME'] ?? Directory.systemTemp.path;
   final qa = Directory(
     Platform.environment['AVELUNE_QA_ROOT'] ??
@@ -201,7 +240,6 @@ Future<_Fixture> _fixture({AuthoringTransactionFaultInjector? fault}) async {
   );
   final root = await (await qa.create(recursive: true)).createTemp('catalog-');
   addTearDown(() => root.delete(recursive: true));
-  const source = 'title: Start\n---\nBonjour\n===\n';
   final localization = readLocalizedDialogue(
     source: source,
     sourceLocale: 'fr',
@@ -220,13 +258,14 @@ Future<_Fixture> _fixture({AuthoringTransactionFaultInjector? fault}) async {
       name: 'QA',
       maps: [],
       tilesets: [],
+      facts: facts,
       dialogues: [entry],
     ),
   );
   await working.close();
   final file = File('${root.path}/${entry.relativePath}');
   await file.parent.create(recursive: true);
-  await file.writeAsString(source, flush: true);
+  await file.writeAsString(withBom ? '\uFEFF$source' : source, flush: true);
   final sessions = LocalProjectSessionAdapter();
   final session = await sessions.open(root.path);
   addTearDown(() => sessions.close(session));

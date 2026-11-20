@@ -23,14 +23,20 @@ class DialogueAtomicFixture {
   static const sourceText = 'title: Accueil\n---\nBonjour !\n===\n';
 
   static Future<DialogueAtomicFixture> create(
-      {bool catalog = false, Directory? qaRoot}) async {
+      {bool catalog = false,
+      Directory? qaRoot,
+      ProjectManifest? manifest,
+      ProjectFileReader reader = const LocalProjectFileReader()}) async {
     final directory =
         await (qaRoot ?? Directory.systemTemp).createTemp('dialogue_atomic_');
-    await Directory('${directory.path}/dialogues').create();
-    await File('${directory.path}/${entry.relativePath}')
-        .writeAsString(sourceText);
-    const project = ProjectManifest(
-        name: 'Dialogue', maps: [], tilesets: [], dialogues: [entry]);
+    final project = manifest ??
+        const ProjectManifest(
+            name: 'Dialogue', maps: [], tilesets: [], dialogues: [entry]);
+    for (final dialogue in project.dialogues) {
+      final file = File('${directory.path}/${dialogue.relativePath}');
+      await file.parent.create(recursive: true);
+      await file.writeAsString(sourceText);
+    }
     if (catalog) {
       final store = await CatalogStorageStore.open(projectRoot: directory.path);
       await WorkingProjectCatalog.create(
@@ -40,7 +46,6 @@ class DialogueAtomicFixture {
       await File('${directory.path}/project.json')
           .writeAsString(jsonEncode(project.toJson()));
     }
-    const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [directory.path], fileReader: reader);
     final handles = WorkspaceHandleStore();
@@ -48,8 +53,8 @@ class DialogueAtomicFixture {
         policy: policy, fileReader: reader, handles: handles);
     final opened = await opener.openProject(directory.path);
     final loader = ProjectSnapshotLoader(handles: handles);
-    final api =
-        LocalMapAuthoringMutationApi(policy: policy, snapshotLoader: loader);
+    final api = LocalMapAuthoringMutationApi(
+        policy: policy, snapshotLoader: loader, catalogFileReader: reader);
     await api.attachProject(
         projectRootPath: directory.path,
         workspaceHandle: opened.workspaceHandle,

@@ -6,14 +6,89 @@ Future<CatalogWorkshopSelection> _readDialogueUpdateWorkshop({
   required Map<String, Object?> parameters,
   required Map<String, String> readDependencies,
 }) async {
+  final raw = parameters['entry'];
+  final incoming = raw is Map
+      ? ProjectDialogueEntry.fromJson(Map<String, dynamic>.from(raw))
+      : null;
+  final id = incoming?.id ?? parameters['dialogueId'] as String;
+  final sourceIdentity = dialogueSourceResourceIdentity(id);
+  final bytes = <String, List<int>>{};
+  final paths = <String, String>{};
+  final revisions = <String, String?>{};
+  Future<void> readFile(String identity, String path) async {
+    validateProjectRelativePath(path);
+    if (identity == 'project' ||
+        path == 'project.json' ||
+        path.startsWith('catalog/') ||
+        path.startsWith('.pokemap/')) {
+      throw const FormatException('catalog.workshop: invalid read dependency');
+    }
+    if (revisions.containsKey(path)) return;
+    final payload = await reader.store.gateway.captureResourcePayload(path);
+    revisions[path] = payload?.resourceRevision;
+    if (payload == null) return;
+    try {
+      bytes[identity] = await payload.readBytes();
+      paths[identity] = path;
+    } finally {
+      await payload.release();
+    }
+  }
+
+  if (incoming != null &&
+      incoming.localization != null &&
+      readDependencies.isEmpty &&
+      parameters.length == 1) {
+    final variant = await reader.read((catalog) async {
+      await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
+      final base = catalog.projectMetadata.copyWith(
+        settings: catalog.projectMetadata.settings.copyWith(
+          defaultPlayerCharacterId: null,
+        ),
+        newGame: const ProjectNewGameConfig(),
+      );
+      final ids = <String, Set<String>>{
+        'dialogues': {id},
+        if (incoming.folderId case final folder?) 'dialogueFolders': {folder},
+      };
+      var documents = await CatalogMetadataDocuments.readDocuments(
+        snapshot: catalog.snapshot,
+        project: base,
+        ids: ids,
+      );
+      final before = documents.project.dialogues.firstOrNull;
+      if (before == null ||
+          before.localization == null ||
+          before.copyWith(localization: incoming.localization) != incoming) {
+        return null;
+      }
+      await readFile(sourceIdentity, before.relativePath);
+      if (!bytes.containsKey(sourceIdentity)) return null;
+      documents = await _readDialogueFolderAncestors(
+        snapshot: catalog.snapshot,
+        base: base,
+        ids: ids,
+        documents: documents,
+      );
+      return _dialogueUpdateSelection(
+        selected: reader,
+        projectHandle: projectHandle,
+        manifest: documents.project,
+        documents: documents,
+        ids: ids,
+        bytes: bytes,
+        paths: paths,
+        revisions: revisions,
+      );
+    });
+    if (variant != null) return variant;
+  }
+
   final selected = await reader.withMetadataFields({'settings', 'newGame'});
   return selected.read((catalog) async {
     await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
-    final raw = parameters['entry'];
-    final incoming = raw is Map
-        ? ProjectDialogueEntry.fromJson(Map<String, dynamic>.from(raw))
-        : null;
-    final id = incoming?.id ?? parameters['dialogueId'] as String;
+    var base =
+        catalog.projectMetadata.copyWith(newGame: const ProjectNewGameConfig());
     final ids = <String, Set<String>>{
       'dialogues': {id},
       'scenes': await CatalogMetadataDocuments.readSceneIdsForDialogue(
@@ -22,8 +97,6 @@ Future<CatalogWorkshopSelection> _readDialogueUpdateWorkshop({
       'facts': {},
       'cinematicMediaAssets': {},
     };
-    var base =
-        catalog.projectMetadata.copyWith(newGame: const ProjectNewGameConfig());
     var documents = await CatalogMetadataDocuments.readDocuments(
         snapshot: catalog.snapshot, project: base, ids: ids);
     var loadedCounts = {
@@ -32,32 +105,8 @@ Future<CatalogWorkshopSelection> _readDialogueUpdateWorkshop({
     final before = documents.project.dialogues
         .where((entry) => entry.id == id)
         .firstOrNull;
-    final bytes = <String, List<int>>{};
-    final paths = <String, String>{};
-    final revisions = <String, String?>{};
-    Future<void> readFile(String identity, String path) async {
-      validateProjectRelativePath(path);
-      if (identity == 'project' ||
-          path == 'project.json' ||
-          path.startsWith('catalog/') ||
-          path.startsWith('.pokemap/')) {
-        throw const FormatException(
-            'catalog.workshop: invalid read dependency');
-      }
-      if (revisions.containsKey(path)) return;
-      final payload = await reader.store.gateway.captureResourcePayload(path);
-      revisions[path] = payload?.resourceRevision;
-      if (payload == null) return;
-      try {
-        bytes[identity] = await payload.readBytes();
-        paths[identity] = path;
-      } finally {
-        await payload.release();
-      }
-    }
-
     if (before != null) {
-      await readFile(dialogueSourceResourceIdentity(id), before.relativePath);
+      await readFile(sourceIdentity, before.relativePath);
     }
     for (final dependency in readDependencies.entries) {
       await readFile(dependency.key, dependency.value);
@@ -78,8 +127,8 @@ Future<CatalogWorkshopSelection> _readDialogueUpdateWorkshop({
       }
     }
     for (final (entry, source) in [
-      if (before != null && bytes[dialogueSourceResourceIdentity(id)] != null)
-        (before, utf8.decode(bytes[dialogueSourceResourceIdentity(id)]!)),
+      if (before != null && bytes[sourceIdentity] != null)
+        (before, utf8.decode(bytes[sourceIdentity]!)),
       if (parameters['source'] case final String source)
         if (incoming ?? before case final ProjectDialogueEntry entry)
           (entry, source),
@@ -103,17 +152,14 @@ Future<CatalogWorkshopSelection> _readDialogueUpdateWorkshop({
         ids['cinematicMediaAssets']!.add(cue.mediaAssetId);
       }
     }
-    while (true) {
-      final folders = <String>{
-        for (final entry in documents.project.dialogues)
-          if (entry.folderId case final String id) id,
-        for (final folder in documents.project.dialogueFolders)
-          if (folder.parentFolderId case final String id) id,
-      }.difference(ids['dialogueFolders']!);
-      if (folders.isEmpty) break;
-      ids['dialogueFolders']!.addAll(folders);
-      documents = await CatalogMetadataDocuments.readDocuments(
-          snapshot: catalog.snapshot, project: base, ids: ids);
+    final withAncestors = await _readDialogueFolderAncestors(
+      snapshot: catalog.snapshot,
+      base: base,
+      ids: ids,
+      documents: documents,
+    );
+    if (!identical(withAncestors, documents)) {
+      documents = withAncestors;
       loadedCounts = {
         for (final entry in ids.entries) entry.key: entry.value.length
       };
@@ -208,29 +254,75 @@ Future<CatalogWorkshopSelection> _readDialogueUpdateWorkshop({
         tilesets: resources.tilesets,
         elements: resources.elements,
         models3d: resources.models3d);
-    bytes['project'] = utf8.encode(jsonEncode(manifest.toJson()));
-    paths['project'] = 'project.json';
-    final snapshot = ProjectSnapshot(
-        materializedCatalogProject: true,
-        projectHandle: projectHandle,
-        revision:
-            CatalogWorkshopSelection.fingerprint(selected.revision, revisions),
-        manifest: manifest,
-        maps: const [],
-        availableProjectSections: {'settings', ...ids.keys},
-        availableProjectDocuments: ids,
-        resourceBytes: bytes,
-        resourceStorageKeys: paths,
-        resourceFingerprints: {
-          'project': computeAuthoringBytesFingerprint(bytes['project']!,
-              logicalName: 'project.json'),
-          for (final entry in paths.entries)
-            if (entry.key != 'project') entry.key: revisions[entry.value]!,
-        });
-    final result = CatalogWorkshopSelection._(
-        selected, snapshot, {'dialogues', 'scenes'}, revisions,
-        metadataDocuments: documents);
-    await result.requireCurrent();
-    return result;
+    return _dialogueUpdateSelection(
+      selected: selected,
+      projectHandle: projectHandle,
+      manifest: manifest,
+      documents: documents,
+      ids: ids,
+      bytes: bytes,
+      paths: paths,
+      revisions: revisions,
+    );
   });
+}
+
+Future<CatalogMetadataDocumentSelection> _readDialogueFolderAncestors({
+  required CatalogSnapshot snapshot,
+  required ProjectManifest base,
+  required Map<String, Set<String>> ids,
+  required CatalogMetadataDocumentSelection documents,
+}) async {
+  final included = ids['dialogueFolders'];
+  if (included == null) return documents;
+  var current = documents;
+  while (true) {
+    final missing = <String>{
+      for (final entry in current.project.dialogues)
+        if (entry.folderId case final String id) id,
+      for (final folder in current.project.dialogueFolders)
+        if (folder.parentFolderId case final String id) id,
+    }.difference(included);
+    if (missing.isEmpty) return current;
+    included.addAll(missing);
+    current = await CatalogMetadataDocuments.readDocuments(
+        snapshot: snapshot, project: base, ids: ids);
+  }
+}
+
+Future<CatalogWorkshopSelection> _dialogueUpdateSelection({
+  required CatalogProjectReader selected,
+  required ProjectHandle projectHandle,
+  required ProjectManifest manifest,
+  required CatalogMetadataDocumentSelection documents,
+  required Map<String, Set<String>> ids,
+  required Map<String, List<int>> bytes,
+  required Map<String, String> paths,
+  required Map<String, String?> revisions,
+}) async {
+  final includesScenes = ids.containsKey('scenes');
+  bytes['project'] = utf8.encode(jsonEncode(manifest.toJson()));
+  paths['project'] = 'project.json';
+  final snapshot = ProjectSnapshot(
+      materializedCatalogProject: true,
+      projectHandle: projectHandle,
+      revision:
+          CatalogWorkshopSelection.fingerprint(selected.revision, revisions),
+      manifest: manifest,
+      maps: const [],
+      availableProjectSections: {if (includesScenes) 'settings', ...ids.keys},
+      availableProjectDocuments: ids,
+      resourceBytes: bytes,
+      resourceStorageKeys: paths,
+      resourceFingerprints: {
+        'project': computeAuthoringBytesFingerprint(bytes['project']!,
+            logicalName: 'project.json'),
+        for (final entry in paths.entries)
+          if (entry.key != 'project') entry.key: revisions[entry.value]!,
+      });
+  final result = CatalogWorkshopSelection._(selected, snapshot,
+      {'dialogues', if (includesScenes) 'scenes'}, revisions,
+      metadataDocuments: documents);
+  await result.requireCurrent();
+  return result;
 }
