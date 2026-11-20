@@ -89,12 +89,15 @@ class MapWorkspaceController {
 
   final _selectionMapsByModel = <String, Set<String>>{};
   final _previewMapsByModel = <String, Set<String>>{};
+  final _selectionMapsByBorder = <String, Set<String>>{};
+  final _previewMapsByBorder = <String, Set<String>>{};
   final _acceptedModelDefinitions =
       <String, ({int epoch, ProjectModel3dEntry definition})>{};
   int _modelSourceEpoch = 0;
   int modelSourceSelectionsVisited = 0;
   int modelSourcePreviewsVisited = 0;
   int modelSourceProjectionLookups = 0;
+  int borderWorkshopSelectionsVisited = 0;
   int visualProjectionBuilds = 0;
 
   bool get hasCompleteProject =>
@@ -231,12 +234,14 @@ class MapWorkspaceController {
     ProjectManifest before,
     ProjectManifest updated, {
     Map<String, ProjectModel3dEntry> changedModels = const {},
+    BorderBlueprintRecord? changedBorder,
     ({String kind, String id})? removedLibraryResource,
     bool notifyChange = true,
   }) => _acceptResources(
     before,
     updated,
     changedModels: changedModels,
+    changedBorder: changedBorder,
     removedLibraryResource: removedLibraryResource,
     notifyChange: notifyChange,
   );
@@ -266,6 +271,7 @@ class MapWorkspaceController {
     _visualScopeMapIds.clear();
     _previewDefinitions.clear();
     _previewMapsByModel.clear();
+    _previewMapsByBorder.clear();
     _clearSelections();
     _acceptedModelDefinitions.clear();
     for (final document in {...documents.values, ...retiredDocuments.values}) {

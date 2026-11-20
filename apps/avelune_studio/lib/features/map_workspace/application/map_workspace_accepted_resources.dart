@@ -37,6 +37,7 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
     ProjectManifest before,
     ProjectManifest updated, {
     Map<String, ProjectModel3dEntry> changedModels = const {},
+    BorderBlueprintRecord? changedBorder,
     ({String kind, String id})? removedLibraryResource,
     required bool notifyChange,
   }) {
@@ -140,6 +141,9 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
         _visualFamilySource = _resourceVisualDefinitions;
       }
     }
+    if (changedBorder case final border?) {
+      _acceptBorderProjection(border);
+    }
     if (removedLibraryResource case final removed?) {
       _resourceClosures.remove('${removed.kind}:${removed.id}');
       if (removed.kind == 'borderBlueprint') {
@@ -162,5 +166,33 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
       }
     }
     if (notifyChange) notify();
+  }
+
+  void _acceptBorderProjection(BorderBlueprintRecord record) {
+    for (final id in _selectionMapsByBorder[record.id] ?? const <String>{}) {
+      borderWorkshopSelectionsVisited++;
+      final selection = _selections[id]!;
+      _selections[id] = _selectionWithDefinitions(
+        selection,
+        replaceLoadedBorderProjection(selection.definitions, record),
+      );
+    }
+    for (final id in _previewMapsByBorder[record.id] ?? const <String>{}) {
+      _previewDefinitions[id] = replaceLoadedBorderProjection(
+        _previewDefinitions[id]!,
+        record,
+      );
+    }
+    ProjectManifest? replace(ProjectManifest? value) =>
+        value == null ? null : replaceLoadedBorderProjection(value, record);
+    _familyDefinitions = replace(_familyDefinitions);
+    _onDemandDefinitions = replace(_onDemandDefinitions);
+    _resourceVisualDefinitions = replace(_resourceVisualDefinitions);
+    if (_combinedVisuals != null) {
+      _combinedVisuals = replace(_combinedVisuals);
+      _visualMapSource =
+          _selections[active?.base.mapId]?.definitions ?? project;
+      _visualFamilySource = _resourceVisualDefinitions;
+    }
   }
 }

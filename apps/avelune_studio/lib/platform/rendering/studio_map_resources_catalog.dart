@@ -13,6 +13,7 @@ Future<StudioMapResources> _loadStudioMapResources(
         session.directoryPath,
         manifest,
         result._index.supported,
+        catalogRead: result._assetCatalog.read(),
       ),
     );
   } on Object catch (error) {
@@ -55,10 +56,12 @@ extension StudioMapResourcesCatalog on StudioMapResources {
   }) async {
     if (_disposed) return;
     final next = StudioResourceIndex(updated);
+    _assetCatalog.invalidate(changedRelativePaths);
     final resolved = await resolveStudioResourcePaths(
       projectRoot,
       updated,
       next.supported,
+      catalogRead: _assetCatalog.read(refresh: true),
     );
     Set<String> invalidResourceIds() => changedStudioResourceIds(
       root: projectRoot,
@@ -91,7 +94,7 @@ extension StudioMapResourcesCatalog on StudioMapResources {
       ..clear()
       ..addAll(next.colors);
     store.invalidate(invalid);
-    invalidateResourcePreviews(changedRelativePaths);
+    _libraryImages?.invalidate(changedRelativePaths);
     catalogVersion++;
     if (_activeMap != null) {
       if (borderChanged) {

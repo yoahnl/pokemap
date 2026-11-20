@@ -790,6 +790,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/catalog_storage_stdio.test.ts',
     };
   }
+  if (actionId == 'tileset.regrid') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/catalog_storage/catalog_tileset_regrid_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/catalog_storage/catalog_tileset_regrid_transport_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/resource_io/project_tileset_workshop_storage_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/tileset_regrid_stdio.test.ts',
+    };
+  }
   if (actionId == 'model3d.duplicate') {
     return const {
       AuthoringTransport.directApi:
@@ -2199,6 +2211,9 @@ String _contractTestFor(String actionId) {
   if (const {'catalog.definition.duplicate', 'catalog.definition.delete'}
       .contains(actionId)) {
     return 'test/catalog_storage/catalog_project_transport_test.dart';
+  }
+  if (actionId == 'tileset.regrid') {
+    return 'test/catalog_storage/catalog_tileset_regrid_transport_test.dart';
   }
   if (actionId == 'model3d.duplicate') {
     return '../../apps/avelune_studio/test/resource_io/project_library_lifecycle_storage_test.dart';

@@ -100,11 +100,13 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
       selection.definitions,
       sourceEpoch: sourceEpoch,
     );
-    _indexModelProjection(
+    final previous = _selections[mapId]?.definitions;
+    _indexModelProjection(mapId, previous, definitions, _selectionMapsByModel);
+    _indexBorderProjection(
       mapId,
-      _selections[mapId]?.definitions,
+      previous,
       definitions,
-      _selectionMapsByModel,
+      _selectionMapsByBorder,
     );
     _selections[mapId] = _selectionWithDefinitions(selection, definitions);
   }
@@ -119,18 +121,34 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
       value,
       sourceEpoch: sourceEpoch,
     );
-    _indexModelProjection(
-      mapId,
-      _previewDefinitions[mapId],
-      definitions,
-      _previewMapsByModel,
-    );
+    final previous = _previewDefinitions[mapId];
+    _indexModelProjection(mapId, previous, definitions, _previewMapsByModel);
+    _indexBorderProjection(mapId, previous, definitions, _previewMapsByBorder);
     _previewDefinitions[mapId] = definitions;
   }
 
   void _clearSelections() {
     _selections.clear();
     _selectionMapsByModel.clear();
+    _selectionMapsByBorder.clear();
+  }
+
+  void _indexBorderProjection(
+    String mapId,
+    ProjectManifest? previous,
+    ProjectManifest? next,
+    Map<String, Set<String>> index,
+  ) {
+    for (final record
+        in previous?.borderCatalog.records ?? const <BorderBlueprintRecord>[]) {
+      final maps = index[record.id];
+      maps?.remove(mapId);
+      if (maps?.isEmpty == true) index.remove(record.id);
+    }
+    for (final record
+        in next?.borderCatalog.records ?? const <BorderBlueprintRecord>[]) {
+      (index[record.id] ??= {}).add(mapId);
+    }
   }
 
   Map<String, Map<String, ProjectModel3dEntry>> _dependentModelChanges(
@@ -150,6 +168,7 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
     String id,
     ProjectManifest? definitions,
     Map<String, Set<String>> index,
+    Map<String, Set<String>> borderIndex,
   ) {
     for (final model
         in definitions?.models3d ?? const <ProjectModel3dEntry>[]) {
@@ -157,5 +176,6 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
       ids?.remove(id);
       if (ids?.isEmpty == true) index.remove(model.id);
     }
+    _indexBorderProjection(id, definitions, null, borderIndex);
   }
 }

@@ -1,23 +1,17 @@
-import 'package:avelune_studio/features/rendering/contracts/scoped_resource_preview_visuals.dart';
-import 'package:avelune_studio/features/resources/application/project_resource_library.dart';
-import 'package:avelune_studio/features/resources/application/project_resource_preview.dart';
-import 'package:avelune_studio/features/resources/application/resource_preview_source.dart';
-import 'package:avelune_studio/presentation/features/resources/project_tileset_workshop.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import '../support/map_workspace_fixture.dart';
+import 'project_tileset_workshop_fixture.dart';
 
 void main() {
   testWidgets('shows the saved grid and opens the maps using the atlas', (
     tester,
   ) async {
-    final visuals = _Visuals();
+    final visuals = TilesetWorkshopTestVisuals();
     final opened = <String>[];
     final reads = <String>[];
     var returned = false;
-    await _open(
+    await pumpTilesetWorkshop(
       tester,
       const ProjectTilesetSource.regularAtlas(
         assetId: 'image',
@@ -66,7 +60,7 @@ void main() {
   });
 
   testWidgets('recognizes an image imported at its full size', (tester) async {
-    await _open(
+    await pumpTilesetWorkshop(
       tester,
       const ProjectTilesetSource.regularAtlas(
         assetId: 'image',
@@ -75,7 +69,7 @@ void main() {
         tileWidth: 160,
         tileHeight: 64,
       ),
-      visuals: _Visuals(),
+      visuals: TilesetWorkshopTestVisuals(),
       usages: const {},
     );
     expect(find.text('Image entière'), findsOneWidget);
@@ -87,8 +81,8 @@ void main() {
   testWidgets('navigates the image collection using saved page dimensions', (
     tester,
   ) async {
-    final visuals = _Visuals();
-    await _open(
+    final visuals = TilesetWorkshopTestVisuals();
+    await pumpTilesetWorkshop(
       tester,
       const ProjectTilesetSource.imageCollection(
         pages: [
@@ -125,71 +119,10 @@ void main() {
   testWidgets('does not infer a grid or usage for a historical image', (
     tester,
   ) async {
-    await _open(tester, null);
+    await pumpTilesetWorkshop(tester, null);
     expect(find.text('Aucune grille enregistrée pour cette image.'), findsOne);
     expect(find.text('Usages indisponibles.'), findsOneWidget);
     expect(find.text('Afficher la grille'), findsNothing);
     expect(find.text('Aperçu indisponible'), findsOneWidget);
   });
-}
-
-Future<void> _open(
-  WidgetTester tester,
-  ProjectTilesetSource? source, {
-  _Visuals? visuals,
-  List<String>? reads,
-  Map<String, String>? usages,
-  Future<bool> Function(String)? onOpenMap,
-  VoidCallback? onBack,
-}) async {
-  final atlas = ProjectTilesetEntry(
-    id: 'atlas',
-    name: 'Planche du jardin',
-    relativePath: 'atlas.png',
-    source: source,
-  );
-  await tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: ProjectTilesetWorkshop(
-          item: ProjectLibraryItem(
-            kind: 'tileset',
-            id: atlas.id,
-            name: atlas.name,
-          ),
-          visuals: visuals,
-          previews: ProjectResourcePreviews((item) async {
-            reads?.add(item.identity);
-            return ProjectManifest(
-              name: 'Jardin',
-              maps: const [],
-              tilesets: [atlas],
-            );
-          }),
-          usages: usages,
-          onOpenMap: onOpenMap,
-          onBack: onBack ?? () {},
-        ),
-      ),
-    ),
-  );
-  await tester.pumpAndSettle();
-}
-
-class _Visuals extends WorkspaceTestVisuals
-    implements ScopedResourcePreviewVisuals {
-  late AtlasPreviewSource last;
-
-  @override
-  void invalidateResourcePreviews(Set<String> changedRelativePaths) {}
-
-  @override
-  Widget scopedResourcePreview(
-    ResourcePreviewSource source,
-    ProjectManifest project, {
-    required double size,
-  }) {
-    last = source as AtlasPreviewSource;
-    return const SizedBox.expand();
-  }
 }

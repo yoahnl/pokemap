@@ -184,7 +184,12 @@ extension MapWorkspaceExternalMutations on MapWorkspaceController {
         _mapEpochs[id] = (_mapEpochs[id] ?? 0) + 1;
         _previews.remove(id);
         final previewDefinitions = _previewDefinitions.remove(id);
-        _unindexExternalProjection(id, previewDefinitions, _previewMapsByModel);
+        _unindexExternalProjection(
+          id,
+          previewDefinitions,
+          _previewMapsByModel,
+          _previewMapsByBorder,
+        );
         _loading.remove(id);
         if (document != null &&
             documentChanges.contains(id) &&

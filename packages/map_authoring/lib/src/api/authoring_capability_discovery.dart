@@ -502,6 +502,7 @@ const authoringCapabilityDomains = {
     'tileset.import_image',
     'tileset.library.reorganize',
     'tileset.metadata.update',
+    'tileset.regrid',
     'tileset.remove',
     'tileset.source.replace',
     'tileset.tiled.import',

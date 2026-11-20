@@ -151,20 +151,24 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
   ) async => _readLibraryEdit(
     item.kind,
     item.id,
-    await _publishLibraryDefinition(item, 'catalog.definition.update', {
+    await _publishLibraryDefinition('catalog.definition.update', {
+      'resourceKind': item.kind,
+      'id': item.id,
       'name': _libraryName(name),
     }, expectedRevision),
   );
 
   Future<ResourceMutationReceipt> _publishLibraryDefinition(
-    ProjectLibraryItem item,
     String action,
-    Map<String, Object?> fields,
-    String expectedRevision,
-  ) => mapAdapter.withResourceMutation(() async {
+    Map<String, Object?> parameters,
+    String expectedRevision, {
+    String? Function()? validateBeforeApply,
+  }) => mapAdapter.withResourceMutation(() async {
     _requireLibraryEditing();
     _resourceMutationActive = true;
     try {
+      final problem = validateBeforeApply?.call();
+      if (problem != null) throw ResourceFailure(problem);
       final before = await mapAdapter.resourceBaseline(session);
       if (before.revision != expectedRevision) {
         throw const ResourceFailure(
@@ -193,7 +197,7 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
           actionVersion: 1,
           idempotencyKey: operationId,
           expectedRevision: catalog.revision,
-          parameters: {'resourceKind': item.kind, 'id': item.id, ...fields},
+          parameters: parameters,
         ),
       );
       try {
@@ -222,7 +226,7 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
           planned: planned,
           operationId: operationId,
           confirmDestructive: false,
-          validateBeforeApply: null,
+          validateBeforeApply: validateBeforeApply,
         );
         try {
           await beforeReconciliation?.call();

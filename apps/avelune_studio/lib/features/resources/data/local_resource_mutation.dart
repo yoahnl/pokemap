@@ -9,6 +9,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
     ContentArtifactRef? expectedSource,
     String? createdTilesetId,
     List<BorderResourcePrimitive>? borderSources,
+    String? scopedBorderId,
     String? expectedBeforeRevision,
     String? expectedSnapshotRevision,
     bool confirmDestructive = false,
@@ -33,6 +34,10 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           'Ce catalogue est en lecture seule. La définition du modèle n’a pas été modifiée.',
         );
       }
+      if (scopedBorderId != null &&
+          session.storage != ProjectSessionStorage.workingCatalog) {
+        throw const ResourceFailure('Cette bordure est en lecture seule.');
+      }
       phase('baseline.start');
       final before = await mapAdapter.resourceBaseline(session);
       phase('baseline.end');
@@ -44,11 +49,14 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             'model3d.import',
             'model3d.duplicate',
           }.contains(actionId);
+      final scopedCatalogMutation = scopedImport || scopedBorderId != null;
       if (expectedBeforeRevision != null &&
           before.revision != expectedBeforeRevision) {
         throw ResourceFailure(switch (actionId) {
           'model3d.configure' =>
             'Le catalogue a changé. Votre réglage est conservé.',
+          _ when scopedBorderId != null =>
+            'Le catalogue a changé. Votre brouillon est conservé à l’écran.',
           _ when scopedImport =>
             'Le catalogue a changé. Actualisez la bibliothèque puis réessayez.',
           _ =>
@@ -148,7 +156,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         phase('attach.start');
         await context.attach();
         phase('attach.end');
-        final snapshot = scopedModelMutation || scopedImport
+        final snapshot = scopedModelMutation || scopedCatalogMutation
             ? await api.readWorkshopSnapshot(
                 opened.projectHandle,
                 actionId: actionId,
@@ -164,7 +172,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             'Le projet a changé depuis la préparation. Votre saisie est conservée.',
           );
         }
-        final observedRevision = scopedImport
+        final observedRevision = scopedCatalogMutation
             ? await mapAdapter.resourceRevision(session)
             : scopedModelMutation
             ? _modelSourceDocumentRevision(snapshot)
@@ -186,13 +194,15 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             parameters: fields,
             expectedRevision: snapshot.revision,
             idempotencyKey: operationId,
-            extensions: scopedImport ? const {'workshopScope': true} : const {},
+            extensions: scopedCatalogMutation
+                ? const {'workshopScope': true}
+                : const {},
           ),
         );
         ownedPlan = planned.plan;
         phase('plan.end');
         final changes = planned.plan.changeSet.changes;
-        final mapPaths = scopedModelMutation || scopedImport
+        final mapPaths = scopedModelMutation || scopedCatalogMutation
             ? const <String>{}
             : before.manifest.maps.map((map) => map.relativePath).toSet();
         if (changes.any(
@@ -217,18 +227,27 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             changedPaths: const [],
           );
         }
-        final projectedProject = scopedImport
-            ? _mergeImportedLibraryResource(
-                before.manifest,
-                planned.projectedProject!,
-                modelId: fields['modelId'] as String?,
-              )
-            : scopedModelMutation
-            ? _mergeModelSourceProjection(
-                before.manifest,
-                planned.projectedProject ?? snapshot.manifest,
-              )
-            : planned.projectedProject;
+        final projectedProject = switch ((
+          scopedBorderId,
+          scopedImport,
+          scopedModelMutation,
+        )) {
+          (final id?, _, _) => _mergeBorderWorkshopProjection(
+            before.manifest,
+            planned.projectedProject,
+            id,
+          ),
+          (_, true, _) => _mergeImportedLibraryResource(
+            before.manifest,
+            planned.projectedProject!,
+            modelId: fields['modelId'] as String?,
+          ),
+          (_, _, true) => _mergeModelSourceProjection(
+            before.manifest,
+            planned.projectedProject ?? snapshot.manifest,
+          ),
+          _ => planned.projectedProject,
+        };
         final receipt = _resourceReceipt(
           before.manifest,
           before.revision,
@@ -236,7 +255,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           createdTilesetId,
           operationId,
           projectedProject: projectedProject,
-          projectedRevision: scopedImport
+          projectedRevision: scopedCatalogMutation
               ? await _projectedLibraryRevision(planned.plan)
               : snapshot.materializedCatalogProject
               ? scopedModelMutation
@@ -271,6 +290,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           fields: fields,
           scopedModelMutation: scopedModelMutation,
           scopedImport: scopedImport,
+          scopedBorderId: scopedBorderId,
           phase: phase,
         );
         phase('reconciliation.end');
@@ -288,6 +308,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
     } on ResourceFailure {
       rethrow;
     } on Object catch (error) {
+      if (scopedBorderId != null) throw _borderWorkshopMutationFailure(error);
       throw expectedSource == null
           ? _resourceFailure(error)
           : _libraryImportFailure(error);

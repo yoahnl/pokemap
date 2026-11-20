@@ -88,7 +88,7 @@ class _StudioLibraryImagePreviewState extends State<StudioLibraryImagePreview> {
       pageId: source.pageId,
     );
     if (imageId == null) return _unavailable;
-    final layout = resources.tilesets[tilesetId]?.source;
+    final layout = source.gridOverride ?? resources.tilesets[tilesetId]?.source;
     return StudioAtlasPreview(
       resources: resources,
       tilesetId: imageId,

@@ -61,13 +61,14 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
         usages: _workshopMapUsages(read, selected.identity),
         onOpenMap: openMap,
         onBack: leave,
+        gridEditor: _tilesetGridEditor(read, selected, management?.editor),
       ),
-      _ProjectWorkshopKind.borders => ProjectBorderWorkshop(
-        key: ValueKey(selected.identity),
-        item: selected,
-        loadProject: () => _loadWorkshopProject(selected),
-        visuals: visuals,
-        onBack: leave,
+      _ProjectWorkshopKind.borders => _borderWorkshop(
+        read,
+        selected,
+        management?.editor,
+        visuals,
+        leave,
       ),
     };
   }
@@ -92,6 +93,81 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
       return reader.readResourcePreview(maps.session, entry.kind, entry.id);
     }
     throw StateError('Lecteur d’aperçu indisponible.');
+  }
+
+  ProjectTilesetGridEditor? _tilesetGridEditor(
+    _ProjectLibraryRead read,
+    ProjectLibraryItem selected,
+    ProjectLibraryEditor? editor,
+  ) {
+    final revision = read.revision;
+    if (revision == null || editor is! ProjectTilesetWorkshopPort) return null;
+    final port = editor as ProjectTilesetWorkshopPort;
+    if (!port.tilesetGridEditingAvailable) return null;
+    final maps = widget.maps;
+    return (
+      revision: revision,
+      pendingReceipt: _workshopReceipts[selected.identity],
+      onPendingReceiptChanged: (receipt) =>
+          _retainWorkshopReceipt(maps, selected.identity, receipt),
+      prepareCatalog: () =>
+          _withWorkshopBusy(() => _prepareReplacementCatalog(read, editor!)),
+      save: (size, expected) => _publishWorkshopGrid(
+        read,
+        () => port.saveTilesetGrid(
+          selected,
+          tileSize: size,
+          expectedRevision: expected,
+          validateBeforeApply: () {
+            if (!mounted || !identical(maps, widget.maps)) {
+              return 'Le projet a été fermé.';
+            }
+            return editor!.libraryDraftUses(selected, _draftDocuments())
+                ? 'Cette planche est utilisée dans un brouillon ouvert.'
+                : null;
+          },
+        ),
+      ),
+      reconcile: (receipt) => _publishWorkshopGrid(read, () async {
+        await port.reconcileTilesetGrid(receipt);
+        return receipt;
+      }),
+    );
+  }
+
+  Widget _borderWorkshop(
+    _ProjectLibraryRead read,
+    ProjectLibraryItem selected,
+    ProjectLibraryEditor? editor,
+    MapWorkspaceVisuals? visuals,
+    VoidCallback back,
+  ) {
+    final maps = widget.maps;
+    bool current() => mounted && identical(maps, widget.maps);
+    return ProjectBorderWorkshop(
+      key: ValueKey(selected.identity),
+      item: selected,
+      loadProject: () => _loadWorkshopProject(selected),
+      visuals: visuals,
+      editor: editor is ProjectBorderWorkshopPort
+          ? editor as ProjectBorderWorkshopPort
+          : null,
+      pendingReceipt: _workshopReceipts[selected.identity],
+      onPendingReceiptChanged: (receipt) =>
+          _retainWorkshopReceipt(maps, selected.identity, receipt),
+      onBusyChanged: (busy) {
+        if (current()) _updateView(() => _workshopBusy = busy);
+      },
+      onDraftChanged: (dirty) {
+        if (current() && _workshopHasDraft != dirty) {
+          _updateView(() => _workshopHasDraft = dirty);
+        }
+      },
+      onUpdated: (receipt) async {
+        if (current()) _publishWorkshopBorder(read, selected, receipt);
+      },
+      onBack: back,
+    );
   }
 
   Widget _modelWorkshop(

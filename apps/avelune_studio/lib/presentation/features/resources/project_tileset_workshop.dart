@@ -7,7 +7,12 @@ import '../../../features/rendering/contracts/scoped_resource_preview_visuals.da
 import '../../../features/resources/application/project_resource_library.dart';
 import '../../../features/resources/application/project_resource_preview.dart';
 import '../../../features/resources/application/resource_preview_source.dart';
+import '../../../features/resources/domain/project_tileset_workshop_port.dart';
+import '../../../features/resources/domain/resource_port.dart';
 import 'library/resource_library_map_usage_links.dart';
+import 'project_tileset_grid_dialog.dart';
+
+part 'project_tileset_workshop_details.dart';
 
 class ProjectTilesetWorkshop extends StatefulWidget {
   const ProjectTilesetWorkshop({
@@ -18,6 +23,7 @@ class ProjectTilesetWorkshop extends StatefulWidget {
     required this.onBack,
     this.usages,
     this.onOpenMap,
+    this.gridEditor,
   });
 
   final ProjectLibraryItem item;
@@ -26,6 +32,7 @@ class ProjectTilesetWorkshop extends StatefulWidget {
   final VoidCallback onBack;
   final Map<String, String>? usages;
   final Future<bool> Function(String)? onOpenMap;
+  final ProjectTilesetGridEditor? gridEditor;
 
   @override
   State<ProjectTilesetWorkshop> createState() => _ProjectTilesetWorkshopState();
@@ -162,7 +169,15 @@ class _ProjectTilesetWorkshopState extends State<ProjectTilesetWorkshop> {
     final details = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _sourcePanel(context, source, page, fullImage),
+        _sourcePanel(
+          context,
+          source,
+          page,
+          fullImage,
+          onEdit: regular == null || widget.gridEditor == null
+              ? null
+              : () => _editGrid(tileset, regular, project),
+        ),
         const SizedBox(height: StudioSpacing.l),
         StudioPanel(
           title: 'Utilisation dans les cartes',
@@ -183,7 +198,7 @@ class _ProjectTilesetWorkshopState extends State<ProjectTilesetWorkshop> {
     return ListView(
       padding: const EdgeInsets.all(StudioSpacing.xl),
       children: [
-        Text(tileset.name, style: Theme.of(context).textTheme.titleLarge),
+        Text(widget.item.name, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: StudioSpacing.xl),
         LayoutBuilder(
           builder: (context, bounds) => bounds.maxWidth >= 680
@@ -206,6 +221,65 @@ class _ProjectTilesetWorkshopState extends State<ProjectTilesetWorkshop> {
         ),
       ],
     );
+  }
+
+  Future<void> _editGrid(
+    ProjectTilesetEntry tileset,
+    ProjectRegularAtlasTilesetSource source,
+    ProjectManifest project,
+  ) async {
+    final editor = widget.gridEditor!;
+    final item = widget.item;
+    final previews = widget.previews;
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ProjectTilesetGridDialog(
+        name: item.name,
+        tileset: tileset,
+        source: source,
+        editor: (
+          revision: editor.revision,
+          save: editor.save,
+          reconcile: editor.reconcile,
+          pendingReceipt: editor.pendingReceipt,
+          onPendingReceiptChanged: editor.onPendingReceiptChanged,
+          prepareCatalog: () async {
+            final revision = await editor.prepareCatalog();
+            previews.invalidate([item.identity]);
+            final lease = previews.acquire(item);
+            try {
+              final current = await lease.result;
+              if (current?.item.tileset?.source != source) {
+                throw const ResourceFailure(
+                  'La planche a changé. Rouvrez-la avant de reprendre ce découpage.',
+                );
+              }
+              return revision;
+            } finally {
+              lease.release();
+            }
+          },
+        ),
+        buildPreview: (candidate) => _preview(
+          AtlasPreviewSource(
+            tileset.id,
+            showGrid: true,
+            gridOverride: candidate,
+          ),
+          project,
+        ),
+      ),
+    );
+    if (!mounted || saved != true || widget.item.identity != item.identity) {
+      return;
+    }
+    setState(() {
+      widget.previews.invalidate([item.identity]);
+      _read();
+    });
+    ScaffoldMessenger.maybeOf(context)
+        ?.showSnackBar(const SnackBar(content: Text('Découpage enregistré.')));
   }
 
   Widget _previewPanel(
@@ -274,70 +348,3 @@ class _ProjectTilesetWorkshopState extends State<ProjectTilesetWorkshop> {
     );
   }
 }
-
-Widget _sourcePanel(
-  BuildContext context,
-  ProjectTilesetSource? source,
-  ProjectImageCollectionPage? page,
-  bool fullImage,
-) {
-  final facts = switch (source) {
-    final ProjectRegularAtlasTilesetSource atlas => <(String, String)>[
-      if (atlas.pixelWidth > 0 && atlas.pixelHeight > 0)
-        ('Dimensions de l’image', _size(atlas.pixelWidth, atlas.pixelHeight)),
-      if (!fullImage && atlas.tileCount > 0) ...[
-        ('Taille d’une tuile', _size(atlas.tileWidth, atlas.tileHeight)),
-        ('Grille', '${atlas.columns} colonnes × ${atlas.rows} lignes'),
-        if (atlas.marginX != 0 || atlas.marginY != 0)
-          (
-            'Marges horizontale et verticale',
-            _size(atlas.marginX, atlas.marginY),
-          ),
-        if (atlas.spacingX != 0 || atlas.spacingY != 0)
-          (
-            'Espacements horizontal et vertical',
-            _size(atlas.spacingX, atlas.spacingY),
-          ),
-      ],
-    ],
-    ProjectImageCollectionTilesetSource(:final pages, :final tileDefinitions) =>
-      [
-        ('Pages', '${pages.length}'),
-        if (page != null && page.pixelWidth > 0 && page.pixelHeight > 0)
-          ('Dimensions de la page', _size(page.pixelWidth, page.pixelHeight)),
-        ('Tuiles de la collection', '${tileDefinitions.length}'),
-      ],
-    null => const <(String, String)>[],
-  };
-  final title = switch (source) {
-    ProjectRegularAtlasTilesetSource() when fullImage => 'Image entière',
-    ProjectRegularAtlasTilesetSource() => 'Planche de tuiles',
-    ProjectImageCollectionTilesetSource() => 'Collection d’images',
-    null => 'Découpe',
-  };
-  final texts = Theme.of(context).textTheme;
-  return StudioPanel(
-    title: title,
-    icon: Icons.grid_on_outlined,
-    children: [
-      if (source == null)
-        const Text('Aucune grille enregistrée pour cette image.')
-      else if (source is ProjectRegularAtlasTilesetSource &&
-          source.tileCount == 0)
-        const StudioNotice('La grille enregistrée est inexploitable.'),
-      for (final (label, value) in facts)
-        Padding(
-          padding: const EdgeInsets.only(bottom: StudioSpacing.s),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: texts.bodySmall),
-              Text(value, style: texts.titleSmall),
-            ],
-          ),
-        ),
-    ],
-  );
-}
-
-String _size(int width, int height) => '$width × $height px';

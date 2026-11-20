@@ -27,12 +27,13 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
     ProjectSession session,
     ResourceMutationReceipt receipt, {
     bool allowMapOrganization = false,
+    BorderBlueprintRecord? changedBorder,
   }) async {
     final project = _project(session);
     if (project.revision == receipt.revision &&
         project.manifest == receipt.manifest) {
       await _requireProjectRevision(session, project);
-      _acceptResourceProjections(session.sessionId, receipt);
+      _acceptResourceProjections(session.sessionId, receipt, changedBorder);
       return;
     }
     final originalMaps = project.manifest.maps;
@@ -65,19 +66,23 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
       metadataFields: project.metadataFields,
     );
     await _requireProjectRevision(session, next);
-    _acceptResourceProjections(session.sessionId, receipt);
+    _acceptResourceProjections(session.sessionId, receipt, changedBorder);
     _projects[session.sessionId] = next;
   }
 
   void _acceptResourceProjections(
     String sessionId,
     ResourceMutationReceipt receipt,
+    BorderBlueprintRecord? changedBorder,
   ) {
     final changes = receipt.changedModels;
     final removed = receipt.removedLibraryResource;
-    if (changes.isEmpty && removed == null) return;
+    if (changes.isEmpty && removed == null && changedBorder == null) return;
     ProjectManifest updated(ProjectManifest value) {
       if (removed != null) return withoutLibraryResource(value, removed);
+      if (changedBorder != null) {
+        return replaceLoadedBorderProjection(value, changedBorder);
+      }
       final entries = value.models3d;
       if (entries is! ProjectModel3dEntries) {
         throw const MapWorkspaceFailure(

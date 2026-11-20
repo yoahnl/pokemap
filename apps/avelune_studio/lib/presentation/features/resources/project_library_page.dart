@@ -11,10 +11,12 @@ import '../../../features/rendering/contracts/scoped_resource_preview_visuals.da
 import '../../../features/resources/application/project_resource_library.dart';
 import '../../../features/resources/application/project_resource_preview.dart';
 import '../../../features/resources/coordination/resource_pack_transfer_controller.dart';
+import '../../../features/resources/domain/project_border_workshop_port.dart';
 import '../../../features/resources/domain/project_library_editor.dart';
 import '../../../features/resources/domain/project_library_organization.dart';
 import '../../../features/resources/domain/project_model_replacement_port.dart';
 import '../../../features/resources/domain/project_model_workshop_port.dart';
+import '../../../features/resources/domain/project_tileset_workshop_port.dart';
 import '../../../features/resources/domain/resource_pack_port.dart';
 import '../../../features/resources/domain/resource_port.dart';
 import '../../../features/resources/domain/studio_search_text.dart';
@@ -38,6 +40,7 @@ part 'project_library_page_model_replacements.dart';
 part 'project_library_page_navigation.dart';
 part 'project_library_page_organization.dart';
 part 'project_library_page_packs.dart';
+part 'project_library_page_workshop_receipts.dart';
 part 'project_library_page_workshops.dart';
 part 'project_library_workshop_picker.dart';
 
@@ -78,6 +81,7 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
   var _workshopKind = _ProjectWorkshopKind.models;
   String? _workshopEntry;
   bool _workshopBusy = false;
+  bool _workshopHasDraft = false;
   final _workshopReceipts = <String, ResourceMutationReceipt>{};
   ModelReplacementPanelStatus? _modelReplacementStatus;
   ({String entryId, Map<String, Set<String>> usages})?
@@ -85,7 +89,12 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
 
   void _updateView(VoidCallback update) => setState(update);
 
-  void _refresh() => setState(_read);
+  void _refresh() {
+    if (widget.visuals case final ScopedResourcePreviewVisuals previews) {
+      previews.refreshResourcePreviews();
+    }
+    setState(_read);
+  }
 
   void _setPickingFile(bool value) => setState(() => _pickingFile = value);
 
@@ -126,6 +135,7 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
       _workshopKind = _ProjectWorkshopKind.models;
       _workshopEntry = null;
       _workshopBusy = false;
+      _workshopHasDraft = false;
       _workshopReceipts.clear();
       _modelReplacementStatus = null;
       _replacementUsageProjection = null;
@@ -297,7 +307,7 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
       dimensionStatus: dimensionStatus,
       buildWorkshops: (back, openMap) =>
           _workshops(read, visuals, management, back, openMap),
-      canLeaveWorkshops: () => !_workshopBusy,
+      canLeaveWorkshops: () => !_workshopBusy && !_workshopHasDraft,
       workshopAction: (item) => _workshopAction(read, item.id),
       onManageFamilies: organization == null
           ? null

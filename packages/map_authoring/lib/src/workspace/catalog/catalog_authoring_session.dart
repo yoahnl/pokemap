@@ -1,6 +1,7 @@
 import '../../contracts/map_edit_operation.dart';
 import '../../domains/maps/trigger_zone_actions.dart';
 import '../../domains/assets/model3d_actions.dart';
+import '../../domains/assets/tileset_actions.dart';
 import '../../domains/gameplay/pokemon_media_storage_path.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../references/exterior_decoration_references.dart';
@@ -56,11 +57,14 @@ import '../../transactions/plan_store.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../api/authoring_result_projection.dart';
 import '../../contracts/action_descriptor.dart';
+import '../../contracts/authoring_diff.dart';
+import '../../contracts/resource_ref.dart';
 import '../../history/authoring_history.dart';
 import '../workspace_handle_store.dart';
 import 'catalog_project_reader.dart';
 
 part 'catalog_definition_lifecycle.dart';
+part 'catalog_tileset_regrid.dart';
 
 final class CatalogAuthoringSession {
   CatalogAuthoringSession(
@@ -257,6 +261,9 @@ final class CatalogAuthoringSession {
       return scope == 'project' ? _planProject(request) : _planModelSource(request);
     }
     if (CatalogSpatialMapSelection.supports(request.actionId, parameters: request.parameters)) return _planSpatialMap(request);
+    if (request.actionId == catalogTilesetRegridDescriptor.id) {
+      return _planTilesetRegrid(request);
+    }
     if (request.actionId == catalogDefinitionDuplicateDescriptor.id ||
         request.actionId == catalogDefinitionDeleteDescriptor.id) {
       return _planLibraryDefinition(request);

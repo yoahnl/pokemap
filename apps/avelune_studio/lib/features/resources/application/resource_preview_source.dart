@@ -27,10 +27,12 @@ final class AtlasPreviewSource extends ResourcePreviewSource {
     this.tilesetId, {
     this.pageId,
     this.showGrid = false,
+    this.gridOverride,
   });
   final String tilesetId;
   final String? pageId;
   final bool showGrid;
+  final ProjectRegularAtlasTilesetSource? gridOverride;
 }
 
 final class TerrainPatternPreviewSource extends ResourcePreviewSource {

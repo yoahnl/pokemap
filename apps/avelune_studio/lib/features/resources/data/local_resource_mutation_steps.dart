@@ -130,13 +130,16 @@ extension _LocalResourceMutationSteps on LocalResourceAdapter {
     required Map<String, Object?> fields,
     required bool scopedModelMutation,
     required bool scopedImport,
+    required String? scopedBorderId,
     required void Function(String name) phase,
   }) async {
     try {
       phase('apply.end');
       await beforeReconciliation?.call();
       _requireAvailable();
-      if (scopedImport) {
+      if (scopedBorderId != null) {
+        await _verifyWorkshopBorderReceipt(this, scopedBorderId, receipt);
+      } else if (scopedImport) {
         if (await mapAdapter.resourceRevision(session) != receipt.revision) {
           throw const ResourceFailure(
             'La publication a changé avant sa relecture. Actualisez la bibliothèque.',
@@ -172,10 +175,13 @@ extension _LocalResourceMutationSteps on LocalResourceAdapter {
         session,
         receipt,
         allowMapOrganization: actionId == 'map.library.reorganize',
+        changedBorder: _publishedWorkshopBorder(receipt, scopedBorderId),
       );
     } on Object catch (failure) {
       throw ResourceFailure(
-        'La publication a réussi, mais la relecture a échoué. Ne relancez pas la mutation. $failure',
+        scopedBorderId != null
+            ? 'La bordure est enregistrée. Relisez l’enregistrement pour continuer.'
+            : 'La publication a réussi, mais la relecture a échoué. Ne relancez pas la mutation. $failure',
         partialReceipt: receipt,
       );
     }

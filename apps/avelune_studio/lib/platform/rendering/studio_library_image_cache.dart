@@ -1,6 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:map_authoring/map_authoring.dart'
-    show AssetCatalog, assetCatalogStorageKey;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart'
     show characterAnimationRuntimeImageId;
@@ -17,14 +15,15 @@ import 'studio_resource_notifications.dart';
 import 'studio_thumbnail_resources.dart';
 
 final class StudioLibraryImageCache {
-  StudioLibraryImageCache(this.projectRoot);
+  StudioLibraryImageCache(this._catalog);
 
-  final String projectRoot;
+  final StudioAssetCatalogCache _catalog;
+  String get projectRoot => _catalog.projectRoot;
   final _changes = StudioResourceNotifications();
   final _paths = <String, String>{};
   final _colors = <String, TilesetTransparentColor>{};
   final _failures = <String, StudioResourceFailure>{};
-  Future<AssetCatalog?>? _catalog;
+  bool _catalogObserved = false;
   bool _disposed = false;
   int _generation = 0;
 
@@ -83,33 +82,13 @@ final class StudioLibraryImageCache {
       CharacterPreviewSource(:final character) => index.forCharacter(character),
       _ => <String>{},
     };
-    final assetIds = {
-      for (final item in scope.tilesets)
-        ...switch (item.source) {
-          ProjectRegularAtlasTilesetSource(:final assetId) => {assetId},
-          ProjectImageCollectionTilesetSource(:final pages) => {
-            for (final page in pages)
-              if (requiredIds.contains(page.assetId)) page.assetId,
-          },
-          null => {item.id},
-        },
-      for (final clip in character?.animations ?? const <CharacterAnimation>[])
-        ?clip.sourceAssetId,
-    };
-    final catalog = await (_catalog ??= readStudioAssetCatalog(projectRoot));
-    if (_disposed) return null;
-    if (generation != _generation) return this.scope(source, project);
+    final catalog = _catalog.read(refresh: !_catalogObserved);
+    _catalogObserved = true;
     final paths = await resolveStudioResourcePaths(
       projectRoot,
       scope,
       index.supported,
-      catalogRead: Future.value(
-        catalog == null
-            ? null
-            : AssetCatalog(
-                records: [for (final id in assetIds) ?catalog.find(id)],
-              ),
-      ),
+      catalogRead: catalog,
     );
     if (_disposed) return null;
     if (generation != _generation) return this.scope(source, project);
@@ -126,9 +105,13 @@ final class StudioLibraryImageCache {
     return _StudioLibraryThumbnailResources(this, index, aliases);
   }
 
+  void refreshCatalog() {
+    _catalogObserved = false;
+    _generation++;
+  }
+
   void invalidate(Set<String> changedRelativePaths) {
     if (changedRelativePaths.isEmpty || _disposed) return;
-    if (changedRelativePaths.contains(assetCatalogStorageKey)) _catalog = null;
     _generation++;
     final changed = {
       for (final path in changedRelativePaths)

@@ -132,11 +132,20 @@ final class StudioMapResources
   final SpatialModelSourceUpdates modelSourceUpdates =
       SpatialModelSourceUpdates();
   late final StudioImageStore store;
+  late final _assetCatalog = StudioAssetCatalogCache(projectRoot);
   StudioLibraryImageCache? _libraryImages;
+  @visibleForTesting
+  int get assetCatalogReads => _assetCatalog.reads;
 
   @override
-  void invalidateResourcePreviews(Set<String> changedRelativePaths) =>
-      _libraryImages?.invalidate(changedRelativePaths);
+  void refreshResourcePreviews() => _libraryImages?.refreshCatalog();
+
+  @override
+  void invalidateResourcePreviews(Set<String> changedRelativePaths) {
+    _assetCatalog.invalidate(changedRelativePaths);
+    _libraryImages?.invalidate(changedRelativePaths);
+  }
+
   late final StudioBorderPreview borderPreview = StudioBorderPreview(
     projectRoot: projectRoot,
     changed: _notify,
@@ -191,7 +200,7 @@ final class StudioMapResources
     ProjectManifest project, {
     required double size,
   }) => StudioLibraryImagePreview(
-    cache: _libraryImages ??= StudioLibraryImageCache(projectRoot),
+    cache: _libraryImages ??= StudioLibraryImageCache(_assetCatalog),
     source: source,
     project: project,
     size: size,
