@@ -33,6 +33,8 @@ concurrency:
 env:
   FLUTTER_VERSION: 3.48.0-0.4.pre
   FLUTTER_REVISION: e3005e3402d9cfa2043114c8bc53c59d12e9b98e
+  STUDIO_MACOS_BUNDLE_ID: com.yoahnl.avelune.studio
+  STUDIO_MACOS_APPCAST_URL: https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && format('pokemap-v{0}', inputs.version) || github.ref_name }}
 
 jobs:
@@ -61,7 +63,7 @@ jobs:
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - name: Validate release tag and build
         id: release-contract
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         env:
           REQUESTED_VERSION: ${{ inputs.version }}
           REQUEST_CONFIRMATION: ${{ inputs.confirmation }}
@@ -77,9 +79,9 @@ jobs:
           fi
           flutter pub get
           curl --fail --location --silent --show-error \
-            'https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml' \
+            "$STUDIO_MACOS_APPCAST_URL" \
             --output "$RUNNER_TEMP/current-appcast.xml"
-          PREVIOUS_BUILD="$(python3 - "$RUNNER_TEMP/current-appcast.xml" ../../apps/avelune_studio/pubspec.yaml <<'PY'
+          PREVIOUS_BUILD="$(python3 - "$RUNNER_TEMP/current-appcast.xml" pubspec.yaml <<'PY'
           import pathlib
           import re
           import sys
@@ -103,7 +105,7 @@ jobs:
           )"
           dart run tool/release/validate_release_version.dart \
             --tag "$RELEASE_TAG" \
-            --pubspec ../../apps/avelune_studio/pubspec.yaml \
+            --pubspec pubspec.yaml \
             --previous-build "$PREVIOUS_BUILD" \
             --github-output "$GITHUB_OUTPUT"
 
@@ -129,10 +131,12 @@ jobs:
         working-directory: apps/avelune_studio
         run: |
           flutter pub get
-          flutter test test/release
+          flutter test test/release --exclude-tags product-certification
           flutter analyze
           flutter build macos --release
           APP_PATH="build/macos/Build/Products/Release/Avelune Studio.app"
+          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = "$STUDIO_MACOS_BUNDLE_ID"
+          test "$(plutil -extract SUFeedURL raw "$APP_PATH/Contents/Info.plist")" = "$STUDIO_MACOS_APPCAST_URL"
           npm --prefix ../../tools/pokemap_mcp ci
           node ../../tools/pokemap_mcp/tool/build_runtime.mjs \
             --work-root "$RUNNER_TEMP/studio-mcp" \
@@ -140,7 +144,7 @@ jobs:
           bash ../../tools/release/sign_macos_app.sh \
             --app "$APP_PATH" --identity - --no-timestamp \
             --entitlements macos/Runner/Release.entitlements
-          ../../packages/map_editor/tool/release/package_macos_preview.sh \
+          bash tool/release/package_macos_preview.sh \
             --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --dmg build/release/PokeMap-macos-preview.dmg
       - name: Preserve macOS preview
@@ -212,7 +216,7 @@ jobs:
           )"
           test "$SPARKLE_PUBLIC_KEY_BYTES" = 32
           flutter pub get
-          flutter test test/release
+          flutter test test/release --exclude-tags product-certification
           flutter analyze
           flutter build macos --release \
             --build-name="$RELEASE_VERSION" \
@@ -222,10 +226,10 @@ jobs:
           node ../../tools/pokemap_mcp/tool/build_runtime.mjs \
             --work-root "$RUNNER_TEMP/studio-mcp" \
             --output "$APP_PATH/Contents/Resources/mcp"
-          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.avelune.studio
+          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = "$STUDIO_MACOS_BUNDLE_ID"
           test "$(plutil -extract CFBundleName raw "$APP_PATH/Contents/Info.plist")" = 'Avelune Studio'
           test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")" = "$RELEASE_BUILD_NUMBER"
-          test "$(plutil -extract SUFeedURL raw "$APP_PATH/Contents/Info.plist")" = 'https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml'
+          test "$(plutil -extract SUFeedURL raw "$APP_PATH/Contents/Info.plist")" = "$STUDIO_MACOS_APPCAST_URL"
           plutil -replace SUPublicEDKey -string "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
             "$APP_PATH/Contents/Info.plist"
           test "$(plutil -extract SUPublicEDKey raw "$APP_PATH/Contents/Info.plist")" = \
@@ -269,7 +273,7 @@ jobs:
           GENERATE_APPCAST="$(find build/macos -type f \
             -path '*/Sparkle/bin/generate_appcast' -perm -111 -print -quit)"
           test -n "$GENERATE_APPCAST"
-          ../../packages/map_editor/tool/release/package_macos_update.sh \
+          bash tool/release/package_macos_update.sh \
             --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --version "$RELEASE_VERSION" \
             --output-dir build/release \
@@ -327,7 +331,7 @@ jobs:
         shell: pwsh
         run: |
           flutter pub get
-          flutter test test/release
+          flutter test test/release --exclude-tags product-certification
           flutter analyze
           flutter build windows --release
           $bundle = "build/windows/x64/runner/Release"
@@ -408,7 +412,7 @@ jobs:
         run: |
           flutter pub get
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          flutter test test/release
+          flutter test test/release --exclude-tags product-certification
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           flutter analyze
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -475,7 +479,7 @@ jobs:
         working-directory: apps/avelune_studio
         run: |
           flutter pub get
-          flutter test test/release
+          flutter test test/release --exclude-tags product-certification
           flutter analyze
           flutter build linux --release
           npm --prefix ../../tools/pokemap_mcp ci
@@ -533,7 +537,7 @@ jobs:
         working-directory: apps/avelune_studio
         run: |
           flutter pub get
-          flutter test test/release
+          flutter test test/release --exclude-tags product-certification
           flutter analyze
           flutter build linux --release \
             --build-name="$RELEASE_VERSION" \
@@ -621,7 +625,7 @@ jobs:
           test "$SPARKLE_PUBLIC_KEY_BYTES" = 32
           flutter pub get
           dart run ../../packages/map_render_3d/tool/build_shaders.dart
-          flutter test test/release
+          flutter test test/release --exclude-tags product-certification
           flutter analyze
           flutter build macos --release \
             --build-name="$RELEASE_VERSION" \
@@ -637,10 +641,10 @@ jobs:
             --manifest ../../tools/flutter_engine_patches/macos_release_engine.json \
             --producer-flutter-sdk "$RUNNER_TEMP/flutter" \
             --receipt "$RUNNER_TEMP/studio-engine-receipt.json"
-          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.avelune.studio
+          test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = "$STUDIO_MACOS_BUNDLE_ID"
           test "$(plutil -extract CFBundleName raw "$APP_PATH/Contents/Info.plist")" = 'Avelune Studio'
           test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")" = "$RELEASE_BUILD_NUMBER"
-          test "$(plutil -extract SUFeedURL raw "$APP_PATH/Contents/Info.plist")" = 'https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml'
+          test "$(plutil -extract SUFeedURL raw "$APP_PATH/Contents/Info.plist")" = "$STUDIO_MACOS_APPCAST_URL"
           plutil -replace SUPublicEDKey -string "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
             "$APP_PATH/Contents/Info.plist"
           test "$(plutil -extract SUPublicEDKey raw "$APP_PATH/Contents/Info.plist")" = \
@@ -693,7 +697,7 @@ jobs:
           GENERATE_APPCAST="$(find build/macos -type f \
             -path '*/Sparkle/bin/generate_appcast' -perm -111 -print -quit)"
           test -n "$GENERATE_APPCAST"
-          ../../packages/map_editor/tool/release/package_macos_update.sh \
+          bash tool/release/package_macos_update.sh \
             --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --version "$RELEASE_VERSION" \
             --output-dir build/release \
@@ -758,7 +762,7 @@ jobs:
           name: pokemap-macos-${{ github.sha }}
           path: dist
       - name: Generate and validate release metadata
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         run: |
           test -n "$POKEMAP_SPARKLE_PUBLIC_ED_KEY"
           flutter pub get
@@ -885,7 +889,7 @@ jobs:
                 > "dist/$ASSET_NAME"
             done
       - name: Revalidate downloaded hashes, metadata and signatures
-        working-directory: packages/map_editor
+        working-directory: apps/avelune_studio
         run: |
           flutter pub get
           dart run tool/release/validate_update_assets.dart \

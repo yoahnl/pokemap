@@ -86,13 +86,40 @@ void main() {
     expect(workflow, contains('tags: ["pokemap-v*"]'));
     expect(workflow, contains('pokemap-editor-update-stable'));
     expect(workflow, contains('working-directory: apps/avelune_studio'));
+    expect(workflow, isNot(contains('packages/map_editor')));
     expect(workflow, contains('apps/avelune_studio/build/release/'));
     expect(workflow, contains('SPARKLE_PRIVATE_ED_KEY_BASE64'));
     expect(workflow, contains('POKEMAP_SPARKLE_PUBLIC_ED_KEY'));
+    expect(
+      workflow,
+      contains('STUDIO_MACOS_BUNDLE_ID: com.yoahnl.avelune.studio'),
+    );
+    expect(
+      workflow,
+      contains(
+        'STUDIO_MACOS_APPCAST_URL: https://github.com/yoahnl/pokemap/releases/'
+        'download/pokemap-editor-update-stable/appcast-macos.xml',
+      ),
+    );
     const bundleIdCheck =
         r'test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")"'
-        ' = com.yoahnl.avelune.studio';
-    expect(bundleIdCheck.allMatches(workflow), hasLength(2));
+        r' = "$STUDIO_MACOS_BUNDLE_ID"';
+    const appcastCheck =
+        r'test "$(plutil -extract SUFeedURL raw "$APP_PATH/Contents/Info.plist")"'
+        r' = "$STUDIO_MACOS_APPCAST_URL"';
+    expect(bundleIdCheck.allMatches(workflow), hasLength(3));
+    expect(appcastCheck.allMatches(workflow), hasLength(3));
+    for (final tool in [
+      'package_macos_preview.sh',
+      'package_macos_update.sh',
+      'validate_release_version.dart',
+      'generate_update_index.dart',
+      'validate_update_assets.dart',
+    ]) {
+      final path = 'tool/release/$tool';
+      expect(workflow, contains(path));
+      expect(File(path).existsSync(), isTrue, reason: path);
+    }
     expect(
       workflow,
       contains('build/macos/Build/Products/Release/Avelune Studio.app'),
