@@ -85,7 +85,9 @@ export 'src/workspace/catalog_project_materialization.dart';
 export 'src/workspace/catalog/catalog_targeted_map_edit.dart'
     show CatalogTargetedMapRevision, CatalogTargetedMapSelection;
 export 'src/workspace/catalog/catalog_resource_usage_index.dart'
-    show readCatalogResourceLibraryMapUsages;
+    show
+        readCatalogResourceLibraryMapUsages,
+        readCatalogResourceLibraryRelations;
 
 export 'src/documents/character_contact_shadow_authoring.dart';
 

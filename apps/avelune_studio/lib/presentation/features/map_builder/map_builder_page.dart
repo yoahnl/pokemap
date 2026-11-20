@@ -87,6 +87,7 @@ part 'map_builder_page_layout.dart';
 part 'map_builder_page_leave_guard.dart';
 part 'map_builder_page_export.dart';
 part 'map_builder_page_relief.dart';
+part 'map_builder_page_resources.dart';
 part 'map_builder_page_scene.dart';
 part 'map_builder_page_state.dart';
 part 'map_builder_page_story.dart';

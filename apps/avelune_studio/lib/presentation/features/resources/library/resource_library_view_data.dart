@@ -60,6 +60,19 @@ enum ResourceLibrarySort {
 
 enum ResourceLibrarySection { library, workshops }
 
+typedef ResourceLibraryRelationsView = ({
+  List<ResourceLibraryItemView> sources,
+  List<ResourceLibraryItemView>? consumers,
+});
+
+typedef ResourceLibraryNavigation = ({
+  String? revision,
+  Future<void>? mapUsagesReady,
+  ResourceLibraryItemView? Function(String) item,
+  Future<ResourceLibraryRelationsView?> Function(String)? loadRelations,
+  Future<bool> Function(String)? openMap,
+});
+
 @immutable
 class ResourceLibraryItemView {
   const ResourceLibraryItemView({

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/features/resources/application/project_resource_library.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
@@ -46,7 +47,33 @@ void main() {
       }
 
       expect(await read(), isNull);
+      Future<ProjectLibraryRelations?> relations(String kind, String id) async {
+        return adapter.readResourceLibraryRelations(
+          session,
+          kind,
+          id,
+          revision: await adapter.resourceRevision(session),
+        );
+      }
+
+      final unprepared = await relations('borderBlueprint', 'fence');
+      expect(unprepared?.sources, contains('model3d:unit'));
+      expect(unprepared?.consumers, isNull);
       await fixture.prepare();
+      final model = await relations('model3d', 'unit');
+      expect(model?.consumers, {'borderBlueprint:fence'});
+      final border = await relations('borderBlueprint', 'fence');
+      expect(border?.sources, contains('model3d:unit'));
+      expect(border?.consumers, isEmpty);
+      expect(
+        await adapter.readResourceLibraryRelations(
+          session,
+          'model3d',
+          'unit',
+          revision: 'stale',
+        ),
+        isNull,
+      );
       expect(await read('stale'), isNull);
       expect(await read(), isEmpty);
 
@@ -101,5 +128,6 @@ void main() {
       expect(await read(), isEmpty);
       expect(reader.paths, isNot(contains('maps/route.json')));
     },
+    timeout: const Timeout(Duration(minutes: 2)),
   );
 }

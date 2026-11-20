@@ -150,6 +150,11 @@ class ProjectLibraryCatalogView {
 
   Map<String, String> get familyLabels => _familyLabels;
   ResourceLibraryCatalog get metadata => _catalog;
+  ResourceLibraryItemView? item(String id) => switch (_positions[id]) {
+    final position? => _items[position],
+    null => null,
+  };
+
   late Map<String, String> _familyLabels;
   late Map<String, List<String>> _familyPaths;
   ResourceLibraryCatalog _catalog;

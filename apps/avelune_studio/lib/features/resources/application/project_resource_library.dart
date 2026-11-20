@@ -28,6 +28,20 @@ abstract interface class ProjectResourceLibraryMapUsagesPort {
   });
 }
 
+typedef ProjectLibraryRelations = ({
+  Set<String> sources,
+  Set<String>? consumers,
+});
+
+abstract interface class ProjectResourceLibraryRelationsPort {
+  Future<ProjectLibraryRelations?> readResourceLibraryRelations(
+    ProjectSession session,
+    String kind,
+    String id, {
+    required String revision,
+  });
+}
+
 class ProjectLibraryItem {
   ProjectLibraryItem({
     required this.kind,

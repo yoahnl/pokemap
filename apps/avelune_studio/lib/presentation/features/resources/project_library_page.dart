@@ -25,6 +25,7 @@ import 'project_model_workshop.dart';
 part 'project_library_page_edits.dart';
 part 'project_library_page_lifecycle.dart';
 part 'project_library_page_loading.dart';
+part 'project_library_page_navigation.dart';
 part 'project_library_page_organization.dart';
 part 'project_library_page_workshops.dart';
 
@@ -36,12 +37,14 @@ class ProjectLibraryPage extends StatefulWidget {
     required this.visuals,
     this.management,
     this.onModelWorkshopPublished,
+    this.onOpenMap,
   });
 
   final bool active;
   final MapWorkspaceController maps;
   final MapWorkspaceVisuals? visuals;
   final ProjectLibraryManagement? management;
+  final Future<bool> Function(String)? onOpenMap;
   final Future<void> Function(ResourceMutationReceipt)?
   onModelWorkshopPublished;
 
@@ -286,6 +289,7 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
                 _delete(context, read, management.editor, item.id)
           : null,
       publication: read.publication,
+      navigation: _libraryNavigation(read),
       tilePreview: (item) => preview(item.id, compact: true),
       detailPreview: (item) => preview(item.id, compact: false),
     );

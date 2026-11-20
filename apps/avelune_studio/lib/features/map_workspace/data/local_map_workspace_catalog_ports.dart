@@ -6,6 +6,7 @@ mixin _MapWorkspaceCatalogPorts
         MapWorkspacePreviewSelectionPort,
         ProjectResourceLibraryDimensionsPort,
         ProjectResourceLibraryMapUsagesPort,
+        ProjectResourceLibraryRelationsPort,
         ProjectResourcePreviewPort,
         MapWorkspaceExternalMutationPort,
         MapWorkspaceWorkshopPort,
@@ -70,6 +71,19 @@ mixin _MapWorkspaceCatalogPorts
     session,
     revision,
     identities,
+  );
+
+  @override
+  Future<ProjectLibraryRelations?> readResourceLibraryRelations(
+    ProjectSession session,
+    String kind,
+    String id, {
+    required String revision,
+  }) => _readProjectResourceLibraryRelations(
+    _adapter._reader,
+    session,
+    CatalogDefinitionKey(_catalogFamily(kind), id),
+    revision,
   );
 
   Future<ProjectLibraryItem> readResourceLibraryItem(

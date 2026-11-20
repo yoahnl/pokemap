@@ -15,6 +15,7 @@ import '../project_snapshot.dart';
 part 'catalog_resource_usage_sources.dart';
 part 'catalog_resource_usage_mutations.dart';
 part 'catalog_resource_library_map_usages.dart';
+part 'catalog_resource_library_relations.dart';
 
 abstract final class CatalogResourceUsageIndex {
   static final marker = CatalogDefinitionKey(
@@ -79,12 +80,14 @@ abstract final class CatalogResourceUsageIndex {
   }
 
   static Future<Set<String>> consumerOwners(
-      CatalogSnapshot snapshot, String identity) async {
+      CatalogSnapshot snapshot, String identity,
+      {bool includeExternal = true}) async {
     await requirePrepared(snapshot);
     final owners = <String>{};
     final consumers =
         await snapshot.lookup(_key('resourceUsageConsumers', identity));
     for (final source in _strings(consumers, identity, 'sources')) {
+      if (!includeExternal && source.startsWith('external:')) continue;
       final document =
           await snapshot.lookup(_key('resourceUsageSource', source));
       if (document == null ||
@@ -98,9 +101,11 @@ abstract final class CatalogResourceUsageIndex {
   }
 
   static Future<Set<String>> libraryConsumerOwners(
-      CatalogSnapshot snapshot, String kind, String id) async {
+      CatalogSnapshot snapshot, String kind, String id,
+      {bool includeExternal = true}) async {
     final identity = _mapUsageIdentity(kind, id);
-    final owners = await consumerOwners(snapshot, identity);
+    final owners = await consumerOwners(snapshot, identity,
+        includeExternal: includeExternal);
     return owners..remove(identity);
   }
 

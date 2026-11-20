@@ -176,16 +176,6 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     }
   }
 
-  Widget _resourceLibrary(ProjectLibraryManagement? management) =>
-      ProjectLibraryPage(
-        active: _section == StudioRailSection.resources && !_sceneShown,
-        maps: _maps,
-        visuals: _visuals,
-        management: _editable ? management : null,
-        onModelWorkshopPublished: (receipt) =>
-            _projection.acceptModelWorkshopReceipt(_maps, receipt),
-      );
-
   void _changed() {
     if (_disposed) return;
     pruneMissingMapSelection(_views, _maps.active);

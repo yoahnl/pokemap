@@ -114,6 +114,7 @@ Future<SelectionHost> openSelectionHost(
   WidgetTester tester, {
   MapCatalogPort? catalog,
   ProjectManifest? manifest,
+  WorkspaceMemoryPort? workspace,
   StudioGameExportPort? exportPort,
   PickGameExportFile? exportPicker,
 }) async {
@@ -122,9 +123,11 @@ Future<SelectionHost> openSelectionHost(
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final sessions = ControlledProjectSessionPort();
-  final port = WorkspaceMemoryPort(manifest: manifest ?? selectionProject())
-    ..saved['a'] = selectionMap('a')
-    ..saved['b'] = selectionMap('b');
+  final port =
+      (workspace ??
+            WorkspaceMemoryPort(manifest: manifest ?? selectionProject()))
+        ..saved['a'] = selectionMap('a')
+        ..saved['b'] = selectionMap('b');
   final container = ProviderContainer(
     overrides: [
       if (exportPort != null)

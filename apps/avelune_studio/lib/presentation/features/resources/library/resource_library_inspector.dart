@@ -2,6 +2,7 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
 import 'resource_library_items.dart';
+import 'resource_library_usage_links.dart';
 import 'resource_library_view_data.dart';
 
 class ResourceLibraryInspector extends StatelessWidget {
@@ -13,6 +14,11 @@ class ResourceLibraryInspector extends StatelessWidget {
     required this.consumers,
     required this.onRelated,
     required this.onClose,
+    this.onBack,
+    this.relationsRevision,
+    this.loadRelations,
+    this.onOpenMap,
+    this.onMapOpened,
     this.preview,
     this.previewActions = false,
     this.onRename,
@@ -29,6 +35,11 @@ class ResourceLibraryInspector extends StatelessWidget {
   final List<ResourceLibraryItemView> consumers;
   final ValueChanged<ResourceLibraryItemView> onRelated;
   final VoidCallback onClose;
+  final VoidCallback? onBack;
+  final String? relationsRevision;
+  final Future<ResourceLibraryRelationsView?> Function()? loadRelations;
+  final Future<bool> Function(String)? onOpenMap;
+  final VoidCallback? onMapOpened;
   final Widget? preview;
   final bool previewActions;
   final VoidCallback? onRename;
@@ -91,6 +102,12 @@ class ResourceLibraryInspector extends StatelessWidget {
             ),
             child: Row(
               children: [
+                if (onBack case final back?)
+                  StudioTool(
+                    label: 'Retour à la fiche précédente',
+                    icon: Icons.arrow_back_rounded,
+                    onPressed: back,
+                  ),
                 Expanded(
                   child: Text('Détails', style: theme.textTheme.titleMedium),
                 ),
@@ -173,41 +190,17 @@ class ResourceLibraryInspector extends StatelessWidget {
                 const SizedBox(height: StudioSpacing.xl),
                 const Divider(),
                 const SizedBox(height: StudioSpacing.l),
-                Text(
-                  item.usedOn == null
-                      ? 'Disponibilité'
-                      : 'Utilisation dans les cartes',
-                  style: theme.textTheme.titleSmall,
+                ResourceLibraryUsageLinks(
+                  item: item,
+                  maps: maps,
+                  source: source,
+                  consumers: consumers,
+                  revision: relationsRevision,
+                  loadRelations: loadRelations,
+                  onRelated: onRelated,
+                  onOpenMap: onOpenMap,
+                  onMapOpened: onMapOpened,
                 ),
-                const SizedBox(height: StudioSpacing.m),
-                if (item.usedOn?.isNotEmpty != true)
-                  Text(item.usageLabel(maps), style: theme.textTheme.bodySmall),
-                for (final id in item.usedOn ?? const <String>{})
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: StudioSpacing.xs),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: StudioBadge(
-                        maps[id] ?? 'Carte de démonstration',
-                        icon: Icons.map_outlined,
-                      ),
-                    ),
-                  ),
-                if (source case final associated?) ...[
-                  const SizedBox(height: StudioSpacing.xl),
-                  Text('Source associée', style: theme.textTheme.titleSmall),
-                  const SizedBox(height: StudioSpacing.m),
-                  _relatedButton(associated),
-                ],
-                if (consumers.isNotEmpty) ...[
-                  const SizedBox(height: StudioSpacing.xl),
-                  Text(
-                    'Ressources qui utilisent ce fichier',
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: StudioSpacing.m),
-                  for (final consumer in consumers) _relatedButton(consumer),
-                ],
               ],
             ),
           ),
@@ -215,14 +208,6 @@ class ResourceLibraryInspector extends StatelessWidget {
       ),
     );
   }
-
-  Widget _relatedButton(ResourceLibraryItemView target) => StudioButton(
-    key: ValueKey('library-source-${target.id}'),
-    label: target.name,
-    icon: Icons.link,
-    secondary: true,
-    onPressed: () => onRelated(target),
-  );
 
   Widget _property(String name, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: StudioSpacing.xs),

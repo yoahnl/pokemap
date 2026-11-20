@@ -46,6 +46,7 @@ class ResourceLibraryView extends StatefulWidget {
     this.onDuplicate,
     this.onDelete,
     this.publication,
+    this.navigation,
     this.detailPreview,
     this.tilePreview,
     this.familyLabels = const {},
@@ -73,6 +74,7 @@ class ResourceLibraryView extends StatefulWidget {
   final ResourceLibraryEditAction? onDuplicate;
   final Future<bool> Function(BuildContext, ResourceLibraryItemView)? onDelete;
   final ResourceLibraryPublication? publication;
+  final ResourceLibraryNavigation? navigation;
   final Widget? Function(ResourceLibraryItemView)? detailPreview;
   final Widget? Function(ResourceLibraryItemView)? tilePreview;
   final Map<String, String> familyLabels;
@@ -313,10 +315,9 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
                 const VerticalDivider(),
                 SizedBox(
                   width: bounds.maxWidth >= 1200 ? 262 : 236,
-                  child: _inspector(
+                  child: _inspection(
                     selected,
                     () => setState(() => _showDetails = false),
-                    (item) => setState(() => _reveal(item)),
                   ),
                 ),
               ],

@@ -203,3 +203,24 @@ Future<Map<String, Set<String>>?> _readProjectResourceLibraryMapUsages(
   }
   return reader is LocalProjectFileReader ? Isolate.run(read) : read();
 }
+
+Future<ProjectLibraryRelations?> _readProjectResourceLibraryRelations(
+  ProjectFileReader reader,
+  ProjectSession session,
+  CatalogDefinitionKey key,
+  String revision,
+) {
+  Future<ProjectLibraryRelations?> read() => _readScopedCatalogWith(
+    reader,
+    session,
+    (catalog, observed) async => observed == revision
+        ? readCatalogResourceLibraryRelations(catalog.snapshot, key)
+        : null,
+    metadataFields: const {},
+  );
+
+  if (session.storage == ProjectSessionStorage.manifest) {
+    return Future.value(null);
+  }
+  return reader is LocalProjectFileReader ? Isolate.run(read) : read();
+}
