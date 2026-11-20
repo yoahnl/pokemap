@@ -1,6 +1,21 @@
 part of 'project_library_page.dart';
 
 extension _ProjectLibraryPageLoading on _ProjectLibraryPageState {
+  Future<ProjectResourceLibrary> _queryLibrary(
+    MapWorkspaceController maps,
+    ProjectManifest manifest,
+  ) => switch (maps.port) {
+    final ProjectResourceLibraryDimensionsPort reader =>
+      reader.readResourceLibraryIndex(maps.session),
+    final ProjectResourceLibraryPort reader => reader.readResourceLibrary(
+      maps.session,
+    ),
+    _ when maps.hasCompleteProject => Future.value(
+      ProjectResourceLibrary.fromManifest(manifest),
+    ),
+    _ => Future.error(StateError('Lecteur de bibliothèque indisponible.')),
+  };
+
   Future<void> _withDimensions(
     ProjectResourceLibraryDimensionsPort reader,
     ProjectSession session,
@@ -50,5 +65,43 @@ extension _ProjectLibraryPageLoading on _ProjectLibraryPageState {
         items: read.catalog.entries.values,
       );
     } catch (_) {}
+  }
+}
+
+class _ProjectLibraryRead {
+  _ProjectLibraryRead(ProjectResourceLibrary library, this.previews)
+    : catalog = ProjectLibraryCatalogView(library),
+      revision = library.revision;
+
+  final ProjectLibraryCatalogView catalog;
+  final ProjectResourcePreviews previews;
+  ProjectLibraryCatalogView? enriched;
+  Future<void>? withUsages;
+  Future<void>? withDimensions;
+  bool dimensionsReady = false;
+  String? revision;
+  ResourceLibraryPublication? publication;
+
+  ResourceLibraryDimensionStatus dimensionStatus(ConnectionState state) =>
+      switch ((withDimensions, dimensionsReady, state)) {
+        (null, _, _) || (_, true, _) => ResourceLibraryDimensionStatus.ready,
+        (_, _, ConnectionState.done) =>
+          ResourceLibraryDimensionStatus.unavailable,
+        _ => ResourceLibraryDimensionStatus.loading,
+      };
+
+  ResourceLibraryItemView publish(
+    ProjectLibraryEdit edit, {
+    required bool imported,
+  }) {
+    revision = edit.receipt.revision;
+    final base = catalog.upsert(edit.item);
+    final item = enriched?.upsert(edit.item) ?? base;
+    publication = (
+      item: item,
+      token: (publication?.token ?? 0) + 1,
+      imported: imported,
+    );
+    return item;
   }
 }

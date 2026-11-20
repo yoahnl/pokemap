@@ -46,6 +46,9 @@ extension _ResourceLibraryResults on _ResourceLibraryViewState {
                   onImport: widget.onImport == null
                       ? null
                       : () => widget.onImport!(context),
+                  onImportPack: widget.onImportPack == null
+                      ? null
+                      : () => widget.onImportPack!(context),
                   onCreate: widget.workshops == null
                       ? null
                       : () => _setSection(ResourceLibrarySection.workshops),

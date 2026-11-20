@@ -19,9 +19,9 @@ class StudioReviewDialog extends StatelessWidget {
 
   final String title;
   final Widget content;
-  final String confirmLabel;
+  final String? confirmLabel;
   final VoidCallback? onConfirmed;
-  final VoidCallback onCancelled;
+  final VoidCallback? onCancelled;
   final String cancelLabel;
   final String? secondaryActionLabel;
   final VoidCallback? onSecondaryAction;
@@ -43,12 +43,13 @@ class StudioReviewDialog extends StatelessWidget {
           secondary: true,
           onPressed: onSecondaryAction,
         ),
-      StudioButton(
-        key: const ValueKey('confirm-reviewed-plan'),
-        label: confirmLabel,
-        variant: confirmVariant,
-        onPressed: onConfirmed,
-      ),
+      if (confirmLabel case final label?)
+        StudioButton(
+          key: const ValueKey('confirm-reviewed-plan'),
+          label: label,
+          variant: confirmVariant,
+          onPressed: onConfirmed,
+        ),
     ],
   );
 }

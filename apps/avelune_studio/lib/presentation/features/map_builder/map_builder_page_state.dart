@@ -22,6 +22,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   var _testing = false;
   var _exporting = false;
   var _openingExport = false;
+  var _packDialogOpen = false;
   SceneFocusController? _sceneFocus;
   var _sceneShown = false;
   final _storyOrigins = <_StoryOrigin>[];

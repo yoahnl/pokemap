@@ -8,12 +8,14 @@ class ResourceLibraryHeading extends StatelessWidget {
   const ResourceLibraryHeading({
     super.key,
     this.onImport,
+    this.onImportPack,
     this.onCreate,
     this.onRefresh,
     this.loadingMapUsages = false,
   });
 
   final VoidCallback? onImport;
+  final VoidCallback? onImportPack;
   final VoidCallback? onCreate;
   final VoidCallback? onRefresh;
   final bool loadingMapUsages;
@@ -38,13 +40,8 @@ class ResourceLibraryHeading extends StatelessWidget {
               liveRegion: true,
               child: const StudioBadge('Calcul des usages par carte…'),
             ),
-          if (onImport != null)
-            StudioButton(
-              label: 'Importer',
-              secondary: true,
-              icon: Icons.add,
-              onPressed: onImport,
-            ),
+          if (onImport != null || onImportPack != null)
+            Builder(builder: _importButton),
           if (onCreate != null)
             StudioButton(
               label: 'Créer',
@@ -61,6 +58,34 @@ class ResourceLibraryHeading extends StatelessWidget {
       ),
     ],
   );
+
+  Widget _importButton(BuildContext anchor) {
+    final file = onImport;
+    final pack = onImportPack;
+    final menu = file != null && pack != null;
+    return StudioButton(
+      label: 'Importer',
+      secondary: true,
+      icon: menu ? Icons.arrow_drop_down : Icons.add,
+      onPressed: menu
+          ? () => StudioContextMenu.showBelow(
+              anchor,
+              items: [
+                StudioContextMenuEntry(
+                  label: 'Un fichier PNG ou GLB',
+                  icon: Icons.upload_file_outlined,
+                  onSelected: file,
+                ),
+                StudioContextMenuEntry(
+                  label: 'Un pack local',
+                  icon: Icons.inventory_2_outlined,
+                  onSelected: pack,
+                ),
+              ],
+            )
+          : file ?? pack,
+    );
+  }
 }
 
 class ResourceLibraryResultsHeading extends StatelessWidget {

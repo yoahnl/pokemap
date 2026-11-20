@@ -1685,9 +1685,19 @@ final class CatalogEditingSession {
         afterBytes: CatalogStorageStore.encodeHead(next.root));
     final now = _clock().toUtc();
     final suppliedDiff = diff ?? publicPlan?.changeSet.diff;
-    final headDiff = revisionHistoryDiff(resource,
-        beforeRevision: change.beforeRevision,
-        afterRevision: change.afterRevision);
+    final packImport = request.actionId == 'resource_pack.import';
+    final headDiff = packImport
+        ? AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: resource,
+            path: '/',
+            after: {
+              'revision': change.afterRevision,
+              'byteLength': change.afterPayload!.byteLength,
+            })
+        : revisionHistoryDiff(resource,
+            beforeRevision: change.beforeRevision,
+            afterRevision: change.afterRevision);
     final changeSet = AuthoringChangeSet(
         changes: [change, ...additionalChanges],
         diff: suppliedDiff == null
@@ -1699,7 +1709,13 @@ final class CatalogEditingSession {
                       afterRevision: extra.afterRevision),
               ])
             : AuthoringDiff([
-                ...suppliedDiff.entries,
+                for (final entry in suppliedDiff.entries)
+                  if (packImport &&
+                      entry.resource.kind == resource.kind &&
+                      entry.resource.id == resource.id)
+                    headDiff
+                  else
+                    entry,
                 if (!suppliedDiff.entries.any((entry) =>
                     entry.resource.kind == 'catalogHead' &&
                     entry.resource.id == 'catalog'))

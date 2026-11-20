@@ -1490,7 +1490,57 @@ final class LocalMapAuthoringMutationApi
       throw const AuthoringProjectionException('projection.receipt_unavailable',
           'The canonical mutation receipt is unavailable.');
     }
-    return (await session._mutationResult(entry.receipt)).toJson();
+    final receipt = entry.receipt.actionId == 'resource_pack.import'
+        ? await _reprojectPackImportReceipt(session, entry)
+        : entry.receipt;
+    return (await session._mutationResult(receipt)).toJson();
+  }
+
+  Future<AuthoringReceipt> _reprojectPackImportReceipt(
+      _LocalMapAuthoringSession session, AuthoringHistoryEntry entry) async {
+    final receipt = entry.receipt;
+    final change = entry.changes
+        .where((change) => change.storageKey == CatalogStorageStore.headStorageKey)
+        .firstOrNull;
+    final head = receipt.diff.entries
+        .where((entry) => entry.resource.kind == 'catalogHead' &&
+            entry.resource.id == 'catalog')
+        .firstOrNull;
+    if (head == null || change == null) return receipt;
+    final blob = change.afterBlobId;
+    if (blob == null) return receipt;
+    final after = head.after;
+    if (after is Map && after['revision'] == change.afterRevision) {
+      return receipt;
+    }
+    final payload = await session._historyBlobs.capturePayload(blob,
+        storageKey: CatalogStorageStore.headStorageKey);
+    try {
+      if (payload == null || payload.resourceRevision != change.afterRevision) {
+        throw const AuthoringProjectionException('projection.receipt_unavailable',
+            'The retained catalog head does not match the import receipt.');
+      }
+      return AuthoringReceipt.fromJson({
+        ...receipt.toJson(),
+        'diff': {
+          'entries': [
+            for (final entry in receipt.diff.entries)
+              if (identical(entry, head))
+                {
+                  ...entry.toJson(),
+                  'after': {
+                    'revision': payload.resourceRevision,
+                    'byteLength': payload.byteLength,
+                  },
+                }
+              else
+                entry.toJson(),
+          ],
+        },
+      });
+    } finally {
+      await payload?.release();
+    }
   }
 
   @override

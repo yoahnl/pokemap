@@ -4,7 +4,11 @@ extension _MapBuilderPageLeaveGuard on _MapBuilderPageState {
   void _protect() {
     if (_guarded ||
         _disposed ||
-        !(_openingExport || _exporting || _draft.unsaved || _typing)) {
+        !(_openingExport ||
+            _exporting ||
+            _packDialogOpen ||
+            _draft.unsaved ||
+            _typing)) {
       return;
     }
     _guarded = true;
@@ -31,7 +35,7 @@ extension _MapBuilderPageLeaveGuard on _MapBuilderPageState {
   }
 
   Future<bool> _askToLeave() async {
-    if (_openingExport || _exporting) return false;
+    if (_openingExport || _exporting || _packDialogOpen) return false;
     await _commitTyping();
     if (!mounted || _disposed || !_draft.unsaved) return true;
     final l10n = context.l10n;

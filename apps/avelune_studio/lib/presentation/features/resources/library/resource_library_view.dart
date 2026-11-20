@@ -39,6 +39,7 @@ class ResourceLibraryView extends StatefulWidget {
     this.onManageFamilies,
     this.onClassifySelection,
     this.onImport,
+    this.onImportPack,
     this.onRefresh,
     this.onRename,
     this.onClassify,
@@ -67,6 +68,7 @@ class ResourceLibraryView extends StatefulWidget {
   final VoidCallback? onManageFamilies;
   final Future<void> Function(BuildContext, Set<String>)? onClassifySelection;
   final ValueChanged<BuildContext>? onImport;
+  final ValueChanged<BuildContext>? onImportPack;
   final VoidCallback? onRefresh;
   final ResourceLibraryEditAction? onRename;
   final ResourceLibraryEditAction? onClassify;
