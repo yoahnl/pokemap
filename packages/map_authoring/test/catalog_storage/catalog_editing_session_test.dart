@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/src/catalog_storage/catalog_editing_session.dart';
@@ -40,7 +42,13 @@ void main() {
     expect(change.storageKey, CatalogStorageStore.headStorageKey);
     expect(change.beforePayload!.byteLength, lessThan(4096));
     expect(change.afterPayload!.byteLength, lessThan(4096));
-    final receipt = await session.apply(planned);
+    final published = (await store.openRoot(planned.root)).snapshot;
+    final verified = await published.deltaFrom(session.snapshot);
+    final inventory = planned.plan.catalogDelta!;
+    expect(inventory.addedObjects, unorderedEquals(verified.addedObjects));
+    expect(inventory.removedObjects, unorderedEquals(verified.removedObjects));
+    expect(inventory.storedBytes, verified.storedBytes);
+    final receipt = await session.apply(planned, operationId: 'save-a');
     expect(planned.plan.appliedPayloadReleased, isTrue);
     expect(
         (await session.snapshot.lookup(_key('a')))!.payload['name'], 'after');
@@ -48,7 +56,72 @@ void main() {
     final history = await session.history.list(projectId: 'game', limit: 10);
     expect(history.entries.single.entryId, receipt.receiptId);
     expect(history.entries.single.changes.single.resource.kind, 'catalogHead');
-    expect((await session.apply(planned)).toJson(), receipt.toJson());
+    expect((await session.apply(planned, operationId: 'save-a')).toJson(),
+        receipt.toJson());
+  });
+
+  test('an assigned operation retains its preparation lease through recovery',
+      () async {
+    await session.close();
+    session = await _open(store, faultInjector: (context) {
+      if (context.checkpoint ==
+          AuthoringTransactionCheckpoint.afterResourcePromoted) {
+        throw const AuthoringTransactionSimulatedCrash();
+      }
+    });
+    final planned = await session.planPatch(
+        upserts: [_unit('a', 'after')], idempotencyKey: 'kept-lease');
+    final leases = Directory('${directory.path}/catalog/leases');
+    final prepared = (await leases
+            .list()
+            .where((entry) => entry is File)
+            .cast<File>()
+            .asyncMap((file) async =>
+                (file, jsonDecode(await file.readAsString()) as Map))
+            .toList())
+        .singleWhere((item) => item.$2['ownerId'] == planned.operationId);
+    const operation = 'save-with-a-prepared-lease';
+    await expectLater(session.apply(planned, operationId: operation),
+        throwsA(isA<AuthoringTransactionSimulatedCrash>()));
+    expect(await prepared.$1.exists(), isTrue);
+    expect(jsonDecode(await prepared.$1.readAsString()),
+        {...prepared.$2, 'ownerId': operation});
+    await session.close();
+    session = await _open(store);
+    final receipt = (await session.reconcile(operation))!;
+    expect(
+        (await session.snapshot.lookup(_key('a')))!.payload['name'], 'after');
+    expect(await prepared.$1.exists(), isFalse);
+    await session.undo(
+        entryId: receipt.receiptId, idempotencyKey: 'undo-lease');
+    expect(
+        (await session.snapshot.lookup(_key('a')))!.payload['name'], 'before');
+  });
+
+  test('apply avoids repeating the locked retention preflight before staging',
+      () async {
+    var startedStaging = false;
+    await session.close();
+    session = await _open(store, faultInjector: (context) {
+      if (context.checkpoint ==
+          AuthoringTransactionCheckpoint.afterJournalPreparing) {
+        startedStaging = true;
+      }
+    });
+    final planned = await session.planPatch(
+        upserts: [_unit('a', 'after')], idempotencyKey: 'retention-preflight');
+    final outside = Zone.current;
+    var windowAccesses = 0;
+    await IOOverrides.runZoned(() => session.apply(planned),
+        createFile: (path) {
+      if (!startedStaging && path.endsWith('/history-retention.json')) {
+        windowAccesses++;
+      }
+      return outside.run(() => File(path));
+    });
+    expect(windowAccesses, lessThanOrEqualTo(6));
+    expect(
+        (await session.snapshot.lookup(_key('a')))!.payload['name'], 'after');
   });
 
   test('undo and redo survive reopening without decoding a project', () async {
@@ -136,7 +209,9 @@ void main() {
           .planPatch(upserts: [_unit('a', 'fresh')], idempotencyKey: 'fresh');
       await other.apply(fresh);
       await expectLater(
-          session.apply(stale), throwsA(isA<CatalogStorageException>()));
+          session.apply(stale, operationId: 'stale-save'),
+          throwsA(isA<CatalogStorageException>().having(
+              (error) => error.code, 'code', 'catalog.revision_conflict')));
       final observed = await session.openSnapshot();
       try {
         expect((await observed.snapshot.lookup(_key('a')))!.payload['name'],
@@ -147,6 +222,27 @@ void main() {
     } finally {
       await other.close();
     }
+  });
+
+  test('a stale source dependency blocks the prepared catalog patch', () async {
+    final source = File('${directory.path}/source.yarn');
+    await source.writeAsString('Original');
+    Future<String> revision() async =>
+        (await store.gateway.readResourceRevision('source.yarn'))!;
+    final before = await store.readHead();
+    final planned = await session.planPatch(
+      upserts: [_unit('a', 'after')],
+      idempotencyKey: 'edited-source',
+      publicBaseRevision: await revision(),
+      currentProjectRevision: revision,
+    );
+    await source.writeAsString('External change');
+    await expectLater(session.apply(planned),
+        throwsA(isA<CatalogStorageException>().having(
+            (error) => error.code, 'code', 'catalog.project_revision_conflict')));
+    expect(await store.readHead(), before);
+    expect(await store.gateway.listJournals(), isEmpty);
+    expect(await source.readAsString(), 'External change');
   });
 
   test('a new branch rejects redo without overwriting the new unit', () async {
