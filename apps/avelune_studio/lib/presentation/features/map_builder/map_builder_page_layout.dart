@@ -88,9 +88,10 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 StudioRail(
-                  onHome: () => unawaited(widget.onHome()),
                   section: _section,
-                  onSection: _setSection,
+                  onSection: _exporting || _packDialogOpen || _pokemonImporting
+                      ? null
+                      : _setSection,
                 ),
                 Expanded(
                   child: Stack(
@@ -205,6 +206,8 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                               child: _resourceLibrary(management),
                             ),
                           ),
+                          _projectHome(),
+                          _projectPokemon(),
                         ],
                       ),
                       ?_scenePage(),

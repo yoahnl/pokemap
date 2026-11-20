@@ -7,6 +7,7 @@ extension _MapBuilderPageLeaveGuard on _MapBuilderPageState {
         !(_openingExport ||
             _exporting ||
             _packDialogOpen ||
+            _pokemonImporting ||
             _draft.unsaved ||
             _typing)) {
       return;
@@ -35,7 +36,9 @@ extension _MapBuilderPageLeaveGuard on _MapBuilderPageState {
   }
 
   Future<bool> _askToLeave() async {
-    if (_openingExport || _exporting || _packDialogOpen) return false;
+    if (_openingExport || _exporting || _packDialogOpen || _pokemonImporting) {
+      return false;
+    }
     await _commitTyping();
     if (!mounted || _disposed || !_draft.unsaved) return true;
     final l10n = context.l10n;

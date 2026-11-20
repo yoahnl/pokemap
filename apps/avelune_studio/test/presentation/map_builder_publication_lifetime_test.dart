@@ -56,6 +56,8 @@ void main() {
     expect(opened, 1);
     expect(closed, 0);
     await tester.tap(find.byTooltip('Accueil du projet'));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('studio-project-home-close')));
     for (var frame = 0; frame < 10; frame++) {
       await tester.pump(const Duration(milliseconds: 16));
     }

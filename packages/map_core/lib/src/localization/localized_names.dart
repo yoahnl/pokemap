@@ -59,12 +59,44 @@ String resolvePokemonSpeciesName({
     }
   }
   final name = json['name'];
+  final legacyName = name is String && name.trim().isNotEmpty
+      ? name
+      : names['fr'] ?? names.values.firstOrNull;
+  if (!names.containsKey('en')) {
+    final english = _legacyHeartGoldEnglishName(json);
+    if (english != null) names['en'] = english;
+  }
   return (
     names: Map<String, String>.unmodifiable(names),
-    legacyName: name is String && name.trim().isNotEmpty
-        ? name
-        : names['fr'] ?? names.values.firstOrNull,
+    legacyName: legacyName,
   );
+}
+
+final _plainHeartGoldSpeciesSlug = RegExp(r'^[a-z][a-z0-9]*$');
+final _heartGoldUnownFormSlug = RegExp(r'^unown-[a-z]$');
+
+String? _legacyHeartGoldEnglishName(Map<String, dynamic> json) {
+  final source = json['sourceMeta'];
+  if (source is! Map || source['seedVersion'] != 1) return null;
+  final seededBy = source['seededBy'];
+  if (seededBy is! String || seededBy.split(':').first != 'heartgold-fr-rom') {
+    return null;
+  }
+  final slug = json['slug'];
+  if (slug is! String || slug != json['id']) return null;
+  return switch (slug) {
+    'farfetchd' => 'Farfetch’d',
+    'ho_oh' => 'Ho-Oh',
+    'mime_jr' => 'Mime Jr.',
+    'mr_mime' => 'Mr. Mime',
+    'nidoran_f' => 'Nidoran♀',
+    'nidoran_m' => 'Nidoran♂',
+    'porygon_z' => 'Porygon-Z',
+    _ when _heartGoldUnownFormSlug.hasMatch(slug) => 'Unown',
+    _ when _plainHeartGoldSpeciesSlug.hasMatch(slug) =>
+      '${slug[0].toUpperCase()}${slug.substring(1)}',
+    _ => null,
+  };
 }
 
 String _normalizeNameLocale(String locale) =>

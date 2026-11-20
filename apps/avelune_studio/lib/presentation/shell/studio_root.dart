@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:avelune_studio/app/di/home_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
+import 'package:avelune_studio/features/home/application/recent_projects_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
@@ -23,9 +25,13 @@ class _StudioRootState extends ConsumerState<StudioRoot> {
   late final ProjectSessionController _session = ref.read(
     projectSessionControllerProvider,
   );
+  late final _recents = RecentProjectsController(
+    ref.read(recentProjectsPortProvider),
+  );
   late final _opening = ProjectSessionOpenController(
     session: _session,
     chooseDirectory: () => ref.read(projectDirectoryPickerProvider)(),
+    recentProjects: _recents,
     allowSwitch: ref.read(studioExitGuardProvider).confirmLeave,
   );
 
@@ -34,6 +40,8 @@ class _StudioRootState extends ConsumerState<StudioRoot> {
     super.initState();
     _session.addListener(_changed);
     _opening.addListener(_changed);
+    _recents.addListener(_changed);
+    unawaited(_recents.load());
   }
 
   void _changed() {
@@ -44,6 +52,7 @@ class _StudioRootState extends ConsumerState<StudioRoot> {
   void dispose() {
     _session.removeListener(_changed);
     _opening.dispose();
+    _recents.dispose();
     super.dispose();
   }
 
@@ -61,6 +70,10 @@ class _StudioRootState extends ConsumerState<StudioRoot> {
         busy: _opening.picking,
         pickerError: _opening.error,
         onImport: () => unawaited(_opening.open(browse: true)),
+        recents: _recents.entries,
+        recentsFailed: _recents.error != null,
+        onRecent: (project) =>
+            unawaited(_opening.open(directoryPath: project.directoryPath)),
         onRetry: switch (state.requestedPath) {
           final path? => () => unawaited(_opening.open(directoryPath: path)),
           null => null,

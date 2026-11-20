@@ -629,6 +629,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
   }
 
+  void refreshPresentationLocale() {
+    if (_currentCommandOverlaySnapshot != null) _syncPanelsOnly();
+  }
+
   void _syncReducedBattleEffects() {
     final reduced = _reducedBattleEffects;
     if (_reducedEffectsApplied == reduced) return;

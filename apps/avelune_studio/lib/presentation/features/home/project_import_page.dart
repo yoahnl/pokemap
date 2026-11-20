@@ -1,6 +1,7 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
+import 'package:avelune_studio/features/home/domain/recent_studio_project.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
@@ -15,6 +16,9 @@ class ProjectImportPage extends StatelessWidget {
     required this.busy,
     required this.pickerError,
     required this.onImport,
+    required this.recents,
+    required this.recentsFailed,
+    required this.onRecent,
     this.onRetry,
   });
 
@@ -22,6 +26,9 @@ class ProjectImportPage extends StatelessWidget {
   final bool busy;
   final String? pickerError;
   final VoidCallback onImport;
+  final List<RecentStudioProject> recents;
+  final bool recentsFailed;
+  final ValueChanged<RecentStudioProject> onRecent;
   final VoidCallback? onRetry;
 
   @override
@@ -38,40 +45,66 @@ class ProjectImportPage extends StatelessWidget {
     return Scaffold(
       key: const ValueKey('studio-home'),
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Align(
-                alignment: Alignment.centerRight,
-                child: StudioLanguageMenu(),
-              ),
-              const AveluneWordmark(height: 56),
-              const SizedBox(height: StudioSpacing.xxl * 2),
-              StudioButton(
-                key: const ValueKey('studio-home-import'),
-                label: context.l10n.homeImportProject,
-                icon: Icons.folder_open_outlined,
-                loading: opening,
-                onPressed: opening ? null : onImport,
-              ),
-              if (message != null) ...[
-                const SizedBox(height: StudioSpacing.xl),
-                StudioNotice(message, isError: true),
-              ],
-              if (problem == ProjectOpenProblem.recoveryFailed &&
-                  onRetry != null) ...[
-                const SizedBox(height: StudioSpacing.l),
-                StudioButton(
-                  key: const ValueKey('studio-home-retry-open'),
-                  label: context.l10n.openProblemRetry,
-                  icon: Icons.refresh,
-                  variant: StudioButtonVariant.secondary,
-                  onPressed: opening ? null : onRetry,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(StudioSpacing.xxl),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: StudioLanguageMenu(),
                 ),
+                const AveluneWordmark(height: 56),
+                const SizedBox(height: StudioSpacing.xxl * 2),
+                StudioButton(
+                  key: const ValueKey('studio-home-import'),
+                  label: context.l10n.homeImportProject,
+                  icon: Icons.folder_open_outlined,
+                  loading: opening,
+                  onPressed: opening ? null : onImport,
+                ),
+                if (message != null) ...[
+                  const SizedBox(height: StudioSpacing.xl),
+                  StudioNotice(message, isError: true),
+                ],
+                if (problem == ProjectOpenProblem.recoveryFailed &&
+                    onRetry != null) ...[
+                  const SizedBox(height: StudioSpacing.l),
+                  StudioButton(
+                    key: const ValueKey('studio-home-retry-open'),
+                    label: context.l10n.openProblemRetry,
+                    icon: Icons.refresh,
+                    variant: StudioButtonVariant.secondary,
+                    onPressed: opening ? null : onRetry,
+                  ),
+                ],
+                if (recentsFailed) ...[
+                  const SizedBox(height: StudioSpacing.xl),
+                  StudioNotice(context.l10n.homeRecentsFailed, isError: true),
+                ],
+                if (recents.isNotEmpty) ...[
+                  const SizedBox(height: StudioSpacing.xxl),
+                  StudioPanel(
+                    title: context.l10n.homeRecentProjects,
+                    children: [
+                      for (final project in recents)
+                        StudioNavigationEntry(
+                          key: ValueKey((
+                            'studio-home-recent',
+                            project.directoryPath,
+                          )),
+                          icon: Icons.folder_outlined,
+                          label: project.name,
+                          detail: project.directoryPath,
+                          onTap: opening ? null : () => onRecent(project),
+                        ),
+                    ],
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

@@ -103,14 +103,15 @@ void main() {
           caughtSpeciesIds: [first.speciesId, if (alreadyCaught) 'sparkitten'],
         ),
       );
+      var displayLocale = locale;
       final runtime = SpatialBattleRuntime(
         readGameState: () => state,
-        displayLocale: () => locale,
+        displayLocale: () => displayLocale,
         formatBattleMessage: (message) => switch (message.id) {
-          RuntimeBattleMessageId.player => locale.startsWith('fr')
+          RuntimeBattleMessageId.player => displayLocale.startsWith('fr')
               ? 'Joueur'
               : 'Player',
-          RuntimeBattleMessageId.enemy => locale.startsWith('fr')
+          RuntimeBattleMessageId.enemy => displayLocale.startsWith('fr')
               ? 'Ennemi'
               : 'Opponent',
           _ => message.fallbackText,
@@ -139,6 +140,20 @@ void main() {
       final fight = runtime.battlePresentationListenable.value!;
       expect(fight.mode, BattleCommandOverlayMode.fight);
       expect(fight.entries.map((entry) => entry.primaryLabel), contains(moveName));
+      if (locale == 'en-US') {
+        displayLocale = 'fr-FR';
+        runtime.refreshPresentationLocale();
+        await tester.pump();
+        final french = runtime.battlePresentationListenable.value!;
+        expect(french.mode, BattleCommandOverlayMode.fight);
+        expect(french.enemyHud.speciesLabel, 'Étincelin');
+        expect(french.enemyHud.ownerLabel, 'Ennemi');
+        expect(french.playerHud.speciesLabel, 'Pip');
+        expect(
+          french.entries.map((entry) => entry.primaryLabel),
+          contains('Charge'),
+        );
+      }
       runtime.cancel();
     });
   }

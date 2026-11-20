@@ -103,6 +103,57 @@ void main() {
     );
   });
 
+  group('readPokemonSpeciesNames', () {
+    for (final (id, french, english) in [
+      ('bulbasaur', 'Bulbizarre', 'Bulbasaur'),
+      ('farfetchd', 'Canarticho', 'Farfetch’d'),
+      ('mr_mime', 'M. mime', 'Mr. Mime'),
+      ('nidoran_f', 'Nidoran♀', 'Nidoran♀'),
+      ('unown-b', 'Zarbi', 'Unown'),
+    ]) {
+      test('reads an English fallback for the legacy import of $id', () {
+        final (:names, :legacyName) = readPokemonSpeciesNames({
+          'id': id,
+          'slug': id,
+          'sourceMeta': {
+            'seededBy': 'heartgold-fr-rom:personal-learnset',
+            'seedVersion': 1,
+          },
+          'names': {'fr': french},
+        });
+
+        expect(names, {'fr': french, 'en': english});
+        expect(legacyName, french);
+        expect(
+          resolvePokemonSpeciesName(
+            names: names,
+            locale: 'de-DE',
+            fallback: legacyName!,
+          ),
+          english,
+        );
+      });
+    }
+
+    test('preserves an authored English name and a custom legacy name', () {
+      final imported = readPokemonSpeciesNames({
+        'id': 'bulbasaur',
+        'slug': 'bulbasaur',
+        'sourceMeta': {'seededBy': 'heartgold-fr-rom', 'seedVersion': 1},
+        'names': {'fr': 'Bulbizarre', 'en': 'Sprout'},
+      });
+      expect(imported.names['en'], 'Sprout');
+
+      final custom = readPokemonSpeciesNames({
+        'id': 'bulbasaur',
+        'slug': 'bulbasaur',
+        'name': 'Capitaine Pousse',
+      });
+      expect(custom.names, isEmpty);
+      expect(custom.legacyName, 'Capitaine Pousse');
+    });
+  });
+
   group('PokemonMove.displayName', () {
     test('prefers the localized name over the canonical name', () {
       final move = _move(

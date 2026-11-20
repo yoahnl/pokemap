@@ -83,6 +83,10 @@ test("live MCP reviews, confirms, applies and undoes the replacement of every dÃ
     const preview = record(record(planned.plan).preview);
     assert.equal(preview.mapCount, 2);
     assert.equal(preview.occurrenceCount, 3);
+    assert.equal(preview.regeneratedInstanceCount, 0);
+    const impact = record(record(record(planned.receipt).extensions).referenceImpact);
+    assert.equal(impact.occurrenceCount, 3);
+    assert.equal(impact.regeneratedInstanceCount, 0);
     assert.deepEqual((preview.maps as JsonRecord[]).map((entry) => [entry.mapId, entry.instanceIds]),
       [["alpha", ["r1", "r2"]], ["beta", ["r3"]]]);
     await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,

@@ -41,6 +41,63 @@ void main() {
       }
     });
 
+    test('changing the Player language refreshes an open battle', () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final speciesFile = File(
+        p.join(
+          tempProjectRoot.path,
+          manifest.pokemon.speciesDir,
+          '004-sparkitten.json',
+        ),
+      );
+      final species =
+          jsonDecode(await speciesFile.readAsString()) as Map<String, dynamic>;
+      species['names'] = {'fr': 'Étincelin', 'en': 'Sparkitten'};
+      await speciesFile.writeAsString(jsonEncode(species));
+      final map = _buildMap();
+      final game = _LoadedGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(_playerState()),
+        reducedMotion: true,
+        runtimeLocales: ProjectLocalePolicy(
+          supportedLocales: ['fr'],
+          fallbackLocale: 'fr',
+        ),
+        battleMessageFormatter: (locale, message) =>
+            locale == 'en' && message.id == RuntimeBattleMessageId.enemy
+                ? 'OPPONENT'
+                : message.fallbackText,
+      );
+      addTearDown(game.onRemove);
+      game.onGameResize(Vector2(844, 390));
+      await game.onLoad();
+      const french = PlayerPreferencesSnapshot(
+        locale: 'fr',
+        accessibility: GameSessionAccessibilityOptions(),
+      );
+      game.applyPlayerPreferences(french);
+      await game.debugOpenBattleForTest(_wildRequest(manifest, map));
+      await game.debugWaitForBattleOverlaySync();
+      final before = await _ppBattleSnapshot(game, 'root');
+      final session = game.debugBattleSessionSnapshot;
+      expect(before.enemyHud.speciesLabel, 'Étincelin');
+      expect(before.enemyHud.ownerLabel, 'ENNEMI');
+
+      game.applyPlayerPreferences(french.copyWith(locale: 'en'));
+
+      final after = game.battleCommandOverlayListenable.value!;
+      expect(game.runtimeLocale, 'fr');
+      expect(after.enemyHud.ownerLabel, 'OPPONENT');
+      expect(after.enemyHud.speciesLabel, 'Sparkitten');
+      expect(after.mode, before.mode);
+      expect(
+        after.entries.map((entry) => entry.index),
+        before.entries.map((entry) => entry.index),
+      );
+      expect(game.debugBattleSessionSnapshot, same(session));
+    });
+
     test('canonical layout commands update the real battle renderer without advancing gameplay', () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();
@@ -3147,6 +3204,8 @@ final class _LoadedGame extends PlayableMapGame {
     required super.projectFilePath,
     super.saveData,
     super.reducedMotion,
+    super.runtimeLocales,
+    super.battleMessageFormatter,
   });
 
   bool _loaded = false;

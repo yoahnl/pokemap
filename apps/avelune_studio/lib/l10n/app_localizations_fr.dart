@@ -298,6 +298,100 @@ class AppLocalizationsFr extends AppLocalizations {
   String get railHome => 'Accueil du projet';
 
   @override
+  String get railPokemon => 'Pokémon';
+
+  @override
+  String get homeRecentProjects => 'Projets récents';
+
+  @override
+  String get homeRecentsFailed => 'Impossible de charger les projets récents.';
+
+  @override
+  String get homeCloseProject => 'Fermer le projet';
+
+  @override
+  String get homeResumeMap => 'Reprendre la carte';
+
+  @override
+  String get homeProjectMaps => 'Cartes du projet';
+
+  @override
+  String get homeNoMaps => 'Ce projet ne contient aucune carte.';
+
+  @override
+  String get pokemonSpecies => 'Espèces';
+
+  @override
+  String get pokemonMoves => 'Capacités';
+
+  @override
+  String get pokemonItems => 'Objets';
+
+  @override
+  String get pokemonShops => 'Boutiques';
+
+  @override
+  String get pokemonCombats => 'Combats';
+
+  @override
+  String get pokemonSearch => 'Rechercher dans ce catalogue';
+
+  @override
+  String get pokemonReadFailed => 'Lecture du catalogue impossible';
+
+  @override
+  String get pokemonRetry => 'Réessayer';
+
+  @override
+  String get pokemonDisabled => 'Pokémon est désactivé dans ce projet.';
+
+  @override
+  String get pokemonNoResults => 'Aucun résultat';
+
+  @override
+  String get pokemonImportSpecies => 'Importer une espèce';
+
+  @override
+  String get pokemonImportKeepsExisting =>
+      'Les documents déjà présents seront conservés.';
+
+  @override
+  String get pokemonImportApply => 'Confirmer l’import';
+
+  @override
+  String get pokemonImportCompleted => 'Import terminé.';
+
+  @override
+  String get pokemonImportReopen =>
+      'Rouvrez le projet pour actualiser le catalogue.';
+
+  @override
+  String get pokemonSearchExternal => 'Nom ou numéro du Pokédex';
+
+  @override
+  String get pokemonSearchAction => 'Rechercher';
+
+  @override
+  String get pokemonDone => 'Terminer';
+
+  @override
+  String pokemonGeneration(int generation) {
+    return 'Génération $generation';
+  }
+
+  @override
+  String get pokemonSpeciesEnabled => 'Activée';
+
+  @override
+  String get pokemonSpeciesDisabled => 'Désactivée';
+
+  @override
+  String get pokemonEncounterTable => 'Table de rencontres';
+
+  @override
+  String get pokemonTrainer => 'Dresseur';
+
+  @override
   String get railMapBuilder => 'Constructeur de carte';
 
   @override

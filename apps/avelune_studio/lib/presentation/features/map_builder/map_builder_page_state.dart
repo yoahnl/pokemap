@@ -99,6 +99,8 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
   );
   var _section = StudioRailSection.map;
   var _storyShown = false;
+  var _pokemonShown = false;
+  var _pokemonImporting = false;
   var _storyScope = const StoryHistoryScope.empty();
   var _space = MapBuilderSpace.construction;
   var _inspectorOpen = true;
@@ -198,6 +200,12 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     if (_hadTyping == typing) return;
     _hadTyping = typing;
     _changed();
+  }
+
+  void _setPokemonImporting(bool value) {
+    if (_disposed) return;
+    setState(() => _pokemonImporting = value);
+    if (value) _protect();
   }
 
   Future<bool> _save() async {

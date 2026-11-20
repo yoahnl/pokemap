@@ -161,19 +161,21 @@ final class ResourceUsageReplacementActions {
     final changes = <AuthoringResourceChange>[];
     final diffs = <AuthoringDiffEntry>[];
     final scope = <Map<String, Object?>>[];
+    var regeneratedInstanceCount = 0;
     for (final map in snapshot.maps) {
       if (!occurrences.containsKey(map.id) && !borderMaps.contains(map.id)) {
         continue;
       }
-      final owned = {
+      final affectedFeatures = {
         for (final layer in map.layers.whereType<BorderLayer>())
           for (final feature in layer.content.features)
             if (borderIds.contains(feature.blueprintId))
-              ...feature.generatedPlacementIds
+              (layer.id, feature.id): feature,
       };
-      final regenerates = map.layers.whereType<BorderLayer>().any((layer) =>
-          layer.content.features
-              .any((feature) => borderIds.contains(feature.blueprintId)));
+      final owned = {
+        for (final feature in affectedFeatures.values)
+          ...feature.generatedPlacementIds,
+      };
       final instanceIds = [
         for (final index in occurrences[map.id] ?? const <int>[])
           spatial
@@ -217,7 +219,7 @@ final class ResourceUsageReplacementActions {
               });
         }
       }
-      if (regenerates) {
+      if (affectedFeatures.isNotEmpty) {
         try {
           next = repointModelInMap(next,
               before: manifest,
@@ -240,14 +242,23 @@ final class ResourceUsageReplacementActions {
       if (next == map) continue;
       MapValidator.validate(next,
           projectDialogueContext: scoped ? null : project);
-      final repointed = [
-        ...direct,
-        for (final id in owned)
-          if (next.spatialScene?.instances
-                  .any((instance) => instance.id == id) ==
-              true)
-            id
-      ];
+      final replacementInstances = {
+        if (spatial)
+          for (final instance in next.spatialScene!.instances)
+            if (instance.modelId == replacementId) instance.id,
+      };
+      final repointed = spatial
+          ? instanceIds.where(replacementInstances.contains).toList()
+          : direct;
+      final regenerated = <String>{
+        if (affectedFeatures.isNotEmpty)
+          for (final layer in next.layers.whereType<BorderLayer>())
+            for (final feature in layer.content.features)
+              if (affectedFeatures[(layer.id, feature.id)] case final before?
+                  when before.materialization != feature.materialization)
+                ...feature.generatedPlacementIds,
+      }.length;
+      regeneratedInstanceCount += regenerated;
       final resource = AuthoringResourceRef(
           kind: 'map',
           id: map.id,
@@ -269,6 +280,7 @@ final class ResourceUsageReplacementActions {
         'mapId': map.id,
         'mapName': map.name,
         'instanceIds': repointed,
+        'regeneratedInstanceCount': regenerated,
       });
     }
     final sortedBorders = borderIds.toList()..sort();
@@ -287,13 +299,15 @@ final class ResourceUsageReplacementActions {
           AuthoringChangeSet(changes: changes, diff: AuthoringDiff(diffs)),
       projectedProject: borderIds.isEmpty ? null : project,
       preview: {
-        ..._preview(family, resourceId, replacementId, scope),
+        ..._preview(family, resourceId, replacementId, scope,
+            regeneratedInstanceCount: regeneratedInstanceCount),
         if (borderIds.isNotEmpty) 'definitionsUnchanged': false,
         if (borderIds.isNotEmpty) 'repointedBorderIds': sortedBorders,
       },
       referenceImpact: {
         'replacedMapIds': [for (final entry in scope) entry['mapId']],
         'occurrenceCount': _occurrenceCount(scope),
+        'regeneratedInstanceCount': regeneratedInstanceCount,
         'definitionsUnchanged': borderIds.isEmpty,
         if (borderIds.isNotEmpty) 'repointedBorderIds': sortedBorders,
       },
@@ -310,7 +324,8 @@ final class ResourceUsageReplacementActions {
   }
 
   Map<String, Object?> _preview(String family, String resourceId,
-          String replacementId, List<Map<String, Object?>> scope) =>
+          String replacementId, List<Map<String, Object?>> scope,
+          {int regeneratedInstanceCount = 0}) =>
       {
         'operation': actionId,
         'family': family,
@@ -319,6 +334,7 @@ final class ResourceUsageReplacementActions {
         'noOp': scope.isEmpty,
         'mapCount': scope.length,
         'occurrenceCount': _occurrenceCount(scope),
+        'regeneratedInstanceCount': regeneratedInstanceCount,
         'maps': scope,
         'definitionsUnchanged': true,
       };

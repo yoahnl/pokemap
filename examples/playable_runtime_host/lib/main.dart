@@ -654,6 +654,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
           audioMixer: _startupHost?.audioMixer,
           presentationCinematicPlayer:
               _startupHost?.presentationSession?.controller,
+          battleMessageFormatter: player_ui.localizeRuntimeBattleMessage,
           reducedMotion: accessibility?.reducedMotion ?? false,
           textScale: accessibility?.textScale ?? 1.0,
         );

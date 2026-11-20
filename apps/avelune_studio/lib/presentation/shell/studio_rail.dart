@@ -5,17 +5,15 @@ import 'package:avelune_studio/presentation/shared/localization/studio_locale.da
 
 const studioRailWidth = 64.0;
 
-enum StudioRailSection { map, story, resources }
+enum StudioRailSection { map, story, resources, home, pokemon }
 
 class StudioRail extends StatelessWidget {
   const StudioRail({
     super.key,
-    required this.onHome,
     this.section = StudioRailSection.map,
     this.onSection,
   });
 
-  final VoidCallback onHome;
   final StudioRailSection section;
   final ValueChanged<StudioRailSection>? onSection;
 
@@ -34,9 +32,11 @@ class StudioRail extends StatelessWidget {
       child: Column(
         children: [
           _RailEntry(
+            key: const ValueKey('studio-rail-home'),
             label: l10n.railHome,
             icon: Icons.home_outlined,
-            onPressed: onHome,
+            selected: section == StudioRailSection.home,
+            onPressed: _open(StudioRailSection.home),
           ),
           _RailEntry(
             key: const ValueKey('studio-rail-map'),
@@ -59,6 +59,13 @@ class StudioRail extends StatelessWidget {
             icon: Icons.menu_book_outlined,
             selected: section == StudioRailSection.story,
             onPressed: _open(StudioRailSection.story),
+          ),
+          _RailEntry(
+            key: const ValueKey('studio-rail-pokemon'),
+            label: l10n.railPokemon,
+            icon: Icons.catching_pokemon,
+            selected: section == StudioRailSection.pokemon,
+            onPressed: _open(StudioRailSection.pokemon),
           ),
           const Spacer(),
           _RailEntry(label: l10n.railHelp, icon: Icons.help_outline),

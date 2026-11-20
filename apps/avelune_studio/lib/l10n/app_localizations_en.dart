@@ -295,6 +295,99 @@ class AppLocalizationsEn extends AppLocalizations {
   String get railHome => 'Project home';
 
   @override
+  String get railPokemon => 'Pokémon';
+
+  @override
+  String get homeRecentProjects => 'Recent projects';
+
+  @override
+  String get homeRecentsFailed => 'Could not load recent projects.';
+
+  @override
+  String get homeCloseProject => 'Close project';
+
+  @override
+  String get homeResumeMap => 'Resume map';
+
+  @override
+  String get homeProjectMaps => 'Project maps';
+
+  @override
+  String get homeNoMaps => 'This project has no maps.';
+
+  @override
+  String get pokemonSpecies => 'Species';
+
+  @override
+  String get pokemonMoves => 'Moves';
+
+  @override
+  String get pokemonItems => 'Items';
+
+  @override
+  String get pokemonShops => 'Shops';
+
+  @override
+  String get pokemonCombats => 'Battles';
+
+  @override
+  String get pokemonSearch => 'Search this catalog';
+
+  @override
+  String get pokemonReadFailed => 'Could not read the catalog';
+
+  @override
+  String get pokemonRetry => 'Retry';
+
+  @override
+  String get pokemonDisabled => 'Pokémon is disabled in this project.';
+
+  @override
+  String get pokemonNoResults => 'No results';
+
+  @override
+  String get pokemonImportSpecies => 'Import a species';
+
+  @override
+  String get pokemonImportKeepsExisting => 'Existing documents will be kept.';
+
+  @override
+  String get pokemonImportApply => 'Confirm import';
+
+  @override
+  String get pokemonImportCompleted => 'Import complete.';
+
+  @override
+  String get pokemonImportReopen =>
+      'Reopen the project to refresh the catalog.';
+
+  @override
+  String get pokemonSearchExternal => 'Pokédex name or number';
+
+  @override
+  String get pokemonSearchAction => 'Search';
+
+  @override
+  String get pokemonDone => 'Done';
+
+  @override
+  String pokemonGeneration(int generation) {
+    return 'Generation $generation';
+  }
+
+  @override
+  String get pokemonSpeciesEnabled => 'Enabled';
+
+  @override
+  String get pokemonSpeciesDisabled => 'Disabled';
+
+  @override
+  String get pokemonEncounterTable => 'Encounter table';
+
+  @override
+  String get pokemonTrainer => 'Trainer';
+
+  @override
   String get railMapBuilder => 'Map builder';
 
   @override

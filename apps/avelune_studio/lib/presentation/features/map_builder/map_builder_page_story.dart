@@ -13,6 +13,7 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     _sceneShown = false;
     _section = section;
     _storyShown |= section == StudioRailSection.story;
+    _pokemonShown |= section == StudioRailSection.pokemon;
     _changed();
   }
 

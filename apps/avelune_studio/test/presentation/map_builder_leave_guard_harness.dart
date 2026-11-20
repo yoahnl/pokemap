@@ -94,6 +94,8 @@ Finder nameField() =>
 
 Future<void> goHome(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Accueil du projet'));
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('studio-project-home-close')));
   await settle(tester);
 }
 

@@ -25,12 +25,18 @@ extension _MapBuilderPageResources on _MapBuilderPageState {
     if (value) _protect();
   }
 
-  Future<bool> _openMapFromResources(String mapId) async {
+  Future<bool> _openMapFromResources(String mapId) =>
+      _openMapFromSection(mapId, StudioRailSection.resources);
+
+  Future<bool> _openMapFromSection(
+    String mapId,
+    StudioRailSection source,
+  ) async {
     final sectionGeneration = _storyNavigation;
     bool current() =>
         mounted &&
         !_disposed &&
-        _section == StudioRailSection.resources &&
+        _section == source &&
         sectionGeneration == _storyNavigation &&
         !_sceneShown;
 

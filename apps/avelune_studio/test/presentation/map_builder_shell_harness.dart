@@ -1,6 +1,8 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/app/di/map_workspace_providers.dart';
+import 'package:avelune_studio/app/di/pokemon_providers.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
+import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_port.dart';
 import 'package:avelune_studio/presentation/shell/studio_root.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,7 +23,10 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
-Future<void> openShell(WidgetTester tester) async {
+Future<void> openShell(
+  WidgetTester tester, {
+  PokemonWorkspacePort? pokemon,
+}) async {
   tester.view.physicalSize = const Size(1920, 1080);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -38,6 +43,8 @@ Future<void> openShell(WidgetTester tester) async {
         return exampleA.directoryPath;
       }),
       mapWorkspacePortProvider(exampleA).overrideWithValue(maps),
+      if (pokemon != null)
+        pokemonPortProvider(exampleA).overrideWithValue(pokemon),
       workspaceVisualsLoaderProvider.overrideWithValue(
         (session, manifest) async => visuals,
       ),

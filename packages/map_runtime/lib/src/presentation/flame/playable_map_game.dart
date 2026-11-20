@@ -2611,6 +2611,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   RuntimeDialogueTextSpeed get dialogueTextSpeed => _dialogueTextSpeed;
 
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
+    final previousBattleLocale = _battleDisplayLocale;
     runtimeLocale = preferences.contentLocale(runtimeLocales);
     _playerInterfaceLocale = preferences.locale;
     reducedMotion = preferences.accessibility.reducedMotion;
@@ -2620,6 +2621,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     textScale = preferences.accessibility.textScale;
     setDialogueTextSpeed(preferences.dialogueTextSpeed);
     _worldTime = preferences.worldTime;
+    if (previousBattleLocale != _battleDisplayLocale) {
+      _battleOverlay?.refreshPresentationLocale();
+    }
   }
 
   /// Confie la boîte de dialogue au shell Flutter sans déplacer la machine

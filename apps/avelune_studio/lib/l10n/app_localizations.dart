@@ -602,6 +602,186 @@ abstract class AppLocalizations {
   /// **'Accueil du projet'**
   String get railHome;
 
+  /// No description provided for @railPokemon.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pokémon'**
+  String get railPokemon;
+
+  /// No description provided for @homeRecentProjects.
+  ///
+  /// In fr, this message translates to:
+  /// **'Projets récents'**
+  String get homeRecentProjects;
+
+  /// No description provided for @homeRecentsFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de charger les projets récents.'**
+  String get homeRecentsFailed;
+
+  /// No description provided for @homeCloseProject.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer le projet'**
+  String get homeCloseProject;
+
+  /// No description provided for @homeResumeMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprendre la carte'**
+  String get homeResumeMap;
+
+  /// No description provided for @homeProjectMaps.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cartes du projet'**
+  String get homeProjectMaps;
+
+  /// No description provided for @homeNoMaps.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce projet ne contient aucune carte.'**
+  String get homeNoMaps;
+
+  /// No description provided for @pokemonSpecies.
+  ///
+  /// In fr, this message translates to:
+  /// **'Espèces'**
+  String get pokemonSpecies;
+
+  /// No description provided for @pokemonMoves.
+  ///
+  /// In fr, this message translates to:
+  /// **'Capacités'**
+  String get pokemonMoves;
+
+  /// No description provided for @pokemonItems.
+  ///
+  /// In fr, this message translates to:
+  /// **'Objets'**
+  String get pokemonItems;
+
+  /// No description provided for @pokemonShops.
+  ///
+  /// In fr, this message translates to:
+  /// **'Boutiques'**
+  String get pokemonShops;
+
+  /// No description provided for @pokemonCombats.
+  ///
+  /// In fr, this message translates to:
+  /// **'Combats'**
+  String get pokemonCombats;
+
+  /// No description provided for @pokemonSearch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher dans ce catalogue'**
+  String get pokemonSearch;
+
+  /// No description provided for @pokemonReadFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lecture du catalogue impossible'**
+  String get pokemonReadFailed;
+
+  /// No description provided for @pokemonRetry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer'**
+  String get pokemonRetry;
+
+  /// No description provided for @pokemonDisabled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pokémon est désactivé dans ce projet.'**
+  String get pokemonDisabled;
+
+  /// No description provided for @pokemonNoResults.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun résultat'**
+  String get pokemonNoResults;
+
+  /// No description provided for @pokemonImportSpecies.
+  ///
+  /// In fr, this message translates to:
+  /// **'Importer une espèce'**
+  String get pokemonImportSpecies;
+
+  /// No description provided for @pokemonImportKeepsExisting.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les documents déjà présents seront conservés.'**
+  String get pokemonImportKeepsExisting;
+
+  /// No description provided for @pokemonImportApply.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer l’import'**
+  String get pokemonImportApply;
+
+  /// No description provided for @pokemonImportCompleted.
+  ///
+  /// In fr, this message translates to:
+  /// **'Import terminé.'**
+  String get pokemonImportCompleted;
+
+  /// No description provided for @pokemonImportReopen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rouvrez le projet pour actualiser le catalogue.'**
+  String get pokemonImportReopen;
+
+  /// No description provided for @pokemonSearchExternal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom ou numéro du Pokédex'**
+  String get pokemonSearchExternal;
+
+  /// No description provided for @pokemonSearchAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher'**
+  String get pokemonSearchAction;
+
+  /// No description provided for @pokemonDone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminer'**
+  String get pokemonDone;
+
+  /// No description provided for @pokemonGeneration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Génération {generation}'**
+  String pokemonGeneration(int generation);
+
+  /// No description provided for @pokemonSpeciesEnabled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activée'**
+  String get pokemonSpeciesEnabled;
+
+  /// No description provided for @pokemonSpeciesDisabled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Désactivée'**
+  String get pokemonSpeciesDisabled;
+
+  /// No description provided for @pokemonEncounterTable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Table de rencontres'**
+  String get pokemonEncounterTable;
+
+  /// No description provided for @pokemonTrainer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dresseur'**
+  String get pokemonTrainer;
+
   /// No description provided for @railMapBuilder.
   ///
   /// In fr, this message translates to:

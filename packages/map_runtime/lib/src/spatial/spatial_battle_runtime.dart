@@ -86,6 +86,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     battleOverlay?.applyMotionPolicy(policy);
   }
 
+  void refreshPresentationLocale() => battleOverlay?.refreshPresentationLocale();
+
   final GameState Function() readGameState;
   final RuntimeGen5BattleSourceLoader? gen5BattleSourceLoader;
   final bool Function(GameState expected, GameState next) commitGameState;

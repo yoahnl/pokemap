@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
@@ -12,7 +14,7 @@ import 'package:pokemap_loader/main.dart' as runtime_host;
 import 'package:pokemap_loader/src/runtime_startup_host.dart';
 
 void main() {
-  testWidgets('standalone Player capsule dispatches into its loaded game',
+  testWidgets('standalone Player runs overworld actions and shows an English battle',
       (tester) async {
     final root = await tester.runAsync(() async {
       final target = await Directory.systemTemp.createTemp('ow006_host_tap_');
@@ -26,6 +28,39 @@ void main() {
           await entry.copy(destination);
         }
       }
+      await File(p.join(target.path, 'runtime-player-preferences.json'))
+          .writeAsString(jsonEncode(
+            const PlayerPreferences(language: PlayerLanguage.en).toJson(),
+          ));
+      final speciesFile = File(p.join(
+        target.path, 'data/pokemon/species/sparkitten.json',
+      ));
+      final species =
+          jsonDecode(await speciesFile.readAsString()) as Map<String, dynamic>;
+      species.addAll({
+        'slug': 'sparkitten',
+        'names': {'fr': 'Étincelin'},
+        'sourceMeta': {'seededBy': 'heartgold-fr-rom', 'seedVersion': 1},
+      });
+      await speciesFile.writeAsString(jsonEncode(species));
+      final movesFile = File(p.join(
+        target.path, 'data/pokemon/catalogs/moves.json',
+      ));
+      final moves =
+          jsonDecode(await movesFile.readAsString()) as Map<String, dynamic>;
+      final tackle = (moves['entries'] as List).cast<Map<String, dynamic>>()
+          .singleWhere((move) => move['id'] == 'tackle');
+      tackle.addAll({
+        'name': 'Charge',
+        'names': {'fr': 'Charge'},
+        'source': 'heartgold-fr-rom',
+      });
+      await movesFile.writeAsString(jsonEncode(moves));
+      final projectFile = File(p.join(target.path, 'project.json'));
+      final project =
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+      project['newGame']['initialParty'][0]['statusId'] = 'psn';
+      await projectFile.writeAsString(jsonEncode(project));
       return target;
     });
     final messenger = tester.binding.defaultBinaryMessenger;
@@ -133,6 +168,67 @@ void main() {
     await _until(tester, () =>
         find.byType(PlayerOverworldActionCapsule).evaluate().isEmpty);
     expect(_etherQuantity(game.gameStateSnapshot), before + 1);
+
+    final state = game.gameStateSnapshot;
+    final battleRequest = WildBattleStartRequest(
+      requestId: 'standalone-localized-battle',
+      createdAtEpochMs: 1,
+      returnContext: OverworldReturnContext(
+        mapId: state.currentMapId,
+        playerPos: state.playerPosition,
+        playerFacing: Direction.south,
+      ),
+      mapId: state.currentMapId,
+      encounterSourceId: 'grass',
+      encounterSourceKind: EncounterSourceKind.gameplayZone,
+      tableId: 'wild',
+      encounterKind: EncounterKind.walk,
+      speciesId: 'sparkitten',
+      level: 4,
+      minLevel: 4,
+      maxLevel: 4,
+      weight: 1,
+      playerPos: state.playerPosition,
+    );
+    await tester.runAsync(() async {
+      unawaited(game.debugOpenBattleForTest(battleRequest));
+    });
+    await _until(tester, () {
+      final battle = game.battleCommandOverlayListenable.value;
+      if (battle == null || !battle.interactionsEnabled) return false;
+      if (battle.mode == BattleCommandOverlayMode.continueOnly &&
+          battle.entries.isNotEmpty) {
+        game.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
+          snapshotRevision: battle.revision,
+          expectedMode: battle.mode,
+          entryIndex: battle.entries.first.index,
+        ));
+      }
+      return battle.mode == BattleCommandOverlayMode.root;
+    });
+    final battle = game.battleCommandOverlayListenable.value!;
+    expect(battle.enemyHud.speciesLabel, 'Sparkitten');
+    expect(battle.prompt, 'What will Sproutle do?');
+    expect(find.text('FIGHT'), findsOneWidget);
+    expect(
+      game.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
+        snapshotRevision: battle.revision,
+        expectedMode: battle.mode,
+        entryIndex: battle.entries.first.index,
+      )),
+      isTrue,
+    );
+    await _until(
+      tester,
+      () => game.battleCommandOverlayListenable.value?.mode ==
+          BattleCommandOverlayMode.fight,
+    );
+    expect(
+      game.battleCommandOverlayListenable.value!.entries
+          .map((entry) => entry.primaryLabel),
+      contains('Tackle'),
+    );
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pump(const Duration(seconds: 3));

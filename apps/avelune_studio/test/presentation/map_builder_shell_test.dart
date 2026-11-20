@@ -10,7 +10,7 @@ import '../support/controlled_project_session_port.dart';
 import 'map_builder_shell_harness.dart';
 
 void main() {
-  testWidgets('home offers only the project import and opens the map builder', (
+  testWidgets('home imports a project and opens the map builder', (
     tester,
   ) async {
     await openShell(tester);
@@ -252,11 +252,19 @@ void main() {
     expect(find.byKey(const ValueKey('map-space-inspector')), findsNothing);
   });
 
-  testWidgets('the home rail entry closes the project and frees its visuals', (
+  testWidgets('project home preserves the session until explicitly closed', (
     tester,
   ) async {
     await openShell(tester);
     await tester.tap(find.byTooltip('Accueil du projet'));
+    await settle(tester);
+
+    expect(sessions.released, isEmpty);
+    expect(visuals.disposed, isFalse);
+    expect(find.byKey(const ValueKey('studio-project-home')), findsOneWidget);
+    expect(find.byKey(const ValueKey('studio-rail-pokemon')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('studio-project-home-close')));
     await settle(tester);
 
     expect(sessions.released, [exampleA]);

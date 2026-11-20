@@ -249,6 +249,7 @@ final class SpatialExplorationGameSessionRuntime
     _session?.runtimeLocale = preferences.contentLocale(descriptor.locales);
     if (previousLocale != preferences.locale) {
       _playerServices?.refreshPokemonDisplayNames();
+      _battle?.refreshPresentationLocale();
     }
     _battle?.applyMotionPolicy(preferences.battleMotion);
     if (_ownsAudioMixer) _observeMusic(_audioMixer.transitionTo(preferences.audioMix));

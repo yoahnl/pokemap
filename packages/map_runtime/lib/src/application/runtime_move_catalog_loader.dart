@@ -1,10 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_authoring/map_authoring.dart' show localizedNamesForMove;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_battle_setup_exception.dart';
+
+const _heartGoldMoveNameAliases = {
+  'smoke_screen': 'smokescreen',
+  'selfdestruct': 'self_destruct',
+  'faint_attack': 'feint_attack',
+  'vice_grip': 'vise_grip',
+  'softboiled': 'soft_boiled',
+  'hi_jump_kick': 'high_jump_kick',
+  'smelling_salt': 'smelling_salts',
+};
 
 /// Loader runtime spécialisé du catalogue canonique des moves.
 ///
@@ -133,7 +144,15 @@ class RuntimeMoveCatalogLoader {
     required int entryIndex,
   }) {
     try {
-      return PokemonMove.fromJson(entry);
+      final move = PokemonMove.fromJson(entry);
+      if (move.source != 'heartgold-fr-rom' || move.names.containsKey('en')) {
+        return move;
+      }
+      final nameId = _heartGoldMoveNameAliases[move.id] ?? move.id;
+      final englishName = localizedNamesForMove(nameId)['en'];
+      return englishName == null
+          ? move
+          : move.copyWith(names: {...move.names, 'en': englishName});
     } on Object catch (error) {
       final rawId = (entry['id'] as String?)?.trim();
       throw RuntimeBattleSetupException(
