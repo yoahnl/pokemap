@@ -33,9 +33,13 @@ extension _LocalProjectLibraryLifecycle on LocalResourceAdapter {
       );
     } else {
       receipt = await _publishLibraryDefinition(
-        item,
         'catalog.definition.duplicate',
-        {'targetId': id, 'name': title},
+        {
+          'resourceKind': item.kind,
+          'id': item.id,
+          'targetId': id,
+          'name': title,
+        },
         expectedRevision,
       );
     }
@@ -128,6 +132,20 @@ Object _libraryLifecycleFailure(
     const ProjectLibraryNeedsPreparation(),
   MapAuthoringException(code: 'catalog.definition_in_use', :final details) =>
     ResourceFailure(_libraryUseMessage(details, maps)),
+  MapAuthoringException(code: 'tileset.regrid_local_uses') =>
+    const ResourceFailure(
+      'La planche contient une palette, des tuiles configurées ou des réglages du monde liés à ce découpage.',
+    ),
+  MapAuthoringException(code: 'tileset.atlas_missing') => const ResourceFailure(
+    'Cette planche n’a pas de grille régulière.',
+  ),
+  MapAuthoringException(code: 'tileset.grid_invalid') => const ResourceFailure(
+    'La nouvelle grille doit tenir dans les dimensions de l’image.',
+  ),
+  MapAuthoringException(code: 'tileset.grid_unchanged') =>
+    const ResourceFailure(
+      'La largeur et la hauteur sont identiques au découpage enregistré.',
+    ),
   MapAuthoringException(code: 'border.blueprint.delete_published_forbidden') =>
     const ResourceFailure(
       'Cette bordure est publiée. Elle peut être retirée des choix dans son atelier.',

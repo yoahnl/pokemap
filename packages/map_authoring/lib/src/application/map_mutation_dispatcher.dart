@@ -228,6 +228,7 @@ final class MapMutationDispatcher {
       for (final descriptor in [
         catalogDefinitionDuplicateDescriptor,
         catalogDefinitionDeleteDescriptor,
+        catalogTilesetRegridDescriptor,
       ])
         MapMutationActionRegistration(
           descriptor: descriptor,

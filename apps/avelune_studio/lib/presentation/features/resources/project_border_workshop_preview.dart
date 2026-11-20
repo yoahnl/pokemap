@@ -96,7 +96,7 @@ class ProjectBorderWorkshopPreview extends StatelessWidget {
                   children: [
                     Text(piece.name, style: theme.textTheme.titleSmall),
                     Text(
-                      _role(piece.role),
+                      borderWorkshopRoleLabel(piece.role),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -147,7 +147,7 @@ class ProjectBorderWorkshopPreview extends StatelessWidget {
   ),
 };
 
-String _role(BorderPrimitiveRole role) => switch (role) {
+String borderWorkshopRoleLabel(BorderPrimitiveRole role) => switch (role) {
   BorderPrimitiveRole.structureLarge => 'Structure principale',
   BorderPrimitiveRole.structureMedium => 'Structure intermédiaire',
   BorderPrimitiveRole.filler => 'Complément',

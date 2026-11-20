@@ -26,8 +26,12 @@ final class BorderFixture {
   late LocalResourceAdapter resources;
   bool _open = false;
 
-  static Future<BorderFixture> create({required int unrelated}) async {
-    final root = await Directory.systemTemp.createTemp(
+  static Future<BorderFixture> create({
+    required int unrelated,
+    Directory? parent,
+    bool placeBorder = false,
+  }) async {
+    final root = await (parent ?? Directory.systemTemp).createTemp(
       'studio_border_profiles_',
     );
     await writeExampleProject(root);
@@ -62,43 +66,48 @@ final class BorderFixture {
       for (var index = 0; index < unrelated; index++)
         'u${index.toString().padLeft(4, '0')}',
     ];
+    final project = original.copyWith(
+      version: ProjectVersion.v9,
+      settings: ProjectSettings(
+        dimension: ProjectDimension.threeD,
+        spatialCamera: SpatialCameraProfile(),
+      ),
+      models3d: [
+        for (final name in names) ...[
+          borderModel('piece_${name}_a'),
+          borderModel('piece_${name}_b'),
+        ],
+      ],
+      borderCatalog: ProjectBorderCatalog(
+        formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
+        records: [
+          for (final name in names)
+            borderBlueprint('cliff_$name', [
+              'piece_${name}_a',
+              'piece_${name}_b',
+            ], withCap: placeBorder && name == 'target'),
+        ],
+      ),
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        families: [ResourceFamily(id: 'family_cliffs', name: 'Falaises')],
+        entries: [
+          ResourceLibraryEntry(
+            resourceKind: 'borderBlueprint',
+            resourceId: 'cliff_target',
+            familyId: 'family_cliffs',
+          ),
+        ],
+      ),
+    );
+    if (placeBorder) {
+      await _placeBorder(root, project);
+      await _placeSharedModel(root);
+    }
     await file.delete();
     await WorkingProjectCatalog.create(
       store: await CatalogStorageStore.open(projectRoot: root.path),
       projectId: 'studio-border-profiles-test',
-      project: original.copyWith(
-        version: ProjectVersion.v9,
-        settings: ProjectSettings(
-          dimension: ProjectDimension.threeD,
-          spatialCamera: SpatialCameraProfile(),
-        ),
-        models3d: [
-          for (final name in names) ...[
-            borderModel('piece_${name}_a'),
-            borderModel('piece_${name}_b'),
-          ],
-        ],
-        borderCatalog: ProjectBorderCatalog(
-          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
-          records: [
-            for (final name in names)
-              borderBlueprint('cliff_$name', [
-                'piece_${name}_a',
-                'piece_${name}_b',
-              ]),
-          ],
-        ),
-        resourceLibraryCatalog: ResourceLibraryCatalog(
-          families: [ResourceFamily(id: 'family_cliffs', name: 'Falaises')],
-          entries: [
-            ResourceLibraryEntry(
-              resourceKind: 'borderBlueprint',
-              resourceId: 'cliff_target',
-              familyId: 'family_cliffs',
-            ),
-          ],
-        ),
-      ),
+      project: project,
     );
     final sessions = LocalProjectSessionAdapter();
     final session = await sessions.open(await root.resolveSymbolicLinks());
@@ -130,6 +139,27 @@ final class BorderFixture {
             return id.startsWith('piece_u') || id.startsWith('piece_other');
           })) {
         blocked[file.path] = file;
+      }
+    }
+    return blocked;
+  }
+
+  Map<String, File> blockedWorkshopFiles() {
+    final blocked = blockedPieceFiles();
+    for (final file in root.listSync(recursive: true).whereType<File>()) {
+      if (file.path.contains('/maps/')) {
+        blocked[file.path] = file;
+      } else if (file.path.contains('/catalog/objects/')) {
+        final raw = jsonDecode(file.readAsStringSync());
+        if (raw is! Map || raw['type'] != 'unit' || raw['key'] is! Map) {
+          continue;
+        }
+        final key = raw['key'] as Map;
+        final id = key['id'].toString();
+        if (key['kind'] == 'borderRecord' && id != 'cliff_target' ||
+            key['kind'] == 'model3d' && !id.startsWith('piece_target_')) {
+          blocked[file.path] = file;
+        }
       }
     }
     return blocked;
@@ -192,6 +222,78 @@ final class BorderFixture {
     await sessions.close(session);
     await root.delete(recursive: true);
   }
+}
+
+Future<void> _placeBorder(Directory root, ProjectManifest project) async {
+  final file = File('${root.path}/maps/jardin.json');
+  final map = MapData.fromJson(
+    jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+  );
+  final feature = BorderFeature(
+    id: 'placed',
+    name: 'Clôture placée',
+    blueprintId: 'cliff_target',
+    seed: BorderSignedInt64.fromInt(11),
+    geometry: BorderStrokeGeometry(
+      strokes: [
+        BorderStroke(
+          id: 'trace',
+          points: const [
+            GridPos(x: 2, y: 2),
+            GridPos(x: 3, y: 2),
+            GridPos(x: 4, y: 2),
+          ],
+          closed: false,
+        ),
+      ],
+    ),
+    overrides: [],
+    keepOutRegions: [],
+  );
+  final proposed = map.copyWith(
+    layers: [
+      MapLayer.border(
+        id: 'border',
+        name: 'Bordures',
+        content: BorderLayerContent(features: [feature]),
+      ),
+    ],
+  );
+  final resolution = resolveSpatialBorderFeature(
+    manifest: project,
+    map: proposed,
+    layerId: 'border',
+    featureId: feature.id,
+  );
+  expect(resolution.result.canApply, isTrue);
+  await file.writeAsString(
+    jsonEncode(
+      applySpatialBorderFeaturePreview(
+        proposed,
+        manifest: project,
+        proposedResult: resolution,
+      ).toJson(),
+    ),
+  );
+}
+
+Future<void> _placeSharedModel(Directory root) async {
+  final file = File('${root.path}/maps/clairiere.json');
+  final map = MapData.fromJson(
+    jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+  );
+  final updated = map.copyWith(
+    spatialScene: map.spatialScene!.copyWith(
+      instances: [
+        SpatialModelInstance(
+          id: 'model-without-border',
+          modelId: 'piece_target_a',
+          position: Model3dVector3(x: 3, y: 0, z: 3),
+        ),
+      ],
+    ),
+  );
+  await file.writeAsString(jsonEncode(updated.toJson()));
 }
 
 class _UnreadableFile implements File {

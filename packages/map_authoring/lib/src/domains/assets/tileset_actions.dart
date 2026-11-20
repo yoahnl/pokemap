@@ -307,6 +307,23 @@ final class TilesetActions {
     return TilesetRegridPreview(
         before: current, after: after, impacts: impacts);
   }
+
+  ProjectRegularAtlasTilesetSource previewAtlasGrid(
+    ProjectTilesetEntry tileset, {
+    required int tileWidth,
+    required int tileHeight,
+  }) {
+    final source = tileset.source;
+    if (source is! ProjectRegularAtlasTilesetSource) {
+      throw VisualLibraryException(
+        'tileset.atlas_missing',
+        'The tileset does not have a regular atlas source.',
+        details: {'tilesetId': tileset.id},
+      );
+    }
+    return _regridAtlas(tileset.id, source,
+        tileWidth: tileWidth, tileHeight: tileHeight);
+  }
 }
 
 AuthoringActionDescriptor visualLibraryDescriptor(

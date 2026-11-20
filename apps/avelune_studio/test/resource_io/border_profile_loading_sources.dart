@@ -3,7 +3,11 @@ import 'dart:io';
 
 import 'package:map_core/map_core.dart';
 
-BorderBlueprintRecord borderBlueprint(String id, List<String> modelIds) {
+BorderBlueprintRecord borderBlueprint(
+  String id,
+  List<String> modelIds, {
+  bool withCap = false,
+}) {
   final transforms = BorderTransformPolicy(
     allowFlipX: false,
     allowedQuarterTurns: const [0, 1, 2, 3],
@@ -19,6 +23,7 @@ BorderBlueprintRecord borderBlueprint(String id, List<String> modelIds) {
   final roles = [
     BorderPrimitiveRole.lineStraight,
     BorderPrimitiveRole.lineCorner,
+    if (withCap) BorderPrimitiveRole.lineCap,
   ];
   final draft = BorderBlueprintDraftDefinition(
     name: 'Falaise $id',
@@ -28,7 +33,7 @@ BorderBlueprintRecord borderBlueprint(String id, List<String> modelIds) {
       for (final (index, role) in roles.indexed)
         BorderPrimitiveDraft(
           id: role.name,
-          sourceModelId: modelIds[index],
+          sourceModelId: modelIds[index % modelIds.length],
           role: role,
           authoredOrientation: BorderPrimitiveOrientation.east,
           weight: 1000,

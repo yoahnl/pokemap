@@ -133,30 +133,8 @@ Future<_LibraryDefinitionPatch> _removeLibraryDefinition(
         message: 'A published border must be deprecated in its workshop.');
   }
   final snapshot = catalog.snapshot;
-  await CatalogResourceUsageIndex.requirePrepared(snapshot);
-  if (!await CatalogReverseReferences.prepared(snapshot)) {
-    throw const CatalogStorageException(
-        'catalog.resource_usage.preparation_required',
-        'Prepare the library reference indexes before removing a resource.');
-  }
-  final key = source.key;
-  final owners = await CatalogResourceUsageIndex.libraryConsumerOwners(
-      snapshot, kind, key.id);
-  final definitions = await CatalogReverseReferences.consumers(snapshot, key);
-  final linkedDefinitions = definitions
-      .where((dependency) =>
-          dependency != classification?.key && dependency != key)
-      .toList();
-  if (owners.isNotEmpty || linkedDefinitions.isNotEmpty) {
-    throw MapAuthoringException(
-        code: 'catalog.definition_in_use',
-        message: 'The resource has references in the project.',
-        details: {
-          'owners': owners.toList()..sort(),
-          'definitions':
-              linkedDefinitions.map((item) => item.toJson()).toList(),
-        });
-  }
+  await _requireUnusedLibraryDefinition(
+      snapshot, source.key, kind, classification?.key);
   final removed = [source, if (classification != null) classification];
   final upserts = <CatalogDefinitionUnit>[];
   for (final unit in removed) {
@@ -184,4 +162,31 @@ Future<_LibraryDefinitionPatch> _removeLibraryDefinition(
     upserts: upserts,
     removals: removed.map((unit) => unit.key).toList(),
   );
+}
+
+Future<void> _requireUnusedLibraryDefinition(
+    CatalogSnapshot snapshot, CatalogDefinitionKey key, String kind,
+    CatalogDefinitionKey? classification) async {
+  await CatalogResourceUsageIndex.requirePrepared(snapshot);
+  if (!await CatalogReverseReferences.prepared(snapshot)) {
+    throw const CatalogStorageException(
+        'catalog.resource_usage.preparation_required',
+        'Prepare the library reference indexes before changing the resource.');
+  }
+  final owners = await CatalogResourceUsageIndex.libraryConsumerOwners(
+      snapshot, kind, key.id);
+  final definitions = await CatalogReverseReferences.consumers(snapshot, key);
+  final linkedDefinitions = definitions
+      .where((dependency) => dependency != classification && dependency != key)
+      .toList();
+  if (owners.isNotEmpty || linkedDefinitions.isNotEmpty) {
+    throw MapAuthoringException(
+        code: 'catalog.definition_in_use',
+        message: 'The resource has references in the project.',
+        details: {
+          'owners': owners.toList()..sort(),
+          'definitions':
+              linkedDefinitions.map((item) => item.toJson()).toList(),
+        });
+  }
 }

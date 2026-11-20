@@ -23,10 +23,12 @@ import '../../dialogues/data/local_dialogue_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../project_session/data/studio_project_document_revision.dart';
 import '../application/project_resource_library.dart';
+import '../domain/project_border_workshop_port.dart';
 import '../domain/project_library_editor.dart';
 import '../domain/project_library_organization.dart';
 import '../domain/project_model_replacement_port.dart';
 import '../domain/project_model_workshop_port.dart';
+import '../domain/project_tileset_workshop_port.dart';
 import '../domain/resource_port.dart';
 import '../domain/model_resource_port.dart';
 import '../domain/resource_mutation_preparation.dart';
@@ -58,12 +60,17 @@ part 'local_project_library_lifecycle.dart';
 part 'local_project_library_organization.dart';
 part 'local_project_model_replacement.dart';
 part 'local_project_model_workshop.dart';
+part 'local_project_border_workshop.dart';
+part 'local_project_tileset_workshop.dart';
 
 final class LocalResourceAdapter
-    with _LocalProjectLibraryOrganization, _LocalProjectModelWorkshop
+    with
+        _LocalProjectLibraryOrganization,
+        _LocalProjectModelWorkshop,
+        _LocalProjectBorderWorkshop,
+        _LocalProjectTilesetWorkshop
     implements
         ResourcePort,
-        ModelResourcePort,
         ResourceMutationPreparationPort,
         ResourceIndexPreparationPort,
         ResourceLifecyclePreparationPort,
@@ -82,6 +89,10 @@ final class LocalResourceAdapter
   LocalResourceAdapter get _libraryOrganizationAdapter => this;
   @override
   LocalResourceAdapter get _modelWorkshopAdapter => this;
+  @override
+  LocalResourceAdapter get _borderWorkshopAdapter => this;
+  @override
+  LocalResourceAdapter get _tilesetWorkshopAdapter => this;
   @override
   bool get resourceIndexPreparationAvailable =>
       session.storage == ProjectSessionStorage.workingCatalog;
@@ -105,10 +116,6 @@ final class LocalResourceAdapter
   late final ResourceUsagePort usages = LocalResourceUsageAdapter(
     session: session,
   );
-
-  @override
-  Future<ResourceMutationReceipt> createBorder(BorderCreationRequest request) =>
-      _createBorder(this, request);
 
   @override
   Future<ResourceMutationReceipt> importCharacterPortrait(
@@ -182,51 +189,6 @@ final class LocalResourceAdapter
     ProjectLibraryItem item,
     Iterable<Map<String, Object?>> drafts,
   ) => _draftUsesLibraryResource(item, drafts);
-
-  @override
-  Future<ResourceMutationReceipt> importModel({
-    required String sourcePath,
-    required String name,
-  }) => _run(
-    'model3d.import',
-    (_) => {'modelId': _identity('model'), 'name': name.trim()},
-    sourcePath: sourcePath,
-    sourceMediaType: 'model/gltf-binary',
-  );
-
-  @override
-  Future<ResourceMutationReceipt> replaceModelSource({
-    required String modelId,
-    required String sourcePath,
-  }) => _run(
-    'model3d.source.replace',
-    (_) => {'modelId': modelId},
-    sourcePath: sourcePath,
-    sourceMediaType: 'model/gltf-binary',
-  );
-
-  @override
-  Future<ResourceMutationReceipt> deleteModel(String modelId) => _run(
-    'model3d.delete',
-    (_) => {'modelId': modelId},
-    confirmDestructive: true,
-  );
-
-  @override
-  Future<Uint8List> readModel(String modelId) =>
-      session.storage == ProjectSessionStorage.workingCatalog
-      ? _readCatalogModelSource(this, modelId)
-      : _readResourceSnapshot(this, (snapshot, _) async {
-          final model = snapshot.manifest.models3d
-              .where((entry) => entry.id == modelId)
-              .firstOrNull;
-          if (model == null) throw const ResourceFailure('Modèle introuvable.');
-          final bytes = await const LocalProjectFileReader().readBytes(
-            projectRoot: session.directoryPath,
-            relativePath: model.relativePath,
-          );
-          return Uint8List.fromList(bytes);
-        });
 
   @override
   Future<ResourceMutationReceipt> mutate(

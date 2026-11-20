@@ -30,6 +30,25 @@ ProjectManifest mergeBorderSelection(
   library: loaded.resourceLibraryCatalog,
 );
 
+ProjectManifest replaceLoadedBorderProjection(
+  ProjectManifest current,
+  BorderBlueprintRecord replacement,
+) {
+  final catalog = current.borderCatalog;
+  final existing = catalog.recordById(replacement.id);
+  if (existing == null || existing == replacement) return current;
+  return current.copyWith(
+    borderCatalog: ProjectBorderCatalog(
+      formatVersion: catalog.formatVersion,
+      records: [
+        for (final record in catalog.records)
+          record.id == replacement.id ? replacement : record,
+      ],
+      visualSnapshots: catalog.visualSnapshots,
+    ),
+  );
+}
+
 ResourceLibraryCatalog mergeResourceLibraryCatalogs(
   ResourceLibraryCatalog current,
   ResourceLibraryCatalog loaded,

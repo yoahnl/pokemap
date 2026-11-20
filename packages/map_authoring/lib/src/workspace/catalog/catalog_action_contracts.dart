@@ -27,6 +27,42 @@ final catalogDefinitionDeleteDescriptor = _libraryDefinitionAction(
   AuthoringRiskLevel.high,
 );
 
+final catalogTilesetRegridDescriptor = AuthoringActionDescriptor(
+  id: 'tileset.regrid',
+  version: 1,
+  summary: 'Change the grid of an unused regular atlas without changing its image.',
+  inputSchemaId: 'pokemap.authoring.tileset.regrid.input.v1',
+  outputSchemaId: 'authoring.receipt.v1',
+  riskLevel: AuthoringRiskLevel.medium,
+  resourceKinds: const ['tileset'],
+  capabilityIds: const ['authoring.visual_library'],
+  requiredPermissions: const [
+    AuthoringPermission.projectRead,
+    AuthoringPermission.projectWrite,
+  ],
+  guarantees: const [
+    AuthoringGuarantee.atomic,
+    AuthoringGuarantee.dryRun,
+    AuthoringGuarantee.idempotent,
+    AuthoringGuarantee.revisionChecked,
+    AuthoringGuarantee.undoable,
+  ],
+  extensions: const {
+    'storageFormat': 'avelune.working-catalog',
+    'preparationScope': 'resourceIndexes',
+    'inputSchema': {
+      'type': 'object',
+      'additionalProperties': false,
+      'required': ['tilesetId', 'tileWidth', 'tileHeight'],
+      'properties': {
+        'tilesetId': {'type': 'string', 'minLength': 1},
+        'tileWidth': {'type': 'integer', 'minimum': 1},
+        'tileHeight': {'type': 'integer', 'minimum': 1},
+      },
+    },
+  },
+);
+
 AuthoringActionDescriptor _libraryDefinitionAction(
   String action,
   String summary,
