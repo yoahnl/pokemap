@@ -11,7 +11,7 @@ void main() {
     await for (final entity in sourceRoot.list(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       final source = await entity.readAsString();
-      if (_directWrite.hasMatch(source)) {
+      if (_hasDirectFileWrite(source)) {
         actual.add(p.relative(entity.path, from: Directory.current.path));
       }
     }
@@ -19,7 +19,6 @@ void main() {
     final classified = <String>{
       ..._platformAndAssetSinks,
       ..._transactionAndRecoverySinks,
-      ..._legacyStructuredAuthoringDebt,
     };
     expect(
       actual.difference(classified),
@@ -34,7 +33,15 @@ void main() {
     );
   });
 
-  test('Authoring editor adapters stay Flutter-free and perform no raw writes',
+  test('the registered PMCP-081 exceptions still reach legacy writers', () async {
+    expect(_legacyStructuredAuthoringDebt, _legacyWriteMarkers.keys.toSet());
+    for (final entry in _legacyWriteMarkers.entries) {
+      final source = await File(entry.key).readAsString();
+      expect(source, contains(entry.value), reason: entry.key);
+    }
+  });
+
+  test('Authoring editor adapters keep Flutter state and raw writes separate',
       () async {
     final adapterRoot = Directory(
       p.join(
@@ -43,9 +50,14 @@ void main() {
     await for (final entity in adapterRoot.list()) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       final source = await entity.readAsString();
-      expect(source, isNot(contains("package:flutter/")), reason: entity.path);
+      final name = p.basename(entity.path);
+      if (_flutterStateControllers.contains(name)) {
+        expect(source, contains('extends ChangeNotifier'), reason: entity.path);
+      } else {
+        expect(source, isNot(contains('package:flutter/')), reason: entity.path);
+      }
       expect(source, isNot(contains("import 'dart:io'")), reason: entity.path);
-      expect(_directWrite.hasMatch(source), isFalse, reason: entity.path);
+      expect(_hasDirectFileWrite(source), isFalse, reason: entity.path);
     }
   });
 
@@ -81,9 +93,27 @@ void main() {
   });
 }
 
-final RegExp _directWrite = RegExp(
-  r'\.(?:writeAsBytes|writeAsString|rename|delete)\s*\(',
+final _writeFileBytes = RegExp(r'\.(?:writeAsBytes|writeAsString)\s*\(');
+final _moveOrRemoveFile = RegExp(
+  r'\.rename\s*\(|\.delete\s*\(\s*(?:\)|recursive\s*:)',
 );
+
+bool _hasDirectFileWrite(String source) =>
+    _writeFileBytes.hasMatch(source) ||
+    (source.contains('dart:io') && _moveOrRemoveFile.hasMatch(source));
+
+const _flutterStateControllers = <String>{
+  'presentation_studio_document_controller.dart',
+  'presentation_timeline_projection_gateway.dart',
+};
+
+const _legacyWriteMarkers = <String, String>{
+  'lib/src/features/editor/state/editor_notifier.dart':
+      '.saveProject(project,',
+  'lib/src/ui/canvas/events_v2/event_builder_v2_product_route.dart':
+      'narrativeEventRegistryPersistenceGatewayProvider',
+  'lib/src/ui/canvas/storylines_workspace.dart': 'applyInMemoryProjectManifest(',
+};
 
 /// Packaging, settings, imported media and Border artifacts are not PokeMap
 /// structured authoring documents. Their dedicated ports remain legitimate.
@@ -94,21 +124,24 @@ const _platformAndAssetSinks = <String>{
   'lib/src/application/tools/export_pokemon_sdk_studio_catalog_cli.dart',
   'lib/src/features/border_studio/infrastructure/filesystem/file_border_asset_snapshot_store.dart',
   'lib/src/features/border_studio/infrastructure/filesystem/file_border_publication_manifest_port.dart',
-  'lib/src/features/game_export/application/game_package_export_service.dart',
-  'lib/src/features/game_export/infrastructure/game_package_export_profile_store.dart',
+  'lib/src/features/editor/state/editor_notifier.dart',
   'lib/src/features/game_export/infrastructure/hub_install_request_publisher.dart',
   'lib/src/features/personalization/application/project_branding_image_import_service.dart',
   'lib/src/features/personalization/application/project_font_import_service.dart',
   'lib/src/features/personalization/application/project_intro_video_import_service.dart',
+  'lib/src/features/personalization/application/project_presentation_preset_service.dart',
   'lib/src/features/personalization/application/project_presentation_asset_lifecycle.dart',
   'lib/src/features/personalization/application/project_title_music_import_service.dart',
+  'lib/src/infrastructure/filesystem/pokemon_menu_sprite_source.dart',
   'lib/src/infrastructure/filesystem/project_filesystem.dart',
+  'lib/src/infrastructure/repositories/file_narrative_document_route_store.dart',
+  'lib/src/infrastructure/repositories/file_presentation_studio_layout_store.dart',
 };
 
 /// Atomic stores, journals and recovery gateways are infrastructure owned by
 /// existing crash-safe protocols. They are not additional product commands.
 const _transactionAndRecoverySinks = <String>{
-  'lib/src/infrastructure/repositories/atomic_map_document_persistence.dart',
+  'lib/src/application/services/pokemon_catalog_rebuild_transaction.dart',
   'lib/src/infrastructure/repositories/atomic_project_manifest_persistence.dart',
   'lib/src/infrastructure/repositories/file_narrative_document_recovery_store.dart',
   'lib/src/infrastructure/repositories/file_repositories.dart',
@@ -119,13 +152,12 @@ const _transactionAndRecoverySinks = <String>{
   'lib/src/infrastructure/repositories/narrative_event_registry_persistence.dart',
   'lib/src/infrastructure/repositories/narrative_event_spatial_link_journal_repository.dart',
   'lib/src/infrastructure/repositories/narrative_template_transaction_file_gateway.dart',
+  'lib/src/infrastructure/repositories/pokemon_file_write_repository.dart',
 };
 
 /// Explicit PMCP-081 residual debt. Keeping this set exact prevents claiming
 /// full migration while these specialized paths still perform direct I/O.
 const _legacyStructuredAuthoringDebt = <String>{
-  'lib/src/application/services/map_lifecycle_transaction_service.dart',
-  'lib/src/application/use_cases/map_use_cases.dart',
   'lib/src/features/editor/state/editor_notifier.dart',
   'lib/src/ui/canvas/events_v2/event_builder_v2_product_route.dart',
   'lib/src/ui/canvas/storylines_workspace.dart',

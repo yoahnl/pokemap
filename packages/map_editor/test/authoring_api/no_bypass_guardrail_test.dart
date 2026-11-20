@@ -112,8 +112,6 @@ const _nonProjectStateWriters = <String>{
 /// PMCP-085 must keep this debt exact rather than turn a generic editor
 /// transport into false evidence that every existing product gesture uses it.
 const _knownStructuredAuthoringDebt = <String>{
-  'lib/src/application/services/map_lifecycle_transaction_service.dart',
-  'lib/src/application/use_cases/map_use_cases.dart',
   'lib/src/features/editor/state/editor_notifier.dart',
   'lib/src/ui/canvas/events_v2/event_builder_v2_product_route.dart',
   'lib/src/ui/canvas/storylines_workspace.dart',

@@ -5,6 +5,7 @@ import '../../domain/repositories/repositories.dart';
 import '../../domain/models/map_document_persistence.dart';
 import '../errors/application_errors.dart';
 import '../authoring_api/authoring_mutation_adapter.dart';
+import '../authoring_api/editor_receipt_presenter.dart';
 import '../ports/project_workspace.dart';
 import '../services/map_dependency_preflight_service.dart';
 import '../services/map_lifecycle_transaction_service.dart';
@@ -85,14 +86,38 @@ class CreateMapUseCase {
   final MapRepository _mapRepo;
   final ProjectRepository _projectRepo;
   final MapLifecycleTransactionCoordinator? _lifecycleTransactions;
+  final AuthoringMutationAdapter? _authoringMutations;
 
   CreateMapUseCase(
     this._mapRepo,
     this._projectRepo, {
     MapLifecycleTransactionCoordinator? lifecycleTransactions,
-  }) : _lifecycleTransactions = lifecycleTransactions;
+    AuthoringMutationAdapter? authoringMutations,
+  }) : _lifecycleTransactions = lifecycleTransactions,
+       _authoringMutations = authoringMutations;
 
   Future<MapData> execute(
+    ProjectWorkspace fs,
+    ProjectManifest project,
+    String mapId,
+    int w,
+    int h, {
+    String? groupId,
+    MapRole role = MapRole.exterior,
+  }) async {
+    final created = await executeRevisioned(
+      fs,
+      project,
+      mapId,
+      w,
+      h,
+      groupId: groupId,
+      role: role,
+    );
+    return created.map;
+  }
+
+  Future<CreateMapResult> executeRevisioned(
     ProjectWorkspace fs,
     ProjectManifest project,
     String mapId,
@@ -111,6 +136,26 @@ class CreateMapUseCase {
       _canonicalMapRelativePath(canonicalMapId),
     );
     _mapManifestIntegrityPolicy.requireValid(fs, project);
+    final authoring = _authoringMutations;
+    if (authoring != null) {
+      final applied = await authoring.applyMapLifecycle(
+        fs.projectRoot,
+        project,
+        actionId: 'map.create',
+        parameters: {
+          'mapId': canonicalMapId,
+          'width': w,
+          'height': h,
+          'groupId': ?groupId,
+          'role': role.name,
+        },
+      );
+      return (
+        project: applied.manifest,
+        map: _appliedMap(applied, canonicalMapId),
+        revision: applied.resourceRevision('map:$canonicalMapId'),
+      );
+    }
     final map = MapData(
       id: canonicalMapId,
       name: canonicalMapId,
@@ -142,7 +187,7 @@ class CreateMapUseCase {
 
     final lifecycleTransactions = _lifecycleTransactions;
     if (lifecycleTransactions != null) {
-      await lifecycleTransactions.execute(
+      final result = await lifecycleTransactions.execute(
         MapLifecycleTransactionRequest.create(
           projectPath: fs.projectManifestPath,
           beforeProject: project,
@@ -151,12 +196,10 @@ class CreateMapUseCase {
           targetMap: map,
         ),
       );
-      return map;
+      return (project: result.project, map: map, revision: result.targetRevision);
     }
 
-    // Compatibility path for historical non-revisioned fakes. The product
-    // composition root always injects DS-05; this fallback must never be
-    // described as a recoverable multi-file transaction.
+    // Compatibility path for historical non-revisioned fakes.
     final savedRevision = await _saveNewMapDocument(_mapRepo, map, absPath, updatedProject);
     try {
       await _projectRepo.saveProject(updatedProject, fs.projectManifestPath);
@@ -169,9 +212,15 @@ class CreateMapUseCase {
       rethrow;
     }
 
-    return map;
+    return (project: updatedProject, map: map, revision: savedRevision);
   }
 }
+
+typedef CreateMapResult = ({
+  ProjectManifest project,
+  MapData map,
+  String? revision,
+});
 
 class LoadMapUseCase {
   final MapRepository _repo;
@@ -302,13 +351,16 @@ class RenameMapUseCase {
   final ProjectRepository _projectRepo;
   final MapDependencyPreflightService _dependencyPreflight;
   final MapLifecycleTransactionCoordinator? _lifecycleTransactions;
+  final AuthoringMutationAdapter? _authoringMutations;
 
   RenameMapUseCase(
     this._mapRepo,
     this._projectRepo,
     this._dependencyPreflight, {
     MapLifecycleTransactionCoordinator? lifecycleTransactions,
-  }) : _lifecycleTransactions = lifecycleTransactions;
+    AuthoringMutationAdapter? authoringMutations,
+  }) : _lifecycleTransactions = lifecycleTransactions,
+       _authoringMutations = authoringMutations;
 
   Future<ProjectManifest> execute(
     ProjectWorkspace fs,
@@ -353,6 +405,23 @@ class RenameMapUseCase {
       project,
       allowedLegacyId: oldId,
     );
+    final authoring = _authoringMutations;
+    if (authoring != null) {
+      final applied = await _applyReferencedMapLifecycle(
+        authoring: authoring,
+        dependencyPreflight: _dependencyPreflight,
+        workspace: fs,
+        project: project,
+        sourceMapId: oldId,
+        operation: MapDependencyPreflightOperation.rename,
+        parameters: {'mapId': oldId, 'newMapId': canonicalNewId},
+      );
+      return (
+        project: applied.manifest,
+        map: _appliedMap(applied, canonicalNewId),
+        revision: applied.resourceRevision('map:$canonicalNewId'),
+      );
+    }
     await _dependencyPreflight.requireAllowed(
       workspace: fs,
       project: project,
@@ -423,8 +492,7 @@ class RenameMapUseCase {
       );
     }
 
-    // Compatibility-only path for direct legacy fakes. Production uses the
-    // durable DS-05 coordinator injected by the composition root.
+    // Compatibility-only path for direct legacy fakes.
     final savedRevision = await _saveNewMapDocument(
       _mapRepo,
       updatedMap,
@@ -463,13 +531,16 @@ class DeleteMapUseCase {
   final ProjectRepository _projectRepo;
   final MapDependencyPreflightService _dependencyPreflight;
   final MapLifecycleTransactionCoordinator? _lifecycleTransactions;
+  final AuthoringMutationAdapter? _authoringMutations;
 
   DeleteMapUseCase(
     this._mapRepo,
     this._projectRepo,
     this._dependencyPreflight, {
     MapLifecycleTransactionCoordinator? lifecycleTransactions,
-  }) : _lifecycleTransactions = lifecycleTransactions;
+    AuthoringMutationAdapter? authoringMutations,
+  }) : _lifecycleTransactions = lifecycleTransactions,
+       _authoringMutations = authoringMutations;
 
   Future<ProjectManifest> execute(
     ProjectWorkspace fs,
@@ -479,6 +550,19 @@ class DeleteMapUseCase {
     _mapIdPolicy.requireValid(mapId);
     final sourceEntry = _findMapEntry(project, mapId);
     _mapManifestIntegrityPolicy.requireValid(fs, project);
+    final authoring = _authoringMutations;
+    if (authoring != null) {
+      final applied = await _applyReferencedMapLifecycle(
+        authoring: authoring,
+        dependencyPreflight: _dependencyPreflight,
+        workspace: fs,
+        project: project,
+        sourceMapId: mapId,
+        operation: MapDependencyPreflightOperation.delete,
+        parameters: {'mapId': mapId},
+      );
+      return applied.manifest;
+    }
     await _dependencyPreflight.requireAllowed(
       workspace: fs,
       project: project,
@@ -531,12 +615,15 @@ class DuplicateMapUseCase {
   final MapRepository _mapRepo;
   final ProjectRepository _projectRepo;
   final MapLifecycleTransactionCoordinator? _lifecycleTransactions;
+  final AuthoringMutationAdapter? _authoringMutations;
 
   DuplicateMapUseCase(
     this._mapRepo,
     this._projectRepo, {
     MapLifecycleTransactionCoordinator? lifecycleTransactions,
-  }) : _lifecycleTransactions = lifecycleTransactions;
+    AuthoringMutationAdapter? authoringMutations,
+  }) : _lifecycleTransactions = lifecycleTransactions,
+       _authoringMutations = authoringMutations;
 
   Future<ProjectManifest> execute(
     ProjectWorkspace fs,
@@ -554,6 +641,20 @@ class DuplicateMapUseCase {
       _canonicalMapRelativePath(targetId),
     );
     _mapManifestIntegrityPolicy.requireValid(fs, project);
+    final authoring = _authoringMutations;
+    if (authoring != null) {
+      final applied = await authoring.applyMapLifecycle(
+        fs.projectRoot,
+        project,
+        actionId: 'map.duplicate',
+        sourceMapId: canonicalSourceId,
+        parameters: {
+          'sourceMapId': canonicalSourceId,
+          'targetMapId': targetId,
+        },
+      );
+      return applied.manifest;
+    }
 
     final sourcePath = fs.resolveMapPath(sourceEntry.relativePath);
     final targetRelativePath = fs.getMapRelativePath(targetId);
@@ -623,6 +724,50 @@ class DuplicateMapUseCase {
 
     return updatedProject;
   }
+}
+
+Future<EditorAuthoringMutationProjection> _applyReferencedMapLifecycle({
+  required AuthoringMutationAdapter authoring,
+  required MapDependencyPreflightService dependencyPreflight,
+  required ProjectWorkspace workspace,
+  required ProjectManifest project,
+  required String sourceMapId,
+  required MapDependencyPreflightOperation operation,
+  required Map<String, Object?> parameters,
+}) async {
+  try {
+    return await authoring.applyMapLifecycle(
+      workspace.projectRoot,
+      project,
+      actionId: switch (operation) {
+        MapDependencyPreflightOperation.rename => 'map.rename',
+        MapDependencyPreflightOperation.delete => 'map.delete_apply',
+      },
+      sourceMapId: sourceMapId,
+      parameters: parameters,
+    );
+  } on EditorAuthoringMutationFailure catch (failure) {
+    if (failure.code == 'map.references_blocking' ||
+        failure.code == 'map.inventory_incomplete' ||
+        failure.code == 'map.document_missing' ||
+        failure.code == 'workspace.file_unavailable' ||
+        failure.code.startsWith('snapshot.')) {
+      await dependencyPreflight.requireAllowed(
+        workspace: workspace,
+        project: project,
+        mapId: sourceMapId,
+        operation: operation,
+      );
+    }
+    rethrow;
+  }
+}
+
+MapData _appliedMap(EditorAuthoringMutationProjection applied, String mapId) {
+  return applied.mapById(mapId) ??
+      (throw const EditorConflictException(
+        'La carte a été enregistrée. Rechargez le projet pour la retrouver.',
+      ));
 }
 
 ProjectMapEntry _findMapEntry(ProjectManifest project, String mapId) {

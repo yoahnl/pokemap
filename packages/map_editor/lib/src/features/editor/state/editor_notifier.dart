@@ -3028,7 +3028,7 @@ class EditorNotifier extends _$EditorNotifier
 
     try {
       final useCase = ref.read(createMapUseCaseProvider);
-      await useCase.execute(
+      final created = await useCase.executeRevisioned(
         fs,
         project,
         id,
@@ -3038,25 +3038,12 @@ class EditorNotifier extends _$EditorNotifier
         role: role,
       );
       if (!_canAdoptMapDiskMutation(lease)) return;
-      final relativePath = fs.getMapRelativePath(id);
-      final persistedDocument = await ref
-          .read(loadMapUseCaseProvider)
-          .executeDocument(fs, relativePath);
-      if (!_canAdoptMapDiskMutation(lease)) return;
-      final map = persistedDocument.map;
-      final mapPath = fs.resolveMapPath(relativePath);
-      final updatedProject = project.copyWith(
-        maps: [
-          ...project.maps,
-          ProjectMapEntry(
-            id: id,
-            name: id,
-            relativePath: fs.getMapRelativePath(id),
-            groupId: groupId,
-            role: role,
-          ),
-        ],
+      final map = created.map;
+      final updatedProject = created.project;
+      final entry = updatedProject.maps.firstWhere(
+        (entry) => entry.id == map.id,
       );
+      final mapPath = fs.resolveMapPath(entry.relativePath);
       final preservedPaletteSession = _rememberActivePaletteContext(state);
       final preservedSelectedTilesetEditorId = state.selectedTilesetEditorId;
       state = _projectSessionController.openMapDocument(
@@ -3083,7 +3070,7 @@ class EditorNotifier extends _$EditorNotifier
       state = _activatePaletteContext(state);
       _rememberMapDocumentRevision(
         mapPath,
-        revision: persistedDocument.revision,
+        revision: created.revision,
         sourceDocument: map,
       );
       _coerceActiveToolIfIncompatibleWithLayer();

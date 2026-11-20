@@ -181,8 +181,7 @@ CreateMapUseCase createMapUseCase(Ref ref) {
   return CreateMapUseCase(
     ref.watch(mapRepositoryProvider),
     ref.watch(projectRepositoryProvider),
-    lifecycleTransactions:
-        ref.watch(mapLifecycleTransactionCoordinatorProvider),
+    authoringMutations: ref.watch(authoringMutationAdapterProvider),
   );
 }
 
@@ -208,8 +207,7 @@ RenameMapUseCase renameMapUseCase(Ref ref) {
     mapRepository,
     ref.watch(projectRepositoryProvider),
     MapDependencyPreflightService(mapRepository: mapRepository),
-    lifecycleTransactions:
-        ref.watch(mapLifecycleTransactionCoordinatorProvider),
+    authoringMutations: ref.watch(authoringMutationAdapterProvider),
   );
 }
 
@@ -220,8 +218,7 @@ DeleteMapUseCase deleteMapUseCase(Ref ref) {
     mapRepository,
     ref.watch(projectRepositoryProvider),
     MapDependencyPreflightService(mapRepository: mapRepository),
-    lifecycleTransactions:
-        ref.watch(mapLifecycleTransactionCoordinatorProvider),
+    authoringMutations: ref.watch(authoringMutationAdapterProvider),
   );
 }
 
@@ -230,8 +227,7 @@ DuplicateMapUseCase duplicateMapUseCase(Ref ref) {
   return DuplicateMapUseCase(
     ref.watch(mapRepositoryProvider),
     ref.watch(projectRepositoryProvider),
-    lifecycleTransactions:
-        ref.watch(mapLifecycleTransactionCoordinatorProvider),
+    authoringMutations: ref.watch(authoringMutationAdapterProvider),
   );
 }
 

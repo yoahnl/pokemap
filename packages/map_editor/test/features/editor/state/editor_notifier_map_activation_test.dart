@@ -1260,6 +1260,20 @@ final class _ActivationFixture {
         saveMapUseCaseProvider.overrideWith(
           (ref) => SaveMapUseCase(repository),
         ),
+        renameMapUseCaseProvider.overrideWith(
+          (ref) => RenameMapUseCase(
+            repository,
+            projectRepository,
+            MapDependencyPreflightService(mapRepository: repository),
+          ),
+        ),
+        deleteMapUseCaseProvider.overrideWith(
+          (ref) => DeleteMapUseCase(
+            repository,
+            projectRepository,
+            MapDependencyPreflightService(mapRepository: repository),
+          ),
+        ),
         projectRepositoryProvider.overrideWith((ref) => projectRepository),
         projectWorkspaceFactoryProvider.overrideWith(
           (ref) => const _ActivationWorkspaceFactory(),
