@@ -17,7 +17,7 @@ class StoryBehaviourContext extends StatefulWidget {
     required this.retry,
     required this.editable,
     required this.onSelected,
-    required this.contextAlongside,
+    this.contextAlongside = true,
     this.filtered = false,
   });
 

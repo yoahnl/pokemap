@@ -21,7 +21,7 @@ class GameBehaviourEditor extends StatefulWidget {
     super.key,
     required this.binding,
     required this.editable,
-    required this.contextAlongside,
+    this.contextAlongside = true,
     this.allowCreation = true,
   });
 
