@@ -1,0 +1,7 @@
+{
+  "id": "artifact-draft",
+  "targetPresetId": "imported",
+  "name": "Imported draft",
+  "usage": "path",
+  "lastStage": "connections"
+}

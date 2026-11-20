@@ -1,0 +1,1075 @@
+{
+  "name": "Transport parity fixture",
+  "version": "v8",
+  "maps": [
+    {
+      "id": "map",
+      "name": "Proof map",
+      "relativePath": "maps/map.json"
+    }
+  ],
+  "tilesets": [
+    {
+      "id": "proof",
+      "name": "Proof",
+      "relativePath": "assets/proof.png"
+    }
+  ],
+  "pokemon": {
+    "ruleset": {
+      "schemaVersion": 1,
+      "profileId": "pokemap-beta-v1",
+      "typeChartId": "mainline-modern-v1",
+      "maxLevel": 100,
+      "experiencePolicyId": "pokemap-simple-exp-v1",
+      "capturePolicyId": "pokemap-capture-mvp-v1",
+      "moveMachinePolicyId": "authored-consumability-v1",
+      "criticalHitPolicyId": "mainline-gen9-critical",
+      "speedTiePolicyId": "mainline-gen9-seeded-random",
+      "friendshipPolicyId": "mainline-0-255-v1",
+      "evolutionPolicyId": "pokemap-beta-evolution-v1",
+      "disabledFeatures": [
+        "breeding",
+        "double-battles",
+        "modern-gimmicks",
+        "online"
+      ]
+    }
+  },
+  "elementCategories": [
+    {
+      "id": "props",
+      "name": "Props"
+    }
+  ],
+  "elements": [
+    {
+      "id": "sign-prop",
+      "name": "Sign",
+      "tilesetId": "proof",
+      "categoryId": "props",
+      "frames": [
+        {
+          "source": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "durationMs": 100
+        },
+        {
+          "source": {
+            "x": 1,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "durationMs": 100
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "id": "ranger",
+      "name": "Ranger",
+      "tilesetId": "proof"
+    }
+  ],
+  "settings": {
+    "tileWidth": 32,
+    "tileHeight": 32
+  },
+  "borderCatalog": {
+    "formatVersion": 5,
+    "records": [
+      {
+        "id": "first",
+        "draft": {
+          "baseRevision": 1,
+          "definition": {
+            "name": "Fence",
+            "previewSeed": "0",
+            "template": "connectedLine",
+            "primitives": [
+              {
+                "id": "lineCap",
+                "sourceElementId": "sign-prop",
+                "role": "lineCap",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "lineStraight",
+                "sourceElementId": "sign-prop",
+                "role": "lineStraight",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "lineCorner",
+                "sourceElementId": "sign-prop",
+                "role": "lineCorner",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "alternate",
+                "sourceElementId": "sign-prop",
+                "role": "lineStraight",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 0,
+              "detailDensityPermille": 0,
+              "variationPermille": 0,
+              "maxOverlapPx": 32,
+              "gapTolerancePx": 32,
+              "depthRows": 1
+            },
+            "sortOrder": 0
+          }
+        },
+        "latestPublished": {
+          "revision": 1,
+          "definition": {
+            "name": "Fence",
+            "previewSeed": "0",
+            "template": "connectedLine",
+            "primitives": [
+              {
+                "id": "lineCap",
+                "sourceElementId": "sign-prop",
+                "visualSnapshotId": "border-snapshot-sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                "role": "lineCap",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "lineStraight",
+                "sourceElementId": "sign-prop",
+                "visualSnapshotId": "border-snapshot-sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                "role": "lineStraight",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "lineCorner",
+                "sourceElementId": "sign-prop",
+                "visualSnapshotId": "border-snapshot-sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                "role": "lineCorner",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "alternate",
+                "sourceElementId": "sign-prop",
+                "visualSnapshotId": "border-snapshot-sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                "role": "lineStraight",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 0,
+              "detailDensityPermille": 0,
+              "variationPermille": 0,
+              "maxOverlapPx": 32,
+              "gapTolerancePx": 32,
+              "depthRows": 1
+            },
+            "sortOrder": 0
+          }
+        }
+      },
+      {
+        "id": "second",
+        "draft": {
+          "baseRevision": 1,
+          "definition": {
+            "name": "Other fence",
+            "previewSeed": "0",
+            "template": "connectedLine",
+            "primitives": [
+              {
+                "id": "lineCap",
+                "sourceElementId": "sign-prop",
+                "role": "lineCap",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "lineStraight",
+                "sourceElementId": "sign-prop",
+                "role": "lineStraight",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "lineCorner",
+                "sourceElementId": "sign-prop",
+                "role": "lineCorner",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "alternate",
+                "sourceElementId": "sign-prop",
+                "role": "lineStraight",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 0,
+              "detailDensityPermille": 0,
+              "variationPermille": 0,
+              "maxOverlapPx": 32,
+              "gapTolerancePx": 32,
+              "depthRows": 1
+            },
+            "sortOrder": 0
+          }
+        },
+        "latestPublished": {
+          "revision": 1,
+          "definition": {
+            "name": "Other fence",
+            "previewSeed": "0",
+            "template": "connectedLine",
+            "primitives": [
+              {
+                "id": "lineCap",
+                "sourceElementId": "sign-prop",
+                "visualSnapshotId": "border-snapshot-sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                "role": "lineCap",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "lineStraight",
+                "sourceElementId": "sign-prop",
+                "visualSnapshotId": "border-snapshot-sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                "role": "lineStraight",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "lineCorner",
+                "sourceElementId": "sign-prop",
+                "visualSnapshotId": "border-snapshot-sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                "role": "lineCorner",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "alternate",
+                "sourceElementId": "sign-prop",
+                "visualSnapshotId": "border-snapshot-sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                "role": "lineStraight",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 0,
+              "detailDensityPermille": 0,
+              "variationPermille": 0,
+              "maxOverlapPx": 32,
+              "gapTolerancePx": 32,
+              "depthRows": 1
+            },
+            "sortOrder": 0
+          }
+        }
+      },
+      {
+        "id": "ground",
+        "draft": {
+          "baseRevision": 1,
+          "definition": {
+            "name": "Ground",
+            "previewSeed": "0",
+            "template": "organicEdge",
+            "primitives": [
+              {
+                "id": "filler",
+                "sourceElementId": "sign-prop",
+                "role": "filler",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 0,
+              "detailDensityPermille": 0,
+              "variationPermille": 0,
+              "maxOverlapPx": 32,
+              "gapTolerancePx": 32,
+              "depthRows": 1
+            },
+            "sortOrder": 0
+          }
+        },
+        "latestPublished": {
+          "revision": 1,
+          "definition": {
+            "name": "Ground",
+            "previewSeed": "0",
+            "template": "organicEdge",
+            "primitives": [
+              {
+                "id": "filler",
+                "sourceElementId": "sign-prop",
+                "visualSnapshotId": "border-snapshot-sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                "role": "filler",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 0,
+              "detailDensityPermille": 0,
+              "variationPermille": 0,
+              "maxOverlapPx": 32,
+              "gapTolerancePx": 32,
+              "depthRows": 1
+            },
+            "sortOrder": 0
+          }
+        }
+      },
+      {
+        "id": "unpublished",
+        "draft": {
+          "baseRevision": 0,
+          "definition": {
+            "name": "Sketch border",
+            "previewSeed": "0",
+            "template": "connectedLine",
+            "primitives": [
+              {
+                "id": "lineCap",
+                "sourceElementId": "sign-prop",
+                "role": "lineCap",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "lineStraight",
+                "sourceElementId": "sign-prop",
+                "role": "lineStraight",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "lineCorner",
+                "sourceElementId": "sign-prop",
+                "role": "lineCorner",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              },
+              {
+                "id": "alternate",
+                "sourceElementId": "sign-prop",
+                "role": "lineStraight",
+                "weight": 1,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 16
+                },
+                "transforms": {
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ],
+                  "allowFlipX": true
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 32
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 32,
+                    "height": 32
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 16
+                  },
+                  "occupancyMaskRle": "border-rle-v1:1024:1:1024"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 0,
+              "detailDensityPermille": 0,
+              "variationPermille": 0,
+              "maxOverlapPx": 32,
+              "gapTolerancePx": 32,
+              "depthRows": 1
+            },
+            "sortOrder": 0
+          }
+        }
+      }
+    ],
+    "visualSnapshots": [
+      {
+        "id": "border-snapshot-sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+        "contentFingerprint": "417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 32
+            },
+            "durationMs": 120
+          }
+        ]
+      }
+    ]
+  }
+}

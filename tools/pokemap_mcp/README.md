@@ -69,27 +69,26 @@ references.
 
 ## Conformance and security
 
-The PMCP-085 inventory currently covers 61 approved semantic resources and all
-219 canonical mutation actions. A release is refused when any applicable cell
-is `MISSING` or `BLOCKED`; every `NOT_APPLICABLE` cell carries a reason. Generate
-the machine-readable matrix with:
+The PMCP-085 inventory covers the approved semantic resources and canonical
+mutation actions. Every `NOT_APPLICABLE` cell carries a reason. Generate the
+machine-readable matrix with:
 
 ```bash
 cd packages/map_authoring
 dart run tool/pmcp085_conformance.dart
 ```
 
-`catalogComplete` in that output covers the canonical API catalog only. Run the
-cross-package release gate from this directory with:
+`catalogComplete` reports resource coverage. `transportCertificationComplete`
+requires every mutation to have evidence on the direct API, JSONL CLI, Editor
+adapter, and live MCP. Run the cross-package release gate with:
 
 ```bash
 ./scripts/pmcp085_release_gate.sh
 ```
 
-The gate currently exits non-zero after running every validation because the
-five PMCP-081 editor mutation bypasses are still explicitly inventoried. This
-is intentional: availability through the generic editor adapter does not prove
-that every existing product gesture has migrated to it.
+The gate replays the maintained transport scenarios on disposable project
+copies. It requires complete transport coverage and checks the PMCP-081
+inventory of editor mutation bypasses before authorizing a release.
 
 The server applies one shared admission guard before authoring, resource,
 artifact or runtime gateways. Defaults are 64 KiB of serialized UTF-8 input and

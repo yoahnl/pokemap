@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "moves",
+  "entries": [
+    {
+      "id": "echo",
+      "power": 35,
+      "accuracy": 100
+    }
+  ]
+}

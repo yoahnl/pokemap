@@ -1,0 +1,797 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "campaign-content",
+      "projectRoot": "campaign-content",
+      "steps": [
+        {
+          "actionId": "campaign.badge.upsert",
+          "actionVersion": 1,
+          "parameters": {"value": {"id": "trail", "label": "Trail badge"}},
+          "observations": [
+            {"path": "project.json", "at": ["badges", 0, "label"], "equals": "Trail badge"}
+          ]
+        },
+        {
+          "actionId": "campaign.badge.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"id": "trail"},
+          "observations": [
+            {"path": "project.json", "at": ["badges"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "campaign.character.upsert",
+          "actionVersion": 1,
+          "parameters": {"value": {"id": "guide", "name": "Guide", "tilesetId": "proof"}},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 1, "id"], "equals": "guide"},
+            {"path": "project.json", "at": ["characters", 1, "tilesetId"], "equals": "proof"}
+          ]
+        },
+        {
+          "actionId": "campaign.character.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"id": "guide"},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 0, "id"], "equals": "ranger"},
+            {"path": "project.json", "at": ["characters", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "campaign.shop.upsert",
+          "actionVersion": 1,
+          "parameters": {"value": {"id": "hiker-shop", "label": "Hiker shop"}},
+          "observations": [
+            {"path": "project.json", "at": ["shops", 0, "label"], "equals": "Hiker shop"}
+          ]
+        },
+        {
+          "actionId": "campaign.shop.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"id": "hiker-shop"},
+          "observations": [
+            {"path": "project.json", "at": ["shops"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "campaign.trainer.upsert",
+          "actionVersion": 1,
+          "parameters": {"value": {"id": "hiker", "name": "Hiker", "trainerClass": "Ranger"}},
+          "observations": [
+            {"path": "project.json", "at": ["trainers", 0, "trainerClass"], "equals": "Ranger"}
+          ]
+        },
+        {
+          "actionId": "campaign.trainer.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"id": "hiker"},
+          "observations": [
+            {"path": "project.json", "at": ["trainers"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "campaign.trainer.upsert_batch",
+          "actionVersion": 1,
+          "parameters": {"values": [{"id": "coach", "name": "Coach", "trainerClass": "Trainer"}, {"id": "guard", "name": "Guard", "trainerClass": "Ranger"}]},
+          "observations": [
+            {"path": "project.json", "at": ["trainers", 0, "id"], "equals": "coach"},
+            {"path": "project.json", "at": ["trainers", 1, "id"], "equals": "guard"}
+          ]
+        },
+        {
+          "actionId": "campaign.encounter_table.upsert_batch",
+          "actionVersion": 1,
+          "parameters": {"values": [{"id": "hill", "name": "Hill", "encounterKind": "walk", "entries": [{"speciesId": "sproutle", "minLevel": 3, "maxLevel": 5}]}, {"id": "river", "name": "River", "encounterKind": "surf", "entries": [{"speciesId": "brookling", "minLevel": 4, "maxLevel": 6}]}]},
+          "observations": [
+            {"path": "project.json", "at": ["encounterTables", 0, "entries", 0, "minLevel"], "equals": 3},
+            {"path": "project.json", "at": ["encounterTables", 1, "encounterKind"], "equals": "surf"}
+          ]
+        },
+        {
+          "actionId": "campaign.new_game.update",
+          "actionVersion": 1,
+          "parameters": {"newGame": {"enabled": true, "startMapId": "map", "initialRecoveryPoint": {"mapId": "map", "position": {"x": 2, "y": 1}, "facing": "east"}}},
+          "observations": [
+            {"path": "project.json", "at": ["newGame", "startMapId"], "equals": "map"},
+            {"path": "project.json", "at": ["newGame", "initialRecoveryPoint"], "equals": {"mapId": "map", "position": {"x": 2, "y": 1}, "facing": "east"}}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pokemon-documents-write",
+      "projectRoot": "pokemon-documents-write",
+      "steps": [
+        {
+          "actionId": "pokemon.catalog.write",
+          "actionVersion": 1,
+          "parameters": {"relativePath": "data/pokemon/catalogs/moves.json", "beforeBytesBase64": "ewogICJzY2hlbWFWZXJzaW9uIjogMSwKICAia2luZCI6ICJwb2tlbW9uX2NhdGFsb2ciLAogICJjYXRhbG9nIjogIm1vdmVzIiwKICAiZW50cmllcyI6IFsKICAgIHsKICAgICAgImlkIjogImVjaG8iLAogICAgICAicG93ZXIiOiAzNSwKICAgICAgImFjY3VyYWN5IjogMTAwCiAgICB9CiAgXQp9Cg==", "document": {"schemaVersion": 1, "kind": "pokemon_catalog", "catalog": "moves", "entries": [{"id": "echo", "power": 35, "accuracy": 100}, {"id": "chime", "power": 45, "accuracy": 100}]}},
+          "observations": [
+            {"path": "data/pokemon/catalogs/moves.json", "at": ["entries", 1, "id"], "equals": "chime"}
+          ]
+        },
+        {
+          "actionId": "pokemon.catalog.entries.add",
+          "actionVersion": 1,
+          "parameters": {"relativePath": "data/pokemon/catalogs/moves.json", "entries": [{"id": "crescendo", "power": 60, "accuracy": 90}]},
+          "observations": [
+            {"path": "data/pokemon/catalogs/moves.json", "at": ["entries", 0, "id"], "equals": "echo"},
+            {"path": "data/pokemon/catalogs/moves.json", "at": ["entries", 2, "id"], "equals": "crescendo"}
+          ]
+        },
+        {
+          "actionId": "pokemon.species.write",
+          "actionVersion": 1,
+          "parameters": {"relativePath": "data/pokemon/species/sprout.json", "document": {"schemaVersion": 1, "id": "sprout", "name": {"en": "Sprout"}, "typing": {"types": ["grass"]}, "baseStats": {"hp": 48, "atk": 47, "def": 46, "spa": 45, "spd": 44, "spe": 43}, "abilities": {"primary": "chord"}, "progression": {"growthRateId": "medium_slow", "baseExp": 60, "catchRate": 100}}},
+          "observations": [
+            {"path": "data/pokemon/species/sprout.json", "at": ["id"], "equals": "sprout"},
+            {"path": "data/pokemon/species/sprout.json", "at": ["baseStats", "atk"], "equals": 47}
+          ]
+        },
+        {
+          "actionId": "pokemon.learnset.write",
+          "actionVersion": 1,
+          "parameters": {"relativePath": "data/pokemon/learnsets/sprout.json", "document": {"schemaVersion": 1, "speciesId": "sprout", "levelUp": [{"moveId": "chime", "level": 4}]}},
+          "observations": [
+            {"path": "data/pokemon/learnsets/sprout.json", "at": ["levelUp", 0, "moveId"], "equals": "chime"},
+            {"path": "data/pokemon/learnsets/sprout.json", "at": ["levelUp", 0, "level"], "equals": 4}
+          ]
+        },
+        {
+          "actionId": "pokemon.evolution.write",
+          "actionVersion": 1,
+          "parameters": {"relativePath": "data/pokemon/evolutions/sprout.json", "document": {"schemaVersion": 1, "speciesId": "sprout", "evolutions": [{"targetSpeciesId": "aurora", "method": "level", "minLevel": 16}]}},
+          "observations": [
+            {"path": "data/pokemon/evolutions/sprout.json", "at": ["evolutions", 0, "targetSpeciesId"], "equals": "aurora"},
+            {"path": "data/pokemon/evolutions/sprout.json", "at": ["evolutions", 0, "minLevel"], "equals": 16}
+          ]
+        },
+        {
+          "actionId": "pokemon.media.write",
+          "actionVersion": 1,
+          "parameters": {"relativePath": "data/pokemon/media/sprout.json", "document": {"schemaVersion": 1, "speciesId": "sprout", "defaultFormId": "base", "variants": {"base": {}}}},
+          "observations": [
+            {"path": "data/pokemon/media/sprout.json", "at": ["defaultFormId"], "equals": "base"},
+            {"path": "data/pokemon/media/sprout.json", "at": ["speciesId"], "equals": "sprout"}
+          ]
+        },
+        {
+          "actionId": "pokemon.documents.write",
+          "actionVersion": 1,
+          "parameters": {"documents": [{"actionId": "pokemon.species.write", "parameters": {"relativePath": "data/pokemon/species/creek.json", "document": {"schemaVersion": 1, "id": "creek", "name": {"en": "Creek"}, "typing": {"types": ["grass"]}, "baseStats": {"hp": 48, "atk": 47, "def": 46, "spa": 45, "spd": 44, "spe": 43}, "abilities": {"primary": "chord"}, "progression": {"growthRateId": "medium_slow", "baseExp": 60, "catchRate": 100}}}}, {"actionId": "pokemon.learnset.write", "parameters": {"relativePath": "data/pokemon/learnsets/creek.json", "document": {"schemaVersion": 1, "speciesId": "creek", "startingMoves": ["echo"]}}}]},
+          "observations": [
+            {"path": "data/pokemon/species/creek.json", "at": ["id"], "equals": "creek"},
+            {"path": "data/pokemon/learnsets/creek.json", "at": ["startingMoves"], "equals": ["echo"]}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pokemon-documents-delete",
+      "projectRoot": "pokemon-documents-delete",
+      "steps": [
+        {
+          "actionId": "pokemon.media.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"relativePath": "data/pokemon/media/seedling.json", "resourceId": "seedling", "beforeBytesBase64": "ewogICJzY2hlbWFWZXJzaW9uIjogMSwKICAiZGVmYXVsdEZvcm1JZCI6ICJiYXNlIiwKICAidmFyaWFudHMiOiB7CiAgICAiYmFzZSI6IHt9CiAgfSwKICAic3BlY2llc0lkIjogInNlZWRsaW5nIgp9Cg=="},
+          "observations": [
+            {"path": "data/pokemon/media/seedling.json", "at": [], "absent": true}
+          ]
+        },
+        {
+          "actionId": "pokemon.evolution.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"relativePath": "data/pokemon/evolutions/seedling.json", "resourceId": "seedling", "beforeBytesBase64": "ewogICJzY2hlbWFWZXJzaW9uIjogMSwKICAiZXZvbHV0aW9ucyI6IFtdLAogICJzcGVjaWVzSWQiOiAic2VlZGxpbmciCn0K"},
+          "observations": [
+            {"path": "data/pokemon/evolutions/seedling.json", "at": [], "absent": true}
+          ]
+        },
+        {
+          "actionId": "pokemon.learnset.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"relativePath": "data/pokemon/learnsets/seedling.json", "resourceId": "seedling", "beforeBytesBase64": "ewogICJzY2hlbWFWZXJzaW9uIjogMSwKICAic3RhcnRpbmdNb3ZlcyI6IFtdLAogICJzcGVjaWVzSWQiOiAic2VlZGxpbmciCn0K"},
+          "observations": [
+            {"path": "data/pokemon/learnsets/seedling.json", "at": [], "absent": true}
+          ]
+        },
+        {
+          "actionId": "pokemon.species.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"relativePath": "data/pokemon/species/seedling.json", "resourceId": "seedling", "beforeBytesBase64": "ewogICJzY2hlbWFWZXJzaW9uIjogMSwKICAiaWQiOiAic2VlZGxpbmciLAogICJuYW1lIjogewogICAgImVuIjogIlNlZWRsaW5nIgogIH0sCiAgInR5cGluZyI6IHsKICAgICJ0eXBlcyI6IFsKICAgICAgImdyYXNzIgogICAgXQogIH0sCiAgImJhc2VTdGF0cyI6IHsKICAgICJocCI6IDQ4LAogICAgImF0ayI6IDQ3LAogICAgImRlZiI6IDQ2LAogICAgInNwYSI6IDQ1LAogICAgInNwZCI6IDQ0LAogICAgInNwZSI6IDQzCiAgfSwKICAiYWJpbGl0aWVzIjogewogICAgInByaW1hcnkiOiAiY2hvcmQiCiAgfSwKICAicHJvZ3Jlc3Npb24iOiB7CiAgICAiZ3Jvd3RoUmF0ZUlkIjogIm1lZGl1bV9zbG93IiwKICAgICJiYXNlRXhwIjogNjAsCiAgICAiY2F0Y2hSYXRlIjogMTAwCiAgfQp9Cg=="},
+          "observations": [
+            {"path": "data/pokemon/species/seedling.json", "at": [], "absent": true}
+          ]
+        },
+        {
+          "actionId": "pokemon.documents.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"documents": [{"actionId": "pokemon.species.delete", "parameters": {"relativePath": "data/pokemon/species/bramble.json", "resourceId": "bramble", "beforeBytesBase64": "ewogICJzY2hlbWFWZXJzaW9uIjogMSwKICAiaWQiOiAiYnJhbWJsZSIsCiAgIm5hbWUiOiB7CiAgICAiZW4iOiAiQnJhbWJsZSIKICB9LAogICJ0eXBpbmciOiB7CiAgICAidHlwZXMiOiBbCiAgICAgICJncmFzcyIKICAgIF0KICB9LAogICJiYXNlU3RhdHMiOiB7CiAgICAiaHAiOiA0OCwKICAgICJhdGsiOiA0NywKICAgICJkZWYiOiA0NiwKICAgICJzcGEiOiA0NSwKICAgICJzcGQiOiA0NCwKICAgICJzcGUiOiA0MwogIH0sCiAgImFiaWxpdGllcyI6IHsKICAgICJwcmltYXJ5IjogImNob3JkIgogIH0sCiAgInByb2dyZXNzaW9uIjogewogICAgImdyb3d0aFJhdGVJZCI6ICJtZWRpdW1fc2xvdyIsCiAgICAiYmFzZUV4cCI6IDYwLAogICAgImNhdGNoUmF0ZSI6IDEwMAogIH0KfQo="}}, {"actionId": "pokemon.learnset.delete", "parameters": {"relativePath": "data/pokemon/learnsets/bramble.json", "resourceId": "bramble", "beforeBytesBase64": "ewogICJzY2hlbWFWZXJzaW9uIjogMSwKICAic3BlY2llc0lkIjogImJyYW1ibGUiCn0K"}}]},
+          "observations": [
+            {"path": "data/pokemon/species/bramble.json", "at": [], "absent": true},
+            {"path": "data/pokemon/learnsets/bramble.json", "at": [], "absent": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "map-spatial-tools",
+      "projectRoot": "map-spatial-tools",
+      "steps": [
+        {
+          "actionId": "map3d.terrain.configure_height",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "levelHeight": 0.25},
+          "observations": [
+            {"path": "maps/map.json", "at": ["spatialScene", "levelHeight"], "equals": 0.25}
+          ]
+        },
+        {
+          "actionId": "map3d.terrain.set_levels",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "cells": [{"x": 0, "z": 0, "level": 2}, {"x": 1, "z": 1, "level": 4}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["spatialScene", "heightLevels", 0], "equals": 2},
+            {"path": "maps/map.json", "at": ["spatialScene", "heightLevels", 7], "equals": 4},
+            {"path": "maps/map.json", "at": ["spatialScene", "heightLevels", 8], "equals": 1}
+          ]
+        },
+        {
+          "actionId": "map3d.terrain.configure_appearance",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "generateCliffs": false, "cliffFrame": null},
+          "observations": [
+            {"path": "maps/map.json", "at": ["spatialScene", "generateCliffs"], "equals": false}
+          ]
+        },
+        {
+          "actionId": "map3d.instance.visibility.set",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "old-tree", "visibilityCondition": {"kind": "all", "children": []}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["spatialScene", "instances", 0, "visibilityCondition"], "equals": {"kind": "all", "children": []}}
+          ]
+        },
+        {
+          "actionId": "map3d.instance.delete",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "instanceId": "old-tree"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["spatialScene", "instances"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "model3d.configure_batch",
+          "actionVersion": 1,
+          "parameters": {"models": [{"modelId": "tree", "name": "Windswept tree"}]},
+          "observations": [
+            {"path": "project.json", "at": ["models3d", 0, "name"], "equals": "Windswept tree"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "world-rules",
+      "projectRoot": "world-rules",
+      "steps": [
+        {
+          "actionId": "world_rule.create",
+          "actionVersion": 1,
+          "parameters": {"rule": {"id": "world_rule_weekend_guide", "label": "Weekend guide", "priority": 1, "source": {"kind": "civilWeekday", "sourceId": "civilWeekday", "predicate": "isTrue", "weekday": "saturday"}, "target": {"kind": "mapEntity", "mapId": "map", "entityId": "old-guide"}, "effect": {"kind": "entityVisible"}}},
+          "observations": [
+            {"path": "project.json", "at": ["worldRules", 0, "effect", "kind"], "equals": "entityVisible"},
+            {"path": "project.json", "at": ["worldRules", 0, "target", "entityId"], "equals": "old-guide"}
+          ]
+        },
+        {
+          "actionId": "world_rule.update",
+          "actionVersion": 1,
+          "parameters": {"rule": {"id": "world_rule_weekend_guide", "label": "Weekend guide", "priority": 10, "source": {"kind": "civilWeekday", "sourceId": "civilWeekday", "predicate": "isTrue", "weekday": "saturday"}, "target": {"kind": "mapEntity", "mapId": "map", "entityId": "old-guide"}, "effect": {"kind": "entityHidden"}}},
+          "observations": [
+            {"path": "project.json", "at": ["worldRules", 0, "effect", "kind"], "equals": "entityHidden"},
+            {"path": "project.json", "at": ["worldRules", 0, "priority"], "equals": 10}
+          ]
+        },
+        {
+          "actionId": "world_rule.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"ruleId": "world_rule_weekend_guide"},
+          "observations": [
+            {"path": "project.json", "at": ["worldRules"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "validation.runtime_smoke_profile.configure",
+          "actionVersion": 1,
+          "parameters": {"profile": {"id": "maintained-smoke", "version": 3, "requiredSuiteIds": ["map-return", "map-start"]}},
+          "observations": [
+            {"path": "project.json", "at": ["runtimeSmokeProfile"], "equals": {"id": "maintained-smoke", "version": 3, "requiredSuiteIds": ["map-return", "map-start"]}}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cinematic-timeline",
+      "projectRoot": "cinematic-timeline",
+      "steps": [
+        {
+          "actionId": "cinematic.upsert",
+          "actionVersion": 1,
+          "parameters": {"cinematic": {"id": "hillside", "title": "Hillside", "requiredActors": [{"actorId": "hero", "label": "Guide"}], "timeline": {"steps": [{"id": "short-wait", "kind": "wait", "durationMs": 100}, {"id": "second-wait", "kind": "wait", "durationMs": 300}, {"id": "final-wait", "kind": "wait", "durationMs": 700}]}}},
+          "observations": [
+            {"path": "project.json", "at": ["cinematics", 0, "title"], "equals": "Hillside"},
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 0, "durationMs"], "equals": 100}
+          ]
+        },
+        {
+          "actionId": "cinematic.timeline_move",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "hillside", "stepIds": ["short-wait"], "insertionIndex": 3},
+          "observations": [
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 0, "id"], "equals": "second-wait"},
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 2, "id"], "equals": "short-wait"}
+          ]
+        },
+        {
+          "actionId": "cinematic.timeline_duplicate",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "hillside", "stepIds": ["second-wait"]},
+          "observations": [
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 1, "id"], "equals": "second-wait_copy"},
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 1, "durationMs"], "equals": 300}
+          ]
+        },
+        {
+          "actionId": "cinematic.timeline_paste",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "hillside", "insertionIndex": 0, "clipboard": {"schemaVersion": 1, "steps": [{"id": "pause", "kind": "wait", "durationMs": 950}]}},
+          "observations": [
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 0, "id"], "equals": "pause_copy"},
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 0, "durationMs"], "equals": 950}
+          ]
+        },
+        {
+          "actionId": "cinematic.timeline_delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"cinematicId": "hillside", "stepIds": ["pause_copy", "second-wait_copy"]},
+          "observations": [
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 0, "id"], "equals": "second-wait"},
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 3], "absent": true}
+          ]
+        },
+        {
+          "actionId": "cinematic.character_animation.upsert",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "hillside", "stepId": "wave-step", "afterStepId": "short-wait", "label": "Wave to the path", "runtimeCommand": {"actorId": "hero", "definitionId": "wave", "direction": "north", "playback": {"kind": "once"}, "interruptionPolicy": "replaceActive", "fallbackPolicy": "fail"}},
+          "observations": [
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 3, "id"], "equals": "wave-step"},
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 3, "kind"], "equals": "actorAnimation"},
+            {"path": "project.json", "at": ["cinematics", 0, "timeline", "steps", 3, "actorId"], "equals": "hero"}
+          ]
+        },
+        {
+          "actionId": "cinematic.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"cinematicId": "hillside"},
+          "observations": [
+            {"path": "project.json", "at": ["cinematics"], "equals": []}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "project-audio",
+      "projectRoot": "project-audio",
+      "steps": [
+        {
+          "actionId": "project.battle_audio.update",
+          "actionVersion": 1,
+          "parameters": {"wildBattleMusicPath": "assets/music/route.wav", "trainerBattleMusicPath": "assets/music/route.wav"},
+          "observations": [
+            {"path": "project.json", "at": ["battleAudio", "wildBattleMusicPath"], "equals": "assets/music/route.wav"},
+            {"path": "project.json", "at": ["battleAudio", "trainerBattleMusicPath"], "equals": "assets/music/route.wav"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-visuals",
+      "projectRoot": "presentation-visuals",
+      "steps": [
+        {
+          "actionId": "presentationLayer.setVisibility",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "opening", "layerId": "foreground", "visible": false},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 0, "visible"], "equals": false}
+          ]
+        },
+        {
+          "actionId": "presentationLayer.setLocked",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "opening", "layerId": "foreground", "locked": true},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 0, "locked"], "equals": true},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 0, "visible"], "equals": false}
+          ]
+        },
+        {
+          "actionId": "presentationVisualFolder.create",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "opening", "folderId": "terrain", "label": "Terrain"},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "visualFolders", 1, "id"], "equals": "terrain"}
+          ]
+        },
+        {
+          "actionId": "presentationVisualFolder.update",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "opening", "folderId": "characters", "label": "Characters"},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "visualFolders", 0, "label"], "equals": "Characters"}
+          ]
+        },
+        {
+          "actionId": "presentationVisualFolder.setVisibility",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "opening", "folderId": "characters", "visible": false},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "visualFolders", 0, "hidden"], "equals": true}
+          ]
+        },
+        {
+          "actionId": "presentationVisualFolder.setLocked",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "opening", "folderId": "characters", "locked": true},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "visualFolders", 0, "locked"], "equals": true}
+          ]
+        },
+        {
+          "actionId": "presentationVisualFolder.move",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "opening", "folderId": "characters", "insertionIndex": 1},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 0, "id"], "equals": "background"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 0, "zIndex"], "equals": 1},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 1, "id"], "equals": "foreground"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 1, "zIndex"], "equals": 0}
+          ]
+        },
+        {
+          "actionId": "presentationVisualFolder.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"cinematicId": "opening", "folderId": "characters"},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "visualFolders", 0, "id"], "equals": "terrain"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "visualFolders", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "presentationCinematicTemplate.instantiate",
+          "actionVersion": 1,
+          "parameters": {"templateId": "titleIdentity", "templateVersion": 1, "cinematicId": "template", "title": "Tailored title", "description": null},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 1, "id"], "equals": "template"},
+            {"path": "project.json", "at": ["presentationCinematics", 1, "title"], "equals": "Tailored title"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-interface",
+      "projectRoot": "presentation-interface",
+      "steps": [
+        {
+          "actionId": "presentation.reset_interface",
+          "actionVersion": 1,
+          "parameters": {},
+          "observations": [
+            {"path": "project.json", "at": ["presentation", "dialogue"], "absent": true},
+            {"path": "project.json", "at": ["presentation", "branding", "accentColor"], "equals": "#2A784F"}
+          ]
+        },
+        {
+          "actionId": "presentation.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {},
+          "observations": [
+            {"path": "project.json", "at": ["presentation"], "absent": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-preset",
+      "projectRoot": "presentation-preset",
+      "steps": [
+        {
+          "actionId": "presentation.preset.import_plan",
+          "actionVersion": 1,
+          "planOnly": true,
+          "artifact": {"path": "inputs/preset.zip", "mediaType": "application/zip"},
+          "parameters": {},
+          "observations": [
+            {"path": "project.json", "at": ["presentationPresets"], "absent": true},
+            {"path": "project.json", "at": ["presentation"], "absent": true}
+          ]
+        },
+        {
+          "actionId": "presentation.preset.import_apply",
+          "actionVersion": 1,
+          "artifact": {"path": "inputs/preset.zip", "mediaType": "application/zip"},
+          "parameters": {},
+          "observations": [
+            {"path": "project.json", "at": ["presentationPresets", 0, "id"], "equals": "audit-dialogue-top"},
+            {"path": "project.json", "at": ["presentation", "dialogue", "placement"], "equals": "top"}
+          ]
+        },
+        {
+          "actionId": "presentation.preset.delete_plan",
+          "actionVersion": 1,
+          "planOnly": true,
+          "parameters": {"presetId": "audit-dialogue-top"},
+          "observations": [
+            {"path": "project.json", "at": ["presentationPresets", 0, "id"], "equals": "audit-dialogue-top"},
+            {"path": "project.json", "at": ["presentation", "dialogue", "placement"], "equals": "top"}
+          ]
+        },
+        {
+          "actionId": "presentation.preset.delete_apply",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"presetId": "audit-dialogue-top"},
+          "observations": [
+            {"path": "project.json", "at": ["presentationPresets"], "equals": []},
+            {"path": "project.json", "at": ["presentation", "dialogue", "placement"], "equals": "top"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-media",
+      "projectRoot": "presentation-media",
+      "steps": [
+        {
+          "actionId": "presentationMedia.configure",
+          "actionVersion": 1,
+          "parameters": {"mediaId": "image", "posterMediaId": null, "fallbackMediaId": null, "captions": [], "provenance": {"source": "Synthetic certification image"}, "license": {"identifier": "CC0-1.0", "name": "CC0 1.0"}},
+          "observations": [
+            {"path": "assets/.pokemap-media.json", "at": ["entries", 0, "provenance", "source"], "equals": "Synthetic certification image"},
+            {"path": "assets/.pokemap-media.json", "at": ["entries", 0, "license", "identifier"], "equals": "CC0-1.0"}
+          ]
+        },
+        {
+          "actionId": "presentationMedia.rename",
+          "actionVersion": 1,
+          "parameters": {"mediaId": "image", "label": "Opening frame", "expectedMedia": {"id": "image", "label": "Image", "kind": "image", "sourceAssetId": "proof", "provenance": {"source": "Synthetic certification image"}, "license": {"identifier": "CC0-1.0", "name": "CC0 1.0"}}},
+          "observations": [
+            {"path": "assets/.pokemap-media.json", "at": ["entries", 0, "label"], "equals": "Opening frame"},
+            {"path": "assets/.pokemap-media.json", "at": ["entries", 0, "license", "identifier"], "equals": "CC0-1.0"}
+          ]
+        },
+        {
+          "actionId": "presentationMedia.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"mediaId": "image", "expectedMedia": {"id": "image", "label": "Opening frame", "kind": "image", "sourceAssetId": "proof", "provenance": {"source": "Synthetic certification image"}, "license": {"identifier": "CC0-1.0", "name": "CC0 1.0"}}},
+          "observations": [
+            {"path": "assets/.pokemap-media.json", "at": ["entries"], "equals": []},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "id"], "equals": "proof"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tiled-tileset",
+      "projectRoot": "tiled-tileset",
+      "steps": [
+        {
+          "actionId": "tileset.tiled.import",
+          "actionVersion": 1,
+          "artifact": {"path": "inputs/path.png", "mediaType": "image/png"},
+          "parameters": {"assetId": "path-image", "logicalPath": "assets/tilesets/path.png", "tilesetId": "path-sheet", "displayName": "Path", "importId": "path", "tsx": "<tileset name=\"Path\" tilewidth=\"1\" tileheight=\"1\" tilecount=\"1\" columns=\"1\"><image source=\"path.png\" trans=\"dc93b2\" width=\"1\" height=\"1\"/><tile id=\"0\"><animation><frame tileid=\"0\" duration=\"120\"/></animation></tile><wangsets><wangset name=\"Path\" type=\"edge\" tile=\"-1\"><wangcolor name=\"Path\" color=\"#cfb689\" tile=\"0\" probability=\"1\"/><wangtile tileid=\"0\" wangid=\"1,0,1,0,1,0,1,0\"/></wangset></wangsets></tileset>", "selections": [{"wangSetIndex": 0, "usage": "path"}], "tags": ["tiled"], "usages": ["smart-tiles-studio"]},
+          "observations": [
+            {"path": "project.json", "at": ["tilesets", 0, "id"], "equals": "path-sheet"},
+            {"path": "project.json", "at": ["tilesets", 0, "source", "assetId"], "equals": "path-image"},
+            {"path": "project.json", "at": ["smartTileCatalog", "presets", 0, "id"], "equals": "path-w0-preset"},
+            {"path": "project.json", "at": ["smartTileCatalog", "presets", 0, "status"], "equals": "draft"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "id"], "equals": "path-image"}
+          ]
+        },
+        {
+          "actionId": "tileset.tiled.wang_bundle.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"importId": "path"},
+          "observations": [
+            {"path": "project.json", "at": ["tilesets"], "equals": []},
+            {"path": "project.json", "at": ["smartTileCatalog", "presets"], "equals": []},
+            {"path": "assets/.pokemap-assets.json", "at": ["records"], "equals": []}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "asset-batch",
+      "projectRoot": "asset-batch",
+      "steps": [
+        {
+          "actionId": "asset.import_batch",
+          "actionVersion": 1,
+          "artifacts": [{"path": "inputs/day.json", "mediaType": "application/json", "parameterPath": ["entries", 0, "artifactHandle"]}, {"path": "inputs/night.json", "mediaType": "application/json", "parameterPath": ["entries", 1, "artifactHandle"]}],
+          "parameters": {"entries": [{"assetId": "day", "logicalPath": "assets/cards/day.json"}, {"assetId": "night", "logicalPath": "assets/cards/night.json"}]},
+          "observations": [
+            {"path": "assets/cards/day.json", "at": ["name"], "equals": "Clear sky"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "id"], "equals": "day"},
+            {"path": "assets/cards/night.json", "at": ["name"], "equals": "Moonlight"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 1, "id"], "equals": "night"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "raw-asset-replace",
+      "projectRoot": "raw-asset-replace",
+      "steps": [
+        {
+          "actionId": "asset.raw.replace",
+          "actionVersion": 1,
+          "artifacts": [{"path": "assets/documents/title.txt", "mediaType": "text/plain", "parameterPath": ["expectedArtifactHandle"]}, {"path": "inputs/replacement.txt", "mediaType": "text/plain", "parameterPath": ["replacementArtifactHandle"]}],
+          "parameters": {"logicalPath": "assets/documents/title.txt"},
+          "observations": [
+            {"path": "assets/documents/title.txt", "sha256": "sha256:8e64d602bbbec37ac65e112062f2acf491982f2dc31c350fda02d5de7bae4a86"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tiled-map",
+      "projectRoot": "tiled-map",
+      "steps": [
+        {
+          "actionId": "map.tiled.import",
+          "actionVersion": 1,
+          "artifacts": [{"path": "inputs/path.tmx", "mediaType": "text/plain", "parameterPath": ["tmxArtifactHandle"]}, {"path": "inputs/path.png", "mediaType": "image/png", "parameterPath": ["tilesets", 0, "imageArtifacts", 0, "artifactHandle"]}],
+          "parameters": {"mapId": "imported-path", "displayName": "Imported path", "role": "exterior", "tilesets": [{"source": "path.tsx", "tsx": "<tileset name=\"Path\" tilewidth=\"1\" tileheight=\"1\" tilecount=\"1\" columns=\"1\"><image source=\"path.png\" trans=\"dc93b2\" width=\"1\" height=\"1\"/><tile id=\"0\"><animation><frame tileid=\"0\" duration=\"120\"/></animation></tile><wangsets><wangset name=\"Path\" type=\"edge\" tile=\"-1\"><wangcolor name=\"Path\" color=\"#cfb689\" tile=\"0\" probability=\"1\"/><wangtile tileid=\"0\" wangid=\"1,0,1,0,1,0,1,0\"/></wangset></wangsets></tileset>", "tilesetId": "path", "assetId": "path-image", "logicalPath": "assets/tilesets/path.png", "imageArtifacts": [{"source": "path.png"}]}]},
+          "observations": [
+            {"path": "project.json", "at": ["maps", 1, "id"], "equals": "imported-path"},
+            {"path": "project.json", "at": ["maps", 1, "relativePath"], "equals": "maps/imported-path.json"},
+            {"path": "maps/imported-path.json", "at": ["layers", 0, "cells"], "equals": [1]},
+            {"path": "maps/imported-path.json", "at": ["layers", 0, "palette", 0, "tilesetId"], "equals": "path"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "id"], "equals": "path-image"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "model-batch",
+      "projectRoot": "model-batch",
+      "steps": [
+        {
+          "actionId": "model3d.import_batch",
+          "actionVersion": 1,
+          "artifacts": [{"path": "inputs/cypress-draft.glb", "mediaType": "model/gltf-binary", "parameterPath": ["models", 0, "artifactHandle"]}, {"path": "inputs/granite-draft.glb", "mediaType": "model/gltf-binary", "parameterPath": ["models", 1, "artifactHandle"]}],
+          "parameters": {"models": [{"modelId": "cypress", "name": "Cypress"}, {"modelId": "granite", "name": "Granite"}]},
+          "observations": [
+            {"path": "project.json", "at": ["models3d", 0, "id"], "equals": "cypress"},
+            {"path": "project.json", "at": ["models3d", 0, "name"], "equals": "Cypress"},
+            {"path": "assets/models3d/cypress.glb", "sha256": "sha256:8fb4201b2e8178332bf323cc07d8b98c8227be09df17b109fbd1bf39d4418c40"},
+            {"path": "project.json", "at": ["models3d", 1, "id"], "equals": "granite"},
+            {"path": "project.json", "at": ["models3d", 1, "name"], "equals": "Granite"},
+            {"path": "assets/models3d/granite.glb", "sha256": "sha256:5eaea53bdf70bacae9f2e58534aaf2d3555d6eb93ae70aee08e2e2fd156355d7"}
+          ]
+        },
+        {
+          "actionId": "model3d.source.replace_batch",
+          "actionVersion": 1,
+          "artifacts": [{"path": "inputs/cypress-final.glb", "mediaType": "model/gltf-binary", "parameterPath": ["models", 0, "artifactHandle"]}, {"path": "inputs/granite-final.glb", "mediaType": "model/gltf-binary", "parameterPath": ["models", 1, "artifactHandle"]}],
+          "parameters": {"models": [{"modelId": "cypress"}, {"modelId": "granite"}]},
+          "observations": [
+            {"path": "project.json", "at": ["models3d", 0, "id"], "equals": "cypress"},
+            {"path": "project.json", "at": ["models3d", 0, "name"], "equals": "Cypress"},
+            {"path": "assets/models3d/cypress.glb", "sha256": "sha256:f9302deab2b0df362eab7a07158d555ae027718cc5d71a0aadc1308ae56bb71c"},
+            {"path": "project.json", "at": ["models3d", 1, "id"], "equals": "granite"},
+            {"path": "project.json", "at": ["models3d", 1, "name"], "equals": "Granite"},
+            {"path": "assets/models3d/granite.glb", "sha256": "sha256:3bb2e200b6c47ed1d81cc514135718846748549816a43366e121e8e3a06703cf"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pokemon-media-import",
+      "projectRoot": "pokemon-media-import",
+      "steps": [
+        {
+          "actionId": "pokemon.media.import",
+          "actionVersion": 1,
+          "artifacts": [{"path": "inputs/wisp.png", "mediaType": "image/png", "parameterPath": ["entries", 0, "artifactHandle"]}, {"path": "inputs/wisp.png", "mediaType": "image/png", "parameterPath": ["entries", 1, "artifactHandle"]}],
+          "parameters": {"entries": [{"speciesId": "wisp", "formId": "base", "role": "icon"}, {"speciesId": "wisp", "formId": "base", "role": "party"}]},
+          "observations": [
+            {"path": "assets/pokemon/menu/wisp/base/3734e8855fa9a09653d5312c01f7198664c05d0c108f098351a0df078f2d7bbc.png", "sha256": "sha256:431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"},
+            {"path": "data/pokemon/media/wisp-media.json", "at": ["variants", "base", "icon"], "equals": "assets/pokemon/menu/wisp/base/3734e8855fa9a09653d5312c01f7198664c05d0c108f098351a0df078f2d7bbc.png"},
+            {"path": "data/pokemon/media/wisp-media.json", "at": ["variants", "base", "party"], "equals": "assets/pokemon/menu/wisp/base/3734e8855fa9a09653d5312c01f7198664c05d0c108f098351a0df078f2d7bbc.png"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "working-catalog-gen5",
+      "projectRoot": "working-catalog-resources",
+      "catalogPreparation": [],
+      "steps": [
+        {
+          "actionId": "pokemon.gen5_battle_source.import",
+          "actionVersion": 1,
+          "artifacts": [{"path": "inputs/gen5-source.json", "mediaType": "application/json", "parameterPath": ["bundleHandle"]}],
+          "parameters": {"binding": {"kind": "avelune.gen5-battle-source-binding", "schemaVersion": 1, "projectSpeciesId": "clockbird", "species": "syntheticmon", "nationalDex": 1, "release": "synthetic-release", "sourceRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "bundleSha256": "f00b3b7584ce2ee77341741c4db06f7ce42e2cccc60e4ba7daf321273c5a5a69"}, "speciesPath": "data/pokemon/species/clockbird.json"},
+          "observations": [
+            {"path": "data/pokemon/gen5_battle_sources/bindings/f37d3c742a8929cff6e6fc785afda4ac886b40a03e388dc4da56e04b974a6f25.json", "at": ["projectSpeciesId"], "equals": "clockbird"},
+            {"path": "data/pokemon/gen5_battle_sources/bindings/f37d3c742a8929cff6e6fc785afda4ac886b40a03e388dc4da56e04b974a6f25.json", "at": ["bundleSha256"], "equals": "f00b3b7584ce2ee77341741c4db06f7ce42e2cccc60e4ba7daf321273c5a5a69"},
+            {"path": "data/pokemon/gen5_battle_sources/blobs/f37d3c742a8929cff6e6fc785afda4ac886b40a03e388dc4da56e04b974a6f25/f00b3b7584ce2ee77341741c4db06f7ce42e2cccc60e4ba7daf321273c5a5a69.json", "sha256": "sha256:f00b3b7584ce2ee77341741c4db06f7ce42e2cccc60e4ba7daf321273c5a5a69"},
+            {"path": "data/pokemon/species/clockbird.json", "sha256": "sha256:50b1d4d09fe0c828d94159c2d5fe8f8f0077523771d566cf233491cbcea3fec0"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "working-catalog-move-recipe",
+      "projectRoot": "working-catalog-resources",
+      "catalogPreparation": [],
+      "steps": [
+        {
+          "actionId": "pokemon.move_recipe.import",
+          "actionVersion": 1,
+          "artifacts": [{"path": "inputs/battle-recipe.json", "mediaType": "application/json", "parameterPath": ["recipeHandle"]}, {"path": "inputs/texture.png", "mediaType": "image/png", "parameterPath": ["resources", 0, "artifactHandle"]}, {"path": "inputs/particle.json", "mediaType": "application/json", "parameterPath": ["resources", 1, "artifactHandle"]}],
+          "parameters": {"projectBinding": {"kind": "avelune.battle-recipe-binding", "schemaVersion": 1, "unsupportedBehavior": "legacy", "catalogMoveId": "chime", "recipeMediaId": "chime-demo", "binding": {"schemaVersion": 1, "projectMoveId": "chime", "sourceMoveId": "chime", "catalogReleaseId": "fixture", "recipeId": "chime-demo", "variant": "default", "revision": "1", "recipeSha256": "1b73f932e25211bc5bafeb765ff0cbb291d180a6b25ddc485b63d839c2786d14"}}, "resources": [{"id": "tex", "mediaType": "image/png", "sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"}, {"id": "particle", "mediaType": "application/vnd.avelune.particle+json", "sha256": "d6dca14be12eb93cb2022cefc9939b80545e3e484cddb32e1a6d16f2c894ea0c"}]},
+          "observations": [
+            {"path": "data/pokemon/battle_recipes/bindings/41a68bae2ca6137df21f7702589888700856c7da2e55804d76a7b72eec7246a4.json", "at": ["binding", "recipeId"], "equals": "chime-demo"},
+            {"path": "data/pokemon/battle_recipes/blobs/41a68bae2ca6137df21f7702589888700856c7da2e55804d76a7b72eec7246a4/1b73f932e25211bc5bafeb765ff0cbb291d180a6b25ddc485b63d839c2786d14.json", "sha256": "sha256:1b73f932e25211bc5bafeb765ff0cbb291d180a6b25ddc485b63d839c2786d14"},
+            {"path": "data/pokemon/battle_recipes/blobs/41a68bae2ca6137df21f7702589888700856c7da2e55804d76a7b72eec7246a4/431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460.png", "sha256": "sha256:431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"},
+            {"path": "data/pokemon/battle_recipes/blobs/41a68bae2ca6137df21f7702589888700856c7da2e55804d76a7b72eec7246a4/d6dca14be12eb93cb2022cefc9939b80545e3e484cddb32e1a6d16f2c894ea0c.json", "sha256": "sha256:d6dca14be12eb93cb2022cefc9939b80545e3e484cddb32e1a6d16f2c894ea0c"},
+            {"path": "data/pokemon/catalogs/moves.json", "sha256": "sha256:c7b6077da71e9d3a2e963b54577367ccf5f079880f362bb020de72656708539a"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "working-catalog-prune",
+      "projectRoot": "working-catalog-resources",
+      "catalogPreparation": [
+        "resourceIndexes"
+      ],
+      "steps": [
+        {
+          "actionId": "model3d.prune_unused",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"modelIds": ["tree"]},
+          "observations": [
+            {"path": "assets/.pokemap-assets.json", "at": ["records"], "equals": []},
+            {"path": "assets/models3d/tree.glb", "at": [], "absent": true},
+            {"path": "assets/.pokemap-store/fdea9ecb43b37945a5818d525a4dc646e0c345fa127347a6144b4754612c38f0.blob", "at": [], "absent": true}
+          ]
+        }
+      ]
+    }
+  ]
+}

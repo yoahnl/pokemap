@@ -1,0 +1,1789 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "gameplay-zones",
+      "projectRoot": "gameplay-zones",
+      "steps": [
+        {
+          "actionId": "gameplay_zone.create",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zone": {"id": "cave", "kind": "fieldAction", "area": {"pos": {"x": 1, "y": 1}, "size": {"width": 2, "height": 2}}, "fieldAction": {"actionKind": "darkness", "darkness": {"opacity": 0.7}}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 5, "id"], "equals": "cave"},
+            {"path": "maps/map.json", "at": ["gameplayZones", 5, "fieldAction", "darkness", "opacity"], "equals": 0.7}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.move",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "cave", "x": 2, "y": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 5, "area", "pos"], "equals": {"x": 2, "y": 1}}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.resize",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "cave", "width": 3, "height": 2},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 5, "area", "size"], "equals": {"width": 3, "height": 2}}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.set_priority",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "cave", "priority": 7},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 5, "priority"], "equals": 7}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.update",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "cave", "zone": {"id": "cave", "kind": "fieldAction", "area": {"pos": {"x": 2, "y": 1}, "size": {"width": 3, "height": 2}}, "fieldAction": {"actionKind": "darkness", "darkness": {"opacity": 0.7}}, "priority": 7, "name": "Lower gallery"}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 5, "name"], "equals": "Lower gallery"},
+            {"path": "maps/map.json", "at": ["gameplayZones", 5, "priority"], "equals": 7}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.clone",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "cave", "newId": "annex", "x": 0, "y": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 6, "id"], "equals": "annex"},
+            {"path": "maps/map.json", "at": ["gameplayZones", 6, "fieldAction", "darkness", "opacity"], "equals": 0.7}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.clear_payload",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "annex"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 6, "kind"], "equals": "custom"},
+            {"path": "maps/map.json", "at": ["gameplayZones", 6, "fieldAction"], "absent": true}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.delete",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "annex"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 6], "absent": true},
+            {"path": "maps/map.json", "at": ["gameplayZones", 5, "id"], "equals": "cave"}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.set_movement_payload",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "current", "payload": {"requiredMode": "surf", "allowedModes": ["walk"]}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 0, "movement", "requiredMode"], "equals": "surf"},
+            {"path": "maps/map.json", "at": ["gameplayZones", 0, "movement", "allowedModes"], "equals": ["walk"]}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.set_encounter_payload",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "grass", "payload": {"encounterKind": "headbutt"}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 1, "encounter", "encounterKind"], "equals": "headbutt"}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.set_hazard_payload",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "hazard", "payload": {"hazardKind": "lava", "damagePerStep": 3}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 2, "hazard"], "equals": {"hazardKind": "lava", "damagePerStep": 3}}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.set_special_payload",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zoneId": "custom", "payload": {"properties": {"material": "sand"}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 3, "special", "properties", "material"], "equals": "sand"}
+          ]
+        },
+        {
+          "actionId": "gameplay_zone.smart_tile.sync",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "zones": [{"id": "generated", "kind": "encounter", "area": {"pos": {"x": 6, "y": 2}, "size": {"width": 1, "height": 1}}, "encounter": {"encounterKind": "walk"}, "smartTileProvenance": {"smartTileLayerId": "paths", "smartTilePresetId": "preset", "materialId": "grass", "behaviorKey": "encounter.walk"}}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["gameplayZones", 4, "id"], "equals": "generated"},
+            {"path": "maps/map.json", "at": ["gameplayZones", 4, "area", "pos"], "equals": {"x": 6, "y": 2}},
+            {"path": "maps/map.json", "at": ["gameplayZones", 4, "smartTileProvenance"], "equals": {"smartTileLayerId": "paths", "smartTilePresetId": "preset", "materialId": "grass", "behaviorKey": "encounter.walk"}},
+            {"path": "maps/map.json", "at": ["gameplayZones", 5, "id"], "equals": "cave"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "map-triggers",
+      "projectRoot": "map-triggers",
+      "steps": [
+        {
+          "actionId": "trigger.create",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "trigger": {"id": "marker", "name": "Marker", "type": "custom", "area": {"pos": {"x": 1, "y": 1}, "size": {"width": 1, "height": 1}}, "properties": {"color": "amber"}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["triggers", 0, "id"], "equals": "marker"},
+            {"path": "maps/map.json", "at": ["triggers", 0, "properties", "color"], "equals": "amber"}
+          ]
+        },
+        {
+          "actionId": "trigger.update",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "triggerId": "marker", "trigger": {"id": "marker", "name": "Lantern", "type": "custom", "area": {"pos": {"x": 1, "y": 1}, "size": {"width": 1, "height": 1}}, "properties": {"color": "amber"}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["triggers", 0, "name"], "equals": "Lantern"}
+          ]
+        },
+        {
+          "actionId": "trigger.move",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "triggerId": "marker", "x": 2, "y": 2},
+          "observations": [
+            {"path": "maps/map.json", "at": ["triggers", 0, "area", "pos"], "equals": {"x": 2, "y": 2}}
+          ]
+        },
+        {
+          "actionId": "trigger.resize",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "triggerId": "marker", "width": 2, "height": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["triggers", 0, "area", "size"], "equals": {"width": 2, "height": 1}}
+          ]
+        },
+        {
+          "actionId": "trigger.patch_properties",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "triggerId": "marker", "patch": {"color": null, "shape": "round"}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["triggers", 0, "properties"], "equals": {"shape": "round"}}
+          ]
+        },
+        {
+          "actionId": "trigger.clone",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "triggerId": "marker", "newId": "copy", "x": 0, "y": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["triggers", 1, "id"], "equals": "copy"},
+            {"path": "maps/map.json", "at": ["triggers", 1, "properties", "shape"], "equals": "round"}
+          ]
+        },
+        {
+          "actionId": "trigger.delete_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "triggerId": "copy"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["triggers", 1], "absent": true},
+            {"path": "maps/map.json", "at": ["triggers", 0, "id"], "equals": "marker"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "collision-layers",
+      "projectRoot": "collision-layers",
+      "steps": [
+        {
+          "actionId": "collision_layer.paint",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "collision", "x": 1, "y": 1, "width": 2, "height": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 9], "equals": true},
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 10], "equals": true}
+          ]
+        },
+        {
+          "actionId": "collision_layer.erase",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "collision", "x": 1, "y": 1, "width": 2, "height": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 9], "equals": false},
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 10], "equals": false}
+          ]
+        },
+        {
+          "actionId": "collision_layer.fill",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "collision"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 0], "equals": true},
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 47], "equals": true}
+          ]
+        },
+        {
+          "actionId": "collision_layer.clear",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "collision"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 0], "equals": false},
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 47], "equals": false}
+          ]
+        },
+        {
+          "actionId": "collision_layer.invert",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "collision"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 0], "equals": true},
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 47], "equals": true}
+          ]
+        },
+        {
+          "actionId": "collision_layer.replace_region",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "collision", "x": 1, "y": 1, "width": 2, "height": 1, "values": [false, true]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 9], "equals": false},
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 10], "equals": true}
+          ]
+        },
+        {
+          "actionId": "collision_layer.generate_from_elements_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "collision"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 0], "equals": false},
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 19], "equals": true},
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 10], "equals": false}
+          ]
+        },
+        {
+          "actionId": "collision_layer.merge_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "collision", "sourceLayerIds": ["overrides"], "mode": "union"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 19], "equals": true},
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 10], "equals": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "map-entities",
+      "projectRoot": "map-entities",
+      "steps": [
+        {
+          "actionId": "entity.create",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entity": {"id": "crag", "kind": "custom", "pos": {"x": 2, "y": 2}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 3, "id"], "equals": "crag"},
+            {"path": "maps/map.json", "at": ["entities", 3, "pos"], "equals": {"x": 2, "y": 2}}
+          ]
+        },
+        {
+          "actionId": "entity.clone",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "crag", "newId": "copy", "x": 3, "y": 2},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 4, "id"], "equals": "copy"},
+            {"path": "maps/map.json", "at": ["entities", 4, "pos"], "equals": {"x": 3, "y": 2}}
+          ]
+        },
+        {
+          "actionId": "entity.move",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "crag", "x": 2, "y": 3},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 3, "pos"], "equals": {"x": 2, "y": 3}}
+          ]
+        },
+        {
+          "actionId": "entity.batch_move",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "moves": [{"entityId": "crag", "x": 2, "y": 4}, {"entityId": "copy", "x": 3, "y": 4}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 3, "pos"], "equals": {"x": 2, "y": 4}},
+            {"path": "maps/map.json", "at": ["entities", 4, "pos"], "equals": {"x": 3, "y": 4}}
+          ]
+        },
+        {
+          "actionId": "entity.resize",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "crag", "width": 1, "height": 2},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 3, "size"], "equals": {"width": 1, "height": 2}}
+          ]
+        },
+        {
+          "actionId": "entity.update",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "crag", "entity": {"id": "crag", "kind": "custom", "pos": {"x": 2, "y": 4}, "size": {"width": 1, "height": 2}, "name": "Crag"}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 3, "name"], "equals": "Crag"}
+          ]
+        },
+        {
+          "actionId": "entity.upsert",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entity": {"id": "crag", "kind": "custom", "pos": {"x": 2, "y": 4}, "size": {"width": 1, "height": 2}, "name": "Stone"}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 3, "name"], "equals": "Stone"}
+          ]
+        },
+        {
+          "actionId": "entity.patch_properties",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "crag", "patch": {"material": "granite"}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 3, "properties"], "equals": {"material": "granite"}}
+          ]
+        },
+        {
+          "actionId": "entity.set_blocks_movement",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "crag", "blocksMovement": false},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 3, "blocksMovement"], "equals": false}
+          ]
+        },
+        {
+          "actionId": "entity.set_visual",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "crag", "payload": {"elementId": "sign-prop", "renderInForeground": true}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 3, "editorVisual", "elementId"], "equals": "sign-prop"},
+            {"path": "maps/map.json", "at": ["entities", 3, "editorVisual", "renderInForeground"], "equals": true}
+          ]
+        },
+        {
+          "actionId": "entity.clear_visual",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "crag"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 3, "editorVisual"], "equals": null}
+          ]
+        },
+        {
+          "actionId": "entity.delete",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "copy"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 4], "absent": true},
+            {"path": "maps/map.json", "at": ["entities", 3, "id"], "equals": "crag"}
+          ]
+        },
+        {
+          "actionId": "entity.set_sign_payload",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "sign", "payload": {"title": "Trail", "plainText": "Head north."}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 0, "sign", "title"], "equals": "Trail"},
+            {"path": "maps/map.json", "at": ["entities", 0, "sign", "plainText"], "equals": "Head north."}
+          ]
+        },
+        {
+          "actionId": "entity.set_spawn_payload",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "arrival", "payload": {"spawnKey": "north", "role": "event", "facing": "east"}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 1, "spawn", "spawnKey"], "equals": "north"},
+            {"path": "maps/map.json", "at": ["entities", 1, "spawn", "role"], "equals": "event"}
+          ]
+        },
+        {
+          "actionId": "entity.clear_payload",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "arrival"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 1, "spawn", "spawnKey"], "equals": ""},
+            {"path": "maps/map.json", "at": ["entities", 1, "spawn", "role"], "equals": "player_start"},
+            {"path": "maps/map.json", "at": ["entities", 1, "kind"], "equals": "spawn"}
+          ]
+        },
+        {
+          "actionId": "entity.set_npc_payload",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "payload": {"displayName": "Trail Guide", "movement": {"mode": "patrol", "waypoints": [{"x": 1, "y": 1}]}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "displayName"], "equals": "Trail Guide"}
+          ]
+        },
+        {
+          "actionId": "npc.set_facing",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "facing": "east"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "facing"], "equals": "east"}
+          ]
+        },
+        {
+          "actionId": "npc.set_trainer",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "trainerId": "trail-guide"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "trainerId"], "equals": "trail-guide"}
+          ]
+        },
+        {
+          "actionId": "npc.set_character",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "characterId": "ranger"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "characterId"], "equals": "ranger"}
+          ]
+        },
+        {
+          "actionId": "npc.set_dialogue",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "dialogue": {"dialogueId": "greeting"}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "dialogue", "dialogueId"], "equals": "greeting"}
+          ]
+        },
+        {
+          "actionId": "npc.set_defeat_dialogue",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "dialogue": {"dialogueId": "finished"}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "defeatDialogueRef", "dialogueId"], "equals": "finished"}
+          ]
+        },
+        {
+          "actionId": "npc.conditional_dialogue_add",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "conditionalDialogue": {"when": {"kind": "storyFlagSet", "refId": "visited"}, "dialogue": {"dialogueId": "finished"}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "conditionalDialogues", 0, "dialogue", "dialogueId"], "equals": "finished"}
+          ]
+        },
+        {
+          "actionId": "npc.conditional_dialogue_update",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "index": 0, "conditionalDialogue": {"when": {"kind": "storyFlagSet", "refId": "visited"}, "dialogue": {"dialogueId": "greeting"}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "conditionalDialogues", 0, "dialogue", "dialogueId"], "equals": "greeting"}
+          ]
+        },
+        {
+          "actionId": "npc.conditional_dialogue_remove",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "index": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "conditionalDialogues"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "npc.waypoint_add",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "x": 2, "y": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "movement", "waypoints"], "equals": [{"x": 1, "y": 1}, {"x": 2, "y": 1}]}
+          ]
+        },
+        {
+          "actionId": "npc.waypoint_move",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "index": 1, "x": 3, "y": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "movement", "waypoints"], "equals": [{"x": 1, "y": 1}, {"x": 3, "y": 1}]}
+          ]
+        },
+        {
+          "actionId": "npc.waypoint_reorder",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "index": 1, "newIndex": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "movement", "waypoints"], "equals": [{"x": 3, "y": 1}, {"x": 1, "y": 1}]}
+          ]
+        },
+        {
+          "actionId": "npc.waypoint_remove",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide", "index": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "movement", "waypoints"], "equals": [{"x": 1, "y": 1}]}
+          ]
+        },
+        {
+          "actionId": "npc.waypoint_clear",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "entityId": "guide"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["entities", 2, "npc", "movement", "waypoints"], "equals": []}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "placed-elements",
+      "projectRoot": "placed-elements",
+      "steps": [
+        {
+          "actionId": "placed_element.bring_forward",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "visualOrder"], "equals": 9},
+            {"path": "maps/map.json", "at": ["placedElements", 1, "visualOrder"], "equals": 5}
+          ]
+        },
+        {
+          "actionId": "placed_element.send_backward",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "visualOrder"], "equals": 5},
+            {"path": "maps/map.json", "at": ["placedElements", 1, "visualOrder"], "equals": 9}
+          ]
+        },
+        {
+          "actionId": "placed_element.batch_place",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instances": [{"id": "new-left", "layerId": "props", "elementId": "sign-prop", "pos": {"x": 0, "y": 0}}, {"id": "new-right", "layerId": "props", "elementId": "sign-prop", "pos": {"x": 4, "y": 0}}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 2, "id"], "equals": "new-left"},
+            {"path": "maps/map.json", "at": ["placedElements", 3, "id"], "equals": "new-right"}
+          ]
+        },
+        {
+          "actionId": "placed_element.update",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "instance": {"id": "lantern", "layerId": "props", "elementId": "sign-prop", "pos": {"x": 2, "y": 2}, "visualOrder": 5}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "pos"], "equals": {"x": 2, "y": 2}}
+          ]
+        },
+        {
+          "actionId": "placed_element.rotate",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "deltaQuarterTurns": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "quarterTurns"], "equals": 1}
+          ]
+        },
+        {
+          "actionId": "placed_element.set_collision",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "applyCollision": false},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "applyCollision"], "equals": false}
+          ]
+        },
+        {
+          "actionId": "placed_element.set_opacity",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "opacity": 0.5},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "opacity"], "equals": 0.5}
+          ]
+        },
+        {
+          "actionId": "placed_element.set_animation",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "animation": {"enabled": true, "mode": "loop", "speed": 1.5}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "animation", "mode"], "equals": "loop"},
+            {"path": "maps/map.json", "at": ["placedElements", 0, "animation", "speed"], "equals": 1.5}
+          ]
+        },
+        {
+          "actionId": "placed_element.reset_animation",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "animation"], "equals": null}
+          ]
+        },
+        {
+          "actionId": "placed_element.behavior_add",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "behavior": {"id": "message", "trigger": "on_action", "effect": {"type": "show_message", "message": "The lantern glows."}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "behaviors", 0, "id"], "equals": "message"},
+            {"path": "maps/map.json", "at": ["placedElements", 0, "behaviors", 0, "effect", "message"], "equals": "The lantern glows."}
+          ]
+        },
+        {
+          "actionId": "placed_element.behavior_update",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "behaviorIndex": 0, "behavior": {"id": "message", "trigger": "on_action", "effect": {"type": "show_message", "message": "The lantern is dark."}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "behaviors", 0, "effect", "message"], "equals": "The lantern is dark."}
+          ]
+        },
+        {
+          "actionId": "placed_element.behavior_disable",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "behaviorIndex": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "behaviors", 0, "enabled"], "equals": false}
+          ]
+        },
+        {
+          "actionId": "placed_element.behavior_enable",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "behaviorIndex": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "behaviors", 0, "enabled"], "equals": true}
+          ]
+        },
+        {
+          "actionId": "placed_element.behavior_remove",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "behaviorIndex": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "behaviors"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "placed_element.patch_properties",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "lantern", "patch": {"material": "bronze"}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "properties", "material"], "equals": "bronze"}
+          ]
+        },
+        {
+          "actionId": "placed_element.replace_for_layer",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "props", "instances": [{"id": "projected", "layerId": "props", "elementId": "sign-prop", "pos": {"x": 6, "y": 2}, "properties": {"pokemapPlacementOrigin": "tile_index"}}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "id"], "equals": "projected"},
+            {"path": "maps/map.json", "at": ["placedElements", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "placed_element.detach_from_tile_projection",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "instanceId": "projected"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "properties", "pokemapPlacementOrigin"], "equals": "authored"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "map-topology",
+      "projectRoot": "map-topology",
+      "steps": [
+        {
+          "actionId": "connection.upsert",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "direction": "east", "targetMapId": "beta", "offset": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["connections", 0], "equals": {"direction": "east", "targetMapId": "beta", "offset": 1}}
+          ]
+        },
+        {
+          "actionId": "connection.delete",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "direction": "east", "targetMapId": "beta"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["connections"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "connection.create_bidirectional_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "direction": "east", "targetMapId": "beta", "offset": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["connections", 0], "equals": {"direction": "east", "targetMapId": "beta", "offset": 1}},
+            {"path": "maps/beta.json", "at": ["connections", 0], "equals": {"direction": "west", "targetMapId": "map", "offset": -1}}
+          ]
+        },
+        {
+          "actionId": "connection.update_bidirectional_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "direction": "east", "targetMapId": "beta", "offset": 2},
+          "observations": [
+            {"path": "maps/map.json", "at": ["connections", 0], "equals": {"direction": "east", "targetMapId": "beta", "offset": 2}},
+            {"path": "maps/beta.json", "at": ["connections", 0], "equals": {"direction": "west", "targetMapId": "map", "offset": -2}}
+          ]
+        },
+        {
+          "actionId": "connection.delete_bidirectional_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "direction": "east", "targetMapId": "beta"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["connections"], "equals": []},
+            {"path": "maps/beta.json", "at": ["connections"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "warp.delete",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "warpId": "side-path"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["warps"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "warp.create_reciprocal_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "reciprocalWarpId": "tunnel-return", "warp": {"id": "tunnel", "pos": {"x": 1, "y": 1}, "targetMapId": "beta", "targetPos": {"x": 2, "y": 1}, "allowedApproachFacings": ["east"]}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["warps", 0, "targetPos"], "equals": {"x": 2, "y": 1}},
+            {"path": "maps/beta.json", "at": ["warps", 0, "id"], "equals": "tunnel-return"},
+            {"path": "maps/beta.json", "at": ["warps", 0, "allowedApproachFacings"], "equals": ["west"]}
+          ]
+        },
+        {
+          "actionId": "warp.update_pair_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "reciprocalWarpId": "tunnel-return", "warpId": "tunnel", "warp": {"id": "tunnel", "pos": {"x": 1, "y": 1}, "targetMapId": "beta", "targetPos": {"x": 4, "y": 1}, "allowedApproachFacings": ["north"]}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["warps", 0, "targetPos"], "equals": {"x": 4, "y": 1}},
+            {"path": "maps/beta.json", "at": ["warps", 0, "pos"], "equals": {"x": 4, "y": 1}},
+            {"path": "maps/beta.json", "at": ["warps", 0, "allowedApproachFacings"], "equals": ["south"]}
+          ]
+        },
+        {
+          "actionId": "warp.delete_pair_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "reciprocalWarpId": "tunnel-return", "warpId": "tunnel"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["warps"], "equals": []},
+            {"path": "maps/beta.json", "at": ["warps"], "equals": []}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "map-lifecycle",
+      "projectRoot": "map-lifecycle",
+      "steps": [
+        {
+          "actionId": "map.save",
+          "actionVersion": 1,
+          "parameters": {"map": {"id": "map", "name": "Proof map saved", "version": "v8", "size": {"width": 8, "height": 6}, "layers": []}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["name"], "equals": "Proof map saved"}
+          ]
+        },
+        {
+          "actionId": "map.audio.update",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "musicVolume": 0.34},
+          "observations": [
+            {"path": "maps/map.json", "at": ["mapMetadata", "musicVolume"], "equals": 0.34}
+          ]
+        },
+        {
+          "actionId": "map.apply_operations",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "operations": [{"kind": "layer.add", "layerKind": "tile", "layerId": "below", "name": "Below"}, {"kind": "layer.add", "layerKind": "collision", "layerId": "above", "name": "Above"}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "id"], "equals": "below"},
+            {"path": "maps/map.json", "at": ["layers", 1, "id"], "equals": "above"}
+          ]
+        },
+        {
+          "actionId": "map.resize_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "width": 9, "height": 6},
+          "observations": [
+            {"path": "maps/map.json", "at": ["size"], "equals": {"width": 9, "height": 6}}
+          ]
+        },
+        {
+          "actionId": "map.duplicate",
+          "actionVersion": 1,
+          "parameters": {"sourceMapId": "map", "targetMapId": "duplicate", "name": "Duplicate"},
+          "observations": [
+            {"path": "maps/duplicate.json", "at": ["id"], "equals": "duplicate"},
+            {"path": "maps/duplicate.json", "at": ["size"], "equals": {"width": 9, "height": 6}},
+            {"path": "project.json", "at": ["maps", 1, "id"], "equals": "duplicate"}
+          ]
+        },
+        {
+          "actionId": "map.rename",
+          "actionVersion": 1,
+          "parameters": {"mapId": "duplicate", "newMapId": "renamed", "name": "Renamed"},
+          "observations": [
+            {"path": "maps/duplicate.json", "at": [], "absent": true},
+            {"path": "maps/renamed.json", "at": ["id"], "equals": "renamed"},
+            {"path": "project.json", "at": ["maps", 1, "id"], "equals": "renamed"}
+          ]
+        },
+        {
+          "actionId": "map.delete_apply",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"mapId": "renamed"},
+          "observations": [
+            {"path": "maps/renamed.json", "at": [], "absent": true},
+            {"path": "project.json", "at": ["maps", 1], "absent": true},
+            {"path": "maps/map.json", "at": ["id"], "equals": "map"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "map-environment",
+      "projectRoot": "map-environment",
+      "steps": [
+        {
+          "actionId": "environment.preset.upsert",
+          "actionVersion": 1,
+          "parameters": {"preset": {"id": "forest", "name": "Forest", "templateId": "forest", "sortOrder": 0, "palette": [{"elementId": "sign-prop", "weight": 1, "collisionMode": "forceDisabled", "tags": []}], "defaultParams": {"density": 1, "variation": 0, "edgeDensity": 1, "minSpacingCells": 0}}},
+          "observations": [
+            {"path": "project.json", "at": ["environmentPresets", 0, "id"], "equals": "forest"}
+          ]
+        },
+        {
+          "actionId": "environment.preset.upsert_batch",
+          "actionVersion": 1,
+          "parameters": {"presets": [{"id": "meadow", "name": "Meadow", "templateId": "forest", "sortOrder": 0, "palette": [{"elementId": "sign-prop", "weight": 1, "collisionMode": "forceDisabled", "tags": []}], "defaultParams": {"density": 1, "variation": 0, "edgeDensity": 1, "minSpacingCells": 0}}]},
+          "observations": [
+            {"path": "project.json", "at": ["environmentPresets", 1, "id"], "equals": "meadow"}
+          ]
+        },
+        {
+          "actionId": "environment.attach_to_tile_layer",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "targetTileLayerId": "ground"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "targetTileLayerId"], "equals": "ground"}
+          ]
+        },
+        {
+          "actionId": "environment.area_create",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north", "name": "North", "presetId": "forest", "seed": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "id"], "equals": "north"},
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "presetId"], "equals": "forest"}
+          ]
+        },
+        {
+          "actionId": "environment.area_update",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north", "name": "Northern wood"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "name"], "equals": "Northern wood"}
+          ]
+        },
+        {
+          "actionId": "environment.area_set_preset",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north", "presetId": "meadow"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "presetId"], "equals": "meadow"}
+          ]
+        },
+        {
+          "actionId": "environment.area_set_seed",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north", "seed": 37},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "seed"], "equals": 37}
+          ]
+        },
+        {
+          "actionId": "environment.mask_paint",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north", "cells": [{"x": 0, "y": 0}, {"x": 2, "y": 2}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "mask", "cells", 0], "equals": true},
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "mask", "cells", 18], "equals": true}
+          ]
+        },
+        {
+          "actionId": "environment.generate_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "pos"], "equals": {"x": 0, "y": 0}},
+            {"path": "maps/map.json", "at": ["placedElements", 1, "pos"], "equals": {"x": 2, "y": 2}},
+            {"path": "maps/map.json", "at": ["placedElements", 1, "elementId"], "equals": "sign-prop"}
+          ]
+        },
+        {
+          "actionId": "environment.mask_erase",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north", "cells": [{"x": 2, "y": 2}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "mask", "cells", 0], "equals": true},
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "mask", "cells", 18], "equals": false}
+          ]
+        },
+        {
+          "actionId": "environment.regenerate_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 0, "pos"], "equals": {"x": 0, "y": 0}},
+            {"path": "maps/map.json", "at": ["placedElements", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "environment.shuffle_apply",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north", "newSeed": 41},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "seed"], "equals": 41},
+            {"path": "maps/map.json", "at": ["placedElements", 0, "pos"], "equals": {"x": 0, "y": 0}}
+          ]
+        },
+        {
+          "actionId": "environment.generated_placement_add",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north", "placementId": "ornament", "elementId": "sign-prop", "x": 4, "y": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "generatedPlacementIds", 1], "equals": "ornament"},
+            {"path": "maps/map.json", "at": ["placedElements", 1, "pos"], "equals": {"x": 4, "y": 0}}
+          ]
+        },
+        {
+          "actionId": "environment.generated_placement_move",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north", "placementId": "ornament", "x": 4, "y": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 1, "pos"], "equals": {"x": 4, "y": 1}},
+            {"path": "maps/map.json", "at": ["placedElements", 1, "properties", "pokemapEnvironmentManualOverride"], "equals": "true"}
+          ]
+        },
+        {
+          "actionId": "environment.generated_placement_delete",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north", "placementId": "ornament"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements", 1], "absent": true},
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "generatedPlacementIds", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "environment.mask_clear",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "mask", "cells", 0], "equals": false}
+          ]
+        },
+        {
+          "actionId": "environment.generated_placements_clear",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["placedElements"], "equals": []},
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas", 0, "generatedPlacementIds"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "environment.detach_from_tile_layer",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "targetTileLayerId"], "absent": true}
+          ]
+        },
+        {
+          "actionId": "environment.area_delete",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "growth", "areaId": "north"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "content", "areas"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "environment.preset.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"presetId": "meadow"},
+          "observations": [
+            {"path": "project.json", "at": ["environmentPresets", 1], "absent": true},
+            {"path": "project.json", "at": ["environmentPresets", 0, "id"], "equals": "forest"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "smart-tiles",
+      "projectRoot": "smart-tiles",
+      "steps": [
+        {
+          "actionId": "smart_tile.atlas.upsert",
+          "actionVersion": 1,
+          "parameters": {"atlas": {"id": "atlas", "name": "Raster atlas renamed", "tilesetId": "proof", "cellWidth": 16, "cellHeight": 16, "columns": 2, "rows": 2}},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "atlases", 0, "name"], "equals": "Raster atlas renamed"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.material.upsert",
+          "actionVersion": 1,
+          "parameters": {"material": {"id": "grass", "name": "Dusk grass", "connectionGroupId": "earth"}},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "materials", 0, "name"], "equals": "Dusk grass"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.material.upsert_batch",
+          "actionVersion": 1,
+          "parameters": {"materials": [{"id": "moss", "name": "Moss", "connectionGroupId": "earth"}, {"id": "sand", "name": "Sand", "connectionGroupId": "earth"}]},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "materials", 1, "id"], "equals": "moss"},
+            {"path": "project.json", "at": ["smartTileCatalog", "materials", 2, "id"], "equals": "sand"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.animation.upsert",
+          "actionVersion": 1,
+          "parameters": {"animation": {"id": "wave", "name": "Wave", "loop": "once", "sync": "global", "frames": [{"frame": {"atlasId": "atlas", "column": 1, "row": 0}, "durationMs": 120}]}},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "animations", 0, "frames", 0, "durationMs"], "equals": 120}
+          ]
+        },
+        {
+          "actionId": "smart_tile.animation.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"animationId": "wave"},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "animations"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "smart_tile.pattern.upsert",
+          "actionVersion": 1,
+          "parameters": {"pattern": {"id": "stone", "name": "Stone", "usage": "path", "width": 1, "height": 1, "repeatMode": "stamp", "cells": [{"x": 0, "y": 0, "parts": [{"source": {"kind": "frame", "frame": {"atlasId": "atlas", "column": 1, "row": 0}}, "channel": "understory"}]}]}},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "patterns", 0, "id"], "equals": "stone"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.pattern.upsert_batch",
+          "actionVersion": 1,
+          "parameters": {"patterns": [{"id": "pebble", "name": "Pebble", "usage": "path", "width": 1, "height": 1, "repeatMode": "stamp", "cells": [{"x": 0, "y": 0, "parts": [{"source": {"kind": "frame", "frame": {"atlasId": "atlas", "column": 1, "row": 0}}, "channel": "understory"}]}]}, {"id": "discard", "name": "Discard", "usage": "path", "width": 1, "height": 1, "repeatMode": "stamp", "cells": [{"x": 0, "y": 0, "parts": [{"source": {"kind": "frame", "frame": {"atlasId": "atlas", "column": 1, "row": 0}}, "channel": "understory"}]}]}]},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "patterns", 0, "id"], "equals": "discard"},
+            {"path": "project.json", "at": ["smartTileCatalog", "patterns", 1, "id"], "equals": "pebble"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.pattern.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"patternId": "discard"},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "patterns", 0, "id"], "equals": "pebble"},
+            {"path": "project.json", "at": ["smartTileCatalog", "patterns", 2], "absent": true}
+          ]
+        },
+        {
+          "actionId": "smart_tile.layer.set_candidate_weights",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "primary", "weights": {"grass-image": 3}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "candidateWeights", "grass-image"], "equals": 3}
+          ]
+        },
+        {
+          "actionId": "smart_tile.cell.paint",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "primary", "materialId": "grass", "cells": [{"x": 0, "y": 1}, {"x": 1, "y": 1}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "field", "semanticCells", 8], "equals": 1},
+            {"path": "maps/map.json", "at": ["layers", 1, "field", "semanticCells", 9], "equals": 1}
+          ]
+        },
+        {
+          "actionId": "smart_tile.cell.erase",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "primary", "cells": [{"x": 0, "y": 1}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "field", "semanticCells", 8], "equals": 0},
+            {"path": "maps/map.json", "at": ["layers", 1, "field", "semanticCells", 9], "equals": 1}
+          ]
+        },
+        {
+          "actionId": "smart_tile.layer.normalize",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "primary"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "materialPalette"], "equals": ["", "grass"]},
+            {"path": "maps/map.json", "at": ["layers", 1, "field", "semanticCells", 9], "equals": 1}
+          ]
+        },
+        {
+          "actionId": "smart_tile.corner.paint",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "corners", "materialId": "grass", "corners": [{"x": 0, "y": 0}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 3, "field", "corners", 0], "equals": 1}
+          ]
+        },
+        {
+          "actionId": "smart_tile.corner.erase",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "corners", "corners": [{"x": 0, "y": 0}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 3, "field", "corners", 0], "equals": 0}
+          ]
+        },
+        {
+          "actionId": "smart_tile.pattern.paint",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "primary", "patternId": "stone", "strokeId": "stone-dot", "selection": {"kind": "stamp", "anchor": {"x": 2, "y": 2}}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "patternStrokes", 0, "cells"], "equals": [{"x": 2, "y": 2}]}
+          ]
+        },
+        {
+          "actionId": "smart_tile.pattern.paint_batch",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "primary", "strokes": [{"patternId": "pebble", "strokeId": "pebble-dot", "selection": {"kind": "stamp", "anchor": {"x": 3, "y": 2}}}, {"patternId": "stone", "strokeId": "other-stone", "selection": {"kind": "stamp", "anchor": {"x": 4, "y": 2}}}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "patternStrokes", 1, "cells"], "equals": [{"x": 3, "y": 2}]},
+            {"path": "maps/map.json", "at": ["layers", 1, "patternStrokes", 2, "cells"], "equals": [{"x": 4, "y": 2}]}
+          ]
+        },
+        {
+          "actionId": "smart_tile.pattern.erase",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "primary", "strokeIds": ["stone-dot"], "cells": [{"x": 2, "y": 2}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "patternStrokes", 0, "id"], "equals": "pebble-dot"},
+            {"path": "maps/map.json", "at": ["layers", 1, "patternStrokes", 2], "absent": true}
+          ]
+        },
+        {
+          "actionId": "smart_tile.layer.merge",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "sourceLayerIds": ["primary", "secondary"], "targetLayerId": "primary", "mode": "union", "removeSources": true, "conflictPolicy": "reject"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "field", "semanticCells", 2], "equals": 1},
+            {"path": "maps/map.json", "at": ["layers", 1, "field", "semanticCells", 9], "equals": 1},
+            {"path": "maps/map.json", "at": ["layers", 2, "id"], "equals": "corners"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.layer.create",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "fresh", "presetId": "grass-path", "name": "Temporary path"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 3, "id"], "equals": "fresh"},
+            {"path": "maps/map.json", "at": ["layers", 3, "presetId"], "equals": "grass-path"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.layer.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "fresh"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 3], "absent": true},
+            {"path": "maps/map.json", "at": ["layers", 2, "id"], "equals": "corners"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.layer.reconstruct",
+          "actionVersion": 1,
+          "confirm": true,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "sourceLayerId": "literal", "presetId": "grass-path", "targetLayerId": "inferred", "name": "Reconstructed patch"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 1, "id"], "equals": "inferred"},
+            {"path": "maps/map.json", "at": ["layers", 1, "isVisible"], "equals": false},
+            {"path": "maps/map.json", "at": ["layers", 1, "field", "semanticCells", 0], "equals": 1},
+            {"path": "maps/map.json", "at": ["layers", 0, "cells", 0], "equals": 1}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "smart-tile-lifecycle",
+      "projectRoot": "smart-tile-lifecycle",
+      "steps": [
+        {
+          "actionId": "smart_tile.preset.draft.upsert",
+          "actionVersion": 1,
+          "parameters": {"draft": {"id": "sketch", "targetPresetId": "other", "name": "Other draft", "usage": "path", "lastStage": "grid"}},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "drafts", 0, "id"], "equals": "sketch"},
+            {"path": "project.json", "at": ["smartTileCatalog", "drafts", 0, "lastStage"], "equals": "grid"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.preset.draft.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"draftId": "sketch"},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "drafts"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "smart_tile.preset.rename",
+          "actionVersion": 1,
+          "parameters": {"presetId": "grass-path", "name": "Grass path in dusk"},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "presets", 0, "name"], "equals": "Grass path in dusk"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.preset.duplicate",
+          "actionVersion": 1,
+          "parameters": {"presetId": "grass-path", "newDraftId": "copy-draft", "targetPresetId": "copy-path", "name": "Copy path"},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "drafts", 0, "id"], "equals": "copy-draft"},
+            {"path": "project.json", "at": ["smartTileCatalog", "drafts", 0, "targetPresetId"], "equals": "copy-path"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.preset.publish",
+          "actionVersion": 1,
+          "parameters": {"draftId": "copy-draft"},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "presets", 0, "id"], "equals": "copy-path"},
+            {"path": "project.json", "at": ["smartTileCatalog", "drafts"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "smart_tile.preset.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"presetId": "grass-path"},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "presets", 0, "id"], "equals": "copy-path"},
+            {"path": "project.json", "at": ["smartTileCatalog", "presets", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "smart_tile.category.upsert",
+          "actionVersion": 1,
+          "parameters": {"category": {"id": "new", "name": "Evening paths"}},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "categories", 1, "name"], "equals": "Evening paths"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.preset.category.assign",
+          "actionVersion": 1,
+          "parameters": {"presetId": "copy-path", "categoryId": "new"},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "presets", 0, "categoryId"], "equals": "new"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.category.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"categoryId": "z-unused"},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "categories", 1], "absent": true},
+            {"path": "project.json", "at": ["smartTileCatalog", "presets", 0, "categoryId"], "equals": "new"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.preset.draft.import",
+          "actionVersion": 1,
+          "artifact": {"path": "inputs/draft.json", "mediaType": "application/json"},
+          "parameters": {"draftId": "artifact-draft"},
+          "observations": [
+            {"path": "project.json", "at": ["smartTileCatalog", "drafts", 0, "id"], "equals": "artifact-draft"},
+            {"path": "project.json", "at": ["smartTileCatalog", "drafts", 0, "lastStage"], "equals": "connections"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "environment-spatial",
+      "projectRoot": "environment-spatial",
+      "steps": [
+        {
+          "actionId": "environment.generated_placement_adopt_batch",
+          "actionVersion": 1,
+          "parameters": {"mapId": "map", "layerId": "env", "areaId": "forest", "placementIds": ["old-tree"]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "areas", 0, "generatedPlacementIds"], "equals": ["old-tree"]},
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "areas", 0, "manualPlacementIds"], "equals": ["old-tree"]},
+            {"path": "maps/map.json", "at": ["spatialScene", "instances", 0, "id"], "equals": "old-tree"},
+            {"path": "maps/map.json", "at": ["spatialScene", "instances", 0, "position"], "equals": {"x": 1.25, "y": 3.0, "z": 2.125}}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "map-borders",
+      "projectRoot": "map-borders",
+      "steps": [
+        {
+          "actionId": "border_layer.feature_create",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "trial", "name": "Trial", "blueprintId": "first", "seed": "0", "geometry": {"kind": "stroke", "strokes": [{"id": "trial-line", "closed": false, "points": [{"x": 1, "y": 5}, {"x": 2, "y": 5}, {"x": 3, "y": 5}]}]}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 4, "id"], "equals": "trial"}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_update",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "trial", "name": "Edited trial"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 4, "name"], "equals": "Edited trial"}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_move",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "trial", "dx": 1, "dy": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 4, "geometry", "strokes", 0, "points", 0], "equals": {"x": 2, "y": 5}}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_reorder",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "trial", "newIndex": 0},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "id"], "equals": "trial"},
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 1, "id"], "equals": "fence"}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_delete",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "trial"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "id"], "equals": "fence"},
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 4], "absent": true}
+          ]
+        },
+        {
+          "actionId": "border_layer.stroke_add",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "strokeId": "second-line", "points": [{"x": 1, "y": 0}, {"x": 2, "y": 0}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "geometry", "strokes", 1, "id"], "equals": "second-line"}
+          ]
+        },
+        {
+          "actionId": "border_layer.stroke_update",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "strokeId": "second-line", "points": [{"x": 1, "y": 0}, {"x": 2, "y": 0}, {"x": 3, "y": 0}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "geometry", "strokes", 1, "points", 2], "equals": {"x": 3, "y": 0}}
+          ]
+        },
+        {
+          "actionId": "border_layer.stroke_delete",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "strokeId": "second-line"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "geometry", "strokes", 1], "absent": true},
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "geometry", "strokes", 0, "id"], "equals": "fence-line"}
+          ]
+        },
+        {
+          "actionId": "border_layer.region_fill",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "mass", "x": 2, "y": 1, "width": 2, "height": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 3, "geometry", "cellsRle"], "equals": "border-rle-v1:48:0:10,2,36"}
+          ]
+        },
+        {
+          "actionId": "border_layer.region_clear",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "mass", "x": 2, "y": 1, "width": 2, "height": 1},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 3, "geometry", "cellsRle"], "equals": "border-rle-v1:48:0:48"}
+          ]
+        },
+        {
+          "actionId": "border_layer.materialize_apply",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "tileWidthPx": 32, "tileHeightPx": 32, "resolverVersion": 3},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "materialization", "placements", 1, "anchorCell"], "equals": {"x": 2, "y": 2}},
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "materialization", "placements", 1, "slotKey"], "equals": "border-slot-v1:4615196a9d6d655e33ca0bbc9c9811764c7c177b74b2b06ad320c57356e28ada"}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_lock",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "slotKey": "border-slot-v1:4615196a9d6d655e33ca0bbc9c9811764c7c177b74b2b06ad320c57356e28ada"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "overrides", 0, "locked"], "equals": true}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_unlock",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "slotKey": "border-slot-v1:4615196a9d6d655e33ca0bbc9c9811764c7c177b74b2b06ad320c57356e28ada"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "overrides"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_set_variation",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "slotKey": "border-slot-v1:4615196a9d6d655e33ca0bbc9c9811764c7c177b74b2b06ad320c57356e28ada", "variationSalt": "5"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "overrides", 0, "variationSalt"], "equals": "5"}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_set_replacement",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "slotKey": "border-slot-v1:4615196a9d6d655e33ca0bbc9c9811764c7c177b74b2b06ad320c57356e28ada", "primitiveId": "alternate"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "overrides", 0, "replacementPrimitiveId"], "equals": "alternate"}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_set_offset",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "slotKey": "border-slot-v1:4615196a9d6d655e33ca0bbc9c9811764c7c177b74b2b06ad320c57356e28ada", "offsetDeltaPx": {"x": 1, "y": 2}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "overrides", 0, "offsetDeltaPx"], "equals": {"x": 1, "y": 2}}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_set_transform",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "slotKey": "border-slot-v1:4615196a9d6d655e33ca0bbc9c9811764c7c177b74b2b06ad320c57356e28ada", "transformOverride": {"quarterTurns": 1, "flipX": true}},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "overrides", 0, "transformOverride"], "equals": {"quarterTurns": 1, "flipX": true}}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_set_suppressed",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "slotKey": "border-slot-v1:4615196a9d6d655e33ca0bbc9c9811764c7c177b74b2b06ad320c57356e28ada", "suppressed": true},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "overrides", 0, "suppressed"], "equals": true}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_clear_slot_override",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "slotKey": "border-slot-v1:4615196a9d6d655e33ca0bbc9c9811764c7c177b74b2b06ad320c57356e28ada"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "overrides"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_set_keep_out",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "regions": [{"id": "off-path", "region": {"width": 8, "height": 6, "cells": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false]}}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "keepOutRegions", 0, "id"], "equals": "off-path"},
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "keepOutRegions", 0, "region", "cellsRle"], "equals": "border-rle-v1:48:0:45,1,2"}
+          ]
+        },
+        {
+          "actionId": "border_layer.feature_set_blueprint",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "tileWidthPx": 32, "tileHeightPx": 32, "resolverVersion": 3, "targetBlueprintId": "second"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "blueprintId"], "equals": "second"}
+          ]
+        },
+        {
+          "actionId": "border_layer.relink_apply",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "featureId": "fence", "tileWidthPx": 32, "tileHeightPx": 32, "resolverVersion": 3, "targetBlueprintId": "first"},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 0, "blueprintId"], "equals": "first"}
+          ]
+        },
+        {
+          "actionId": "border_layer.materialize_batch_apply",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "tileWidthPx": 32, "tileHeightPx": 32, "resolverVersion": 3, "features": [{"layerId": "borders", "featureId": "spare"}, {"layerId": "borders", "featureId": "annex"}]},
+          "observations": [
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 1, "materialization", "placements", 1, "anchorCell"], "equals": {"x": 2, "y": 3}},
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 2, "materialization", "placements", 1, "anchorCell"], "equals": {"x": 2, "y": 4}}
+          ]
+        },
+        {
+          "actionId": "border_layer.resize_apply",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId": "map", "layerId": "borders", "tileWidthPx": 32, "tileHeightPx": 32, "width": 9, "height": 6},
+          "observations": [
+            {"path": "maps/map.json", "at": ["size"], "equals": {"width": 9, "height": 6}},
+            {"path": "maps/map.json", "at": ["layers", 0, "content", "features", 3, "geometry", "width"], "equals": 9}
+          ]
+        },
+        {
+          "actionId": "border.blueprint.set_deprecated",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"blueprintId": "second", "isDeprecated": true},
+          "observations": [
+            {"path": "project.json", "at": ["borderCatalog", "records", 1, "isDeprecated"], "equals": true}
+          ]
+        },
+        {
+          "actionId": "border.blueprint.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"blueprintId": "unpublished"},
+          "observations": [
+            {"path": "project.json", "at": ["borderCatalog", "records", 3], "absent": true},
+            {"path": "project.json", "at": ["borderCatalog", "records", 1, "isDeprecated"], "equals": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "project-resources",
+      "projectRoot": "project-resources",
+      "steps": [
+        {
+          "actionId": "tileset_folder.upsert",
+          "actionVersion": 1,
+          "parameters": {"folder": {"id": "paths", "name": "Paths"}},
+          "observations": [
+            {"path": "project.json", "at": ["tilesetFolders", 1, "id"], "equals": "paths"}
+          ]
+        },
+        {
+          "actionId": "tileset.metadata.update",
+          "actionVersion": 1,
+          "parameters": {"tilesetId": "proof", "name": "Proof sheet", "folderId": "paths"},
+          "observations": [
+            {"path": "project.json", "at": ["tilesets", 0, "name"], "equals": "Proof sheet"},
+            {"path": "project.json", "at": ["tilesets", 0, "folderId"], "equals": "paths"}
+          ]
+        },
+        {
+          "actionId": "tileset_folder.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"folderId": "obsolete"},
+          "observations": [
+            {"path": "project.json", "at": ["tilesetFolders", 0, "id"], "equals": "paths"},
+            {"path": "project.json", "at": ["tilesetFolders", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "tileset.upsert",
+          "actionVersion": 1,
+          "parameters": {"tileset": {"id": "unused", "name": "Imported sheet", "relativePath": "assets/secondary.png", "source": {"kind": "regular_atlas", "assetId": "secondary", "tileProperties": [], "tileWidth": 16, "tileHeight": 16, "pixelWidth": 32, "pixelHeight": 32}}},
+          "observations": [
+            {"path": "project.json", "at": ["tilesets", 1, "id"], "equals": "unused"},
+            {"path": "project.json", "at": ["tilesets", 1, "source", "assetId"], "equals": "secondary"}
+          ]
+        },
+        {
+          "actionId": "tileset.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"tilesetId": "unused"},
+          "observations": [
+            {"path": "project.json", "at": ["tilesets", 0, "id"], "equals": "proof"},
+            {"path": "project.json", "at": ["tilesets", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "tileset.library.reorganize",
+          "actionVersion": 1,
+          "parameters": {"placements": [], "folders": [{"id": "outdoor", "name": "Outdoor"}], "assignments": [{"tilesetId": "proof", "folderId": "outdoor"}]},
+          "observations": [
+            {"path": "project.json", "at": ["tilesetFolders", 0, "id"], "equals": "outdoor"},
+            {"path": "project.json", "at": ["tilesets", 0, "folderId"], "equals": "outdoor"}
+          ]
+        },
+        {
+          "actionId": "palette.upsert",
+          "actionVersion": 1,
+          "parameters": {"tilesetId": "proof", "entry": {"id": "frame", "name": "Frame", "frames": [{"source": {"x": 0, "y": 0, "width": 1, "height": 1}}]}},
+          "observations": [
+            {"path": "project.json", "at": ["tilesets", 0, "paletteEntries", 0, "name"], "equals": "Frame"}
+          ]
+        },
+        {
+          "actionId": "palette.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"tilesetId": "proof", "entryId": "frame"},
+          "observations": [
+            {"path": "project.json", "at": ["tilesets", 0, "paletteEntries"], "equals": []}
+          ]
+        },
+        {
+          "actionId": "element_category.upsert",
+          "actionVersion": 1,
+          "parameters": {"category": {"id": "signs", "name": "Signs"}},
+          "observations": [
+            {"path": "project.json", "at": ["elementCategories", 1, "id"], "equals": "signs"}
+          ]
+        },
+        {
+          "actionId": "element.category.assign",
+          "actionVersion": 1,
+          "parameters": {"elementId": "sign-prop", "categoryId": "signs"},
+          "observations": [
+            {"path": "project.json", "at": ["elements", 0, "categoryId"], "equals": "signs"}
+          ]
+        },
+        {
+          "actionId": "element_category.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"categoryId": "props"},
+          "observations": [
+            {"path": "project.json", "at": ["elementCategories", 0, "id"], "equals": "signs"},
+            {"path": "project.json", "at": ["elementCategories", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "element.upsert",
+          "actionVersion": 1,
+          "parameters": {"element": {"id": "sign-prop", "name": "Trail sign", "tilesetId": "proof", "categoryId": "signs", "frames": [{"source": {"x": 0, "y": 0, "width": 1, "height": 1}, "durationMs": 100}]}},
+          "observations": [
+            {"path": "project.json", "at": ["elements", 0, "name"], "equals": "Trail sign"}
+          ]
+        },
+        {
+          "actionId": "element.batch_upsert",
+          "actionVersion": 1,
+          "parameters": {"elements": [{"id": "board", "name": "Board", "tilesetId": "proof", "categoryId": "signs", "frames": [{"source": {"x": 0, "y": 0, "width": 1, "height": 1}, "durationMs": 100}]}, {"id": "post", "name": "Post", "tilesetId": "proof", "categoryId": "signs", "frames": [{"source": {"x": 0, "y": 0, "width": 1, "height": 1}, "durationMs": 100}]}]},
+          "observations": [
+            {"path": "project.json", "at": ["elements", 0, "id"], "equals": "board"},
+            {"path": "project.json", "at": ["elements", 1, "id"], "equals": "post"}
+          ]
+        },
+        {
+          "actionId": "resource.family.apply_batch",
+          "actionVersion": 1,
+          "parameters": {"families": [{"operation": "create", "familyId": "signs", "name": "Signs"}, {"operation": "create", "familyId": "signs-outdoor", "name": "Outdoor signs", "parentId": "signs"}]},
+          "observations": [
+            {"path": "project.json", "at": ["resourceLibraryCatalog", "families", 0, "id"], "equals": "signs"},
+            {"path": "project.json", "at": ["resourceLibraryCatalog", "families", 1, "parentId"], "equals": "signs"}
+          ]
+        },
+        {
+          "actionId": "resource.classify_batch",
+          "actionVersion": 1,
+          "parameters": {"entries": [{"resourceKind": "element", "resourceId": "board", "familyId": "signs", "placementContext": "both", "role": "standard", "description": "Notice board"}, {"resourceKind": "element", "resourceId": "post", "familyId": "signs-outdoor", "placementContext": "exterior", "role": "standard", "description": "Trail post"}]},
+          "observations": [
+            {"path": "project.json", "at": ["resourceLibraryCatalog", "entries", 0, "familyId"], "equals": "signs"},
+            {"path": "project.json", "at": ["resourceLibraryCatalog", "entries", 1, "description"], "equals": "Trail post"}
+          ]
+        },
+        {
+          "actionId": "project.visual_grid.update",
+          "actionVersion": 1,
+          "parameters": {"grid": {"tileWidth": 16, "tileHeight": 16, "displayScale": 3}},
+          "observations": [
+            {"path": "project.json", "at": ["settings", "tileWidth"], "equals": 16},
+            {"path": "project.json", "at": ["settings", "displayScale"], "equals": 3.0}
+          ]
+        },
+        {
+          "actionId": "tileset.import_image",
+          "actionVersion": 1,
+          "artifact": {"path": "assets/proof.png", "mediaType": "image/png"},
+          "parameters": {"tilesetId": "landscape", "name": "Landscape", "tileWidth": 16, "tileHeight": 16},
+          "observations": [
+            {"path": "project.json", "at": ["tilesets", 0, "id"], "equals": "landscape"},
+            {"path": "project.json", "at": ["tilesets", 0, "source", "assetId"], "equals": "image_landscape"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "asset-lifecycle",
+      "projectRoot": "asset-lifecycle",
+      "steps": [
+        {
+          "actionId": "asset.import",
+          "actionVersion": 1,
+          "artifact": {"path": "inputs/document.json", "mediaType": "application/json"},
+          "parameters": {"assetId": "card", "logicalPath": "assets/documents/card.json"},
+          "observations": [
+            {"path": "assets/documents/card.json", "at": ["version"], "equals": "first"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "logicalPath"], "equals": "assets/documents/card.json"}
+          ]
+        },
+        {
+          "actionId": "asset.replace",
+          "actionVersion": 1,
+          "artifact": {"path": "inputs/updated.json", "mediaType": "application/json"},
+          "parameters": {"assetId": "card"},
+          "observations": [
+            {"path": "assets/documents/card.json", "at": ["version"], "equals": "second"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "id"], "equals": "card"}
+          ]
+        },
+        {
+          "actionId": "asset.move",
+          "actionVersion": 1,
+          "parameters": {"assetId": "card", "logicalPath": "assets/documents/moved.json"},
+          "observations": [
+            {"path": "assets/documents/card.json", "at": [], "absent": true},
+            {"path": "assets/documents/moved.json", "at": ["version"], "equals": "second"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "logicalPath"], "equals": "assets/documents/moved.json"}
+          ]
+        },
+        {
+          "actionId": "asset.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"assetId": "card"},
+          "observations": [
+            {"path": "assets/documents/moved.json", "at": [], "absent": true},
+            {"path": "assets/.pokemap-assets.json", "at": ["records"], "equals": []}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "map-graphics-reset",
+      "projectRoot": "map-graphics-reset",
+      "steps": [
+        {
+          "actionId": "asset.map_graphics.reset",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {},
+          "observations": [
+            {"path": "project.json", "at": ["tilesets"], "equals": []},
+            {"path": "project.json", "at": ["elements"], "equals": []},
+            {"path": "maps/map.json", "at": ["entities", 0, "npc", "displayName"], "equals": "Watcher"},
+            {"path": "maps/map.json", "at": ["layers", 0, "id"], "equals": "collision"},
+            {"path": "maps/map.json", "at": ["layers", 0, "collisions", 1], "equals": true},
+            {"path": "assets/.pokemap-assets.json", "at": ["records"], "equals": []}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "records": [
+    {
+      "id": "tree-source",
+      "logicalPath": "assets/models3d/tree.glb",
+      "artifact": {
+        "digest": "sha256:fdea9ecb43b37945a5818d525a4dc646e0c345fa127347a6144b4754612c38f0",
+        "handle": "artifact://sha256/fdea9ecb43b37945a5818d525a4dc646e0c345fa127347a6144b4754612c38f0",
+        "mediaType": "model/gltf-binary",
+        "byteLength": 396
+      },
+      "usages": [],
+      "tags": []
+    }
+  ]
+}

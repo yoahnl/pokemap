@@ -1,6 +1,7 @@
 import '../api/resource_pack_transfer_api.dart';
 import '../application/map_mutation_dispatcher.dart';
 import '../registry/resource_kind_registry.dart';
+import 'transport_certification_bundle.dart';
 
 enum AuthoringParityStatus {
   supported,
@@ -343,6 +344,7 @@ final class AuthoringFullParityCatalog {
     String? transportEvidenceRevision,
     String? transportFixtureDigest,
     String? transportSourceRevision,
+    Iterable<VerifiedAuthoringTransportEvidence> verifiedTransportRuns = const [],
   }) {
     final publishedQueryableKinds =
         queryableResourceKinds ?? canonicalQueryableResourceKindIds;
@@ -354,6 +356,28 @@ final class AuthoringFullParityCatalog {
       expectedFixtureDigest: transportFixtureDigest,
       expectedSourceRevision: transportSourceRevision,
     );
+    final receiptMap =
+        <String, Map<AuthoringTransport, AuthoringTransportExecutionReceipt>>{};
+    String? verifiedSource;
+    String? verifiedSourceDigest;
+    for (final run in verifiedTransportRuns) {
+      verifiedSource ??= transportSourceRevision ?? run.sourceRevision;
+      verifiedSourceDigest ??= run.sourceDigest;
+      if (run.sourceRevision != verifiedSource ||
+          run.sourceDigest != verifiedSourceDigest) {
+        throw ArgumentError('Transport runs must verify the same source.');
+      }
+      for (final receipt in run.receipts) {
+        receiptMap
+            .putIfAbsent(receipt.actionId, () => {})
+            .putIfAbsent(receipt.transport, () => receipt);
+      }
+    }
+    for (final receipt in receipts) {
+      receiptMap
+          .putIfAbsent(receipt.actionId, () => {})
+          .putIfAbsent(receipt.transport, () => receipt);
+    }
     final resources = <AuthoringResourceParity>[
       for (final entry in _semanticOwners.entries)
         _resourceParity(
@@ -372,12 +396,7 @@ final class AuthoringFullParityCatalog {
           endToEndEvidence: descriptor.id.startsWith('item.')
               ? const <AuthoringTransport, String>{}
               : _endToEndEvidenceFor(descriptor.id),
-          transportExecutionReceipts: <AuthoringTransport,
-              AuthoringTransportExecutionReceipt>{
-            for (final receipt
-                in receipts.where((item) => item.actionId == descriptor.id))
-              receipt.transport: receipt,
-          },
+          transportExecutionReceipts: receiptMap[descriptor.id] ?? const {},
         ),
     ];
     return AuthoringFullParityCatalog._(

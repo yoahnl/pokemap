@@ -1,0 +1,170 @@
+{
+  "name": "Spatial forest",
+  "version": "v9",
+  "maps": [
+    {
+      "id": "map",
+      "name": "Map",
+      "relativePath": "maps/map.json",
+      "groupId": null,
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "groups": [],
+  "tilesetFolders": [],
+  "tilesets": [],
+  "models3d": [
+    {
+      "id": "tree",
+      "name": "Tree",
+      "sourceAssetId": "tree-source",
+      "relativePath": "assets/models3d/tree.glb",
+      "inspection": {
+        "schemaVersion": 1,
+        "bounds": {
+          "min": {
+            "x": -0.20000000298023224,
+            "y": 0.0,
+            "z": -0.20000000298023224
+          },
+          "max": {
+            "x": 0.20000000298023224,
+            "y": 2.0,
+            "z": 0.20000000298023224
+          }
+        },
+        "meshCount": 1,
+        "triangleCount": 1,
+        "materials": [],
+        "animations": [],
+        "diagnostics": [
+          "renderer.missing_material_magenta"
+        ]
+      },
+      "scale": 1.0,
+      "pivot": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      }
+    }
+  ],
+  "elementCategories": [],
+  "elements": [],
+  "environmentPresets": [
+    {
+      "id": "forest",
+      "name": "Forest",
+      "templateId": "forest",
+      "palette": [
+        {
+          "modelId": "tree",
+          "weight": 1,
+          "collisionMode": "forceDisabled",
+          "tags": []
+        }
+      ],
+      "defaultParams": {
+        "density": 1.0,
+        "variation": 0.0,
+        "edgeDensity": 1.0,
+        "minSpacingCells": 0
+      },
+      "sortOrder": 0
+    }
+  ],
+  "encounterTables": [],
+  "dialogueFolders": [],
+  "dialogues": [],
+  "scripts": [],
+  "scenarios": [],
+  "cinematics": [],
+  "cinematicMediaAssets": [],
+  "facts": [],
+  "worldRules": [],
+  "narrativeDiagnosticSuppressions": [],
+  "scenes": [],
+  "storylines": [],
+  "shops": [],
+  "badges": [],
+  "trainers": [],
+  "characters": [],
+  "settings": {
+    "dimension": "threeD",
+    "spatialCamera": {
+      "mode": "fixed",
+      "projection": "perspective",
+      "pitchDegrees": 48.7,
+      "yawDegrees": 0.0,
+      "fieldOfViewDegrees": 16.2,
+      "distance": 42.0,
+      "orthographicHeight": 12.0
+    },
+    "actorContactShadowsByDefault": false,
+    "tileWidth": 16,
+    "tileHeight": 16,
+    "displayScale": 2.0,
+    "defaultMapWidth": 20,
+    "defaultMapHeight": 15,
+    "defaultPlayerCharacterId": null
+  },
+  "pokemon": {
+    "enabled": true,
+    "ruleset": {
+      "schemaVersion": 1,
+      "profileId": "pokemap-beta-v1",
+      "typeChartId": "mainline-modern-v1",
+      "maxLevel": 100,
+      "experiencePolicyId": "pokemap-simple-exp-v1",
+      "capturePolicyId": "pokemap-capture-mvp-v1",
+      "moveMachinePolicyId": "authored-consumability-v1",
+      "criticalHitPolicyId": "mainline-gen9-critical",
+      "speedTiePolicyId": "mainline-gen9-seeded-random",
+      "friendshipPolicyId": "mainline-0-255-v1",
+      "evolutionPolicyId": "pokemap-beta-evolution-v1",
+      "disabledFeatures": [
+        "breeding",
+        "double-battles",
+        "modern-gimmicks",
+        "online"
+      ]
+    },
+    "dataRoot": "data/pokemon",
+    "speciesDir": "data/pokemon/species",
+    "learnsetsDir": "data/pokemon/learnsets",
+    "evolutionsDir": "data/pokemon/evolutions",
+    "mediaDir": "data/pokemon/media",
+    "catalogFiles": {
+      "moves": "data/pokemon/catalogs/moves.json",
+      "abilities": "data/pokemon/catalogs/abilities.json",
+      "items": "data/pokemon/catalogs/items.json",
+      "types": "data/pokemon/catalogs/types.json",
+      "growth_rates": "data/pokemon/catalogs/growth_rates.json",
+      "natures": "data/pokemon/catalogs/natures.json",
+      "egg_groups": "data/pokemon/catalogs/egg_groups.json",
+      "habitats": "data/pokemon/catalogs/habitats.json",
+      "encounter_rules": "data/pokemon/catalogs/encounter_rules.json",
+      "generations": "data/pokemon/catalogs/generations.json",
+      "version_groups": "data/pokemon/catalogs/version_groups.json"
+    }
+  },
+  "partyCompanion": {
+    "enabled": false,
+    "mappings": []
+  },
+  "newGame": {
+    "enabled": false,
+    "startMapId": "",
+    "playerName": "Player",
+    "playerAvatarCharacterIds": [],
+    "playerPronounSet": "neutral",
+    "startingMoney": 0,
+    "initialBag": [],
+    "initialParty": [],
+    "initialFacts": {},
+    "starterOptions": []
+  },
+  "presentationPresets": [],
+  "globalProperties": {}
+}

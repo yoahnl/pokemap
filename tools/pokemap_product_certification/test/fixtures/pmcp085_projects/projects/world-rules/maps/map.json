@@ -1,0 +1,23 @@
+{
+  "id": "map",
+  "name": "Proof map",
+  "version": "v8",
+  "size": {
+    "width": 8,
+    "height": 6
+  },
+  "layers": [],
+  "entities": [
+    {
+      "id": "old-guide",
+      "kind": "npc",
+      "pos": {
+        "x": 1,
+        "y": 1
+      },
+      "npc": {
+        "displayName": "Guide"
+      }
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "name": "Transport parity fixture",
+  "version": "v8",
+  "maps": [
+    {
+      "id": "map",
+      "name": "Proof map",
+      "relativePath": "maps/map.json"
+    }
+  ],
+  "tilesets": [],
+  "pokemon": {
+    "ruleset": {
+      "schemaVersion": 1,
+      "profileId": "pokemap-beta-v1",
+      "typeChartId": "mainline-modern-v1",
+      "maxLevel": 100,
+      "experiencePolicyId": "pokemap-simple-exp-v1",
+      "capturePolicyId": "pokemap-capture-mvp-v1",
+      "moveMachinePolicyId": "authored-consumability-v1",
+      "criticalHitPolicyId": "mainline-gen9-critical",
+      "speedTiePolicyId": "mainline-gen9-seeded-random",
+      "friendshipPolicyId": "mainline-0-255-v1",
+      "evolutionPolicyId": "pokemap-beta-evolution-v1",
+      "disabledFeatures": [
+        "breeding",
+        "double-battles",
+        "modern-gimmicks",
+        "online"
+      ]
+    }
+  },
+  "presentationCinematics": [
+    {
+      "schemaVersion": 3,
+      "capabilities": [
+        "cinematic.presentation"
+      ],
+      "timebase": {
+        "unit": "microsecond",
+        "ticksPerSecond": 1000000
+      },
+      "id": "opening",
+      "title": "Opening",
+      "durationUs": 4000000,
+      "layers": [
+        {
+          "id": "foreground",
+          "label": "Foreground",
+          "zIndex": 4,
+          "visible": true,
+          "locked": false
+        },
+        {
+          "id": "background",
+          "label": "Background",
+          "zIndex": 0,
+          "visible": true,
+          "locked": false
+        }
+      ],
+      "visualFolders": [
+        {
+          "id": "characters",
+          "label": "Actors",
+          "layerIds": [
+            "foreground"
+          ],
+          "hidden": false,
+          "locked": false
+        }
+      ],
+      "tracks": []
+    }
+  ]
+}

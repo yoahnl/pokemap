@@ -720,12 +720,15 @@ final class AuthoringMutationAdapter
         (actionId == 'asset.import' && parameters['adoptExisting'] == true);
     final usesWorkshop = canUseObservedProjectRevision ||
         const {
+          'campaign.shop.upsert',
+          'campaign.trainer.upsert',
           'item.create',
           'item.update',
           'item.set_overworld_effect',
           'item.set_battle_effect',
           'item.set_held_effect',
           'item.set_capture_effect',
+          'map3d.instance.visibility.set',
         }.contains(actionId);
     final String revision;
     if (usesWorkshop) {

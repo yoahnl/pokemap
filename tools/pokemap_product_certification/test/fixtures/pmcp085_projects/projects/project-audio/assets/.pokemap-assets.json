@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "records": [
+    {
+      "id": "music",
+      "logicalPath": "assets/music/route.wav",
+      "artifact": {
+        "digest": "sha256:5ec1d343e7750c69d7da290bd2b7c83ba18e521462dffc1bdf143069b8ed8a79",
+        "handle": "artifact://sha256/5ec1d343e7750c69d7da290bd2b7c83ba18e521462dffc1bdf143069b8ed8a79",
+        "mediaType": "audio/wav",
+        "byteLength": 844
+      },
+      "usages": [],
+      "tags": []
+    }
+  ]
+}

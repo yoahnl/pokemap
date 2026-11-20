@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "catalog": "moves",
+  "entries": [
+    {
+      "id": "chime",
+      "name": "Chime",
+      "type": "normal",
+      "category": "physical"
+    }
+  ]
+}

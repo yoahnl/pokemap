@@ -1,0 +1,10 @@
+{
+  "id": "map",
+  "name": "Proof map",
+  "version": "v8",
+  "size": {
+    "width": 8,
+    "height": 6
+  },
+  "layers": []
+}

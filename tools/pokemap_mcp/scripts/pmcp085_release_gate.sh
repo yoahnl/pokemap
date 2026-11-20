@@ -2,20 +2,21 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/../../.." && pwd)"
-certification_output="$(mktemp /tmp/pokemap-item-certification.XXXXXX)"
-transport_receipts="$(mktemp /tmp/pokemap-item-transport-receipts.XXXXXX)"
-trap 'rm -f "$certification_output" "$transport_receipts"' EXIT
+qa_parent="${AVELUNE_QA_ROOT:-${TMPDIR:-/tmp}}"
+proof_root="$(mktemp -d "${qa_parent%/}/pokemap-pmcp085.XXXXXX")"
+trap 'rm -rf -- "$proof_root"' EXIT
+source_revision="$(git -C "$repo_root" rev-parse HEAD)"
+certification_directory="$repo_root/tools/pokemap_product_certification"
+transport_receipts="$proof_root/item-transports.json"
 
-cd "$repo_root/tools/pokemap_product_certification"
+cd "$certification_directory"
 dart run bin/certify_item_system_v1.dart \
-  --output "$certification_output" \
+  --output "$proof_root/item-certification.json" \
   --transport-receipts-out "$transport_receipts"
 
 cd "$repo_root/packages/map_authoring"
 dart test --reporter compact
 dart analyze
-dart run tool/pmcp085_conformance.dart \
-  --transport-receipts "$transport_receipts" >/dev/null
 
 cd "$repo_root/packages/map_editor"
 flutter test \
@@ -27,7 +28,7 @@ flutter analyze
 
 cd "$repo_root/tools/pokemap_mcp"
 npm run check
-npm test
+AVELUNE_QA_ROOT="$proof_root" npm test
 
 cd "$repo_root/packages/map_runtime"
 flutter test \
@@ -42,13 +43,37 @@ flutter test \
   --reporter compact
 flutter analyze
 
-# The generic editor adapter proves transport parity, not migration of every
-# existing product gesture. Keep the production claim closed while PMCP-081's
-# exact debt inventory remains in the editor guardrail.
+release_status=0
+transport_args=(--source-revision "$source_revision")
+cd "$certification_directory"
+for recipe in "$certification_directory"/test/fixtures/pmcp085_*/scenarios.json; do
+  fixture_directory="${recipe%/*}"
+  projects="$fixture_directory/projects"
+  output="$proof_root/${fixture_directory##*/}-transports.json"
+  if ! dart run bin/certify_authoring_transports.dart \
+    --recipes "$recipe" --fixtures "$projects" --qa-root "$proof_root" \
+    --source-revision "$source_revision" --out "$output"; then
+    release_status=1
+  fi
+  if [[ -f "$output" ]]; then
+    transport_args+=(--transport-run "$output" "$recipe" "$projects")
+  fi
+done
+
+cd "$repo_root/packages/map_authoring"
+if ! dart run tool/pmcp085_conformance.dart \
+  --transport-receipts "$transport_receipts" --require-transports \
+  "${transport_args[@]}" >/dev/null; then
+  release_status=1
+fi
+
 editor_guard="$repo_root/packages/map_editor/test/authoring_api/editor_write_boundary_test.dart"
 if grep -q 'const _legacyStructuredAuthoringDebt = <String>{' "$editor_guard"; then
   echo 'PMCP-085 BLOCKED: PMCP-081 editor mutation debt is still explicit.' >&2
-  exit 1
+  release_status=1
 fi
 
+if [[ "$release_status" != 0 ]]; then
+  exit "$release_status"
+fi
 echo 'PMCP-085 release claim authorized.'

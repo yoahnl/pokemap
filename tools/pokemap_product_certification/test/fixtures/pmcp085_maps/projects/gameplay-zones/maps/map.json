@@ -1,0 +1,101 @@
+{
+  "id": "map",
+  "name": "Proof map",
+  "version": "v8",
+  "size": {
+    "width": 8,
+    "height": 6
+  },
+  "layers": [],
+  "gameplayZones": [
+    {
+      "id": "current",
+      "kind": "movement",
+      "area": {
+        "pos": {
+          "x": 5,
+          "y": 0
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "movement": {
+        "requiredMode": "walk"
+      }
+    },
+    {
+      "id": "grass",
+      "kind": "encounter",
+      "area": {
+        "pos": {
+          "x": 5,
+          "y": 1
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "encounter": {
+        "encounterKind": "walk"
+      }
+    },
+    {
+      "id": "hazard",
+      "kind": "hazard",
+      "area": {
+        "pos": {
+          "x": 5,
+          "y": 2
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "hazard": {
+        "hazardKind": "other",
+        "damagePerStep": 0
+      }
+    },
+    {
+      "id": "custom",
+      "kind": "custom",
+      "area": {
+        "pos": {
+          "x": 5,
+          "y": 3
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      }
+    },
+    {
+      "id": "outdated",
+      "kind": "encounter",
+      "area": {
+        "pos": {
+          "x": 6,
+          "y": 1
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "encounter": {
+        "encounterKind": "walk"
+      },
+      "smartTileProvenance": {
+        "smartTileLayerId": "paths",
+        "smartTilePresetId": "preset",
+        "materialId": "grass",
+        "behaviorKey": "encounter.walk"
+      }
+    }
+  ]
+}

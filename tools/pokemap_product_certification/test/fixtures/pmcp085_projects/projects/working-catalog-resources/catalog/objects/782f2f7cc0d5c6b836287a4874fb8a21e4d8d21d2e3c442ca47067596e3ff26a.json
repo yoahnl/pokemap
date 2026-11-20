@@ -1,0 +1,1 @@
+{"key":{"id":"[\"projectDefinition\",\"maps\",0]","kind":"catalogMetadata"},"payload":{"id":"[\"projectDefinition\",\"maps\",0]","position":0,"section":"$projectDefinition","value":{"definition":{"groupId":null,"id":"map","name":"Proof map","relativePath":"maps/map.json","role":"exterior","sortOrder":0},"field":"maps"}},"references":[],"type":"unit","version":2}

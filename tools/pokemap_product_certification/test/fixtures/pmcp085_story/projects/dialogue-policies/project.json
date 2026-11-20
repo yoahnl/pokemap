@@ -1,0 +1,52 @@
+{
+  "name": "Dialogue interaction transport certification",
+  "version": "v8",
+  "maps": [],
+  "tilesets": [],
+  "pokemon": {
+    "enabled": false,
+    "ruleset": {
+      "schemaVersion": 1,
+      "profileId": "pokemap-beta-v1",
+      "typeChartId": "mainline-modern-v1",
+      "maxLevel": 100,
+      "experiencePolicyId": "pokemap-simple-exp-v1",
+      "capturePolicyId": "pokemap-capture-mvp-v1",
+      "moveMachinePolicyId": "authored-consumability-v1",
+      "criticalHitPolicyId": "mainline-gen9-critical",
+      "speedTiePolicyId": "mainline-gen9-seeded-random",
+      "friendshipPolicyId": "mainline-0-255-v1",
+      "evolutionPolicyId": "pokemap-beta-evolution-v1",
+      "disabledFeatures": ["breeding", "double-battles", "modern-gimmicks", "online"]
+    }
+  },
+  "dialogues": [
+    {
+      "id": "choice",
+      "name": "Choice",
+      "relativePath": "dialogues/choice.yarn",
+      "defaultStartNode": "Start",
+      "declaredOutcomes": [{"id": "yes", "label": "Yes"}, {"id": "no", "label": "No"}]
+    }
+  ],
+  "scenes": [
+    {
+      "id": "crossroads",
+      "name": "Crossroads",
+      "graph": {
+        "startNodeId": "start",
+        "nodes": [
+          {"id": "start", "kind": "start"},
+          {"id": "dialogue", "kind": "yarnDialogue", "payload": {"dialogueId": "choice", "expectedOutcomes": ["yes", "no"]}},
+          {"id": "end", "kind": "end"}
+        ],
+        "edges": [
+          {"id": "start", "fromNodeId": "start", "fromPortId": "completed", "toNodeId": "dialogue", "kind": "default"},
+          {"id": "finish", "fromNodeId": "dialogue", "fromPortId": "completed", "toNodeId": "end", "kind": "default"},
+          {"id": "yes", "fromNodeId": "dialogue", "fromPortId": "yes", "toNodeId": "end", "kind": "dialogueOutcome"},
+          {"id": "no", "fromNodeId": "dialogue", "fromPortId": "no", "toNodeId": "end", "kind": "dialogueOutcome"}
+        ]
+      }
+    }
+  ]
+}

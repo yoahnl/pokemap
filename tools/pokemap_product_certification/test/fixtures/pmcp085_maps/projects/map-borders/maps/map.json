@@ -1,0 +1,131 @@
+{
+  "id": "map",
+  "name": "Proof map",
+  "version": "v8",
+  "size": {
+    "width": 8,
+    "height": 6
+  },
+  "layers": [
+    {
+      "id": "borders",
+      "name": "Borders",
+      "runtimeType": "border",
+      "content": {
+        "formatVersion": 3,
+        "features": [
+          {
+            "id": "fence",
+            "name": "Fence",
+            "blueprintId": "first",
+            "seed": "0",
+            "geometry": {
+              "kind": "stroke",
+              "strokes": [
+                {
+                  "id": "fence-line",
+                  "closed": false,
+                  "points": [
+                    {
+                      "x": 1,
+                      "y": 2
+                    },
+                    {
+                      "x": 2,
+                      "y": 2
+                    },
+                    {
+                      "x": 3,
+                      "y": 2
+                    }
+                  ]
+                }
+              ]
+            },
+            "overrides": [],
+            "keepOutRegions": []
+          },
+          {
+            "id": "spare",
+            "name": "Spare",
+            "blueprintId": "first",
+            "seed": "0",
+            "geometry": {
+              "kind": "stroke",
+              "strokes": [
+                {
+                  "id": "spare-line",
+                  "closed": false,
+                  "points": [
+                    {
+                      "x": 1,
+                      "y": 3
+                    },
+                    {
+                      "x": 2,
+                      "y": 3
+                    },
+                    {
+                      "x": 3,
+                      "y": 3
+                    }
+                  ]
+                }
+              ]
+            },
+            "overrides": [],
+            "keepOutRegions": []
+          },
+          {
+            "id": "annex",
+            "name": "Annex",
+            "blueprintId": "first",
+            "seed": "0",
+            "geometry": {
+              "kind": "stroke",
+              "strokes": [
+                {
+                  "id": "annex-line",
+                  "closed": false,
+                  "points": [
+                    {
+                      "x": 1,
+                      "y": 4
+                    },
+                    {
+                      "x": 2,
+                      "y": 4
+                    },
+                    {
+                      "x": 3,
+                      "y": 4
+                    }
+                  ]
+                }
+              ]
+            },
+            "overrides": [],
+            "keepOutRegions": []
+          },
+          {
+            "id": "mass",
+            "name": "Mass",
+            "blueprintId": "ground",
+            "seed": "0",
+            "geometry": {
+              "kind": "region",
+              "width": 8,
+              "height": 6,
+              "cellsRle": "border-rle-v1:48:0:48"
+            },
+            "overrides": [],
+            "keepOutRegions": []
+          }
+        ]
+      }
+    }
+  ],
+  "visualStack": {
+    "semanticsVersion": 1
+  }
+}
