@@ -9,6 +9,32 @@ import '../support/controlled_project_session_port.dart';
 import 'map_builder_shell_harness.dart';
 
 void main() {
+  testWidgets('project home shows the original illustrated dashboard', (
+    tester,
+  ) async {
+    await openShell(tester);
+    await tester.tap(find.byKey(const ValueKey('studio-rail-home')));
+    await settle(tester);
+
+    expect(find.text('Donnez vie à votre propre aventure'), findsOneWidget);
+    expect(find.text('Vos outils de création'), findsOneWidget);
+    expect(find.text('Projets récents'), findsOneWidget);
+    final hasLandscape = tester
+        .widgetList<Container>(find.byType(Container))
+        .any(
+          (widget) => switch (widget.decoration) {
+            BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(assetName: 'assets/home/hero_landscape.png'),
+              ),
+            ) =>
+              true,
+            _ => false,
+          },
+        );
+    expect(hasLandscape, isTrue);
+  });
+
   testWidgets('the project can be reopened directly from the home screen', (
     tester,
   ) async {
@@ -27,6 +53,23 @@ void main() {
     sessions.pending.last.complete(exampleA);
     await settle(tester);
     expect(find.byKey(const ValueKey('map-canvas')), findsOneWidget);
+  });
+
+  testWidgets('a failed project switch keeps the current project home open', (
+    tester,
+  ) async {
+    await openShell(tester);
+    await tester.tap(find.byKey(const ValueKey('studio-rail-home')));
+    await settle(tester);
+    await tester.tap(find.byKey(const ValueKey('studio-home-import')));
+    await settle(tester);
+    sessions.pending.last.completeError(StateError('Invalid project'));
+    await settle(tester);
+
+    expect(find.byKey(const ValueKey('studio-project-home')), findsOneWidget);
+    expect(find.text('Reprendre mon projet'), findsOneWidget);
+    expect(visuals.disposed, isFalse);
+    expect(sessions.released, isEmpty);
   });
 
   testWidgets('the Pokémon rail loads the project catalogue on first opening', (

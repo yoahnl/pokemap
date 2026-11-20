@@ -1,115 +1,73 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
-import 'package:avelune_studio/features/home/domain/recent_studio_project.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
-import 'package:avelune_studio/presentation/shared/widgets/avelune_wordmark.dart';
-import 'package:avelune_studio/presentation/shared/localization/studio_language_menu.dart';
+
+import 'studio_home_screen.dart';
 
 class ProjectImportPage extends StatelessWidget {
   const ProjectImportPage({
     super.key,
-    required this.state,
     required this.busy,
-    required this.pickerError,
-    required this.onImport,
-    required this.recents,
-    required this.recentsFailed,
-    required this.onRecent,
-    this.onRetry,
+    required this.projects,
+    required this.destinations,
+    this.status,
   });
 
-  final ProjectSessionState state;
   final bool busy;
-  final String? pickerError;
-  final VoidCallback onImport;
-  final List<RecentStudioProject> recents;
-  final bool recentsFailed;
-  final ValueChanged<RecentStudioProject> onRecent;
-  final VoidCallback? onRetry;
+  final StudioHomeProjectAccess projects;
+  final Map<String, VoidCallback> destinations;
+  final Widget? status;
 
   @override
-  Widget build(BuildContext context) {
-    final opening = busy || state.status == ProjectSessionStatus.opening;
-    final problem = state.status == ProjectSessionStatus.failed
-        ? state.problem
-        : null;
-    final message = problem == null
-        ? pickerError == null
-              ? null
-              : context.l10n.homePickerFailed
-        : projectOpenProblemMessage(context.l10n, problem);
-    return Scaffold(
-      key: const ValueKey('studio-home'),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(StudioSpacing.xxl),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Align(
-                  alignment: Alignment.centerRight,
-                  child: StudioLanguageMenu(),
-                ),
-                const AveluneWordmark(height: 56),
-                const SizedBox(height: StudioSpacing.xxl * 2),
-                StudioButton(
-                  key: const ValueKey('studio-home-import'),
-                  label: context.l10n.homeImportProject,
-                  icon: Icons.folder_open_outlined,
-                  loading: opening,
-                  onPressed: opening ? null : onImport,
-                ),
-                if (message != null) ...[
-                  const SizedBox(height: StudioSpacing.xl),
-                  StudioNotice(message, isError: true),
-                ],
-                if (problem == ProjectOpenProblem.recoveryFailed &&
-                    onRetry != null) ...[
-                  const SizedBox(height: StudioSpacing.l),
-                  StudioButton(
-                    key: const ValueKey('studio-home-retry-open'),
-                    label: context.l10n.openProblemRetry,
-                    icon: Icons.refresh,
-                    variant: StudioButtonVariant.secondary,
-                    onPressed: opening ? null : onRetry,
-                  ),
-                ],
-                if (recentsFailed) ...[
-                  const SizedBox(height: StudioSpacing.xl),
-                  StudioNotice(context.l10n.homeRecentsFailed, isError: true),
-                ],
-                if (recents.isNotEmpty) ...[
-                  const SizedBox(height: StudioSpacing.xxl),
-                  StudioPanel(
-                    title: context.l10n.homeRecentProjects,
-                    children: [
-                      for (final project in recents)
-                        StudioNavigationEntry(
-                          key: ValueKey((
-                            'studio-home-recent',
-                            project.directoryPath,
-                          )),
-                          icon: Icons.folder_outlined,
-                          label: project.name,
-                          detail: project.directoryPath,
-                          onTap: opening ? null : () => onRecent(project),
-                        ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
+  Widget build(BuildContext context) => StudioHomeScreen(
+    key: const ValueKey('studio-home'),
+    busy: busy,
+    onOpen: projects.open,
+    recentProjects: projects.recent,
+    onRecent: projects.openRecent,
+    onRemoveRecent: projects.removeRecent,
+    destinations: destinations,
+    onMap: (_) {},
+    status: status,
+    statusAtTop: status != null,
+  );
+}
+
+Widget? projectHomeStatus(
+  BuildContext context, {
+  required ProjectSessionState state,
+  required bool busy,
+  required bool pickerFailed,
+  required bool recentsFailed,
+  VoidCallback? onRetry,
+}) {
+  final l10n = context.l10n;
+  final problem = state.problem;
+  final message = problem == null
+      ? pickerFailed
+            ? l10n.homePickerFailed
+            : null
+      : projectOpenProblemMessage(l10n, problem);
+  if (message == null && !recentsFailed) return null;
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (message != null) StudioNotice(message, isError: true),
+      if (recentsFailed) StudioNotice(l10n.homeRecentsFailed, isError: true),
+      if (problem == ProjectOpenProblem.recoveryFailed && onRetry != null)
+        StudioButton(
+          key: const ValueKey('studio-home-retry-open'),
+          label: l10n.openProblemRetry,
+          icon: Icons.refresh,
+          variant: StudioButtonVariant.secondary,
+          onPressed: busy ? null : onRetry,
         ),
-      ),
-    );
-  }
+    ],
+  );
 }
 
 String projectOpenProblemMessage(

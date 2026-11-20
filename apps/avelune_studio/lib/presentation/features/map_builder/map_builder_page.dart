@@ -14,7 +14,8 @@ import 'package:avelune_studio/features/world/domain/world_port.dart';
 import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_story_services.dart';
 import 'package:avelune_studio/presentation/features/story/story_page.dart';
-import 'package:avelune_studio/presentation/features/home/project_home_page.dart';
+import 'package:avelune_studio/presentation/features/home/studio_home_screen.dart';
+import 'package:avelune_studio/presentation/features/home/studio_home_map_preview.dart';
 import 'package:avelune_studio/presentation/features/pokemon/project_pokemon_page.dart';
 import 'package:avelune_studio/presentation/features/story/story_dialogue_link.dart';
 import 'package:avelune_studio/features/story_workspace/application/story_history_scope.dart';
@@ -28,6 +29,7 @@ import 'package:avelune_studio/app/di/story_draft_providers.dart';
 import 'package:avelune_studio/features/story_draft/application/story_publication_gateway.dart';
 import 'package:avelune_studio/app/di/project_session_providers.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_draft.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_failure_message.dart';
 import 'package:avelune_studio/features/project_session/application/project_draft.dart';
 import 'package:avelune_studio/features/project_session/application/studio_exit_guard.dart';
@@ -72,6 +74,7 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_ope
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_side_panel.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_map_tree.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_map_dialogs.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
 import 'package:avelune_studio/presentation/features/resources/project_library_page.dart';
 import 'package:avelune_studio/features/resources/domain/project_library_editor.dart';
@@ -103,11 +106,19 @@ class MapBuilderPage extends ConsumerStatefulWidget {
     super.key,
     required this.session,
     required this.onHome,
+    required this.homeProjects,
+    required this.homeBusy,
+    required this.initialSection,
+    this.homeStatus,
     this.progress,
   });
 
   final ProjectSession session;
   final Future<void> Function() onHome;
+  final StudioHomeProjectAccess homeProjects;
+  final bool homeBusy;
+  final Widget? homeStatus;
+  final StudioRailSection initialSection;
   final ProjectOpeningProgress? progress;
 
   @override

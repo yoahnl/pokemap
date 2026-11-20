@@ -97,9 +97,9 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     editable: () => _editable,
     changed: _changed,
   );
-  var _section = StudioRailSection.map;
-  var _storyShown = false;
-  var _pokemonShown = false;
+  late var _section = widget.initialSection;
+  late var _storyShown = widget.initialSection == StudioRailSection.story;
+  late var _pokemonShown = widget.initialSection == StudioRailSection.pokemon;
   var _pokemonImporting = false;
   var _storyScope = const StoryHistoryScope.empty();
   var _space = MapBuilderSpace.construction;
@@ -332,10 +332,12 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
           openRequested: (id, isCurrent) => _openDialogue(id, null, isCurrent),
           loadLanguages: _stories.dialogues?.languages,
           currentSource: _currentDialogue,
-          child: _layout(
-            onToggleInspector: () =>
-                setState(() => _inspectorOpen = !_inspectorOpen),
-            onCollapse: () => setState(() => _inspectorOpen = false),
+          child: _withProjectHome(
+            _layout(
+              onToggleInspector: () =>
+                  setState(() => _inspectorOpen = !_inspectorOpen),
+              onCollapse: () => setState(() => _inspectorOpen = false),
+            ),
           ),
         ),
       ),

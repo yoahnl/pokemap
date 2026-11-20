@@ -206,7 +206,7 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                               child: _resourceLibrary(management),
                             ),
                           ),
-                          _projectHome(),
+                          const SizedBox.shrink(),
                           _projectPokemon(),
                         ],
                       ),
