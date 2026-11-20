@@ -72,10 +72,6 @@ Map<String, String> resolveTilesetAbsolutePaths({
   AssetCatalog? assetCatalog,
 }) {
   final byId = {for (final t in manifest.tilesets) t.id: t};
-  final assetsById = <String, AssetRecord>{
-    for (final asset in assetCatalog?.records ?? const <AssetRecord>[])
-      asset.id: asset,
-  };
   final out = <String, String>{};
   for (final id in tilesetIds) {
     final entry = byId[id];
@@ -91,7 +87,7 @@ Map<String, String> resolveTilesetAbsolutePaths({
       for (final page in source.pages) {
         out[page.assetId] = _runtimeAssetPath(
           projectRoot: projectRoot,
-          asset: assetsById[page.assetId],
+          asset: assetCatalog?.find(page.assetId),
           legacyRelativePath: p.join(rel, '${page.id}.png'),
         );
       }
@@ -102,7 +98,7 @@ Map<String, String> resolveTilesetAbsolutePaths({
       };
       out[id] = _runtimeAssetPath(
         projectRoot: projectRoot,
-        asset: assetsById[assetId],
+        asset: assetCatalog?.find(assetId),
         legacyRelativePath: rel,
       );
     }
@@ -618,9 +614,14 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   mapWatch.stop();
   progressSink?.call(RuntimeMapBundleLoadStage.mapData);
   final assetCatalogWatch = Stopwatch()..start();
-  final assetCatalog = catalog == null
-      ? await _loadRuntimeAssetCatalog(projectRoot)
-      : await catalog.loadAssetCatalog();
+  final AssetCatalog? assetCatalog;
+  try {
+    assetCatalog = catalog == null
+        ? await _loadRuntimeAssetCatalog(projectRoot)
+        : await catalog.loadAssetCatalog();
+  } on FormatException catch (error) {
+    throw ProjectLoadException('Failed to load asset catalog: $error');
+  }
   assetCatalogWatch.stop();
   progressSink?.call(RuntimeMapBundleLoadStage.assetCatalog);
   final tilesetWatch = Stopwatch()..start();
