@@ -1180,6 +1180,9 @@ final class ProjectSnapshotLoader {
           bytes: assetCatalogBytes,
         ),
       );
+      final readAssetPayloads =
+          policy != ProjectSnapshotLoadPolicy.resourceUsageReadProjection;
+      final managedModelSources = <(String, String)>{};
       for (final model in manifest.models3d) {
         final source = catalog.find(model.sourceAssetId);
         if (source == null ||
@@ -1188,22 +1191,25 @@ final class ProjectSnapshotLoader {
           throw const ProjectSnapshotException('project.model3d_source_invalid',
               'A model must reference its inspected project-owned GLB asset.');
         }
+        if (readAssetPayloads) {
+          managedModelSources.add((model.sourceAssetId, model.relativePath));
+        }
       }
+      final managedTilesetSources = {
+        if (readAssetPayloads)
+          for (final tileset in manifest.tilesets)
+            if (tileset.source
+                case final ProjectRegularAtlasTilesetSource source)
+              (source.assetId, tileset.relativePath),
+      };
       for (final record in catalog.records) {
-        if (policy == ProjectSnapshotLoadPolicy.resourceUsageReadProjection) {
+        if (!readAssetPayloads ||
+            record.logicalPath == assetBlobStorageKey(record.artifact)) {
           continue;
         }
-        final managedTilesetSource = manifest.tilesets.any((tileset) =>
-            tileset.relativePath == record.logicalPath &&
-            tileset.source is ProjectRegularAtlasTilesetSource &&
-            (tileset.source as ProjectRegularAtlasTilesetSource).assetId ==
-                record.id);
-        if (record.logicalPath == assetBlobStorageKey(record.artifact)) {
-          continue;
-        }
-        final managedModelSource = manifest.models3d.any((model) =>
-            model.sourceAssetId == record.id &&
-            model.relativePath == record.logicalPath);
+        final source = (record.id, record.logicalPath);
+        final managedTilesetSource = managedTilesetSources.contains(source);
+        final managedModelSource = managedModelSources.contains(source);
         final path = validateProjectRelativePath(record.logicalPath).join('/');
         if (!occupiedPaths.add(path)) {
           throw const ProjectSnapshotException(
