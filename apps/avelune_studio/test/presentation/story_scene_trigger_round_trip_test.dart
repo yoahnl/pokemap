@@ -127,7 +127,6 @@ void main() {
       await _tap(tester, 'scene-focus-preview');
       expect(_exit(tester, 'yes').label, 'Accept the letter');
       expect(_exit(tester, 'no').label, 'Refuser la lettre');
-      await tester.ensureVisible(interactionKey('scene-focus-exit-no'));
       await _tap(tester, 'scene-focus-exit-no');
       expect(interactionKey('scene-focus-path-refused'), findsOneWidget);
       expect(interactionKey('scene-focus-path-accepted'), findsNothing);
