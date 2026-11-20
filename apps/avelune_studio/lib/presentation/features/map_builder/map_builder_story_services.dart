@@ -80,6 +80,10 @@ final class MapBuilderStoryServices {
         staging: memory,
         source: () => behaviours,
         changed: _changed,
+        readPublishedFacts:
+            story.maps.session.storage == ProjectSessionStorage.portableCatalog
+            ? () => story.maps.project?.facts
+            : null,
       );
     }
     if (_verification.read() case final port?) {

@@ -18,6 +18,7 @@ final class StorylineTrameController {
     required this.staging,
     required this.source,
     required this.changed,
+    this.readPublishedFacts,
   });
 
   final StorylineReadPort port;
@@ -25,6 +26,7 @@ final class StorylineTrameController {
   final GameMemoryStaging staging;
   final GameBehaviourSource Function() source;
   final void Function() changed;
+  final List<NarrativeFactDefinition>? Function()? readPublishedFacts;
   final outline = GameMemoryResource<StorylineOutline>();
   final saved = GameMemoryResource<List<StorylineAsset>>();
   final facts = GameMemoryResource<List<NarrativeTitle>>();
@@ -57,7 +59,19 @@ final class StorylineTrameController {
   }
 
   Future<void> _loadFacts({bool force = false}) => facts.load(
-    () => index.titles(NarrativeTitleKind.facts),
+    () async {
+      final published = readPublishedFacts?.call();
+      if (published == null) return index.titles(NarrativeTitleKind.facts);
+      return [
+        for (final fact in published)
+          NarrativeTitle(
+            id: fact.id,
+            title: fact.label,
+            category: fact.category,
+            value: fact.initialValue,
+          ),
+      ];
+    },
     changed,
     force: force,
   );

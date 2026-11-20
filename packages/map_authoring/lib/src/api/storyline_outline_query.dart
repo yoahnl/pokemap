@@ -36,19 +36,37 @@ Future<AuthoringQueryPage> queryStorylineReads({
   }
   if (catalog == null) {
     throw const AuthoringQueryException('query.storyline_read_catalog_required',
-        'Storyline outlines and proposals are read from a working catalog project.');
+        'Storyline reads require a catalog project.');
   }
   return catalog.read((projection) async {
     final snapshot = projection.snapshot;
-    final item = request.resourceKind == storylineOutlineResourceKind
-        ? await _outline(
-            snapshot, projection.projectMetadata, catalog.store.projectRoot)
-        : await _proposal(snapshot, projection.projectMetadata);
+    final item = switch ((request.resourceKind, catalog.readOnly)) {
+      (storylineOutlineResourceKind, true) => await _portableOutline(catalog),
+      (storylineOutlineResourceKind, false) => await _outline(
+          snapshot, projection.projectMetadata, catalog.store.projectRoot),
+      _ => await _proposal(snapshot, projection.projectMetadata),
+    };
     return AuthoringQueryPage(
         snapshotRevision: 'sha256:${snapshot.root.sha256}',
         items: [item],
         totalAvailable: 1);
   });
+}
+
+Future<Map<String, Object?>> _portableOutline(
+    CatalogProjectReader catalog) async {
+  final project = await catalog
+      .readMetadata(const {'storylines', 'facts', 'scenes', 'eventRegistry'});
+  return {
+    ...storylineOutlineJson(projectStorylineOutline(project)),
+    'reads': {
+      'storylines': project.storylines.length,
+      'facts': project.facts.length,
+      'scenes': project.scenes.length,
+      'events': project.eventRegistry?.records.length ?? 0,
+      'maps': 0,
+    },
+  };
 }
 
 Future<Map<String, Object?>> _outline(

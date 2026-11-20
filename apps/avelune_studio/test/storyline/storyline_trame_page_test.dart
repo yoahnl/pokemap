@@ -1,8 +1,11 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:avelune_studio/features/game_memory/domain/narrative_index_port.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../game_behaviours/game_behaviour_fakes.dart';
+import '../game_memory/game_memory_fakes.dart';
 import '../presentation/story_memory_harness.dart';
 import 'storyline_widget_support.dart';
 
@@ -68,6 +71,55 @@ void main() {
       find.byKey(const ValueKey('map-story-inspector-entity:guide')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a portable Trame names published facts in read-only details', (
+    tester,
+  ) async {
+    final index = memoryIndex();
+    index.titleLoader = (kind) async {
+      if (kind == NarrativeTitleKind.facts) {
+        throw const NarrativeIndexPreparationRequired('narrativeTitles');
+      }
+      return index.titlesByKind[kind] ?? const [];
+    };
+    final session = ProjectSession(
+      sessionId: memorySession.sessionId,
+      name: memorySession.name,
+      directoryPath: memorySession.directoryPath,
+      storage: ProjectSessionStorage.portableCatalog,
+    );
+    await openMemoryStudio(
+      tester,
+      index,
+      session: session,
+      project: trameProject.copyWith(
+        facts: [memoryFact('met', 'Rencontre enregistrée')],
+      ),
+      storylines: trameReads(),
+    );
+    await openTrame(tester);
+    await tester.tap(find.byKey(const ValueKey('trame-milestone-meet')));
+    await settleMemory(tester);
+
+    expect(
+      find.text('Se termine quand « Rencontre enregistrée » devient vrai'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('État égal à : Rencontre enregistrée · Vrai'),
+      findsOneWidget,
+    );
+    final milestoneField = find.descendant(
+      of: find.byKey(const ValueKey('trame-milestone-name-meet')),
+      matching: find.byType(TextField),
+    );
+    expect(tester.widget<TextField>(milestoneField).enabled, isFalse);
+    expect(
+      find.byKey(const ValueKey('trame-condition-completion-edit')),
+      findsNothing,
+    );
+    expect(index.titleRequests, isNot(contains(NarrativeTitleKind.facts)));
   });
 
   testWidgets('a behaviour outside the plot attaches by whole scene', (

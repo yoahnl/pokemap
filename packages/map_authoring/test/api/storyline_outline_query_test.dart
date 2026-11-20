@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -9,18 +10,18 @@ import '../support/narrative_title_fixture.dart';
 import '../support/storyline_trame_fixture.dart';
 
 void main() {
-  Future<AuthoringQueryPage> query(NarrativeTitleFixture fixture, String kind,
+  Future<AuthoringQueryPage> query(Directory root, String kind,
       {bool wire = false,
       Future<void> Function(Future<void> Function() read)? measure}) async {
     final handles = WorkspaceHandleStore();
     const files = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
-        allowedRootPaths: [fixture.root.path], fileReader: files);
+        allowedRootPaths: [root.path], fileReader: files);
     final api = AuthoringReadApi(
         openService: ProjectOpenService(
             policy: policy, fileReader: files, handles: handles),
         snapshotLoader: ProjectSnapshotLoader(handles: handles));
-    final opened = await api.openProject(fixture.root.path);
+    final opened = await api.openProject(root.path);
     final request = AuthoringQueryRequest(
         resourceKind: kind,
         operation: AuthoringQueryOperation.summary,
@@ -64,16 +65,16 @@ void main() {
           project: storylineOutlineProject(0));
       addTearDown(fixture.close);
       await expectLater(
-          query(fixture, storylineOutlineResourceKind, wire: wire),
+          query(fixture.root, storylineOutlineResourceKind, wire: wire),
           throwsA(code('query.narrative_titles_preparation_required')));
       await fixture.prepare();
       await expectLater(
-          query(fixture, storylineOutlineResourceKind, wire: wire),
+          query(fixture.root, storylineOutlineResourceKind, wire: wire),
           throwsA(code('query.narrative_usages_preparation_required')));
       await fixture.prepare(CatalogNarrativeUsages.preparationScope);
 
       final item =
-          (await query(fixture, storylineOutlineResourceKind, wire: wire))
+          (await query(fixture.root, storylineOutlineResourceKind, wire: wire))
               .items
               .single;
       final chapter =
@@ -112,6 +113,39 @@ void main() {
         'maps': 0,
       });
     });
+
+    test(
+        'the outline reads a portable project without preparing indexes JSONL=$wire',
+        () async {
+      final base = await NarrativeTitleFixture.qa.create(recursive: true);
+      final root = await base.createTemp('portable-storyline-');
+      addTearDown(() => root.delete(recursive: true));
+      final store = await CatalogStorageStore.open(projectRoot: root.path);
+      final publication =
+          PortableCatalogPublication.encodeProject(storylineOutlineProject(0));
+      await store.publish(publication.storage, expectedRootRevision: null);
+      final descriptor = File('${root.path}/project.json');
+      final original = jsonEncode(publication.descriptor);
+      await descriptor.writeAsString(original, flush: true);
+      final head = await store.readHead();
+
+      final result =
+          await query(root, storylineOutlineResourceKind, wire: wire);
+      final item = result.items.single;
+      final story = (item['storylines'] as List).single as Map;
+      final chapter = (story['chapters'] as List).single as Map;
+      final milestones = chapter['milestones'] as List;
+      expect(milestones.map((step) => step['id']), ['wake_up', 'leave_home']);
+      expect(milestones.first['mapIds'], ['map_0']);
+      expect(milestones.first['issues'],
+          ['completionFactShared', 'completionFactCanReset']);
+      expect(
+          (item['scenesOutsideStorylines'] as List).map((scene) => scene['id']),
+          ['arrival', 'farewell', 'scene_town', 'scene_reset']);
+      expect((item['reads'] as Map)['maps'], 0);
+      expect(await descriptor.readAsString(), original);
+      expect(await store.readHead(), head);
+    });
   }
 
   test('the proposal drafts a storyline only for a project without one',
@@ -120,7 +154,7 @@ void main() {
     final fixture = await NarrativeTitleFixture.create(project: project);
     addTearDown(fixture.close);
     final item =
-        (await query(fixture, storylineProposalResourceKind)).items.single;
+        (await query(fixture.root, storylineProposalResourceKind)).items.single;
     expect(item['persisted'], false);
     expect(item['milestoneCount'], 1);
     final storyline = StorylineAsset.fromJson(
@@ -131,7 +165,10 @@ void main() {
     final existing =
         await NarrativeTitleFixture.create(project: storylineOutlineProject(0));
     addTearDown(existing.close);
-    expect((await query(existing, storylineProposalResourceKind)).items.single,
+    expect(
+        (await query(existing.root, storylineProposalResourceKind))
+            .items
+            .single,
         {'storyline': null, 'reason': 'storylinesExist'});
   });
 
@@ -144,7 +181,7 @@ void main() {
         await fixture.prepare();
         await fixture.prepare(CatalogNarrativeUsages.preparationScope);
         late Map<String, int> counted;
-        await query(fixture, storylineOutlineResourceKind,
+        await query(fixture.root, storylineOutlineResourceKind,
             measure: (read) async =>
                 counted = await CatalogUnitReads(fixture.root).count(read));
         return counted;
