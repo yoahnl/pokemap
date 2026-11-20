@@ -195,7 +195,7 @@ void main() {
 Future<Directory> _ownedQaCaptures({bool sandboxed = false}) async {
   final task = Directory(
     sandboxed
-        ? '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Library/Caches/AveluneQA/studio-project-lifecycle'
+        ? '/Users/karim/Library/Containers/com.yoahnl.avelune.studio/Data/Library/Caches/AveluneQA/studio-project-lifecycle'
         : '/Users/karim/Library/Caches/AveluneQA/studio-project-lifecycle',
   );
   await task.create(recursive: true);

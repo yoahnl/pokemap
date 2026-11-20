@@ -393,7 +393,7 @@ longer opened after a failed save. Treat this pass as part of the lot.
   `tools/scripts/ensure_studio_qa_engine.py`. Build the working tree as is.
 - **Project:** never the real project. Clone a reference copy with `cp -cR`.
   The app is sandboxed: the clone and its `captures/` folder live under
-  `~/Library/Containers/com.yoahnl.pokemap.editor/Data/Library/Caches/AveluneQA/<task>/`,
+  `~/Library/Containers/com.yoahnl.avelune.studio/Data/Library/Caches/AveluneQA/<task>/`,
   the clone is named exactly `project`, `captures/` holds the marker
   `.avelune-studio-capture-owner` containing `avelune-studio-capture@1`
   (no newline), and both paths are passed at build time

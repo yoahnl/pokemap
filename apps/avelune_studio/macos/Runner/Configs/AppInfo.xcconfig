@@ -9,7 +9,7 @@ PRODUCT_NAME = Avelune Studio
 PRODUCT_MODULE_NAME = Runner
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.pokemap.editor
+PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.avelune.studio
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 Avelune Studio. All rights reserved.

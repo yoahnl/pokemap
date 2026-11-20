@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('Studio can replace the installed PokeMap macOS bundle', () {
+  test('Studio can rename its bundle if installed as PokeMap.app', () {
     final config = File('macos/Runner/Configs/AppInfo.xcconfig')
         .readAsStringSync();
     final plist = File('macos/Runner/Info.plist').readAsStringSync();
@@ -28,7 +28,7 @@ void main() {
     );
     expect(
       appDelegate,
-      contains('Bundle.main.bundleIdentifier == "com.yoahnl.pokemap.editor"'),
+      contains('Bundle.main.bundleIdentifier == "com.yoahnl.avelune.studio"'),
     );
     expect(
       appDelegate,
@@ -36,7 +36,7 @@ void main() {
     );
     expect(
       config,
-      contains('PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.pokemap.editor'),
+      contains('PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.avelune.studio'),
     );
     expect(plist, contains('<string>Avelune Studio</string>'));
     expect(plist, contains('pokemap-editor-update-stable/appcast-macos.xml'));
@@ -89,8 +89,10 @@ void main() {
     expect(workflow, contains('apps/avelune_studio/build/release/'));
     expect(workflow, contains('SPARKLE_PRIVATE_ED_KEY_BASE64'));
     expect(workflow, contains('POKEMAP_SPARKLE_PUBLIC_ED_KEY'));
-    expect(workflow, contains('CFBundleIdentifier raw'));
-    expect(workflow, contains('com.yoahnl.pokemap.editor'));
+    const bundleIdCheck =
+        r'test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")"'
+        ' = com.yoahnl.avelune.studio';
+    expect(bundleIdCheck.allMatches(workflow), hasLength(2));
     expect(
       workflow,
       contains('build/macos/Build/Products/Release/Avelune Studio.app'),
