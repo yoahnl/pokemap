@@ -1,6 +1,7 @@
 part of 'project_snapshot_loader.dart';
 
 const _nativeWorkshopActions = {
+  'map.save',
   'characterStudio.animationClip.upsert',
   'scene.condition.set',
   'scene.graph.patch',
@@ -158,9 +159,15 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       resourceFingerprints: {'project': revision}, resourceStorageKeys: const {'project': 'project.json'},
       ownedResourceBytes: {'project': projectBytes});
   }
-  if (mapEdit) {
+  if (mapEdit || actionId == 'map.save') {
     return _loadNativeMapEdit(
-        loader, projectHandle, raw, projectBytes, parameters);
+      loader,
+      projectHandle,
+      raw,
+      projectBytes,
+      parameters,
+      completeMapSave: actionId == 'map.save',
+    );
   }
   if (actionId == 'map3d.instance.configure_field_obstacle' ||
       actionId == 'map3d.instance.visibility.set' ||
@@ -1222,22 +1229,34 @@ Future<ProjectSnapshot> _loadNativeMapEdit(
     ProjectHandle handle,
     Map<String, dynamic> raw,
     ProjectResourceBytes projectBytes,
-    Map<String, Object?> parameters) async {
-  final mapId = parameters['mapId'];
+    Map<String, Object?> parameters, {
+    bool completeMapSave = false,
+}) async {
+  final draft = parameters['map'];
+  final mapId = completeMapSave && draft is Map
+      ? draft['id']
+      : parameters['mapId'];
   if (mapId is! String || mapId.isEmpty || mapId.trim() != mapId) {
     throw const ProjectSnapshotException(
         'project.map_invalid', 'A map identity is required.');
   }
-  final rows = (raw['maps'] as List? ?? const [])
-      .whereType<Map>()
-      .where((entry) => entry['id'] == mapId)
-      .toList();
+  final declarations = (raw['maps'] as List? ?? const []).whereType<Map>();
+  final rows = declarations.where((entry) => entry['id'] == mapId).toList();
   if (rows.length != 1) {
     throw const ProjectSnapshotException('project.map_missing',
         'The selected map must be declared exactly once.');
   }
   final declaration =
       ProjectMapEntry.fromJson(Map<String, dynamic>.from(rows.single));
+  if (completeMapSave) {
+    final path = declaration.relativePath.toLowerCase();
+    if (declarations.any((row) =>
+        row != rows.single &&
+        (row['relativePath'] as String?)?.toLowerCase() == path)) {
+      throw const ProjectSnapshotException('project.map_path_conflict',
+          'The selected map must own its document path.');
+    }
+  }
   final access = loader._handles.resolveProject(handle);
   final mapBytes = await access.readResourceBytes(declaration.relativePath);
   final map = await loader._decodeExecutor.decodeMap(mapBytes.bytes);
@@ -1272,6 +1291,11 @@ Future<ProjectSnapshot> _loadNativeMapEdit(
     'pokemon': raw['pokemon'],
     'maps': [rows.single],
     'tilesets': <Object?>[],
+    if (completeMapSave) ...{
+      'groups': raw['groups'] ?? const [],
+      'newGame': raw['newGame'],
+      'regionalMap': raw['regionalMap'],
+    },
   };
   final indexes = <String, Map<String, List<Map>>>{};
   final admitted = <String, Set<String>>{};
@@ -1400,6 +1424,15 @@ Future<ProjectSnapshot> _loadNativeMapEdit(
       'entries': entries,
       'families': families
     };
+  }
+  if (completeMapSave) {
+    final referenced = _nativeReferenceIds(
+      [...candidates, selected['resourceLibraryCatalog']],
+      _nativeWorkshopReferences['maps']!,
+    )..add(mapId);
+    selected['maps'] = declarations
+        .where((entry) => referenced.contains(entry['id']))
+        .toList();
   }
   final deletedIds = <String>{};
   void deleted(Object? operation) {

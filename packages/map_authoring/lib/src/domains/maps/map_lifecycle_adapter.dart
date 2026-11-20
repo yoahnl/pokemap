@@ -13,6 +13,8 @@ import '../../references/reference_impact.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
+import '../../transactions/required_source_revision.dart';
+import '../../support/authoring_fingerprint.dart';
 import '../../support/authoring_performance_observer.dart';
 import '../../workspace/project_snapshot.dart';
 import 'map_resize_dependencies.dart';
@@ -157,17 +159,27 @@ final class MapLifecycleAdapter {
         'The supplied map document is not valid PokeMap data.',
       );
     }
-    _requireCanonicalMapId(updated.id);
     final snapshot = context.snapshot;
     final before = _requireMap(snapshot, updated.id);
-    final beforeBytes = snapshot.resourceBytes('map:${updated.id}');
-    _validateProjected(snapshot.manifest, [updated]);
+    final identity = 'map:${updated.id}';
+    final beforeBytes = snapshot.resourceBytes(identity);
+    final beforeRevision = snapshot.resourceFingerprints[identity]!;
+    final manifestRevision = context.request.extensions['workshopScope'] == true
+        ? (snapshot.scopedStorageRevisions?['project.json'])
+        : null;
+    if (manifestRevision != null) {
+      MapValidator.validate(updated, projectDialogueContext: snapshot.manifest);
+    } else {
+      _requireCanonicalMapId(updated.id);
+      _validateProjected(snapshot.manifest, [updated]);
+    }
     return _saveMapImages(
         project: snapshot.manifest,
         before: before,
         beforeBytes: beforeBytes,
-        beforeRevision: snapshot.resourceFingerprints['map:${updated.id}']!,
-        updated: updated);
+        beforeRevision: beforeRevision,
+        updated: updated,
+        manifestRevision: manifestRevision);
   }
 
   AuthoringMutationDraft saveSelection({
@@ -188,9 +200,12 @@ final class MapLifecycleAdapter {
     required List<int> beforeBytes,
     required String beforeRevision,
     required MapData updated,
+    String? manifestRevision,
   }) {
-    _requireCanonicalMapId(updated.id);
-    _requireManifestOwnership(project);
+    _requireManifestOwnership(
+      project,
+      requireCanonicalIds: manifestRevision == null,
+    );
     final entry = _requireMapEntry(project, updated.id);
     if (before.id != updated.id) {
       throw _failure('map.id_invalid', 'The saved map identity changed.');
@@ -209,7 +224,20 @@ final class MapLifecycleAdapter {
     }
     _requireChanged(beforeBytes, afterBytes);
     final resource = AuthoringResourceRef(
-        kind: 'map', id: updated.id, revision: beforeRevision);
+      kind: 'map',
+      id: updated.id,
+      revision: beforeRevision,
+      extensions: manifestRevision == null
+          ? const {}
+          : requiredSourceRevision(
+              sourcePath: 'project.json',
+              sourceRevision: manifestRevision,
+              targetRevision: computeAuthoringBytesFingerprint(
+                afterBytes,
+                logicalName: entry.relativePath,
+              ),
+            ),
+    );
     return AuthoringMutationDraft(
       changeSet: AuthoringChangeSet(
         changes: [
@@ -973,6 +1001,7 @@ String _requireCanonicalMapId(String value) {
 void _requireManifestOwnership(
   ProjectManifest manifest, {
   String? allowedLegacyId,
+  bool requireCanonicalIds = true,
 }) {
   final ids = <String>{};
   final paths = <String>{};
@@ -983,7 +1012,9 @@ void _requireManifestOwnership(
         'Map manifest identities are ambiguous.',
       );
     }
-    if (entry.id != allowedLegacyId) _requireCanonicalMapId(entry.id);
+    if (requireCanonicalIds && entry.id != allowedLegacyId) {
+      _requireCanonicalMapId(entry.id);
+    }
     late final String path;
     try {
       path = validateProjectRelativePath(entry.relativePath).join('/');

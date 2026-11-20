@@ -6,7 +6,14 @@ import 'dart:async';
 import 'dart:isolate';
 
 import 'package:map_authoring/map_authoring.dart'
-    show AssetRecord, assetBlobStorageKey, probeProjectAudioSourceBytes;
+    show
+        AssetRecord,
+        AuthoringPlanException,
+        AuthoringRevisionConflict,
+        AuthoringTransactionFaultInjector,
+        ProjectSnapshotException,
+        assetBlobStorageKey,
+        probeProjectAudioSourceBytes;
 import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
@@ -90,12 +97,11 @@ final class LocalMapWorkspaceAdapter
         FieldTraversalZonePort {
   LocalMapWorkspaceAdapter({
     ProjectFileReader? reader,
-    AtomicMapDocumentPersistence? persistence,
+    this.mapSaveFaultInjector,
     this.performanceObserver,
     this.onMapMetadataEntryRead,
     this.onMapMetadataNodeCopied,
-  }) : _reader = reader ?? const LocalProjectFileReader(),
-       _persistence = persistence ?? const AtomicMapDocumentPersistence();
+  }) : _reader = reader ?? const LocalProjectFileReader();
 
   @override
   LocalMapWorkspaceAdapter get _adapter => this;
@@ -108,7 +114,7 @@ final class LocalMapWorkspaceAdapter
   final void Function()? onMapMetadataEntryRead;
   final void Function()? onMapMetadataNodeCopied;
   final ProjectFileReader _reader;
-  final AtomicMapDocumentPersistence _persistence;
+  final AuthoringTransactionFaultInjector? mapSaveFaultInjector;
   final _projects = <String, _ProjectDocument>{};
   final _resourceSelections = <String, ProjectManifest>{};
   final _resourceKindReads = <String, Map<String, _FamilyRead>>{};

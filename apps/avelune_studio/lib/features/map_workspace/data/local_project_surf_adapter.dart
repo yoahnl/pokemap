@@ -47,6 +47,9 @@ extension _LocalProjectSurfAdapter on LocalMapWorkspaceAdapter {
     )
     operation, {
     LocalArtifactStore? artifactStore,
+    AuthoringTransactionFaultInjector? faultInjector,
+    AuthoringSecurityLimits authorizationLimits =
+        const AuthoringSecurityLimits(),
   }) async {
     final policy = await _observeAuthoringPhase(
       'studio.authoring.policy',
@@ -75,6 +78,8 @@ extension _LocalProjectSurfAdapter on LocalMapWorkspaceAdapter {
         snapshotLoader: snapshots,
         catalogFileReader: _reader,
         artifactStore: artifactStore,
+        faultInjector: faultInjector,
+        authorizationLimits: authorizationLimits,
         performanceObserver: performanceObserver,
       ),
     );

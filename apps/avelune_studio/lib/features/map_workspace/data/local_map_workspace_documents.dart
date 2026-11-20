@@ -143,28 +143,92 @@ extension _LocalMapWorkspaceDocuments on LocalMapWorkspaceAdapter {
           projectDialogueContext: project.manifest,
         );
       }
-      final bytes = encodeMapDocumentBytes(current);
       if (session.storage == ProjectSessionStorage.workingCatalog) {
         return await _saveWorkingMap(session, project, base, current);
       }
-      return await _persistence.write(
-        path,
-        bytes,
-        precondition: MapDocumentWritePrecondition.revision(base.revision),
-      );
+      await const AtomicMapDocumentPersistence().recover(path);
+      return await _saveManifestMap(session, project, base, current);
     } on MapWorkspaceFailure {
       rethrow;
-    } on EditorConflictException {
-      throw const MapWorkspaceFailure(
-        MapWorkspaceProblem.conflict,
-        'La carte ou le projet a changé sur le disque. Rien n’a été écrasé ; votre travail reste ouvert.',
-      );
-    } on Object {
+    } on Object catch (failure) {
+      if (failure
+          case EditorConflictException() ||
+              AuthoringRevisionConflict() ||
+              AuthoringPlanException(code: 'plan.stale') ||
+              ProjectSnapshotException(
+                code: 'project.changed_during_snapshot',
+              )) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'La carte ou le projet a changé sur le disque. Votre travail reste ouvert.',
+        );
+      }
       throw const MapWorkspaceFailure(
         MapWorkspaceProblem.writeFailed,
         'La carte n’a pas pu être enregistrée. Votre travail reste ouvert.',
       );
     }
+  }
+
+  Future<String> _saveManifestMap(
+    ProjectSession session,
+    _ProjectDocument project,
+    MapWorkspaceDocument base,
+    MapData current,
+  ) {
+    final parameters = <String, Object?>{'map': current.toJson()};
+    return _withSurfAuthoring(
+      session,
+      (_, opened, api, _) async {
+        await api.attachProject(
+          projectRootPath: session.directoryPath,
+          workspaceHandle: opened.workspaceHandle,
+          projectHandle: opened.projectHandle,
+        );
+        final snapshot = await api.readWorkshopSnapshot(
+          opened.projectHandle,
+          actionId: 'map.save',
+          parameters: parameters,
+        );
+        if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
+                project.revision ||
+            narrativeEventBytesFingerprint(
+                  snapshot.resourceBytes('map:${base.mapId}'),
+                ) !=
+                base.revision) {
+          throw const EditorConflictException(
+            'The map or project changed on disk.',
+          );
+        }
+        if (current == base.map) return base.revision;
+
+        final id = 'studio_map_${DateTime.now().microsecondsSinceEpoch}';
+        final planned = await api.planMutation(
+          opened.projectHandle,
+          AuthoringRequest(
+            requestId: id,
+            actionId: 'map.save',
+            actionVersion: 1,
+            workspaceHandle: opened.workspaceHandle.value,
+            parameters: parameters,
+            expectedRevision: snapshot.revision,
+            idempotencyKey: id,
+            extensions: const {'workshopScope': true},
+          ),
+        );
+        final revision = narrativeEventBytesFingerprint(
+          planned.plan.changeSet.changes.single.afterBytes!,
+        );
+        await _applyMapSavePlan(api, opened, planned, id);
+        return revision;
+      },
+      faultInjector: mapSaveFaultInjector,
+      authorizationLimits: AuthoringSecurityLimits(
+        maxRequestBytes:
+            utf8.encode(jsonEncode(parameters)).length +
+            const AuthoringSecurityLimits().maxRequestBytes,
+      ),
+    );
   }
 
   Future<void> _requireProjectRevision(

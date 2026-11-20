@@ -107,6 +107,10 @@ bool _isScopedMoveRecipeImport(AuthoringRequest request) =>
     request.actionId == 'pokemon.move_recipe.import' &&
     request.extensions['workshopScope'] == true;
 
+bool _isScopedMapSave(AuthoringRequest request) =>
+    request.actionId == 'map.save' &&
+    request.extensions['workshopScope'] == true;
+
 bool _isModelShadowConfiguration(AuthoringRequest request) =>
     request.actionId == 'model3d.configure' &&
         request.parameters.length == 2 &&
@@ -121,7 +125,8 @@ bool _usesNativeWorkshop(AuthoringRequest request) =>
     (request.actionId == 'characterStudio.animationClip.upsert' &&
         request.parameters['kind'] == 'system' &&
         request.extensions['workshopScope'] == true) ||
-    _isScopedPokemonMediaWrite(request);
+    _isScopedPokemonMediaWrite(request) ||
+    _isScopedMapSave(request);
 
 Future<String> _requireNativeMediaProjectPath(
   TransactionFileGateway gateway,
@@ -2052,6 +2057,7 @@ final class _LocalMapAuthoringSession {
     await _idempotencyStore.prepareIncrementalStorage();
     final history = _history;
     if (history is FileAuthoringHistoryStore) await history.prepareLocalHistory();
+    await _reconcileInterruptedMapSaves();
     await _executor.prepareFinalizedJournals(requireHistory: (journal) =>
         requireFinalizedJournalHistory(journal: journal, history: history, blobs: _historyBlobs));
   }
@@ -2090,8 +2096,8 @@ final class _LocalMapAuthoringSession {
         exteriorDeletedDefinitions(request.actionId, request.parameters),
         _mapAtmosphereGateway);
     if (!_logicalMapEdits.containsKey(request.requestId)) {
-      if (_isModelShadowConfiguration(request)) {
-        await _requireModelShadowReconciled();
+      if (_isModelShadowConfiguration(request) || _isScopedMapSave(request)) {
+        await _requireNativeWorkshopReconciled();
       } else if (_isScopedPokemonMediaWrite(request) ||
           _isScopedMoveRecipeImport(request)) {
         await _requireScopedReconciled();
@@ -2255,9 +2261,12 @@ final class _LocalMapAuthoringSession {
     if (plan.mapEditBinding == null) {
       await traceAuthoringPhase(
         'authoring.apply.recovery',
-        _isModelShadowConfiguration(plan.request)
-            ? _requireModelShadowReconciled
-            : _isScopedPokemonMediaWrite(plan.request) ? _requireScopedReconciled : _requireReconciled,
+        _isModelShadowConfiguration(plan.request) ||
+                _isScopedMapSave(plan.request)
+            ? _requireNativeWorkshopReconciled
+            : _isScopedPokemonMediaWrite(plan.request)
+                ? _requireScopedReconciled
+                : _requireReconciled,
       );
     }
     _requireApplicablePlan(plan);
@@ -2378,6 +2387,18 @@ final class _LocalMapAuthoringSession {
           _snapshotLoader.invalidate(projectHandle);
         }
       }
+    } on Object catch (failure, stack) {
+      if (_isScopedMapSave(plan.request)) {
+        try {
+          final journal = await _mapAtmosphereGateway.readJournal(safeOperationId);
+          if (journal?.planId == plan.planId) {
+            await _recovery.discardUnreserved(safeOperationId);
+          }
+        } on Object {
+          Error.throwWithStackTrace(failure, stack);
+        }
+      }
+      rethrow;
     } finally {
       span?.finish();
     }
@@ -2407,7 +2428,7 @@ final class _LocalMapAuthoringSession {
     }
   }
 
-  Future<void> _requireModelShadowReconciled() async {
+  Future<void> _requireNativeWorkshopReconciled() async {
     final pending = await _mapAtmosphereGateway.withExclusiveWriteLock(
       () => readPendingTransactionJournals(_mapAtmosphereGateway),
     );
@@ -2426,6 +2447,41 @@ final class _LocalMapAuthoringSession {
       }
     }
   }
+
+  Future<void> _reconcileInterruptedMapSaves() =>
+      _mapAtmosphereGateway.withExclusiveWriteLock(() async {
+        final pending = await readPendingTransactionJournals(
+          _mapAtmosphereGateway,
+          requirePrepared: true,
+        );
+        for (final journal in pending) {
+          if (journal.scope.actorId != _actor.actorId ||
+              journal.scope.projectId != projectId ||
+              journal.scope.actionId != 'map.save' ||
+              journal.entries.length != 1 ||
+              journal.entries.single.resource.kind != 'map' ||
+              !journal.entries.single.resource.extensions
+                  .containsKey('requiredSource')) {
+            continue;
+          }
+          final inspection = await _recovery.inspectOperation(
+            operationId: journal.operationId,
+            scope: journal.scope,
+          );
+          switch (inspection?.disposition) {
+            case AuthoringRecoveryDisposition.unreservedIntent:
+              await _recovery.discardUnreserved(journal.operationId);
+            case AuthoringRecoveryDisposition.resumable:
+              await _recoveryExecutor.recover(
+                actor: _actor,
+                projectId: projectId,
+                operationId: journal.operationId,
+              );
+            default:
+              break;
+          }
+        }
+      });
 
   Future<void> _requireScopedReconciled() async {
     final pending = await _mapAtmosphereGateway.withExclusiveWriteLock(
@@ -2852,7 +2908,9 @@ final class _LocalMapAuthoringSession {
     final scoped = _workshopPreconditions[plan.planId];
     if (scoped != null) {
       return () async {
-        if (_isScopedPokemonMediaWrite(plan.request) ||
+        if (_isScopedMapSave(plan.request)) {
+          await _requireNativeWorkshopReconciled();
+        } else if (_isScopedPokemonMediaWrite(plan.request) ||
             _isScopedMoveRecipeImport(plan.request)) {
           await _requireScopedReconciled();
         }

@@ -174,33 +174,13 @@ extension _LocalMapWorkingCatalog on LocalMapWorkspaceAdapter {
         idempotencyKey: id,
       ),
     );
-    final confirmation = await api.confirmMutation(
-      opened.projectHandle,
-      planId: planned.planId,
+    await _applyMapSavePlan(
+      api,
+      opened,
+      planned,
+      id,
+      precondition: () => _requireProjectRevision(session, project),
     );
-    try {
-      await api.applyMutation(
-        opened.projectHandle,
-        planId: planned.planId,
-        operationId: id,
-        confirmationToken: confirmation.confirmationToken,
-        precondition: () => _requireProjectRevision(session, project),
-      );
-    } catch (failure, stack) {
-      late final AuthoringMutationResult recovered;
-      try {
-        recovered = await api.recoverMutation(
-          opened.projectHandle,
-          operationId: id,
-        );
-      } catch (_) {
-        Error.throwWithStackTrace(failure, stack);
-      }
-      if (recovered.receipt.status.name != 'applied' &&
-          recovered.receipt.extensions['recoveryOutcome'] != 'resumed') {
-        Error.throwWithStackTrace(failure, stack);
-      }
-    }
     if (project.complete) {
       return _reloadSavedWorkingMap(session, current);
     }
@@ -212,6 +192,42 @@ extension _LocalMapWorkingCatalog on LocalMapWorkspaceAdapter {
     );
     return revision;
   });
+
+  Future<void> _applyMapSavePlan(
+    LocalMapAuthoringMutationApi api,
+    OpenedProject opened,
+    AuthoringMutationPlanResult planned,
+    String operationId, {
+    Future<void> Function()? precondition,
+  }) async {
+    final confirmation = await api.confirmMutation(
+      opened.projectHandle,
+      planId: planned.planId,
+    );
+    try {
+      await api.applyMutation(
+        opened.projectHandle,
+        planId: planned.planId,
+        operationId: operationId,
+        confirmationToken: confirmation.confirmationToken,
+        precondition: precondition,
+      );
+    } catch (failure, stack) {
+      late final AuthoringMutationResult recovered;
+      try {
+        recovered = await api.recoverMutation(
+          opened.projectHandle,
+          operationId: operationId,
+        );
+      } catch (_) {
+        Error.throwWithStackTrace(failure, stack);
+      }
+      if (recovered.receipt.status.name != 'applied' &&
+          recovered.receipt.extensions['recoveryOutcome'] != 'resumed') {
+        Error.throwWithStackTrace(failure, stack);
+      }
+    }
+  }
 
   Future<String> _acceptSavedWorkingMap(
     ProjectSession session,

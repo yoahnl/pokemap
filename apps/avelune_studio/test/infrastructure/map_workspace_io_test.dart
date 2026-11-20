@@ -5,8 +5,32 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart'
+    show AuthoringTransactionCheckpoint;
 import 'package:map_authoring/map_authoring_documents.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
+
+final class _RecordingReader implements ProjectFileReader {
+  final reads = <String>[];
+  final _delegate = const LocalProjectFileReader();
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      _delegate.canonicalizeDirectory(path);
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) {
+    reads.add(relativePath);
+    return _delegate.readBytes(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
+  }
+}
 
 void main() {
   late Directory root;
@@ -63,8 +87,13 @@ void main() {
   Matcher problem(MapWorkspaceProblem value) =>
       isA<MapWorkspaceFailure>().having((e) => e.problem, 'problem', value);
 
-  test('read is unchanged and save reload preserves untouched data', () async {
+  test('a large map reopens with its untouched data preserved', () async {
+    final largeMap = initial.copyWith(
+      properties: {...initial.properties, 'notes': 'x' * (1024 * 1024)},
+    );
+    await mapFile.writeAsBytes(encodeMapDocumentBytes(largeMap));
     final before = await mapFile.readAsBytes();
+    final beforeManifest = await manifestFile.readAsBytes();
     final loaded = await port.loadMap(session, entry);
     expect(loaded.revision, narrativeEventBytesFingerprint(before));
     expect(await mapFile.readAsBytes(), before);
@@ -76,9 +105,73 @@ void main() {
     expect(actual.map, changed);
     expect(actual.revision, revision);
     expect(actual.map.layers.last, initial.layers.last);
-    expect(actual.map.properties, initial.properties);
-    expect(await root.list().length, 2);
+    expect(actual.map.properties, largeMap.properties);
+    expect(await manifestFile.readAsBytes(), beforeManifest);
   });
+
+  test(
+    'manifest map saves record canonical history without reading other maps',
+    () async {
+      final other = File('${root.path}/elsewhere.json');
+      await other.writeAsString('unrelated map bytes');
+      final manifest = ProjectManifest(
+        name: 'Test',
+        maps: [
+          entry,
+          const ProjectMapEntry(
+            id: 'elsewhere',
+            name: 'Elsewhere',
+            relativePath: 'elsewhere.json',
+          ),
+        ],
+        tilesets: [],
+      );
+      await manifestFile.writeAsString(jsonEncode(manifest.toJson()));
+      final reader = _RecordingReader();
+      final adapter = LocalMapWorkspaceAdapter(reader: reader);
+      await adapter.loadProject(session);
+      final loaded = await adapter.loadMap(session, entry);
+      reader.reads.clear();
+      final changed = loaded.map.copyWith(name: 'Saved through authoring');
+      final revision = await adapter.saveMap(session, loaded, changed);
+      final saveReads = List<String>.of(reader.reads);
+      expect(saveReads, isNot(contains('elsewhere.json')));
+      expect(await other.readAsString(), 'unrelated map bytes');
+
+      final reopened = LocalMapWorkspaceAdapter();
+      await reopened.loadProject(session);
+      final actual = await reopened.loadMap(session, entry);
+      expect(actual.map, changed);
+      expect(actual.revision, revision);
+
+      final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [root.path],
+        fileReader: reader,
+      );
+      final handles = WorkspaceHandleStore();
+      final opener = ProjectOpenService(
+        policy: policy,
+        fileReader: reader,
+        handles: handles,
+      );
+      final opened = await opener.openProject(root.path);
+      final api = LocalMapAuthoringMutationApi(
+        policy: policy,
+        snapshotLoader: ProjectSnapshotLoader(handles: handles),
+      );
+      await api.attachProject(
+        projectRootPath: root.path,
+        projectHandle: opened.projectHandle,
+        workspaceHandle: opened.workspaceHandle,
+      );
+      addTearDown(() => api.detachWorkspace(opened.workspaceHandle));
+      final history = await api.history(opened.projectHandle, limit: 2);
+      final entries = history['entries'] as List;
+      expect(entries, hasLength(1));
+      expect((entries.single as Map)['receipt']['actionId'], 'map.save');
+      expect(saveReads, contains(entry.relativePath));
+    },
+  );
 
   test(
     'external byte revision conflict never overwrites the newer file',
@@ -111,22 +204,19 @@ void main() {
   );
 
   for (final checkpoint in [
-    AtomicMapDocumentWriteCheckpoint.afterTempFlushed,
-    AtomicMapDocumentWriteCheckpoint.afterJournalPrepared,
-    AtomicMapDocumentWriteCheckpoint.beforeSecondCompareAndSwap,
+    AuthoringTransactionCheckpoint.afterJournalPreparing,
+    AuthoringTransactionCheckpoint.afterPayloadsStaged,
   ]) {
     test(
       'failure at ${checkpoint.name} preserves last good map and retry works',
       () async {
         var fail = true;
         final failing = LocalMapWorkspaceAdapter(
-          persistence: AtomicMapDocumentPersistence(
-            faultInjector: (point, _) {
-              if (point == checkpoint && fail) {
-                throw const FileSystemException('injected write failure');
-              }
-            },
-          ),
+          mapSaveFaultInjector: (context) {
+            if (context.checkpoint == checkpoint && fail) {
+              throw const FileSystemException('injected write failure');
+            }
+          },
         );
         await failing.loadProject(session);
         final loaded = await failing.loadMap(session, entry);
@@ -137,13 +227,30 @@ void main() {
           throwsA(problem(MapWorkspaceProblem.writeFailed)),
         );
         expect(await mapFile.readAsBytes(), before);
-        expect(await root.list().length, 2);
         fail = false;
         await failing.saveMap(session, loaded, changed);
         expect((await failing.loadMap(session, entry)).map, changed);
       },
     );
   }
+
+  test('an interrupted reserved save recovers its committed map', () async {
+    final interrupted = LocalMapWorkspaceAdapter(
+      mapSaveFaultInjector: (context) {
+        if (context.checkpoint ==
+            AuthoringTransactionCheckpoint.beforeResourcePromotion) {
+          throw const FileSystemException('injected write failure');
+        }
+      },
+    );
+    await interrupted.loadProject(session);
+    final loaded = await interrupted.loadMap(session, entry);
+    final changed = loaded.map.copyWith(name: 'Recovered');
+    final revision = await interrupted.saveMap(session, loaded, changed);
+    final reopened = await port.loadMap(session, entry);
+    expect(reopened.map, changed);
+    expect(reopened.revision, revision);
+  });
 
   test(
     'future unknown map fields are refused instead of lost on save',
