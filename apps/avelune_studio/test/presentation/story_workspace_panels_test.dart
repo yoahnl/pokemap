@@ -1,3 +1,5 @@
+import 'dart:ui' show SemanticsAction, Tristate;
+
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/features/story_workspace/application/story_workspace_state.dart';
 import 'package:avelune_studio/l10n/app_localizations.dart';
@@ -9,6 +11,45 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('Trame gives the main content the reference panel proportions', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: StoryWorkspace(
+            section: StorySection.trame,
+            editable: true,
+            onSelected: (_) {},
+            builder: (panels) =>
+                panels(const Text('Contenu'), const Text('Détails')),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byType(StoryNavigation)).width, 250);
+    final inspector = find.byKey(const ValueKey('story-inspector'));
+    final toggle = find.byKey(const ValueKey('story-toggle-inspector'));
+    expect(tester.getSize(inspector).width, 250);
+    final open = tester.getSemantics(toggle).getSemanticsData();
+    expect(open.flagsCollection.isExpanded, Tristate.isTrue);
+    expect(open.hasAction(SemanticsAction.tap), isTrue);
+    expect(open.label, 'Masquer l’inspecteur');
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(inspector, findsNothing);
+    expect(
+      tester.getSemantics(toggle).getSemanticsData().flagsCollection.isExpanded,
+      Tristate.isFalse,
+    );
+    expect(tester.getSemantics(toggle).label, 'Afficher l’inspecteur');
+  });
+
   for (final section in [StorySection.behaviours, StorySection.trame]) {
     for (final scale in [1.0, 2.0]) {
       testWidgets(

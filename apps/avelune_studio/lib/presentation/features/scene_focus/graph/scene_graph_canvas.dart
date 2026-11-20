@@ -204,80 +204,100 @@ class SceneGraphCanvasState extends State<SceneGraphCanvas> {
               child: Focus(
                 focusNode: _focus,
                 onKeyEvent: _key,
-                child: Listener(
-                  key: const ValueKey('scene-graph-canvas'),
-                  behavior: HitTestBehavior.opaque,
-                  onPointerDown: _down,
-                  onPointerHover: (event) => _pointer = event.localPosition,
-                  onPointerMove: _move,
-                  onPointerUp: _up,
-                  onPointerCancel: _up,
-                  onPointerSignal: _signal,
-                  onPointerPanZoomStart: (_) => _pinchScale = 1,
-                  onPointerPanZoomUpdate: _pinch,
-                  child: ClipRect(
-                    child: ColoredBox(
-                      color: scheme.surfaceContainerLowest,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: ValueListenableBuilder(
-                              valueListenable: camera,
-                              builder: (context, value, _) => CustomPaint(
-                                painter: SceneGraphGridPainter(
-                                  camera: value,
-                                  minor: scheme.outlineVariant.withValues(
-                                    alpha: .43,
-                                  ),
-                                  major: scheme.outlineVariant.withValues(
-                                    alpha: .84,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned.fill(
-                            child: ValueListenableBuilder(
-                              valueListenable: camera,
-                              builder: (context, value, child) => Transform(
-                                transform: _matrix(value, bounds.topLeft),
-                                child: child,
-                              ),
-                              child: IgnorePointer(child: world),
-                            ),
-                          ),
-                          if (marquee case (final start?, final end?))
+                onFocusChange: (_) => setState(() {}),
+                child: Semantics(
+                  label: context.l10n.sceneGraphSummary(
+                    widget.scene.graph.nodes.length,
+                    widget.scene.graph.edges.length,
+                  ),
+                  explicitChildNodes: true,
+                  child: Listener(
+                    key: const ValueKey('scene-graph-canvas'),
+                    behavior: HitTestBehavior.opaque,
+                    onPointerDown: _down,
+                    onPointerHover: (event) => _pointer = event.localPosition,
+                    onPointerMove: _move,
+                    onPointerUp: _up,
+                    onPointerCancel: _up,
+                    onPointerSignal: _signal,
+                    onPointerPanZoomStart: (_) => _pinchScale = 1,
+                    onPointerPanZoomUpdate: _pinch,
+                    child: ClipRect(
+                      child: ColoredBox(
+                        color: scheme.surfaceContainerLowest,
+                        child: Stack(
+                          children: [
                             Positioned.fill(
-                              child: CustomPaint(
-                                painter: SceneGraphMarqueePainter(
-                                  rect: Rect.fromPoints(start, end),
-                                  color: selectionColor,
-                                ),
-                              ),
-                            ),
-                          if (wire != null)
-                            Positioned.fill(
-                              child: CustomPaint(
-                                key: const ValueKey('scene-graph-draft-wire'),
-                                painter: SceneGraphDraftWirePainter(
-                                  from: camera.value.toScreen(
-                                    sceneGraphOutputAnchor(
-                                      shown.card(wire.from.nodeId)!,
-                                      wire.from.portId,
+                              child: ValueListenableBuilder(
+                                valueListenable: camera,
+                                builder: (context, value, _) => CustomPaint(
+                                  painter: SceneGraphGridPainter(
+                                    camera: value,
+                                    minor: scheme.outlineVariant.withValues(
+                                      alpha: .43,
+                                    ),
+                                    major: scheme.outlineVariant.withValues(
+                                      alpha: .84,
                                     ),
                                   ),
-                                  to: wire.end,
-                                  color: selectionColor,
                                 ),
                               ),
                             ),
-                        ],
+                            Positioned.fill(
+                              child: ValueListenableBuilder(
+                                valueListenable: camera,
+                                builder: (context, value, child) => Transform(
+                                  transform: _matrix(value, bounds.topLeft),
+                                  child: child,
+                                ),
+                                child: IgnorePointer(child: world),
+                              ),
+                            ),
+                            if (marquee case (final start?, final end?))
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: SceneGraphMarqueePainter(
+                                    rect: Rect.fromPoints(start, end),
+                                    color: selectionColor,
+                                  ),
+                                ),
+                              ),
+                            if (wire != null)
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  key: const ValueKey('scene-graph-draft-wire'),
+                                  painter: SceneGraphDraftWirePainter(
+                                    from: camera.value.toScreen(
+                                      sceneGraphOutputAnchor(
+                                        shown.card(wire.from.nodeId)!,
+                                        wire.from.portId,
+                                      ),
+                                    ),
+                                    to: wire.end,
+                                    color: selectionColor,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
+            if (_focus.hasPrimaryFocus &&
+                FocusManager.instance.highlightMode ==
+                    FocusHighlightMode.traditional)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: selectionColor),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               left: StudioSpacing.l,
               bottom: StudioSpacing.l,

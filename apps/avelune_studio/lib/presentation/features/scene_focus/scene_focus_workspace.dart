@@ -30,10 +30,8 @@ class SceneFocusWorkspace extends StatefulWidget {
     this.onOpenBehaviour,
   });
 
-  static const double sideWidth = 304;
+  static const double sideWidth = 248;
   static const double outlineWidth = 204;
-  static const double _compactSideWidth = 246;
-  static const double _preferredCanvasWidth = 764;
 
   final SceneFocusController focus;
   final SceneAsset scene;
@@ -154,6 +152,12 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace>
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final (outlineWidth, detailsWidth) = switch (MediaQuery.sizeOf(context)
+        .width) {
+      <= 850 => (150.0, 205.0),
+      <= 1150 => (180.0, 228.0),
+      _ => (SceneFocusWorkspace.outlineWidth, SceneFocusWorkspace.sideWidth),
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -209,103 +213,93 @@ class _SceneFocusWorkspaceState extends State<SceneFocusWorkspace>
         ),
         const Divider(height: 1),
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) => Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: SceneFocusWorkspace.outlineWidth,
-                  child: SceneGraphSidebar(
-                    outline: SceneGraphOutline(
-                      scene: scene,
-                      selection: _selection,
-                      dialogues: dialogues.entries,
-                      factNames: _currentFactNames,
-                      search: _outlineSearch,
-                      searchFocus: _outlineFocus,
-                      onShow: _showStep,
-                    ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: outlineWidth,
+                child: SceneGraphSidebar(
+                  outline: SceneGraphOutline(
+                    scene: scene,
+                    selection: _selection,
+                    dialogues: dialogues.entries,
+                    factNames: _currentFactNames,
+                    search: _outlineSearch,
+                    searchFocus: _outlineFocus,
+                    onShow: _showStep,
+                  ),
+                  project: widget.project,
+                  map: widget.map,
+                  palette: _palette,
+                  onTab: _setPalette,
+                  onAdd: _editable
+                      ? (template) =>
+                            _canvas.currentState?.addFromPalette(template)
+                      : null,
+                ),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: KeyedSubtree(
+                  key: ValueKey('scene-focus-graph-${scene.id}'),
+                  child: SceneGraphCanvas(
+                    key: _canvas,
+                    scene: scene,
                     project: widget.project,
                     map: widget.map,
-                    palette: _palette,
-                    onTab: _setPalette,
-                    onAdd: _editable
-                        ? (template) =>
-                              _canvas.currentState?.addFromPalette(template)
-                        : null,
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  child: KeyedSubtree(
-                    key: ValueKey('scene-focus-graph-${scene.id}'),
-                    child: SceneGraphCanvas(
-                      key: _canvas,
-                      scene: scene,
-                      project: widget.project,
-                      map: widget.map,
-                      checks: checks,
-                      pathNodeIds: focus.path?.nodeIds ?? const [],
-                      pathChoices: focus.choices,
-                      dialogues: dialogues.entries,
-                      choiceLabels: dialogues.labels,
-                      factNames: _currentFactNames,
-                      onChanged: _editable ? focus.edit : null,
-                      onSelectionChanged: (ids) =>
-                          setState(() => _selection = ids),
-                      onFind: _findStep,
-                      preparing: focus.draft.preparing,
-                    ),
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                SizedBox(
-                  width:
-                      (constraints.maxWidth -
-                              SceneFocusWorkspace.outlineWidth -
-                              SceneFocusWorkspace._preferredCanvasWidth -
-                              2)
-                          .clamp(
-                            SceneFocusWorkspace._compactSideWidth,
-                            SceneFocusWorkspace.sideWidth,
-                          )
-                          .toDouble(),
-                  child: SceneFocusSide(
-                    focus: focus,
+                    checks: checks,
+                    pathNodeIds: focus.path?.nodeIds ?? const [],
+                    pathChoices: focus.choices,
                     dialogues: dialogues.entries,
                     choiceLabels: dialogues.labels,
-                    dialogueNotices: [
-                      for (final MapEntry(:key, :value)
-                          in dialogues.notices.entries)
-                        Text(
-                          value == DialogueChoicePreviewStatus.unavailable
-                              ? l10n.sceneGraphDialogueUnavailable(
-                                  dialogues.entries[key]!.name,
-                                )
-                              : l10n.sceneGraphDialogueSource(
-                                  dialogues.entries[key]!.name,
-                                ),
-                          key: ValueKey(
-                            'scene-graph-dialogue-${value.name}-$key',
-                          ),
-                        ),
-                    ],
-                    onOpenBehaviour: widget.onOpenBehaviour,
-                    leading: SceneGraphInspector(
-                      scene: scene,
-                      project: widget.project,
-                      map: widget.map,
-                      selection: _selection,
-                      checks: checks,
-                      editable: _editable,
-                      onEdit: _editStep,
-                      onShow: _showStep,
-                      dialogueLanguage: dialogues.language,
-                    ),
+                    factNames: _currentFactNames,
+                    onChanged: _editable ? focus.edit : null,
+                    onSelectionChanged: (ids) =>
+                        setState(() => _selection = ids),
+                    onFind: _findStep,
+                    preparing: focus.draft.preparing,
                   ),
                 ),
-              ],
-            ),
+              ),
+              const VerticalDivider(width: 1),
+              SizedBox(
+                key: const ValueKey('scene-graph-details-pane'),
+                width: detailsWidth,
+                child: SceneFocusSide(
+                  focus: focus,
+                  dialogues: dialogues.entries,
+                  choiceLabels: dialogues.labels,
+                  dialogueNotices: [
+                    for (final MapEntry(:key, :value)
+                        in dialogues.notices.entries)
+                      Text(
+                        value == DialogueChoicePreviewStatus.unavailable
+                            ? l10n.sceneGraphDialogueUnavailable(
+                                dialogues.entries[key]!.name,
+                              )
+                            : l10n.sceneGraphDialogueSource(
+                                dialogues.entries[key]!.name,
+                              ),
+                        key: ValueKey(
+                          'scene-graph-dialogue-${value.name}-$key',
+                        ),
+                      ),
+                  ],
+                  onOpenBehaviour: widget.onOpenBehaviour,
+                  leading: SceneGraphInspector(
+                    scene: scene,
+                    project: widget.project,
+                    map: widget.map,
+                    selection: _selection,
+                    checks: checks,
+                    editable: _editable,
+                    onEdit: _editStep,
+                    onShow: _showStep,
+                    dialogueLanguage: dialogues.language,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

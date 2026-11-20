@@ -42,41 +42,56 @@ class GameBehaviourWhen extends StatelessWidget {
             binding.triggerKinds(candidate).isNotEmpty)
           candidate,
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        StudioSelect(
-          key: const ValueKey('story-trigger-source'),
-          label: l10n.triggersSource,
-          value: element.key,
-          options: {
-            for (final carrier in carriers)
-              carrier.key: mapBuilderStoryName(carrier, l10n),
-          },
-          onChanged: editable
-              ? (value) =>
-                    _move(carriers.singleWhere((item) => item.key == value))
-              : null,
-        ),
-        const SizedBox(height: StudioSpacing.s),
-        StudioSelect(
-          key: const ValueKey('map-story-when'),
-          label: l10n.triggersEvent,
-          value: record.source?.kind.name ?? '',
-          options: {
-            if (record.source == null) '': l10n.storyTrigger('none'),
-            for (final kind in {...kinds, ?record.source?.kind})
-              kind.name: l10n.storyTrigger(kind.name),
-          },
-          onChanged: editable
-              ? (value) => binding.setTrigger(
-                  element,
-                  record,
-                  NarrativeEventSourceKind.values.byName(value),
-                )
-              : null,
-        ),
-      ],
+    final event = StudioSelect(
+      key: const ValueKey('map-story-when'),
+      label: l10n.triggersEvent,
+      value: record.source?.kind.name ?? '',
+      compact: true,
+      options: {
+        if (record.source == null) '': l10n.storyTrigger('none'),
+        for (final kind in {...kinds, ?record.source?.kind})
+          kind.name: l10n.storyTrigger(kind.name),
+      },
+      onChanged: editable
+          ? (value) => binding.setTrigger(
+              element,
+              record,
+              NarrativeEventSourceKind.values.byName(value),
+            )
+          : null,
+    );
+    final source = StudioSelect(
+      key: const ValueKey('story-trigger-source'),
+      label: l10n.triggersSource,
+      value: element.key,
+      compact: true,
+      options: {
+        for (final carrier in carriers)
+          carrier.key: mapBuilderStoryName(carrier, l10n),
+      },
+      onChanged: editable
+          ? (value) => _move(carriers.singleWhere((item) => item.key == value))
+          : null,
+    );
+    final minWidth = 520 * MediaQuery.textScalerOf(context).scale(12) / 12;
+    return LayoutBuilder(
+      builder: (context, constraints) => constraints.maxWidth >= minWidth
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: event),
+                const SizedBox(width: StudioSpacing.s),
+                Expanded(child: source),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                event,
+                const SizedBox(height: StudioSpacing.s),
+                source,
+              ],
+            ),
     );
   }
 }

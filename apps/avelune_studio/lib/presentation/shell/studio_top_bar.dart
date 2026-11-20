@@ -40,104 +40,113 @@ class StudioTopBar extends StatelessWidget {
   final String? redoUnavailableReason;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) =>
-        _build(context, compact: constraints.maxWidth < studioTopBarWideWidth),
-  );
+  Widget build(BuildContext context) => LayoutBuilder(builder: _build);
 
-  Widget _build(BuildContext context, {required bool compact}) {
+  Widget _build(BuildContext context, BoxConstraints constraints) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final labelSize = theme.textTheme.labelLarge?.fontSize ?? 14;
+    final scale = MediaQuery.textScalerOf(context).scale(labelSize) / labelSize;
+    final stacked =
+        scale >= 1.5 && constraints.maxWidth < studioTopBarWideWidth * scale;
+    final compact = stacked || constraints.maxWidth < studioTopBarWideWidth;
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
+    final location = <Widget>[
+      const AveluneWordmark(height: 36),
+      const SizedBox(width: StudioSpacing.xxl * 2),
+      Flexible(
+        child: Text(projectName, style: muted, overflow: TextOverflow.ellipsis),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: StudioSpacing.m),
+        child: Icon(
+          Icons.chevron_right,
+          size: 16,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      _MapSelector(maps: maps, activeMapId: activeMapId, onSelect: onSelectMap),
+    ];
+    final actions = <Widget>[
+      _BarIcon(
+        label: onUndo == null
+            ? undoUnavailableReason ?? context.l10n.topBarUndo
+            : context.l10n.topBarUndo,
+        icon: Icons.undo,
+        onPressed: onUndo,
+      ),
+      _BarIcon(
+        label: onRedo == null
+            ? redoUnavailableReason ?? context.l10n.topBarRedo
+            : context.l10n.topBarRedo,
+        icon: Icons.redo,
+        onPressed: onRedo,
+      ),
+      const _BarDivider(),
+      _BarAction(
+        label: context.l10n.topBarContent,
+        icon: Icons.layers_outlined,
+        compact: compact,
+      ),
+      _BarAction(
+        label: context.l10n.topBarMapSettings,
+        icon: Icons.tune,
+        compact: compact,
+      ),
+      const SizedBox(width: StudioSpacing.l),
+      const StudioLanguageMenu(),
+      const SizedBox(width: StudioSpacing.s),
+      _SaveStatus(saveState, compact: compact),
+      const SizedBox(width: StudioSpacing.l),
+      StudioButton(
+        key: const ValueKey('studio-save'),
+        label: context.l10n.topBarSave,
+        variant: StudioButtonVariant.secondary,
+        onPressed: saveState == StudioSaveState.saving ? null : onSave,
+      ),
+      const SizedBox(width: StudioSpacing.m),
+      _BarIcon(
+        key: const ValueKey('studio-export-game'),
+        label: context.l10n.exportGameTitle,
+        icon: Icons.file_upload_outlined,
+        onPressed: onExportGame,
+      ),
+      const SizedBox(width: StudioSpacing.m),
+      StudioButton(
+        key: const ValueKey('studio-test-map'),
+        label: context.l10n.topBarTestMap,
+        icon: Icons.play_arrow_rounded,
+        variant: StudioButtonVariant.primary,
+        loading: testing,
+        onPressed: onTestMap,
+      ),
+    ];
     return Ink(
       key: const ValueKey('studio-top-bar'),
-      height: studioTopBarHeight,
+      height: stacked ? null : studioTopBarHeight,
       padding: const EdgeInsets.symmetric(horizontal: StudioSpacing.xl),
       decoration: BoxDecoration(
         color: scheme.surface,
         border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
-      child: Row(
-        children: [
-          const AveluneWordmark(height: 36),
-          const SizedBox(width: StudioSpacing.xxl * 2),
-          Flexible(
-            child: Text(
-              projectName,
-              style: muted,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: StudioSpacing.m),
-            child: Icon(
-              Icons.chevron_right,
-              size: 16,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-          _MapSelector(
-            maps: maps,
-            activeMapId: activeMapId,
-            onSelect: onSelectMap,
-          ),
-          const Spacer(),
-          _BarIcon(
-            label: onUndo == null
-                ? undoUnavailableReason ?? context.l10n.topBarUndo
-                : context.l10n.topBarUndo,
-            icon: Icons.undo,
-            onPressed: onUndo,
-          ),
-          _BarIcon(
-            label: onRedo == null
-                ? redoUnavailableReason ?? context.l10n.topBarRedo
-                : context.l10n.topBarRedo,
-            icon: Icons.redo,
-            onPressed: onRedo,
-          ),
-          const _BarDivider(),
-          _BarAction(
-            label: context.l10n.topBarContent,
-            icon: Icons.layers_outlined,
-            compact: compact,
-          ),
-          _BarAction(
-            label: context.l10n.topBarMapSettings,
-            icon: Icons.tune,
-            compact: compact,
-          ),
-          const SizedBox(width: StudioSpacing.l),
-          const StudioLanguageMenu(),
-          const SizedBox(width: StudioSpacing.s),
-          _SaveStatus(saveState, compact: compact),
-          const SizedBox(width: StudioSpacing.l),
-          StudioButton(
-            key: const ValueKey('studio-save'),
-            label: context.l10n.topBarSave,
-            variant: StudioButtonVariant.secondary,
-            onPressed: saveState == StudioSaveState.saving ? null : onSave,
-          ),
-          const SizedBox(width: StudioSpacing.m),
-          _BarIcon(
-            key: const ValueKey('studio-export-game'),
-            label: context.l10n.exportGameTitle,
-            icon: Icons.file_upload_outlined,
-            onPressed: onExportGame,
-          ),
-          const SizedBox(width: StudioSpacing.m),
-          StudioButton(
-            key: const ValueKey('studio-test-map'),
-            label: context.l10n.topBarTestMap,
-            icon: Icons.play_arrow_rounded,
-            variant: StudioButtonVariant.primary,
-            loading: testing,
-            onPressed: onTestMap,
-          ),
-        ],
-      ),
+      child: stacked
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: studioTopBarHeight,
+                  child: Row(children: location),
+                ),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: actions,
+                ),
+              ],
+            )
+          : Row(children: [...location, const Spacer(), ...actions]),
     );
   }
 }

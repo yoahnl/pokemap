@@ -98,7 +98,10 @@ class _TrameMilestoneJournalState extends State<TrameMilestoneJournal>
         Text(l10n.trameJournalHint, style: theme.textTheme.bodySmall),
         const SizedBox(height: StudioSpacing.m),
         if (state != null)
-          SizedBox(height: 120, child: state)
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 120),
+            child: state,
+          )
         else ...[
           StudioDraftField(
             key: const ValueKey('trame-journal-title'),

@@ -133,11 +133,19 @@ void main() {
     );
     await openWholeGame(tester);
 
+    final background = find.semantics.byLabel(RegExp(r'^Trame,'));
+    expect(background, findsOneWidget);
     await _openTriggerScene(tester, behaviourId(1));
 
+    expect(background, findsNothing);
+    expect(
+      tester.getSemantics(_key('scene-focus-close')).label,
+      'Fermer la scène',
+    );
     expect(_key('scene-focus'), findsOneWidget);
     expect(index.documentRequests, ['gate']);
     expect(_key('scene-focus-graph-gate'), findsOneWidget);
+    expect(tester.getSize(_key('scene-graph-details-pane')).width, 248);
     for (final id in ['start', 'check', 'meet', 'end']) {
       expect(_card(id), findsOneWidget);
     }
@@ -146,6 +154,19 @@ void main() {
     expect(_key('scene-focus-launcher-${behaviourId(1)}'), findsOneWidget);
     expect(_key('scene-focus-launcher-${behaviourId(2)}'), findsOneWidget);
     expect(_key('scene-focus-fact-met'), findsOneWidget);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await settleMemory(tester);
+    final search = find.descendant(
+      of: _key('scene-graph-outline-search'),
+      matching: find.byType(EditableText),
+    );
+    expect(
+      tester.widget<EditableText>(search).focusNode.hasPrimaryFocus,
+      isTrue,
+    );
 
     await _tap(tester, 'scene-graph-outline-meet');
     expect(_key('scene-graph-inspector-meet'), findsOneWidget);
@@ -184,9 +205,19 @@ void main() {
     );
     expect(index.documentRequests, ['gate']);
 
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await settleMemory(tester);
+    expect(_key('scene-focus-close').hitTestable(), findsOneWidget);
+    expect(_key('scene-graph-outline-search').hitTestable(), findsOneWidget);
+    expect(_key('scene-graph-show-all').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await settleMemory(tester);
     expect(_key('scene-focus'), findsNothing);
+    expect(background, findsOneWidget);
   });
 
   testWidgets('the scene opens from a Trame milestone and from the Carte', (

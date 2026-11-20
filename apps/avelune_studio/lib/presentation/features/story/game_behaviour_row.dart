@@ -95,7 +95,7 @@ class GameBehaviourRowTile extends StatelessWidget {
       selected: selected,
       leading: compact ? const Icon(Icons.bolt_outlined, size: 18) : null,
       subtitle: compact
-          ? '${l10n.behaviourElement(row)}${badge == null ? '' : '\n${badge.$1}'}'
+          ? [l10n.behaviourElement(row), ?badge?.$1].join(' · ')
           : summary == null
           ? place
           : '$place\n${l10n.behaviourSummary(summary, factName)}',

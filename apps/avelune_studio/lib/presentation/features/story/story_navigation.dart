@@ -43,53 +43,64 @@ class StoryNavigation extends StatelessWidget {
   final StudioBadge? verificationMarker;
 
   @override
-  Widget build(BuildContext context) => FocusTraversalGroup(
-    policy: WidgetOrderTraversalPolicy(),
-    child: StudioSidebar(
-      width: selected == StorySection.behaviours ? 190 : 240,
-      child: ListView(
-        key: const ValueKey('story-navigation'),
-        children: [
-          StudioPageHeader(
-            title: context.l10n.storyWorkspaceTitle,
-            description: context.l10n.storyWorkspaceHint,
-          ),
-          for (final section in StorySection.values)
-            Padding(
-              padding: const EdgeInsets.only(bottom: StudioSpacing.xs),
-              child: StudioNavigationEntry(
-                key: ValueKey('story-section-${section.name}'),
-                label: storySectionLabel(context, section),
-                detail: storySectionHint(context, section),
-                icon: switch (section) {
-                  StorySection.trame => Icons.auto_stories_outlined,
-                  StorySection.behaviours => Icons.bolt_outlined,
-                  StorySection.scenes => Icons.account_tree_outlined,
-                  StorySection.dialogues => Icons.chat_bubble_outline,
-                  StorySection.facts => Icons.flag_outlined,
-                  StorySection.rules => Icons.rule_outlined,
-                  StorySection.verification => Icons.fact_check_outlined,
-                },
-                selected: section == selected,
-                marker: switch ((section, verificationMarker)) {
-                  (StorySection.verification, final marker?) => StudioBadge(
-                    marker.label,
-                    key: marker.key,
-                    icon: marker.icon,
-                    tone: marker.tone,
-                    wrapLabel: true,
-                  ),
-                  _ => null,
-                },
-                markerLabel: section == StorySection.verification
-                    ? verificationMarker?.label
-                    : null,
-                markerBelowDetail: section == StorySection.verification,
-                onTap: () => onSelected(section),
-              ),
+  Widget build(BuildContext context) {
+    final viewport = MediaQuery.sizeOf(context).width;
+    final width = switch ((selected, viewport)) {
+      (StorySection.trame, <= 1150) => 220.0,
+      (StorySection.trame, <= 1390) => 250.0,
+      (StorySection.trame, _) => 280.0,
+      (StorySection.behaviours, <= 1100) => 165.0,
+      (StorySection.behaviours, _) => 190.0,
+      _ => 240.0,
+    };
+    return FocusTraversalGroup(
+      policy: WidgetOrderTraversalPolicy(),
+      child: StudioSidebar(
+        width: width,
+        child: ListView(
+          key: const ValueKey('story-navigation'),
+          children: [
+            StudioPageHeader(
+              title: context.l10n.storyWorkspaceTitle,
+              description: context.l10n.storyWorkspaceHint,
             ),
-        ],
+            for (final section in StorySection.values)
+              Padding(
+                padding: const EdgeInsets.only(bottom: StudioSpacing.xs),
+                child: StudioNavigationEntry(
+                  key: ValueKey('story-section-${section.name}'),
+                  label: storySectionLabel(context, section),
+                  detail: storySectionHint(context, section),
+                  icon: switch (section) {
+                    StorySection.trame => Icons.auto_stories_outlined,
+                    StorySection.behaviours => Icons.bolt_outlined,
+                    StorySection.scenes => Icons.account_tree_outlined,
+                    StorySection.dialogues => Icons.chat_bubble_outline,
+                    StorySection.facts => Icons.flag_outlined,
+                    StorySection.rules => Icons.rule_outlined,
+                    StorySection.verification => Icons.fact_check_outlined,
+                  },
+                  selected: section == selected,
+                  marker: switch ((section, verificationMarker)) {
+                    (StorySection.verification, final marker?) => StudioBadge(
+                      marker.label,
+                      key: marker.key,
+                      icon: marker.icon,
+                      tone: marker.tone,
+                      wrapLabel: true,
+                    ),
+                    _ => null,
+                  },
+                  markerLabel: section == StorySection.verification
+                      ? verificationMarker?.label
+                      : null,
+                  markerBelowDetail: section == StorySection.verification,
+                  onTap: () => onSelected(section),
+                ),
+              ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

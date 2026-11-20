@@ -1,3 +1,5 @@
+import 'dart:ui' show SemanticsAction, Tristate;
+
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -101,6 +103,36 @@ void main() {
     expect(find.byKey(const ValueKey('studio-story')), findsOneWidget);
     final editor = find.byKey(const ValueKey('story-trigger-editor'));
     expect(tester.getSize(editor).width, greaterThan(500));
+    final event = find.byKey(const ValueKey('map-story-when'));
+    final source = find.byKey(const ValueKey('story-trigger-source'));
+    expect(tester.getRect(event).top, tester.getRect(source).top);
+    expect(
+      tester.getRect(source).left,
+      greaterThan(tester.getRect(event).left),
+    );
+    final disclosure = find.byKey(
+      const ValueKey('story-trigger-context-toggle'),
+    );
+    final closed = tester.getSemantics(disclosure).getSemanticsData();
+    expect(closed.flagsCollection.isExpanded, Tristate.isFalse);
+    expect(closed.hasAction(SemanticsAction.tap), isTrue);
+    await tester.tap(disclosure);
+    await settleMemory(tester);
+    expect(
+      tester
+          .getSemantics(disclosure)
+          .getSemanticsData()
+          .flagsCollection
+          .isExpanded,
+      Tristate.isTrue,
+    );
+    final details = find.byKey(
+      const ValueKey('story-trigger-context-$guideTalk'),
+    );
+    expect(
+      tester.getTopLeft(details).dx,
+      greaterThan(tester.getTopLeft(event).dx),
+    );
     for (final section in ['when', 'if', 'then', 'repeat']) {
       expect(
         find.byKey(ValueKey('story-trigger-block-$section')),
@@ -152,6 +184,53 @@ void main() {
           )
           .selected,
       isTrue,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('enlarging text preserves the active name draft across layouts', (
+    tester,
+  ) async {
+    await openMemoryStudio(tester, memoryIndex(), world: MapOnlyWorld.new);
+    tester.view.physicalSize = const Size(1280, 720);
+    await openWholeGame(tester);
+    await tester.tap(find.byKey(const ValueKey('behaviour-$guideTalk')));
+    await settleMemory(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('story-trigger-context-toggle')),
+    );
+    await settleMemory(tester);
+    final details = find.byKey(
+      const ValueKey('story-trigger-context-$guideTalk'),
+    );
+    final name = find.descendant(
+      of: find.byKey(const ValueKey('map-story-behaviour-name-$guideTalk')),
+      matching: find.byType(EditableText),
+    );
+    expect(
+      tester.getTopLeft(details).dx,
+      greaterThan(tester.getTopLeft(name).dx),
+    );
+    await tester.enterText(name, 'Brouillon en cours');
+
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await settleMemory(tester);
+
+    final field = tester.widget<EditableText>(name);
+    expect(
+      tester.getTopLeft(details).dy,
+      greaterThan(tester.getBottomLeft(name).dy),
+    );
+    expect(field.controller.text, 'Brouillon en cours');
+    expect(field.focusNode.hasFocus, isTrue);
+    expect(
+      find.byKey(const ValueKey('studio-save')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('studio-test-map')).hitTestable(),
+      findsOneWidget,
     );
     expect(tester.takeException(), isNull);
   });

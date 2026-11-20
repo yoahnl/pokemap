@@ -55,7 +55,10 @@ class SceneFocusPage extends StatelessWidget {
                       key: const ValueKey('scene-focus-close'),
                       tooltip: l10n.sceneFocusClose,
                       onPressed: onClose,
-                      icon: const Icon(Icons.close),
+                      icon: Icon(
+                        Icons.close,
+                        semanticLabel: l10n.sceneFocusClose,
+                      ),
                     ),
                     const SizedBox(width: StudioSpacing.s),
                     Expanded(

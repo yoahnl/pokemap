@@ -228,7 +228,10 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
         enabled: visible,
         child: TooltipVisibility(
           visible: visible && TooltipVisibility.of(context),
-          child: child,
+          child: ExcludeSemantics(
+            excluding: !visible,
+            child: ExcludeFocus(excluding: !visible, child: child),
+          ),
         ),
       );
 

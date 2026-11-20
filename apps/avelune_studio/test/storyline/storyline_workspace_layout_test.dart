@@ -8,6 +8,24 @@ import 'storyline_fakes.dart';
 import 'storyline_widget_support.dart';
 
 void main() {
+  testWidgets('the milestone selection accent follows the selected row', (
+    tester,
+  ) async {
+    await openTrameStudio(tester);
+    final row = find.byKey(const ValueKey('trame-milestone-meet'));
+    final accent = find.descendant(
+      of: row,
+      matching: find.byKey(const ValueKey('studio-choice-selection-accent')),
+    );
+    expect(accent, findsNothing);
+
+    await tester.tap(row);
+    await settleMemory(tester);
+    expect(accent, findsOneWidget);
+    expect(tester.getRect(accent).left, tester.getRect(row).left);
+    expect(find.byKey(const ValueKey('trame-milestone-name-meet')), findsOne);
+  });
+
   for (final milestone in [false, true]) {
     testWidgets(
       'hiding an archived ${milestone ? 'milestone' : 'chapter'} returns its inspector to the visible parent',

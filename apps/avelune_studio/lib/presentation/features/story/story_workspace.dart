@@ -7,8 +7,6 @@ import 'package:avelune_studio/presentation/shared/localization/studio_locale.da
 import 'story_inspector.dart';
 import 'story_navigation.dart';
 
-const _inspectorWidth = 320.0;
-
 typedef StoryPanelBuilder = Widget Function(Widget content, Widget inspector);
 
 class StoryWorkspace extends StatefulWidget {
@@ -42,10 +40,20 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final inline = constraints.maxWidth >= 1100;
+      final inspectorWidth = switch ((
+        widget.section,
+        MediaQuery.sizeOf(context).width,
+      )) {
+        (StorySection.trame, <= 1150) => 225.0,
+        (StorySection.trame, <= 1390) => 250.0,
+        (StorySection.trame, _) => 270.0,
+        _ => 320.0,
+      };
       final visible = _inspector ?? inline;
       final contentHidden = !inline && visible;
       final inlineInspector = inline && visible && widget.inspectorAvailable;
       final l10n = context.l10n;
+      final inspectorLabel = visible ? l10n.inspectorHide : l10n.inspectorShow;
       return Row(
         key: const ValueKey('studio-story'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -79,23 +87,27 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
                                   ),
                                 ),
                               if (widget.inspectorAvailable)
-                                StudioTool(
+                                MergeSemantics(
                                   key: const ValueKey('story-toggle-inspector'),
-                                  label: visible
-                                      ? l10n.inspectorHide
-                                      : l10n.inspectorShow,
-                                  icon: visible
-                                      ? Icons.last_page
-                                      : Icons.first_page,
-                                  onPressed: () =>
-                                      setState(() => _inspector = !visible),
+                                  child: Semantics(
+                                    expanded: visible,
+                                    label: inspectorLabel,
+                                    child: StudioTool(
+                                      label: inspectorLabel,
+                                      icon: visible
+                                          ? Icons.last_page
+                                          : Icons.first_page,
+                                      onPressed: () =>
+                                          setState(() => _inspector = !visible),
+                                    ),
+                                  ),
                                 ),
                             ],
                           ),
                         ),
                         if (inlineInspector)
                           SizedBox(
-                            width: _inspectorWidth,
+                            width: inspectorWidth,
                             child: StudioPageHeader.section(
                               key: const ValueKey('story-inspector-header'),
                               title: l10n.inspectorTitle,
@@ -131,7 +143,7 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
                             builder: (context, area) => Stack(
                               children: [
                                 Positioned.fill(
-                                  right: inlineInspector ? _inspectorWidth : 0,
+                                  right: inlineInspector ? inspectorWidth : 0,
                                   child: ExcludeFocus(
                                     excluding: contentHidden,
                                     child: Offstage(
@@ -150,7 +162,7 @@ class _StoryWorkspaceState extends State<StoryWorkspace> {
                                   right: 0,
                                   bottom: 0,
                                   width: inline
-                                      ? _inspectorWidth
+                                      ? inspectorWidth
                                       : area.maxWidth,
                                   child: ExcludeFocus(
                                     excluding: !visible,

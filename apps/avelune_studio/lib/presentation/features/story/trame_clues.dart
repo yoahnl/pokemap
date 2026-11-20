@@ -79,7 +79,10 @@ class _TrameJournalCluesState extends State<TrameJournalClues> {
         Text(l10n.trameCluesHint, style: theme.textTheme.bodySmall),
         const SizedBox(height: StudioSpacing.m),
         if (state != null)
-          SizedBox(height: 120, child: state)
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 120),
+            child: state,
+          )
         else ...[
           for (final clue in clues)
             _TrameClueRow(

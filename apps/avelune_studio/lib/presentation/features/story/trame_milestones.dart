@@ -34,9 +34,11 @@ class TrameMilestones extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final viewport = MediaQuery.sizeOf(context).width;
     final milestones = [
-      for (final milestone in chapter.milestones)
-        if (showArchived || !trameArchived(milestone.status)) milestone,
+      for (final (index, milestone) in chapter.milestones.indexed)
+        if (showArchived || !trameArchived(milestone.status))
+          (index, milestone),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -65,49 +67,93 @@ class TrameMilestones extends StatelessWidget {
           ],
         ),
         if (milestones.isEmpty) Text(l10n.trameNoMilestone),
-        for (final milestone in milestones)
-          StudioChoice(
-            key: ValueKey('trame-milestone-${milestone.id}'),
-            label: l10n.trameName(milestone.title, l10n.trameUnnamed),
-            leading: Text(
-              '${chapter.milestones.indexOf(milestone) + 1}'.padLeft(2, '0'),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            subtitle: l10n.trameMilestoneSummary(
-              view.behavioursOf(milestone).length,
-              milestone.issues.length,
-            ),
-            selected: milestone.id == selectedId,
-            trailing: SizedBox(
-              width: 190,
+        if (milestones.isNotEmpty)
+          LayoutBuilder(
+            builder: (context, area) {
+              final sceneWidth = viewport <= 1390 ? 145.0 : 190.0;
+              final inline =
+                  viewport > 1150 && area.maxWidth >= sceneWidth + 270;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (index, milestone) in milestones)
+                    _row(
+                      context,
+                      milestone,
+                      index + 1,
+                      inline ? sceneWidth : null,
+                    ),
+                ],
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _row(
+    BuildContext context,
+    StorylineOutlineMilestone milestone,
+    int number,
+    double? sceneWidth,
+  ) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final markerSize = MediaQuery.textScalerOf(context).scale(27);
+    final archived = trameArchived(milestone.status);
+    final scenes = milestone.sceneIds.isEmpty
+        ? l10n.trameNoLinkedScene
+        : milestone.sceneIds
+              .map((id) => trame.sceneName(id) ?? l10n.behavioursSceneNotFound)
+              .join(' · ');
+    return StudioChoice(
+      key: ValueKey('trame-milestone-${milestone.id}'),
+      label: l10n.trameName(milestone.title, l10n.trameUnnamed),
+      leading: Container(
+        width: markerSize,
+        height: markerSize,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: colors.outline),
+        ),
+        child: Text(
+          '$number'.padLeft(2, '0'),
+          style: theme.textTheme.labelMedium?.copyWith(color: colors.primary),
+        ),
+      ),
+      subtitle: [
+        l10n.trameMilestoneSummary(
+          view.behavioursOf(milestone).length,
+          milestone.issues.length,
+        ),
+        if (sceneWidth == null) scenes,
+        if (sceneWidth == null && archived) l10n.trameArchivedBadge,
+      ].join('\n'),
+      selected: milestone.id == selectedId,
+      selectionAccent: true,
+      trailing: sceneWidth == null
+          ? null
+          : SizedBox(
+              width: sceneWidth,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    milestone.sceneIds.isEmpty
-                        ? l10n.trameNoLinkedScene
-                        : milestone.sceneIds
-                              .map(
-                                (id) =>
-                                    trame.sceneName(id) ??
-                                    l10n.behavioursSceneNotFound,
-                              )
-                              .join(' · '),
+                    scenes,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall,
                   ),
-                  if (trameArchived(milestone.status))
-                    StudioBadge(l10n.trameArchivedBadge),
+                  if (archived) StudioBadge(l10n.trameArchivedBadge),
                   if (milestone.issues.isNotEmpty)
                     StudioBadge(l10n.trameEditorial, tone: StudioTone.warning),
                 ],
               ),
             ),
-            onTap: () => onSelected(milestone.id),
-          ),
-      ],
+      onTap: () => onSelected(milestone.id),
     );
   }
 }

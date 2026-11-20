@@ -42,6 +42,15 @@ class _GameBehaviourEditorState extends State<GameBehaviourEditor> {
     final l10n = context.l10n;
     final record = binding.selectedBehaviour;
     final element = binding.selected!;
+    final details = record != null && _contextOpen
+        ? GameBehaviourContext(
+            binding: binding,
+            record: record,
+            element: element,
+          )
+        : null;
+    final detailsBreakpoint =
+        680 * MediaQuery.textScalerOf(context).scale(12) / 12;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -55,22 +64,48 @@ class _GameBehaviourEditorState extends State<GameBehaviourEditor> {
           compact: true,
           alignActionsToEnd: true,
           actions: [
-            StudioButton(
-              key: const ValueKey('story-trigger-context-toggle'),
-              label: l10n.triggersContext,
-              icon: _contextOpen ? Icons.info : Icons.info_outline,
-              variant: StudioButtonVariant.quiet,
-              onPressed: () => setState(() => _contextOpen = !_contextOpen),
-            ),
+            if (record != null)
+              MergeSemantics(
+                key: const ValueKey('story-trigger-context-toggle'),
+                child: Semantics(
+                  expanded: _contextOpen,
+                  child: StudioButton(
+                    label: l10n.triggersContext,
+                    icon: _contextOpen ? Icons.info : Icons.info_outline,
+                    variant: StudioButtonVariant.quiet,
+                    onPressed: () =>
+                        setState(() => _contextOpen = !_contextOpen),
+                  ),
+                ),
+              ),
           ],
         ),
-        if (record != null && _contextOpen)
-          GameBehaviourContext(
-            binding: binding,
-            record: record,
-            element: element,
-          ),
-        _commands(context),
+        LayoutBuilder(
+          builder: (context, area) {
+            final inline = area.maxWidth >= detailsBreakpoint;
+            return Flex(
+              direction: inline ? Axis.horizontal : Axis.vertical,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: inline
+                  ? CrossAxisAlignment.start
+                  : CrossAxisAlignment.stretch,
+              children: [
+                Flexible(
+                  flex: inline ? 1 : 0,
+                  fit: FlexFit.tight,
+                  child: _commands(context),
+                ),
+                if (details != null) ...[
+                  SizedBox(
+                    width: inline ? StudioSpacing.l : 0,
+                    height: inline ? 0 : StudioSpacing.m,
+                  ),
+                  SizedBox(width: inline ? 190 : null, child: details),
+                ],
+              ],
+            );
+          },
+        ),
       ],
     );
   }
