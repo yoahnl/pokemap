@@ -11,19 +11,24 @@ final class RuntimeSplashJingleController {
     RuntimeAudioMixer? mixer,
     this.volume = 0.6,
     this.enabled = true,
-  })  : assert(volume >= 0 && volume <= 1),
-        _driver = driver ?? _FlameBundledSplashJingleDriver(),
-        _mixer = mixer ?? RuntimeAudioMixer();
+    this.asset = runtimePremiumSplashJingleAsset,
+    this.resumeOnLifecycle = false,
+  }) : assert(volume >= 0 && volume <= 1),
+       _driver = driver ?? _FlameBundledSplashJingleDriver(),
+       _mixer = mixer ?? RuntimeAudioMixer();
 
   final FlameCinematicAudioDriver _driver;
   final RuntimeAudioMixer _mixer;
   final double volume;
+  final String asset;
+  final bool resumeOnLifecycle;
   bool enabled;
 
   Future<void> _pending = Future<void>.value();
   Object? _handle;
   bool _hasPlayed = false;
   bool _lifecycleActive = true;
+  bool _paused = false;
   bool _disposed = false;
 
   Object? lastFailure;
@@ -40,13 +45,13 @@ final class RuntimeSplashJingleController {
   Future<void> pauseForLifecycle() {
     if (_disposed) return Future<void>.value();
     _lifecycleActive = false;
-    return _enqueue(_stop);
+    return _enqueue(_pause);
   }
 
   Future<void> resumeFromLifecycle() {
     if (_disposed) return Future<void>.value();
     _lifecycleActive = true;
-    return _pending;
+    return resumeOnLifecycle ? _enqueue(_resume) : _pending;
   }
 
   Future<void> stop() {
@@ -64,14 +69,14 @@ final class RuntimeSplashJingleController {
     if (_disposed || !_lifecycleActive) return;
     try {
       final handle = await _driver.play(
-        runtimePremiumSplashJingleAsset,
+        asset,
         volume: _mixer.mix.volumeFor(
           RuntimeAudioRoute.splash,
           sourceVolume: volume,
         ),
         loop: false,
       );
-      if (_disposed || !_lifecycleActive) {
+      if (_disposed) {
         await _driver.stop(handle);
         return;
       }
@@ -83,6 +88,7 @@ final class RuntimeSplashJingleController {
         setVolume: (nextVolume) => _driver.setVolume(handle, nextVolume),
         applyImmediately: false,
       );
+      if (!_lifecycleActive) await _pause();
       lastFailure = null;
     } on Object catch (error) {
       _handle = null;
@@ -90,9 +96,44 @@ final class RuntimeSplashJingleController {
     }
   }
 
+  Future<void> _pause() async {
+    final driver = _driver;
+    final handle = _handle;
+    if (!resumeOnLifecycle || driver is! _FlameBundledSplashJingleDriver) {
+      await _stop();
+      return;
+    }
+    if (_lifecycleActive || handle == null || _paused) return;
+    try {
+      _paused = await driver.pause(handle);
+    } on Object catch (error) {
+      lastFailure = error;
+      await _stop();
+    }
+  }
+
+  Future<void> _resume() async {
+    final driver = _driver;
+    final handle = _handle;
+    if (!_lifecycleActive ||
+        !_paused ||
+        handle == null ||
+        driver is! _FlameBundledSplashJingleDriver) {
+      return;
+    }
+    try {
+      await driver.resume(handle);
+      _paused = false;
+    } on Object catch (error) {
+      lastFailure = error;
+      await _stop();
+    }
+  }
+
   Future<void> _stop() async {
     final handle = _handle;
     _handle = null;
+    _paused = false;
     if (handle == null) return;
     _mixer.unregister(handle);
     try {
@@ -104,7 +145,7 @@ final class RuntimeSplashJingleController {
 
   Future<void> _enqueue(Future<void> Function() operation) {
     final result = _pending.then((_) => operation());
-    _pending = result.onError((_, __) {});
+    _pending = result.onError((_, _) {});
     return result;
   }
 }
@@ -119,17 +160,31 @@ final class _FlameBundledSplashJingleDriver
   }) async {
     final player = AudioPlayer();
     player.audioCache = AudioCache(prefix: '');
-    await player.setReleaseMode(loop ? ReleaseMode.loop : ReleaseMode.release);
-    await player.play(
-      AssetSource('packages/map_runtime/assets/audio/$path'),
-      volume: volume,
-    );
-    return player;
+    try {
+      await player.setReleaseMode(loop ? ReleaseMode.loop : ReleaseMode.release);
+      await player.play(
+        AssetSource('packages/map_runtime/assets/audio/$path'),
+        volume: volume,
+      );
+      return player;
+    } on Object {
+      await player.dispose();
+      rethrow;
+    }
   }
 
   @override
   Future<void> setVolume(Object handle, double volume) =>
       (handle as AudioPlayer).setVolume(volume);
+
+  Future<bool> pause(Object handle) async {
+    final player = handle as AudioPlayer;
+    if (player.state != PlayerState.playing) return false;
+    await player.pause();
+    return true;
+  }
+
+  Future<void> resume(Object handle) => (handle as AudioPlayer).resume();
 
   @override
   Future<void> stop(Object handle) async {
