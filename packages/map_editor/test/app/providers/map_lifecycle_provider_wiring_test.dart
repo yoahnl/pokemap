@@ -39,7 +39,6 @@ void main() {
       final throwingProjects = _ThrowingProjectRepository();
       final container = ProviderContainer(
         overrides: <Override>[
-          mapRepositoryProvider.overrideWithValue(FileMapRepository()),
           projectRepositoryProvider.overrideWithValue(throwingProjects),
         ],
       );

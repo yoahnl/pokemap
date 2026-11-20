@@ -227,7 +227,14 @@ final class MapDependencyPreflightService {
 
   Future<MapData> _loadMapForIndex(String path) async {
     if (_mapRepository case RevisionedMapRepository revisioned) {
-      return (await revisioned.loadMapDocument(path)).map;
+      try {
+        return (await revisioned.loadMapDocument(path)).map;
+      } on MapLoadException {
+        if (_mapRepository case DurableMapDocumentRepository durable) {
+          return (await durable.loadDurableMapDocument(path)).map;
+        }
+        rethrow;
+      }
     }
     return _mapRepository.loadMap(path);
   }
