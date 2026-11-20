@@ -13,7 +13,7 @@ class ProjectLibraryCatalogView {
     Iterable<ProjectLibraryItem>? items,
   }) : hasMapUsages = mapUsages != null,
        _catalog = library.catalog,
-       _mapUsages = mapUsages {
+       _mapUsages = mapUsages == null ? null : Map.of(mapUsages) {
     _indexFamilies();
     for (final item in items ?? library.items) {
       upsert(item);
@@ -145,6 +145,14 @@ class ProjectLibraryCatalogView {
       final item = _entries[entry.key];
       if (item == null || item.compatibleDimensions.isNotEmpty) continue;
       upsert(item.withDimensions(entry.value));
+    }
+  }
+
+  void updateMapUsages(Map<String, Set<String>> usages) {
+    _mapUsages?.addAll(usages);
+    for (final identity in usages.keys) {
+      final position = _positions[identity];
+      if (position != null) _items[position] = _project(_entries[identity]!);
     }
   }
 

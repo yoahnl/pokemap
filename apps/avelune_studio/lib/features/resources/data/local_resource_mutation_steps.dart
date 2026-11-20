@@ -81,7 +81,7 @@ extension _LocalResourceMutationSteps on LocalResourceAdapter {
     ];
   }
 
-  Future<void> _applyPlanned({
+  Future<AuthoringMutationResult> _applyPlanned({
     required LocalMapAuthoringMutationApi api,
     required OpenedProject opened,
     required AuthoringMutationPlanResult planned,
@@ -96,7 +96,7 @@ extension _LocalResourceMutationSteps on LocalResourceAdapter {
               planId: planned.planId,
             )
           : null;
-      await api.applyMutation(
+      return await api.applyMutation(
         opened.projectHandle,
         planId: planned.planId,
         operationId: operationId,
@@ -109,19 +109,13 @@ extension _LocalResourceMutationSteps on LocalResourceAdapter {
         },
       );
     } on Object catch (failure, stack) {
-      late final AuthoringMutationResult recovered;
-      try {
-        recovered = await api.recoverMutation(
-          opened.projectHandle,
-          operationId: operationId,
-        );
-      } on Object {
-        Error.throwWithStackTrace(failure, stack);
-      }
-      if (recovered.receipt.status.name != 'applied' &&
-          recovered.receipt.extensions['recoveryOutcome'] != 'resumed') {
-        Error.throwWithStackTrace(failure, stack);
-      }
+      return _recoverPublishedResourceMutation(
+        api,
+        opened,
+        operationId,
+        failure,
+        stack,
+      );
     }
   }
 
@@ -186,4 +180,27 @@ extension _LocalResourceMutationSteps on LocalResourceAdapter {
       );
     }
   }
+}
+
+Future<AuthoringMutationResult> _recoverPublishedResourceMutation(
+  LocalMapAuthoringMutationApi api,
+  OpenedProject opened,
+  String operationId,
+  Object failure,
+  StackTrace stack,
+) async {
+  late final AuthoringMutationResult recovered;
+  try {
+    recovered = await api.recoverMutation(
+      opened.projectHandle,
+      operationId: operationId,
+    );
+  } on Object {
+    Error.throwWithStackTrace(failure, stack);
+  }
+  if (recovered.receipt.status.name != 'applied' &&
+      recovered.receipt.extensions['recoveryOutcome'] != 'resumed') {
+    Error.throwWithStackTrace(failure, stack);
+  }
+  return recovered;
 }

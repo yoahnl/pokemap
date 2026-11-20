@@ -1,7 +1,12 @@
 part of 'local_resource_adapter.dart';
 
-mixin _LocalProjectModelWorkshop implements ProjectModelWorkshopPort {
+mixin _LocalProjectModelWorkshop
+    implements ProjectModelWorkshopPort, ProjectModelReplacementProvider {
   LocalResourceAdapter get _modelWorkshopAdapter;
+
+  @override
+  late final _LocalProjectModelReplacement modelReplacement =
+      _LocalProjectModelReplacement(_modelWorkshopAdapter);
 
   @override
   Future<ProjectModelWorkshopRead> readWorkshopModel(String modelId) async {

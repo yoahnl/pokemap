@@ -15,10 +15,18 @@ class ModelResourcePreview extends StatefulWidget {
     required this.model,
     required this.visuals,
     this.compact = false,
-  });
+  }) : preparedBytes = null;
+
+  const ModelResourcePreview.prepared({
+    super.key,
+    required this.model,
+    required Uint8List this.preparedBytes,
+  }) : visuals = null,
+       compact = false;
 
   final ProjectModel3dEntry model;
-  final MapWorkspaceVisuals visuals;
+  final MapWorkspaceVisuals? visuals;
+  final Uint8List? preparedBytes;
   final bool compact;
 
   @override
@@ -46,9 +54,9 @@ class _ModelResourcePreviewState extends State<ModelResourcePreview> {
   Color? _background;
 
   _ModelThumbnails get _cache =>
-      _thumbnails[widget.visuals] ??= _ModelThumbnails();
+      _thumbnails[widget.visuals!] ??= _ModelThumbnails();
 
-  SpatialModelSourceUpdates? _updates(MapWorkspaceVisuals visuals) =>
+  SpatialModelSourceUpdates? _updates(MapWorkspaceVisuals? visuals) =>
       switch (visuals) {
         SpatialModelSourceWorkspaceVisuals value => value.modelSourceUpdates,
         _ => null,
@@ -79,7 +87,8 @@ class _ModelResourcePreviewState extends State<ModelResourcePreview> {
     }
     if (changedVisuals ||
         oldWidget.model != widget.model ||
-        oldWidget.compact != widget.compact) {
+        oldWidget.compact != widget.compact ||
+        !identical(oldWidget.preparedBytes, widget.preparedBytes)) {
       _load();
     }
   }
@@ -97,6 +106,10 @@ class _ModelResourcePreviewState extends State<ModelResourcePreview> {
     _bytes = null;
     _failed = false;
     _thumbnail = null;
+    if (widget.preparedBytes case final bytes?) {
+      _bytes = Future.value(bytes);
+      return;
+    }
     final model = widget.model;
     final visuals = widget.visuals;
     if (visuals is! SpatialWorkspaceVisuals) return;

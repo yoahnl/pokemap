@@ -13,6 +13,7 @@ import '../../transactions/plan_store.dart';
 import 'catalog_workshop_selection.dart';
 import 'catalog_metadata_documents.dart';
 import 'catalog_resource_positions.dart';
+import 'catalog_usage_replacement_impact.dart';
 
 final class CatalogScopedWorkingMutation {
   CatalogScopedWorkingMutation._(
@@ -21,7 +22,8 @@ final class CatalogScopedWorkingMutation {
       this.removals,
       this.additionalChanges,
       this.diff,
-      this.workspaceFingerprint);
+      this.workspaceFingerprint,
+      this.replacementImpact);
 
   final ProjectManifest projectedProject;
   final List<CatalogDefinitionUnit> upserts;
@@ -29,6 +31,7 @@ final class CatalogScopedWorkingMutation {
   final List<AuthoringResourceChange> additionalChanges;
   final AuthoringDiff diff;
   final String? workspaceFingerprint;
+  final CatalogUsageReplacementImpact? replacementImpact;
 
   static Future<CatalogScopedWorkingMutation> translate({
     required CatalogWorkshopSelection selection,
@@ -75,6 +78,7 @@ final class CatalogScopedWorkingMutation {
     final nextShell = Map<String, Object?>.from(oldShell);
     final upserts = <CatalogDefinitionUnit>[];
     final removals = <CatalogDefinitionKey>[];
+    CatalogUsageReplacementImpact? replacementImpact;
     if (publicPlan.request.actionId == 'resource.usages.replace') {
       final parameters = publicPlan.request.parameters;
       final formatVersion = before.borderCatalog.formatVersion;
@@ -102,6 +106,9 @@ final class CatalogScopedWorkingMutation {
               'catalog.usage_replacement: a Border record changed outside the model repoint');
         }
       }
+      final requiresImpact = publicPlan.preview['regeneratedInstanceCount'] is! int ||
+          publicPlan.preview['noOp'] != false;
+      final projectedMaps = <MapData>[];
       for (final change in additional) {
         if (change.resource.kind != 'map' ||
             selection.snapshot.resourceStorageKeys['map:${change.resource.id}'] !=
@@ -110,9 +117,16 @@ final class CatalogScopedWorkingMutation {
           throw const FormatException(
               'catalog.usage_replacement: a change outside the selected maps');
         }
-        MapValidator.validate(MapData.fromJson(Map<String, dynamic>.from(
+        final map = MapData.fromJson(Map<String, dynamic>.from(
             jsonDecode(utf8.decode(await change.afterPayload!.readBytes()))
-                as Map)));
+                as Map));
+        MapValidator.validate(map);
+        if (requiresImpact) projectedMaps.add(map);
+      }
+      if (requiresImpact) {
+        replacementImpact = CatalogUsageReplacementImpact(
+            plan: publicPlan, beforeMaps: selection.snapshot.maps,
+            afterMaps: projectedMaps);
       }
     }
     if (publicPlan.request.actionId == 'model3d.configure') {
@@ -466,7 +480,7 @@ final class CatalogScopedWorkingMutation {
               AuthoringDiffEntry.fromJson(
                   {...entry.toJson(), 'resource': resource.toJson()})
             else
-              entry,
+              replacementImpact?.mapDiff(entry) ?? entry,
           AuthoringDiffEntry(
               operation: AuthoringDiffOperation.replace,
               resource: resource,
@@ -474,7 +488,8 @@ final class CatalogScopedWorkingMutation {
               before: selection.snapshot.revision,
               after: fingerprint ?? selection.reader.revision),
         ]),
-        fingerprint);
+        fingerprint,
+        replacementImpact);
   }
 
   static bool _same(Object? a, Object? b) => jsonEncode(a) == jsonEncode(b);

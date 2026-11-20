@@ -209,7 +209,9 @@ final class AuthoringPlan {
   AuthoringPlan reframeChangeSet(
       {required AuthoringChangeSet changeSet,
       AuthoringRequest? request,
-      String? baseRevision}) {
+      String? baseRevision,
+      Map<String, Object?>? preview,
+      Map<String, Object?>? referenceImpact}) {
     if (_reframed || appliedPayloadReleased) {
       throw StateError(
           'The plan payload ownership has already been transferred or released.');
@@ -224,8 +226,8 @@ final class AuthoringPlan {
         expiresAt: expiresAt,
         changeSet: changeSet,
         payloadOwner: _payloadOwner,
-        preview: preview,
-        referenceImpact: referenceImpact,
+        preview: preview ?? this.preview,
+        referenceImpact: referenceImpact ?? this.referenceImpact,
         artifacts: artifacts);
     next._mapEditBinding = _mapEditBinding;
     next._mapEditReadStorageKeys = _mapEditReadStorageKeys;

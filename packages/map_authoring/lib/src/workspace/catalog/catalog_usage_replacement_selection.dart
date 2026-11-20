@@ -58,6 +58,14 @@ Future<CatalogWorkshopSelection> _readUsageReplacementWorkshop({
     final paths = <String, String>{};
     final fingerprints = <String, String>{};
     final revisions = <String, String?>{};
+    final exteriorKeys = {
+      CatalogDefinitionKey(CatalogDefinitionKind.model3d, modelId),
+      for (final id in borderIds)
+        CatalogDefinitionKey(CatalogDefinitionKind.borderRecord, id),
+    };
+    final gateway = reader.store.gateway;
+    await requireUnusedExteriorReferences(exteriorKeys, gateway,
+        revisions: revisions);
     for (final entry in documents.project.maps) {
       if (!mapIds.contains(entry.id)) continue;
       final payload =
@@ -167,6 +175,8 @@ Future<CatalogWorkshopSelection> _readUsageReplacementWorkshop({
         });
     final result = CatalogWorkshopSelection._(
         selected, projectSnapshot, {'borderCatalog'}, revisions,
+        requireDependencies: () =>
+            requireUnusedExteriorReferences(exteriorKeys, gateway),
         resourceCounts: {CatalogDefinitionKind.borderRecord: count},
         resourceReplacements: {
           for (final id in borderIds)

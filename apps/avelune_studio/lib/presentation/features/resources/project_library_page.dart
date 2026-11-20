@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -11,6 +13,7 @@ import '../../../features/resources/application/project_resource_preview.dart';
 import '../../../features/resources/coordination/resource_pack_transfer_controller.dart';
 import '../../../features/resources/domain/project_library_editor.dart';
 import '../../../features/resources/domain/project_library_organization.dart';
+import '../../../features/resources/domain/project_model_replacement_port.dart';
 import '../../../features/resources/domain/project_model_workshop_port.dart';
 import '../../../features/resources/domain/resource_pack_port.dart';
 import '../../../features/resources/domain/resource_port.dart';
@@ -23,11 +26,13 @@ import 'project_library_edit_dialog.dart';
 import 'project_library_organization_dialog.dart';
 import 'project_library_pack_dialog.dart';
 import 'project_library_preview.dart';
+import 'project_model_replacement_panel.dart';
 import 'project_model_workshop.dart';
 
 part 'project_library_page_edits.dart';
 part 'project_library_page_lifecycle.dart';
 part 'project_library_page_loading.dart';
+part 'project_library_page_model_replacements.dart';
 part 'project_library_page_navigation.dart';
 part 'project_library_page_organization.dart';
 part 'project_library_page_packs.dart';
@@ -70,6 +75,8 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
   String? _workshopModel;
   bool _workshopBusy = false;
   final _workshopReceipts = <String, ResourceMutationReceipt>{};
+  ModelReplacementPanelStatus? _modelReplacementStatus;
+  ({String entryId, Map<String, Set<String>> usages})? _replacementUsageProjection;
 
   void _updateView(VoidCallback update) => setState(update);
 
@@ -114,6 +121,8 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
       _workshopModel = null;
       _workshopBusy = false;
       _workshopReceipts.clear();
+      _modelReplacementStatus = null;
+      _replacementUsageProjection = null;
     }
     if (widget.active && _reading == null) _read();
   }
@@ -280,8 +289,7 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
       showMapScopes: catalog.hasMapUsages,
       loadingMapUsages: loadingMapUsages,
       dimensionStatus: dimensionStatus,
-      buildWorkshops: (back) =>
-          _workshops(read, visuals, management?.editor, back),
+      buildWorkshops: (back) => _workshops(read, visuals, management, back),
       canLeaveWorkshops: () => !_workshopBusy,
       workshopAction: (item) => _modelWorkshopAction(read, item.id),
       onManageFamilies: organization == null

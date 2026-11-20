@@ -8,6 +8,16 @@ import '../../../features/resources/domain/project_model_workshop_port.dart';
 import '../../../features/resources/domain/resource_port.dart';
 import 'model_resource_preview.dart';
 
+part 'project_model_workshop_shadow.dart';
+
+typedef ModelReplacementPanelBuilder = Widget Function({
+  required String revision,
+  required bool enabled,
+  required ValueChanged<bool> onBusyChanged,
+  required ValueChanged<String> onRevision,
+  required ValueChanged<ResourceMutationReceipt> onPublished,
+});
+
 class ProjectModelWorkshop extends StatefulWidget {
   const ProjectModelWorkshop({
     super.key,
@@ -18,6 +28,7 @@ class ProjectModelWorkshop extends StatefulWidget {
     this.saveShadow,
     this.reconcileShadow,
     this.pendingReceipt,
+    this.buildReplacement,
   });
 
   final ProjectLibraryItem item;
@@ -31,6 +42,7 @@ class ProjectModelWorkshop extends StatefulWidget {
   reconcileShadow;
   final ResourceMutationReceipt? pendingReceipt;
   final VoidCallback onBack;
+  final ModelReplacementPanelBuilder? buildReplacement;
 
   @override
   State<ProjectModelWorkshop> createState() => _ProjectModelWorkshopState();
@@ -42,7 +54,10 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
   bool? _shadowDraft;
   String? _problem;
   bool _saving = false;
+  bool _replacing = false;
   ResourceMutationReceipt? _pendingReceipt;
+
+  void _update(VoidCallback change) => setState(change);
 
   @override
   void initState() {
@@ -135,7 +150,7 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
             StudioButton(
               label: 'Retour à la bibliothèque',
               icon: Icons.arrow_back,
-              onPressed: _saving ? null : widget.onBack,
+              onPressed: _saving || _replacing ? null : widget.onBack,
               variant: StudioButtonVariant.quiet,
             ),
             Text('Modèles 3D', style: Theme.of(context).textTheme.titleMedium),
@@ -164,7 +179,7 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
                 ),
               );
             }
-            final read = snapshot.data!;
+            final read = _published ?? snapshot.data!;
             final model = read.model;
             if (model == null) {
               return const StudioEmptyState(
@@ -201,10 +216,7 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
       LayoutBuilder(
         builder: (context, bounds) {
           final preview = _preview(model);
-          final settings = _settings(
-            _published?.model ?? model,
-            _published?.revision ?? revision,
-          );
+          final settings = _settings(model, revision);
           if (bounds.maxWidth >= 680) {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,6 +237,26 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
           );
         },
       ),
+      if (widget.buildReplacement case final build? when revision != null) ...[
+        const SizedBox(height: StudioSpacing.xl),
+        build(
+          revision: revision,
+          enabled:
+              !_saving &&
+              _pendingReceipt == null &&
+              (_shadowDraft == null ||
+                  _shadowDraft == model.castsShadowsByDefault),
+          onBusyChanged: (value) => setState(() => _replacing = value),
+          onRevision: (value) =>
+              setState(() => _published = (model: model, revision: value)),
+          onPublished: (receipt) => setState(
+            () => _published = (
+              model: receipt.changedModels[model.id] ?? model,
+              revision: receipt.revision,
+            ),
+          ),
+        ),
+      ],
     ],
   );
 
@@ -243,82 +275,6 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
                   icon: Icons.view_in_ar_outlined,
                 ),
         ),
-      ],
-    );
-  }
-
-  Widget _settings(ProjectModel3dEntry model, String? revision) {
-    final save = widget.saveShadow;
-    final pending = _pendingReceipt;
-    final reconcile = widget.reconcileShadow;
-    final enabled = _shadowDraft ?? model.castsShadowsByDefault;
-    final dirty = enabled != model.castsShadowsByDefault;
-    final editable = save != null && revision != null && !_saving;
-    return StudioPanel(
-      title: 'Ombre du modèle',
-      children: [
-        StudioToggleRow(
-          key: const ValueKey('model-workshop-shadow'),
-          label: 'Projeter une ombre',
-          description: 'Réglage partagé des placements qui héritent du modèle.',
-          value: enabled,
-          onChanged: editable && pending == null
-              ? (checked) => setState(() => _shadowDraft = checked)
-              : null,
-        ),
-        if (pending != null) ...[
-          const SizedBox(height: StudioSpacing.m),
-          const StudioNotice(
-            'Le réglage est enregistré. Relisez l’enregistrement pour actualiser le Studio.',
-          ),
-          if (_problem case final problem?) ...[
-            const SizedBox(height: StudioSpacing.m),
-            StudioNotice(problem, isError: true),
-          ],
-          if (reconcile != null) ...[
-            const SizedBox(height: StudioSpacing.m),
-            StudioButton(
-              label: _saving ? 'Relecture…' : 'Relire l’enregistrement',
-              loading: _saving,
-              onPressed: _saving
-                  ? null
-                  : () => _publish(model, enabled, () => reconcile(pending)),
-            ),
-          ],
-        ] else if (_problem case final problem?) ...[
-          const SizedBox(height: StudioSpacing.m),
-          StudioNotice(problem, isError: true),
-          const SizedBox(height: StudioSpacing.m),
-          StudioButton(
-            label: 'Relire le modèle',
-            variant: StudioButtonVariant.quiet,
-            onPressed: () => setState(() => _read(keepDraft: true)),
-          ),
-        ] else if (save != null && revision != null) ...[
-          const SizedBox(height: StudioSpacing.l),
-          Wrap(
-            spacing: StudioSpacing.m,
-            runSpacing: StudioSpacing.s,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              StudioButton(
-                key: const ValueKey('model-workshop-save'),
-                label: _saving ? 'Enregistrement…' : 'Enregistrer',
-                icon: Icons.save_outlined,
-                loading: _saving,
-                onPressed: editable && dirty
-                    ? () => _publish(
-                        model,
-                        enabled,
-                        () => save(enabled, revision),
-                      )
-                    : null,
-              ),
-              if (_published != null && !dirty && !_saving)
-                const StudioBadge('Enregistré', icon: Icons.check),
-            ],
-          ),
-        ],
       ],
     );
   }

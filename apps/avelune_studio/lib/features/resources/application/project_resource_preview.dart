@@ -40,6 +40,15 @@ final class ProjectResourcePreviews {
     );
   }
 
+  void invalidate(Iterable<String> identities) {
+    for (final identity in identities) {
+      final request = _requests.remove(identity);
+      if (request != null && _waiting.remove(request)) {
+        request.result.complete(null);
+      }
+    }
+  }
+
   _PreviewRequest _enqueue(ProjectLibraryItem entry) {
     final request = _PreviewRequest(entry);
     _waiting.add(request);
@@ -74,7 +83,7 @@ final class ProjectResourcePreviews {
         item == null ? null : (item: item, project: project),
       );
     } catch (error, stack) {
-      _requests.remove(identity);
+      if (identical(_requests[identity], request)) _requests.remove(identity);
       request.result.completeError(error, stack);
     } finally {
       _running--;

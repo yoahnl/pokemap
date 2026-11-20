@@ -18,6 +18,7 @@ import '../../support/authoring_fingerprint.dart';
 import '../../transactions/plan_store.dart';
 import '../../ports/project_file_reader.dart';
 import '../../ports/transaction_file_gateway.dart';
+import '../../references/exterior_decoration_references.dart';
 import '../project_snapshot.dart';
 import '../workspace_handle_store.dart';
 import 'catalog_project_reader.dart';
@@ -62,7 +63,7 @@ final class CatalogWorkshopSelection {
       this.reader, this.snapshot, this.writableSections, this.resourceRevisions,
       {this.metadataDocuments, this.resourceCounts = const {}, this.resourceReplacements = const {},
       this.resourceRemovals = const {}, this.resourceMoves = const {},
-      this.maintenanceRevision});
+      this.maintenanceRevision, this.requireDependencies});
 
   final CatalogProjectReader reader;
   final ProjectSnapshot snapshot;
@@ -74,6 +75,7 @@ final class CatalogWorkshopSelection {
   final Set<CatalogDefinitionKey> resourceRemovals;
   final Map<CatalogDefinitionKey, int> resourceMoves;
   final Future<String> Function()? maintenanceRevision;
+  final Future<void> Function()? requireDependencies;
 
   static const _narrativeFields = {
     'maps',
@@ -796,6 +798,7 @@ final class CatalogWorkshopSelection {
       await descriptor.release();
     }
     if (maintenanceRevision != null) return maintenanceRevision!();
+    await requireDependencies?.call();
     final catalogRevision = reader.readOnly
         ? reader.revision
         : 'sha256:${(await reader.store.readHead())!.sha256}';

@@ -14,6 +14,7 @@ import '../../transactions/plan_store.dart';
 import '../project_snapshot.dart';
 import '../workspace_handle_store.dart';
 import 'catalog_project_reader.dart';
+import 'catalog_resource_usage_index.dart';
 import 'catalog_workshop_selection.dart';
 
 final class CatalogModelSourceSelection {
@@ -236,6 +237,9 @@ final class CatalogModelSourceSelection {
           message: 'The replacement changes an undeclared project section.');
     }
     final upserts = <CatalogDefinitionUnit>[];
+    final changedPaths = additional.map((change) => change.storageKey).toSet();
+    final catalog = reader.catalog.snapshot;
+    final indexed = await CatalogResourceUsageIndex.prepared(catalog);
     for (final model in projected.models3d) {
       final original = units[model.id];
       if (original == null) {
@@ -260,6 +264,15 @@ final class CatalogModelSourceSelection {
       }
       Model3dActions.requireLocalSourceContract(
           before.inspection, model.inspection);
+      if (indexed && changedPaths.contains(model.relativePath)) {
+        final owners = await CatalogResourceUsageIndex.consumerOwners(
+            catalog, 'asset:${model.sourceAssetId}');
+        if ((owners..remove('model3d:${model.id}')).isNotEmpty) {
+          throw AuthoringPlanException(
+              code: 'catalog.model_source_shared',
+              message: 'The logical model source has other consumers.');
+        }
+      }
       if (model == before) continue;
       final value = Map<String, Object?>.from(original.payload['value'] as Map);
       value['inspection'] = model.inspection.toJson();

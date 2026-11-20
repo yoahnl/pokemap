@@ -15,7 +15,7 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
   Widget _workshops(
     _ProjectLibraryRead read,
     MapWorkspaceVisuals? visuals,
-    ProjectLibraryEditor? editor,
+    ProjectLibraryManagement? management,
     VoidCallback back,
   ) {
     final selected = read.catalog.entries[_workshopModel];
@@ -25,6 +25,7 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
         onSelected: _showModelWorkshop,
       );
     }
+    final editor = management?.editor;
     final workshop = editor is ProjectModelWorkshopPort
         ? editor as ProjectModelWorkshopPort
         : null;
@@ -53,6 +54,12 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
               return receipt;
             }),
       pendingReceipt: _workshopReceipts[selected.id],
+      buildReplacement: _modelReplacementBuilder(
+        read,
+        selected,
+        management,
+        visuals,
+      ),
       onBack: () {
         _showModelWorkshop(null);
         back();

@@ -131,7 +131,8 @@ Map<String, dynamic> encodeExteriorReferenceOwners(
 
 Future<void> requireUnusedExteriorReferences(
     Iterable<CatalogDefinitionKey> removed,
-    TransactionFileGateway gateway) async {
+    TransactionFileGateway gateway,
+    {Map<String, String?>? revisions}) async {
   const kinds = {
     CatalogDefinitionKind.model3d,
     CatalogDefinitionKind.smartTileMaterial,
@@ -149,16 +150,23 @@ Future<void> requireUnusedExteriorReferences(
         journal.status != AuthoringTransactionStatus.committed &&
         journal.status != AuthoringTransactionStatus.compensated)) {
       throw const FormatException(
-          'exterior.reference_index_recovery_required: recover the pending decoration transaction before removing resources.');
+          'exterior.reference_index_recovery_required: recover the pending decoration transaction before changing resource references.');
     }
   }
   for (final key in selected) {
-    final bytes = await gateway.readResource(exteriorReferenceIndexPath(key));
-    if (bytes == null &&
-        await gateway.readResource(exteriorReferenceBackupPath(key)) != null) {
-      throw const FormatException(
-          'exterior.reference_index_recovery_required: a known incoming index is missing.');
+    final path = exteriorReferenceIndexPath(key);
+    final bytes = await gateway.readResource(path);
+    if (bytes == null) {
+      final backup = exteriorReferenceBackupPath(key);
+      if (await gateway.readResource(backup) != null) {
+        throw const FormatException(
+            'exterior.reference_index_recovery_required: a known incoming index is missing.');
+      }
+      revisions?[backup] = null;
     }
+    revisions?[path] = bytes == null
+        ? null
+        : computeAuthoringBytesFingerprint(bytes, logicalName: path);
     final owners = decodeExteriorReferenceOwners(bytes, key);
     for (final owner in owners.values) {
       final bytes = await gateway.readResource(owner.unitPath);

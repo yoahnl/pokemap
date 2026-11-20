@@ -1377,10 +1377,15 @@ final class LocalMapAuthoringMutationApi
     ProjectHandle projectHandle, {
     required String entryId,
     required String idempotencyKey,
+    AuthoringTransactionPrecondition? precondition,
   }) async {
     final catalog = _catalogSession(projectHandle);
+    if (catalog == null && precondition != null) {
+      throw const FormatException('An undo precondition requires a working catalog.');
+    }
     return catalog != null
-        ? catalog.undo(entryId: entryId, idempotencyKey: idempotencyKey)
+        ? catalog.undo(entryId: entryId, idempotencyKey: idempotencyKey,
+            precondition: precondition)
         : _session(projectHandle)
             .undoMutation(entryId: entryId, idempotencyKey: idempotencyKey);
   }

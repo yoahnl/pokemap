@@ -25,6 +25,7 @@ import '../../project_session/data/studio_project_document_revision.dart';
 import '../application/project_resource_library.dart';
 import '../domain/project_library_editor.dart';
 import '../domain/project_library_organization.dart';
+import '../domain/project_model_replacement_port.dart';
 import '../domain/project_model_workshop_port.dart';
 import '../domain/resource_port.dart';
 import '../domain/model_resource_port.dart';
@@ -55,6 +56,7 @@ part 'local_resource_index_preparation.dart';
 part 'local_project_library_edits.dart';
 part 'local_project_library_lifecycle.dart';
 part 'local_project_library_organization.dart';
+part 'local_project_model_replacement.dart';
 part 'local_project_model_workshop.dart';
 
 final class LocalResourceAdapter

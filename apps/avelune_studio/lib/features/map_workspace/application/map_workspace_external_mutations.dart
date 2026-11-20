@@ -1,11 +1,17 @@
 part of 'map_workspace_controller.dart';
 
 extension MapWorkspaceExternalMutations on MapWorkspaceController {
+  bool hasOpenMapWork(Iterable<String> mapIds) => mapIds.any((id) {
+    final document = documents[id];
+    return document != null && _hasLocalWork(document);
+  });
+
   Future<void> acceptExternalMutation(
-    Set<({String kind, String id})> resources,
-  ) {
+    Set<({String kind, String id})> resources, {
+    bool reportFailure = false,
+  }) {
     final operation = _externalMutations.then(
-      (_) => _acceptExternalMutation(resources),
+      (_) => _acceptExternalMutation(resources, reportFailure: reportFailure),
     );
     _externalMutations = operation.then<void>(
       (_) {},
@@ -15,8 +21,9 @@ extension MapWorkspaceExternalMutations on MapWorkspaceController {
   }
 
   Future<void> _acceptExternalMutation(
-    Set<({String kind, String id})> resources,
-  ) async {
+    Set<({String kind, String id})> resources, {
+    required bool reportFailure,
+  }) async {
     if (_disposed || project == null || resources.isEmpty) return;
     try {
       final source = port;
@@ -258,6 +265,7 @@ extension MapWorkspaceExternalMutations on MapWorkspaceController {
         error = _message(failure);
         notify();
       }
+      if (reportFailure) rethrow;
     }
   }
 }

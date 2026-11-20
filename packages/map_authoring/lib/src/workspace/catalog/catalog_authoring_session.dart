@@ -658,7 +658,9 @@ final class CatalogAuthoringSession {
             message: 'The catalog changed while planning this workshop edit.');
       }
       publicPlan = built.plan.reframeChangeSet(
-          changeSet: built.plan.changeSet, request: request, baseRevision: publicRevision);
+          changeSet: built.plan.changeSet, request: request, baseRevision: publicRevision,
+          preview: mutation.replacementImpact?.preview,
+          referenceImpact: mutation.replacementImpact?.referenceImpact);
       final prepared = await editing.planPatch(upserts: mutation.upserts,
           removals: mutation.removals,
           additionalChanges: mutation.additionalChanges,
@@ -1475,7 +1477,8 @@ final class CatalogAuthoringSession {
   }
 
   Future<AuthoringMutationResult> undo(
-      {required String entryId, required String idempotencyKey}) async {
+      {required String entryId, required String idempotencyKey,
+      AuthoringTransactionPrecondition? precondition}) async {
     requireRead();
     if (reader.readOnly) _authorize(AuthoringSecurityOperation.apply);
     final editing = await _editing();
@@ -1492,7 +1495,8 @@ final class CatalogAuthoringSession {
         operationId: idempotencyKey,
         expectedRevision: revision,
         requireBulkOrigin: false,
-        catalogOnly: catalogOnly);
+        catalogOnly: catalogOnly,
+        precondition: precondition);
   }
 
   Future<AuthoringMutationResult> redo(
@@ -1524,6 +1528,7 @@ final class CatalogAuthoringSession {
       String? expectedHeadEntryId,
       void Function()? beforeReservation,
       void Function()? preparationCheck,
+      AuthoringTransactionPrecondition? precondition,
       bool requireBulkOrigin = true,
       bool catalogOnly = false}) async {
     requireRead();
@@ -1658,6 +1663,7 @@ final class CatalogAuthoringSession {
     return apply(
         planId: prepared.plan.planId,
         operationId: operationId,
+        precondition: precondition,
         beforeReservation: beforeReservation,
         preparationCheck: preparationCheck);
   }

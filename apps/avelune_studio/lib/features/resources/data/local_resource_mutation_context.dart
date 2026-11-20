@@ -140,10 +140,13 @@ extension _LocalResourceContext on LocalResourceAdapter {
     return created;
   }
 
-  Future<void> _closeMutationContext() {
-    if (_resourceMutationActive) return Future.value();
+  Future<void> _closeMutationContext() async {
+    if (_resourceMutationActive) return;
     final context = _mutationContext;
     _mutationContext = null;
-    return _mutationContextClosing ??= context?.close() ?? Future.value();
+    await (_mutationContextClosing ??= Future.wait<void>([
+      if (context != null) context.close(),
+      modelReplacement.close(),
+    ]).then((_) {}));
   }
 }
