@@ -148,17 +148,23 @@ mixin _MapWorkspaceCatalogPorts
     String kind,
     String id, {
     bool includeCharacterStudioDefinitions = false,
-  }) => _adapter._readScopedCatalog(session, (catalog, revision) async {
-    final selection = ProjectCatalogSelection(catalog);
-    return (
-      project: await selection.resolve([
-        CatalogDefinitionKey(_catalogFamily(kind), id),
-        if (includeCharacterStudioDefinitions)
-          ...await selection.characterStudioDefinitionKeys(),
-      ], allowUnpublishedBorders: kind == 'borderBlueprint'),
-      revision: revision,
-    );
-  }, metadataFields: const {});
+  }) => _readScopedCatalogWith(
+    _adapter._reader,
+    session,
+    (catalog, revision) async {
+      final selection = ProjectCatalogSelection(catalog);
+      return (
+        project: await selection.resolve([
+          CatalogDefinitionKey(_catalogFamily(kind), id),
+          if (includeCharacterStudioDefinitions)
+            ...await selection.characterStudioDefinitionKeys(),
+        ], allowUnpublishedBorders: kind == 'borderBlueprint'),
+        revision: revision,
+      );
+    },
+    metadataFields: const {},
+    initializeSceneOwners: false,
+  );
 
   @override
   Future<MapWorkspaceCatalog> loadResourceKind(

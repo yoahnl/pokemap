@@ -47,6 +47,7 @@ Future<T> _readScopedCatalogWith<T>(
   ProjectSession session,
   Future<T> Function(PortableProjectCatalog catalog, String revision) action, {
   Set<String> metadataFields = _mapCatalogMetadataFields,
+  bool initializeSceneOwners = true,
 }) async {
   final policy = await WorkspacePolicy.create(
     allowedRootPaths: [session.directoryPath],
@@ -58,6 +59,7 @@ Future<T> _readScopedCatalogWith<T>(
     fileReader: reader,
     handles: handles,
     catalogMetadataFields: metadataFields,
+    initializeSceneOwners: initializeSceneOwners,
   );
   final opened = await service.openProject(session.directoryPath);
   try {
