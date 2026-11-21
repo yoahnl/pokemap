@@ -1766,6 +1766,364 @@
       ]
     },
     {
+      "id": "construction-spatial",
+      "projectRoot": "environment-spatial",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "map3d.camera.configure",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","camera":{"mode":"fixed","projection":"orthographic","pitchDegrees":49,"yawDegrees":0,"fieldOfViewDegrees":16.2,"distance":42,"orthographicHeight":12.5}},
+          "observations": [
+            {"path":"maps/map.json","at":["spatialScene","camera","projection"],"equals":"orthographic"},
+            {"path":"maps/map.json","at":["spatialScene","camera","orthographicHeight"],"equals":12.5}
+          ]
+        },
+        {
+          "actionId": "map3d.navigation.configure",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","navigation":{"spawn":{"x":0.5,"z":0.5},"allowDiagonalMovement":false,"ramps":[],"blockedAreas":[],"maximumFishingDropWorld":0.5}},
+          "observations": [
+            {"path":"maps/map.json","at":["spatialScene","navigation","maximumFishingDropWorld"],"equals":0.5}
+          ]
+        },
+        {
+          "actionId": "map3d.ledge.configure",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","ledges":[{"id":"drop","x":1,"z":0,"direction":"south","distance":2,"durationMs":400,"height":0.65}]},
+          "observations": [
+            {"path":"maps/map.json","at":["spatialScene","navigation","ledges",0,"id"],"equals":"drop"},
+            {"path":"maps/map.json","at":["spatialScene","navigation","ledges",0,"direction"],"equals":"south"},
+            {"path":"maps/map.json","at":["spatialScene","navigation","ledges",0,"distance"],"equals":2}
+          ]
+        },
+        {
+          "actionId": "map3d.instance.upsert",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","instance":{"id":"lift-deck","modelId":"tree","position":{"x":4.5,"y":1,"z":2.5},"blocksMovement":false,"rotationDegrees":0,"scale":1}},
+          "observations": [
+            {"path":"maps/map.json","at":["spatialScene","instances",1,"id"],"equals":"lift-deck"},
+            {"path":"maps/map.json","at":["spatialScene","instances",1,"position"],"equals":{"x":4.5,"y":1.0,"z":2.5}}
+          ]
+        },
+        {
+          "actionId": "map3d.lift.upsert_batch",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","lifts":[{"id":"lift","name":"Upper path","instanceId":"lift-deck","x":4,"z":2,"width":1,"depth":1,"lowerHeight":1,"upperHeight":3,"durationMs":1000}]},
+          "observations": [
+            {"path":"maps/map.json","at":["spatialScene","lifts",0,"instanceId"],"equals":"lift-deck"},
+            {"path":"maps/map.json","at":["spatialScene","lifts",0,"upperHeight"],"equals":3.0}
+          ]
+        },
+        {
+          "actionId": "map3d.lift.delete_batch",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","liftIds":["lift"]},
+          "observations": [
+            {"path":"maps/map.json","at":["spatialScene","lifts",0],"absent":true},
+            {"path":"maps/map.json","at":["spatialScene","instances",1,"id"],"equals":"lift-deck"}
+          ]
+        },
+        {
+          "actionId": "map3d.terrain.surface.upsert_batch",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId":"map","surfaces":[{"id":"proof-slope","x":1,"z":1,"height":2,"gradientX":0.25,"gradientZ":0,"footprints":[[{"x":0,"z":0},{"x":1,"z":0},{"x":1,"z":1},{"x":0,"z":1}]]}],"reanchorInstances":false},
+          "observations": [
+            {"path":"maps/map.json","at":["spatialScene","terrainSurfaces","surfaces",0,"id"],"equals":"proof-slope"},
+            {"path":"maps/map.json","at":["spatialScene","terrainSurfaces","surfaces",0,"gradientX"],"equals":0.25}
+          ]
+        },
+        {
+          "actionId": "map3d.terrain.surface.delete_batch",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId":"map","surfaceIds":["proof-slope"],"reanchorInstances":false},
+          "observations": [
+            {"path":"maps/map.json","at":["spatialScene","terrainSurfaces"],"absent":true},
+            {"path":"maps/map.json","at":["spatialScene","lifts",0],"absent":true},
+            {"path":"maps/map.json","at":["spatialScene","heightLevels",7],"equals":1},
+            {"path":"maps/map.json","at":["spatialScene","instances",0,"position","y"],"equals":3.0},
+            {"path":"maps/map.json","at":["spatialScene","instances",1,"position","y"],"equals":1.0},
+            {"path":"maps/map.json","at":["spatialScene","navigation","ledges",0,"id"],"equals":"drop"},
+            {"path":"maps/map.json","at":["spatialScene","navigation","maximumFishingDropWorld"],"equals":0.5},
+            {"path":"maps/map.json","at":["spatialScene","camera","orthographicHeight"],"equals":12.5}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "construction-moving-geometry",
+      "projectRoot": "placed-elements",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "placed_element.batch_place",
+          "actionVersion": 1,
+          "parameters": {
+            "mapId": "map",
+            "instances": [{"id":"bridge-visual","layerId":"props","elementId":"sign-prop","pos":{"x":2,"y":1},"applyCollision":false,"properties":{"pokemapPlacementOrigin":"authored"}},{"id":"gate-visual","layerId":"props","elementId":"sign-prop","pos":{"x":1,"y":2},"applyCollision":false,"properties":{"pokemapPlacementOrigin":"authored"}}]
+          },
+          "observations": [
+            {"path":"maps/map.json","at":["placedElements",2,"id"],"equals":"bridge-visual"},
+            {"path":"maps/map.json","at":["placedElements",2,"applyCollision"],"equals":false},
+            {"path":"maps/map.json","at":["placedElements",3,"id"],"equals":"gate-visual"},
+            {"path":"maps/map.json","at":["placedElements",3,"applyCollision"],"equals":false}
+          ]
+        },
+        {
+          "actionId": "map.platform.upsert",
+          "actionVersion": 1,
+          "parameters": {
+            "mapId": "map",
+            "platform": {
+              "id": "bridge",
+              "placedElementId": "bridge-visual",
+              "initialPose": {"leftPx":32,"topPx":16,"quarterTurns":0},
+              "lattice": {"widthPx":16,"heightPx":16,"originLeftPx":0,"originTopPx":0,"cellOffsetLeftPx":0,"cellOffsetTopPx":0},
+              "translationDistanceCells": 1,
+              "terrainLayerIds": ["props"],
+              "travelCells": [{"x":2,"y":1},{"x":3,"y":1}],
+              "variants": [
+                {
+                  "elementId": "sign-prop",
+                  "anchorOffsetPx": {"x":0,"y":0},
+                  "supportCells": [{"x":0,"y":0}],
+                  "clearanceCells": [{"x":0,"y":0}],
+                  "rotationClearanceCells": [{"x":0,"y":0}],
+                  "forwardClearanceCells": [{"x":0,"y":0}],
+                  "backwardClearanceCells": [{"x":0,"y":0}]
+                },
+                {
+                  "elementId": "sign-prop",
+                  "anchorOffsetPx": {"x":0,"y":0},
+                  "supportCells": [{"x":0,"y":0}],
+                  "clearanceCells": [{"x":0,"y":0}],
+                  "rotationClearanceCells": [{"x":0,"y":0}],
+                  "forwardClearanceCells": [{"x":0,"y":0}],
+                  "backwardClearanceCells": [{"x":0,"y":0}]
+                },
+                {
+                  "elementId": "sign-prop",
+                  "anchorOffsetPx": {"x":0,"y":0},
+                  "supportCells": [{"x":0,"y":0}],
+                  "clearanceCells": [{"x":0,"y":0}],
+                  "rotationClearanceCells": [{"x":0,"y":0}],
+                  "forwardClearanceCells": [{"x":0,"y":0}],
+                  "backwardClearanceCells": [{"x":0,"y":0}]
+                },
+                {
+                  "elementId": "sign-prop",
+                  "anchorOffsetPx": {"x":0,"y":0},
+                  "supportCells": [{"x":0,"y":0}],
+                  "clearanceCells": [{"x":0,"y":0}],
+                  "rotationClearanceCells": [{"x":0,"y":0}],
+                  "forwardClearanceCells": [{"x":0,"y":0}],
+                  "backwardClearanceCells": [{"x":0,"y":0}]
+                }
+              ]
+            }
+          },
+          "observations": [
+            {"path":"maps/map.json","at":["movingPlatforms",0,"id"],"equals":"bridge"},
+            {"path":"maps/map.json","at":["movingPlatforms",0,"placedElementId"],"equals":"bridge-visual"},
+            {"path":"maps/map.json","at":["movingPlatforms",0,"travelCells",1],"equals":{"x":3,"y":1}}
+          ]
+        },
+        {
+          "actionId": "map.platform.delete",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","platformId":"bridge"},
+          "observations": [
+            {"path":"maps/map.json","at":["movingPlatforms",0],"absent":true},
+            {"path":"maps/map.json","at":["placedElements",2,"id"],"equals":"bridge-visual"}
+          ]
+        },
+        {
+          "actionId": "map.prop.upsert",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","prop":{"id":"gate","placedElementId":"gate-visual","closedPositionPx":{"x":16,"y":32},"openPositionPx":{"x":32,"y":32},"collisionRect":{"leftPx":0,"topPx":0,"widthPx":16,"heightPx":16},"initialState":"closed"}},
+          "observations": [
+            {"path":"maps/map.json","at":["movingProps",0,"id"],"equals":"gate"},
+            {"path":"maps/map.json","at":["movingProps",0,"placedElementId"],"equals":"gate-visual"},
+            {"path":"maps/map.json","at":["movingProps",0,"openPositionPx"],"equals":{"x":32,"y":32}}
+          ]
+        },
+        {
+          "actionId": "map.prop.delete",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","propId":"gate"},
+          "observations": [
+            {"path":"maps/map.json","at":["movingProps",0],"absent":true},
+            {"path":"maps/map.json","at":["placedElements",3,"id"],"equals":"gate-visual"}
+          ]
+        },
+        {
+          "actionId": "placed_element.set_geometry",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","instanceId":"bridge-visual","pixelX":35,"pixelY":38,"pixelSize":{"width":12,"height":14}},
+          "observations": [
+            {"path":"maps/map.json","at":["placedElements",2,"id"],"equals":"bridge-visual"},
+            {"path":"maps/map.json","at":["placedElements",2,"pos"],"equals":{"x":2,"y":2}},
+            {"path":"maps/map.json","at":["placedElements",2,"pixelOffset"],"equals":{"x":3,"y":6}},
+            {"path":"maps/map.json","at":["placedElements",2,"pixelSize"],"equals":{"width":12,"height":14}},
+            {"path":"maps/map.json","at":["placedElements",0,"pos"],"equals":{"x":1,"y":1}},
+            {"path":"maps/map.json","at":["placedElements",3,"pos"],"equals":{"x":1,"y":2}},
+            {"path":"maps/map.json","at":["movingPlatforms",0],"absent":true},
+            {"path":"maps/map.json","at":["movingProps",0],"absent":true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "construction-smart-tiles",
+      "projectRoot": "smart-tiles",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "smart_tile.preset.duplicate",
+          "actionVersion": 1,
+          "parameters": {"presetId":"grass-path","newDraftId":"construction-draft","targetPresetId":"alternate-path","name":"Alternate path"},
+          "observations": [
+            {"path":"project.json","at":["smartTileCatalog","drafts",0,"targetPresetId"],"equals":"alternate-path"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.preset.publish",
+          "actionVersion": 1,
+          "parameters": {"draftId":"construction-draft"},
+          "observations": [
+            {"path":"project.json","at":["smartTileCatalog","presets",0,"id"],"equals":"alternate-path"},
+            {"path":"project.json","at":["smartTileCatalog","drafts"],"equals":[]}
+          ]
+        },
+        {
+          "actionId": "pokemon.species.write",
+          "actionVersion": 1,
+          "parameters": {
+            "relativePath": "data/pokemon/species/sproutle.json",
+            "document": {"schemaVersion":1,"id":"sproutle","name":{"en":"Sproutle"},"typing":{"types":["grass"]},"baseStats":{"hp":48,"atk":47,"def":46,"spa":45,"spd":44,"spe":43},"abilities":{"primary":"chord"},"progression":{"growthRateId":"medium_slow","baseExp":60,"catchRate":100}}
+          },
+          "observations": [
+            {"path":"data/pokemon/species/sproutle.json","at":["id"],"equals":"sproutle"}
+          ]
+        },
+        {
+          "actionId": "campaign.encounter_table.upsert_batch",
+          "actionVersion": 1,
+          "parameters": {"values":[{"id":"path-encounters","name":"Path encounters","encounterKind":"walk","entries":[{"speciesId":"sproutle","minLevel":3,"maxLevel":5}]}]},
+          "observations": [
+            {"path":"project.json","at":["encounterTables",0,"id"],"equals":"path-encounters"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.cell.paint_batch",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId":"map","layerId":"primary","strokes":[{"materialId":"grass","cells":[{"x":0,"y":1}]},{"materialId":"spare","cells":[{"x":1,"y":1}]}]},
+          "observations": [
+            {"path":"maps/map.json","at":["layers",1,"field","semanticCells",8],"equals":1},
+            {"path":"maps/map.json","at":["layers",1,"field","semanticCells",9],"equals":2},
+            {"path":"maps/map.json","at":["layers",1,"materialPalette"],"equals":["","grass","spare"]}
+          ]
+        },
+        {
+          "actionId": "smart_tile.layer.change_preset",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId":"map","layerId":"primary","targetPresetId":"alternate-path","materialMappings":{"grass":"alternate-path-grass","spare":"alternate-path-spare"}},
+          "observations": [
+            {"path":"maps/map.json","at":["layers",1,"presetId"],"equals":"alternate-path"},
+            {"path":"maps/map.json","at":["layers",1,"materialPalette"],"equals":["","alternate-path-grass","alternate-path-spare"]},
+            {"path":"maps/map.json","at":["layers",1,"field","semanticCells",8],"equals":1},
+            {"path":"maps/map.json","at":["layers",1,"field","semanticCells",9],"equals":2}
+          ]
+        },
+        {
+          "actionId": "smart_tile.layer.set_animation_activation",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId":"map","layerId":"primary","activation":"on_enter"},
+          "observations": [
+            {"path":"maps/map.json","at":["layers",1,"animationActivation"],"equals":"on_enter"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.layer.set_encounter_behavior",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId":"map","layerId":"primary","materialId":"alternate-path-grass","priority":4,"encounterTableId":"path-encounters","encounterKind":"walk"},
+          "observations": [
+            {"path":"maps/map.json","at":["layers",1,"encounterBehavior","materialId"],"equals":"alternate-path-grass"},
+            {"path":"maps/map.json","at":["layers",1,"encounterBehavior","priority"],"equals":4},
+            {"path":"maps/map.json","at":["layers",1,"encounterBehavior","encounter","encounterTableId"],"equals":"path-encounters"}
+          ]
+        },
+        {
+          "actionId": "smart_tile.layer.clear_encounter_behavior",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mapId":"map","layerId":"primary"},
+          "observations": [
+            {"path":"maps/map.json","at":["layers",1,"encounterBehavior"],"absent":true},
+            {"path":"maps/map.json","at":["layers",1,"presetId"],"equals":"alternate-path"},
+            {"path":"maps/map.json","at":["layers",1,"animationActivation"],"equals":"on_enter"},
+            {"path":"maps/map.json","at":["layers",1,"field","semanticCells",8],"equals":1},
+            {"path":"maps/map.json","at":["layers",1,"field","semanticCells",9],"equals":2}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "construction-border-publication",
+      "projectRoot": "environment-spatial",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "border.blueprint.draft.upsert",
+          "actionVersion": 1,
+          "parameters": {
+            "record": {
+              "id": "native-fence",
+              "draft": {
+                "baseRevision": 0,
+                "definition": {
+                  "name": "Native fence",
+                  "previewSeed": "17",
+                  "template": "connectedLine",
+                  "primitives": [
+                    {"id":"lineCap","sourceModelId":"tree","role":"lineCap","weight":1,"transforms":{"allowedQuarterTurns":[0,1,2,3],"allowFlipX":false}},
+                    {"id":"lineStraight","sourceModelId":"tree","role":"lineStraight","weight":1,"transforms":{"allowedQuarterTurns":[0,1,2,3],"allowFlipX":false}},
+                    {"id":"lineCorner","sourceModelId":"tree","role":"lineCorner","weight":1,"transforms":{"allowedQuarterTurns":[0,1,2,3],"allowFlipX":false}}
+                  ],
+                  "defaults": {"irregularityPermille":0,"detailDensityPermille":0,"variationPermille":1000,"maxOverlapPx":0,"gapTolerancePx":0,"depthRows":1},
+                  "sortOrder": 0
+                }
+              }
+            }
+          },
+          "observations": [
+            {"path":"project.json","at":["borderCatalog","records",0,"id"],"equals":"native-fence"},
+            {"path":"project.json","at":["borderCatalog","records",0,"draft","definition","name"],"equals":"Native fence"},
+            {"path":"project.json","at":["borderCatalog","records",0,"draft","definition","primitives",0,"sourceModelId"],"equals":"tree"},
+            {"path":"project.json","at":["borderCatalog","records",0,"latestPublished"],"absent":true}
+          ]
+        },
+        {
+          "actionId": "border.blueprint.publish",
+          "actionVersion": 1,
+          "parameters": {"blueprintId":"native-fence"},
+          "observations": [
+            {"path":"project.json","at":["borderCatalog","records",0,"id"],"equals":"native-fence"},
+            {"path":"project.json","at":["borderCatalog","records",0,"draft","baseRevision"],"equals":1},
+            {"path":"project.json","at":["borderCatalog","records",0,"latestPublished","revision"],"equals":1},
+            {"path":"project.json","at":["borderCatalog","records",0,"latestPublished","definition","primitives",0,"sourceModelId"],"equals":"tree"},
+            {"path":"maps/map.json","sha256":"sha256:7f637c9bc8c7d77995231519cd8a8b667a12fcec932add886b11bb499e9cc024"}
+          ]
+        }
+      ]
+    },
+    {
       "id": "map-graphics-reset",
       "projectRoot": "map-graphics-reset",
       "steps": [
