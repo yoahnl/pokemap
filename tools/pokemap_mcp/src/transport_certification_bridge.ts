@@ -6,6 +6,9 @@ import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 import type { JsonRecord } from "./authoring_client.js";
 
+const authoringTimeoutMs = 120_000;
+const toolTimeoutMs = authoringTimeoutMs + 15_000;
+
 function command(name: string, args: JsonRecord): [string, JsonRecord] {
   switch (name) {
     case "open":
@@ -37,7 +40,7 @@ async function main(): Promise<void> {
   assert.ok(server && project && authoringPackage && dart);
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [resolve(server), "--root", project, "--authoring-package", authoringPackage, "--dart", dart, "--authoring-timeout-ms", "120000"],
+    args: [resolve(server), "--root", project, "--authoring-package", authoringPackage, "--dart", dart, "--authoring-timeout-ms", String(authoringTimeoutMs)],
     cwd: process.cwd(),
     stderr: "pipe",
   });
@@ -50,7 +53,11 @@ async function main(): Promise<void> {
       for await (const line of input) {
         const request = record(JSON.parse(line));
         const [name, args] = command(String(request.command), record(request.args));
-        const response = await client.callTool({ name, arguments: args });
+        const response = await client.callTool({ name, arguments: args }, {
+          timeout: toolTimeoutMs,
+        }).catch((error: unknown) => {
+          throw new Error(`${request.command} (${name}): ${String(error)}`, { cause: error });
+        });
         const envelope = record(response.structuredContent);
         assert.equal(response.isError === true, envelope.ok !== true);
         process.stdout.write(JSON.stringify({ id: request.id, ...envelope }) + "\n");

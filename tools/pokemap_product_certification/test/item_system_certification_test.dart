@@ -86,7 +86,7 @@ void main() {
       )['receipts'],
       hasLength(36),
     );
-  }, timeout: const Timeout(Duration(minutes: 5)));
+  }, timeout: const Timeout(Duration(minutes: 10)));
 
   test('missing executable receipts never become certified', () {
     final result = const ItemSystemCertificationEvaluator().evaluate(
