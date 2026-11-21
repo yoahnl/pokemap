@@ -6,10 +6,6 @@ on:
       - "apps/Avelune iOS/**"
       - "apps/avelune_android/**"
       - "apps/avelune_version.xcconfig"
-      - "apps/pokemap_hub/lib/**"
-      - "apps/pokemap_hub/test/features/saves/avelune_compatibility_baseline_continue_test.dart"
-      - "apps/pokemap_hub/test/platform/avelune_host_compatibility_test.dart"
-      - "apps/pokemap_hub/test/features/session/hub_player_save_gateway_test.dart"
       - "apps/avelune_studio/**"
       - "packages/**"
       - "examples/playable_runtime_host/**"
@@ -23,10 +19,6 @@ on:
       - "apps/Avelune iOS/**"
       - "apps/avelune_android/**"
       - "apps/avelune_version.xcconfig"
-      - "apps/pokemap_hub/lib/**"
-      - "apps/pokemap_hub/test/features/saves/avelune_compatibility_baseline_continue_test.dart"
-      - "apps/pokemap_hub/test/platform/avelune_host_compatibility_test.dart"
-      - "apps/pokemap_hub/test/features/session/hub_player_save_gateway_test.dart"
       - "apps/avelune_studio/**"
       - "packages/**"
       - "examples/playable_runtime_host/**"
@@ -117,15 +109,15 @@ jobs:
             test/avelune_compatibility_baseline_package_test.dart \
             test/game_package_compatibility_test.dart \
             test/game_package_builder_test.dart
-      - name: Avelune save compatibility baseline
-        working-directory: apps/pokemap_hub
+      - name: Avelune Player save and resume
+        working-directory: packages/map_runtime
         timeout-minutes: 2
         run: |
           flutter pub get
           flutter test --no-pub --no-test-assets --timeout 2m \
-            test/platform/avelune_host_compatibility_test.dart \
-            test/features/saves/avelune_compatibility_baseline_continue_test.dart \
-            test/features/session/hub_player_save_gateway_test.dart
+            test/file_game_save_repository_test.dart \
+            test/game_save_load_diagnostics_test.dart \
+            test/player/runtime_player_save_race_test.dart
       - name: Authoring release gate syntax
         run: bash -n tools/pokemap_mcp/scripts/pmcp085_release_gate.sh
       - name: Studio smoke and static checks

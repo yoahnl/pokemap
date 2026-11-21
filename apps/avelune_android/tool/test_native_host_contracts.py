@@ -160,24 +160,16 @@ class NativeHostContractsTest(unittest.TestCase):
         self.assertIn("apps/avelune_android/tool/build_android.sh", workflow)
         self.assertIn(":app:bundleRelease", workflow)
 
-    def test_quick_checks_watch_only_the_shared_hub_library(self):
+    def test_quick_checks_watch_native_hosts_and_shared_packages(self):
         workflow = source(".github/workflows/pokemap_quick_checks.yml")
-        filters = re.findall(
-            r"(?m)^\s+-\s*['\"]?apps/pokemap_hub/lib/\*\*['\"]?\s*$",
-            workflow,
-        )
-        self.assertEqual(len(filters), 2)
         for trigger, next_section in (("pull_request", "push"), ("push", "permissions")):
             with self.subTest(trigger=trigger):
                 section = workflow.split(f"  {trigger}:", 1)[1].split(f"{next_section}:", 1)[0]
-                self.assertIn("apps/pokemap_hub/lib/**", section)
                 self.assertIn("apps/Avelune iOS/**", section)
                 self.assertIn("apps/avelune_android/**", section)
                 self.assertIn("apps/avelune_version.xcconfig", section)
-        self.assertIsNone(
-            re.search(r"(?m)^\s+-\s*['\"]?apps/pokemap_hub/\*\*['\"]?\s*$", workflow),
-            "Quick checks must watch the embedded library without selecting the retired Hub app",
-        )
+                self.assertIn("packages/**", section)
+        self.assertNotIn("apps/pokemap_hub", workflow)
 
     def test_quick_checks_and_certification_execute_the_native_host_contracts(self):
         for name in ("pokemap_quick_checks.yml", "pokemap_product_certification.yml"):
