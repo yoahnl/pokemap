@@ -8,6 +8,7 @@ import 'package:avelune_studio/platform/rendering/studio_character_thumbnail.dar
 import 'package:avelune_studio/platform/rendering/studio_library_image_cache.dart';
 import 'package:avelune_studio/platform/rendering/studio_library_image_preview.dart';
 import 'package:avelune_studio/platform/rendering/studio_resource_catalog.dart';
+import 'package:avelune_studio/platform/rendering/studio_resource_thumbnail.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart'
@@ -20,6 +21,89 @@ import 'package:map_authoring/map_authoring.dart'
 import 'package:map_core/map_core_domain.dart';
 
 void main() {
+  testWidgets('decor crops redraw in the same loaded tileset scope', (
+    tester,
+  ) async {
+    final directory = (await tester.runAsync(_writeSprite))!;
+    final catalog = StudioAssetCatalogCache(directory.path);
+    final cache = StudioLibraryImageCache(catalog);
+    addTearDown(() async {
+      cache.dispose();
+      await directory.delete(recursive: true);
+    });
+    final project = _project.copyWith(
+      settings: _project.settings.copyWith(tileWidth: 32, tileHeight: 32),
+      tilesets: [
+        _project.tilesets.single.copyWith(
+          source: ProjectRegularAtlasTilesetSource(
+            assetId: 'sprite',
+            pixelWidth: 64,
+            pixelHeight: 32,
+            tileWidth: 32,
+            tileHeight: 32,
+          ),
+        ),
+      ],
+    );
+    const original = ProjectElementEntry(
+      id: 'decor',
+      name: 'Décor',
+      tilesetId: 'sprite',
+      categoryId: 'props',
+      frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
+    );
+    Future<void> show(ProjectElementEntry element) => tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: StudioLibraryImagePreview(
+            cache: cache,
+            source: ElementPreviewSource(element),
+            project: project,
+            size: 168,
+          ),
+        ),
+      ),
+    );
+    final painted = find.descendant(
+      of: find.byType(StudioResourceThumbnail),
+      matching: find.byType(CustomPaint),
+    );
+    StudioResourceThumbnail thumbnail() =>
+        tester.widget(find.byType(StudioResourceThumbnail));
+    Future<List<int>?> pixel() => tester.runAsync(
+      () => _paintedPixel(tester.widget<CustomPaint>(painted).painter!),
+    );
+    await tester.runAsync(() async {
+      await show(original);
+      for (
+        var attempt = 0;
+        attempt < 250 && painted.evaluate().isEmpty;
+        attempt++
+      ) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await tester.pump();
+      }
+    });
+    expect(await pixel(), [213, 17, 37, 255]);
+    final scope = thumbnail().resources;
+    await show(
+      original.copyWith(
+        name: 'Décor habillé',
+        collisionProfile: const ElementCollisionProfile(
+          cells: [GridPos(x: 0, y: 0)],
+        ),
+        frames: const [
+          TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0)),
+        ],
+      ),
+    );
+    expect(painted, findsOneWidget);
+    expect(thumbnail().resources, same(scope));
+    expect(await pixel(), [12, 142, 85, 255]);
+    expect(catalog.reads, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
     'pose changes draw new sprite pixels using the same image scope',
     (tester) async {

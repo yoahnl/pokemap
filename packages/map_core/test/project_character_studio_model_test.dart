@@ -5,6 +5,26 @@ import 'package:test/test.dart';
 
 void main() {
   group('Project character studio models', () {
+    test('keeps the legacy sprite and round trips a spatial clip binding', () {
+      const sprite = ProjectCharacterEntry(
+        id: 'hero',
+        name: 'Hero',
+        tilesetId: 'sheet',
+      );
+      expect(sprite.toJson(), isNot(contains('spatialModel')));
+      const rig = ProjectCharacterSpatialModel(
+        modelId: 'rig',
+        clips: {
+          CharacterAnimationState.idle: 0,
+          CharacterAnimationState.walk: 2,
+        },
+      );
+      final character = sprite.copyWith(spatialModel: rig);
+      expect(ProjectCharacterEntry.fromJson(character.toJson()), character);
+      expect(character.tilesetId, sprite.tilesetId);
+      expect(rig.resolveClip(CharacterAnimationState.walk), 2);
+      expect(rig.resolveClip(CharacterAnimationState.surf), 0);
+    });
     test('defaults to an empty additive catalog on v6 projects', () {
       const manifest = ProjectManifest(
         name: 'Character Studio',

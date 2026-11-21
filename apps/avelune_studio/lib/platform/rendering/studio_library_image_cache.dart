@@ -56,11 +56,7 @@ final class StudioLibraryImageCache {
     final tilesetIds = switch (source) {
       AtlasPreviewSource(:final tilesetId) => {tilesetId},
       TileFramePreviewSource(:final entry) => {entry.tilesetId},
-      ElementPreviewSource(:final element) => {
-        element.frames.firstOrNull?.tilesetId.isNotEmpty == true
-            ? element.frames.first.tilesetId
-            : element.tilesetId,
-      },
+      ElementPreviewSource(:final tilesetId) => {tilesetId},
       CharacterPreviewSource(:final character) => {character.tilesetId},
       _ => <String>{},
     };

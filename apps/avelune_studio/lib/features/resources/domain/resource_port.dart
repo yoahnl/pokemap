@@ -145,6 +145,7 @@ final class ResourceMutationReceipt {
     this.mapRevisions = const {},
     this.changedModels = const {},
     this.changedTerrain,
+    this.changedElement,
     this.modelSourceRevisions = const {},
     this.sceneChanges = const {},
     this.removedLibraryResource,
@@ -165,6 +166,7 @@ final class ResourceMutationReceipt {
   final Map<String, String> mapRevisions;
   final Map<String, ProjectModel3dEntry> changedModels;
   final ProjectSmartTilePreset? changedTerrain;
+  final ProjectElementEntry? changedElement;
   final Map<String, String> modelSourceRevisions;
   final Map<String, ({SceneAsset before, SceneAsset after})> sceneChanges;
   final ({String kind, String id})? removedLibraryResource;

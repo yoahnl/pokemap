@@ -21,6 +21,7 @@ final class CatalogScopedWorkingMutation {
       this.upserts,
       this.removals,
       this.additionalChanges,
+      this.retainedFiles,
       this.diff,
       this.workspaceFingerprint,
       this.replacementImpact);
@@ -29,6 +30,7 @@ final class CatalogScopedWorkingMutation {
   final List<CatalogDefinitionUnit> upserts;
   final List<CatalogDefinitionKey> removals;
   final List<AuthoringResourceChange> additionalChanges;
+  final Map<String, String> retainedFiles;
   final AuthoringDiff diff;
   final String? workspaceFingerprint;
   final CatalogUsageReplacementImpact? replacementImpact;
@@ -40,6 +42,9 @@ final class CatalogScopedWorkingMutation {
     final before = selection.snapshot.manifest;
     var projected = before;
     final additional = <AuthoringResourceChange>[];
+    final retainedFiles = <String, String>{};
+    final retainedResources = <(String, String)>{};
+    final publishesBorder = publicPlan.request.actionId == 'border.blueprint.publish';
     for (final change in publicPlan.changeSet.changes) {
       if (change.storageKey == 'project.json') {
         if (change.afterPayload == null || change.resource.kind != 'project') {
@@ -53,6 +58,21 @@ final class CatalogScopedWorkingMutation {
         if (change.storageKey.startsWith('catalog/') ||
             change.storageKey.startsWith('.pokemap/')) {
           throw const FormatException('catalog.workshop: internal path');
+        }
+        if (publishesBorder && change.beforeRevision == null &&
+            const {'borderSnapshot', 'assetBlob'}.contains(change.resource.kind)) {
+          final existing = await selection.reader.store.gateway.readResourceRevision(change.storageKey);
+          if (existing != null) {
+            if (existing != change.afterRevision) {
+              throw AuthoringPlanException(
+                code: 'border.snapshot.asset_conflict',
+                message: 'An existing Border snapshot file differs from its certified content.',
+              );
+            }
+            retainedFiles[change.storageKey] = existing;
+            retainedResources.add((change.resource.kind, change.resource.id));
+            continue;
+          }
         }
         additional.add(change);
       }
@@ -133,12 +153,21 @@ final class CatalogScopedWorkingMutation {
       final previous = before.models3d.single;
       final next = projected.models3d.single;
       final parameters = publicPlan.request.parameters;
+      final transform = parameters.containsKey('scale') || parameters.containsKey('pivot');
+      if (transform &&
+          (publicPlan.request.extensions['workshopScope'] != true ||
+              previous.rampProfile != null)) {
+        throw const FormatException('catalog.model_metadata: transform requires an ordinary model and explicit workshop scope');
+      }
       if (parameters['modelId'] != previous.id || additional.isNotEmpty ||
-          (!parameters.containsKey('light') && !parameters.containsKey('collisionBounds') && !parameters.containsKey('castsShadowsByDefault')) ||
-          parameters.keys.any((key) => !{'modelId', 'light', 'collisionBounds', 'castsShadowsByDefault'}.contains(key))) {
+          parameters.length < 2 ||
+          parameters.keys.any((key) => !{'modelId', 'light', 'collisionBounds', 'castsShadowsByDefault', 'scale', 'pivot'}.contains(key))) {
         throw const FormatException('catalog.model_metadata: request changes data outside scope');
       }
       final expected = previous.copyWith(
+        scale: parameters['scale'] as num?,
+        pivot: parameters['pivot'] == null ? null : Model3dVector3.fromJson(
+            Map<String, dynamic>.from(parameters['pivot'] as Map)),
         castsShadowsByDefault: parameters['castsShadowsByDefault'] as bool?,
         light: parameters['light'] == null ? null : Model3dPointLight.fromJson(
             Map<String, dynamic>.from(parameters['light'] as Map)),
@@ -200,6 +229,11 @@ final class CatalogScopedWorkingMutation {
           ? null
           : PortableCatalogPublication.readSync(built.descriptor,
               readObject: (reference) => built.storage.objects[reference.sha256]!);
+      final scopedSections = {
+        for (final kind in selection.resourceCounts.keys)
+          CatalogResourcePositions.sectionOf(kind)!,
+      };
+      final handledFields = <String>{};
       for (final entry in selection.resourceCounts.entries) {
         final sectionPath = CatalogResourcePositions.sectionOf(entry.key)!;
         final path = sectionPath.split('.');
@@ -220,7 +254,7 @@ final class CatalogScopedWorkingMutation {
               }
             : projectedJson[field];
         final afterRows = path.length == 1 ? projectedSection as List
-            : (projectedSection as Map)[path.last] as List;
+            : (projectedSection as Map?)?[path.last] as List? ?? const [];
         final kept = afterRows.cast<Map>().map(identity).toSet();
         final removed = {
           for (final id in beforeById.keys)
@@ -232,10 +266,18 @@ final class CatalogScopedWorkingMutation {
           throw const FormatException('catalog.resource_creation: existing definitions cannot be removed');
         }
         removals.addAll(removed);
-        if (path.length > 1 && previousJson[field] != null && !_same(
-            {...previousJson[field] as Map}..remove(path.last),
-            {...projectedSection as Map}..remove(path.last))) {
-          throw const FormatException('catalog.resource_creation: undeclared catalog changes');
+        if (path.length > 1 && !handledFields.contains(field)) {
+          Map<Object?, Object?> unchangedParts(Map? section) => {
+            if (section != null)
+              for (final item in section.entries)
+                if (!scopedSections.contains('$field.${item.key}')) item.key: item.value,
+          };
+          final untouched = unchangedParts(projectedSection as Map?);
+          if (previousSection is Map
+              ? !_same(unchangedParts(previousSection), untouched)
+              : untouched.values.any((value) => value is List && value.isNotEmpty)) {
+            throw const FormatException('catalog.resource_creation: undeclared catalog changes');
+          }
         }
         var position = entry.value;
         if (pruning) {
@@ -273,6 +315,11 @@ final class CatalogScopedWorkingMutation {
                 references: unit.references));
           } else {
             final original = await catalog.lookup(unit.key);
+            if (original != null && publishesBorder &&
+                unit.key.kind == CatalogDefinitionKind.borderVisualSnapshot &&
+                _same(original.payload['value'], unit.payload['value'])) {
+              continue;
+            }
             if (original != null) throw const FormatException('catalog.resource_creation: identity already in use');
             upserts.add(CatalogDefinitionUnit(key: unit.key,
                 payload: {...unit.payload, 'position': position++}, references: unit.references));
@@ -292,8 +339,9 @@ final class CatalogScopedWorkingMutation {
           final generatedShell = generated!.units.singleWhere((unit) => unit.key == shellKey);
           nextShell[field] = (generatedShell.payload['value'] as Map)[field];
         }
-        changedFields.remove(field);
+        handledFields.add(field);
       }
+      changedFields.removeAll(handledFields);
     }
     const characterStudioField = 'characterStudioCatalog';
     if (changedFields.remove(characterStudioField)) {
@@ -515,11 +563,14 @@ final class CatalogScopedWorkingMutation {
       CatalogWorkshopSelection.unsupported(publicPlan.request.actionId,
           'a targeted incoming-reference proof for removing catalog storage units');
     }
-    final paths = selection.resourceRevisions.keys.toList()..sort();
+    final paths = {...selection.resourceRevisions.keys, ...retainedFiles.keys}.toList()..sort();
     final resource = AuthoringResourceRef(
         kind: 'catalogHead',
         id: 'catalog',
-        extensions: {'workshopResourcePaths': paths});
+        extensions: {
+          'workshopResourcePaths': paths,
+          if (retainedFiles.isNotEmpty) 'retainedBorderRevisions': retainedFiles,
+        });
     final fingerprint = additional.isEmpty
         ? null
         : computeAuthoringJsonFingerprint({
@@ -534,8 +585,10 @@ final class CatalogScopedWorkingMutation {
         upserts,
         removals,
         additional,
+        Map.unmodifiable(retainedFiles),
         AuthoringDiff([
           for (final entry in publicPlan.changeSet.diff.entries)
+            if (!retainedResources.contains((entry.resource.kind, entry.resource.id)))
             if (entry.resource.kind == 'project')
               AuthoringDiffEntry.fromJson(
                   {...entry.toJson(), 'resource': resource.toJson()})

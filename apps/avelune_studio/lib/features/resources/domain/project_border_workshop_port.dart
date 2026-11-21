@@ -1,5 +1,6 @@
 import 'package:map_core/map_core_domain.dart';
 
+import 'project_library_editor.dart';
 import 'resource_port.dart';
 
 typedef ProjectBorderWorkshopRead = ({
@@ -17,6 +18,11 @@ final class BorderWorkshopReopenRequired implements Exception {
 abstract interface class ProjectBorderWorkshopPort {
   bool get canEditBorderWorkshop;
 
+  Future<ProjectLibraryEdit> createWorkshopBorder(
+    BorderCreationRequest request, {
+    required String expectedRevision,
+  });
+
   Future<ProjectBorderWorkshopRead> readWorkshopBorder(String borderId);
 
   Future<ResourceMutationReceipt> saveBorderDraft(
@@ -28,6 +34,7 @@ abstract interface class ProjectBorderWorkshopPort {
   Future<ResourceMutationReceipt> publishBorderDraft(
     String borderId, {
     required String expectedRevision,
+    List<String> acceptedWarningCodes = const [],
   });
 
   Future<void> reconcileBorderWorkshop(

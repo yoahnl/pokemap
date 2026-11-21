@@ -7,10 +7,86 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/runtime_player_avatar.dart';
 import 'package:map_runtime/src/application/runtime_project_catalog.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  test('an avatar chosen outside the map retains its scoped model source', () async {
+    final root = await Directory.systemTemp.createTemp('runtime-avatar-model-');
+    addTearDown(() => root.delete(recursive: true));
+    final model = ProjectModel3dEntry(
+      id: 'rig',
+      name: 'Rig',
+      sourceAssetId: 'rig-source',
+      relativePath: 'assets/models3d/rig.glb',
+      inspection: Model3dInspection(
+        bounds: Model3dBounds(
+          min: Model3dVector3.zero,
+          max: Model3dVector3(x: 1, y: 1, z: 1),
+        ),
+        meshCount: 1,
+        triangleCount: 1,
+        skinned: true,
+        animations: [Model3dAnimation(index: 0, name: 'Idle', durationSeconds: 1)],
+      ),
+    );
+    final bytes = [1, 2, 3, 4];
+    final source = File(p.join(root.path, model.relativePath));
+    await source.parent.create(recursive: true);
+    await source.writeAsBytes(bytes);
+    final character = ProjectCharacterEntry(
+      id: 'guide',
+      name: 'Guide',
+      tilesetId: 'sheet',
+      spatialModel: const ProjectCharacterSpatialModel(
+        modelId: 'rig',
+        clips: {CharacterAnimationState.idle: 0},
+      ),
+      animations: [
+        for (final direction in EntityFacing.values)
+          CharacterAnimation(
+            state: CharacterAnimationState.walk,
+            direction: direction,
+            frames: const [
+              CharacterAnimationFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32),
+                durationMs: 120,
+              ),
+            ],
+          ),
+      ],
+    );
+    const tileset = ProjectTilesetEntry(id: 'sheet', name: 'Sheet', relativePath: 'sheet.png');
+    await File(p.join(root.path, tileset.relativePath)).writeAsBytes(bytes);
+    final catalog = await RuntimeProjectCatalog.open(await _writeProject(
+      root,
+      ProjectManifest(
+        name: 'Avatars',
+        maps: const [],
+        tilesets: const [tileset],
+        characters: [character],
+        models3d: [model],
+      ),
+    ));
+    addTearDown(catalog.dispose);
+    final bundle = RuntimeMapBundle(
+      manifest: catalog.projectMetadata,
+      map: const MapData(id: 'map', name: 'Map', size: GridSize(width: 2, height: 2)),
+      projectRootDirectory: root.path,
+      tilesetAbsolutePathsById: const {},
+      projectCatalog: catalog,
+    );
+    addTearDown(bundle.resourceBudget.dispose);
+    expect(bundle.modelById('rig'), isNull);
+    final expanded = await prepareRuntimePlayerAvatarBundle(bundle, character.id);
+    expect(expanded.manifest.characters.single, character);
+    expect(expanded.manifest.models3d, [model]);
+    expect(await expanded.modelLoader('rig'), bytes);
+    expect(await prepareRuntimePlayerAvatarBundle(expanded, character.id), same(expanded));
+  });
+
   for (final partitioned in [false, true]) {
     test(
       'periodic scene lookup retains duplicate locators without preparing unrelated scenes partitioned=$partitioned',

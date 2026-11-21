@@ -27,6 +27,8 @@ import '../../project_session/data/studio_project_document_revision.dart';
 import '../application/project_resource_library.dart';
 import '../domain/project_border_workshop_port.dart';
 import '../domain/project_character_workshop_port.dart';
+import '../domain/project_decor_workshop_port.dart';
+import '../domain/project_environment_workshop_port.dart';
 import '../domain/project_library_editor.dart';
 import '../domain/project_library_organization.dart';
 import '../domain/project_model_replacement_port.dart';
@@ -66,14 +68,19 @@ part 'local_project_model_replacement.dart';
 part 'local_project_model_workshop.dart';
 part 'local_project_border_workshop.dart';
 part 'local_project_character_workshop.dart';
+part 'local_project_decor_workshop.dart';
+part 'local_project_environment_workshop.dart';
 part 'local_project_tileset_workshop.dart';
 part 'local_project_terrain_workshop.dart';
+part 'local_resource_definition_publication.dart';
 
 final class LocalResourceAdapter
     with
         _LocalProjectLibraryOrganization,
         _LocalProjectModelWorkshop,
         _LocalProjectBorderWorkshop,
+        _LocalProjectDecorWorkshop,
+        _LocalProjectEnvironmentWorkshop,
         _LocalProjectTilesetWorkshop,
         _LocalProjectTerrainWorkshop
     implements
@@ -99,6 +106,8 @@ final class LocalResourceAdapter
   LocalResourceAdapter get _modelWorkshopAdapter => this;
   @override
   LocalResourceAdapter get _borderWorkshopAdapter => this;
+  @override
+  LocalResourceAdapter get _environmentWorkshopAdapter => this;
   @override
   LocalResourceAdapter get _tilesetWorkshopAdapter => this;
   @override
@@ -245,10 +254,6 @@ final class LocalResourceAdapter
     (_) => {'elementId': id},
     confirmDestructive: confirm,
   );
-
-  @override
-  Future<ResourceMutationReceipt> saveElement(ProjectElementEntry element) =>
-      _saveResourceElement(this, element);
 
   void _requireAvailable() {
     if (_disposed) throw const ResourceFailure('Le projet a été fermé.');

@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
+import { promisify } from "node:util";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
@@ -13,12 +15,12 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-for (const allowFlipX of [false, true]) {
-test(`live MCP publishes native connected-line directions with mirrors ${allowFlipX ? "permitted" : "forbidden"} and reopens exact output`, { timeout: 120_000 }, async () => {
-  const root = await mkdtemp(join(tmpdir(), "pokemap-native-connected-"));
+for (const [allowFlipX, partitioned] of [[false, false], [true, false], [true, true]]) {
+test(`live MCP publishes native connected-line directions with mirrors ${allowFlipX ? "permitted" : "forbidden"} and reopens exact output${partitioned ? " on a working catalog" : ""}`, { timeout: 180_000 }, async () => {
+  const root = await mkdtemp(join(process.env.AVELUNE_QA_ROOT ?? tmpdir(), "pokemap-native-connected-"));
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAASUlEQVR42mNkoAA4LEj4D2MfSFjASI4ZTAwDDEYdMOqAUQeMOmDUAaMOGHAHMCJXqaNRMCBRMNoiGnXAqANGHTDqgFEHjHgHAADb/Qp9KEMvVQAAAABJRU5ErkJggg==", "base64");
   await writeFile(join(root, "native.png"), png);
-  await writeFile(join(root, "project.json"), JSON.stringify({
+  await writeFile(join(root, partitioned ? "fixture-manifest.json" : "project.json"), JSON.stringify({
     name: "Native connected directions", version: "v8", pokemon: canonicalPokemonConfig(),
     settings: { tileWidth: 32, tileHeight: 32 },
     maps: [{ id: "map", name: "Map", relativePath: "map.json" }],
@@ -43,6 +45,13 @@ test(`live MCP publishes native connected-line directions with mirrors ${allowFl
     return record(envelope.data);
   }
   try {
+    if (partitioned) {
+      const authoring = resolve("../../packages/map_authoring");
+      await promisify(execFile)(process.env.POKEMAP_TEST_DART ?? "dart", [
+        `--packages=${join(authoring, ".dart_tool/package_config.json")}`,
+        join(authoring, "test/support/create_working_catalog_fixture.dart"), root, "--from-fixture-manifest",
+      ], { timeout: 90_000 });
+    }
     await client.connect(transport);
     const catalog = await call("pokemap_describe");
     const action = (catalog.mutationActions as JsonRecord[]).find(value => value.id === "border.blueprint.publish");
@@ -53,14 +62,20 @@ test(`live MCP publishes native connected-line directions with mirrors ${allowFl
     assert.equal(contract.mirroredRotation, "targetPlusAuthored");
     assert.deepEqual(contract.orientationReference, { east: 0, south: 1, west: 2, north: 3 });
     let opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    if (partitioned) {
+      await call("pokemap_workshop", { operation: "prepare", projectHandle: opened.projectHandle });
+      await call("pokemap_workshop", { operation: "prepare", projectHandle: opened.projectHandle, scope: "nativeResources" });
+    }
     let sequence = 0;
     async function mutate(actionId: string, parameters: JsonRecord): Promise<void> {
-      const validation = await call("pokemap_validate", { projectHandle: opened.projectHandle });
+      const scope = partitioned ? await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle, actionId, parameters })
+        : await call("pokemap_validate", { projectHandle: opened.projectHandle });
       const before = await readFile(join(root, "map.json"));
       const id = `native-${++sequence}`;
       const planned = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
         requestId: id, actionId, actionVersion: 1, workspaceHandle: opened.workspaceHandle,
-        expectedRevision: validation.snapshotRevision, idempotencyKey: id, parameters,
+        expectedRevision: scope.snapshotRevision, idempotencyKey: id, dryRun: false, parameters,
+        ...(scope.planExtensions ? { extensions: scope.planExtensions } : {}),
       } });
       assert.deepEqual(await readFile(join(root, "map.json")), before);
       const applied = await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
@@ -84,11 +99,20 @@ test(`live MCP publishes native connected-line directions with mirrors ${allowFl
         maxOverlapPx: 8, gapTolerancePx: 0, depthRows: 1, allowAutoRotation: allowFlipX }, primitives };
     await mutate("border.blueprint.draft.upsert", { record: { id: "native", draft: { baseRevision: 0, definition } } });
     const artifact = await call("pokemap_artifact_stage", { sourcePath: join(root, "native.png"), declaredMediaType: "image/png" });
-    await mutate("border.blueprint.publish", { blueprintId: "native",
+    const publication = { blueprintId: "native",
       acceptedWarningCodes: ["border.publication.repetition_run"],
       primitiveSources: primitives.map(primitive => ({ primitiveId: primitive.id,
         frames: [{ artifactHandle: artifact.artifactHandle, sourceProjectRelativePath: "native.png" }] })),
-    });
+    };
+    await mutate("border.blueprint.publish", publication);
+    if (partitioned) {
+      const snapshots = await call("pokemap_query", { projectHandle: opened.projectHandle, resourceKind: "borderSnapshot", operation: "list" });
+      assert.equal(snapshots.returned, 1);
+      await mutate("border.blueprint.draft.upsert", { record: { id: "second", draft: { baseRevision: 0, definition } } });
+      await mutate("border.blueprint.publish", { ...publication, blueprintId: "second" });
+      const reused = await call("pokemap_query", { projectHandle: opened.projectHandle, resourceKind: "borderSnapshot", operation: "list" });
+      assert.equal(reused.returned, 1);
+    }
     const target = { mapId: "map", layerId: "border", featureId: "native-feature" };
     await mutate("border_layer.feature_create", { ...target, name: "Native trace", blueprintId: "native", seed: "0",
       geometry: { kind: "stroke", strokes: [{ id: "main", closed: false,

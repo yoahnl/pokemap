@@ -1048,6 +1048,46 @@ const _$CharacterPortraitFitModeEnumMap = {
   CharacterPortraitFitMode.cover: 'cover',
 };
 
+_ProjectCharacterSpatialModel _$ProjectCharacterSpatialModelFromJson(
+  Map<String, dynamic> json,
+) => _ProjectCharacterSpatialModel(
+  modelId: json['modelId'] as String,
+  clips:
+      (json['clips'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(
+          $enumDecode(_$CharacterAnimationStateEnumMap, k),
+          (e as num).toInt(),
+        ),
+      ) ??
+      const <CharacterAnimationState, int>{},
+);
+
+Map<String, dynamic> _$ProjectCharacterSpatialModelToJson(
+  _ProjectCharacterSpatialModel instance,
+) => <String, dynamic>{
+  'modelId': instance.modelId,
+  'clips': instance.clips.map(
+    (k, e) => MapEntry(_$CharacterAnimationStateEnumMap[k]!, e),
+  ),
+};
+
+const _$CharacterAnimationStateEnumMap = {
+  CharacterAnimationState.bicycleIdle: 'bicycle_idle',
+  CharacterAnimationState.bicycle: 'bicycle',
+  CharacterAnimationState.idle: 'idle',
+  CharacterAnimationState.walk: 'walk',
+  CharacterAnimationState.run: 'run',
+  CharacterAnimationState.climb: 'climb',
+  CharacterAnimationState.surfIdle: 'surf_idle',
+  CharacterAnimationState.surf: 'surf',
+  CharacterAnimationState.surfEnter: 'surf_enter',
+  CharacterAnimationState.surfExit: 'surf_exit',
+  CharacterAnimationState.cut: 'cut',
+  CharacterAnimationState.rockSmash: 'rock_smash',
+  CharacterAnimationState.strength: 'strength',
+  CharacterAnimationState.push: 'push',
+};
+
 _ProjectCharacterEntry _$ProjectCharacterEntryFromJson(
   Map<String, dynamic> json,
 ) => _ProjectCharacterEntry(
@@ -1055,6 +1095,11 @@ _ProjectCharacterEntry _$ProjectCharacterEntryFromJson(
   name: json['name'] as String,
   tilesetId: json['tilesetId'] as String,
   contactShadow: json['contactShadow'] as bool?,
+  spatialModel: json['spatialModel'] == null
+      ? null
+      : ProjectCharacterSpatialModel.fromJson(
+          json['spatialModel'] as Map<String, dynamic>,
+        ),
   frameWidth: (json['frameWidth'] as num?)?.toInt() ?? 1,
   frameHeight: (json['frameHeight'] as num?)?.toInt() ?? 2,
   portraits:
@@ -1091,6 +1136,7 @@ Map<String, dynamic> _$ProjectCharacterEntryToJson(
   'name': instance.name,
   'tilesetId': instance.tilesetId,
   'contactShadow': ?instance.contactShadow,
+  'spatialModel': ?instance.spatialModel?.toJson(),
   'frameWidth': instance.frameWidth,
   'frameHeight': instance.frameHeight,
   'portraits': ?_characterPortraitsToJson(instance.portraits),
@@ -1130,23 +1176,6 @@ Map<String, dynamic> _$CharacterAnimationToJson(_CharacterAnimation instance) =>
       'frames': instance.frames.map((e) => e.toJson()).toList(),
       'loop': ?_characterAnimationLoopToJson(instance.loop),
     };
-
-const _$CharacterAnimationStateEnumMap = {
-  CharacterAnimationState.bicycleIdle: 'bicycle_idle',
-  CharacterAnimationState.bicycle: 'bicycle',
-  CharacterAnimationState.idle: 'idle',
-  CharacterAnimationState.walk: 'walk',
-  CharacterAnimationState.run: 'run',
-  CharacterAnimationState.climb: 'climb',
-  CharacterAnimationState.surfIdle: 'surf_idle',
-  CharacterAnimationState.surf: 'surf',
-  CharacterAnimationState.surfEnter: 'surf_enter',
-  CharacterAnimationState.surfExit: 'surf_exit',
-  CharacterAnimationState.cut: 'cut',
-  CharacterAnimationState.rockSmash: 'rock_smash',
-  CharacterAnimationState.strength: 'strength',
-  CharacterAnimationState.push: 'push',
-};
 
 const _$EntityFacingEnumMap = {
   EntityFacing.north: 'north',

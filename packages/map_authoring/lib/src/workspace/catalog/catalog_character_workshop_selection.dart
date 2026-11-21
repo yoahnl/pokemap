@@ -7,6 +7,12 @@ const _characterDefinitionCreationActions = {
 
 bool _supportsCharacterWorkshop(
     String action, Map<String, Object?>? parameters) {
+  if (action == 'characterStudio.character.update') {
+    return parameters != null &&
+        parameters.length >= 2 &&
+        parameters['characterId'] is String &&
+        parameters.keys.every(const {'characterId', 'contactShadow', 'spatialModel'}.contains);
+  }
   if (_characterDefinitionCreationActions.contains(action) ||
       const {
         'characterStudio.animationClip.upsert',
@@ -43,9 +49,12 @@ Future<CatalogWorkshopSelection> _readCharacterWorkshop({
         ? null
         : CatalogDefinitionKey(
             CatalogDefinitionKind.character, characterId as String);
+    final spatialModel = binding['spatialModel'];
     final roots = <CatalogDefinitionKey>{
       if (createsDefinition) ...await selection.characterStudioDefinitionKeys(),
       if (target != null) target,
+      if (spatialModel is Map && spatialModel['modelId'] is String)
+        CatalogDefinitionKey(CatalogDefinitionKind.model3d, spatialModel['modelId'] as String),
       if (binding['portraitStateId'] case final String id)
         CatalogDefinitionKey(CatalogDefinitionKind.characterStudioDefinition,
             jsonEncode(['characterPortraitState', id])),

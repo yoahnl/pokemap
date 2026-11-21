@@ -2,13 +2,20 @@ part of 'local_resource_adapter.dart';
 
 Future<ResourceMutationReceipt> _createBorder(
   LocalResourceAdapter adapter,
-  BorderCreationRequest request,
-) async {
+  BorderCreationRequest request, {
+  String? creationId,
+  String? expectedRevision,
+}) async {
   if (request.name.trim().isEmpty) {
     throw const ResourceFailure('Donnez un nom à la bordure.');
   }
   final baseline = await adapter.mapAdapter.resourceBaseline(adapter.session);
-  final id = request.blueprintId ?? adapter._identity('border');
+  if (expectedRevision != null && expectedRevision != baseline.revision) {
+    throw const ResourceFailure(
+      'Le catalogue a changé. Actualisez la bibliothèque puis réessayez.',
+    );
+  }
+  final id = creationId ?? request.blueprintId ?? adapter._identity('border');
   final existing = baseline.manifest.borderCatalog.recordById(id);
   if (request.expectedRecord != null && request.expectedRecord != existing) {
     throw const ResourceFailure(
@@ -39,8 +46,30 @@ Future<ResourceMutationReceipt> _createBorder(
           originalJump == null)) {
     throw const ResourceFailure('Ce rebord ne possède pas de saut à régler.');
   }
+  final modelIds = {
+    ?request.capModelId,
+    ?request.straightModelId,
+    ?request.cornerModelId,
+    ?request.innerCornerModelId,
+    ...request.primitiveModelIds.values,
+  };
+  final scoped =
+      request.blueprintId == null &&
+      modelIds.isNotEmpty &&
+      request.capElementId == null &&
+      request.straightElementId == null &&
+      request.cornerElementId == null &&
+      adapter.session.storage == ProjectSessionStorage.workingCatalog;
+  if (creationId != null && !scoped) {
+    throw const ResourceFailure(
+      'Choisissez des pièces pour une ligne connectée 3D.',
+    );
+  }
+  final sourceProject = scoped
+      ? await _readNewBorderModels(adapter, baseline, modelIds)
+      : baseline.manifest;
   final sources = await prepareBorderResources(
-    manifest: baseline.manifest,
+    manifest: sourceProject,
     projectRoot: adapter.session.directoryPath,
     request: request,
   );
@@ -95,6 +124,7 @@ Future<ResourceMutationReceipt> _createBorder(
               gapTolerancePx: 1,
               depthRows: 1,
               allowAutoRotation:
+                  sources.any((source) => source.draft.isSpatial) ||
                   request.followContourDirection == true ||
                   (request.sequenceLength ?? 1) > 1,
             ),
@@ -131,6 +161,7 @@ Future<ResourceMutationReceipt> _createBorder(
             ),
           },
           expectedBeforeRevision: baseline.revision,
+          scopedBorderId: scoped ? id : null,
         );
   if (!request.publish) return draftReceipt;
   try {
@@ -142,6 +173,7 @@ Future<ResourceMutationReceipt> _createBorder(
       },
       borderSources: sources,
       expectedBeforeRevision: draftReceipt.revision,
+      scopedBorderId: scoped ? id : null,
     );
     return _borderCreationReceipt(draftReceipt, published);
   } on ResourceFailure catch (error) {
@@ -185,6 +217,20 @@ ResourceMutationReceipt _borderCreationReceipt(
 );
 
 ResourceFailure _resourceFailure(Object error) {
+  if (error case AuthoringPlanException(
+    code: 'catalog.model_transform_border_index_required',
+  )) {
+    return const ResourceFailure(
+      'Préparez les usages de la bibliothèque pour vérifier les ancrages avant de modifier le pivot ou l’échelle.',
+    );
+  }
+  if (error case AuthoringPlanException(
+    code: 'catalog.model_transform_border_anchor_requires_map_updates',
+  )) {
+    return const ResourceFailure(
+      'Une bordure publiée utilise un ancrage fixe sur ce modèle. Ses placements doivent être recalculés pour changer le pivot ou l’échelle.',
+    );
+  }
   if (error is AuthoringPlanException &&
       error.code == 'model3d.source_collision_bounds_required') {
     return const ResourceFailure(
@@ -212,11 +258,12 @@ ResourceFailure _resourceFailure(Object error) {
   if (error is MapAuthoringException &&
       error.code == 'border.blueprint.publication_warnings_unacknowledged') {
     final codes = error.details['unacknowledgedWarningCodes'];
+    final warnings = codes is List ? codes.whereType<String>().toList() : const <String>[];
     return ResourceFailure(
-      'Vérifiez les raccords signalés avant de publier la bordure.',
-      warningCodes: codes is List
-          ? codes.whereType<String>().toList()
-          : const [],
+      warnings.contains('border.publication.repetition_run')
+          ? 'Une même pièce se répète sur les longues lignes. Vérifiez le résultat dans l’aperçu avant de publier.'
+          : 'Vérifiez les raccords signalés avant de publier la bordure.',
+      warningCodes: warnings,
     );
   }
   if (error is VisualLibraryException) {

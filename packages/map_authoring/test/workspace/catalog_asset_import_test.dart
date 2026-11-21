@@ -12,6 +12,57 @@ import '../domains/maps/border_spatial_actions_test.dart'
     show spatialBorderAuthoringFixture;
 
 void main() {
+  test('a PNG terrain is published atomically with its source and definitions', () async {
+    final directory = await Directory(
+      Platform.environment['AVELUNE_QA_ROOT'] ?? Directory.systemTemp.path,
+    ).createTemp('terrain-import-');
+    final fixture = await _Fixture.open(80, rootPath: directory.path);
+    addTearDown(fixture.close);
+    final bytes = img.encodePng(img.Image(width: 32, height: 16));
+    final png = await fixture.api.artifacts.put(bytes, declaredMediaType: 'image/png');
+    final parameters = <String, Object?>{
+      'tilesetId': 'soil-sheet', 'name': 'Soil', 'artifactHandle': png.reference.handle,
+      'tileWidth': 16, 'tileHeight': 16,
+      'terrain': {'id': 'soil', 'column': 1, 'row': 0},
+    };
+    final source = File('${fixture.root.path}/assets/studio/soil-sheet.png');
+    final before = await fixture.store.readHead();
+    await expectLater(fixture.plan('tileset.import_image', {
+      ...parameters, 'terrain': {'id': 'soil', 'column': 2, 'row': 0},
+    }, 'outside-grid'), throwsA(anything));
+    final plan = await fixture.plan('tileset.import_image', parameters, 'import-soil');
+    expect(await fixture.store.readHead(), before);
+    expect(await source.exists(), isFalse);
+    final applied = await fixture.api.applyMutation(fixture.opened.projectHandle,
+      planId: plan.planId, operationId: 'import-soil');
+    expect(fixture.reader.paths.where(fixture.unrelatedPaths.contains), isEmpty);
+    expect(await source.readAsBytes(), bytes);
+    await fixture.reopen();
+    Future<CatalogSnapshot> current() async =>
+      (await fixture.store.openRoot((await fixture.store.readHead())!)).snapshot;
+    final keys = [
+      CatalogDefinitionKey(CatalogDefinitionKind.tileset, 'soil-sheet'),
+      for (final kind in [CatalogDefinitionKind.smartTileAtlas,
+        CatalogDefinitionKind.smartTileMaterial, CatalogDefinitionKind.smartTilePreset])
+        CatalogDefinitionKey(kind, 'soil'),
+    ];
+    final snapshot = await current();
+    for (final key in keys) {
+      expect(await snapshot.lookup(key), isNotNull, reason: '${key.kind} ${key.id}');
+    }
+    final definition = (await snapshot.lookup(keys.last))!.payload['value'] as Map;
+    final terrain = ProjectSmartTilePreset.fromJson(Map<String, dynamic>.from(definition));
+    expect(terrain.status, SmartTilePresetStatus.published);
+    expect(terrain.rules.single.candidates.single.parts.single.source,
+      const SmartTileVisualSource.frame(frame: SmartTileFrameRef(atlasId: 'soil', column: 1, row: 0)));
+    await fixture.api.undoMutation(fixture.opened.projectHandle,
+      entryId: applied.receipt.receiptId, idempotencyKey: 'undo-import-soil');
+    for (final key in keys) {
+      expect(await (await current()).lookup(key), isNull, reason: '${key.kind} ${key.id}');
+    }
+    expect(await source.exists(), isFalse);
+  });
+
   for (final unrelated in [0, 80]) {
     test('classifying a preset preserves a classified source with $unrelated foreign units', () async {
       final fixture = await _Fixture.open(unrelated,
@@ -751,6 +802,18 @@ void main() {
             'tileHeight': 16
           }
         ),
+        (
+          'element.upsert',
+          <String, Object?>{
+            'element': const ProjectElementEntry(
+              id: 'planter',
+              name: 'Planter',
+              tilesetId: 'ground',
+              categoryId: 'visual',
+              frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
+            ).toJson(),
+          },
+        ),
         ('tileset.upsert', <String, Object?>{'tileset': {'id': 'actor-atlas', 'name': 'Actor atlas', 'relativePath': 'assets/studio/ground.png', 'source': {'kind':'regular_atlas', 'assetId':'image_ground', 'pixelWidth':16, 'pixelHeight':16, 'tileWidth':16, 'tileHeight':16, 'tileProperties':[]}}}),
         ('campaign.character.upsert', <String, Object?>{'value': {'id':'walker', 'name':'Walker', 'tilesetId':'actor-atlas', 'frameWidth':1, 'frameHeight':1, 'animations':[]}}),
         ('resource.classify_batch', <String, Object?>{'entries': [{'resourceKind':'character','resourceId':'walker','familyId':'characters','role':'standard','mapId':null}, {'resourceKind':'tileset','resourceId':'actor-atlas','familyId':'characters','role':'component','mapId':null}]}),
@@ -869,10 +932,42 @@ void main() {
       }
       expect(
           fixture.reader.paths.where(fixture.unrelatedPaths.contains), isEmpty);
+      final initialDecor = const ProjectElementEntry(
+        id: 'planter',
+        name: 'Planter',
+        tilesetId: 'ground',
+        categoryId: 'visual',
+        frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
+      );
+      final invalid = initialDecor.copyWith(
+        frames: const [TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0))],
+      );
+      final beforeInvalid = await fixture.store.readHead();
+      await expectLater(
+        fixture.plan('element.upsert', {'element': invalid.toJson()}, 'bad-crop'),
+        throwsA(anything),
+      );
+      expect(await fixture.store.readHead(), beforeInvalid);
+      final target = initialDecor.copyWith(
+        collisionProfile: const ElementCollisionProfile(cells: [GridPos(x: 0, y: 0)]),
+      );
+      fixture.reader.paths.clear();
+      final edit = await fixture.plan(
+        'element.upsert',
+        {'element': target.toJson()},
+        'edit-planter',
+      );
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+        planId: edit.planId, operationId: 'edit-planter');
+      expect(fixture.reader.paths.where(fixture.unrelatedPaths.contains), isEmpty);
       await fixture.reopen();
       final root =
           (await fixture.store.openRoot((await fixture.store.readHead())!))
               .snapshot;
+      final decor = (await root.lookup(
+              CatalogDefinitionKey(CatalogDefinitionKind.element, 'planter')))!
+          .payload['value'] as Map;
+      expect(ProjectElementEntry.fromJson(Map<String, dynamic>.from(decor)), target);
       final preset = (await root.lookup(CatalogDefinitionKey(
               CatalogDefinitionKind.smartTilePreset, 'ground')))!
           .payload['value'] as Map;
@@ -883,7 +978,10 @@ void main() {
       expect((animation['frames'] as List).single['frame']['atlasId'],
           'ground-atlas');
       expect((await root.lookup(CatalogDefinitionKey(CatalogDefinitionKind.resourceLibraryEntry, 'character:walker')))!.payload['value'], containsPair('familyId', 'characters'));
-      for(var i=0;i<unrelated;i++) expect(await root.lookup(CatalogDefinitionKey(CatalogDefinitionKind.resourceLibraryEntry, 'tileset:foreign-$i')), isNotNull);
+      for (var i = 0; i < unrelated; i++) {
+        expect(await root.lookup(CatalogDefinitionKey(
+          CatalogDefinitionKind.resourceLibraryEntry, 'tileset:foreign-$i')), isNotNull);
+      }
       final savedBorder = decodeBorderBlueprintRecordJson(
           (await root.lookup(CatalogDefinitionKey(
                   CatalogDefinitionKind.borderRecord, 'fence')))!

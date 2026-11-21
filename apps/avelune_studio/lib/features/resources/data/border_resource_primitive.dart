@@ -11,7 +11,7 @@ final class BorderResourceFrame {
 
   final String absolutePath;
   final String relativePath;
-  final BorderPixelRect rect;
+  final BorderPixelRect? rect;
   final int? durationMs;
   final int? transparentColorArgb;
 }

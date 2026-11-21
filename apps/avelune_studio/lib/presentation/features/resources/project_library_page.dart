@@ -13,6 +13,8 @@ import '../../../features/resources/application/project_resource_preview.dart';
 import '../../../features/resources/coordination/resource_pack_transfer_controller.dart';
 import '../../../features/resources/domain/project_border_workshop_port.dart';
 import '../../../features/resources/domain/project_character_workshop_port.dart';
+import '../../../features/resources/domain/project_decor_workshop_port.dart';
+import '../../../features/resources/domain/project_environment_workshop_port.dart';
 import '../../../features/resources/domain/project_library_editor.dart';
 import '../../../features/resources/domain/project_library_organization.dart';
 import '../../../features/resources/domain/project_model_replacement_port.dart';
@@ -24,26 +26,38 @@ import '../../../features/resources/domain/resource_port.dart';
 import '../../../features/resources/domain/studio_search_text.dart';
 import 'library/resource_library_view.dart';
 import 'library/resource_library_view_data.dart';
+import 'project_border_creation_dialog.dart';
 import 'project_border_workshop.dart';
 import 'project_character_workshop.dart';
+import 'project_decor_editor_dialog.dart';
+import 'project_decor_workshop.dart';
+import 'project_environment_editor_dialog.dart';
+import 'project_environment_workshop.dart';
 import 'project_library_catalog_view.dart';
 import 'project_library_delete_dialog.dart';
 import 'project_library_edit_dialog.dart';
 import 'project_library_organization_dialog.dart';
 import 'project_library_pack_dialog.dart';
 import 'project_library_preview.dart';
+import 'project_model_replacement_dialog.dart';
 import 'project_model_replacement_panel.dart';
 import 'project_model_workshop.dart';
+import 'project_terrain_creation_dialog.dart';
 import 'project_terrain_workshop.dart';
 import 'project_tileset_workshop.dart';
 
 part 'project_library_page_edits.dart';
+part 'project_library_page_border_creation.dart';
+part 'project_library_page_decor.dart';
+part 'project_library_page_environment.dart';
 part 'project_library_page_lifecycle.dart';
 part 'project_library_page_loading.dart';
 part 'project_library_page_model_replacements.dart';
+part 'project_library_page_model_workshop.dart';
 part 'project_library_page_navigation.dart';
 part 'project_library_page_organization.dart';
 part 'project_library_page_packs.dart';
+part 'project_library_page_terrain_creation.dart';
 part 'project_library_page_workshop_receipts.dart';
 part 'project_library_page_workshops.dart';
 part 'project_library_workshop_picker.dart';
@@ -57,6 +71,7 @@ class ProjectLibraryPage extends StatefulWidget {
     this.management,
     this.onModelWorkshopPublished,
     this.onOpenMap,
+    this.onUseEnvironment,
     this.packPort,
     this.pickPack,
     this.onPackDialogChanged,
@@ -67,6 +82,7 @@ class ProjectLibraryPage extends StatefulWidget {
   final MapWorkspaceVisuals? visuals;
   final ProjectLibraryManagement? management;
   final Future<bool> Function(String)? onOpenMap;
+  final Future<bool> Function(String mapId, String presetId)? onUseEnvironment;
   final ResourcePackPort? packPort;
   final PickResourcePack? pickPack;
   final ValueChanged<bool>? onPackDialogChanged;
@@ -79,6 +95,7 @@ class ProjectLibraryPage extends StatefulWidget {
 
 class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
   Future<_ProjectLibraryRead>? _reading;
+  Object? _revisionCheck;
   ResourcePackTransferController? _packTransfer;
   MapWorkspaceController? _packWorkspace;
   bool _pickingFile = false;
@@ -121,6 +138,7 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
     }
     if (oldWidget.maps != widget.maps) {
       _reading = null;
+      _revisionCheck = null;
       _workshopKind = _ProjectWorkshopKind.models;
       _workshopEntry = null;
       _workshopBusy = false;
@@ -129,76 +147,21 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
       _modelReplacementStatus = null;
       _replacementUsageProjection = null;
     }
-    if (widget.active && _reading == null) _read();
+    if (!widget.active) {
+      _revisionCheck = null;
+      return;
+    }
+    if (_reading == null) {
+      _read();
+    } else if (!oldWidget.active) {
+      unawaited(_refreshIfRevisionChanged());
+    }
   }
 
   @override
   void dispose() {
     _packTransfer?.dispose();
     super.dispose();
-  }
-
-  void _read({
-    ProjectResourceLibrary? library,
-    String? revealIdentity,
-    int publicationToken = 1,
-  }) {
-    final maps = widget.maps;
-    final manifest = maps.project;
-    if (manifest == null) return;
-    final port = maps.port;
-    final complete = maps.hasCompleteProject;
-    final previews = ProjectResourcePreviews(
-      (entry) => switch (port) {
-        _ when complete => Future.value(maps.project ?? manifest),
-        final ProjectResourcePreviewPort reader => reader.readResourcePreview(
-          maps.session,
-          entry.kind,
-          entry.id,
-        ),
-        _ => Future.error(StateError('Lecteur d’aperçu indisponible.')),
-      },
-    );
-    final result = library == null
-        ? _queryLibrary(maps, manifest)
-        : Future.value(library);
-    late final Future<_ProjectLibraryRead> reading;
-    bool isCurrent() => mounted && identical(_reading, reading);
-    reading = result.then((library) {
-      final revision = library.revision;
-      final read = _ProjectLibraryRead(library, previews);
-      final item = revealIdentity == null
-          ? null
-          : read.catalog.item(revealIdentity);
-      if (item != null) {
-        read.publication = (
-          item: item,
-          token: publicationToken,
-          imported: true,
-        );
-      }
-      if (revision != null && isCurrent()) {
-        if (port case final ProjectResourceLibraryDimensionsPort reader) {
-          read.withDimensions = _withDimensions(
-            reader,
-            maps.session,
-            read,
-            isCurrent,
-          );
-        }
-        if (port case final ProjectResourceLibraryMapUsagesPort reader) {
-          read.withUsages = _withUsages(
-            reader,
-            maps.session,
-            library,
-            revision,
-            read,
-          );
-        }
-      }
-      return read;
-    });
-    _reading = reading;
   }
 
   @override
@@ -240,7 +203,9 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
               future: result.withUsages,
               builder: (context, usage) => _library(
                 result,
-                refreshing: snapshot.connectionState != ConnectionState.done,
+                refreshing:
+                    _revisionCheck != null ||
+                    snapshot.connectionState != ConnectionState.done,
                 loadingMapUsages:
                     result.withUsages != null &&
                     usage.connectionState != ConnectionState.done,

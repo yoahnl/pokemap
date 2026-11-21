@@ -93,23 +93,32 @@ extension MapWorkspaceResourceKinds on MapWorkspaceController {
     () => _borderBlueprints.add(id),
   );
 
-  Future<void> ensureResourceClosure(String kind, String id) {
+  Future<void> ensureResourceClosure(
+    String kind,
+    String id, {
+    bool newlyPublished = false,
+  }) {
     if (kind == 'borderBlueprint') return ensureBorderBlueprint(id);
-    return _ensureOnDemandSelection(() => hasResourceClosure(kind, id), (
-      source,
-    ) {
-      if (source is! MapWorkspaceResourceClosurePort) {
-        throw const MapWorkspaceFailure(
-          MapWorkspaceProblem.unavailable,
-          'Cette ressource ne dispose pas de lecteur ciblé.',
+    final identity = '$kind:$id';
+    return _ensureOnDemandSelection(
+      () => newlyPublished
+          ? _resourceClosures.contains(identity)
+          : hasResourceClosure(kind, id),
+      (source) {
+        if (source is! MapWorkspaceResourceClosurePort) {
+          throw const MapWorkspaceFailure(
+            MapWorkspaceProblem.unavailable,
+            'Cette ressource ne dispose pas de lecteur ciblé.',
+          );
+        }
+        return (source as MapWorkspaceResourceClosurePort).loadResourceClosure(
+          session,
+          kind,
+          id,
         );
-      }
-      return (source as MapWorkspaceResourceClosurePort).loadResourceClosure(
-        session,
-        kind,
-        id,
-      );
-    }, () => _resourceClosures.add('$kind:$id'));
+      },
+      () => _resourceClosures.add(identity),
+    );
   }
 
   MapWorkspaceBorderProfilePort _borderPort(MapWorkspacePort source) {

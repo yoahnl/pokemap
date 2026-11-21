@@ -80,7 +80,7 @@ Future<BorderResourcePrimitive> _prepareElementSpriteSource({
       ),
     );
   }
-  final first = frames.first.rect;
+  final first = frames.first.rect!;
   final anchor = BorderPixelPos(x: first.width ~/ 2, y: first.height ~/ 2);
   final preparation = const CanonicalBorderSnapshotCompiler().prepare(
     sourceElementId: element.id,
@@ -107,12 +107,18 @@ Future<BorderResourcePrimitive> _prepareElementSpriteSource({
   );
 }
 
-Future<List<BorderResourcePrimitive>> _prepareExistingSpriteSources(
+Future<List<BorderResourcePrimitive>> prepareExistingBorderSpriteSources(
   ProjectManifest manifest,
   String root,
   Iterable<BorderPrimitiveDraft> primitives,
 ) async {
   final result = <BorderResourcePrimitive>[];
+  final sourceBytes = <String, Future<Uint8List>>{};
+  final sourceFrames =
+      <
+        (String, BorderPixelPos, BorderPrimitiveAssetMetrics),
+        List<BorderResourceFrame>
+      >{};
   for (final primitive in primitives) {
     final element = manifest.elements
         .where((element) => element.id == primitive.sourceElementId)
@@ -121,6 +127,11 @@ Future<List<BorderResourcePrimitive>> _prepareExistingSpriteSources(
       throw const ResourceFailure(
         'Un décor source du rebord est indisponible.',
       );
+    }
+    final key = (element.id, primitive.anchorPx, primitive.currentMetrics);
+    if (sourceFrames[key] case final frames?) {
+      result.add(BorderResourcePrimitive(draft: primitive, frames: frames));
+      continue;
     }
     final frames = <BorderResourceFrame>[];
     final sources = <CanonicalBorderSourceFrame>[];
@@ -178,24 +189,64 @@ Future<List<BorderResourcePrimitive>> _prepareExistingSpriteSources(
       sources.add(
         CanonicalBorderSourceFrame(
           sourceProjectRelativePath: relative,
-          encodedImageBytes: await file.readAsBytes(),
+          encodedImageBytes: await sourceBytes.putIfAbsent(
+            resolved,
+            file.readAsBytes,
+          ),
           sourceRectPx: rect,
           durationMs: frame.durationMs,
           transparentColorArgb: transparent,
         ),
       );
     }
-    final preparation = const CanonicalBorderSnapshotCompiler().prepare(
+    const compiler = CanonicalBorderSnapshotCompiler();
+    final preparation = compiler.prepare(
       sourceElementId: element.id,
       frames: sources,
       anchorPx: primitive.anchorPx,
     );
+    var acceptedFrames = frames;
     if (preparation.metrics != primitive.currentMetrics) {
-      throw ResourceFailure(
+      final changedSource = ResourceFailure(
         'Le dessin source de « ${element.name} » a changé. Réimportez ce rebord avant de publier.',
       );
+      if (preparation.metrics.pixelSize != primitive.currentMetrics.pixelSize ||
+          frames.any((frame) => frame.rect!.x != 0 || frame.rect!.y != 0)) {
+        throw changedSource;
+      }
+      final wholeImage = compiler.prepare(
+        sourceElementId: element.id,
+        anchorPx: primitive.anchorPx,
+        frames: [
+          for (final source in sources)
+            CanonicalBorderSourceFrame(
+              sourceProjectRelativePath: source.sourceProjectRelativePath,
+              encodedImageBytes: source.encodedImageBytes,
+              durationMs: source.durationMs,
+              transparentColorArgb: source.transparentColorArgb,
+              decodedFrameIndex: source.decodedFrameIndex,
+            ),
+        ],
+      );
+      if (wholeImage.metrics != primitive.currentMetrics ||
+          wholeImage.snapshot != preparation.snapshot) {
+        throw changedSource;
+      }
+      acceptedFrames = [
+        for (final frame in frames)
+          BorderResourceFrame(
+            absolutePath: frame.absolutePath,
+            relativePath: frame.relativePath,
+            rect: null,
+            durationMs: frame.durationMs,
+            transparentColorArgb: frame.transparentColorArgb,
+          ),
+      ];
     }
-    result.add(BorderResourcePrimitive(draft: primitive, frames: frames));
+    sourceFrames[key] = acceptedFrames;
+    result.add(
+      BorderResourcePrimitive(draft: primitive, frames: acceptedFrames),
+    );
   }
   return result;
 }

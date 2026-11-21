@@ -15,6 +15,13 @@ final class ModelPreviewSource extends ResourcePreviewSource {
 final class ElementPreviewSource extends ResourcePreviewSource {
   const ElementPreviewSource(this.element);
   final ProjectElementEntry element;
+
+  String get tilesetId {
+    final frameTileset = element.frames.firstOrNull?.tilesetId;
+    return frameTileset == null || frameTileset.isEmpty
+        ? element.tilesetId
+        : frameTileset;
+  }
 }
 
 final class CharacterPreviewSource extends ResourcePreviewSource {

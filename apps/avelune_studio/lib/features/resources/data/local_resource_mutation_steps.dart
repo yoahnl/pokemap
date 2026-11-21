@@ -67,12 +67,13 @@ extension _LocalResourceMutationSteps on LocalResourceAdapter {
                     stagedHandles,
                   ),
                   'sourceProjectRelativePath': frame.relativePath,
-                  'sourceRectPx': <String, int>{
-                    'x': frame.rect.x,
-                    'y': frame.rect.y,
-                    'width': frame.rect.width,
-                    'height': frame.rect.height,
-                  },
+                  if (frame.rect case final rect?)
+                    'sourceRectPx': <String, int>{
+                      'x': rect.x,
+                      'y': rect.y,
+                      'width': rect.width,
+                      'height': rect.height,
+                    },
                   if (frame.durationMs != null) 'durationMs': frame.durationMs,
                   if (frame.transparentColorArgb != null)
                     'transparentColorArgb': frame.transparentColorArgb,

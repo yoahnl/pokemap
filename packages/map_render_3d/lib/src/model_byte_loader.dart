@@ -77,6 +77,7 @@ final class ModelByteLoader {
         reservation?.ensureCurrent();
         return await _load(
           bytes,
+          experimentalPartitionSkinnedMeshes: true,
           budget: budget,
           reservation: reservation,
           isCurrent: isCurrent,

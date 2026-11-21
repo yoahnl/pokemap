@@ -104,6 +104,56 @@ mixin _LocalProjectModelWorkshop
   );
 
   @override
+  Future<ResourceMutationReceipt> saveModelSettings(
+    String modelId, {
+    required ProjectModelWorkshopSettings settings,
+    required String expectedRevision,
+  }) {
+    final adapter = _modelWorkshopAdapter;
+    if (adapter.session.storage != ProjectSessionStorage.workingCatalog) {
+      return Future.error(
+        const ResourceFailure('Ces réglages de modèle sont en lecture seule.'),
+      );
+    }
+    return adapter._run(
+      'model3d.configure',
+      (_) => {
+        'modelId': modelId,
+        if (settings.collisionChanged)
+          'collisionBounds': settings.collisionBounds?.toJson(),
+        'castsShadowsByDefault': ?settings.castsShadows,
+        'scale': ?settings.scale,
+        'pivot': ?settings.pivot?.toJson(),
+      },
+      expectedBeforeRevision: expectedRevision,
+      modelWorkshopTransform: true,
+    );
+  }
+
+  @override
   Future<void> reconcileModelShadow(ResourceMutationReceipt receipt) =>
       _modelWorkshopAdapter.reconcileReceipt(receipt);
 }
+
+bool _isScopedModelWorkshopConfiguration(
+  ProjectSessionStorage storage,
+  String action,
+  Map<String, Object?> fields, {
+  required bool allowTransform,
+}) =>
+    action == 'model3d.configure' &&
+    fields.containsKey('modelId') &&
+    fields.length > 1 &&
+    (storage == ProjectSessionStorage.workingCatalog &&
+            fields.keys.every(
+              (key) =>
+                  const {
+                    'modelId',
+                    'collisionBounds',
+                    'castsShadowsByDefault',
+                  }.contains(key) ||
+                  allowTransform && const {'scale', 'pivot'}.contains(key),
+            ) ||
+        storage == ProjectSessionStorage.manifest &&
+            fields.length == 2 &&
+            fields.containsKey('castsShadowsByDefault'));

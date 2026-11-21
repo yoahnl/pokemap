@@ -24,6 +24,7 @@ extension _ProjectBorderWorkshopEditing on _ProjectBorderWorkshopState {
     return ProjectBorderWorkshopDraftFields(
       input: input,
       models: read.project.models3d,
+      elements: read.project.elements,
       enabled: enabled,
       awaitingRecovery: pending != null,
       reopenRequired: reopenRequired,
@@ -76,13 +77,33 @@ extension _ProjectBorderWorkshopEditing on _ProjectBorderWorkshopState {
     if (!mounted || accepted != true) return;
     await _write(
       read,
-      () => editor.publishBorderDraft(borderId, expectedRevision: revision),
+      () async {
+        try {
+          return await editor.publishBorderDraft(borderId, expectedRevision: revision);
+        } on ResourceFailure catch (failure) {
+          if (failure.warningCodes.isEmpty || !mounted) rethrow;
+          final proceed = await showDialog<bool>(
+            context: context,
+            builder: (context) => StudioReviewDialog(
+              title: 'Vérifier les raccords',
+              content: Text(failure.message),
+              confirmLabel: 'Publier la bordure',
+              cancelLabel: 'Revenir au brouillon',
+              onConfirmed: () => Navigator.pop(context, true),
+              onCancelled: () => Navigator.pop(context, false),
+            ),
+          );
+          if (!mounted || proceed != true) return null;
+          return editor.publishBorderDraft(borderId,
+            expectedRevision: revision, acceptedWarningCodes: failure.warningCodes);
+        }
+      },
     );
   }
 
   Future<void> _write(
     _BorderWorkshopView read,
-    Future<ResourceMutationReceipt> Function() operation,
+    Future<ResourceMutationReceipt?> Function() operation,
   ) async {
     if (_saving) return;
     final reading = _reading;
@@ -99,6 +120,7 @@ extension _ProjectBorderWorkshopEditing on _ProjectBorderWorkshopState {
     try {
       onBusyChanged?.call(true);
       final receipt = completed = await operation();
+      if (receipt == null) return;
       if (!current()) {
         onPendingChanged?.call(receipt);
         return;
@@ -125,7 +147,13 @@ extension _ProjectBorderWorkshopEditing on _ProjectBorderWorkshopState {
                 for (final item in catalog.records)
                   item.id == border.id ? border : item,
               ],
-              visualSnapshots: catalog.visualSnapshots,
+              visualSnapshots: {
+                for (final snapshot in catalog.visualSnapshots)
+                  snapshot.id: snapshot,
+                for (final snapshot
+                    in receipt.manifest.borderCatalog.visualSnapshots)
+                  snapshot.id: snapshot,
+              }.values.toList(),
             ),
           ),
           revision: receipt.revision,
@@ -191,6 +219,7 @@ extension _ProjectBorderWorkshopEditing on _ProjectBorderWorkshopState {
 bool _differentPublication(BorderBlueprintRecord record) {
   final definition = record.draft.definition;
   return definition.primitives.any((piece) => piece.weight > 0) &&
-      spatialBorderPublicationDefinition(definition) !=
-          record.latestPublished?.definition;
+      (!definition.isSpatial ||
+          spatialBorderPublicationDefinition(definition) !=
+              record.latestPublished?.definition);
 }

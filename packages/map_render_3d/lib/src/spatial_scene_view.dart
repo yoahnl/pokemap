@@ -68,6 +68,7 @@ import 'spatial_renderer_initialization.dart';
 export 'spatial_renderer_initialization.dart' show initializeSpatialRenderer;
 
 part 'spatial_scene_materialization.dart';
+part 'spatial_scene_actor_models.dart';
 part 'spatial_scene_decoration_rendering.dart';
 part 'spatial_scene_model_sources.dart';
 part 'spatial_scene_chunk_retention.dart';
@@ -1613,6 +1614,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   Completer<bool>? _pendingVisualOrder;
   final actors =
       <String, ({MeshComponent mesh, SpatialPixelMaterial material})>{};
+  late final _actorModels = _SpatialSceneActorModels(this);
   late final actorContactShadows = SpatialActorContactShadows(world);
   late final actorLandingDust = SpatialActorLandingDust(world);
   late final weatherEffects = SpatialWeatherEffects(world);
@@ -2118,6 +2120,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         SpatialSceneContentKind.actor,
         id,
       );
+      _actorModels.setVisible(id, actor.presentationVisible);
       if (!actor.presentationVisible) {
         final selection = actorSelections.remove(id);
         if (selection != null) actor.removeAll(selection);
@@ -3233,10 +3236,12 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         const <String, SpatialActorVisual>{};
     actorFrames = frames;
     actorVisual = frames['hero'];
+    _actorModels.beginFrame(configuration);
     for (final id
         in actors.keys.where((id) => !frames.containsKey(id)).toList()) {
       actors.remove(id)!.mesh.removeFromParent();
       actorSelections.remove(id);
+      _actorModels.removeActor(id);
     }
     for (final entry in frames.entries) {
       final frame = entry.value;
@@ -3283,17 +3288,24 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       final actorVisible =
           (configuration.visibility ?? SpatialSceneVisibility.all)
               .contentVisible(SpatialSceneContentKind.actor, entry.key);
-      (actor.mesh as _SceneActorComponent).presentationVisible = actorVisible;
+      final billboard = actor.mesh as _SceneActorComponent;
+      billboard.presentationVisible = actorVisible;
       final position =
           preview?.kind == SpatialSceneContentKind.actor &&
               preview?.id == entry.key
           ? preview!.position
           : null;
-      actor.mesh.position.setValues(
-        (position?.x ?? frame.x) + configuration.sceneOffset.dx,
-        (position?.y ?? frame.y) + .02,
-        (position?.z ?? frame.z) + configuration.sceneOffset.dy,
+      final x = (position?.x ?? frame.x) + configuration.sceneOffset.dx;
+      final y = position?.y ?? frame.y;
+      final z = (position?.z ?? frame.z) + configuration.sceneOffset.dy;
+      billboard.spriteVisible = !_actorModels.sync(
+        entry.key,
+        actorVisible ? frame.model : null,
+        x: x,
+        y: y,
+        z: z,
       );
+      actor.mesh.position.setValues(x, y + .02, z);
       (actor.material.shadowSamplePosition ??= Vector3.zero()).setValues(
         (position?.x ?? frame.x) + configuration.sceneOffset.dx,
         position?.y ?? frame.groundY ?? frame.y,
@@ -3352,6 +3364,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           frame.frame.height / texture.height,
         );
     }
+    _actorModels.endFrame();
     syncCamera();
     actorLandingDust.sync(
       _actorsVisibilityFiltered
@@ -3799,6 +3812,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     configuration.controller.sceneChanges.removeListener(syncCamera);
     configuration.animationPreview?.removeListener(syncAnimations);
     clearModelResourceCache();
+    _actorModels.clear();
     loadedModelSources.clear();
     _modelSourceDependents.clear();
     _modelSourceInstanceDependents.clear();
@@ -4196,10 +4210,11 @@ class _SceneActorComponent extends MeshComponent {
   _SceneActorComponent({required super.mesh});
 
   bool presentationVisible = true;
+  bool spriteVisible = true;
 
   @override
   void draw(RenderContext3D context) {
-    if (presentationVisible) super.draw(context);
+    if (presentationVisible && spriteVisible) super.draw(context);
   }
 
   @override

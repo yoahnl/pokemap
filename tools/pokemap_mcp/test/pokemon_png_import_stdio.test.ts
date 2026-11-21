@@ -40,7 +40,10 @@ test("MCP imports a PNG without replacing existing Pokémon media", { timeout: 1
     const relativePath = "data/pokemon/media/pikachu.json";
     const mediaPath = join(root, relativePath);
     const sourcePath = join(root, "source.png");
-    const png = await readFile(resolve("../../packages/map_editor/assets/branding/pokemap_event_builder_mark.png"));
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAASUlEQVR42mNkoAA4LEj4D2MfSFjASI4ZTAwDDEYdMOqAUQeMOmDUAaMOGHAHMCJXqaNRMCBRMNoiGnXAqANGHTDqgFEHjHgHAADb/Qp9KEMvVQAAAABJRU5ErkJggg==",
+      "base64",
+    );
     const imagePath = `assets/pokemon/images/${createHash("sha256").update(png).digest("hex")}.png`;
     const media = { schemaVersion: 1, speciesId: "pikachu", defaultFormId: "base",
       variants: { base: { frontStatic: "assets/front.png" } }, vendorExtension: { keep: true } };
@@ -91,7 +94,7 @@ test("MCP imports a PNG without replacing existing Pokémon media", { timeout: 1
     const bulkPlan = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
       requestId: "overworld-mcp", actionId: "pokemon.media.import", actionVersion: 1,
       workspaceHandle: opened.workspaceHandle, expectedRevision: validation.snapshotRevision,
-      idempotencyKey: "overworld-mcp", parameters: { entries: [
+      idempotencyKey: "overworld-mcp", dryRun: false, parameters: { entries: [
         { speciesId: "riolu", formId: "base", role: "overworld", artifactHandle: staged.artifactHandle },
         { speciesId: "riolu", formId: "base", role: "overworldShiny", artifactHandle: staged.artifactHandle },
       ] },

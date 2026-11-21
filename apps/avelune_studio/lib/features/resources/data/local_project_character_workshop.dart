@@ -1,6 +1,7 @@
 part of 'local_resource_adapter.dart';
 
 const _characterWorkshopActions = {
+  'characterStudio.character.update',
   'characterStudio.animationClip.upsert',
   'characterStudio.animationClip.delete',
   'characterStudio.animationDefinition.create',

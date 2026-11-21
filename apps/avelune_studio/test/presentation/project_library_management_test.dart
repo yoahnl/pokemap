@@ -19,6 +19,36 @@ import '../support/scoped_map_workspace_port.dart';
 part 'project_library_management_fixture.dart';
 
 void main() {
+  testWidgets('returning to resources waits for the revision before editing', (
+    tester,
+  ) async {
+    final active = ValueNotifier(true);
+    addTearDown(active.dispose);
+    final port = _DelayedRevisionLibraryPort();
+    await _open(tester, port, visible: active);
+    await tester.tap(find.byKey(const ValueKey('library-item-element:tree')));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Autres actions'), findsOneWidget);
+
+    active.value = false;
+    await tester.pump();
+    active.value = true;
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('library-item-element:tree')),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('Autres actions'), findsNothing);
+    expect(find.text('Importer'), findsNothing);
+
+    port.revision.complete('library-r0');
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Autres actions'), findsOneWidget);
+    expect(find.text('Importer'), findsOneWidget);
+    expect(port.libraryReads, 1);
+    expect(port.fullReads, 0);
+  });
+
   testWidgets('browsing and editing work while composite dimensions arrive', (
     tester,
   ) async {
@@ -93,12 +123,17 @@ void main() {
     expect(find.text('Importer'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('library-item-element:tree')));
     await tester.pumpAndSettle();
-    final modify = find.text('Modifier');
+    final workshop = find.text('Atelier 2D');
     final actions = find.byTooltip('Autres actions');
-    expect(modify, findsOneWidget);
+    expect(workshop, findsOneWidget);
     expect(actions, findsOneWidget);
     expect(find.bySemanticsLabel('Autres actions'), findsOneWidget);
-    expect(tester.getCenter(modify).dy, tester.getCenter(actions).dy);
+    final actionGroup = find.ancestor(
+      of: workshop,
+      matching: find.byType(Wrap),
+    );
+    expect(find.descendant(of: actionGroup, matching: actions), findsOneWidget);
+    expect(find.text('Modifier'), findsNothing);
     expect(find.text('Renommer'), findsNothing);
     expect(find.text('Classer'), findsNothing);
     expect(find.text('Dupliquer'), findsNothing);
@@ -110,9 +145,9 @@ void main() {
     );
     expect(
       menu.items.whereType<StudioContextMenuEntry>().map((item) => item.label),
-      ['Renommer', 'Classer', 'Dupliquer', 'Supprimer…'],
+      ['Modifier', 'Renommer', 'Classer', 'Dupliquer', 'Supprimer…'],
     );
-    expect(menu.items[3], isA<StudioContextMenuSeparator>());
+    expect(menu.items[4], isA<StudioContextMenuSeparator>());
     expect((menu.items.last as StudioContextMenuEntry).destructive, isTrue);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
@@ -234,8 +269,7 @@ void main() {
     final (_, editor) = await _open(tester, port);
     await tester.tap(find.byKey(const ValueKey('library-item-element:tree')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Modifier'));
-    await tester.pumpAndSettle();
+    await _chooseAction(tester, 'Modifier');
     await tester.enterText(
       find.byKey(const ValueKey('library-edit-description')),
       'Un arbre pour le jardin.',

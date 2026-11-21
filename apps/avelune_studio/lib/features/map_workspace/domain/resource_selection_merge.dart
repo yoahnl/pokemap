@@ -32,8 +32,9 @@ ProjectManifest mergeBorderSelection(
 
 ProjectManifest replaceLoadedBorderProjection(
   ProjectManifest current,
-  BorderBlueprintRecord replacement,
-) {
+  BorderBlueprintRecord replacement, {
+  Iterable<BorderVisualSnapshot> snapshots = const [],
+}) {
   final catalog = current.borderCatalog;
   final existing = catalog.recordById(replacement.id);
   if (existing == null || existing == replacement) return current;
@@ -44,9 +45,28 @@ ProjectManifest replaceLoadedBorderProjection(
         for (final record in catalog.records)
           record.id == replacement.id ? replacement : record,
       ],
-      visualSnapshots: catalog.visualSnapshots,
+      visualSnapshots: {
+        for (final snapshot in catalog.visualSnapshots) snapshot.id: snapshot,
+        for (final snapshot in snapshots) snapshot.id: snapshot,
+      }.values.toList(),
     ),
   );
+}
+
+List<BorderVisualSnapshot> publishedBorderSnapshots(
+  BorderBlueprintRecord record,
+  ProjectBorderCatalog catalog,
+) {
+  final definition = record.latestPublished?.definition;
+  if (definition == null || definition.isSpatial) return const [];
+  final ids = {
+    for (final primitive in definition.primitives) primitive.visualSnapshotId,
+    ...?definition.ground?.visualSnapshotIdsByRole.values,
+  };
+  return [
+    for (final snapshot in catalog.visualSnapshots)
+      if (ids.contains(snapshot.id)) snapshot,
+  ];
 }
 
 ProjectManifest replaceLoadedTerrainProjection(
@@ -72,6 +92,35 @@ ProjectManifest replaceLoadedTerrainProjection(
       drafts: catalog.drafts,
     ),
   );
+}
+
+ProjectManifest replaceLoadedEnvironmentProjection(
+  ProjectManifest current,
+  EnvironmentPreset replacement,
+) {
+  final existing = findProjectEnvironmentPresetById(current, replacement.id);
+  return existing == null || existing == replacement
+      ? current
+      : upsertProjectEnvironmentPreset(current, replacement);
+}
+
+ProjectManifest upsertDecorProjection(
+  ProjectManifest current,
+  ProjectElementEntry replacement, {
+  bool loadedOnly = false,
+}) {
+  final index = current.elements.indexWhere(
+    (element) => element.id == replacement.id,
+  );
+  if (index == -1) {
+    return loadedOnly
+        ? current
+        : current.copyWith(elements: [...current.elements, replacement]);
+  }
+  if (current.elements[index] == replacement) return current;
+  final elements = current.elements.toList();
+  elements[index] = replacement;
+  return current.copyWith(elements: elements);
 }
 
 ResourceLibraryCatalog mergeResourceLibraryCatalogs(

@@ -22,10 +22,11 @@ abstract final class CatalogResourcePositions {
 
   static const familySection = 'resourceLibraryCatalog.families';
 
-  static String? sectionOf(CatalogDefinitionKind kind) =>
-      kind == CatalogDefinitionKind.resourceFamily
-          ? familySection
-          : sections[kind];
+  static String? sectionOf(CatalogDefinitionKind kind) => switch (kind) {
+    CatalogDefinitionKind.resourceFamily => familySection,
+    CatalogDefinitionKind.borderVisualSnapshot => 'borderCatalog.visualSnapshots',
+    _ => sections[kind],
+  };
 
   static int contiguousCount(Iterable<CatalogDefinitionUnit> units) =>
       _validatePositions(units);

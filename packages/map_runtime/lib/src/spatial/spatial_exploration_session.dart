@@ -1677,6 +1677,15 @@ final class SpatialExplorationSession {
         z: story?.z ?? movement.z,
         texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
+      model: _characterModelVisual(
+        character,
+        bundle,
+        state,
+        facing,
+        story == null && state == CharacterAnimationState.idle
+            ? _presentationSeconds
+            : animationSeconds,
+      ),
     );
   }
 
@@ -1796,20 +1805,7 @@ final class SpatialExplorationSession {
           mapOccupants[actorId] = occupiedCell(visual);
           mapReactingActors.add(actorId);
         }
-        result['$id:${entry.key}'] = SpatialActorVisual(
-            x: visual.x + offset.dx,
-            y: visual.y,
-            z: visual.z + offset.dy,
-            groundY: visual.groundY,
-            contactShadow: visual.contactShadow,
-            airborne: visual.airborne,
-            landingDust: visual.landingDust,
-            texture: visual.texture,
-            frame: visual.frame,
-            width: visual.width,
-          height: visual.height,
-          billboardVerticalOffset: visual.billboardVerticalOffset,
-        );
+        result['$id:${entry.key}'] = visual.translated(offset);
       }
     }
     for (final entity in bundle.map.entities.where((entity) => entity.npc != null)) {
@@ -1900,6 +1896,55 @@ final class SpatialExplorationSession {
       landingDust: true,
       texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
+      model: _characterModelVisual(
+        actor,
+        source,
+        pose?.motion ?? CharacterAnimationState.idle,
+        facing,
+        pose?.animationSeconds ?? _presentationSeconds,
+      ),
+    );
+  }
+
+  SpatialActorModelVisual? _characterModelVisual(
+    ProjectCharacterEntry actor,
+    RuntimeMapBundle source,
+    CharacterAnimationState state,
+    EntityFacing facing,
+    double elapsed,
+  ) {
+    final binding = actor.spatialModel;
+    if (binding == null) return null;
+    final index = binding.resolveClip(state);
+    if (index == null) return null;
+    final model = source.modelById(binding.modelId);
+    if (model == null || !model.inspection.skinned) return null;
+    final clip = model.inspection.animations
+        .where((clip) => clip.index == index)
+        .firstOrNull;
+    if (clip == null) return null;
+    final fallback = !binding.clips.containsKey(state);
+    final time = (fallback ? _presentationSeconds : elapsed) / clip.durationSeconds;
+    final loop = fallback || switch (state) {
+      CharacterAnimationState.idle ||
+      CharacterAnimationState.walk ||
+      CharacterAnimationState.run ||
+      CharacterAnimationState.bicycleIdle ||
+      CharacterAnimationState.bicycle ||
+      CharacterAnimationState.surfIdle ||
+      CharacterAnimationState.surf => true,
+      _ => false,
+    };
+    return (
+      definition: model,
+      loadModel: source.modelLoader,
+      facing: facing,
+      pose: SpatialModelRuntimeState(
+        modelId: model.id,
+        animationIndex: index,
+        normalizedTime: loop ? time % 1 : time.clamp(0.0, 1.0),
+        blocksMovement: false,
+      ),
     );
   }
 
@@ -1934,21 +1979,7 @@ final class SpatialExplorationSession {
   Future<Uint8List> modelBytesForBundle(
     RuntimeMapBundle source,
     String id,
-  ) async {
-    final model = source.manifest.models3d.where((v) => v.id == id).firstOrNull;
-    if (model == null) throw StateError('Modèle absent : $id');
-    final path = p.normalize(
-      p.join(source.projectRootDirectory, model.relativePath),
-    );
-    if (!p.isWithin(source.projectRootDirectory, path)) {
-      throw StateError('Model path escapes the project.');
-    }
-    final file = File(path);
-    if (await file.length() > source.resourceBudget.profile.maximumEncodedBytes) {
-      throw const RuntimeResourceAdmissionException('encoded_bytes');
-    }
-    return file.readAsBytes();
-  }
+  ) => source.modelLoader(id);
 
   Future<void> enterWarp(MapWarp warp) async {
     if (!bundle.map.warps.contains(warp)) return;

@@ -60,7 +60,10 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
     if (closed) return;
     await super.onLoad();
     if (closed) return;
-    final model = await ModelByteLoader.load(bytes);
+    final model = await ModelByteLoader.load(
+      bytes,
+      experimentalPartitionSkinnedMeshes: true,
+    );
     if (closed) return;
     controls._projectionGame = this;
     component = _PreviewModelComponent(model: model);

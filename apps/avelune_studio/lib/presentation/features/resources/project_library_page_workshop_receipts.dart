@@ -79,6 +79,8 @@ extension _ProjectLibraryPageWorkshopReceipts on _ProjectLibraryPageState {
     return (
       port: editor as ProjectCharacterWorkshopPort,
       pickImage: management.pickFile,
+      resolveSpatialModel: (context, modelId) =>
+          _resolveCharacterSpatialModel(context, read, modelId),
       pending: _workshopReceipts[item.identity],
       retain: (receipt) => _retainWorkshopReceipt(maps, item.identity, receipt),
       publish: (receipt) {
@@ -104,6 +106,50 @@ extension _ProjectLibraryPageWorkshopReceipts on _ProjectLibraryPageState {
         });
       },
     );
+  }
+
+  Future<ProjectModel3dEntry?> _resolveCharacterSpatialModel(
+    BuildContext context,
+    _ProjectLibraryRead read,
+    String? modelId,
+  ) async {
+    final reading = _reading;
+    final selected = modelId != null
+        ? read.catalog.entries['model3d:$modelId']
+        : await showDialog<ProjectLibraryItem>(
+            context: context,
+            builder: (context) => ProjectModelTargetDialog(
+              models: read.catalog.entries.values.where(
+                (item) => item.kind == 'model3d',
+              ),
+              familyLabels: read.catalog.familyLabels,
+              title: 'Choisir le modèle du personnage',
+              confirmLabel: 'Choisir ce modèle',
+              emptyLabel: 'Aucun modèle 3D trouvé',
+            ),
+          );
+    if (!mounted || !identical(reading, _reading)) return null;
+    if (selected == null) {
+      if (modelId == null) return null;
+      throw const ResourceFailure('Le modèle associé est introuvable.');
+    }
+    final lease = read.previews.acquire(selected);
+    try {
+      final preview = await lease.result;
+      if (!mounted || !identical(reading, _reading)) return null;
+      final model = preview?.item.model3d;
+      if (model == null) {
+        throw const ResourceFailure('Le modèle est introuvable.');
+      }
+      if (!model.inspection.skinned || model.inspection.animations.isEmpty) {
+        throw ResourceFailure(
+          '« ${model.name} » doit contenir un squelette et au moins un clip.',
+        );
+      }
+      return model;
+    } finally {
+      lease.release();
+    }
   }
 
   void _retainWorkshopReceipt(

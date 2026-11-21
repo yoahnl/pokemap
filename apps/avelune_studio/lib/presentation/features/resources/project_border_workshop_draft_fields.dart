@@ -10,6 +10,7 @@ class ProjectBorderWorkshopDraftFields extends StatelessWidget {
     super.key,
     required this.input,
     required this.models,
+    required this.elements,
     required this.enabled,
     required this.awaitingRecovery,
     required this.reopenRequired,
@@ -23,6 +24,7 @@ class ProjectBorderWorkshopDraftFields extends StatelessWidget {
 
   final BorderWorkshopDraftInput input;
   final List<ProjectModel3dEntry> models;
+  final List<ProjectElementEntry> elements;
   final bool enabled;
   final bool awaitingRecovery, reopenRequired;
   final void Function(VoidCallback change) onChange;
@@ -31,7 +33,10 @@ class ProjectBorderWorkshopDraftFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final names = {for (final model in models) model.id: model.name};
+    final modelNames = {for (final model in models) model.id: model.name};
+    final elementNames = {
+      for (final element in elements) element.id: element.name,
+    };
     return StudioPanel(
       title: 'Réglages du brouillon',
       icon: Icons.tune,
@@ -103,7 +108,9 @@ class ProjectBorderWorkshopDraftFields extends StatelessWidget {
           _piece(
             context,
             piece,
-            names[piece.sourceModelId] ?? 'Modèle introuvable',
+            piece.isSpatial
+                ? modelNames[piece.sourceModelId] ?? 'Modèle introuvable'
+                : elementNames[piece.sourceElementId] ?? 'Décor introuvable',
           ),
         ],
       ],
@@ -113,7 +120,7 @@ class ProjectBorderWorkshopDraftFields extends StatelessWidget {
   Widget _piece(
     BuildContext context,
     BorderPrimitiveDraft piece,
-    String model,
+    String sourceName,
   ) {
     final role = borderWorkshopRoleLabel(piece.role);
     final info = [
@@ -127,7 +134,7 @@ class ProjectBorderWorkshopDraftFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(model, style: Theme.of(context).textTheme.titleSmall),
+        Text(sourceName, style: Theme.of(context).textTheme.titleSmall),
         Text(info, style: Theme.of(context).textTheme.bodySmall),
         const SizedBox(height: StudioSpacing.m),
         Wrap(
@@ -149,18 +156,19 @@ class ProjectBorderWorkshopDraftFields extends StatelessWidget {
                     : null,
               ),
             ),
-            SizedBox(
-              width: 230,
-              child: StudioToggleRow(
-                key: ValueKey('border-draft-collision-${piece.id}'),
-                label: 'Bloque le passage',
-                value: input.collision(piece),
-                onChanged: enabled
-                    ? (value) =>
-                          onChange(() => input.collisions[piece.id] = value)
-                    : null,
+            if (piece.isSpatial)
+              SizedBox(
+                width: 230,
+                child: StudioToggleRow(
+                  key: ValueKey('border-draft-collision-${piece.id}'),
+                  label: 'Bloque le passage',
+                  value: input.collision(piece),
+                  onChanged: enabled
+                      ? (value) =>
+                            onChange(() => input.collisions[piece.id] = value)
+                      : null,
+                ),
               ),
-            ),
           ],
         ),
       ],

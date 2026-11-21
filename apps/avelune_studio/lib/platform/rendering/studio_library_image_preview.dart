@@ -111,7 +111,7 @@ class _StudioLibraryImagePreviewState extends State<StudioLibraryImagePreview> {
 Object? _identity(ResourcePreviewSource source) => switch (source) {
   CharacterPreviewSource(:final character) => character,
   AtlasPreviewSource(:final tilesetId, :final pageId) => (tilesetId, pageId),
-  ElementPreviewSource(:final element) => element,
+  ElementPreviewSource(:final tilesetId) => (ElementPreviewSource, tilesetId),
   TileFramePreviewSource(:final entry) => entry,
   _ => null,
 };

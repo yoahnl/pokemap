@@ -14,6 +14,12 @@ ProjectManifest _mergeImportedLibraryResource(
           ...before.models3d,
           imported.models3d.singleWhere((model) => model.id == modelId),
         ]),
+  smartTileCatalog: imported.smartTileCatalog.presets.isEmpty
+      ? before.smartTileCatalog
+      : _mergeImportedTerrains(
+          before.smartTileCatalog,
+          imported.smartTileCatalog,
+        ),
   resourceLibraryCatalog: modelId == null
       ? before.resourceLibraryCatalog
       : mergeResourceLibraryCatalogs(
@@ -25,6 +31,19 @@ ProjectManifest _mergeImportedLibraryResource(
             ),
           ),
         ),
+);
+
+ProjectSmartTileCatalog _mergeImportedTerrains(
+  ProjectSmartTileCatalog previous,
+  ProjectSmartTileCatalog imported,
+) => ProjectSmartTileCatalog(
+  categories: previous.categories,
+  atlases: [...previous.atlases, ...imported.atlases],
+  materials: [...previous.materials, ...imported.materials],
+  animations: previous.animations,
+  presets: [...previous.presets, ...imported.presets],
+  patterns: previous.patterns,
+  drafts: previous.drafts,
 );
 
 extension _LocalProjectLibraryEdits on LocalResourceAdapter {
@@ -157,145 +176,6 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
       'name': _libraryName(name),
     }, expectedRevision),
   );
-
-  Future<ResourceMutationReceipt> _publishLibraryDefinition(
-    String action,
-    Map<String, Object?> parameters,
-    String expectedRevision, {
-    String? Function()? validateBeforeApply,
-    String? terrainId,
-  }) => mapAdapter.withResourceMutation(() async {
-    _requireLibraryEditing();
-    _resourceMutationActive = true;
-    try {
-      final problem = validateBeforeApply?.call();
-      if (problem != null) throw ResourceFailure(problem);
-      final before = await mapAdapter.resourceBaseline(session);
-      if (before.revision != expectedRevision) {
-        throw const ResourceFailure(
-          'Le catalogue a changé. Actualisez la bibliothèque puis réessayez.',
-        );
-      }
-      final context = await _requireMutationContext();
-      await context.attach();
-      final opened = context.opened;
-      final catalog = await context.openService.catalogProject(
-        opened.projectHandle,
-        metadataFields: terrainId == null ? null : const {},
-      );
-      final revision = catalog?.revision;
-      if (revision == null ||
-          await mapAdapter.resourceRevision(session) != before.revision) {
-        throw const ResourceFailure(
-          'Le catalogue a changé. Actualisez la bibliothèque puis réessayez.',
-        );
-      }
-      final operationId = _identity('resource');
-      final planned = await context.api
-          .planMutation(
-            opened.projectHandle,
-            AuthoringRequest(
-              requestId: operationId,
-              workspaceHandle: opened.workspaceHandle.value,
-              actionId: action,
-              actionVersion: 1,
-              idempotencyKey: operationId,
-              expectedRevision: revision,
-              parameters: parameters,
-              extensions: terrainId == null
-                  ? const {}
-                  : const {'workshopScope': true},
-            ),
-          )
-          .onError<MapAuthoringException>((error, stackTrace) async {
-            if (action != 'tileset.regrid' ||
-                error.code != 'catalog.definition_in_use') {
-              Error.throwWithStackTrace(error, stackTrace);
-            }
-            final maps = before.manifest.maps;
-            final message = await catalog!
-                .read(
-                  (project) => _tilesetGridUseMessage(
-                    project.snapshot,
-                    error.details,
-                    maps,
-                  ),
-                )
-                .onError<Object>(
-                  (_, _) => _libraryUseMessage(error.details, maps),
-                );
-            throw ResourceFailure(message);
-          });
-      try {
-        final plan = planned.plan;
-        if (plan.changeSet.changes.isEmpty) {
-          return ResourceMutationReceipt(
-            before: before.manifest,
-            manifest: before.manifest,
-            beforeRevision: before.revision,
-            revision: before.revision,
-            changedPaths: const [],
-          );
-        }
-        final terrain = terrainId == null
-            ? null
-            : planned.projectedProject!.smartTileCatalog.presets.singleWhere(
-                (value) => value.id == terrainId,
-              );
-        final edited = _resourceReceipt(
-          before.manifest,
-          before.revision,
-          plan,
-          null,
-          operationId,
-          projectedProject: terrain == null
-              ? before.manifest
-              : replaceLoadedTerrainProjection(before.manifest, terrain),
-          projectedRevision: await _projectedLibraryRevision(plan),
-          changedTerrain: terrain,
-        );
-        await _applyPlanned(
-          api: context.api,
-          opened: opened,
-          planned: planned,
-          operationId: operationId,
-          confirmDestructive: false,
-          validateBeforeApply: validateBeforeApply,
-        );
-        try {
-          await beforeReconciliation?.call();
-          _requireAvailable();
-          if (terrain != null) {
-            await _verifyWorkshopTerrain(this, terrain, edited.revision);
-          }
-          await mapAdapter.acceptResourceMutation(
-            session,
-            edited,
-            changedTerrain: terrain,
-          );
-        } on Object {
-          throw ResourceFailure(
-            terrain == null
-                ? 'La modification est enregistrée. Actualisez la bibliothèque pour relire la fiche.'
-                : 'Les raccords sont enregistrés. Relisez la publication pour les afficher.',
-            partialReceipt: edited,
-          );
-        }
-        return edited;
-      } finally {
-        await planned.plan.releaseAppliedPayload();
-      }
-    } on ResourceFailure {
-      rethrow;
-    } on Object catch (error) {
-      throw terrainId == null
-          ? _libraryLifecycleFailure(error)
-          : _terrainWorkshopMutationFailure(error);
-    } finally {
-      _resourceMutationActive = false;
-      if (_disposed) await _closeMutationContext();
-    }
-  });
 }
 
 String _libraryName(String value) {

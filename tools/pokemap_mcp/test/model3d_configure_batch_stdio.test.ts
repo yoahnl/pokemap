@@ -224,6 +224,26 @@ test("native catalog light workshop is bounded, discoverable and durable over MC
       assert.deepEqual(stored.light, light);
       assert.deepEqual(await readFile(join(root, "project.json")), descriptor);
     }
+    const parameters = {modelId: "lamp", scale: 2.5, pivot: {x: .5, y: 1, z: -1}};
+    const selected = await call("pokemap_workshop", {operation: "read", projectHandle: opened.projectHandle,
+      actionId: "model3d.configure", parameters, includeDocuments: false});
+    const transformed = await call("pokemap_plan", {projectHandle: opened.projectHandle, request: {
+      requestId: "local-model-transform", actionId: "model3d.configure", actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle, expectedRevision: selected.snapshotRevision,
+      idempotencyKey: "local-model-transform", parameters, extensions: selected.planExtensions,
+    }});
+    await call("pokemap_apply", {operation: "apply", projectHandle: opened.projectHandle,
+      planId: transformed.planId, operationId: "local-model-transform"});
     await call("pokemap_workspace", {operation: "close", workspaceHandle: opened.workspaceHandle});
+    const reopened = await call("pokemap_workspace", {operation: "open", projectRoot: root});
+    const after = await call("pokemap_workshop", {operation: "read", projectHandle: reopened.projectHandle,
+      actionId: "model3d.configure", parameters});
+    assert.deepEqual(after.maps, []);
+    const stored = (record(after.project).models3d as JsonRecord[])[0]!;
+    assert.equal(stored.scale, parameters.scale);
+    assert.deepEqual(stored.pivot, parameters.pivot);
+    assert.deepEqual(stored.light, light);
+    assert.deepEqual(await readFile(join(root, "project.json")), descriptor);
+    await call("pokemap_workspace", {operation: "close", workspaceHandle: reopened.workspaceHandle});
   } finally {await client.close();await transport.close();await rm(root,{recursive:true,force:true});}
 });

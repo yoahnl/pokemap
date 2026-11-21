@@ -10,6 +10,16 @@ Future<CatalogWorkshopSelection> _readAssetImportWorkshop({
   final duplicate = actionId == 'model3d.duplicate';
   final kind =
       model ? CatalogDefinitionKind.model3d : CatalogDefinitionKind.tileset;
+  final terrain = actionId == 'tileset.import_image'
+      ? TilesetTerrainImport.read(parameters)
+      : null;
+  final terrainKinds = <CatalogDefinitionKind>[
+    if (terrain != null) ...[
+      CatalogDefinitionKind.smartTileAtlas,
+      CatalogDefinitionKind.smartTileMaterial,
+      CatalogDefinitionKind.smartTilePreset,
+    ],
+  ];
   final inputs =
       actionId == 'model3d.import_batch' ? parameters['models'] : [parameters];
   if (inputs is! List || inputs.isEmpty || inputs.length > 50) {
@@ -35,6 +45,11 @@ Future<CatalogWorkshopSelection> _readAssetImportWorkshop({
           null) {
         throw const FormatException(
             'catalog.asset_import: identity already in use');
+      }
+    }
+    for (final terrainKind in terrainKinds) {
+      if (await catalog.snapshot.indexEntry(CatalogDefinitionKey(terrainKind, terrain!.id)) != null) {
+        throw const FormatException('catalog.asset_import: terrain identity already in use');
       }
     }
     final settings = catalog.projectMetadata.settings;
@@ -68,6 +83,7 @@ Future<CatalogWorkshopSelection> _readAssetImportWorkshop({
     final librarySection = CatalogResourcePositions.sections[CatalogDefinitionKind.resourceLibraryEntry]!;
     final sections = {
       CatalogResourcePositions.sections[kind]!,
+      if (terrain != null) 'smartTileCatalog',
       if (duplicate) 'resourceLibraryCatalog',
     };
     final values = <String, List<int>>{};
@@ -128,6 +144,8 @@ Future<CatalogWorkshopSelection> _readAssetImportWorkshop({
             if (manifest.resourceLibraryCatalog.entries.isNotEmpty)
               manifest.resourceLibraryCatalog.entries.single.identity,
           },
+          for (final terrainKind in terrainKinds)
+            CatalogResourcePositions.sections[terrainKind]!: {terrain!.id},
         },
         resourceBytes: {
           ...values,
@@ -146,6 +164,8 @@ Future<CatalogWorkshopSelection> _readAssetImportWorkshop({
         sections, revisions,
         resourceCounts: {
           kind: count,
+          for (final terrainKind in terrainKinds)
+            terrainKind: await CatalogResourcePositions.read(catalog.snapshot, terrainKind),
           if (duplicate)
             CatalogDefinitionKind.resourceLibraryEntry:
                 await CatalogResourcePositions.read(catalog.snapshot, CatalogDefinitionKind.resourceLibraryEntry),

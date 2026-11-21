@@ -1429,12 +1429,24 @@ final class CatalogSnapshot {
     return unit;
   }
 
+  Future<int> countDefinitionsOfKind(CatalogDefinitionKind kind) async {
+    var wholePages = 0;
+    final edges = await _collect(
+      after: null,
+      kind: kind,
+      take: limits.maxDefinitions,
+      onKindPageCount: (count) => wholePages += count,
+    );
+    return wholePages + edges.length;
+  }
+
   Future<List<CatalogIndexEntry>> _collect({
     required CatalogDefinitionKey? after,
     CatalogDefinitionKind? kind,
     CatalogDefinitionKey? exact,
     required int take,
     void Function(CatalogObjectReference)? onNode,
+    void Function(int)? onKindPageCount,
   }) async {
     final found = <CatalogIndexEntry>[];
     final seen = <String>{};
@@ -1450,6 +1462,10 @@ final class CatalogSnapshot {
       if (!shouldVisit(node)) return;
       if (!seen.add(node.reference.sha256)) {
         throw const FormatException('catalog.index: cycle or repeated node');
+      }
+      if (onKindPageCount != null && node.first.kind == kind && node.last.kind == kind) {
+        onKindPageCount(node.count);
+        return;
       }
       onNode?.call(node.reference);
       final page = await _indexPage(node.reference, reuse: onNode == null);

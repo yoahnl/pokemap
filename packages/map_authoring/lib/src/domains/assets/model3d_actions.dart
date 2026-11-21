@@ -41,13 +41,18 @@ final class Model3dActions {
           Set<String> ids) =>
       _inspectModelPrune(snapshot, ids);
 
-  static void requireLocalSourceContract(Model3dInspection before, Model3dInspection after) {
-    if ((before.animations.isEmpty && after.animations.isNotEmpty) ||
+  static void requireLocalSourceContract(
+      Model3dInspection before, Model3dInspection after) {
+    if ((before.skinned && !after.skinned) ||
+        (before.animations.isEmpty && after.animations.isNotEmpty) ||
         before.animations.any((clip) => !after.animations.any((next) =>
-            next.index == clip.index && next.durationSeconds == clip.durationSeconds))) {
+            next.index == clip.index &&
+            next.durationSeconds == clip.durationSeconds))) {
       throw AuthoringPlanException(
           code: 'catalog.model_source_usage_proof_required',
-          message: 'This replacement changes existing source animation capabilities. Local replacement preserves static sources and every existing animation index and duration. Inspect project usages explicitly with sourceReplacementScope: project to change that contract.');
+          message: 'This replacement changes existing source animation capabilities. '
+              'Local replacement preserves static sources, skeletal support and every existing animation index and duration. '
+              'Set sourceReplacementScope to project to inspect usages before changing that contract.');
     }
   }
 
@@ -328,7 +333,7 @@ final class Model3dActions {
             name: parameters.string('name'),
             sourceAssetId: 'model3d_$id',
             relativePath: 'assets/models3d/$id.glb',
-            inspection: source?.inspection ?? const GlbModel3dInspector().inspect(bytes),
+            inspection: source?.inspection ?? const GlbModel3dInspector(experimentalSkinnedModels: true).inspect(bytes),
             scale: source?.scale ?? 1,
             pivot: source?.pivot,
             collisionBounds: source?.collisionBounds,
@@ -452,7 +457,7 @@ final class Model3dActions {
           actual.byteLength != artifact.byteLength) {
         throw const FormatException('The staged model content changed.');
       }
-      final inspection = const GlbModel3dInspector().inspect(bytes);
+      final inspection = const GlbModel3dInspector(experimentalSkinnedModels: true).inspect(bytes);
       if (_isLocalModelSourceSnapshot(context.snapshot)) {
         requireLocalSourceContract(current.inspection, inspection);
       }
@@ -619,7 +624,7 @@ final class Model3dActions {
           throw const FormatException('The staged model content changed.');
         }
         final inspection = inspections.putIfAbsent(
-            artifact.handle, () => const GlbModel3dInspector().inspect(bytes));
+            artifact.handle, () => const GlbModel3dInspector(experimentalSkinnedModels: true).inspect(bytes));
         if (_isLocalModelSourceSnapshot(context.snapshot)) {
           requireLocalSourceContract(entry.model.inspection, inspection);
         }
@@ -881,7 +886,7 @@ final class Model3dActions {
           throw const FormatException('The staged model content changed.');
         }
         final inspection = inspections.putIfAbsent(
-            entry.handle, () => const GlbModel3dInspector().inspect(bytes));
+            entry.handle, () => const GlbModel3dInspector(experimentalSkinnedModels: true).inspect(bytes));
         models.add(ProjectModel3dEntry(
             id: entry.id,
             name: entry.name,

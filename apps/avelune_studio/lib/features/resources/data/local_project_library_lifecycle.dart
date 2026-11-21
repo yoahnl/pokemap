@@ -72,18 +72,38 @@ extension _LocalProjectLibraryLifecycle on LocalResourceAdapter {
       }
       final requestId = _identity('remove_resource');
       final parameters = {'resourceKind': item.kind, 'id': item.id};
-      final planned = await context.api.planMutation(
-        opened.projectHandle,
-        AuthoringRequest(
-          requestId: requestId,
-          workspaceHandle: opened.workspaceHandle.value,
-          actionId: _libraryDeletionAction,
-          actionVersion: 1,
-          idempotencyKey: requestId,
-          expectedRevision: catalog.revision,
-          parameters: parameters,
-        ),
-      );
+      final planned = await context.api
+          .planMutation(
+            opened.projectHandle,
+            AuthoringRequest(
+              requestId: requestId,
+              workspaceHandle: opened.workspaceHandle.value,
+              actionId: _libraryDeletionAction,
+              actionVersion: 1,
+              idempotencyKey: requestId,
+              expectedRevision: catalog.revision,
+              parameters: parameters,
+            ),
+          )
+          .onError<MapAuthoringException>((error, stackTrace) async {
+            if (error.code != 'catalog.definition_in_use') {
+              Error.throwWithStackTrace(error, stackTrace);
+            }
+            final maps = before.manifest.maps;
+            final message = await catalog
+                .read(
+                  (project) => _namedLibraryUseMessage(
+                    project.snapshot,
+                    error.details,
+                    maps,
+                    subject: 'Cette ressource',
+                  ),
+                )
+                .onError<Object>(
+                  (_, _) => _libraryUseMessage(error.details, maps),
+                );
+            throw ResourceFailure(message);
+          });
       _requireAvailable();
       final preparation = ResourceMutationPreparation(
         sessionId: session.sessionId,
@@ -183,6 +203,67 @@ String _libraryUseMessage(
   return owners.isNotEmpty
       ? 'Cette ressource est encore utilisée dans le projet.'
       : 'Une autre ressource dépend encore de cette fiche.';
+}
+
+Future<String> _namedLibraryUseMessage(
+  CatalogSnapshot snapshot,
+  Map<String, Object?> details,
+  List<ProjectMapEntry> maps, {
+  required String subject,
+}) async {
+  const labelLimit = 3;
+  final owners = (details['owners'] as List<Object?>? ?? const [])
+      .whereType<String>();
+  final mapOwners = owners.where((owner) => owner.startsWith('map:'));
+  final mapIndex = ProjectMapEntries.prepare(maps);
+  final labels = [
+    for (final owner in mapOwners.take(labelLimit))
+      if (mapIndex.lookup(owner.substring(4)) case final map?)
+        'la carte « ${map.name} »',
+  ];
+  final definitions = {
+    for (final value
+        in (details['definitions'] as List<Object?>? ?? const [])
+            .whereType<Map<String, Object?>>())
+      CatalogDefinitionKey.fromJson(value),
+  };
+  final ownerKinds = {
+    ...CatalogDefinitionKind.values.asNameMap(),
+    'preset': CatalogDefinitionKind.smartTilePreset,
+    'border': CatalogDefinitionKind.borderRecord,
+  };
+  for (final owner in owners) {
+    final separator = owner.indexOf(':');
+    if (separator < 0) continue;
+    final kind = ownerKinds[owner.substring(0, separator)];
+    if (kind != null) {
+      definitions.add(
+        CatalogDefinitionKey(kind, owner.substring(separator + 1)),
+      );
+    }
+  }
+  for (final key in definitions.take(labelLimit - labels.length)) {
+    final name = (await snapshot.indexEntry(key))?.summary.name;
+    if (name == null ||
+        (key.kind != CatalogDefinitionKind.smartTileAtlas && name == key.id)) {
+      continue;
+    }
+    final kind = switch (key.kind) {
+      CatalogDefinitionKind.smartTileAtlas => 'l’atlas de terrain',
+      CatalogDefinitionKind.smartTilePreset => 'le terrain',
+      CatalogDefinitionKind.borderRecord => 'la bordure',
+      CatalogDefinitionKind.environmentPreset => 'l’ensemble de décors',
+      CatalogDefinitionKind.element => 'le décor',
+      _ => 'la ressource',
+    };
+    labels.add('$kind « $name »');
+  }
+  if (labels.isEmpty) return _libraryUseMessage(details, maps);
+  final namedUses = labels.length == 1
+      ? labels.single
+      : '${labels.take(labels.length - 1).join(', ')} et ${labels.last}';
+  final hasMore = mapOwners.length + definitions.length > labels.length;
+  return '$subject est utilisée par $namedUses${hasMore ? ', entre autres' : ''}.';
 }
 
 bool _draftUsesLibraryResource(

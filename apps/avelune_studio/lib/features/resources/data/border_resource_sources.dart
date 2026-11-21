@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -37,7 +38,7 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
         'Les variantes natives de ce rebord doivent être conservées.',
       );
     }
-    return _prepareExistingSpriteSources(
+    return prepareExistingBorderSpriteSources(
       manifest,
       root,
       record!.draft.definition.primitives,
@@ -200,7 +201,7 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
       }
     }
     result.addAll(
-      await _prepareExistingSpriteSources(
+      await prepareExistingBorderSpriteSources(
         manifest,
         root,
         existing.primitives.where(

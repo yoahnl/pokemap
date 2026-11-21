@@ -401,16 +401,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
           ? frames
           : {
               for (final entry in frames.entries)
-                entry.key: SpatialActorVisual(
-                  x: entry.value.x + translation.dx,
-                  y: entry.value.y,
-                  z: entry.value.z + translation.dy,
-                  texture: entry.value.texture,
-                  width: entry.value.width,
-                  height: entry.value.height,
-                  billboardVerticalOffset: entry.value.billboardVerticalOffset,
-                  frame: entry.value.frame,
-                ),
+                entry.key: entry.value.translated(translation),
             },
     );
     return renderedFrames;

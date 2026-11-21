@@ -6,23 +6,9 @@ extension _ProjectLibraryPageEdits on _ProjectLibraryPageState {
     _ProjectLibraryRead read,
     ProjectLibraryManagement management,
   ) async {
-    if (_pickingFile) return;
     final reading = _reading;
     final revision = read.revision!;
-    _setPickingFile(true);
-    PickedProjectLibraryFile? picked;
-    try {
-      picked = await management.pickFile();
-    } on Object catch (error) {
-      if (mounted) {
-        _notice(
-          error is ResourceFailure ? error.message : 'Impossible d’ouvrir ce fichier. Choisissez un fichier PNG ou GLB accessible.',
-        );
-      }
-    } finally {
-      if (mounted) _setPickingFile(false);
-    }
-    final file = picked;
+    final file = await _pickLibraryFile(management);
     if (!mounted ||
         !context.mounted ||
         !widget.active ||
@@ -48,6 +34,25 @@ extension _ProjectLibraryPageEdits on _ProjectLibraryPageState {
       ),
       imported: true,
     );
+  }
+
+  Future<PickedProjectLibraryFile?> _pickLibraryFile(
+    ProjectLibraryManagement management,
+  ) async {
+    if (_pickingFile) return null;
+    _setPickingFile(true);
+    try {
+      return await management.pickFile();
+    } on Object catch (error) {
+      if (mounted) {
+        _notice(
+          error is ResourceFailure ? error.message : 'Impossible d’ouvrir ce fichier. Choisissez un fichier PNG ou GLB accessible.',
+        );
+      }
+    } finally {
+      if (mounted) _setPickingFile(false);
+    }
+    return null;
   }
 
   Future<ResourceLibraryItemView?> _rename(
@@ -134,6 +139,7 @@ extension _ProjectLibraryPageEdits on _ProjectLibraryPageState {
         maps.acceptResources(
           receipt.before,
           receipt.manifest,
+          changedElement: receipt.changedElement,
           removedLibraryResource: receipt.removedLibraryResource,
         );
       } else if (maps.project != receipt.manifest &&

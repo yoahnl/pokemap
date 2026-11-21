@@ -12,7 +12,7 @@ export 'src/spatial_cell_overlay.dart'
 export 'src/spatial_ground.dart' show SpatialGroundPlan;
 
 export 'src/spatial_actor_visual.dart'
-    show SpatialActorTexture, SpatialActorVisual;
+    show SpatialActorModelVisual, SpatialActorTexture, SpatialActorVisual;
 
 export 'src/spatial_picking.dart' show SpatialSurfaceHit, pickSpatialSurface;
 export 'src/spatial_model_placement_preview.dart'

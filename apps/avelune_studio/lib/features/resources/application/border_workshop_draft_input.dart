@@ -3,7 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 bool supportsBorderWorkshopDraft(BorderBlueprintRecord record) {
   final definition = record.draft.definition;
   return !record.isDeprecated &&
-      definition.isSpatial &&
+      (definition.isSpatial || definition.ground == null) &&
       definition.template == BorderBlueprintTemplate.connectedLine &&
       definition.primitives.every(
         (piece) => const {
@@ -60,6 +60,7 @@ final class BorderWorkshopDraftInput {
             ? piece
             : BorderPrimitiveDraft(
                 id: piece.id,
+                sourceElementId: piece.sourceElementId,
                 sourceModelId: piece.sourceModelId,
                 role: piece.role,
                 authoredOrientation: piece.authoredOrientation,
@@ -67,7 +68,9 @@ final class BorderWorkshopDraftInput {
                 cornerTurn: piece.cornerTurn,
                 cornerJoinCells: piece.cornerJoinCells,
                 weight: value,
+                anchorPx: piece.isSpatial ? null : piece.anchorPx,
                 anchorWorld: piece.anchorWorld,
+                currentMetrics: piece.isSpatial ? null : piece.currentMetrics,
                 animationIndex: piece.animationIndex,
                 animationLoop: piece.animationLoop,
                 animationSpeed: piece.animationSpeed,

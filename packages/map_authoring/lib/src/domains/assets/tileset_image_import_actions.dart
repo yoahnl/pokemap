@@ -22,14 +22,39 @@ final class TilesetImageImportActions {
   static final descriptors = [
     visualLibraryDescriptor(
       'tileset.import_image',
-      'Atomically import a staged PNG asset and its canonical regular tileset',
+      'Atomically import a staged PNG and its tileset, optionally publishing a terrain',
       resourceKinds: const [
         'project',
         'tileset',
         'assetCatalog',
         'assetBlob',
-        'asset'
+        'asset',
+        'smartTileAtlas',
+        'smartTileMaterial',
+        'smartTilePreset',
       ],
+      inputSchema: const {
+        'type': 'object',
+        'additionalProperties': false,
+        'required': ['artifactHandle', 'tilesetId', 'name', 'tileWidth', 'tileHeight'],
+        'properties': {
+          'artifactHandle': {'type': 'string'},
+          'tilesetId': {'type': 'string'},
+          'name': {'type': 'string'},
+          'tileWidth': {'type': 'integer', 'minimum': 1},
+          'tileHeight': {'type': 'integer', 'minimum': 1},
+          'terrain': {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['id', 'column', 'row'],
+            'properties': {
+              'id': {'type': 'string', 'pattern': r'^[a-zA-Z0-9_-]{1,128}$'},
+              'column': {'type': 'integer', 'minimum': 0},
+              'row': {'type': 'integer', 'minimum': 0},
+            },
+          },
+        },
+      },
     ),
   ];
 
@@ -40,8 +65,10 @@ final class TilesetImageImportActions {
       'tilesetId',
       'name',
       'tileWidth',
-      'tileHeight'
+      'tileHeight',
+      'terrain',
     });
+    final terrain = TilesetTerrainImport.read(context.request.parameters);
     final handle = fields.string('artifactHandle');
     final artifact = artifactStore.inspect(handle);
     if (artifact == null || artifact.mediaType != 'image/png') {
@@ -116,11 +143,12 @@ final class TilesetImageImportActions {
         tileHeight: height,
       ),
     );
-    final manifest = const TilesetImportProjector().project(
+    final imported = const TilesetImportProjector().project(
       context.snapshot.manifest,
       assets: catalog,
       tileset: tileset,
     );
+    final manifest = terrain?.project(imported, tileset) ?? imported;
     final manifestDraft = buildVisualManifestDraft(
       context.snapshot,
       manifest,
@@ -139,8 +167,91 @@ final class TilesetImageImportActions {
           ...manifestDraft.changeSet.diff.entries
         ]),
       ),
-      preview: {'operation': 'tileset.import_image', 'tilesetId': id},
+      preview: {
+        'operation': 'tileset.import_image',
+        'tilesetId': id,
+        if (terrain != null) 'terrainId': terrain.id,
+      },
       artifacts: assetDraft.artifacts,
     );
+  }
+}
+
+final class TilesetTerrainImport {
+  const TilesetTerrainImport._(this.id, this.column, this.row);
+
+  final String id;
+  final int column;
+  final int row;
+
+  static TilesetTerrainImport? read(Map<String, Object?> parameters) {
+    if (!parameters.containsKey('terrain')) return null;
+    final value = parameters['terrain'];
+    if (value is! Map) {
+      throw const FormatException('Expected a terrain import object.');
+    }
+    final fields = VisualLibraryParameters(Map<String, Object?>.from(value));
+    fields.allow(const {'id', 'column', 'row'});
+    final id = fields.string('id');
+    final column = value['column'];
+    final row = value['row'];
+    if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
+        column is! int || row is! int || column < 0 || row < 0) {
+      throw const FormatException('Invalid terrain identity or grid cell.');
+    }
+    return TilesetTerrainImport._(id, column, row);
+  }
+
+  ProjectManifest project(ProjectManifest manifest, ProjectTilesetEntry tileset) {
+    final atlas = smartTileAuthoringAtlas(tileset, id);
+    if (column >= atlas.columns || row >= atlas.rows) {
+      throw const FormatException('The terrain cell is outside the PNG grid.');
+    }
+    final catalog = manifest.smartTileCatalog;
+    if (catalog.atlases.any((atlas) => atlas.id == id) ||
+        catalog.materials.any((material) => material.id == id) ||
+        catalog.presets.any((preset) => preset.id == id)) {
+      throw const FormatException('The terrain identity is already in use.');
+    }
+    final material = ProjectSmartTileMaterial(
+      id: id,
+      name: tileset.name,
+      connectionGroupId: id,
+    );
+    final preset = ProjectSmartTilePreset(
+      id: id,
+      name: tileset.name,
+      usage: SmartTileUsage.terrain,
+      topology: SmartTileTopology.uniform,
+      templateHint: SmartTileTemplateHint.simple,
+      status: SmartTilePresetStatus.published,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: const SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
+      transformPolicy: const SmartTileTransformPolicy(),
+      defaultMaterialId: id,
+      allowedMaterialIds: [id],
+      rules: [
+        SmartTileRule(
+          id: 'base',
+          centerMatch: SmartTileSlotMatch.material(id),
+          candidates: [
+            SmartTileCandidate(id: 'base', parts: [
+              SmartTileVisualPart(source: SmartTileVisualSource.frame(
+                frame: SmartTileFrameRef(atlasId: id, column: column, row: row),
+              )),
+            ]),
+          ],
+        ),
+      ],
+    );
+    return manifest.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
+      categories: catalog.categories,
+      atlases: [...catalog.atlases, atlas],
+      materials: [...catalog.materials, material],
+      animations: catalog.animations,
+      presets: [...catalog.presets, preset],
+      patterns: catalog.patterns,
+      drafts: catalog.drafts,
+    ));
   }
 }

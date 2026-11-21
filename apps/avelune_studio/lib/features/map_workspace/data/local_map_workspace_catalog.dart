@@ -29,6 +29,7 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
     bool allowMapOrganization = false,
     BorderBlueprintRecord? changedBorder,
     ProjectSmartTilePreset? changedTerrain,
+    EnvironmentPreset? changedEnvironment,
   }) async {
     final project = _project(session);
     if (project.revision == receipt.revision &&
@@ -39,6 +40,7 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
         receipt,
         changedBorder: changedBorder,
         changedTerrain: changedTerrain,
+        changedEnvironment: changedEnvironment,
       );
       return;
     }
@@ -77,6 +79,7 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
       receipt,
       changedBorder: changedBorder,
       changedTerrain: changedTerrain,
+      changedEnvironment: changedEnvironment,
     );
     _projects[session.sessionId] = next;
   }
@@ -86,22 +89,42 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
     ResourceMutationReceipt receipt, {
     BorderBlueprintRecord? changedBorder,
     ProjectSmartTilePreset? changedTerrain,
+    EnvironmentPreset? changedEnvironment,
   }) {
     final changes = receipt.changedModels;
+    final decor = receipt.changedElement;
     final removed = receipt.removedLibraryResource;
+    final borderSnapshots = changedBorder == null
+        ? const <BorderVisualSnapshot>[]
+        : publishedBorderSnapshots(
+            changedBorder,
+            receipt.manifest.borderCatalog,
+          );
     if (changes.isEmpty &&
         removed == null &&
         changedBorder == null &&
-        changedTerrain == null) {
+        changedTerrain == null &&
+        decor == null &&
+        changedEnvironment == null) {
       return;
     }
     ProjectManifest updated(ProjectManifest value) {
       if (removed != null) return withoutLibraryResource(value, removed);
       if (changedBorder != null) {
-        return replaceLoadedBorderProjection(value, changedBorder);
+        return replaceLoadedBorderProjection(
+          value,
+          changedBorder,
+          snapshots: borderSnapshots,
+        );
       }
       if (changedTerrain != null) {
         return replaceLoadedTerrainProjection(value, changedTerrain);
+      }
+      if (changedEnvironment != null) {
+        return replaceLoadedEnvironmentProjection(value, changedEnvironment);
+      }
+      if (decor != null) {
+        return upsertDecorProjection(value, decor, loadedOnly: true);
       }
       final entries = value.models3d;
       if (entries is! ProjectModel3dEntries) {

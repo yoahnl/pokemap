@@ -129,6 +129,40 @@ test("resource lifecycle traverses actual stdio server, retained PNGs and recove
     const independent = await data("pokemap_query", {projectHandle: reopened.projectHandle,
       resourceKind: "project", operation: "get", ids: ["project"], view: "detail"});
     assert.ok(JSON.stringify(independent).includes("shared-sheet"));
+    const partition = await data("pokemap_plan", {projectHandle: reopened.projectHandle, request: {
+      requestId: "partition-visuals", actionId: "project.catalog.partition", actionVersion: 1,
+      workspaceHandle: reopened.workspaceHandle, expectedRevision: independent.snapshotRevision,
+      idempotencyKey: "partition-visuals", parameters: {},
+    }});
+    await data("pokemap_apply", {operation: "apply", projectHandle: reopened.projectHandle,
+      planId: partition.planId, operationId: "partition-visuals"});
+    await data("pokemap_workspace", {operation: "close", workspaceHandle: reopened.workspaceHandle});
+    const catalog = await data("pokemap_workspace", {operation: "open", projectRoot: root});
+    const catalogDescriptor = await readFile(path);
+    const decor = {id: "decor", name: "Décor sur planche", tilesetId: "shared-sheet",
+      categoryId: "props", frames: [{source: {x: 0, y: 0, width: 1, height: 1}}]};
+    for (const blocked of [false, true]) {
+      const parameters = {element: {...decor, ...(blocked ? {collisionProfile: {cells: [{x: 0, y: 0}]}} : {})}};
+      const selected = await data("pokemap_workshop", {operation: "read", projectHandle: catalog.projectHandle,
+        actionId: "element.upsert", parameters});
+      assert.deepEqual(selected.maps, []);
+      const operationId = `cutout-${blocked}`;
+      const edit = await data("pokemap_plan", {projectHandle: catalog.projectHandle, request: {
+        requestId: operationId, actionId: "element.upsert", actionVersion: 1,
+        workspaceHandle: catalog.workspaceHandle, expectedRevision: selected.snapshotRevision,
+        idempotencyKey: operationId, parameters, extensions: selected.planExtensions,
+      }});
+      await data("pokemap_apply", {operation: "apply", projectHandle: catalog.projectHandle,
+        planId: edit.planId, operationId});
+      assert.deepEqual(await readFile(path), catalogDescriptor);
+    }
+    await data("pokemap_workspace", {operation: "close", workspaceHandle: catalog.workspaceHandle});
+    const reopenedCatalog = await data("pokemap_workspace", {operation: "open", projectRoot: root});
+    const scopedDecor = await data("pokemap_query", {projectHandle: reopenedCatalog.projectHandle,
+      resourceKind: "element", operation: "get", ids: [decor.id], view: "detail"});
+    assert.equal(scopedDecor.returned, 1);
+    assert.deepEqual(record(record((scopedDecor.items as JsonRecord[])[0]).collisionProfile).cells, [{x: 0, y: 0}]);
+    await data("pokemap_workspace", {operation: "close", workspaceHandle: reopenedCatalog.workspaceHandle});
     console.log(JSON.stringify({transport: "real MCP stdio with Dart canonical worker",
       actions: actionIds, retainedCandidate: true, sourceBytesMatched: true,
       sharedBytesPreserved: true, independentReopen: true,

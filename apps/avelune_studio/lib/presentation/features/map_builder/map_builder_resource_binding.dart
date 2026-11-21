@@ -142,6 +142,10 @@ class MapBuilderResourceBinding {
   }
 
   Future<void> use(ResourceItem item) async {
+    if (item.environment != null) {
+      await useEnvironment(item.id);
+      return;
+    }
     final state = view();
     final document = maps.active;
     final project = maps.project;
@@ -149,14 +153,7 @@ class MapBuilderResourceBinding {
     error = null;
     problem = null;
     var used = false;
-    if (item.environment case final preset?) {
-      try {
-        state.selectEnvironmentPreset(document, project, preset);
-        used = true;
-      } on Object catch (failure) {
-        error = environmentEditingMessage(failure);
-      }
-    } else if (item.tileset != null) {
+    if (item.tileset != null) {
       problem = MapBuilderResourceProblem.tileUnavailable;
     } else if (await _resolve(item)) {
       used = await useMapResource(
@@ -174,6 +171,55 @@ class MapBuilderResourceBinding {
       retainWorkspaceBrush(visuals(), state);
     }
     changed();
+  }
+
+  Future<bool> useEnvironment(
+    String presetId, {
+    bool Function()? isCurrent,
+  }) async {
+    final state = view();
+    final document = maps.active;
+    if (state == null || document == null) return false;
+    bool current() =>
+        isActive() &&
+        (isCurrent?.call() ?? true) &&
+        identical(document, maps.active) &&
+        identical(state, view());
+    error = null;
+    problem = null;
+    try {
+      await maps.ensureResourceClosure('environmentPreset', presetId);
+      if (!current()) return false;
+      final project = maps.project!;
+      final preset = findProjectEnvironmentPresetById(project, presetId);
+      if (preset == null ||
+          !project.resourceLibraryCatalog.availableForMap(
+            'environmentPreset',
+            presetId,
+            document.current.id,
+          )) {
+        error = 'Cet environnement est indisponible pour cette carte.';
+        changed();
+        return false;
+      }
+      state.selectEnvironmentPreset(document, project, preset);
+      armed = ResourceItem(
+        id: preset.id,
+        name: preset.name,
+        kind: ResourceKind.decors,
+        environment: preset,
+        category: preset.categoryId ?? '',
+      );
+      retainWorkspaceBrush(visuals(), state);
+      changed();
+      return true;
+    } on Object catch (failure) {
+      if (current()) {
+        error = environmentEditingMessage(failure);
+        changed();
+      }
+      return false;
+    }
   }
 
   Future<bool> _resolve(ResourceItem item) async {

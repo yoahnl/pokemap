@@ -42,6 +42,16 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
         ? value
         : value.copyWith(models3d: models, maps: maps);
     if (sourceEpoch != null && sourceEpoch < _resourceProjectionEpoch) {
+      for (final element in value.elements) {
+        final replacement = _acceptedElementDefinitions[element.id];
+        if (replacement != null && replacement.epoch > sourceEpoch) {
+          result = upsertDecorProjection(
+            result,
+            replacement.definition,
+            loadedOnly: true,
+          );
+        }
+      }
       for (final terrain in value.smartTileCatalog.presets) {
         final replacement = _acceptedTerrainDefinitions[terrain.id];
         if (replacement != null && replacement.epoch > sourceEpoch) {
@@ -103,6 +113,7 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
       _selectionMapsByModel,
       _selectionMapsByBorder,
       _selectionMapsByTerrain,
+      _selectionMapsByElement,
     );
     final prepared = _selectionWithDefinitions(selection, definitions);
     _selections[mapId] = prepared;
@@ -127,6 +138,7 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
       _previewMapsByModel,
       _previewMapsByBorder,
       _previewMapsByTerrain,
+      _previewMapsByElement,
     );
     _previewDefinitions[mapId] = definitions;
   }
@@ -136,6 +148,7 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
     _selectionMapsByModel.clear();
     _selectionMapsByBorder.clear();
     _selectionMapsByTerrain.clear();
+    _selectionMapsByElement.clear();
   }
 
   void _indexResourceProjections(
@@ -145,6 +158,7 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
     Map<String, Set<String>> models,
     Map<String, Set<String>> borders,
     Map<String, Set<String>> terrains,
+    Map<String, Set<String>> elements,
   ) {
     _indexResourceIds(
       mapId,
@@ -163,6 +177,12 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
       previous?.smartTileCatalog.presets.map((item) => item.id),
       next?.smartTileCatalog.presets.map((item) => item.id),
       terrains,
+    );
+    _indexResourceIds(
+      mapId,
+      previous?.elements.map((item) => item.id),
+      next?.elements.map((item) => item.id),
+      elements,
     );
   }
 

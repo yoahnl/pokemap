@@ -13,6 +13,45 @@ import '../../../../packages/map_authoring/test/support/terrain_workshop_fixture
 
 void main() {
   test(
+    'creates a separate terrain from shared dependencies and reopens it',
+    () async {
+      final (root, foreign) = await _project();
+      final (maps, editor) = await _studio(root);
+      final source = await _read(maps, editor);
+      final draft = _center(source.preset, 2).copyWith(name: 'Chemin neuf');
+      final observed = <String>[];
+      final outside = Zone.current;
+
+      final edit = await IOOverrides.runZoned(
+        () => editor.createTerrain(draft, expectedRevision: source.revision),
+        createFile: (path) {
+          observed.add(path);
+          return outside.run(() => File(path));
+        },
+      );
+
+      expect(edit.item.id, isNot(source.preset.id));
+      expect(edit.item.name, draft.name);
+      expect(edit.receipt.changedPaths, ['catalog/HEAD.json']);
+      expect(observed.where((path) => path.contains('/maps/')), isEmpty);
+      expect(observed.where((path) => foreign.any(path.endsWith)), isEmpty);
+
+      final (reopened, reopenedEditor) = await _studio(root);
+      final saved = await reopened.readResourcePreviewWithRevision(
+        reopenedEditor.session,
+        'smartTilePreset',
+        edit.item.id,
+      );
+      expect(saved.revision, edit.receipt.revision);
+      expect(
+        saved.project.smartTileCatalog.presets.single,
+        draft.copyWith(id: edit.item.id),
+      );
+      expect((await _read(reopened, reopenedEditor)).preset, source.preset);
+    },
+  );
+
+  test(
     'publishes a terrain and resumes a failed reread without writing twice',
     () async {
       final (root, foreign) = await _project();

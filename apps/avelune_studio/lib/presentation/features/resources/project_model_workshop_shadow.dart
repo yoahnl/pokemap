@@ -3,14 +3,46 @@ part of 'project_model_workshop.dart';
 extension _ProjectModelWorkshopShadow on _ProjectModelWorkshopState {
   Widget _settings(ProjectModel3dEntry model, String? revision) {
     final save = widget.saveShadow;
+    final saveSettings = widget.saveSettings;
     final pending = _pendingReceipt;
     final reconcile = widget.reconcileShadow;
     final enabled = _shadowDraft ?? model.castsShadowsByDefault;
-    final dirty = enabled != model.castsShadowsByDefault;
+    final shadowChanged = enabled != model.castsShadowsByDefault;
+    final collisionDraft = _collisionDraft;
+    final bounds = collisionDraft?.bounds;
+    final collisionChanged =
+        collisionDraft != null && bounds != model.collisionBounds;
+    final transform = _transformDraft?.value;
+    final scale = transform?.scale;
+    final pivot = transform?.pivot;
+    final scaleChanged = scale != null && scale != model.scale;
+    final pivotChanged = pivot != null && pivot != model.pivot;
+    final settingsChanged = collisionChanged || scaleChanged || pivotChanged;
+    final dirty = shadowChanged || settingsChanged;
+    final collisionValid = collisionDraft?.custom != true || bounds != null;
+    final transformValid =
+        _transformDraft == null ||
+        (transform != null && model.rampProfile == null);
     final editable =
         save != null && revision != null && !_saving && !_replacing;
+    final editingSettings = collisionDraft != null || _transformDraft != null;
+    final canEditSettings = editable && saveSettings != null && pending == null;
+    final definitionControls = <Widget>[
+      const SizedBox(height: StudioSpacing.l),
+      ..._collisionControls(
+        model,
+        editable: canEditSettings,
+        valid: collisionValid,
+      ),
+      const SizedBox(height: StudioSpacing.l),
+      ..._transformControls(
+        model,
+        editable: canEditSettings,
+        valid: transformValid,
+      ),
+    ];
     return StudioPanel(
-      title: 'Ombre du modèle',
+      title: 'Réglages partagés du modèle',
       children: [
         StudioToggleRow(
           key: const ValueKey('model-workshop-shadow'),
@@ -18,9 +50,14 @@ extension _ProjectModelWorkshopShadow on _ProjectModelWorkshopState {
           description: 'Réglage partagé des placements qui héritent du modèle.',
           value: enabled,
           onChanged: editable && pending == null
-              ? (checked) => _update(() => _shadowDraft = checked)
+              ? (checked) => _update(
+                  () => _shadowDraft = checked == model.castsShadowsByDefault
+                      ? null
+                      : checked,
+                )
               : null,
         ),
+        if (editingSettings) ...definitionControls,
         if (pending != null) ...[
           const SizedBox(height: StudioSpacing.m),
           const StudioNotice(
@@ -37,7 +74,7 @@ extension _ProjectModelWorkshopShadow on _ProjectModelWorkshopState {
               loading: _saving,
               onPressed: _saving || _replacing
                   ? null
-                  : () => _publish(model, enabled, () => reconcile(pending)),
+                  : () => _publish(model, () => reconcile(pending)),
             ),
           ],
         ] else if (_problem case final problem?) ...[
@@ -61,11 +98,18 @@ extension _ProjectModelWorkshopShadow on _ProjectModelWorkshopState {
                 label: _saving ? 'Enregistrement…' : 'Enregistrer',
                 icon: Icons.save_outlined,
                 loading: _saving,
-                onPressed: editable && dirty
+                onPressed: editable && dirty && collisionValid && transformValid
                     ? () => _publish(
                         model,
-                        enabled,
-                        () => save(enabled, revision),
+                        () => settingsChanged && saveSettings != null
+                            ? saveSettings((
+                                collisionChanged: collisionChanged,
+                                collisionBounds: bounds,
+                                castsShadows: shadowChanged ? enabled : null,
+                                scale: scaleChanged ? scale : null,
+                                pivot: pivotChanged ? pivot : null,
+                              ), revision)
+                            : save(enabled, revision),
                       )
                     : null,
               ),
@@ -74,6 +118,7 @@ extension _ProjectModelWorkshopShadow on _ProjectModelWorkshopState {
             ],
           ),
         ],
+        if (!editingSettings) ...definitionControls,
       ],
     );
   }

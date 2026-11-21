@@ -11,6 +11,33 @@ import 'package:map_core/map_core.dart';
 import '../support/scoped_map_workspace_port.dart';
 
 void main() {
+  testWidgets(
+    'returning to resources rereads only a changed catalogue revision',
+    (tester) async {
+      final active = ValueNotifier(true);
+      addTearDown(active.dispose);
+      final (maps, port) = await _openLibrary(tester, visible: active);
+      final document = maps.active!;
+      document.commit(document.current.copyWith(name: 'Brouillon conservé'));
+
+      Future<void> returnToLibrary() async {
+        active.value = false;
+        await tester.pumpAndSettle();
+        active.value = true;
+        await tester.pumpAndSettle();
+      }
+
+      await returnToLibrary();
+      expect(port.libraryReads, 1);
+      port.libraryRevision = 'catalog-2';
+      await returnToLibrary();
+      expect(port.libraryReads, 2);
+      expect(maps.active, same(document));
+      expect(document.current.name, 'Brouillon conservé');
+      expect(port.fullReads, 0);
+    },
+  );
+
   testWidgets('a tileset opens its workshop and returns to the same draft', (
     tester,
   ) async {
@@ -79,6 +106,12 @@ void main() {
       name: 'Chemin repère',
       action: 'Atelier Terrains',
     ),
+    (
+      kind: 'environmentPreset',
+      id: 'garden',
+      name: 'Jardin repère',
+      action: 'Atelier Environnement',
+    ),
   ]) {
     testWidgets('$kind opens the selected workshop through its card', (
       tester,
@@ -137,8 +170,9 @@ void main() {
 }
 
 Future<(MapWorkspaceController, _WorkshopLibraryPort)> _openLibrary(
-  WidgetTester tester,
-) async {
+  WidgetTester tester, {
+  ValueNotifier<bool>? visible,
+}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1400, 900);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -147,22 +181,27 @@ Future<(MapWorkspaceController, _WorkshopLibraryPort)> _openLibrary(
   final maps = MapWorkspaceController(scopedMapSession, port);
   addTearDown(maps.dispose);
   await maps.initialize();
+  final active = visible ?? ValueNotifier(true);
+  if (visible == null) addTearDown(active.dispose);
   await tester.pumpWidget(
     MaterialApp(
       theme: studioTheme(),
       home: Scaffold(
         body: StatefulBuilder(
-          builder: (context, refresh) => ProjectLibraryPage(
-            active: true,
-            maps: maps,
-            visuals: null,
-            onOpenMap: (id) async {
-              await maps.activate(
-                maps.project!.maps.firstWhere((map) => map.id == id),
-              );
-              if (context.mounted) refresh(() {});
-              return maps.active?.base.mapId == id;
-            },
+          builder: (context, refresh) => ValueListenableBuilder<bool>(
+            valueListenable: active,
+            builder: (context, visible, _) => ProjectLibraryPage(
+              active: visible,
+              maps: maps,
+              visuals: null,
+              onOpenMap: (id) async {
+                await maps.activate(
+                  maps.project!.maps.firstWhere((map) => map.id == id),
+                );
+                if (context.mounted) refresh(() {});
+                return maps.active?.base.mapId == id;
+              },
+            ),
           ),
         ),
       ),
@@ -175,28 +214,43 @@ Future<(MapWorkspaceController, _WorkshopLibraryPort)> _openLibrary(
 final class _WorkshopLibraryPort extends ScopedTestMapPort
     implements
         ProjectResourceLibraryPort,
+        ProjectResourceLibraryRevisionPort,
         ProjectResourcePreviewPort,
         ProjectResourceLibraryMapUsagesPort {
   final previewReads = <String>[];
+  var libraryReads = 0;
+  var libraryRevision = 'catalog-1';
+
+  @override
+  Future<String> readResourceLibraryRevision(ProjectSession session) async =>
+      libraryRevision;
 
   @override
   Future<ProjectResourceLibrary> readResourceLibrary(
     ProjectSession session,
-  ) async => ProjectResourceLibrary(ResourceLibraryCatalog(), [
-    ProjectLibraryItem(kind: 'model3d', id: 'model', name: 'Modèle repère'),
-    ProjectLibraryItem(kind: 'tileset', id: 'atlas', name: 'Planche repère'),
-    ProjectLibraryItem(
-      kind: 'borderBlueprint',
-      id: 'fence',
-      name: 'Clôture repère',
-    ),
-    ProjectLibraryItem(kind: 'character', id: 'hero', name: 'Héros repère'),
-    ProjectLibraryItem(
-      kind: 'smartTilePreset',
-      id: 'path',
-      name: 'Chemin repère',
-    ),
-  ], revision: 'catalog-1');
+  ) async {
+    libraryReads++;
+    return ProjectResourceLibrary(ResourceLibraryCatalog(), [
+      ProjectLibraryItem(kind: 'model3d', id: 'model', name: 'Modèle repère'),
+      ProjectLibraryItem(kind: 'tileset', id: 'atlas', name: 'Planche repère'),
+      ProjectLibraryItem(
+        kind: 'borderBlueprint',
+        id: 'fence',
+        name: 'Clôture repère',
+      ),
+      ProjectLibraryItem(kind: 'character', id: 'hero', name: 'Héros repère'),
+      ProjectLibraryItem(
+        kind: 'smartTilePreset',
+        id: 'path',
+        name: 'Chemin repère',
+      ),
+      ProjectLibraryItem(
+        kind: 'environmentPreset',
+        id: 'garden',
+        name: 'Jardin repère',
+      ),
+    ], revision: libraryRevision);
+  }
 
   @override
   Future<Map<String, Set<String>>?> readResourceLibraryMapUsages(
@@ -227,6 +281,16 @@ final class _WorkshopLibraryPort extends ScopedTestMapPort
           id: 'hero',
           name: 'Héros repère',
           tilesetId: 'atlas',
+        ),
+      ],
+      environmentPresets: [
+        EnvironmentPreset(
+          id: 'garden',
+          name: 'Jardin repère',
+          templateId: 'manual',
+          palette: [EnvironmentPaletteItem(elementId: 'shrub', weight: 1)],
+          defaultParams: EnvironmentGenerationParams.standard(),
+          sortOrder: 0,
         ),
       ],
       smartTileCatalog: ProjectSmartTileCatalog(

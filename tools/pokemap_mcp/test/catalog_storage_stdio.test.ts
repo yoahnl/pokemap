@@ -162,6 +162,54 @@ test("MCP stdio queries and edits working catalogs with pinned pages and partial
   }
 });
 
+test("MCP duplicates a spatial border into a new draft without changing the original", { timeout: 120_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "catalog-border-copy-"));
+  const dart = process.env.POKEMAP_TEST_DART ?? "dart";
+  const packageRoot = resolve("../../packages/map_authoring");
+  const client = new Client({ name: "catalog-border-copy-proof", version: "1.0.0" });
+  const transport = new StdioClientTransport({ command: process.execPath, args: [resolve("dist/src/index.js"), "--root", root, "--dart", dart, "--authoring-timeout-ms", "60000"], cwd: process.cwd(), stderr: "pipe" });
+  async function call(name: string, input: JsonRecord = {}): Promise<JsonRecord> {
+    const result = await client.callTool({ name, arguments: input });
+    const envelope = record(result.structuredContent);
+    assert.equal(envelope.ok, true, JSON.stringify(envelope));
+    return record(envelope.data);
+  }
+  try {
+    await promisify(execFile)(dart, [`--packages=${join(packageRoot, ".dart_tool/package_config.json")}`, join(packageRoot, "test/support/create_working_catalog_fixture.dart"), root, "--border-library"], { timeout: 60_000 });
+    await client.connect(transport);
+    const described = await call("pokemap_describe");
+    const action = (described.mutationActions as JsonRecord[]).find((action) => action.id === "catalog.definition.duplicate");
+    assert.ok((action?.resourceKinds as string[]).includes("borderBlueprint"));
+    const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    const request = { projectHandle: opened.projectHandle, resourceKind: "borderBlueprint", view: "detail", operation: "batch_get" };
+    const original = await call("pokemap_query", { ...request, ids: ["fence"] });
+    const planned = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
+      requestId: "copy-border", actionId: "catalog.definition.duplicate", actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle, expectedRevision: original.snapshotRevision,
+      idempotencyKey: "copy-border", parameters: {
+        resourceKind: "borderBlueprint", id: "fence", targetId: "fence-copy", name: "Copied fence",
+      },
+    } });
+    await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
+      planId: planned.planId, operationId: "copy-border-apply" });
+    const reread = await call("pokemap_query", { ...request, ids: ["fence", "fence-copy"] });
+    const items = reread.items as JsonRecord[];
+    const source = items.find((item) => item.id === "fence")!;
+    const copy = items.find((item) => item.id === "fence-copy")!;
+    assert.deepEqual(source, (original.items as JsonRecord[])[0]);
+    assert.equal(copy.name, "Copied fence");
+    assert.equal(copy.familyId, "workshop_fences");
+    assert.equal(copy.latestPublished, undefined);
+    const draft = record(copy.draft);
+    assert.equal(draft.baseRevision, 0);
+    assert.deepEqual(draft.definition, { ...record(record(source.draft).definition), name: "Copied fence" });
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+  } finally {
+    await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("MCP partitions an existing project explicitly and reopens it without replacing its data", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "catalog-partition-mcp-"));
   const dart = process.env.POKEMAP_TEST_DART ?? "dart";

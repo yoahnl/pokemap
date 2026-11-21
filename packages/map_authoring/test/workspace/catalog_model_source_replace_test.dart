@@ -10,9 +10,238 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/src/spatial_model_geometry.dart';
 import 'package:test/test.dart';
 
+import '../domains/maps/border_spatial_actions_test.dart'
+    show spatialBorderAuthoringFixture;
 import '../support/glb_fixture.dart';
 
 void main() {
+  for (final batch in [false, true]) {
+    test('local source replacement preserves a character rig (batch: $batch)',
+        () async {
+      const binding = ProjectCharacterSpatialModel(
+        modelId: 'house',
+        clips: {CharacterAnimationState.idle: 0},
+      );
+      final source = _riggedAnimatedGlb();
+      final fixture = await _Fixture.open(
+        80,
+        source: source,
+        characterModel: binding,
+        collisionBounds: Model3dBounds(
+          min: Model3dVector3.zero,
+          max: Model3dVector3(x: 1, y: 1, z: 1),
+        ),
+      );
+      addTearDown(fixture.close);
+
+      final headFile = File(
+          '${fixture.root.path}/${CatalogStorageStore.headStorageKey}');
+      final modelFile = File('${fixture.root.path}/assets/models3d/house.glb');
+      final head = await headFile.readAsBytes();
+      fixture.reader.paths.clear();
+
+      await expectLater(
+        fixture.plan(animatedGlb(), 'strip-character-rig', batch: batch),
+        throwsA(isA<AuthoringPlanException>().having(
+          (error) => error.code,
+          'code',
+          'catalog.model_source_usage_proof_required',
+        )),
+      );
+      expect(fixture.promoted, isEmpty);
+      expect(await headFile.readAsBytes(), head);
+      expect(await modelFile.readAsBytes(), source);
+      expect(
+        fixture.reader.paths.where((path) =>
+            path.startsWith('maps/') || fixture.unrelatedObjects.contains(path)),
+        isEmpty,
+      );
+
+      final replacement = _riggedAnimatedGlb(animationName: 'Idle');
+      final planned = await fixture.plan(replacement, 'keep-rig', batch: batch);
+      await fixture.api.applyMutation(
+        fixture.opened.projectHandle,
+        planId: planned.planId,
+        operationId: 'keep-rig',
+      );
+      await fixture.reopen();
+      expect(await modelFile.readAsBytes(), replacement);
+      final reader = await _openCatalogReader(fixture);
+      final selected = await ProjectCatalogSelection(reader.catalog).resolve({
+        CatalogDefinitionKey(CatalogDefinitionKind.character, 'hero'),
+      });
+      expect(selected.characters.single.spatialModel, binding);
+      final inspection = selected.models3d.single.inspection;
+      expect(inspection.skinned, isTrue);
+      expect(inspection.animations.single.name, 'Idle');
+    });
+  }
+
+  test('the library cannot remove the model of a character', () async {
+    final fixture = await _Fixture.open(
+      0,
+      source: _riggedAnimatedGlb(),
+      borderCatalog: ProjectBorderCatalog.empty(),
+      characterModel: const ProjectCharacterSpatialModel(
+        modelId: 'house',
+        clips: {CharacterAnimationState.idle: 0},
+      ),
+    );
+    addTearDown(fixture.close);
+    final reader = await _openCatalogReader(fixture);
+    fixture.reader.paths.clear();
+    await expectLater(
+      fixture.api.planMutation(
+        fixture.opened.projectHandle,
+        AuthoringRequest(
+          requestId: 'remove-character-model',
+          actionId: 'catalog.definition.delete',
+          actionVersion: 1,
+          workspaceHandle: fixture.opened.workspaceHandle.value,
+          expectedRevision: reader.revision,
+          idempotencyKey: 'remove-character-model',
+          parameters: const {'resourceKind': 'model3d', 'id': 'house'},
+        ),
+      ),
+      throwsA(isA<MapAuthoringException>()
+          .having((error) => error.code, 'code', 'catalog.definition_in_use')
+          .having((error) => error.details['owners'], 'owners', ['character:hero'])),
+    );
+    expect(fixture.promoted, isEmpty);
+    expect(fixture.reader.paths.where((path) => path.startsWith('maps/')), isEmpty);
+  });
+  const transform = <String, Object?>{
+    'modelId': 'house',
+    'scale': 2.5,
+    'pivot': {'x': 0.25, 'y': 1, 'z': -2},
+  };
+
+  for (final anchored in [true, false]) {
+    test('model transform respects a published Border anchor: $anchored', () async {
+      final border = spatialBorderAuthoringFixture(
+          published: true, repeatedUnit: anchored).project.borderCatalog;
+      final catalog = decodeProjectBorderCatalogJson(
+        jsonDecode(jsonEncode(encodeProjectBorderCatalogJson(border))
+            .replaceAll('"tree"', '"house"')),
+      );
+      final fixture = await _Fixture.open(80, borderCatalog: catalog);
+      addTearDown(fixture.close);
+      fixture.reader.paths.clear();
+      Future<ProjectSnapshot> select(Map<String, Object?> parameters) =>
+          fixture.api.readWorkshopSnapshot(
+            fixture.opened.projectHandle,
+            actionId: 'model3d.configure',
+            parameters: parameters,
+          );
+      if (anchored) {
+        await expectLater(
+          select(transform),
+          throwsA(isA<AuthoringPlanException>().having(
+            (error) => error.code, 'code',
+            'catalog.model_transform_border_anchor_requires_map_updates',
+          )),
+        );
+      } else {
+        expect((await select(transform)).manifest.models3d.single.id, 'house');
+      }
+      final metadata = {
+        'modelId': 'house',
+        'collisionBounds': {
+          'min': {'x': -.25, 'y': 0, 'z': -.25},
+          'max': {'x': .25, 'y': 1, 'z': .25},
+        },
+        'castsShadowsByDefault': true,
+      };
+      final selected = await select(metadata);
+      expect(fixture.promoted, isEmpty);
+      final plan = await fixture.api.planMutation(
+        fixture.opened.projectHandle,
+        AuthoringRequest(
+          requestId: 'ordinary-metadata',
+          actionId: 'model3d.configure',
+          actionVersion: 1,
+          workspaceHandle: fixture.opened.workspaceHandle.value,
+          expectedRevision: selected.revision,
+          idempotencyKey: 'ordinary-metadata',
+          parameters: metadata,
+        ),
+      );
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+        planId: plan.planId, operationId: 'ordinary-metadata');
+      final stored = (await select(metadata)).manifest.models3d.single;
+      expect(stored.castsShadowsByDefault, true);
+      expect(stored.collisionBounds?.max.y, 1);
+      expect(fixture.promoted, [CatalogStorageStore.headStorageKey]);
+      expect(fixture.reader.paths.where((path) =>
+        path.startsWith('maps/') || path.startsWith('assets/') ||
+        fixture.unrelatedObjects.contains(path)), isEmpty);
+    });
+  }
+
+  test('the scoped transform touches only an ordinary model definition', () async {
+    final fixture = await _Fixture.open(80);
+    addTearDown(fixture.close);
+    Future<ProjectSnapshot> selected() => fixture.api.readWorkshopSnapshot(
+      fixture.opened.projectHandle,
+      actionId: 'model3d.configure',
+      parameters: transform,
+    );
+    fixture.reader.paths.clear();
+    fixture.promoted.clear();
+    final snapshot = await selected();
+    final next = snapshot.manifest.models3d.single.copyWith(
+      scale: 2.5,
+      pivot: Model3dVector3(x: .25, y: 1, z: -2),
+    );
+    final plan = await fixture.api.planMutation(
+      fixture.opened.projectHandle,
+      AuthoringRequest(
+        requestId: 'model-transform',
+        actionId: 'model3d.configure',
+        actionVersion: 1,
+        workspaceHandle: fixture.opened.workspaceHandle.value,
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'model-transform',
+        parameters: transform,
+        extensions: const {'workshopScope': true},
+      ),
+    );
+    final result = await fixture.api.applyMutation(
+      fixture.opened.projectHandle,
+      planId: plan.planId,
+      operationId: 'model-transform',
+    );
+    expect(fixture.promoted, [CatalogStorageStore.headStorageKey]);
+    expect(fixture.reader.paths.where((path) =>
+      path.startsWith('maps/') || path.startsWith('assets/') ||
+      fixture.unrelatedObjects.contains(path)), isEmpty);
+    await fixture.reopen();
+    expect((await selected()).manifest.models3d.single, next);
+    await fixture.api.undoMutation(fixture.opened.projectHandle,
+      entryId: result.receipt.receiptId, idempotencyKey: 'undo-transform');
+    await fixture.reopen();
+    expect((await selected()).manifest.models3d.single, snapshot.manifest.models3d.single);
+  });
+
+  test('the scoped transform refuses models whose ramps require map updates', () async {
+    final fixture = await _Fixture.open(0, rampProfile: Model3dRampProfile(
+      x: 0, z: 0, width: 1, depth: 1, lowHeight: 0, highHeight: 1,
+      direction: SpatialRampDirection.north,
+    ));
+    addTearDown(fixture.close);
+    await expectLater(
+      fixture.api.readWorkshopSnapshot(
+        fixture.opened.projectHandle,
+        actionId: 'model3d.configure',
+        parameters: transform,
+      ),
+      throwsA(isA<AuthoringPlanException>().having(
+        (error) => error.code, 'code', 'catalog.model_transform_ramp_requires_map_updates',
+      )),
+    );
+    expect(fixture.promoted, isEmpty);
+  });
+
   for (final unrelated in [0, 80]) {
     test('shadow metadata stays bounded, idempotent and revision checked with $unrelated foreign definitions', () async {
       final fixture = await _Fixture.open(unrelated);
@@ -660,6 +889,49 @@ List<int> _animated(int count) => animatedGlb(edit: (json) {
       ];
     });
 
+Future<CatalogProjectReader> _openCatalogReader(_Fixture fixture) async =>
+    (await CatalogProjectReader.open(
+      store: await CatalogStorageStore.open(projectRoot: fixture.root.path),
+      descriptor: jsonDecode(utf8.decode(fixture.descriptor)) as Map<String, dynamic>,
+      metadataFields: {},
+    ))!;
+
+List<int> _riggedAnimatedGlb({String animationName = 'Wind'}) {
+  final original = Uint8List.fromList(animatedGlb());
+  final header = ByteData.sublistView(original);
+  final jsonLength = header.getUint32(12, Endian.little);
+  final binaryLength = header.getUint32(20 + jsonLength, Endian.little);
+  final json = jsonDecode(utf8.decode(original.sublist(20, 20 + jsonLength)))
+      as Map<String, dynamic>;
+  final binary = Uint8List(binaryLength + 60)
+    ..setRange(0, binaryLength, original, 28 + jsonLength);
+  final data = ByteData.sublistView(binary);
+  final weightsOffset = binaryLength + 12;
+  for (var vertex = 0; vertex < 3; vertex++) {
+    data.setFloat32(weightsOffset + vertex * 16, 1, Endian.little);
+  }
+  json['buffers'][0]['byteLength'] = binary.length;
+  json['bufferViews'].addAll([
+    {'buffer': 0, 'byteOffset': binaryLength, 'byteLength': 12},
+    {'buffer': 0, 'byteOffset': weightsOffset, 'byteLength': 48},
+  ]);
+  json['accessors'].addAll([
+    {'bufferView': 3, 'componentType': 5121, 'count': 3, 'type': 'VEC4'},
+    {'bufferView': 4, 'componentType': 5126, 'count': 3, 'type': 'VEC4'},
+  ]);
+  json['nodes'][0]['skin'] = 0;
+  json['nodes'].add(<String, dynamic>{});
+  json['scenes'][0]['nodes'].add(1);
+  json['skins'] = [{'joints': [1]}];
+  json['meshes'][0]['primitives'][0]['attributes'].addAll({
+    'JOINTS_0': 3,
+    'WEIGHTS_0': 4,
+  });
+  json['animations'][0]['name'] = animationName;
+  json['animations'][0]['channels'][0]['target']['node'] = 1;
+  return encodeGlb(json, binary);
+}
+
 final class _Fixture {
   _Fixture(this.root, this.opened, this.handles, this.api, this.reader,
       this.unrelatedObjects, this.descriptor, this.promoted);
@@ -677,6 +949,9 @@ final class _Fixture {
   static Future<_Fixture> open(int unrelated,
       {List<int>? source,
       Model3dBounds? collisionBounds,
+      Model3dRampProfile? rampProfile,
+      ProjectBorderCatalog? borderCatalog,
+      ProjectCharacterSpatialModel? characterModel,
       AuthoringTransactionFaultInjector? faultInjector}) async {
     final root = await Directory.systemTemp.createTemp('catalog-model-source-');
     final bytes = source ?? _volumeGlb();
@@ -690,8 +965,10 @@ final class _Fixture {
         scale: 1.25,
         blocksMovementByDefault: false,
         collisionBounds: collisionBounds,
+        rampProfile: rampProfile,
         pivot: Model3dVector3(x: 12, y: 2, z: -1),
-        inspection: const GlbModel3dInspector().inspect(bytes));
+        inspection: const GlbModel3dInspector(experimentalSkinnedModels: true)
+            .inspect(bytes));
     final project = ProjectManifest(
         name: 'Source replacement',
         version: ProjectVersion.v9,
@@ -705,7 +982,20 @@ final class _Fixture {
                 name: 'Foreign $i',
                 relativePath: 'maps/foreign-$i.json'),
         ],
-        tilesets: const [],
+        tilesets: [
+          if (characterModel != null)
+            const ProjectTilesetEntry(
+              id: 'sheet', name: 'Sheet', relativePath: 'assets/sheet.png',
+            ),
+        ],
+        characters: [
+          if (characterModel != null)
+            ProjectCharacterEntry(
+              id: 'hero', name: 'Hero', tilesetId: 'sheet',
+              spatialModel: characterModel,
+            ),
+        ],
+        borderCatalog: borderCatalog ?? ProjectBorderCatalog.empty(),
         models3d: [
           model,
           for (var i = 0; i < unrelated; i++)
@@ -726,13 +1016,24 @@ final class _Fixture {
           CatalogDefinitionKey(CatalogDefinitionKind.model3d, 'foreign-$i')))!;
       final path = 'catalog/objects/${entry.reference.sha256}.json';
       unrelatedObjects.add(path);
-      await File('${root.path}/$path')
-          .writeAsString('unrelated model must not be decoded');
+      if (borderCatalog == null) {
+        await File('${root.path}/$path')
+            .writeAsString('unrelated model must not be decoded');
+      }
     }
     for (var i = 0; i <= unrelated; i++) {
       final file = File('${root.path}/maps/foreign-$i.json');
       await file.parent.create(recursive: true);
-      await file.writeAsString('unrelated map must not be decoded');
+      if (borderCatalog == null) {
+        await file.writeAsString('unrelated map must not be decoded');
+      } else {
+        await file.writeAsString(jsonEncode(MapData(
+          id: 'foreign-$i', name: 'Foreign $i',
+          version: ProjectVersion.v9,
+          size: const GridSize(width: 8, height: 8),
+          spatialScene: MapSpatialScene(width: 8, depth: 8),
+        ).toJson()));
+      }
     }
     final sourceFile = File('${root.path}/assets/models3d/house.glb');
     await sourceFile.parent.create(recursive: true);
@@ -777,10 +1078,24 @@ final class _Fixture {
         projectRootPath: root.path,
         workspaceHandle: opened.workspaceHandle,
         projectHandle: opened.projectHandle);
-    final history = File('${root.path}/.pokemap/authoring/history.jsonl');
-    await history.parent.create(recursive: true);
-    await history.writeAsString(
-        'unrelated legacy history must not be replayed\n' * (unrelated + 1));
+    if (borderCatalog != null) {
+      await api.prepareWorkshopDocument(opened.projectHandle, scope: 'resourceIndexes');
+      promoted.clear();
+      for (final object in unrelatedObjects) {
+        await File('${root.path}/$object')
+            .writeAsString('unrelated model must not be decoded');
+      }
+      for (var i = 0; i <= unrelated; i++) {
+        await File('${root.path}/maps/foreign-$i.json')
+            .writeAsString('unrelated map must not be decoded');
+      }
+    }
+    if (borderCatalog == null) {
+      final history = File('${root.path}/.pokemap/authoring/history.jsonl');
+      await history.parent.create(recursive: true);
+      await history.writeAsString(
+          'unrelated legacy history must not be replayed\n' * (unrelated + 1));
+    }
     return _Fixture(root, opened, handles, api, reader, unrelatedObjects,
         await File('${root.path}/project.json').readAsBytes(), promoted);
   }

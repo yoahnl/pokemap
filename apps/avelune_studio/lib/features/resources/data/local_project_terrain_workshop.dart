@@ -2,13 +2,79 @@ part of 'local_resource_adapter.dart';
 
 const _publishTerrainAction = 'smart_tile.preset.publish';
 
-mixin _LocalProjectTerrainWorkshop implements ProjectTerrainWorkshopPort {
+mixin _LocalProjectTerrainWorkshop
+    implements ProjectTerrainWorkshopPort, ProjectTerrainImageWorkshopPort {
   LocalResourceAdapter get _terrainWorkshopAdapter;
 
   @override
   bool get terrainConnectionEditingAvailable =>
       _terrainWorkshopAdapter.session.storage ==
       ProjectSessionStorage.workingCatalog;
+
+  @override
+  Future<ProjectLibraryEdit> createTerrain(
+    ProjectSmartTilePreset draft, {
+    required String expectedRevision,
+  }) async {
+    final adapter = _terrainWorkshopAdapter;
+    final terrain = draft.copyWith(id: adapter._identity('terrain'));
+    final receipt = await publishTerrainConnections(
+      terrain,
+      expectedRevision: expectedRevision,
+    );
+    return adapter._readLibraryEdit('smartTilePreset', terrain.id, receipt);
+  }
+
+  @override
+  Future<ProjectLibraryEdit> createTerrainFromImage(
+    PickedProjectLibraryFile file, {
+    required String name,
+    required LibraryImageSize tileSize,
+    required GridPos cell,
+    required String expectedRevision,
+  }) async {
+    final adapter = _terrainWorkshopAdapter;
+    adapter._requireLibraryEditing();
+    if (file.imageSize == null) {
+      throw const ResourceFailure('Choisissez une planche PNG.');
+    }
+    final terrainId = adapter._identity('terrain');
+    final tilesetId = adapter._identity('source');
+    final title = _libraryName(name);
+    final receipt = await adapter._run(
+      'tileset.import_image',
+      (_) => {
+        'tilesetId': tilesetId,
+        'name': title,
+        'tileWidth': tileSize.width,
+        'tileHeight': tileSize.height,
+        'terrain': {'id': terrainId, 'column': cell.x, 'row': cell.y},
+      },
+      sourcePath: file.path,
+      expectedSource: file.artifact,
+      createdTilesetId: tilesetId,
+      expectedBeforeRevision: expectedRevision,
+    );
+    return adapter._readLibraryEdit('smartTilePreset', terrainId, receipt);
+  }
+
+  @override
+  Future<ProjectLibraryEdit> reconcileTerrainCreation(
+    ResourceMutationReceipt receipt,
+  ) async {
+    final terrain = receipt.changedTerrain;
+    if (terrain == null) {
+      throw const ResourceFailure(
+        'Cette publication de terrain est indisponible.',
+      );
+    }
+    await reconcileTerrainConnections(receipt);
+    return _terrainWorkshopAdapter._readLibraryEdit(
+      'smartTilePreset',
+      terrain.id,
+      receipt,
+    );
+  }
 
   @override
   Future<ResourceMutationReceipt> publishTerrainConnections(

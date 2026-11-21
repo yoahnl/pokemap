@@ -5,21 +5,21 @@ Future<void> _reconcileResourceReceipt(
   ResourceMutationReceipt receipt,
 ) => adapter.mapAdapter.withResourceMutation(() async {
   adapter._requireAvailable();
-  final modelShadows =
+  final modelMetadata =
       receipt.actionId == 'model3d.configure' &&
       receipt.changedModels.length == 1 &&
       receipt.modelSourceRevisions.isEmpty;
   if ((adapter.session.storage == ProjectSessionStorage.workingCatalog ||
-          modelShadows) &&
+          modelMetadata) &&
       receipt.changedModels.isNotEmpty) {
     final context = await adapter._requireMutationContext();
     await context.attach();
     final snapshot = await context.api.readWorkshopSnapshot(
       context.opened.projectHandle,
-      actionId: modelShadows
+      actionId: modelMetadata
           ? 'model3d.configure'
           : 'model3d.source.replace_batch',
-      parameters: modelShadows
+      parameters: modelMetadata
           ? {
               'modelId': receipt.changedModels.values.single.id,
               'castsShadowsByDefault':

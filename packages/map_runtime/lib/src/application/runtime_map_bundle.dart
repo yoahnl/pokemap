@@ -1,4 +1,8 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../border/border_runtime_preparation.dart';
 import 'runtime_project_catalog.dart';
@@ -45,6 +49,32 @@ class RuntimeMapBundle {
   final BorderRuntimePreparation? borderRuntimePreparation;
   final RuntimeProjectCatalog? projectCatalog;
   final RuntimeResourceBudget resourceBudget;
+
+  final _modelEntries = <String, ProjectModel3dEntry?>{};
+
+  ProjectModel3dEntry? modelById(String id) => switch (manifest.models3d) {
+    final ProjectModel3dEntries entries => entries.lookup(id),
+    final entries => _modelEntries.putIfAbsent(
+      id,
+      () => entries.where((entry) => entry.id == id).firstOrNull,
+    ),
+  };
+
+  late final Future<Uint8List> Function(String id) modelLoader = _readModel;
+
+  Future<Uint8List> _readModel(String id) async {
+    final model = modelById(id);
+    if (model == null) throw StateError('Modèle absent : $id');
+    final path = p.normalize(p.join(projectRootDirectory, model.relativePath));
+    if (!p.isWithin(projectRootDirectory, path)) {
+      throw StateError('Model path escapes the project.');
+    }
+    final file = File(path);
+    if (await file.length() > resourceBudget.profile.maximumEncodedBytes) {
+      throw const RuntimeResourceAdmissionException('encoded_bytes');
+    }
+    return file.readAsBytes();
+  }
 
   Map<String, String> get runtimeImageAbsolutePathsById => <String, String>{
     ...tilesetAbsolutePathsById,

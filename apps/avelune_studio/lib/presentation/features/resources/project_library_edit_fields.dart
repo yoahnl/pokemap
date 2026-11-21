@@ -61,14 +61,18 @@ extension _ProjectLibraryEditFields on _ProjectLibraryEditDialogState {
     ),
     if (widget.file?.imageSize != null) ...[
       const SizedBox(height: StudioSpacing.l),
-      StudioSelect(
-        label: 'Utiliser comme',
-        value: _tiles ? 'tiles' : 'image',
-        options: const {'image': 'Image entière', 'tiles': 'Planche de tuiles'},
-        onChanged: _saving || _published
-            ? null
-            : (value) => _change(() => _tiles = value == 'tiles'),
-      ),
+      if (widget.saveTerrain == null)
+        StudioSelect(
+          label: 'Utiliser comme',
+          value: _tiles ? 'tiles' : 'image',
+          options: const {
+            'image': 'Image entière',
+            'tiles': 'Planche de tuiles',
+          },
+          onChanged: _saving || _published
+              ? null
+              : (value) => _change(() => _tiles = value == 'tiles'),
+        ),
       if (_tiles) ...[
         const SizedBox(height: StudioSpacing.m),
         Row(
@@ -96,6 +100,33 @@ extension _ProjectLibraryEditFields on _ProjectLibraryEditDialogState {
             'La largeur et la hauteur doivent diviser exactement l’image.',
             isError: true,
           ),
+        ],
+        if ((widget.saveTerrain, _tileSize) case (_?, final size?)) ...[
+          const SizedBox(height: StudioSpacing.m),
+          Text(
+            'Tuile de base · ${widget.file!.imageSize!.width ~/ size.width} colonnes × ${widget.file!.imageSize!.height ~/ size.height} lignes',
+          ),
+          const SizedBox(height: StudioSpacing.s),
+          Row(
+            children: [
+              Expanded(
+                child: _dimension(
+                  'Colonne',
+                  _column,
+                  (value) => _column = value,
+                ),
+              ),
+              const SizedBox(width: StudioSpacing.m),
+              Expanded(
+                child: _dimension('Ligne', _row, (value) => _row = value),
+              ),
+            ],
+          ),
+          if (_terrainCell == null)
+            const StudioNotice(
+              'Choisissez une tuile à l’intérieur de la grille.',
+              isError: true,
+            ),
         ],
       ],
     ],

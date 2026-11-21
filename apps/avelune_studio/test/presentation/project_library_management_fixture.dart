@@ -4,6 +4,7 @@ Future<(MapWorkspaceController, _LibraryEditor)> _open(
   WidgetTester tester,
   _LibraryPort port, {
   PickedProjectLibraryFile? file,
+  ValueNotifier<bool>? visible,
 }) async {
   tester.view.physicalSize = const Size(1500, 1000);
   tester.view.devicePixelRatio = 1;
@@ -13,15 +14,20 @@ Future<(MapWorkspaceController, _LibraryEditor)> _open(
   addTearDown(maps.dispose);
   await maps.initialize();
   final editor = _LibraryEditor(maps.project!);
+  final active = visible ?? ValueNotifier(true);
+  if (visible == null) addTearDown(active.dispose);
   await tester.pumpWidget(
     MaterialApp(
       theme: studioTheme(),
       home: Scaffold(
-        body: ProjectLibraryPage(
-          active: true,
-          maps: maps,
-          visuals: null,
-          management: (editor: editor, pickFile: () async => file),
+        body: ValueListenableBuilder<bool>(
+          valueListenable: active,
+          builder: (context, isActive, _) => ProjectLibraryPage(
+            active: isActive,
+            maps: maps,
+            visuals: null,
+            management: (editor: editor, pickFile: () async => file),
+          ),
         ),
       ),
     ),
@@ -51,6 +57,15 @@ class _LibraryPort extends ScopedTestMapPort
       ProjectLibraryItem(kind: 'element', id: 'tree', name: 'Arbre'),
     ], revision: 'library-r0');
   }
+}
+
+final class _DelayedRevisionLibraryPort extends _LibraryPort
+    implements ProjectResourceLibraryRevisionPort {
+  final revision = Completer<String>();
+
+  @override
+  Future<String> readResourceLibraryRevision(ProjectSession session) =>
+      revision.future;
 }
 
 class _DimensionLibraryPort extends _LibraryPort

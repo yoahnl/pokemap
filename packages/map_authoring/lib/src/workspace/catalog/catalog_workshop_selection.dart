@@ -30,6 +30,7 @@ import 'catalog_resource_usage_index.dart';
 import 'catalog_resource_index_snapshot.dart';
 import '../../domains/assets/model3d_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
+import '../../domains/assets/tileset_image_import_actions.dart' show TilesetTerrainImport;
 import '../../domains/maps/model_visibility_dependencies.dart';
 import '../../domains/maps/semantic_map_action_support.dart' show semanticFailure;
 import '../../catalog_storage/catalog_storage_store.dart';
@@ -210,7 +211,7 @@ final class CatalogWorkshopSelection {
     Map<String, String> readDependencies = const {},
     bool planTerrainFrames = false,
   }) async {
-    if (actionId != 'map.create' && actionId != 'map.duplicate' && actionId != 'map.library.reorganize' && !_nativeResourceActions.containsKey(actionId) &&
+    if (actionId != 'map.create' && actionId != 'map.duplicate' && actionId != 'map.library.reorganize' && actionId != 'model3d.configure' && !_nativeResourceActions.containsKey(actionId) &&
         !const {'model3d.import', 'model3d.import_batch', 'tileset.import_image'}.contains(actionId) &&
         !supports(actionId, parameters: parameters)) {
       unsupported(actionId);

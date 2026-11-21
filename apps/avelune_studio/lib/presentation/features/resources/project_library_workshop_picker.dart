@@ -35,6 +35,20 @@ enum _ProjectWorkshopKind {
     'Atelier Terrains',
     'Chercher un terrain ou un chemin',
     Icons.terrain_outlined,
+  ),
+  environments(
+    'environmentPreset',
+    'Environnement',
+    'Atelier Environnement',
+    'Chercher un ensemble de décors',
+    Icons.forest_outlined,
+  ),
+  decors(
+    'element',
+    'Décors 2D',
+    'Atelier 2D',
+    'Chercher un décor',
+    Icons.image_outlined,
   );
 
   const _ProjectWorkshopKind(
@@ -56,12 +70,14 @@ class _ProjectWorkshopPicker extends StatefulWidget {
     required this.workshop,
     required this.onWorkshop,
     required this.onSelected,
+    this.createAction,
   });
 
   final ProjectLibraryCatalogView catalog;
   final _ProjectWorkshopKind workshop;
   final ValueChanged<_ProjectWorkshopKind> onWorkshop;
   final ValueChanged<String> onSelected;
+  final ResourceLibraryWorkshopAction? createAction;
 
   @override
   State<_ProjectWorkshopPicker> createState() => _ProjectWorkshopPickerState();
@@ -112,11 +128,27 @@ class _ProjectWorkshopPickerState extends State<_ProjectWorkshopPicker> {
             ],
           ),
           const SizedBox(height: StudioSpacing.l),
-          StudioSearchField(
-            key: ValueKey('library-workshop-search-${workshop.resourceKind}'),
-            label: workshop.searchLabel,
-            controller: _search,
-            onChanged: (_) => setState(() {}),
+          Row(
+            children: [
+              Expanded(
+                child: StudioSearchField(
+                  key: ValueKey(
+                    'library-workshop-search-${workshop.resourceKind}',
+                  ),
+                  label: workshop.searchLabel,
+                  controller: _search,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              if (widget.createAction case final action?) ...[
+                const SizedBox(width: StudioSpacing.m),
+                StudioButton(
+                  label: action.label,
+                  icon: action.icon,
+                  onPressed: action.open,
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: StudioSpacing.l),
           Expanded(

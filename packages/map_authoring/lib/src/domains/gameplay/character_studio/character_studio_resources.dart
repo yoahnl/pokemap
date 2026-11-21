@@ -124,6 +124,8 @@ final class CharacterStudioResourceProjector {
               'contactShadow': character.contactShadow,
             'effectiveContactShadow': character.contactShadow ??
                 manifest.settings.actorContactShadowsByDefault,
+            if (character.spatialModel case final binding?)
+              'spatialModel': binding.toJson(),
             'tags': character.tags,
             'portraits': [
               for (final portrait in character.portraits) portrait.toJson(),

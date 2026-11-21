@@ -450,6 +450,9 @@ Iterable<CatalogDefinitionKey> _dependencies(
     if (character.tilesetId.isNotEmpty) {
       yield key(CatalogDefinitionKind.tileset, character.tilesetId);
     }
+    if (character.spatialModel case final binding?) {
+      yield key(CatalogDefinitionKind.model3d, binding.modelId);
+    }
     for (final portrait in character.portraits) {
       yield key(
         CatalogDefinitionKind.characterStudioDefinition,

@@ -2725,6 +2725,16 @@ class ProjectValidator {
       if (char.frameWidth <= 0 || char.frameHeight <= 0) {
         throw ValidationException('Character $id has invalid frame dimensions');
       }
+      if (char.spatialModel case final binding?) {
+        final model = manifest.models3d.where((entry) => entry.id == binding.modelId).firstOrNull;
+        if (model == null || !model.inspection.skinned) {
+          throw ValidationException('Character $id requires a rigged model: ${binding.modelId}');
+        }
+        final available = model.inspection.animations.map((clip) => clip.index).toSet();
+        if (binding.clips.isEmpty || !available.containsAll(binding.clips.values)) {
+          throw ValidationException('Character $id references unavailable model clips');
+        }
+      }
       final portraitSlots = <String>{};
       for (var i = 0; i < char.portraits.length; i++) {
         final portrait = char.portraits[i];

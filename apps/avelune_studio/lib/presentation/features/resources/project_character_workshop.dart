@@ -1,5 +1,6 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/rendering/contracts/map_workspace_visuals.dart';
 import '../../../features/resources/application/project_resource_library.dart';
@@ -9,18 +10,20 @@ import '../../../features/resources/domain/project_library_editor.dart';
 import '../../../features/resources/domain/resource_port.dart';
 import 'project_character_animation_editor.dart';
 import 'project_character_portrait_editor.dart';
+import 'project_character_spatial_appearance.dart';
 import 'project_character_workshop_preview.dart';
 import 'project_character_workspace_layout.dart';
 
 typedef ProjectCharacterEditor = ({
   ProjectCharacterWorkshopPort port,
   Future<PickedProjectLibraryFile?> Function() pickImage,
+  ResolveCharacterSpatialModel? resolveSpatialModel,
   ResourceMutationReceipt? pending,
   void Function(ResourceMutationReceipt?) retain,
   void Function(ResourceMutationReceipt) publish,
 });
 
-enum _CharacterPage { animations, portraits }
+enum _CharacterPage { animations, portraits, spatialAppearance }
 
 class ProjectCharacterWorkshop extends StatefulWidget {
   const ProjectCharacterWorkshop({
@@ -209,9 +212,7 @@ class _ProjectCharacterWorkshopState extends State<ProjectCharacterWorkshop> {
         context: context,
         builder: (context) => StudioReviewDialog(
           title: 'Quitter l’atelier',
-          content: const Text(
-            'Les modifications de cette animation seront perdues.',
-          ),
+          content: const Text('Les modifications en cours seront perdues.'),
           confirmLabel: 'Abandonner les modifications',
           onConfirmed: () => Navigator.pop(context, true),
           onCancelled: () => Navigator.pop(context, false),
@@ -252,6 +253,13 @@ class _ProjectCharacterWorkshopState extends State<ProjectCharacterWorkshop> {
                 label: 'Portraits',
                 enabled: enabled && !_dirty,
               ),
+              if (_current?.project.settings.dimension ==
+                  ProjectDimension.threeD)
+                StudioTab(
+                  value: _CharacterPage.spatialAppearance,
+                  label: 'Apparence 3D',
+                  enabled: enabled && !_dirty,
+                ),
             ],
             onSelected: (page) => setState(() {
               _page = page;
@@ -324,6 +332,15 @@ class _ProjectCharacterWorkshopState extends State<ProjectCharacterWorkshop> {
         pickImage: editor.pickImage,
         readPortrait: (id) =>
             editor.port.readCharacterPortrait(character.id, id),
+      ),
+      _CharacterPage.spatialAppearance => ProjectCharacterSpatialAppearance(
+        key: ValueKey(_editorGeneration),
+        character: character,
+        models: project.models3d,
+        resolveModel: editor.resolveSpatialModel,
+        enabled: enabled,
+        edit: _edit,
+        onDraftChanged: _setDirty,
       ),
     };
   }

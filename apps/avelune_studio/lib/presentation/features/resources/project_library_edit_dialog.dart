@@ -23,6 +23,7 @@ class ProjectLibraryEditDialog extends StatefulWidget {
     this.prepareCatalog,
   }) : file = null,
        defaultTileSize = null,
+       saveTerrain = null,
        saveDetails = null,
        saveClassification = null,
        families = const {};
@@ -35,6 +36,20 @@ class ProjectLibraryEditDialog extends StatefulWidget {
   }) : item = null,
        duplicate = false,
        prepareCatalog = null,
+       saveTerrain = null,
+       saveDetails = null,
+       saveClassification = null,
+       families = const {};
+
+  const ProjectLibraryEditDialog.importTerrain({
+    super.key,
+    required this.file,
+    required this.defaultTileSize,
+    required this.saveTerrain,
+  }) : item = null,
+       duplicate = false,
+       prepareCatalog = null,
+       saveName = null,
        saveDetails = null,
        saveClassification = null,
        families = const {};
@@ -46,6 +61,7 @@ class ProjectLibraryEditDialog extends StatefulWidget {
     required this.saveClassification,
   }) : file = null,
        defaultTileSize = null,
+       saveTerrain = null,
        duplicate = false,
        prepareCatalog = null,
        saveDetails = null,
@@ -59,6 +75,7 @@ class ProjectLibraryEditDialog extends StatefulWidget {
        prepareCatalog = null,
        file = null,
        defaultTileSize = null,
+       saveTerrain = null,
        saveName = null,
        saveClassification = null,
        families = const {};
@@ -73,6 +90,8 @@ class ProjectLibraryEditDialog extends StatefulWidget {
   saveDetails;
   final Future<ProjectLibraryEdit> Function(String, LibraryImageSize?)?
   saveName;
+  final Future<ProjectLibraryEdit> Function(String, LibraryImageSize, GridPos)?
+  saveTerrain;
   final Future<ProjectLibraryEdit> Function(String?, ResourceLibraryRole)?
   saveClassification;
 
@@ -93,7 +112,9 @@ class _ProjectLibraryEditDialogState extends State<ProjectLibraryEditDialog> {
   late String _width = '${widget.defaultTileSize?.width ?? 32}';
   late String _height = '${widget.defaultTileSize?.height ?? 32}';
   final _familySearch = TextEditingController();
-  bool _tiles = false;
+  late bool _tiles = widget.saveTerrain != null;
+  String _column = '1';
+  String _row = '1';
   bool _saving = false;
   ResourceMutationReceipt? _partialReceipt;
   String? _failure;
@@ -123,6 +144,24 @@ class _ProjectLibraryEditDialogState extends State<ProjectLibraryEditDialog> {
     return (width: width, height: height);
   }
 
+  GridPos? get _terrainCell {
+    final image = widget.file?.imageSize;
+    final size = _tileSize;
+    final column = int.tryParse(_column);
+    final row = int.tryParse(_row);
+    if (image == null ||
+        size == null ||
+        column == null ||
+        row == null ||
+        column < 1 ||
+        row < 1 ||
+        column > image.width ~/ size.width ||
+        row > image.height ~/ size.height) {
+      return null;
+    }
+    return GridPos(x: column - 1, y: row - 1);
+  }
+
   bool get _canSave {
     if (_saving || _published || _needsPreparation) return false;
     if (widget.saveDetails != null) {
@@ -135,7 +174,8 @@ class _ProjectLibraryEditDialogState extends State<ProjectLibraryEditDialog> {
     }
     return _name.trim().isNotEmpty &&
         (widget.duplicate || _name.trim() != widget.item?.name) &&
-        (widget.file?.imageSize == null || _tileSize != null);
+        (widget.file?.imageSize == null || _tileSize != null) &&
+        (widget.saveTerrain == null || _terrainCell != null);
   }
 
   @override
@@ -159,6 +199,11 @@ class _ProjectLibraryEditDialogState extends State<ProjectLibraryEditDialog> {
         ProjectLibraryEditDialog(saveClassification: final save?) => save(
           _family,
           _role,
+        ),
+        ProjectLibraryEditDialog(saveTerrain: final save?) => save(
+          _name.trim(),
+          _tileSize!,
+          _terrainCell!,
         ),
         _ => widget.saveName!(_name.trim(), _tileSize),
       };
@@ -218,15 +263,19 @@ class _ProjectLibraryEditDialogState extends State<ProjectLibraryEditDialog> {
     return PopScope(
       canPop: !_saving && !_published,
       child: StudioReviewDialog(
-        title: switch ((importing, classification, details, widget.duplicate)) {
-          (true, _, _, _) => 'Importer une ressource',
-          (_, true, _, _) => 'Classer la ressource',
-          (_, _, true, _) => 'Modifier la fiche',
-          (_, _, _, true) => 'Dupliquer la ressource',
-          _ => 'Renommer la ressource',
-        },
+        title: widget.saveTerrain != null
+            ? 'Terrain depuis une planche'
+            : switch ((importing, classification, details, widget.duplicate)) {
+                (true, _, _, _) => 'Importer une ressource',
+                (_, true, _, _) => 'Classer la ressource',
+                (_, _, true, _) => 'Modifier la fiche',
+                (_, _, _, true) => 'Dupliquer la ressource',
+                _ => 'Renommer la ressource',
+              },
         confirmLabel: _saving
             ? 'En cours…'
+            : widget.saveTerrain != null
+            ? 'Publier le terrain'
             : importing
             ? 'Importer dans la bibliothèque'
             : widget.duplicate

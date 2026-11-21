@@ -13,6 +13,35 @@ import '../domains/maps/healing_display_fixture.dart';
 
 Future<void> main(List<String> arguments) async {
   final root = arguments.first;
+  if (arguments.contains('--from-fixture-manifest')) {
+    final descriptor = File('$root/fixture-manifest.json');
+    final project = ProjectManifest.fromJson(
+      jsonDecode(await descriptor.readAsString()) as Map<String, dynamic>,
+    );
+    final store = await CatalogStorageStore.open(projectRoot: root);
+    await WorkingProjectCatalog.create(store: store, projectId: 'fixture-catalog', project: project);
+    return;
+  }
+  if (arguments.contains('--border-library')) {
+    final fixture = spatialBorderAuthoringFixture(published: true, repeatedUnit: true);
+    final project = fixture.project.copyWith(
+      resourceLibraryCatalog: ResourceLibraryCatalog(
+        families: [ResourceFamily(id: 'workshop_fences', name: 'Clôtures')],
+        entries: [ResourceLibraryEntry(
+          resourceKind: 'borderBlueprint',
+          resourceId: 'fence',
+          familyId: 'workshop_fences',
+        )],
+      ),
+    );
+    final store = await CatalogStorageStore.open(projectRoot: root);
+    await WorkingProjectCatalog.create(store: store, projectId: 'border-library', project: project);
+    final path = project.maps.single.relativePath;
+    final map = File('$root/$path');
+    await map.parent.create(recursive: true);
+    await map.writeAsString(jsonEncode(fixture.map.toJson()));
+    return;
+  }
   if (arguments.contains('--dialogue-creation')) {
     final project = ProjectManifest(
         name: 'Dialogue catalog',

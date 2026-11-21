@@ -66,6 +66,7 @@ final class GamePackageContentValidator {
     if (validationExtension == '.glb') {
       try {
         GlbModel3dInspector(
+          experimentalSkinnedModels: true,
           maxTextureDimension:
               policy.maxImageDimension < 4096 ? policy.maxImageDimension : 4096,
           maxTexturePixels: policy.maxImagePixels < 16777216

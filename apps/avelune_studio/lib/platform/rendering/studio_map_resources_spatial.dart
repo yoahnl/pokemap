@@ -152,7 +152,7 @@ extension StudioMapResourcesSpatial on StudioMapResources {
         relativePath: model.relativePath,
       ),
     );
-    await Isolate.run(() => const GlbModel3dInspector().inspect(bytes));
+    await Isolate.run(() => const GlbModel3dInspector(experimentalSkinnedModels: true).inspect(bytes));
     return bytes;
   }
 }

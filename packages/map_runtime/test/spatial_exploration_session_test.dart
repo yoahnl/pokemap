@@ -11,6 +11,92 @@ import 'package:map_runtime/src/spatial/spatial_story_playback.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('projects a rigged clip for each actor on the simulation clock', () async {
+    final root = await Directory.systemTemp.createTemp('spatial-rigged-actor-');
+    addTearDown(() => root.delete(recursive: true));
+    final image = await File('${root.path}/actor.png').writeAsBytes(
+      img.encodePng(img.Image(width: 16, height: 16)),
+    );
+    const binding = ProjectCharacterSpatialModel(
+      modelId: 'rig',
+      clips: {CharacterAnimationState.idle: 0, CharacterAnimationState.run: 1},
+    );
+    final character = ProjectCharacterEntry(
+      id: 'actor',
+      name: 'Actor',
+      tilesetId: 'unused',
+      spatialModel: binding,
+      animations: [
+        for (final facing in EntityFacing.values)
+          CharacterAnimation(
+            state: CharacterAnimationState.walk,
+            direction: facing,
+            sourceAssetId: 'actor',
+            frames: const [
+              CharacterAnimationFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 16, height: 16),
+                durationMs: 100,
+              ),
+            ],
+          ),
+      ],
+    );
+    final model = ProjectModel3dEntry(
+      id: 'rig', name: 'Rig', sourceAssetId: 'rig-source',
+      relativePath: 'assets/models3d/rig.glb',
+      inspection: Model3dInspection(
+        bounds: Model3dBounds(min: Model3dVector3.zero, max: Model3dVector3(x: 1, y: 1, z: 1)),
+        meshCount: 1, triangleCount: 1, skinned: true,
+        animations: [
+          Model3dAnimation(index: 0, name: 'Idle', durationSeconds: 2),
+          Model3dAnimation(index: 1, name: 'Run', durationSeconds: 1),
+        ],
+      ),
+    );
+    final session = await SpatialExplorationSession.load(
+      RuntimeMapBundle(
+        manifest: ProjectManifest(
+          name: 'Rigged actors', maps: const [], tilesets: const [],
+          models3d: [model], characters: [character],
+          settings: const ProjectSettings(
+            dimension: ProjectDimension.threeD, defaultPlayerCharacterId: 'actor',
+          ),
+        ),
+        map: MapData(
+          id: 'map', name: 'Map', size: const GridSize(width: 8, height: 8),
+          spatialScene: MapSpatialScene(width: 8, depth: 8),
+          entities: [
+            MapEntity(id: 'npc', kind: MapEntityKind.npc, pos: const GridPos(x: 2, y: 2),
+              npc: const MapEntityNpcData(characterId: 'actor', facing: EntityFacing.west)),
+          ],
+        ),
+        projectRootDirectory: root.path,
+        tilesetAbsolutePathsById: const {},
+        characterAnimationAbsolutePathsByAssetId: {'actor': image.path},
+      ),
+    );
+    addTearDown(session.dispose);
+    final idle = session.frames(.25);
+    expect(idle['map:npc:npc']!.model?.definition, model);
+    expect(idle['map:npc:npc']!.model?.facing, EntityFacing.west);
+    expect(idle['hero']!.model?.pose.normalizedTime, .125);
+    session.setLifecyclePaused(true);
+    expect(session.frames(.5)['hero']!.model?.pose.normalizedTime, .125);
+    session.setLifecyclePaused(false);
+    var story = const SpatialCinematicActorPose(
+      x: 4, z: 4, facing: EntityFacing.east,
+      motion: CharacterAnimationState.run, animationSeconds: 1.25,
+    );
+    session.heroStoryPose = () => story;
+    final running = session.frames(0)['hero']!;
+    expect(running.model?.pose.animationIndex, 1);
+    expect(running.model?.pose.normalizedTime, .25);
+    expect(running.model?.facing, EntityFacing.east);
+    expect(running.translated(const Offset(3, 4)).model, running.model);
+    story = story.copyWith(motion: CharacterAnimationState.surf);
+    expect(session.frames(0)['hero']!.model?.pose.animationIndex, 0);
+  });
+
   test(
     'spatial emote uses catalog frames above the actor and releases resources',
     () async {

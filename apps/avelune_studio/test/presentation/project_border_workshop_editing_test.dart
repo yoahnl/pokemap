@@ -1,14 +1,37 @@
 import 'package:avelune_studio/features/resources/application/project_resource_library.dart';
 import 'package:avelune_studio/features/resources/domain/project_border_workshop_port.dart';
+import 'package:avelune_studio/features/resources/domain/project_library_editor.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/resources/project_border_workshop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../support/raster_border_fixture.dart';
 import '../support/spatial_border_fixture.dart';
 
 void main() {
+  testWidgets('lists the decor source of an editable raster piece', (
+    tester,
+  ) async {
+    final port = _BorderEditingPort()
+      ..project = rasterBorderProject(
+        BorderPrimitiveAssetMetrics(
+          assetFingerprint: 'raster-source',
+          pixelSize: const GridSize(width: 1, height: 1),
+          opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 1, height: 1),
+          defaultAnchorPx: const BorderPixelPos(x: 0, y: 0),
+          occupancyMaskRle: encodeBorderRleMask([true]),
+        ),
+      );
+    await _open(tester, port);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('border-draft-weight-straight')),
+    );
+    expect(find.text('Pièce de bordure'), findsWidgets);
+    expect(find.text('Modèle introuvable'), findsNothing);
+  });
+
   testWidgets('draft settings save separately from an explicit publication', (
     tester,
   ) async {
@@ -213,6 +236,12 @@ final class _BorderEditingPort implements ProjectBorderWorkshopPort {
   bool get canEditBorderWorkshop => true;
 
   @override
+  Future<ProjectLibraryEdit> createWorkshopBorder(
+    BorderCreationRequest request, {
+    required String expectedRevision,
+  }) => throw UnsupportedError('This fixture edits an existing border');
+
+  @override
   Future<ProjectBorderWorkshopRead> readWorkshopBorder(String borderId) async =>
       (project: project, revision: revision);
 
@@ -243,6 +272,7 @@ final class _BorderEditingPort implements ProjectBorderWorkshopPort {
   Future<ResourceMutationReceipt> publishBorderDraft(
     String borderId, {
     required String expectedRevision,
+    List<String> acceptedWarningCodes = const [],
   }) async {
     expect(expectedRevision, revision);
     publications++;

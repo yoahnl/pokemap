@@ -15,8 +15,10 @@ import 'package:map_core/map_core_domain.dart';
 import '../support/map_workspace_fixture.dart';
 
 part 'project_character_workshop_fixture.dart';
+part 'project_character_workshop_appearance_cases.dart';
 
 void main() {
+  _appearanceTests();
   testWidgets(
     'edits one clip from the library and keeps the duration on reopen',
     (tester) async {
@@ -37,6 +39,7 @@ void main() {
           editor: (
             port: port,
             pickImage: () async => null,
+            resolveSpatialModel: null,
             pending: null,
             retain: (_) {},
             publish: (receipt) {
@@ -112,6 +115,7 @@ void main() {
             picks++;
             return null;
           },
+          resolveSpatialModel: null,
           pending: null,
           retain: (_) {},
           publish: (_) {},
@@ -145,6 +149,7 @@ void main() {
         editor: (
           port: port,
           pickImage: () async => null,
+          resolveSpatialModel: null,
           pending: null,
           retain: (_) {},
           publish: (_) {},

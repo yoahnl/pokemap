@@ -399,30 +399,34 @@ void main() {
         throwsFormatException);
   });
 
-  test('builders and every package inspector keep skeletal GLBs closed',
+  test('builders and package inspectors agree on supported skeletal GLBs',
       () async {
     const inspector = GamePackageInspector();
     for (final path in [
       'project/assets/model.glb',
       'project/assets/.pokemap-store/${'a' * 64}.blob',
     ]) {
-      final legacy = _packagePayload(path, triangleGlb());
-      final legacyBuilt = const GamePackageBuilder().build(
-        manifest: _manifest(legacy),
-        payloadFiles: legacy,
-      );
-      final legacyBytes = Uint8List.fromList(legacyBuilt.packageBytes);
-      final memory = inspector.inspect(legacyBytes);
-      final sync =
-          inspector.inspectSourceSync(_MemoryPackageSource(legacyBytes));
-      final parallel = await inspector.inspectSourceParallel(
-        () async => _MemoryPackageSource(legacyBytes),
-        workers: 3,
-      );
-      expect(sync.receipt.toJson(), memory.receipt.toJson());
-      expect(parallel.receipt.toJson(), memory.receipt.toJson());
+      for (final model in [triangleGlb(), _skinnedGlb()]) {
+        final payload = _packagePayload(path, model);
+        final built = const GamePackageBuilder().build(
+          manifest: _manifest(payload),
+          payloadFiles: payload,
+        );
+        final bytes = Uint8List.fromList(built.packageBytes);
+        final memory = inspector.inspect(bytes);
+        final sync = inspector.inspectSourceSync(_MemoryPackageSource(bytes));
+        final parallel = await inspector.inspectSourceParallel(
+          () async => _MemoryPackageSource(bytes),
+          workers: 3,
+        );
+        expect(sync.receipt.toJson(), memory.receipt.toJson());
+        expect(parallel.receipt.toJson(), memory.receipt.toJson());
+      }
 
-      final payload = _packagePayload(path, _skinnedGlb());
+      final payload = _packagePayload(
+        path,
+        _skinnedGlb(edit: (_, binary) => binary.setUint8(36, 1)),
+      );
       final match = throwsA(isA<GamePackageFormatException>()
           .having((error) => error.code, 'code', 'invalidModel3d')
           .having((error) => error.path, 'path', path));

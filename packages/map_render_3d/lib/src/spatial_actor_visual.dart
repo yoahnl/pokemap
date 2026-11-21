@@ -151,6 +151,13 @@ final class _SpatialActorImageTexture extends ImageTexture {
   GpuTexture createResource() => allocate(width, height)..write(_pixels);
 }
 
+typedef SpatialActorModelVisual = ({
+  ProjectModel3dEntry definition,
+  Future<Uint8List> Function(String modelId) loadModel,
+  EntityFacing facing,
+  SpatialModelRuntimeState pose,
+});
+
 final class SpatialActorVisual {
   const SpatialActorVisual({
     required this.x,
@@ -165,6 +172,7 @@ final class SpatialActorVisual {
     this.contactShadow = false,
     this.airborne = false,
     this.landingDust = false,
+    this.model,
   }) : assert(width == null || width > 0),
        assert(height > 0);
   final double x, y, z;
@@ -177,9 +185,26 @@ final class SpatialActorVisual {
   final bool contactShadow;
   final bool airborne;
   final bool landingDust;
+  final SpatialActorModelVisual? model;
   double get resolvedWidth => width ?? height * frame.width / frame.height;
   ({double x, double y})? get contactShadowFootAnchor =>
       resolveSpatialActorTexture(texture).footAnchor(frame);
+
+  SpatialActorVisual translated(ui.Offset offset) => SpatialActorVisual(
+    x: x + offset.dx,
+    y: y,
+    z: z + offset.dy,
+    groundY: groundY,
+    texture: texture,
+    frame: frame,
+    width: width,
+    height: height,
+    billboardVerticalOffset: billboardVerticalOffset,
+    contactShadow: contactShadow,
+    airborne: airborne,
+    landingDust: landingDust,
+    model: model,
+  );
 }
 
 ({Quaternion rotation, Vector3 scale}) spatialActorTransform(

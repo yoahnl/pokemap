@@ -90,14 +90,31 @@ class EnvironmentDraft {
     _spacingInput = input;
     final value = int.tryParse(input);
     if (value != null && value >= 0) {
-      params = EnvironmentGenerationParams(
-        density: params.density,
-        variation: params.variation,
-        edgeDensity: params.edgeDensity,
-        minSpacingCells: value,
-      );
+      _setParams(minSpacingCells: value);
     }
   }
+
+  void setDistribution({
+    double? density,
+    double? variation,
+    double? edgeDensity,
+  }) => _setParams(
+    density: density,
+    variation: variation,
+    edgeDensity: edgeDensity,
+  );
+
+  void _setParams({
+    double? density,
+    double? variation,
+    double? edgeDensity,
+    int? minSpacingCells,
+  }) => params = EnvironmentGenerationParams(
+    density: density ?? params.density,
+    variation: variation ?? params.variation,
+    edgeDensity: edgeDensity ?? params.edgeDensity,
+    minSpacingCells: minSpacingCells ?? params.minSpacingCells,
+  );
 
   bool get dirty {
     try {

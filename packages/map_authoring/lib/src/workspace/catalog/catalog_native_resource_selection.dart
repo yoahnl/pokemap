@@ -2,6 +2,7 @@ part of 'catalog_workshop_selection.dart';
 
 const _nativeResourceActions = <String, (CatalogDefinitionKind, String)>{
   'tileset.upsert': (CatalogDefinitionKind.tileset, 'tileset'),
+  'element.upsert': (CatalogDefinitionKind.element, 'element'),
   'campaign.character.upsert': (CatalogDefinitionKind.character, 'value'),
   'resource.classify': (CatalogDefinitionKind.resourceLibraryEntry, ''),
   'resource.classify_batch': (CatalogDefinitionKind.resourceLibraryEntry, 'entries'),
@@ -52,6 +53,10 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
   required bool planTerrainFrames,
 }) async {
   final (kind, parameter) = _nativeResourceActions[actionId]!;
+  if (kind == CatalogDefinitionKind.element && parameters.length != 1) {
+    CatalogWorkshopSelection.unsupported(
+        actionId, 'one decor using an existing element category');
+  }
   final publishingBorder = actionId == 'border.blueprint.publish';
   final deprecatingBorder = actionId == 'border.blueprint.set_deprecated';
   if (parameters.containsKey('layer') || parameters.containsKey('draftId')) {
@@ -209,11 +214,8 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         final record = decodeBorderBlueprintRecordJson(
             existing.payload['value'],
             formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
-        if (publishingBorder && !record.draft.definition.isSpatial) {
-          CatalogWorkshopSelection.unsupported(
-              actionId, 'a spatial Border draft');
-        }
-        if (publishingBorder && record.latestPublished != null) {
+        if (publishingBorder && record.draft.definition.isSpatial &&
+            record.latestPublished != null) {
           final encoded = encodeBorderBlueprintRecordJson(record,
               formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
           if (canonicalAuthoringJson((encoded['draft'] as Map)['definition']) ==
@@ -252,14 +254,17 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         }
         roots.add(key);
         replacements.add(key);
+      } else if (existing != null &&
+          (kind == CatalogDefinitionKind.element ||
+              kind == CatalogDefinitionKind.environmentPreset)) {
+        roots.add(key);
+        replacements.add(key);
+      } else if (actionId == 'border.blueprint.draft.upsert' && existing == null) {
+        count = await CatalogResourcePositions.read(catalog.snapshot, kind);
       } else if (actionId == 'border.blueprint.draft.upsert' && existing != null) {
         final before = decodeBorderBlueprintRecordJson(
             existing.payload['value'],
             formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
-        if (!before.draft.definition.isSpatial) {
-          CatalogWorkshopSelection.unsupported(
-              actionId, 'a spatial Border draft');
-        }
         drafts.add(before);
         replacements.add(key);
         candidates.add(existing.payload['value']);
@@ -301,7 +306,8 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
       }
     }
     final categoryKind = kind == CatalogDefinitionKind.environmentPreset ||
-            kind == CatalogDefinitionKind.borderRecord
+            kind == CatalogDefinitionKind.borderRecord ||
+            kind == CatalogDefinitionKind.element
         ? CatalogDefinitionKind.elementCategory
         : CatalogDefinitionKind.smartTileCategory;
     for (final id
@@ -366,6 +372,11 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
       }
     }
 
+    final rasterBorder = publishingBorder &&
+        drafts.any((record) => !record.draft.definition.isSpatial);
+    if (rasterBorder) {
+      await readFile(assetCatalogResourceIdentity, assetCatalogStorageKey);
+    }
     if (actionId == 'smart_tile.atlas.upsert' || actionId == 'tileset.upsert') {
       await readFile(assetCatalogResourceIdentity, assetCatalogStorageKey);
       final bytes = values[assetCatalogResourceIdentity];
@@ -414,7 +425,11 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         });
     final result = CatalogWorkshopSelection._(
         reader, snapshot, {section}, revisions,
-        resourceCounts: {kind: count}, resourceReplacements: replacements,
+        resourceCounts: {
+          kind: count,
+          if (rasterBorder) CatalogDefinitionKind.borderVisualSnapshot:
+              await catalog.snapshot.countDefinitionsOfKind(CatalogDefinitionKind.borderVisualSnapshot),
+        }, resourceReplacements: replacements,
         resourceRemovals: removals.keys.toSet(), resourceMoves: moves,
         terrainFrameReplacement: terrainFrameReplacement);
     await result.requireCurrent();

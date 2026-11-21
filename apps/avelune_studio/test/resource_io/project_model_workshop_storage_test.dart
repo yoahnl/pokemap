@@ -5,10 +5,106 @@ import 'package:avelune_studio/features/resources/data/local_resource_adapter.da
 import 'package:avelune_studio/features/resources/domain/project_model_workshop_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../support/model_shadow_fixture.dart';
 
 void main() {
+  test(
+    'a model transform and collision edit stay scoped and survive reopening',
+    () async {
+      final fixture = await ModelShadowFixture.create(unrelated: 80);
+      addTearDown(fixture.dispose);
+      final session = fixture.session;
+      final maps = fixture.maps;
+      final resources = fixture.resources;
+      final read = await resources.readWorkshopModel('house');
+      final original = read.model!;
+      final bounds = Model3dBounds(
+        min: Model3dVector3(x: -.25, y: 0, z: -.5),
+        max: Model3dVector3(x: .25, y: 2, z: .5),
+      );
+      final pivot = Model3dVector3(x: 0.75, y: 1.25, z: -2);
+      final updated = original.copyWith(
+        scale: 2.5,
+        pivot: pivot,
+        collisionBounds: bounds,
+        castsShadowsByDefault: true,
+      );
+      const resetSettings = (
+        scale: null,
+        pivot: null,
+        collisionChanged: true,
+        collisionBounds: null,
+        castsShadows: null,
+      );
+      final reads = <String>[];
+
+      final receipt = await fixture.observe(
+        () => resources.saveModelSettings(
+          'house',
+          settings: (
+            scale: 2.5,
+            pivot: pivot,
+            collisionChanged: true,
+            collisionBounds: bounds,
+            castsShadows: true,
+          ),
+          expectedRevision: read.revision!,
+        ),
+        reads,
+        denyForeign: true,
+      );
+      expect(receipt.changedModels, {'house': updated});
+      expect(receipt.changedMaps, isEmpty);
+      expect(receipt.changedPaths, contains('catalog/HEAD.json'));
+      expect(reads, isEmpty);
+
+      final reopened = LocalMapWorkspaceAdapter();
+      await reopened.loadCatalog(session);
+      final project = await reopened.readResourcePreview(
+        session,
+        'model3d',
+        'house',
+      );
+      expect(project.models3d.single, receipt.changedModels['house']);
+
+      await expectLater(
+        fixture.observe(
+          () => resources.saveModelSettings(
+            'house',
+            settings: resetSettings,
+            expectedRevision: read.revision!,
+          ),
+          reads,
+          denyForeign: true,
+        ),
+        throwsA(
+          isA<ResourceFailure>().having(
+            (failure) => failure.message,
+            'conflict',
+            contains('catalogue a changé'),
+          ),
+        ),
+      );
+
+      final reset = await fixture.observe(
+        () => resources.saveModelSettings(
+          'house',
+          settings: resetSettings,
+          expectedRevision: receipt.revision,
+        ),
+        reads,
+        denyForeign: true,
+      );
+      final restored = updated.copyWith(clearCollisionBounds: true);
+      expect(reset.changedModels, {'house': restored});
+      expect(reads, isEmpty);
+      await maps.loadCatalog(session);
+      expect((await resources.readWorkshopModel('house')).model, restored);
+    },
+  );
+
   test('the first workshop write stays local, rejects a stale revision and survives reopening', () async {
     final fixture = await ModelShadowFixture.create(unrelated: 90);
     addTearDown(fixture.dispose);

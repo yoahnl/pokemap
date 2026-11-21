@@ -422,6 +422,7 @@ final class ResourcePackInspector {
       late final Model3dInspection actual;
       try {
         actual = GlbModel3dInspector(
+                experimentalSkinnedModels: true,
                 requireStaticTextures: true,
                 maxTextureDimension: math.min(policy.maxImageDimension, 4096),
                 maxTexturePixels: math.min(policy.maxImagePixels, 16777216))

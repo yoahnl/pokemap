@@ -1,11 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../support/map_builder_harness.dart';
+import '../support/map_workspace_fixture.dart';
 
 const _tree = ValueKey('map-resource-element:tree');
 
 void main() {
+  testWidgets('an environment is previewed, applied and undone on the map', (
+    tester,
+  ) async {
+    final preset = EnvironmentPreset(
+      id: 'grove',
+      name: 'Bosquet d’essai',
+      templateId: 'manual',
+      palette: [EnvironmentPaletteItem(elementId: 'tree', weight: 1)],
+      defaultParams: EnvironmentGenerationParams(
+        density: 1,
+        variation: 0,
+        edgeDensity: 1,
+        minSpacingCells: 0,
+      ),
+      sortOrder: 0,
+    );
+    final harness = await MapBuilderHarness.open(
+      tester,
+      port: WorkspaceMemoryPort(
+        manifest: workspaceProject.copyWith(environmentPresets: [preset]),
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('map-resource-category-vegetation')),
+    );
+    await harness.settle();
+    await tester.tap(
+      find.byKey(const ValueKey('map-resource-environmentPreset:grove')),
+    );
+    await harness.settle();
+    final document = harness.controller.active!;
+    final before = document.current.placedElements.length;
+    await tester.tap(find.text('Pinceau'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rectangle').last);
+    await harness.settle();
+    final center = tester.getCenter(find.byKey(const ValueKey('map-canvas')));
+    await tester.dragFrom(center - const Offset(32, 32), const Offset(70, 70));
+    await harness.settle();
+
+    await tester.tap(find.byKey(const ValueKey('map-environment-preview')));
+    await harness.settle();
+    expect(document.current.placedElements, hasLength(before));
+    await tester.tap(find.byKey(const ValueKey('map-environment-apply')));
+    await harness.settle();
+    expect(document.error, isNull);
+    expect(document.current.placedElements.length, greaterThan(before));
+    document.restore(redo: false);
+    expect(document.current.placedElements, hasLength(before));
+  });
+
   Future<MapBuilderHarness> openObjects(WidgetTester tester) async {
     final harness = await MapBuilderHarness.open(tester);
     await tester.tap(

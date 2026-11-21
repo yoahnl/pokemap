@@ -121,6 +121,7 @@ extension _MapBuilderPageRelief on _MapBuilderPageState {
 
   Widget? _constructionInspector(MapEditingViewportSession? view) =>
       switch (view?.tool) {
+        StudioMapTool.environment => _environmentInspector(view!),
         StudioMapTool.relief => _reliefInspector(view!),
         StudioMapTool.slope || StudioMapTool.stair => MapBuilderSlopeInspector(
           stair: view!.tool == StudioMapTool.stair,

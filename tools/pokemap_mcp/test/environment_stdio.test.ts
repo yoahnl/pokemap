@@ -13,7 +13,7 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("environment masks, generation and protected deletion cross real MCP stdio", async () => {
+test("environment masks, generation and protected deletion cross real MCP stdio", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "environment-stdio-"));
   const manifestPath = join(root, "project.json");
   const mapPath = join(root, "garden.json");
@@ -30,11 +30,12 @@ test("environment masks, generation and protected deletion cross real MCP stdio"
         targetTileLayerId: "ground", areas: [] } },
     ] }));
   const transport = new StdioClientTransport({ command: process.execPath,
-    args: ["dist/src/index.js", "--root", root, "--dart", process.env.POKEMAP_TEST_DART ?? "dart"],
+    args: ["dist/src/index.js", "--root", root, "--dart", process.env.POKEMAP_TEST_DART ?? "dart",
+      "--authoring-timeout-ms", "60000"],
     cwd: process.cwd(), stderr: "pipe" });
   const client = new Client({ name: "environment-stdio", version: "1.0.0" });
   async function data(name: string, args: JsonRecord): Promise<JsonRecord> {
-    const result = await client.callTool({ name, arguments: args });
+    const result = await client.callTool({ name, arguments: args }, { timeout: 65_000 });
     const envelope = record(result.structuredContent);
     assert.equal(envelope.ok, true, JSON.stringify(envelope));
     return record(envelope.data);

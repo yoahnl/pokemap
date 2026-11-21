@@ -39,6 +39,8 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
     Map<String, ProjectModel3dEntry> changedModels = const {},
     BorderBlueprintRecord? changedBorder,
     ProjectSmartTilePreset? changedTerrain,
+    ProjectElementEntry? changedElement,
+    EnvironmentPreset? changedEnvironment,
     ({String kind, String id})? removedLibraryResource,
     required bool notifyChange,
   }) {
@@ -143,10 +145,19 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
       }
     }
     if (changedBorder case final border?) {
-      _acceptBorderProjection(border);
+      _acceptBorderProjection(
+        border,
+        publishedBorderSnapshots(border, updated.borderCatalog),
+      );
     }
     if (changedTerrain case final terrain?) {
       _acceptTerrainProjection(terrain);
+    }
+    if (changedElement case final element?) {
+      _acceptDecorProjection(element);
+    }
+    if (changedEnvironment case final environment?) {
+      _acceptEnvironmentProjection(environment);
     }
     if (removedLibraryResource case final removed?) {
       _resourceClosures.remove('${removed.kind}:${removed.id}');
@@ -175,24 +186,24 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
     if (notifyChange) notify();
   }
 
-  void _acceptBorderProjection(BorderBlueprintRecord record) {
+  void _acceptBorderProjection(
+    BorderBlueprintRecord record,
+    List<BorderVisualSnapshot> snapshots,
+  ) {
+    ProjectManifest replace(ProjectManifest value) =>
+        replaceLoadedBorderProjection(value, record, snapshots: snapshots);
     for (final id in _selectionMapsByBorder[record.id] ?? const <String>{}) {
       borderWorkshopSelectionsVisited++;
       final selection = _selections[id]!;
       _selections[id] = _selectionWithDefinitions(
         selection,
-        replaceLoadedBorderProjection(selection.definitions, record),
+        replace(selection.definitions),
       );
     }
     for (final id in _previewMapsByBorder[record.id] ?? const <String>{}) {
-      _previewDefinitions[id] = replaceLoadedBorderProjection(
-        _previewDefinitions[id]!,
-        record,
-      );
+      _previewDefinitions[id] = replace(_previewDefinitions[id]!);
     }
-    _updateLoadedVisualProjections(
-      (value) => replaceLoadedBorderProjection(value, record),
-    );
+    _updateLoadedVisualProjections(replace);
   }
 
   void _acceptTerrainProjection(ProjectSmartTilePreset terrain) {
@@ -240,5 +251,45 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
           _selections[active?.base.mapId]?.definitions ?? project;
       _visualFamilySource = _resourceVisualDefinitions;
     }
+  }
+
+  void _acceptDecorProjection(ProjectElementEntry element) {
+    _acceptedElementDefinitions[element.id] = (
+      epoch: ++_resourceProjectionEpoch,
+      definition: element,
+    );
+    ProjectManifest replace(ProjectManifest value) =>
+        upsertDecorProjection(value, element, loadedOnly: true);
+    for (final id in _selectionMapsByElement[element.id] ?? const <String>{}) {
+      final selection = _selections[id]!;
+      _selections[id] = _selectionWithDefinitions(
+        selection,
+        replace(selection.definitions),
+      );
+    }
+    for (final id in _previewMapsByElement[element.id] ?? const <String>{}) {
+      _previewDefinitions[id] = replace(_previewDefinitions[id]!);
+    }
+    _updateLoadedVisualProjections(replace);
+  }
+
+  void _acceptEnvironmentProjection(EnvironmentPreset environment) {
+    _resourceClosures.remove('environmentPreset:${environment.id}');
+    final family = _familyDefinitions;
+    if (_resourceKind == 'environmentPreset' ||
+        _resourceKind == 'environmentPreset:placeable') {
+      _resourceKind = null;
+      if (family != null) {
+        _familyDefinitions = upsertProjectEnvironmentPreset(
+          family,
+          environment,
+        );
+        _composeResourceVisuals();
+        _combinedVisuals = null;
+      }
+    }
+    _updateLoadedVisualProjections(
+      (value) => replaceLoadedEnvironmentProjection(value, environment),
+    );
   }
 }

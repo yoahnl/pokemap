@@ -7680,9 +7680,281 @@ as CharacterPortraitFitMode,
 
 
 /// @nodoc
+mixin _$ProjectCharacterSpatialModel {
+
+ String get modelId; Map<CharacterAnimationState, int> get clips;
+/// Create a copy of ProjectCharacterSpatialModel
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectCharacterSpatialModelCopyWith<ProjectCharacterSpatialModel> get copyWith => _$ProjectCharacterSpatialModelCopyWithImpl<ProjectCharacterSpatialModel>(this as ProjectCharacterSpatialModel, _$identity);
+
+  /// Serializes this ProjectCharacterSpatialModel to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCharacterSpatialModel&&(identical(other.modelId, modelId) || other.modelId == modelId)&&const DeepCollectionEquality().equals(other.clips, clips));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,modelId,const DeepCollectionEquality().hash(clips));
+
+@override
+String toString() {
+  return 'ProjectCharacterSpatialModel(modelId: $modelId, clips: $clips)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectCharacterSpatialModelCopyWith<$Res>  {
+  factory $ProjectCharacterSpatialModelCopyWith(ProjectCharacterSpatialModel value, $Res Function(ProjectCharacterSpatialModel) _then) = _$ProjectCharacterSpatialModelCopyWithImpl;
+@useResult
+$Res call({
+ String modelId, Map<CharacterAnimationState, int> clips
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectCharacterSpatialModelCopyWithImpl<$Res>
+    implements $ProjectCharacterSpatialModelCopyWith<$Res> {
+  _$ProjectCharacterSpatialModelCopyWithImpl(this._self, this._then);
+
+  final ProjectCharacterSpatialModel _self;
+  final $Res Function(ProjectCharacterSpatialModel) _then;
+
+/// Create a copy of ProjectCharacterSpatialModel
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? modelId = null,Object? clips = null,}) {
+  return _then(_self.copyWith(
+modelId: null == modelId ? _self.modelId : modelId // ignore: cast_nullable_to_non_nullable
+as String,clips: null == clips ? _self.clips : clips // ignore: cast_nullable_to_non_nullable
+as Map<CharacterAnimationState, int>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ProjectCharacterSpatialModel].
+extension ProjectCharacterSpatialModelPatterns on ProjectCharacterSpatialModel {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectCharacterSpatialModel value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectCharacterSpatialModel() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectCharacterSpatialModel value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectCharacterSpatialModel():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectCharacterSpatialModel value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectCharacterSpatialModel() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String modelId,  Map<CharacterAnimationState, int> clips)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectCharacterSpatialModel() when $default != null:
+return $default(_that.modelId,_that.clips);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String modelId,  Map<CharacterAnimationState, int> clips)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectCharacterSpatialModel():
+return $default(_that.modelId,_that.clips);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String modelId,  Map<CharacterAnimationState, int> clips)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectCharacterSpatialModel() when $default != null:
+return $default(_that.modelId,_that.clips);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _ProjectCharacterSpatialModel extends ProjectCharacterSpatialModel {
+  const _ProjectCharacterSpatialModel({required this.modelId, final  Map<CharacterAnimationState, int> clips = const <CharacterAnimationState, int>{}}): _clips = clips,super._();
+  factory _ProjectCharacterSpatialModel.fromJson(Map<String, dynamic> json) => _$ProjectCharacterSpatialModelFromJson(json);
+
+@override final  String modelId;
+ final  Map<CharacterAnimationState, int> _clips;
+@override@JsonKey() Map<CharacterAnimationState, int> get clips {
+  if (_clips is EqualUnmodifiableMapView) return _clips;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_clips);
+}
+
+
+/// Create a copy of ProjectCharacterSpatialModel
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectCharacterSpatialModelCopyWith<_ProjectCharacterSpatialModel> get copyWith => __$ProjectCharacterSpatialModelCopyWithImpl<_ProjectCharacterSpatialModel>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectCharacterSpatialModelToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCharacterSpatialModel&&(identical(other.modelId, modelId) || other.modelId == modelId)&&const DeepCollectionEquality().equals(other._clips, _clips));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,modelId,const DeepCollectionEquality().hash(_clips));
+
+@override
+String toString() {
+  return 'ProjectCharacterSpatialModel(modelId: $modelId, clips: $clips)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectCharacterSpatialModelCopyWith<$Res> implements $ProjectCharacterSpatialModelCopyWith<$Res> {
+  factory _$ProjectCharacterSpatialModelCopyWith(_ProjectCharacterSpatialModel value, $Res Function(_ProjectCharacterSpatialModel) _then) = __$ProjectCharacterSpatialModelCopyWithImpl;
+@override @useResult
+$Res call({
+ String modelId, Map<CharacterAnimationState, int> clips
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectCharacterSpatialModelCopyWithImpl<$Res>
+    implements _$ProjectCharacterSpatialModelCopyWith<$Res> {
+  __$ProjectCharacterSpatialModelCopyWithImpl(this._self, this._then);
+
+  final _ProjectCharacterSpatialModel _self;
+  final $Res Function(_ProjectCharacterSpatialModel) _then;
+
+/// Create a copy of ProjectCharacterSpatialModel
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? modelId = null,Object? clips = null,}) {
+  return _then(_ProjectCharacterSpatialModel(
+modelId: null == modelId ? _self.modelId : modelId // ignore: cast_nullable_to_non_nullable
+as String,clips: null == clips ? _self._clips : clips // ignore: cast_nullable_to_non_nullable
+as Map<CharacterAnimationState, int>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$ProjectCharacterEntry {
 
- String get id; String get name; String get tilesetId;@JsonKey(includeIfNull: false) bool? get contactShadow; int get frameWidth; int get frameHeight;@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> get portraits; List<CharacterAnimation> get animations;@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> get customAnimations; List<String> get tags; int get sortOrder;
+ String get id; String get name; String get tilesetId;@JsonKey(includeIfNull: false) bool? get contactShadow;@JsonKey(includeIfNull: false) ProjectCharacterSpatialModel? get spatialModel; int get frameWidth; int get frameHeight;@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> get portraits; List<CharacterAnimation> get animations;@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> get customAnimations; List<String> get tags; int get sortOrder;
 /// Create a copy of ProjectCharacterEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -7695,16 +7967,16 @@ $ProjectCharacterEntryCopyWith<ProjectCharacterEntry> get copyWith => _$ProjectC
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.contactShadow, contactShadow) || other.contactShadow == contactShadow)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other.portraits, portraits)&&const DeepCollectionEquality().equals(other.animations, animations)&&const DeepCollectionEquality().equals(other.customAnimations, customAnimations)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.contactShadow, contactShadow) || other.contactShadow == contactShadow)&&(identical(other.spatialModel, spatialModel) || other.spatialModel == spatialModel)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other.portraits, portraits)&&const DeepCollectionEquality().equals(other.animations, animations)&&const DeepCollectionEquality().equals(other.customAnimations, customAnimations)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,tilesetId,contactShadow,frameWidth,frameHeight,const DeepCollectionEquality().hash(portraits),const DeepCollectionEquality().hash(animations),const DeepCollectionEquality().hash(customAnimations),const DeepCollectionEquality().hash(tags),sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,tilesetId,contactShadow,spatialModel,frameWidth,frameHeight,const DeepCollectionEquality().hash(portraits),const DeepCollectionEquality().hash(animations),const DeepCollectionEquality().hash(customAnimations),const DeepCollectionEquality().hash(tags),sortOrder);
 
 @override
 String toString() {
-  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, contactShadow: $contactShadow, frameWidth: $frameWidth, frameHeight: $frameHeight, portraits: $portraits, animations: $animations, customAnimations: $customAnimations, tags: $tags, sortOrder: $sortOrder)';
+  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, contactShadow: $contactShadow, spatialModel: $spatialModel, frameWidth: $frameWidth, frameHeight: $frameHeight, portraits: $portraits, animations: $animations, customAnimations: $customAnimations, tags: $tags, sortOrder: $sortOrder)';
 }
 
 
@@ -7715,11 +7987,11 @@ abstract mixin class $ProjectCharacterEntryCopyWith<$Res>  {
   factory $ProjectCharacterEntryCopyWith(ProjectCharacterEntry value, $Res Function(ProjectCharacterEntry) _then) = _$ProjectCharacterEntryCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String tilesetId,@JsonKey(includeIfNull: false) bool? contactShadow, int frameWidth, int frameHeight,@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> portraits, List<CharacterAnimation> animations,@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> customAnimations, List<String> tags, int sortOrder
+ String id, String name, String tilesetId,@JsonKey(includeIfNull: false) bool? contactShadow,@JsonKey(includeIfNull: false) ProjectCharacterSpatialModel? spatialModel, int frameWidth, int frameHeight,@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> portraits, List<CharacterAnimation> animations,@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> customAnimations, List<String> tags, int sortOrder
 });
 
 
-
+$ProjectCharacterSpatialModelCopyWith<$Res>? get spatialModel;
 
 }
 /// @nodoc
@@ -7732,13 +8004,14 @@ class _$ProjectCharacterEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectCharacterEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? contactShadow = freezed,Object? frameWidth = null,Object? frameHeight = null,Object? portraits = null,Object? animations = null,Object? customAnimations = null,Object? tags = null,Object? sortOrder = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? contactShadow = freezed,Object? spatialModel = freezed,Object? frameWidth = null,Object? frameHeight = null,Object? portraits = null,Object? animations = null,Object? customAnimations = null,Object? tags = null,Object? sortOrder = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
 as String,contactShadow: freezed == contactShadow ? _self.contactShadow : contactShadow // ignore: cast_nullable_to_non_nullable
-as bool?,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
+as bool?,spatialModel: freezed == spatialModel ? _self.spatialModel : spatialModel // ignore: cast_nullable_to_non_nullable
+as ProjectCharacterSpatialModel?,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
 as int,frameHeight: null == frameHeight ? _self.frameHeight : frameHeight // ignore: cast_nullable_to_non_nullable
 as int,portraits: null == portraits ? _self.portraits : portraits // ignore: cast_nullable_to_non_nullable
 as List<CharacterPortraitVariant>,animations: null == animations ? _self.animations : animations // ignore: cast_nullable_to_non_nullable
@@ -7748,7 +8021,19 @@ as List<String>,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ig
 as int,
   ));
 }
+/// Create a copy of ProjectCharacterEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectCharacterSpatialModelCopyWith<$Res>? get spatialModel {
+    if (_self.spatialModel == null) {
+    return null;
+  }
 
+  return $ProjectCharacterSpatialModelCopyWith<$Res>(_self.spatialModel!, (value) {
+    return _then(_self.copyWith(spatialModel: value));
+  });
+}
 }
 
 
@@ -7830,10 +8115,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId, @JsonKey(includeIfNull: false)  bool? contactShadow,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId, @JsonKey(includeIfNull: false)  bool? contactShadow, @JsonKey(includeIfNull: false)  ProjectCharacterSpatialModel? spatialModel,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectCharacterEntry() when $default != null:
-return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.spatialModel,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
   return orElse();
 
 }
@@ -7851,10 +8136,10 @@ return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.fr
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId, @JsonKey(includeIfNull: false)  bool? contactShadow,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId, @JsonKey(includeIfNull: false)  bool? contactShadow, @JsonKey(includeIfNull: false)  ProjectCharacterSpatialModel? spatialModel,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectCharacterEntry():
-return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.spatialModel,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -7871,10 +8156,10 @@ return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.fr
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String tilesetId, @JsonKey(includeIfNull: false)  bool? contactShadow,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String tilesetId, @JsonKey(includeIfNull: false)  bool? contactShadow, @JsonKey(includeIfNull: false)  ProjectCharacterSpatialModel? spatialModel,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectCharacterEntry() when $default != null:
-return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.spatialModel,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
   return null;
 
 }
@@ -7886,13 +8171,14 @@ return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.fr
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectCharacterEntry implements ProjectCharacterEntry {
-  const _ProjectCharacterEntry({required this.id, required this.name, required this.tilesetId, @JsonKey(includeIfNull: false) this.contactShadow, this.frameWidth = 1, this.frameHeight = 2, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) final  List<CharacterPortraitVariant> portraits = const [], final  List<CharacterAnimation> animations = const [], @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) final  List<CharacterCustomAnimationClip> customAnimations = const [], final  List<String> tags = const [], this.sortOrder = 0}): _portraits = portraits,_animations = animations,_customAnimations = customAnimations,_tags = tags;
+  const _ProjectCharacterEntry({required this.id, required this.name, required this.tilesetId, @JsonKey(includeIfNull: false) this.contactShadow, @JsonKey(includeIfNull: false) this.spatialModel, this.frameWidth = 1, this.frameHeight = 2, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) final  List<CharacterPortraitVariant> portraits = const [], final  List<CharacterAnimation> animations = const [], @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) final  List<CharacterCustomAnimationClip> customAnimations = const [], final  List<String> tags = const [], this.sortOrder = 0}): _portraits = portraits,_animations = animations,_customAnimations = customAnimations,_tags = tags;
   factory _ProjectCharacterEntry.fromJson(Map<String, dynamic> json) => _$ProjectCharacterEntryFromJson(json);
 
 @override final  String id;
 @override final  String name;
 @override final  String tilesetId;
 @override@JsonKey(includeIfNull: false) final  bool? contactShadow;
+@override@JsonKey(includeIfNull: false) final  ProjectCharacterSpatialModel? spatialModel;
 @override@JsonKey() final  int frameWidth;
 @override@JsonKey() final  int frameHeight;
  final  List<CharacterPortraitVariant> _portraits;
@@ -7938,16 +8224,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.contactShadow, contactShadow) || other.contactShadow == contactShadow)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other._portraits, _portraits)&&const DeepCollectionEquality().equals(other._animations, _animations)&&const DeepCollectionEquality().equals(other._customAnimations, _customAnimations)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.contactShadow, contactShadow) || other.contactShadow == contactShadow)&&(identical(other.spatialModel, spatialModel) || other.spatialModel == spatialModel)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other._portraits, _portraits)&&const DeepCollectionEquality().equals(other._animations, _animations)&&const DeepCollectionEquality().equals(other._customAnimations, _customAnimations)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,tilesetId,contactShadow,frameWidth,frameHeight,const DeepCollectionEquality().hash(_portraits),const DeepCollectionEquality().hash(_animations),const DeepCollectionEquality().hash(_customAnimations),const DeepCollectionEquality().hash(_tags),sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,tilesetId,contactShadow,spatialModel,frameWidth,frameHeight,const DeepCollectionEquality().hash(_portraits),const DeepCollectionEquality().hash(_animations),const DeepCollectionEquality().hash(_customAnimations),const DeepCollectionEquality().hash(_tags),sortOrder);
 
 @override
 String toString() {
-  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, contactShadow: $contactShadow, frameWidth: $frameWidth, frameHeight: $frameHeight, portraits: $portraits, animations: $animations, customAnimations: $customAnimations, tags: $tags, sortOrder: $sortOrder)';
+  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, contactShadow: $contactShadow, spatialModel: $spatialModel, frameWidth: $frameWidth, frameHeight: $frameHeight, portraits: $portraits, animations: $animations, customAnimations: $customAnimations, tags: $tags, sortOrder: $sortOrder)';
 }
 
 
@@ -7958,11 +8244,11 @@ abstract mixin class _$ProjectCharacterEntryCopyWith<$Res> implements $ProjectCh
   factory _$ProjectCharacterEntryCopyWith(_ProjectCharacterEntry value, $Res Function(_ProjectCharacterEntry) _then) = __$ProjectCharacterEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String tilesetId,@JsonKey(includeIfNull: false) bool? contactShadow, int frameWidth, int frameHeight,@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> portraits, List<CharacterAnimation> animations,@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> customAnimations, List<String> tags, int sortOrder
+ String id, String name, String tilesetId,@JsonKey(includeIfNull: false) bool? contactShadow,@JsonKey(includeIfNull: false) ProjectCharacterSpatialModel? spatialModel, int frameWidth, int frameHeight,@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> portraits, List<CharacterAnimation> animations,@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> customAnimations, List<String> tags, int sortOrder
 });
 
 
-
+@override $ProjectCharacterSpatialModelCopyWith<$Res>? get spatialModel;
 
 }
 /// @nodoc
@@ -7975,13 +8261,14 @@ class __$ProjectCharacterEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectCharacterEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? contactShadow = freezed,Object? frameWidth = null,Object? frameHeight = null,Object? portraits = null,Object? animations = null,Object? customAnimations = null,Object? tags = null,Object? sortOrder = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? contactShadow = freezed,Object? spatialModel = freezed,Object? frameWidth = null,Object? frameHeight = null,Object? portraits = null,Object? animations = null,Object? customAnimations = null,Object? tags = null,Object? sortOrder = null,}) {
   return _then(_ProjectCharacterEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
 as String,contactShadow: freezed == contactShadow ? _self.contactShadow : contactShadow // ignore: cast_nullable_to_non_nullable
-as bool?,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
+as bool?,spatialModel: freezed == spatialModel ? _self.spatialModel : spatialModel // ignore: cast_nullable_to_non_nullable
+as ProjectCharacterSpatialModel?,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
 as int,frameHeight: null == frameHeight ? _self.frameHeight : frameHeight // ignore: cast_nullable_to_non_nullable
 as int,portraits: null == portraits ? _self._portraits : portraits // ignore: cast_nullable_to_non_nullable
 as List<CharacterPortraitVariant>,animations: null == animations ? _self._animations : animations // ignore: cast_nullable_to_non_nullable
@@ -7992,7 +8279,19 @@ as int,
   ));
 }
 
+/// Create a copy of ProjectCharacterEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectCharacterSpatialModelCopyWith<$Res>? get spatialModel {
+    if (_self.spatialModel == null) {
+    return null;
+  }
 
+  return $ProjectCharacterSpatialModelCopyWith<$Res>(_self.spatialModel!, (value) {
+    return _then(_self.copyWith(spatialModel: value));
+  });
+}
 }
 
 

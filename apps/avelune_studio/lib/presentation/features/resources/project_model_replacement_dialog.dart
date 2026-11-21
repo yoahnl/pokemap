@@ -147,10 +147,17 @@ class ProjectModelTargetDialog extends StatefulWidget {
     super.key,
     required this.models,
     required this.familyLabels,
+    this.title = 'Choisir le modèle de destination',
+    this.confirmLabel = 'Vérifier les usages',
+    this.searchLabel = 'Chercher un modèle 3D',
+    this.emptyLabel = 'Aucun autre modèle trouvé',
+    this.itemIcon = Icons.view_in_ar_outlined,
   });
 
   final Iterable<ProjectLibraryItem> models;
   final Map<String, String> familyLabels;
+  final String title, confirmLabel, searchLabel, emptyLabel;
+  final IconData itemIcon;
 
   @override
   State<ProjectModelTargetDialog> createState() =>
@@ -175,8 +182,8 @@ class _ProjectModelTargetDialogState extends State<ProjectModelTargetDialog> {
         if (model.searchText.contains(query)) model,
     ];
     return StudioReviewDialog(
-      title: 'Choisir le modèle de destination',
-      confirmLabel: 'Vérifier les usages',
+      title: widget.title,
+      confirmLabel: widget.confirmLabel,
       onConfirmed: _selected == null
           ? null
           : () => Navigator.pop(context, _selected),
@@ -185,7 +192,7 @@ class _ProjectModelTargetDialogState extends State<ProjectModelTargetDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           StudioSearchField(
-            label: 'Chercher un modèle 3D',
+            label: widget.searchLabel,
             controller: _search,
             onChanged: (_) => setState(() => _selected = null),
           ),
@@ -193,7 +200,7 @@ class _ProjectModelTargetDialogState extends State<ProjectModelTargetDialog> {
           SizedBox(
             height: 240,
             child: models.isEmpty
-                ? const StudioEmptyState(title: 'Aucun autre modèle trouvé')
+                ? StudioEmptyState(title: widget.emptyLabel)
                 : ListView.builder(
                     itemCount: models.length,
                     itemBuilder: (context, index) {
@@ -209,7 +216,7 @@ class _ProjectModelTargetDialogState extends State<ProjectModelTargetDialog> {
                               : '${model.name} · $family',
                           icon: selected
                               ? Icons.check_circle_outline
-                              : Icons.view_in_ar_outlined,
+                              : widget.itemIcon,
                           variant: selected
                               ? StudioButtonVariant.secondary
                               : StudioButtonVariant.quiet,

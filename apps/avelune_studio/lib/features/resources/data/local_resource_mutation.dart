@@ -13,6 +13,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
     String? scopedCharacterId,
     String? expectedBeforeRevision,
     String? expectedSnapshotRevision,
+    bool modelWorkshopTransform = false,
     bool confirmDestructive = false,
     String? Function()? validateBeforeApply,
   }) => mapAdapter.withResourceMutation(() async {
@@ -74,11 +75,16 @@ extension _LocalResourceMutation on LocalResourceAdapter {
                 'model3d.source.replace',
                 'model3d.source.replace_batch',
               }.contains(actionId)) ||
-          (session.storage != ProjectSessionStorage.portableCatalog &&
-              actionId == 'model3d.configure' &&
-              fields.length == 2 &&
-              fields.containsKey('modelId') &&
-              fields.containsKey('castsShadowsByDefault'));
+          _isScopedModelWorkshopConfiguration(
+            session.storage,
+            actionId,
+            fields,
+            allowTransform: modelWorkshopTransform,
+          );
+      final scopedTransform =
+          actionId == 'model3d.configure' &&
+          scopedModelMutation &&
+          (fields.containsKey('scale') || fields.containsKey('pivot'));
       if (session.storage != ProjectSessionStorage.portableCatalog &&
           expectedSnapshotRevision == null &&
           resourceMutationIsUnchanged(before.manifest, actionId, fields)) {
@@ -198,7 +204,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             parameters: fields,
             expectedRevision: snapshot.revision,
             idempotencyKey: operationId,
-            extensions: scopedCatalogMutation
+            extensions: scopedCatalogMutation || scopedTransform
                 ? const {'workshopScope': true}
                 : const {},
           ),

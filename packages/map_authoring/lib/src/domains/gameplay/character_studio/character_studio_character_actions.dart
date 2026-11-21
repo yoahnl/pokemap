@@ -153,6 +153,7 @@ final class CharacterStudioCharacterActions {
         'frameHeight',
         'tags',
         'contactShadow',
+        'spatialModel',
       },
     );
     final manifest = context.snapshot.manifest;
@@ -178,6 +179,11 @@ final class CharacterStudioCharacterActions {
       contactShadow: parameters.contains('contactShadow')
           ? parameters.optionalBoolean('contactShadow')
           : before.contactShadow,
+      spatialModel: parameters.contains('spatialModel')
+          ? parameters.values['spatialModel'] == null
+              ? null
+              : ProjectCharacterSpatialModel.fromJson(Map<String, dynamic>.from(parameters.object('spatialModel')))
+          : before.spatialModel,
     );
     final characters = manifest.characters.toList()..[index] = after;
     final projected = manifest.copyWith(characters: characters);
@@ -839,6 +845,15 @@ Map<String, Object?> _characterIdentitySchema({required bool create}) => {
           'type': ['boolean', 'null'],
           'description':
               '3D foot contact shadow; null inherits the project default; omitted updates preserve the current override.',
+        },
+        if (!create) 'spatialModel': {
+          'type': ['object', 'null'],
+          'additionalProperties': false,
+          'required': ['modelId', 'clips'],
+          'properties': {
+            'modelId': {'type': 'string'},
+            'clips': {'type': 'object', 'additionalProperties': {'type': 'integer', 'minimum': 0}},
+          },
         },
       },
     };

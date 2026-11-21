@@ -14,6 +14,8 @@ Future<RuntimeMapBundle> prepareRuntimePlayerAvatarBundle(
       .where((entry) => entry.id == characterId)
       .toList();
   if (matches.length == 1 &&
+      (matches.single.spatialModel == null ||
+          bundle.modelById(matches.single.spatialModel!.modelId) != null) &&
       runtimePlayerAvatarImageIds(matches.single)
           .every(bundle.runtimeImageAbsolutePathsById.containsKey)) {
     return bundle;
@@ -51,6 +53,14 @@ Future<RuntimeMapBundle> prepareRuntimePlayerAvatarBundle(
         ),
         ...project.tilesets,
       ],
+      models3d: project.models3d.isEmpty
+          ? bundle.manifest.models3d
+          : [
+              ...bundle.manifest.models3d.where(
+                (entry) => !project.models3d.any((next) => next.id == entry.id),
+              ),
+              ...project.models3d,
+            ],
     ),
     tilesetAbsolutePathsById: {...bundle.tilesetAbsolutePathsById, ...tilesets},
     characterAnimationAbsolutePathsByAssetId: {

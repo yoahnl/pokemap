@@ -15,6 +15,7 @@ extension _MapWorkspaceExternalStates on MapWorkspaceController {
       _selectionMapsByModel,
       _selectionMapsByBorder,
       _selectionMapsByTerrain,
+      _selectionMapsByElement,
     );
     _externalConflicts.remove(id);
     _mapVisualProfiles.remove(id);

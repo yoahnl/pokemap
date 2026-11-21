@@ -386,6 +386,7 @@ final class _Inspection {
             max: Model3dVector3(x: maximum[0], y: maximum[1], z: maximum[2])),
         meshCount: usedMeshes.length,
         triangleCount: instanceTriangles,
+        skinned: experimentalSkinnedScene,
         materials: materials,
         animations: animations,
         diagnostics: diagnostics.toList()..sort());

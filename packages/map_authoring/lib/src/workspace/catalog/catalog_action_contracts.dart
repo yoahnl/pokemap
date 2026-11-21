@@ -7,11 +7,12 @@ const catalogLibraryCopyKinds = {
   'character',
   'environmentPreset',
   'smartTilePreset',
+  'borderBlueprint',
 };
 
 final catalogDefinitionDuplicateDescriptor = _libraryDefinitionAction(
   'duplicate',
-  'Copy one library definition and its classification using the existing sources.',
+  'Copy one library definition and its classification using the existing sources. Spatial Border copies start as drafts.',
   catalogLibraryCopyKinds,
   AuthoringRiskLevel.medium,
 );
@@ -22,7 +23,6 @@ final catalogDefinitionDeleteDescriptor = _libraryDefinitionAction(
   {
     ...catalogLibraryCopyKinds,
     'model3d',
-    'borderBlueprint',
   },
   AuthoringRiskLevel.high,
 );

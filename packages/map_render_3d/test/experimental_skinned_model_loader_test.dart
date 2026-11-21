@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -6,15 +7,19 @@ import 'package:flame_3d/core.dart';
 import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/model.dart';
 import 'package:flame_3d/resources.dart';
+import 'package:flutter/widgets.dart' show SizedBox;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/animated_render_model.dart';
 import 'package:map_render_3d/src/glb_renderer_layout.dart';
 import 'package:map_render_3d/src/model_byte_loader.dart';
+import 'package:map_render_3d/src/model_playback.dart';
+import 'package:map_render_3d/src/spatial_actor_visual.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 import 'package:map_render_3d/src/spatial_render_context.dart';
 import 'package:map_render_3d/src/spatial_resource_admission.dart';
+import 'package:map_render_3d/src/spatial_scene_view.dart';
 
 import '../../map_distribution/test/support/glb_fixture.dart';
 
@@ -274,6 +279,118 @@ final class _OrderContext extends SpatialRenderContext {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('visible rigged actors share the source and sample their own poses', () async {
+    _UnusedBackend();
+    final bytes = experimentalSkinFixture();
+    final definition = ProjectModel3dEntry(
+      id: 'rig',
+      name: 'Rig',
+      sourceAssetId: 'rig-source',
+      relativePath: 'assets/models3d/rig.glb',
+      pivot: Model3dVector3(x: .2, y: .1, z: -.3),
+      inspection: Model3dInspection(
+        bounds: Model3dBounds(
+          min: Model3dVector3(x: 0, y: 0, z: -10),
+          max: Model3dVector3(x: 5, y: 1, z: 0),
+        ),
+        meshCount: 1,
+        triangleCount: 4,
+        skinned: true,
+      ),
+    );
+    final recorder = ui.PictureRecorder();
+    ui.Canvas(recorder).drawColor(const ui.Color(0xffffffff), ui.BlendMode.src);
+    final picture = recorder.endRecording();
+    final image = picture.toImageSync(1, 1);
+    final texture = await SpatialActorTexture.fromImage(image);
+    image.dispose();
+    picture.dispose();
+    addTearDown(texture.release);
+    final loading = Completer<Uint8List>();
+    final requested = Completer<void>();
+    var reads = 0;
+    Future<Uint8List> loadRig(String id) {
+      expect(id, 'rig');
+      if (++reads == 1) requested.complete();
+      return loading.future;
+    }
+    SpatialActorVisual actor(double x, double time) => SpatialActorVisual(
+      x: x, y: 0, z: 1,
+      texture: texture,
+      frame: const ui.Rect.fromLTWH(0, 0, 1, 1),
+      model: (
+        definition: definition,
+        loadModel: loadRig,
+        facing: EntityFacing.east,
+        pose: SpatialModelRuntimeState(
+          modelId: 'rig',
+          animationIndex: 0,
+          normalizedTime: time,
+          blocksMovement: false,
+        ),
+      ),
+    );
+    var frames = {'hero': actor(1, .25), 'npc': actor(2, .75)};
+    final controller = SpatialSceneController();
+    addTearDown(controller.dispose);
+    final game = SpatialSceneGame(
+      SpatialSceneView(
+        scene: MapSpatialScene(width: 4, depth: 4),
+        models: [definition],
+        loadModel: (id) async => throw StateError('Unexpected map model: $id'),
+        actorFrames: (_) => frames,
+        controller: controller,
+        onCell: (_, _) {},
+        background: const ui.Color(0xff000000),
+        ground: const ui.Color(0xff336633),
+        edge: const ui.Color(0xff111111),
+        errorBuilder: (_, _) => const SizedBox(),
+      ),
+      onPreviewStatus: (_) {},
+      onSurfaceChanged: () {},
+    )
+      ..onGameResize(Vector2(200, 200))
+      ..syncCamera();
+    addTearDown(() {
+      if (!game.closed) game.onRemove();
+    });
+    final models = game.world.children.whereType<AnimatedModelComponent>();
+    game.syncActors(0);
+    await requested.future.timeout(const Duration(seconds: 2));
+    expect(models, isEmpty);
+    expect(game.actors.keys, ['hero', 'npc']);
+    loading.complete(bytes);
+    for (var turn = 0; turn < 400 && models.isEmpty; turn++) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      game.syncActors(0);
+    }
+    expect(reads, 1);
+    expect(models, hasLength(2));
+    final mounted = models.toList()..sort((a, b) => a.position.x.compareTo(b.position.x));
+    final first = mounted.first;
+    final second = mounted.last;
+    expect(second.model, same(first.model));
+    expect(first.playback.clock, .25 * first.playback.durationSeconds);
+    expect(second.playback.clock, .75 * second.playback.durationSeconds);
+    final anchor = first.worldTransformMatrix.transform3(Vector3(.2, .1, -.3));
+    expect(anchor.x, closeTo(1, 1e-6));
+    expect(anchor.y, closeTo(0, 1e-6));
+    expect(anchor.z, closeTo(1, 1e-6));
+    final forward = first.worldTransformMatrix.transform3(Vector3(.2, .1, .7));
+    expect(forward.x - anchor.x, closeTo(1, 1e-6));
+    expect(game.resourceBudget.residentBytes, greaterThan(0));
+    frames = {};
+    game.syncActors(0);
+    expect(models, isEmpty);
+    expect(game.resourceBudget.residentBytes, greaterThan(0));
+    frames = {'hero': actor(1, .5)};
+    game.syncActors(0);
+    expect(models.single.model, same(first.model));
+    expect(reads, 1);
+    game.onRemove();
+    expect(game.resourceBudget.residentBytes, 0);
+  });
 
   test('the default loader preserves its existing unsplit behavior', () async {
     final model = await ModelByteLoader.load(experimentalSkinFixture());

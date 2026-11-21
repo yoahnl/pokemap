@@ -124,7 +124,9 @@ class ProjectLibraryCatalogView {
         ResourcePlacementContext.both => 'Intérieur et extérieur',
         null => null,
       },
-      canDuplicate: item.kind != 'borderBlueprint',
+      canDuplicate:
+          item.kind != 'borderBlueprint' ||
+          item.compatibleDimensions.contains(ProjectDimension.threeD),
     );
   }
 

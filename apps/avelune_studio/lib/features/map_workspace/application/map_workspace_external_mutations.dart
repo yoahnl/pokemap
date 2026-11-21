@@ -191,6 +191,7 @@ extension MapWorkspaceExternalMutations on MapWorkspaceController {
           _previewMapsByModel,
           _previewMapsByBorder,
           _previewMapsByTerrain,
+          _previewMapsByElement,
         );
         _loading.remove(id);
         if (document != null &&

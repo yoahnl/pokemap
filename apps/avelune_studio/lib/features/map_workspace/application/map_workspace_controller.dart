@@ -93,10 +93,14 @@ class MapWorkspaceController {
   final _previewMapsByBorder = <String, Set<String>>{};
   final _selectionMapsByTerrain = <String, Set<String>>{};
   final _previewMapsByTerrain = <String, Set<String>>{};
+  final _selectionMapsByElement = <String, Set<String>>{};
+  final _previewMapsByElement = <String, Set<String>>{};
   final _acceptedModelDefinitions =
       <String, ({int epoch, ProjectModel3dEntry definition})>{};
   final _acceptedTerrainDefinitions =
       <String, ({int epoch, ProjectSmartTilePreset definition})>{};
+  final _acceptedElementDefinitions =
+      <String, ({int epoch, ProjectElementEntry definition})>{};
   int _resourceProjectionEpoch = 0;
   int modelSourceSelectionsVisited = 0;
   int modelSourcePreviewsVisited = 0;
@@ -241,6 +245,8 @@ class MapWorkspaceController {
     Map<String, ProjectModel3dEntry> changedModels = const {},
     BorderBlueprintRecord? changedBorder,
     ProjectSmartTilePreset? changedTerrain,
+    ProjectElementEntry? changedElement,
+    EnvironmentPreset? changedEnvironment,
     ({String kind, String id})? removedLibraryResource,
     bool notifyChange = true,
   }) => _acceptResources(
@@ -249,6 +255,8 @@ class MapWorkspaceController {
     changedModels: changedModels,
     changedBorder: changedBorder,
     changedTerrain: changedTerrain,
+    changedElement: changedElement,
+    changedEnvironment: changedEnvironment,
     removedLibraryResource: removedLibraryResource,
     notifyChange: notifyChange,
   );
@@ -280,6 +288,8 @@ class MapWorkspaceController {
     _previewMapsByModel.clear();
     _previewMapsByBorder.clear();
     _previewMapsByTerrain.clear();
+    _previewMapsByElement.clear();
+    _acceptedElementDefinitions.clear();
     _clearSelections();
     _acceptedModelDefinitions.clear();
     _acceptedTerrainDefinitions.clear();

@@ -181,6 +181,7 @@ final class Model3dInspection {
     required this.bounds,
     required this.meshCount,
     required this.triangleCount,
+    this.skinned = false,
     Iterable<Model3dMaterial> materials = const [],
     Iterable<Model3dAnimation> animations = const [],
     Iterable<String> diagnostics = const [],
@@ -200,6 +201,7 @@ final class Model3dInspection {
   final Model3dBounds bounds;
   final int meshCount;
   final int triangleCount;
+  final bool skinned;
   final List<Model3dMaterial> materials;
   final List<Model3dAnimation> animations;
   final List<String> diagnostics;
@@ -211,6 +213,7 @@ final class Model3dInspection {
           other.bounds == bounds &&
           other.meshCount == meshCount &&
           other.triangleCount == triangleCount &&
+          other.skinned == skinned &&
           const DeepCollectionEquality().equals(other.materials, materials) &&
           const DeepCollectionEquality().equals(other.animations, animations) &&
           const DeepCollectionEquality().equals(other.diagnostics, diagnostics);
@@ -219,6 +222,7 @@ final class Model3dInspection {
     bounds,
     meshCount,
     triangleCount,
+    skinned,
     const DeepCollectionEquality().hash(materials),
     const DeepCollectionEquality().hash(animations),
     const DeepCollectionEquality().hash(diagnostics),
@@ -230,6 +234,7 @@ final class Model3dInspection {
       'bounds',
       'meshCount',
       'triangleCount',
+      if (json.containsKey('skinned')) 'skinned',
       'materials',
       'animations',
       'diagnostics',
@@ -237,10 +242,14 @@ final class Model3dInspection {
     if (json['schemaVersion'] != 1) {
       throw const FormatException('Unsupported model inspection version.');
     }
+    if (json.containsKey('skinned') && json['skinned'] is! bool) {
+      throw const FormatException('Skinned must be a boolean.');
+    }
     return Model3dInspection(
       bounds: Model3dBounds.fromJson(_object(json['bounds'])),
       meshCount: _integer(json['meshCount']),
       triangleCount: _integer(json['triangleCount']),
+      skinned: (json['skinned'] as bool?) ?? false,
       materials: (json['materials'] as List).map(
         (v) => Model3dMaterial.fromJson(_object(v)),
       ),
@@ -255,6 +264,7 @@ final class Model3dInspection {
     'bounds': bounds.toJson(),
     'meshCount': meshCount,
     'triangleCount': triangleCount,
+    if (skinned) 'skinned': true,
     'materials': materials.map((v) => v.toJson()).toList(),
     'animations': animations.map((v) => v.toJson()).toList(),
     'diagnostics': diagnostics,

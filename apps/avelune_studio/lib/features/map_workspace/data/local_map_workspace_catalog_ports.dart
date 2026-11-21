@@ -7,6 +7,7 @@ mixin _MapWorkspaceCatalogPorts
         ProjectResourceLibraryDimensionsPort,
         ProjectResourceLibraryMapUsagesPort,
         ProjectResourceLibraryRelationsPort,
+        ProjectResourceLibraryRevisionPort,
         ProjectResourcePreviewPort,
         MapWorkspaceExternalMutationPort,
         MapWorkspaceWorkshopPort,
@@ -20,6 +21,10 @@ mixin _MapWorkspaceCatalogPorts
   @override
   Future<ProjectResourceLibrary> readResourceLibrary(ProjectSession session) =>
       _readLibrary(session, includeCompositeDimensions: true);
+
+  @override
+  Future<String> readResourceLibraryRevision(ProjectSession session) =>
+      _adapter.resourceRevision(session);
 
   @override
   Future<ProjectResourceLibrary> readResourceLibraryIndex(
@@ -148,6 +153,7 @@ mixin _MapWorkspaceCatalogPorts
     String kind,
     String id, {
     bool includeCharacterStudioDefinitions = false,
+    bool includeElementCategories = false,
   }) => _readScopedCatalogWith(
     _adapter._reader,
     session,
@@ -158,6 +164,12 @@ mixin _MapWorkspaceCatalogPorts
           CatalogDefinitionKey(_catalogFamily(kind), id),
           if (includeCharacterStudioDefinitions)
             ...await selection.characterStudioDefinitionKeys(),
+          if (includeElementCategories)
+            await for (final page in _libraryIndexPages(
+              catalog.snapshot,
+              CatalogDefinitionKind.elementCategory,
+            ))
+              for (final entry in page) entry.key,
         ], allowUnpublishedBorders: kind == 'borderBlueprint'),
         revision: revision,
       );

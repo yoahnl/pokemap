@@ -8,6 +8,10 @@ abstract interface class ProjectResourceLibraryPort {
   Future<ProjectResourceLibrary> readResourceLibrary(ProjectSession session);
 }
 
+abstract interface class ProjectResourceLibraryRevisionPort {
+  Future<String> readResourceLibraryRevision(ProjectSession session);
+}
+
 abstract interface class ProjectResourceLibraryDimensionsPort
     implements ProjectResourceLibraryPort {
   Future<ProjectResourceLibrary> readResourceLibraryIndex(

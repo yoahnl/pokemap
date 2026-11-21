@@ -108,7 +108,7 @@ Future<PickedProjectLibraryFile> _inspectLibraryFile(String path) async {
     );
   }
   try {
-    final model = const GlbModel3dInspector().inspect(bytes);
+    final model = const GlbModel3dInspector(experimentalSkinnedModels: true).inspect(bytes);
     return PickedProjectLibraryFile(
       path: path,
       name: name,

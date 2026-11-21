@@ -17,6 +17,29 @@ mixin _LocalProjectBorderWorkshop
       _createBorder(_borderWorkshopAdapter, request);
 
   @override
+  Future<ProjectLibraryEdit> createWorkshopBorder(
+    BorderCreationRequest request, {
+    required String expectedRevision,
+  }) async {
+    if (!canEditBorderWorkshop ||
+        request.blueprintId != null ||
+        request.publish) {
+      throw const ResourceFailure(
+        'La création de ce brouillon est indisponible.',
+      );
+    }
+    final adapter = _borderWorkshopAdapter;
+    final id = adapter._identity('border');
+    final receipt = await _createBorder(
+      adapter,
+      request,
+      creationId: id,
+      expectedRevision: expectedRevision,
+    );
+    return adapter._readLibraryEdit('borderBlueprint', id, receipt);
+  }
+
+  @override
   Future<ProjectBorderWorkshopRead> readWorkshopBorder(String borderId) async {
     final adapter = _borderWorkshopAdapter;
     adapter._requireAvailable();
@@ -36,10 +59,10 @@ mixin _LocalProjectBorderWorkshop
     required String expectedRevision,
   }) {
     final definition = draft.definition;
-    if (!definition.isSpatial ||
-        definition.template != BorderBlueprintTemplate.connectedLine) {
+    if (definition.template != BorderBlueprintTemplate.connectedLine ||
+        (!definition.isSpatial && definition.ground != null)) {
       throw const ResourceFailure(
-        'L’atelier permet de modifier les lignes connectées 3D.',
+        'Ce patron demande une préparation spécifique avant publication.',
       );
     }
     return _borderWorkshopAdapter._run(
@@ -59,12 +82,39 @@ mixin _LocalProjectBorderWorkshop
   Future<ResourceMutationReceipt> publishBorderDraft(
     String borderId, {
     required String expectedRevision,
-  }) => _borderWorkshopAdapter._run(
-    _publishWorkshopBorderAction,
-    (_) => {'blueprintId': borderId},
-    expectedBeforeRevision: expectedRevision,
-    scopedBorderId: borderId,
-  );
+    List<String> acceptedWarningCodes = const [],
+  }) async {
+    final adapter = _borderWorkshopAdapter;
+    final read = await readWorkshopBorder(borderId);
+    if (read.revision != expectedRevision) {
+      throw const BorderWorkshopReopenRequired();
+    }
+    final record = read.project.borderCatalog.recordById(borderId);
+    final definition = record?.draft.definition;
+    if (definition == null) throw const BorderWorkshopReopenRequired();
+    if (!definition.isSpatial && definition.ground != null) {
+      throw const ResourceFailure(
+        'Cette bande de sol demande des sources dédiées.',
+      );
+    }
+    final sources = definition.isSpatial
+        ? null
+        : await prepareExistingBorderSpriteSources(
+            read.project,
+            adapter.session.directoryPath,
+            definition.primitives.where((piece) => piece.weight > 0),
+          );
+    return adapter._run(
+      _publishWorkshopBorderAction,
+      (_) => {
+        'blueprintId': borderId,
+        if (acceptedWarningCodes.isNotEmpty) 'acceptedWarningCodes': acceptedWarningCodes,
+      },
+      expectedBeforeRevision: expectedRevision,
+      scopedBorderId: borderId,
+      borderSources: sources,
+    );
+  }
 
   @override
   Future<void> reconcileBorderWorkshop(
@@ -82,6 +132,48 @@ mixin _LocalProjectBorderWorkshop
       );
     });
   }
+}
+
+Future<ProjectManifest> _readNewBorderModels(
+  LocalResourceAdapter adapter,
+  ({ProjectManifest manifest, String revision}) baseline,
+  Set<String> modelIds,
+) async {
+  final selections = await Future.wait([
+    for (final id in modelIds)
+      adapter.mapAdapter.readResourcePreviewWithRevision(
+        adapter.session,
+        'model3d',
+        id,
+      ),
+  ]);
+  if (selections.any((read) => read.revision != baseline.revision)) {
+    throw const ResourceFailure(
+      'Le catalogue a changé. Actualisez la bibliothèque puis réessayez.',
+    );
+  }
+  final models = <String, ProjectModel3dEntry>{};
+  final families = <String, ResourceFamily>{};
+  final entries = <String, ResourceLibraryEntry>{};
+  for (final read in selections) {
+    for (final model in read.project.models3d) {
+      models[model.id] = model;
+    }
+    final library = read.project.resourceLibraryCatalog;
+    for (final family in library.families) {
+      families[family.id] = family;
+    }
+    for (final entry in library.entries) {
+      entries[entry.identity] = entry;
+    }
+  }
+  return baseline.manifest.copyWith(
+    models3d: models.values.toList(),
+    resourceLibraryCatalog: ResourceLibraryCatalog(
+      families: families.values,
+      entries: entries.values,
+    ),
+  );
 }
 
 BorderBlueprintRecord? _publishedWorkshopBorder(
@@ -111,7 +203,10 @@ ProjectManifest _mergeBorderWorkshopProjection(
           previous.id == borderId ? record : previous,
         if (!hasRecord) record,
       ],
-      visualSnapshots: current.visualSnapshots,
+      visualSnapshots: {
+        for (final snapshot in current.visualSnapshots) snapshot.id: snapshot,
+        for (final snapshot in after.visualSnapshots) snapshot.id: snapshot,
+      }.values.toList(),
     ),
   );
 }
@@ -130,8 +225,12 @@ Future<void> _verifyWorkshopBorderReceipt(
   }
 }
 
-ResourceFailure _borderWorkshopMutationFailure(Object error) => ResourceFailure(
-  switch (error) {
+ResourceFailure _borderWorkshopMutationFailure(Object error) {
+  if (error is MapAuthoringException &&
+      error.code == 'border.blueprint.publication_warnings_unacknowledged') {
+    return _resourceFailure(error);
+  }
+  return ResourceFailure(switch (error) {
     AuthoringPlanException(code: 'plan.stale') ||
     CatalogStorageException(
       code: 'catalog.revision_conflict',
@@ -146,5 +245,5 @@ ResourceFailure _borderWorkshopMutationFailure(Object error) => ResourceFailure(
       code: 'border.blueprint.no_change',
     ) => 'Ce brouillon correspond déjà à la version enregistrée.',
     _ => 'La bordure n’a pas pu être enregistrée. Votre saisie est conservée.',
-  },
-);
+  });
+}

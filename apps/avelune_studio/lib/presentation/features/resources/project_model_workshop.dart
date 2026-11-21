@@ -8,7 +8,9 @@ import '../../../features/resources/domain/project_model_workshop_port.dart';
 import '../../../features/resources/domain/resource_port.dart';
 import 'model_resource_preview.dart';
 
+part 'project_model_workshop_collision.dart';
 part 'project_model_workshop_shadow.dart';
+part 'project_model_workshop_transform.dart';
 
 typedef ModelReplacementPanelBuilder = Widget Function({
   required String revision,
@@ -26,9 +28,11 @@ class ProjectModelWorkshop extends StatefulWidget {
     required this.visuals,
     required this.onBack,
     this.saveShadow,
+    this.saveSettings,
     this.reconcileShadow,
     this.pendingReceipt,
     this.buildReplacement,
+    this.onDraftChanged,
   });
 
   final ProjectLibraryItem item;
@@ -37,12 +41,18 @@ class ProjectModelWorkshop extends StatefulWidget {
   final Future<ResourceMutationReceipt> Function(bool enabled, String revision)?
   saveShadow;
   final Future<ResourceMutationReceipt> Function(
+    ProjectModelWorkshopSettings settings,
+    String revision,
+  )?
+  saveSettings;
+  final Future<ResourceMutationReceipt> Function(
     ResourceMutationReceipt receipt,
   )?
   reconcileShadow;
   final ResourceMutationReceipt? pendingReceipt;
   final VoidCallback onBack;
   final ModelReplacementPanelBuilder? buildReplacement;
+  final ValueChanged<bool>? onDraftChanged;
 
   @override
   State<ProjectModelWorkshop> createState() => _ProjectModelWorkshopState();
@@ -52,12 +62,44 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
   late Future<ProjectModelWorkshopRead> _reading;
   ProjectModelWorkshopRead? _published;
   bool? _shadowDraft;
+  _ModelCollisionDraft? _collisionDraft;
+  _ModelTransformDraft? _transformDraft;
   String? _problem;
   bool _saving = false;
   bool _replacing = false;
   ResourceMutationReceipt? _pendingReceipt;
 
-  void _update(VoidCallback change) => setState(change);
+  bool get _hasDraft =>
+      _shadowDraft != null ||
+      _collisionDraft != null ||
+      _transformDraft != null;
+
+  void _update(VoidCallback change) {
+    setState(change);
+    widget.onDraftChanged?.call(_hasDraft);
+  }
+
+  Future<void> _leave() async {
+    if (_hasDraft) {
+      final discard = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => StudioReviewDialog(
+          title: 'Abandonner les réglages du modèle ?',
+          content: const Text('Vos réglages en cours seront effacés.'),
+          confirmLabel: 'Abandonner',
+          onConfirmed: () => Navigator.pop(dialogContext, true),
+          onCancelled: () => Navigator.pop(dialogContext, false),
+        ),
+      );
+      if (!mounted || discard != true) return;
+      _update(() {
+        _shadowDraft = null;
+        _collisionDraft = null;
+        _transformDraft = null;
+      });
+    }
+    widget.onBack();
+  }
 
   @override
   void initState() {
@@ -76,6 +118,8 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
     _published = null;
     if (!keepDraft) {
       _shadowDraft = null;
+      _collisionDraft = null;
+      _transformDraft = null;
       _pendingReceipt = widget.pendingReceipt;
     }
     _problem = null;
@@ -83,7 +127,6 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
 
   Future<void> _publish(
     ProjectModel3dEntry model,
-    bool enabled,
     Future<ResourceMutationReceipt> Function() operation,
   ) async {
     if (_saving) return;
@@ -103,12 +146,11 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
           partialReceipt: receipt,
         );
       }
-      setState(() {
-        _published = (
-          model: updated ?? model.copyWith(castsShadowsByDefault: enabled),
-          revision: receipt.revision,
-        );
+      _update(() {
+        _published = (model: updated ?? model, revision: receipt.revision);
         _shadowDraft = null;
+        _collisionDraft = null;
+        _transformDraft = null;
         _pendingReceipt = null;
         _saving = false;
       });
@@ -150,7 +192,7 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
             StudioButton(
               label: 'Retour à la bibliothèque',
               icon: Icons.arrow_back,
-              onPressed: _saving || _replacing ? null : widget.onBack,
+              onPressed: _saving || _replacing ? null : _leave,
               variant: StudioButtonVariant.quiet,
             ),
             Text('Modèles 3D', style: Theme.of(context).textTheme.titleMedium),
@@ -241,11 +283,7 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
         const SizedBox(height: StudioSpacing.xl),
         build(
           revision: revision,
-          enabled:
-              !_saving &&
-              _pendingReceipt == null &&
-              (_shadowDraft == null ||
-                  _shadowDraft == model.castsShadowsByDefault),
+          enabled: !_saving && _pendingReceipt == null && !_hasDraft,
           onBusyChanged: (value) => setState(() => _replacing = value),
           onRevision: (value) =>
               setState(() => _published = (model: model, revision: value)),

@@ -1256,6 +1256,34 @@ abstract class CharacterPortraitVariant with _$CharacterPortraitVariant {
 }
 
 @freezed
+abstract class ProjectCharacterSpatialModel with _$ProjectCharacterSpatialModel {
+  const ProjectCharacterSpatialModel._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectCharacterSpatialModel({
+    required String modelId,
+    @Default(<CharacterAnimationState, int>{})
+    Map<CharacterAnimationState, int> clips,
+  }) = _ProjectCharacterSpatialModel;
+
+  factory ProjectCharacterSpatialModel.fromJson(Map<String, dynamic> json) =>
+      _projectCharacterSpatialModelFromJson(json);
+
+  int? resolveClip(CharacterAnimationState state) =>
+      clips[state] ?? clips[CharacterAnimationState.idle];
+}
+
+ProjectCharacterSpatialModel _projectCharacterSpatialModelFromJson(Map<String, dynamic> json) {
+  final id = json['modelId'];
+  final clips = json['clips'];
+  if (id is! String || id.isEmpty || id != id.trim() ||
+      (clips != null && (clips is! Map || clips.values.any((index) => index is! int || index < 0)))) {
+    throw const FormatException('Invalid character model or animation indices.');
+  }
+  return _$ProjectCharacterSpatialModelFromJson(json);
+}
+
+@freezed
 abstract class ProjectCharacterEntry with _$ProjectCharacterEntry {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectCharacterEntry({
@@ -1263,6 +1291,7 @@ abstract class ProjectCharacterEntry with _$ProjectCharacterEntry {
     required String name,
     required String tilesetId,
     @JsonKey(includeIfNull: false) bool? contactShadow,
+    @JsonKey(includeIfNull: false) ProjectCharacterSpatialModel? spatialModel,
     @Default(1) int frameWidth,
     @Default(2) int frameHeight,
     @Default([])

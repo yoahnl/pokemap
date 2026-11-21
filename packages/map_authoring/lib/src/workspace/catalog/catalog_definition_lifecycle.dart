@@ -96,11 +96,12 @@ Future<_LibraryDefinitionPatch> _copyLibraryDefinition(
       key: key,
       payload: {...source.payload, 'id': id, 'position': position},
       references: source.references);
-  final copy = catalog.replaceDefinitionValue(template, {
-    ...Map<String, Object?>.from(source.payload['value'] as Map),
-    'id': id,
-    'name': name,
-  });
+  final value = Map<String, Object?>.from(source.payload['value'] as Map);
+  final copy = catalog.replaceDefinitionValue(
+      template,
+      source.key.kind == CatalogDefinitionKind.borderRecord
+          ? _copySpatialBorderDraft(catalog, source, value, id, name)
+          : {...value, 'id': id, 'name': name});
   return (
     upserts: [
       copy,
@@ -116,6 +117,32 @@ Future<_LibraryDefinitionPatch> _copyLibraryDefinition(
     ],
     removals: const <CatalogDefinitionKey>[],
   );
+}
+
+Map<String, Object?> _copySpatialBorderDraft(
+    PortableProjectCatalog catalog,
+    CatalogDefinitionUnit source,
+    Map<String, Object?> value,
+    String id,
+    String name) {
+  final record = catalog.definitionValue(source) as BorderBlueprintRecord;
+  if (!record.draft.definition.isSpatial ||
+      record.draft.definition.template != BorderBlueprintTemplate.connectedLine ||
+      source.references.isNotEmpty) {
+    throw MapAuthoringException(
+        code: 'catalog.definition.border_copy_unsupported',
+        message: 'Only spatial connected-line Borders without declared dependencies can be copied.');
+  }
+  final draft = Map<String, Object?>.from(value['draft'] as Map);
+  final definition = Map<String, Object?>.from(draft['definition'] as Map);
+  return {
+    'id': id,
+    'draft': {
+      ...draft,
+      'baseRevision': 0,
+      'definition': {...definition, 'name': name},
+    },
+  };
 }
 
 Future<_LibraryDefinitionPatch> _removeLibraryDefinition(

@@ -85,8 +85,13 @@ class _ModelResourcePreviewState extends State<ModelResourcePreview> {
       _updates(oldWidget.visuals)?.removeListener(_sourceChanged);
       _updates(widget.visuals)?.addListener(_sourceChanged);
     }
+    final before = oldWidget.model;
+    final after = widget.model;
     if (changedVisuals ||
-        oldWidget.model != widget.model ||
+        before.id != after.id ||
+        before.sourceAssetId != after.sourceAssetId ||
+        before.relativePath != after.relativePath ||
+        before.inspection.bounds != after.inspection.bounds ||
         oldWidget.compact != widget.compact ||
         !identical(oldWidget.preparedBytes, widget.preparedBytes)) {
       _load();

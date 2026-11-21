@@ -655,16 +655,25 @@ final class CatalogAuthoringSession {
           dryRun: request.dryRun, extensions: request.extensions);
     }
     final publicRevision = scopedRequest == request ? selection.snapshot.revision : request.expectedRevision!;
-    Future<String> currentRevision() async {
-      final revision = await selection.currentRevision();
-      return revision == selection.snapshot.revision ? publicRevision : revision;
-    }
     final built = await buildScopedProjectPlan(scopedRequest, selection.snapshot);
     if (!built.applicable) return built;
     AuthoringPlan? publicPlan;
     try {
       final mutation = await CatalogScopedWorkingMutation.translate(
           selection: selection, publicPlan: built.plan);
+      Future<String> currentRevision() async {
+        final revision = await selection.currentRevision();
+        if (revision != selection.snapshot.revision) return revision;
+        for (final file in mutation.retainedFiles.entries) {
+          if (await reader.store.gateway.readResourceRevision(file.key) != file.value) {
+            throw AuthoringPlanException(
+              code: 'plan.stale',
+              message: 'A retained Border snapshot file changed after planning.',
+            );
+          }
+        }
+        return publicRevision;
+      }
       if (await reader.store.readProjectId() == null) {
         CatalogWorkshopSelection.unsupported(request.actionId,
             'explicit catalog identity preparation before the first targeted edit');
@@ -1692,7 +1701,7 @@ final class CatalogAuthoringSession {
     _authorize(AuthoringSecurityOperation.recover, touched: 1);
     final editing = await _editing();
     final receipt = await editing.reconcile(operationId,
-        precondition: () => _requireScopedMediaRecovery(operationId, editing));
+        precondition: () => _requireScopedRecovery(operationId, editing));
     if (receipt == null) {
       throw const CatalogStorageException('catalog.operation_discarded',
           'The unreserved catalog operation was discarded.');
@@ -1700,10 +1709,36 @@ final class CatalogAuthoringSession {
     return _result(receipt);
   }
 
-  Future<void> _requireScopedMediaRecovery(
+  Future<void> _requireScopedRecovery(
       String operationId, CatalogEditingSession editing) async {
     final gateway = reader.store.gateway;
     final journal = await gateway.readJournal(operationId);
+    if (journal?.scope.actionId == 'border.blueprint.publish') {
+      final dependencies = journal!.intendedReceipt.diff.entries
+          .map((entry) => entry.resource.extensions['retainedBorderRevisions'])
+          .whereType<Map>()
+          .firstOrNull;
+      if (dependencies != null) {
+        final state = await editing.recovery.inspectOperation(operationId: operationId, scope: journal.scope);
+        if (state?.disposition != AuthoringRecoveryDisposition.completed) {
+          for (final entry in dependencies.entries) {
+            final path = entry.key;
+            final revision = entry.value;
+            if (path is! String ||
+                (!path.startsWith('assets/borders/snapshots/') &&
+                    !path.startsWith('assets/.pokemap-store/')) ||
+                revision is! String ||
+                !RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(revision) ||
+                await gateway.readResourceRevision(path) != revision) {
+              throw const AuthoringRecoveryException(
+                'recovery.border_snapshot_changed',
+                'A retained Border snapshot changed before recovery.',
+              );
+            }
+          }
+        }
+      }
+    }
     if (journal != null && journal.entries.any((entry) =>
         _battleGifMarker(entry.storageKey.toLowerCase()) != null)) {
       final state = await editing.recovery.inspectOperation(
