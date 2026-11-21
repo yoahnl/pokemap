@@ -104,6 +104,13 @@ void main() {
           isNotNull,
         );
         expect(
+          battleResolver.resolveForDialogue(
+            characterId: 'elia',
+            portraitStateId: 'unassigned',
+          ),
+          isNull,
+        );
+        expect(
           await File('${fixture.root.path}/never-open.png').exists(),
           isFalse,
         );
@@ -209,18 +216,18 @@ void main() {
     },
   );
 
-  test('resolves one authored portrait through the portable asset store',
-      () async {
-    final fixture = await _PortraitFixture.create();
-    addTearDown(fixture.dispose);
-    final diagnostics = <DialoguePortraitResolutionDiagnostic>[];
-    final resolver = DialoguePortraitResolver(
-      manifest: fixture.manifest,
-      projectRootDirectory: fixture.root.path,
-      onDiagnostic: diagnostics.add,
-    );
-    final session = DialogueSession.start(
-      <YarnNode>[
+  test(
+    'resolves one authored portrait through the portable asset store',
+    () async {
+      final fixture = await _PortraitFixture.create();
+      addTearDown(fixture.dispose);
+      final diagnostics = <DialoguePortraitResolutionDiagnostic>[];
+      final resolver = DialoguePortraitResolver(
+        manifest: fixture.manifest,
+        projectRootDirectory: fixture.root.path,
+        onDiagnostic: diagnostics.add,
+      );
+      final session = DialogueSession.start(<YarnNode>[
         YarnNode(
           title: 'Start',
           steps: <YarnStep>[
@@ -231,27 +238,25 @@ void main() {
             ),
           ],
         ),
-      ],
-      'Start',
-    )!;
+      ], 'Start')!;
 
-    await resolver.preload(session);
-    final portrait = resolver.resolve(
-      characterId: 'elia',
-      portraitStateId: 'surprised',
-    );
+      await resolver.preload(session);
+      final portrait = resolver.resolve(
+        characterId: 'elia',
+        portraitStateId: 'surprised',
+      );
 
-    expect(portrait, isNotNull);
-    expect(portrait!.characterName, 'Élia');
-    expect(portrait.portraitStateName, 'Surprise');
-    expect(portrait.assetId, 'portrait.elia.surprised');
-    expect(portrait.fitMode, CharacterPortraitFitMode.cover);
-    expect(portrait.absoluteFilePath, fixture.blob.path);
-    expect(diagnostics, isEmpty);
-  });
+      expect(portrait, isNotNull);
+      expect(portrait!.characterName, 'Élia');
+      expect(portrait.portraitStateName, 'Surprise');
+      expect(portrait.assetId, 'portrait.elia.surprised');
+      expect(portrait.fitMode, CharacterPortraitFitMode.cover);
+      expect(portrait.absoluteFilePath, fixture.blob.path);
+      expect(diagnostics, isEmpty);
+    },
+  );
 
-  test(
-      'BETA-BAT-029 : ensureCatalogLoaded ouvre la résolution SANS dialogue '
+  test('BETA-BAT-029 : ensureCatalogLoaded ouvre la résolution SANS dialogue '
       'préalable', () async {
     // La mise en scène du dresseur en combat résout un portrait, et ce
     // chemin n'est précédé d'aucun preload de dialogue : sans cette entrée,
@@ -279,18 +284,18 @@ void main() {
     expect(portrait!.absoluteFilePath, fixture.blob.path);
   });
 
-  test('missing and dangling references diagnose then fall back to text',
-      () async {
-    final fixture = await _PortraitFixture.create(writeBlob: false);
-    addTearDown(fixture.dispose);
-    final diagnostics = <DialoguePortraitResolutionDiagnostic>[];
-    final resolver = DialoguePortraitResolver(
-      manifest: fixture.manifest,
-      projectRootDirectory: fixture.root.path,
-      onDiagnostic: diagnostics.add,
-    );
-    final session = DialogueSession.start(
-      <YarnNode>[
+  test(
+    'missing and dangling references diagnose then fall back to text',
+    () async {
+      final fixture = await _PortraitFixture.create(writeBlob: false);
+      addTearDown(fixture.dispose);
+      final diagnostics = <DialoguePortraitResolutionDiagnostic>[];
+      final resolver = DialoguePortraitResolver(
+        manifest: fixture.manifest,
+        projectRootDirectory: fixture.root.path,
+        onDiagnostic: diagnostics.add,
+      );
+      final session = DialogueSession.start(<YarnNode>[
         YarnNode(
           title: 'Start',
           steps: <YarnStep>[
@@ -306,51 +311,44 @@ void main() {
             ),
           ],
         ),
-      ],
-      'Start',
-    )!;
+      ], 'Start')!;
 
-    await resolver.preload(session);
+      await resolver.preload(session);
 
-    expect(
-      resolver.resolve(
-        characterId: 'elia',
-        portraitStateId: 'surprised',
-      ),
-      isNull,
-    );
-    expect(
-      resolver.resolve(
-        characterId: 'unknown',
-        portraitStateId: 'surprised',
-      ),
-      isNull,
-    );
-    expect(
-      diagnostics.map((diagnostic) => diagnostic.code),
-      containsAll(<DialoguePortraitResolutionCode>[
-        DialoguePortraitResolutionCode.assetMissing,
-        DialoguePortraitResolutionCode.characterUnknown,
-      ]),
-    );
-  });
+      expect(
+        resolver.resolve(characterId: 'elia', portraitStateId: 'surprised'),
+        isNull,
+      );
+      expect(
+        resolver.resolve(characterId: 'unknown', portraitStateId: 'surprised'),
+        isNull,
+      );
+      expect(
+        diagnostics.map((diagnostic) => diagnostic.code),
+        containsAll(<DialoguePortraitResolutionCode>[
+          DialoguePortraitResolutionCode.assetMissing,
+          DialoguePortraitResolutionCode.characterUnknown,
+        ]),
+      );
+    },
+  );
 
-  test('cache stays bounded and avoids resolving the same file twice',
-      () async {
-    final fixture = await _PortraitFixture.create();
-    addTearDown(fixture.dispose);
-    var fileChecks = 0;
-    final resolver = DialoguePortraitResolver(
-      manifest: fixture.manifest,
-      projectRootDirectory: fixture.root.path,
-      cacheCapacity: 1,
-      fileExists: (path) {
-        fileChecks++;
-        return File(path).existsSync();
-      },
-    );
-    final session = DialogueSession.start(
-      <YarnNode>[
+  test(
+    'cache stays bounded and avoids resolving the same file twice',
+    () async {
+      final fixture = await _PortraitFixture.create();
+      addTearDown(fixture.dispose);
+      var fileChecks = 0;
+      final resolver = DialoguePortraitResolver(
+        manifest: fixture.manifest,
+        projectRootDirectory: fixture.root.path,
+        cacheCapacity: 1,
+        fileExists: (path) {
+          fileChecks++;
+          return File(path).existsSync();
+        },
+      );
+      final session = DialogueSession.start(<YarnNode>[
         YarnNode(
           title: 'Start',
           steps: <YarnStep>[
@@ -361,17 +359,16 @@ void main() {
             ),
           ],
         ),
-      ],
-      'Start',
-    )!;
+      ], 'Start')!;
 
-    await resolver.preload(session);
-    resolver.resolve(characterId: 'elia', portraitStateId: 'surprised');
-    resolver.resolve(characterId: 'elia', portraitStateId: 'surprised');
+      await resolver.preload(session);
+      resolver.resolve(characterId: 'elia', portraitStateId: 'surprised');
+      resolver.resolve(characterId: 'elia', portraitStateId: 'surprised');
 
-    expect(fileChecks, 1);
-    expect(resolver.cachedResolutionCount, 1);
-  });
+      expect(fileChecks, 1);
+      expect(resolver.cachedResolutionCount, 1);
+    },
+  );
 
   test('legacy sessions do not load or diagnose a portrait catalog', () async {
     var catalogLoads = 0;
@@ -389,15 +386,12 @@ void main() {
       },
       onDiagnostic: diagnostics.add,
     );
-    final session = DialogueSession.start(
-      <YarnNode>[
-        YarnNode(
-          title: 'Start',
-          steps: <YarnStep>[YarnStepLine('Guide: Bienvenue.')],
-        ),
-      ],
-      'Start',
-    )!;
+    final session = DialogueSession.start(<YarnNode>[
+      YarnNode(
+        title: 'Start',
+        steps: <YarnStep>[YarnStepLine('Guide: Bienvenue.')],
+      ),
+    ], 'Start')!;
 
     await resolver.preload(session);
 
@@ -419,18 +413,17 @@ final class _PortraitFixture {
 
   static Future<_PortraitFixture> create({bool writeBlob = true}) async {
     final root = await Directory.systemTemp.createTemp('pokemap_portrait_');
-    final artifact = ContentArtifactRef.fromBytes(
-      const <int>[0x89, 0x50, 0x4e, 0x47],
-      mediaType: 'image/png',
-    );
+    final artifact = ContentArtifactRef.fromBytes(const <int>[
+      0x89,
+      0x50,
+      0x4e,
+      0x47,
+    ], mediaType: 'image/png');
     final record = AssetRecord(
       id: 'portrait.elia.surprised',
       logicalPath: 'assets/portraits/elia-surprised.png',
       artifact: artifact,
-      tags: const <String>[
-        'character-studio',
-        'character-studio:portrait',
-      ],
+      tags: const <String>['character-studio', 'character-studio:portrait'],
     );
     final catalog = AssetCatalog(records: <AssetRecord>[record]);
     final catalogFile = File('${root.path}/$assetCatalogStorageKey');
