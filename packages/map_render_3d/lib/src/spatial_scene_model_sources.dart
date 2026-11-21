@@ -281,6 +281,7 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
     for (final entry in _pendingModelSourceRevisions.entries) {
       final source = entry.key;
       if (entry.value == _residentModelSourceRevisions[source]) continue;
+      if (_retainedModelSourceIds.contains(source)) _dropRetainedChunk();
       cache.remove(source);
       if (modelReservations.remove(source) case final lease?)
         retiredReservations.add(lease);

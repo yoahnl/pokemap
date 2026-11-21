@@ -1232,7 +1232,7 @@ void main() {
       expect(game.groundReservations.length, lessThanOrEqualTo(4));
     },
   );
-  test('map changes release encountered pages outside the new plan', () async {
+  test('a second map change releases encountered pages outside the new plan', () async {
     final f = _Fixture(4);
     final game = f.game((_) async => f.png);
     addTearDown(game.onRemove);
@@ -1249,6 +1249,15 @@ void main() {
     );
     addTearDown(destination.onRemove);
     game.configuration = destination.configuration;
+    expect(await game.refresh(), isTrue);
+    expect(game.grounds, isEmpty);
+    final next = f.game(
+      (_) async => f.png,
+      sourceMap: f.map.copyWith(id: 'other-empty', layers: const []),
+      resourceBudget: game.resourceBudget,
+    );
+    addTearDown(next.onRemove);
+    game.configuration = next.configuration;
     expect(await game.refresh(), isTrue);
     expect(game.grounds, isEmpty);
     expect(game.groundTextureCache, isEmpty);

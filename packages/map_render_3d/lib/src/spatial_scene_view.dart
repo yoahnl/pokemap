@@ -69,6 +69,7 @@ export 'spatial_renderer_initialization.dart' show initializeSpatialRenderer;
 part 'spatial_scene_materialization.dart';
 part 'spatial_scene_decoration_rendering.dart';
 part 'spatial_scene_model_sources.dart';
+part 'spatial_scene_chunk_retention.dart';
 
 enum SpatialEditorView { orbit, top, game }
 
@@ -1573,6 +1574,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   late final VoidCallback _modelSourceUpdateListener = _receiveModelSourceUpdates;
   bool _modelSourceRevisionPending = false;
   final _invalidatedModelChunks = <_SceneChunk>{};
+  _RetainedSceneChunk? _retainedSceneChunk;
   int modelSourceUpdates = 0;
   int modelSourceComponentBuilds = 0;
   int modelSourceCandidatesVisited = 0;
@@ -1639,6 +1641,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         !identical(request.resourceBudget, resourceBudget) ||
         !request.isCurrent())
       return false;
+    if (_retainedChunkCovers(request)) return true;
     _destinationPreparation?.discard();
     final ticket = generation;
     final preparation = SpatialSceneResourcePreparation(
@@ -1681,6 +1684,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   }
 
   void clearGroundResourceCache({bool retire = false}) {
+    _dropRetainedChunk();
     for (final id in _retainedGroundImages.toList()) {
       _removeGroundTexture(id);
     }
@@ -1842,6 +1846,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     _protectWantedGroundTextures();
     for (final id in groundTextureCache.keys.toList()) {
       if (_wantedGroundImages.contains(id)) continue;
+      if (_retainGroundImageOptionally(id)) continue;
       if (grounds.any((ground) => ground.plan.imageIds.contains(id))) {
         if (_retainedGroundImages.add(id)) {
           if (groundReservations[id] case final lease?) {
@@ -1892,6 +1897,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   }
 
   void clearModelResourceCache({bool retire = false}) {
+    _dropRetainedChunk();
     cache.clear();
     if (retire) {
       retiredReservations.addAll(modelReservations.values);
@@ -2608,7 +2614,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           placement.active ? snapshot.selectedCell : null,
           receiveShadows,
         );
-        final previousChunk = sceneChunks[mapId];
+        final previousChunk = sceneChunks[mapId] ?? _takeRetainedChunk(mapId, signature);
         if (previousChunk?.signature == signature && !_invalidatedModelChunks.contains(previousChunk)) {
           final chunk = previousChunk!;
           nextChunks[mapId] = chunk;
@@ -2675,6 +2681,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           }
           actorSelections.clear();
           grounds = [...nextGrounds, for (final chunk in decorationChunks.values) if (chunk.ground case final ground?) ground];
+          _retainDepartingChunk(nextChunks);
           sceneChunks = nextChunks;
           _decorationReceiversEnabled = receiveShadows;
           _visibilityRetainedGroundImages.clear();
@@ -2685,13 +2692,15 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             if (snapshot.placementPreview case final preview?)
               definitions[preview.modelId]?.sourceAssetId,
           };
+          final retainedModelIds = _retainedModelSourceIds.difference(modelIds);
           cache.removeWhere((id, _) {
-            if (modelIds.contains(id)) return false;
+            if (modelIds.contains(id) || retainedModelIds.contains(id)) return false;
             modelReservations.remove(id)?.release();
             final source = loadedModelSources.remove(id);
             if (source != null) clippedModelCache.releaseSource(source);
             return true;
           });
+          _protectModelReservations(modelIds, retainedModelIds);
           for (final lease in retiredReservations) {
             lease.release();
           }
