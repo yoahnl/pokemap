@@ -275,6 +275,53 @@ void main() {
     }
   });
 
+  test('metadata preparation rereads definitions after HEAD changes', () async {
+    final parent = await Directory.systemTemp.createTemp('admission-head-');
+    addTearDown(() => parent.delete(recursive: true));
+    final directory = await Directory('${parent.path}/project').create();
+    final original = await CatalogStorageStore.open(
+        projectRoot: directory.path,
+        trustedAdmissionDirectory: Directory('${parent.path}/original'));
+    final first = _unit('selected', 'Before');
+    await original.publish(
+        CatalogStorageBuilder()
+            .build([first, ...CatalogMetadataDocuments.initialize([first])]),
+        expectedRootRevision: null);
+
+    final reader = _CountingReader();
+    final local = CatalogStorageStore(
+        projectRoot: directory.path,
+        reader: reader,
+        gateway: await LocalTransactionFileGateway.open(
+            projectRoot: directory.path),
+        trustedAdmissionDirectory: Directory('${parent.path}/fresh'));
+    late CatalogValidatedDefinitions validated;
+    expect(
+        await local.prepareLocalEditing(
+            onValidatedDefinitions: (definitions) => validated = definitions),
+        isTrue);
+    expect(validated.unitsFor(original, validated.root), isNull);
+
+    final session = await CatalogEditingSession.open(
+        store: local,
+        projectId: 'game',
+        actorId: 'editor',
+        incrementalHistory: true);
+    addTearDown(session.close);
+    await session.apply(await session.planPatch(
+        upserts: [_unit('selected', 'After')], idempotencyKey: 'concurrent'));
+    final snapshot = session.snapshot;
+    expect(snapshot.root, isNot(validated.root));
+    final entry = (await snapshot.indexEntry(first.key))!.reference;
+    final currentPath = 'catalog/objects/${entry.sha256}.json';
+    reader.paths.clear();
+
+    await session.prepareMetadataDocuments(force: true, validated: validated);
+
+    expect(reader.paths.where((path) => path == currentPath), hasLength(1));
+    expect((await session.snapshot.lookup(first.key))!.payload['name'], 'After');
+  });
+
   test('trusted admission cannot live inside project data', () async {
     final parent = await Directory.systemTemp.createTemp('unsafe-admission-');
     addTearDown(() => parent.delete(recursive: true));

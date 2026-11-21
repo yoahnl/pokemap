@@ -34,6 +34,18 @@ final class PublishedCatalogSnapshot {
   final CatalogSnapshot snapshot;
 }
 
+final class CatalogValidatedDefinitions {
+  const CatalogValidatedDefinitions._(this._store, this.root, this._units);
+
+  final CatalogStorageStore _store;
+  final CatalogObjectReference root;
+  final List<CatalogDefinitionUnit> _units;
+
+  List<CatalogDefinitionUnit>? unitsFor(
+          CatalogStorageStore store, CatalogObjectReference generation) =>
+      identical(_store, store) && root == generation ? _units : null;
+}
+
 final class CatalogStorageStore {
   CatalogStorageStore({
     required this.projectRoot,
@@ -225,7 +237,9 @@ final class CatalogStorageStore {
           CatalogHistoryRootConversion conversion) =>
       _admissions.requireHistoryConversion(conversion, limits);
 
-  Future<bool> prepareLocalEditing() =>
+  Future<bool> prepareLocalEditing({
+    void Function(CatalogValidatedDefinitions)? onValidatedDefinitions,
+  }) =>
       _gateway.withExclusiveWriteLock(() async {
         final root = await _readHead();
         if (root == null) {
@@ -239,8 +253,17 @@ final class CatalogStorageStore {
         } on CatalogStorageException catch (error) {
           if (error.code != 'catalog.preparation_required') rethrow;
         }
-        await snapshot.validate();
+        List<CatalogDefinitionUnit>? units;
+        if (onValidatedDefinitions == null) {
+          await snapshot.validate();
+        } else {
+          units = await snapshot.readAllUnits();
+        }
         await publishIndexAdmissionUnderLock(snapshot);
+        if (units != null) {
+          onValidatedDefinitions!(CatalogValidatedDefinitions._(
+              this, root, units));
+        }
         return true;
       });
 
