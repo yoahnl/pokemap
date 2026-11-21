@@ -1,0 +1,706 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
+import 'package:path/path.dart' as p;
+
+import '../contracts/evaluation_event.dart';
+import '../contracts/evaluation_build_provenance.dart';
+import '../contracts/evaluation_policy.dart';
+import '../contracts/evaluation_receipt.dart';
+import '../scenario/evaluation_scenario_parser.dart';
+import '../worker/evaluation_worker_protocol.dart';
+import '../../project_tree_digest.dart';
+
+const _interactiveProtocolVersion = 1;
+
+enum EvaluationBuildMode { debug, profile }
+
+abstract interface class InteractiveProcessRunner {
+  Future<InteractiveChildProcess> start(
+    String executable,
+    List<String> arguments, {
+    required String workingDirectory,
+    required bool runInShell,
+  });
+}
+
+abstract interface class InteractiveChildProcess {
+  int get pid;
+  Stream<List<int>> get stdout;
+  Stream<List<int>> get stderr;
+  Future<int> get exitCode;
+
+  bool kill([ProcessSignal signal = ProcessSignal.sigterm]);
+}
+
+final class IoInteractiveProcessRunner implements InteractiveProcessRunner {
+  const IoInteractiveProcessRunner();
+
+  @override
+  Future<InteractiveChildProcess> start(
+    String executable,
+    List<String> arguments, {
+    required String workingDirectory,
+    required bool runInShell,
+  }) async {
+    final process = await Process.start(
+      executable,
+      arguments,
+      workingDirectory: workingDirectory,
+      runInShell: runInShell,
+    );
+    return _IoInteractiveChildProcess(process);
+  }
+}
+
+final class InteractiveWorkerClient {
+  InteractiveWorkerClient({
+    required Directory repositoryRoot,
+    Directory? packageRoot,
+    InteractiveProcessRunner processRunner = const IoInteractiveProcessRunner(),
+    String Function()? tokenGenerator,
+    // A cold macOS profile build can legitimately cross one minute before the
+    // bridge connects; envelope failures still use the same bounded timeout.
+    this.readyTimeout = const Duration(seconds: 120),
+    void Function(String chunk)? stderrSink,
+    this.flutterExecutable = 'flutter',
+    this.buildProvenance,
+  }) : repositoryRoot = repositoryRoot.absolute,
+       packageRoot =
+           (packageRoot ??
+                   Directory(
+                     p.join(
+                       repositoryRoot.path,
+                       'tools',
+                       'pokemap_render_host',
+                     ),
+                   ))
+               .absolute,
+       _processRunner = processRunner,
+       _tokenGenerator = tokenGenerator ?? _secureToken,
+       _stderrSink = stderrSink ?? stderr.write;
+
+  final Directory repositoryRoot;
+  final Directory packageRoot;
+  final InteractiveProcessRunner _processRunner;
+  final String Function() _tokenGenerator;
+  final Duration readyTimeout;
+  final void Function(String chunk) _stderrSink;
+  final String flutterExecutable;
+  final EvaluationBuildProvenance? buildProvenance;
+
+  Future<InteractiveWorkerLaunch> launch({
+    required String projectFile,
+    double playbackRate = 1,
+    EvaluationBuildMode buildMode = EvaluationBuildMode.debug,
+  }) async {
+    _validatePortablePath(projectFile, 'projectFile');
+    if (!playbackRate.isFinite || playbackRate <= 0 || playbackRate > 4) {
+      throw ArgumentError.value(
+        playbackRate,
+        'playbackRate',
+        'Playback rate must be greater than 0 and at most 4.',
+      );
+    }
+    final token = _tokenGenerator();
+    if (token.length < 32 ||
+        token.length > 512 ||
+        token.codeUnits.any(_isWhitespace)) {
+      throw StateError(
+        'Interactive token generator returned an invalid token.',
+      );
+    }
+
+    final listener = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    InteractiveChildProcess? child;
+    try {
+      child = await _processRunner.start(
+        flutterExecutable,
+        <String>[
+          'run',
+          '-d',
+          'macos',
+          '--${buildMode.name}',
+          '--dart-define=POKEMAP_EVAL_INTERACTIVE=true',
+          '--dart-define=POKEMAP_EVAL_HOST=127.0.0.1',
+          '--dart-define=POKEMAP_EVAL_PORT=${listener.port}',
+          '--dart-define=POKEMAP_EVAL_TOKEN=$token',
+          '--dart-define=POKEMAP_EVAL_PROJECT=$projectFile',
+          '--dart-define=POKEMAP_EVAL_PLAYBACK_RATE=$playbackRate',
+        ],
+        workingDirectory: packageRoot.path,
+        runInShell: false,
+      );
+      return InteractiveWorkerLaunch._(
+        listener: listener,
+        child: child,
+        repositoryRoot: repositoryRoot,
+        token: token,
+        readyTimeout: readyTimeout,
+        stderrSink: _stderrSink,
+        buildProvenance: buildProvenance,
+      );
+    } catch (_) {
+      await listener.close();
+      child?.kill();
+      rethrow;
+    }
+  }
+
+  Future<EvaluationWorkerResult> run(
+    EvaluationWorkerRequest request, {
+    double playbackRate = 1,
+    void Function(EvaluationEvent event)? eventSink,
+    EvaluationBuildMode buildMode = EvaluationBuildMode.debug,
+  }) async {
+    InteractiveWorkerLaunch? session;
+    try {
+      final projectRoot = Directory(
+        p.join(repositoryRoot.path, request.projectRoot),
+      );
+      final projectTreeHash = await const ProjectTreeDigest().compute(
+        projectRoot,
+      );
+      if (projectTreeHash != request.expectedProjectTreeHash) {
+        throw StateError(
+          'Evaluation project digest mismatch: expected '
+          '${request.expectedProjectTreeHash}, got $projectTreeHash.',
+        );
+      }
+      final scenarioFile = File(
+        p.join(repositoryRoot.path, request.scenarioPath),
+      );
+      final scenarioSource = await scenarioFile.readAsString();
+      final scenario = const EvaluationScenarioParser().parseString(
+        scenarioSource,
+      );
+      session = await launch(
+        projectFile: '${request.projectRoot}/project.json',
+        playbackRate: playbackRate,
+        buildMode: buildMode,
+      );
+      return await session.run(
+        request: request,
+        scenarioSource: scenarioSource,
+        expectedProjectId: scenario.projectId,
+        eventSink: eventSink,
+      );
+    } on TimeoutException catch (failure) {
+      return EvaluationWorkerResult.infrastructureFailure(
+        runId: request.runId,
+        message:
+            'Timed out waiting for the interactive runtime: '
+            '${failure.message ?? 'no bridge.ready envelope'}',
+      );
+    } on Object catch (failure) {
+      return EvaluationWorkerResult.infrastructureFailure(
+        runId: request.runId,
+        message: 'Interactive runtime failed: $failure',
+      );
+    } finally {
+      await session?.close();
+    }
+  }
+}
+
+final class InteractiveWorkerLaunch {
+  InteractiveWorkerLaunch._({
+    required ServerSocket listener,
+    required InteractiveChildProcess child,
+    required this.repositoryRoot,
+    required String token,
+    required Duration readyTimeout,
+    required void Function(String chunk) stderrSink,
+    this.buildProvenance,
+  }) : _listener = listener,
+       _child = child,
+       _token = token,
+       _readyTimeout = readyTimeout {
+    _stdoutSubscription = child.stdout.listen((_) {});
+    _stderrSubscription = child.stderr
+        .transform(utf8.decoder)
+        .listen(stderrSink);
+  }
+
+  final ServerSocket _listener;
+  final InteractiveChildProcess _child;
+  final Directory repositoryRoot;
+  final EvaluationBuildProvenance? buildProvenance;
+  final String _token;
+  final Duration _readyTimeout;
+  late final StreamSubscription<List<int>> _stdoutSubscription;
+  late final StreamSubscription<String> _stderrSubscription;
+  Socket? _socket;
+  StreamIterator<String>? _lines;
+  bool _closed = false;
+
+  Future<EvaluationWorkerResult> run({
+    required EvaluationWorkerRequest request,
+    required String scenarioSource,
+    required String expectedProjectId,
+    void Function(EvaluationEvent event)? eventSink,
+  }) async {
+    final socket = await _listener.first.timeout(_readyTimeout);
+    _socket = socket;
+    if (!socket.remoteAddress.isLoopback) {
+      socket.writeln(
+        jsonEncode(const <String, Object?>{
+          'type': 'bridge.rejected',
+          'reason': 'interactive bridge must originate from loopback',
+        }),
+      );
+      throw const InteractiveWorkerAuthenticationException(
+        'Interactive bridge did not originate from loopback.',
+      );
+    }
+
+    final lines = StreamIterator<String>(
+      socket
+          .cast<List<int>>()
+          .transform(utf8.decoder)
+          .transform(const LineSplitter()),
+    );
+    _lines = lines;
+    final hello = await _nextEnvelope(lines).timeout(_readyTimeout);
+    if (!_validHello(hello)) {
+      socket.writeln(
+        jsonEncode(const <String, Object?>{
+          'type': 'bridge.rejected',
+          'reason': 'invalid interactive authentication',
+        }),
+      );
+      throw const InteractiveWorkerAuthenticationException(
+        'Interactive bridge authentication failed.',
+      );
+    }
+
+    socket.writeln(
+      jsonEncode(const <String, Object?>{
+        'type': 'bridge.accepted',
+        'protocolVersion': _interactiveProtocolVersion,
+      }),
+    );
+    final ready = await _nextEnvelope(lines).timeout(_readyTimeout);
+    _validateReady(ready, expectedProjectId: expectedProjectId);
+
+    socket.writeln(
+      jsonEncode(<String, Object?>{
+        'type': 'run',
+        'requestId': request.runId,
+        'runId': request.runId,
+        'scenario': scenarioSource,
+        'outputDirectory': request.outputDirectory,
+      }),
+    );
+
+    final startedAt = DateTime.now().toUtc();
+    final events = <EvaluationEvent>[];
+    Map<String, Object?>? lastEvent;
+    while (true) {
+      final Map<String, Object?> envelope;
+      try {
+        envelope = await _nextEnvelope(lines).timeout(_readyTimeout);
+      } on TimeoutException {
+        throw TimeoutException(
+          'No interactive envelope arrived within '
+          '${_readyTimeout.inSeconds}s; lastEvent=${jsonEncode(lastEvent)}',
+        );
+      }
+      switch (envelope['type']) {
+        case 'bridge.event':
+          final event = envelope['event'];
+          lastEvent = event is Map
+              ? Map<String, Object?>.from(event)
+              : <String, Object?>{'invalidEvent': event};
+          final parsedEvent = _evaluationEventFromJson(lastEvent);
+          events.add(parsedEvent);
+          eventSink?.call(parsedEvent);
+          continue;
+        case 'bridge.error':
+          throw FormatException(
+            'Interactive bridge rejected an envelope: '
+            '${envelope['message'] ?? envelope['code']}',
+          );
+        case 'bridge.result':
+          return await _resultFromEnvelope(
+            envelope,
+            request,
+            scenarioSource: scenarioSource,
+            events: events,
+            startedAt: startedAt,
+          );
+        default:
+          throw FormatException(
+            'Unsupported interactive bridge response "${envelope['type']}".',
+          );
+      }
+    }
+  }
+
+  bool _validHello(Map<String, Object?> envelope) {
+    const expectedKeys = <String>{'type', 'token', 'target', 'protocolVersion'};
+    return envelope.keys.toSet().difference(expectedKeys).isEmpty &&
+        expectedKeys.difference(envelope.keys.toSet()).isEmpty &&
+        envelope['type'] == 'bridge.hello' &&
+        envelope['target'] == 'interactive' &&
+        envelope['protocolVersion'] == _interactiveProtocolVersion &&
+        envelope['token'] is String &&
+        _constantTimeEquals(envelope['token']! as String, _token);
+  }
+
+  void _validateReady(
+    Map<String, Object?> envelope, {
+    required String expectedProjectId,
+  }) {
+    const expectedKeys = <String>{
+      'type',
+      'target',
+      'protocolVersion',
+      'projectId',
+    };
+    if (envelope.keys.toSet().difference(expectedKeys).isNotEmpty ||
+        expectedKeys.difference(envelope.keys.toSet()).isNotEmpty ||
+        envelope['type'] != 'bridge.ready' ||
+        envelope['target'] != 'interactive' ||
+        envelope['protocolVersion'] != _interactiveProtocolVersion ||
+        envelope['projectId'] != expectedProjectId) {
+      throw const FormatException('Invalid bridge.ready envelope.');
+    }
+  }
+
+  Future<EvaluationWorkerResult> _resultFromEnvelope(
+    Map<String, Object?> envelope,
+    EvaluationWorkerRequest request, {
+    required String scenarioSource,
+    required List<EvaluationEvent> events,
+    required DateTime startedAt,
+  }) async {
+    if (envelope['requestId'] != request.runId ||
+        envelope['runId'] != request.runId) {
+      throw const FormatException(
+        'Interactive result does not match its request.',
+      );
+    }
+    final status = switch (envelope['status']) {
+      'succeeded' => EvaluationRunStatus.succeeded,
+      'failed' => EvaluationRunStatus.failed,
+      'invalidScenario' => EvaluationRunStatus.invalidScenario,
+      'infrastructureFailure' => EvaluationRunStatus.infrastructureFailure,
+      'policyViolation' => EvaluationRunStatus.policyViolation,
+      'cancelled' => EvaluationRunStatus.cancelled,
+      _ => throw const FormatException('Unknown interactive result status.'),
+    };
+    final exitCode = envelope['exitCode'];
+    if (exitCode is! int) {
+      throw const FormatException(
+        'Interactive result exitCode must be an integer.',
+      );
+    }
+    final error = envelope['error'];
+    String? receiptPath;
+    if (status == EvaluationRunStatus.succeeded ||
+        status == EvaluationRunStatus.failed ||
+        status == EvaluationRunStatus.cancelled) {
+      if (!envelope.containsKey('evidenceLevel')) {
+        return EvaluationWorkerResult.completed(
+          runId: request.runId,
+          status: status,
+          exitCode: exitCode,
+          message: error == null ? null : jsonEncode(error),
+        );
+      }
+      receiptPath = await _writeInteractiveReceipt(
+        envelope,
+        request,
+        scenarioSource: scenarioSource,
+        events: events,
+        startedAt: startedAt,
+        finishedAt: DateTime.now().toUtc(),
+      );
+    }
+    return EvaluationWorkerResult.completed(
+      runId: request.runId,
+      status: status,
+      exitCode: exitCode,
+      receiptPath: receiptPath,
+      message: error == null ? null : jsonEncode(error),
+    );
+  }
+
+  Future<String> _writeInteractiveReceipt(
+    Map<String, Object?> envelope,
+    EvaluationWorkerRequest request, {
+    required String scenarioSource,
+    required List<EvaluationEvent> events,
+    required DateTime startedAt,
+    required DateTime finishedAt,
+  }) async {
+    final scenario = const EvaluationScenarioParser().parseString(
+      scenarioSource,
+    );
+    final outputDirectory = Directory(
+      p.join(repositoryRoot.path, request.outputDirectory),
+    );
+    await outputDirectory.create(recursive: true);
+    final eventsFile = File(p.join(outputDirectory.path, 'events.jsonl'));
+    final eventsSource = events
+        .map((event) => jsonEncode(event.toJson()))
+        .join('\n');
+    await eventsFile.writeAsString(
+      eventsSource.isEmpty ? '' : '$eventsSource\n',
+      flush: true,
+    );
+    final artifacts = _stringList(envelope['artifacts'], 'artifacts');
+    final receiptPath = '${request.outputDirectory}/receipt.json';
+    final receiptJson = <String, Object?>{
+      'schemaVersion': EvaluationReceipt.schemaVersion,
+      'runId': request.runId,
+      'projectId': scenario.projectId,
+      'scenarioId': scenario.id,
+      'scenarioVersion': scenario.schemaVersion,
+      'policy': scenario.policy.name,
+      'target': EvaluationTarget.interactive.name,
+      'evidenceLevel': _requiredString(
+        envelope['evidenceLevel'],
+        'evidenceLevel',
+      ),
+      'commit': buildProvenance?.commit ?? await _gitHead(repositoryRoot),
+      'projectTreeHash': await const ProjectTreeDigest().compute(
+        Directory(p.join(repositoryRoot.path, request.projectRoot)),
+      ),
+      'commandDigest': sha256.convert(utf8.encode(scenarioSource)).toString(),
+      'outputDigest': sha256.convert(await eventsFile.readAsBytes()).toString(),
+      'startedAt': startedAt.toIso8601String(),
+      'finishedAt': finishedAt.toIso8601String(),
+      'durationMilliseconds': finishedAt.difference(startedAt).inMilliseconds,
+      'status': _requiredString(envelope['status'], 'status'),
+      'exitCode': envelope['exitCode'],
+      'initialState': _receiptSnapshot(
+        envelope['initialState'],
+        name: 'initialState',
+        runId: request.runId,
+        projectId: scenario.projectId,
+      ),
+      'finalState': _receiptSnapshot(
+        envelope['finalState'],
+        name: 'finalState',
+        runId: request.runId,
+        projectId: scenario.projectId,
+      ),
+      'diff': _requiredMap(envelope['diff'], 'diff'),
+      'stepResults': _requiredList(envelope['stepResults'], 'stepResults'),
+      'shortcutsUsed': _stringList(envelope['shortcutsUsed'], 'shortcutsUsed'),
+      'checkpointProvenance': null,
+      'artifacts': <String>['events.jsonl', ...artifacts],
+      'error': envelope['error'],
+      'relativeReceiptPath': receiptPath,
+      'declaredCriterionIds': scenario.criteria
+          .map((criterion) => criterion.id)
+          .toList(),
+      'productCriteria': _requiredList(
+        envelope['productCriteria'],
+        'productCriteria',
+      ),
+    };
+    final receipt = EvaluationReceipt.fromJson(receiptJson);
+    final destination = File(p.join(outputDirectory.path, 'receipt.json'));
+    await _writeJsonAtomically(destination, receipt.toJson());
+    return receiptPath;
+  }
+
+  Future<void> close() async {
+    if (_closed) return;
+    _closed = true;
+    await _lines?.cancel();
+    _socket?.destroy();
+    _socket = null;
+    await _listener.close();
+    await _stdoutSubscription.cancel();
+    await _stderrSubscription.cancel();
+    _child.kill();
+    try {
+      await _child.exitCode.timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      _child.kill(ProcessSignal.sigkill);
+    }
+  }
+}
+
+String _requiredString(Object? value, String name) {
+  if (value is String && value.trim().isNotEmpty) return value;
+  throw FormatException('Interactive result $name must be a string.');
+}
+
+Map<String, Object?> _requiredMap(Object? value, String name) {
+  if (value is Map) return Map<String, Object?>.from(value);
+  throw FormatException('Interactive result $name must be an object.');
+}
+
+Map<String, Object?> _receiptSnapshot(
+  Object? value, {
+  required String name,
+  required String runId,
+  required String projectId,
+}) {
+  return <String, Object?>{
+    ..._requiredMap(value, name),
+    'runId': runId,
+    'projectId': projectId,
+  };
+}
+
+List<Object?> _requiredList(Object? value, String name) {
+  if (value is List) return List<Object?>.from(value);
+  throw FormatException('Interactive result $name must be a list.');
+}
+
+List<String> _stringList(Object? value, String name) {
+  if (value is! List || value.any((item) => item is! String)) {
+    throw FormatException(
+      'Interactive result $name must contain only strings.',
+    );
+  }
+  return value.cast<String>().toList(growable: false);
+}
+
+Future<String> _gitHead(Directory repositoryRoot) async {
+  final result = await Process.run(
+    'git',
+    const <String>['rev-parse', 'HEAD'],
+    workingDirectory: repositoryRoot.path,
+    runInShell: false,
+  );
+  if (result.exitCode != 0) {
+    throw StateError('Unable to resolve the evaluation commit.');
+  }
+  return (result.stdout as String).trim().toLowerCase();
+}
+
+Future<void> _writeJsonAtomically(
+  File destination,
+  Map<String, Object?> json,
+) async {
+  final temporary = File('${destination.path}.tmp');
+  await temporary.writeAsString(jsonEncode(json), flush: true);
+  if (await destination.exists()) await destination.delete();
+  await temporary.rename(destination.path);
+}
+
+EvaluationEvent _evaluationEventFromJson(Map<String, Object?> json) {
+  const expectedKeys = <String>{
+    'schemaVersion',
+    'runId',
+    'sequence',
+    'type',
+    'payload',
+  };
+  if (json.keys.toSet().difference(expectedKeys).isNotEmpty ||
+      expectedKeys.difference(json.keys.toSet()).isNotEmpty ||
+      json['schemaVersion'] != EvaluationEvent.schemaVersion ||
+      json['runId'] is! String ||
+      json['sequence'] is! int ||
+      json['type'] is! String ||
+      json['payload'] is! Map) {
+    throw const FormatException('Invalid interactive evaluation event.');
+  }
+  return EvaluationEvent(
+    runId: json['runId']! as String,
+    sequence: json['sequence']! as int,
+    type: json['type']! as String,
+    payload: Map<String, Object?>.from(json['payload']! as Map),
+  );
+}
+
+final class InteractiveWorkerAuthenticationException implements Exception {
+  const InteractiveWorkerAuthenticationException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'InteractiveWorkerAuthenticationException: $message';
+}
+
+final class _IoInteractiveChildProcess implements InteractiveChildProcess {
+  const _IoInteractiveChildProcess(this.process);
+
+  final Process process;
+
+  @override
+  int get pid => process.pid;
+
+  @override
+  Stream<List<int>> get stdout => process.stdout;
+
+  @override
+  Stream<List<int>> get stderr => process.stderr;
+
+  @override
+  Future<int> get exitCode => process.exitCode;
+
+  @override
+  bool kill([ProcessSignal signal = ProcessSignal.sigterm]) =>
+      process.kill(signal);
+}
+
+Future<Map<String, Object?>> _nextEnvelope(StreamIterator<String> lines) async {
+  if (!await lines.moveNext()) {
+    throw const FormatException(
+      'Interactive runtime closed before sending an envelope.',
+    );
+  }
+  if (lines.current.length > 1024 * 1024) {
+    throw const FormatException(
+      'Interactive runtime envelope exceeds one megabyte.',
+    );
+  }
+  final decoded = jsonDecode(lines.current);
+  if (decoded is! Map) {
+    throw const FormatException(
+      'Interactive runtime envelope must be a JSON object.',
+    );
+  }
+  return Map<String, Object?>.from(decoded);
+}
+
+void _validatePortablePath(String value, String name) {
+  final normalized = value.replaceAll(r'\', '/');
+  if (normalized.trim().isEmpty ||
+      normalized.startsWith('/') ||
+      normalized
+          .split('/')
+          .any(
+            (segment) => segment.isEmpty || segment == '.' || segment == '..',
+          )) {
+    throw ArgumentError.value(
+      value,
+      name,
+      'Expected a portable repository-relative path.',
+    );
+  }
+}
+
+bool _constantTimeEquals(String left, String right) {
+  var difference = left.length ^ right.length;
+  final length = max(left.length, right.length);
+  for (var index = 0; index < length; index++) {
+    final leftCode = index < left.length ? left.codeUnitAt(index) : 0;
+    final rightCode = index < right.length ? right.codeUnitAt(index) : 0;
+    difference |= leftCode ^ rightCode;
+  }
+  return difference == 0;
+}
+
+String _secureToken() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+  return base64UrlEncode(bytes).replaceAll('=', '');
+}
+
+bool _isWhitespace(int codeUnit) =>
+    codeUnit == 0x20 ||
+    codeUnit == 0x09 ||
+    codeUnit == 0x0a ||
+    codeUnit == 0x0d;

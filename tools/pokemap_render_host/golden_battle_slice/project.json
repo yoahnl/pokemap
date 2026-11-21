@@ -1,0 +1,84 @@
+{
+  "name": "Phase A Golden Battle Slice",
+  "version": "v8",
+  "maps": [
+    {
+      "id": "golden_field",
+      "name": "Golden Field",
+      "relativePath": "maps/golden_field.json",
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "tilesets": [],
+  "encounterTables": [
+    {
+      "id": "golden_grass",
+      "name": "Golden Grass",
+      "encounterKind": "walk",
+      "entries": [
+        {
+          "speciesId": "sparkitten",
+          "minLevel": 6,
+          "maxLevel": 6,
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "trainers": [
+    {
+      "id": "trainer_rookie",
+      "name": "Mira",
+      "trainerClass": "Rookie",
+      "battleDifficulty": 4,
+      "battleBackgroundRelativePath": "assets/battle_backgrounds/trainer_rookie.png",
+      "team": [
+        {
+          "speciesId": "sparkitten",
+          "level": 6,
+          "moves": [
+            "tackle",
+            "growl"
+          ]
+        }
+      ]
+    }
+  ],
+  "newGame": {
+    "enabled": true,
+    "startMapId": "golden_field",
+    "startSpawnId": "spawn_start",
+    "playerName": "Player"
+  },
+  "pokemon": {
+    "ruleset": {
+      "schemaVersion": 1,
+      "profileId": "pokemap-beta-v1",
+      "typeChartId": "mainline-modern-v1",
+      "maxLevel": 100,
+      "experiencePolicyId": "pokemap-simple-exp-v1",
+      "capturePolicyId": "pokemap-capture-mvp-v1",
+      "moveMachinePolicyId": "authored-consumability-v1",
+      "criticalHitPolicyId": "mainline-gen9-critical",
+      "speedTiePolicyId": "mainline-gen9-seeded-random",
+      "friendshipPolicyId": "mainline-0-255-v1",
+      "evolutionPolicyId": "pokemap-beta-evolution-v1",
+      "disabledFeatures": [
+        "breeding",
+        "double-battles",
+        "modern-gimmicks",
+        "online"
+      ]
+    },
+    "enabled": true,
+    "dataRoot": "data/pokemon",
+    "speciesDir": "data/pokemon/species",
+    "learnsetsDir": "data/pokemon/learnsets",
+    "evolutionsDir": "data/pokemon/evolutions",
+    "mediaDir": "data/pokemon/media",
+    "catalogFiles": {
+      "moves": "data/pokemon/catalogs/moves.json"
+    }
+  }
+}

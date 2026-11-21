@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "moves",
+  "meta": {
+    "description": "Phase A golden slice move catalog",
+    "notes": [
+      "Only the exact moves consumed by the golden slice are versioned here.",
+      "This file is intentionally tiny so the slice stays readable and measurable."
+    ]
+  },
+  "entries": [
+    {
+      "id": "tackle",
+      "name": "Tackle",
+      "names": {
+        "en": "Tackle"
+      },
+      "generation": 1,
+      "source": "phase_a_golden_slice",
+      "type": "normal",
+      "category": "physical",
+      "target": "normal",
+      "basePower": 40,
+      "accuracy": {
+        "kind": "percent",
+        "value": 100
+      },
+      "pp": 35,
+      "engineSupportLevel": "structured_supported"
+    },
+    {
+      "id": "growl",
+      "name": "Growl",
+      "names": {
+        "en": "Growl"
+      },
+      "generation": 1,
+      "source": "phase_a_golden_slice",
+      "type": "normal",
+      "category": "status",
+      "target": "allAdjacentFoes",
+      "basePower": 0,
+      "accuracy": {
+        "kind": "percent",
+        "value": 100
+      },
+      "pp": 40,
+      "effects": [
+        {
+          "kind": "modify_stats",
+          "targetScope": "target",
+          "stageChanges": [
+            {
+              "stat": "attack",
+              "stages": -1
+            }
+          ]
+        }
+      ],
+      "engineSupportLevel": "structured_supported"
+    },
+    {
+      "id": "vine_whip",
+      "name": "Vine Whip",
+      "names": {
+        "en": "Vine Whip"
+      },
+      "generation": 1,
+      "source": "phase_a_golden_slice",
+      "type": "grass",
+      "category": "physical",
+      "target": "normal",
+      "basePower": 45,
+      "accuracy": {
+        "kind": "percent",
+        "value": 100
+      },
+      "pp": 25,
+      "engineSupportLevel": "structured_supported"
+    }
+  ]
+}

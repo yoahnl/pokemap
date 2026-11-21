@@ -1,0 +1,643 @@
+import 'dart:async';
+
+import 'package:pokemap_render_host/src/in_game_menu.dart';
+import 'package:pokemap_render_host/src/runtime_pokedex_loader.dart';
+import 'package:pokemap_render_host/src/runtime_player_options.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
+
+void main() {
+  test('pause menu route guard releases the typed owner after completion',
+      () async {
+    final transitions = <(RuntimeExternalInputLock, bool)>[];
+
+    await runWithRuntimePauseMenuInputLock(
+      setExternalInputLock: (owner, {required locked}) {
+        transitions.add((owner, locked));
+      },
+      openMenu: () async {},
+    );
+
+    expect(transitions, [
+      (RuntimeExternalInputLock.pauseMenu, true),
+      (RuntimeExternalInputLock.pauseMenu, false),
+    ]);
+  });
+
+  test('pause menu route guard releases the typed owner after an error',
+      () async {
+    final transitions = <(RuntimeExternalInputLock, bool)>[];
+
+    await expectLater(
+      runWithRuntimePauseMenuInputLock(
+        setExternalInputLock: (owner, {required locked}) {
+          transitions.add((owner, locked));
+        },
+        openMenu: () => Future<void>.error(StateError('navigation failed')),
+      ),
+      throwsStateError,
+    );
+
+    expect(transitions.last, (RuntimeExternalInputLock.pauseMenu, false));
+  });
+
+  // Ce test couvre le coeur des lots 48 à 51 :
+  // navigation latérale et lecture correcte des données du snapshot runtime.
+  testWidgets('navigates across Pokédex, Équipe, Sac and Dresseur sections',
+      (tester) async {
+    var closeRequested = false;
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
+          gameStateSnapshotBuilder: _buildGameState,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[
+            RuntimePokedexEntry(
+              id: 'bulbasaur',
+              nationalDex: 1,
+              primaryName: 'Bulbasaur',
+              types: ['grass', 'poison'],
+              isEnabledInProject: true,
+              flavorText: 'Seed Pokemon',
+            ),
+            RuntimePokedexEntry(
+              id: 'ivysaur',
+              nationalDex: 2,
+              primaryName: 'Ivysaur',
+              types: ['grass', 'poison'],
+              isEnabledInProject: false,
+              flavorText: 'Blooming Pokemon',
+            ),
+          ],
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: true,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
+          onCloseRequested: () {
+            closeRequested = true;
+          },
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.byKey(const Key('in-game-pokedex-list')), findsOneWidget);
+    expect(find.text('Bulbasaur'), findsWidgets);
+    expect(find.byKey(const Key('pokedex-detail-bulbasaur')), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('pokedex-entry-ivysaur')));
+    await tester.tap(find.byKey(const Key('pokedex-entry-ivysaur')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('pokedex-detail-ivysaur')), findsOneWidget);
+    expect(find.textContaining('Désactivée'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-party-tile')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('in-game-party-section')), findsOneWidget);
+    expect(find.byKey(const Key('party-entry-0')), findsOneWidget);
+    expect(find.byKey(const Key('party-entry-name-0')), findsOneWidget);
+    expect(find.textContaining('Niv. 12'), findsOneWidget);
+    expect(find.byKey(const Key('party-move-vine-whip-0')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-bag-tile')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('in-game-bag-section')), findsOneWidget);
+    expect(find.byKey(const Key('bag-entry-potion')), findsOneWidget);
+    expect(find.text('x3'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-trainer-tile')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('in-game-trainer-section')), findsOneWidget);
+    expect(find.byKey(const Key('trainer-name')), findsOneWidget);
+    expect(find.textContaining('Leaf'), findsOneWidget);
+    expect(find.byKey(const Key('trainer-badge-cascade')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-close-tile')));
+    await tester.pump();
+
+    expect(closeRequested, isTrue);
+  });
+
+  // On vérifie ici que la section Sauvegarde ne réimplémente rien :
+  // elle doit juste relayer les callbacks fournis par le host runtime.
+  testWidgets('save and load actions use the provided callbacks',
+      (tester) async {
+    var saveCount = 0;
+    var loadCount = 0;
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
+          gameStateSnapshotBuilder: _buildGameState,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          onSaveRequested: () async {
+            saveCount += 1;
+            return const InGameMenuActionResult(
+              status: 'Sauvegarde OK · lab (4, 7)',
+            );
+          },
+          onLoadRequested: () async {
+            loadCount += 1;
+            return const InGameMenuActionResult(
+              status: 'Chargement OK · lab (4, 7)',
+            );
+          },
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: true,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('menu-save-tile')));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('in-game-menu-save-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('save-confirm-button')));
+    await tester.pumpAndSettle();
+
+    expect(saveCount, 1);
+    expect(find.byKey(const Key('in-game-menu-save-status')), findsOneWidget);
+    expect(find.textContaining('Sauvegarde OK'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('in-game-menu-load-button')));
+    await tester.pump();
+
+    expect(loadCount, 1);
+    expect(find.textContaining('Chargement OK'), findsOneWidget);
+  });
+
+  testWidgets('save cancellation, busy state and thrown errors are guarded',
+      (tester) async {
+    var saveCount = 0;
+    final loadCompleter = Completer<InGameMenuActionResult>();
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
+          gameStateSnapshotBuilder: _buildGameState,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          onSaveRequested: () async {
+            saveCount += 1;
+            throw StateError('disk full');
+          },
+          onLoadRequested: () => loadCompleter.future,
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: false,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('menu-save-tile')));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('in-game-menu-save-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('save-confirmation-dialog')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('save-cancel-button')));
+    await tester.pumpAndSettle();
+    expect(saveCount, 0);
+
+    await tester.tap(find.byKey(const Key('in-game-menu-save-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('save-confirm-button')));
+    await tester.pumpAndSettle();
+    expect(saveCount, 1);
+    expect(find.byKey(const Key('in-game-menu-save-error')), findsOneWidget);
+    expect(find.textContaining('disk full'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('in-game-menu-load-button')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const Key('in-game-menu-load-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const Key('in-game-menu-save-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    loadCompleter.complete(
+      const InGameMenuActionResult(error: 'Erreur disque structurée'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Erreur disque structurée'), findsOneWidget);
+  });
+
+  testWidgets('offers real options and keyboard navigation closes with Escape',
+      (tester) async {
+    var closeCount = 0;
+    var options = const RuntimePlayerOptions();
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
+          gameStateSnapshotBuilder: _buildGameState,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: options,
+          supportsTouchControls: true,
+          onOptionsChanged: (next) => options = next,
+          onQuitRequested: () {},
+          onCloseRequested: () => closeCount += 1,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // The selected first tile owns initial focus, so Tab + Enter reaches Party.
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(find.byKey(const Key('in-game-party-section')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-options-tile')));
+    await tester.pump();
+    expect(find.byKey(const Key('in-game-options-section')), findsOneWidget);
+    expect(find.textContaining('Volume global indisponible'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('dialogue-text-speed-dropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rapide').last);
+    await tester.pumpAndSettle();
+    expect(options.dialogueTextSpeed, RuntimeDialogueTextSpeed.fast);
+
+    await tester.tap(find.byKey(const Key('show-touch-controls-switch')));
+    await tester.pump();
+    expect(options.showTouchControls, isFalse);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(closeCount, 1);
+  });
+
+  testWidgets('Quit requires confirmation and cancellation is non destructive',
+      (tester) async {
+    var quitCount = 0;
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
+          gameStateSnapshotBuilder: _buildGameState,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: false,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () => quitCount += 1,
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('menu-quit-tile')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('quit-confirmation-dialog')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('quit-cancel-button')));
+    await tester.pumpAndSettle();
+    expect(quitCount, 0);
+
+    await tester.tap(find.byKey(const Key('menu-quit-tile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('quit-confirm-button')));
+    await tester.pumpAndSettle();
+    expect(quitCount, 1);
+  });
+
+  testWidgets('Pokédex privacy updates live from unknown to seen and caught',
+      (tester) async {
+    var gameState = _buildGameState().copyWith(
+      progression: const PlayerProgression(),
+    );
+    late StateSetter rebuildHost;
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            rebuildHost = setState;
+            return InGameMenuPage(
+              itemCatalog: _itemCatalog,
+              gameStateSnapshotBuilder: () => gameState,
+              pokedexLoader: () async => const <RuntimePokedexEntry>[
+                RuntimePokedexEntry(
+                  id: 'bulbasaur',
+                  nationalDex: 1,
+                  primaryName: 'Bulbasaur',
+                  types: ['grass', 'poison'],
+                  isEnabledInProject: true,
+                  flavorText: 'Seed Pokemon',
+                ),
+              ],
+              onSaveRequested: () async => const InGameMenuActionResult(),
+              onLoadRequested: () async => const InGameMenuActionResult(),
+              playerOptions: const RuntimePlayerOptions(),
+              supportsTouchControls: false,
+              onOptionsChanged: (_) {},
+              onQuitRequested: () {},
+              onCloseRequested: () {},
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('???'), findsWidgets);
+    expect(find.text('Bulbasaur'), findsNothing);
+    expect(find.text('Seed Pokemon'), findsNothing);
+    expect(
+      find.byKey(const Key('pokedex-knowledge-bulbasaur-unknown')),
+      findsOneWidget,
+    );
+
+    rebuildHost(() {
+      gameState = gameState.copyWith(
+        progression: const PlayerProgression(
+          seenSpeciesIds: ['bulbasaur'],
+        ),
+      );
+    });
+    await tester.pump();
+
+    expect(find.text('Bulbasaur'), findsWidgets);
+    expect(find.text('Seed Pokemon'), findsNothing);
+    expect(
+      find.byKey(const Key('pokedex-knowledge-bulbasaur-seen')),
+      findsOneWidget,
+    );
+
+    rebuildHost(() {
+      gameState = gameState.copyWith(
+        progression: const PlayerProgression(
+          caughtSpeciesIds: ['bulbasaur'],
+        ),
+      );
+    });
+    await tester.pump();
+
+    expect(find.text('Seed Pokemon'), findsOneWidget);
+    expect(
+      find.byKey(const Key('pokedex-knowledge-bulbasaur-caught')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Map lists current, known and locked destinations honestly',
+      (tester) async {
+    final state = _buildGameState().copyWith(
+      currentMapId: 'town',
+      narrativeEventProgress: NarrativeEventProgress(
+        visitedNarrativeMapIds: const ['port'],
+      ),
+    );
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
+          gameStateSnapshotBuilder: () => state,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          projectMaps: const <ProjectMapEntry>[
+            ProjectMapEntry(
+              id: 'town',
+              name: 'Bourg Selbrume',
+              relativePath: 'maps/town.json',
+              sortOrder: 10,
+            ),
+            ProjectMapEntry(
+              id: 'port',
+              name: 'Port des Brisants',
+              relativePath: 'maps/port.json',
+              sortOrder: 20,
+            ),
+            ProjectMapEntry(
+              id: 'cave',
+              name: 'Grotte secrète',
+              relativePath: 'maps/cave.json',
+              sortOrder: 30,
+            ),
+          ],
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: false,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('menu-map-tile')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('in-game-map-section')), findsOneWidget);
+    expect(find.text('Bourg Selbrume'), findsOneWidget);
+    expect(find.text('Port des Brisants'), findsOneWidget);
+    expect(find.text('Grotte secrète'), findsNothing);
+    expect(find.text('???'), findsOneWidget);
+    expect(find.textContaining('Voyage rapide indisponible'), findsOneWidget);
+    expect(find.byType(FilledButton), findsNothing);
+  });
+
+  testWidgets('reorders party and uses medicine through the pause menu',
+      (tester) async {
+    var state = _buildGameState().copyWith(
+      party: const PlayerParty(
+        members: <PlayerPokemon>[
+          PlayerPokemon(
+            speciesId: 'bulbasaur',
+            natureId: 'bold',
+            abilityId: 'overgrow',
+            level: 12,
+            experience: 1728,
+            knownMoveIds: <String>['tackle'],
+            currentPpByMoveId: <String, int>{'tackle': 5},
+            currentHp: 1,
+          ),
+          PlayerPokemon(
+            speciesId: 'ivysaur',
+            natureId: 'calm',
+            abilityId: 'overgrow',
+            level: 16,
+            currentHp: 40,
+          ),
+        ],
+      ),
+    );
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
+          gameStateSnapshotBuilder: () => state,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          onPlayerStateCommitted: (next) async => state = next,
+          recoveryCaps: const RuntimePlayerServiceRecoveryCaps(
+            maxHpByPartyIndex: <int, int>{0: 30, 1: 40},
+            maxPpByPartyIndex: <int, Map<String, int>>{
+              0: <String, int>{'tackle': 35},
+            },
+          ),
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: false,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('menu-party-tile')));
+    await tester.pump();
+    expect(find.text('XP : 1728'), findsOneWidget);
+    expect(find.text('tackle · PP 5/35'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('party-set-lead-1')));
+    await tester.pumpAndSettle();
+    expect(state.party.members.first.speciesId, 'ivysaur');
+
+    await tester.tap(find.byKey(const Key('menu-bag-tile')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('bag-use-potion')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('bag-target-1')));
+    await tester.pumpAndSettle();
+
+    expect(state.party.members[1].currentHp, 21);
+    expect(
+      state.bag.entries
+          .firstWhere((entry) => entry.itemId == 'potion')
+          .quantity,
+      2,
+    );
+    expect(find.textContaining('Potion utilisée'), findsOneWidget);
+  });
+
+  testWidgets('keeps shop PC and healing out of the global pause menu',
+      (tester) async {
+    final state = _buildGameState();
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
+          gameStateSnapshotBuilder: () => state,
+          pokedexLoader: () async => const <RuntimePokedexEntry>[],
+          recoveryCaps: const RuntimePlayerServiceRecoveryCaps(
+            maxHpByPartyIndex: <int, int>{0: 40},
+          ),
+          onSaveRequested: () async => const InGameMenuActionResult(),
+          onLoadRequested: () async => const InGameMenuActionResult(),
+          playerOptions: const RuntimePlayerOptions(),
+          supportsTouchControls: false,
+          onOptionsChanged: (_) {},
+          onQuitRequested: () {},
+          onCloseRequested: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('menu-shop-tile')), findsNothing);
+    expect(find.byKey(const Key('menu-pc-tile')), findsNothing);
+    expect(find.byKey(const Key('menu-heal-tile')), findsNothing);
+    expect(find.text('Boutique'), findsNothing);
+    expect(find.text('PC Pokémon'), findsNothing);
+    expect(find.text('Centre Pokémon'), findsNothing);
+  });
+}
+
+// Snapshot minimal utilisé par les écrans Sac et Dresseur.
+// Il reste volontairement petit pour que le test cible la présentation.
+GameState _buildGameState() {
+  return const GameState(
+    saveId: 'save-1',
+    party: PlayerParty(
+      members: [
+        PlayerPokemon(
+          speciesId: 'bulbasaur',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: ['tackle', 'vine-whip'],
+          currentHp: 31,
+          heldItemId: 'miracle-seed',
+        ),
+      ],
+    ),
+    trainerProfile: TrainerProfile(
+      name: 'Leaf',
+      badgeIds: ['cascade', 'thunder'],
+      money: 4200,
+      playtimeSeconds: 3723,
+    ),
+    bag: Bag(
+      entries: [
+        BagEntry(itemId: 'potion', quantity: 3),
+        BagEntry(itemId: 'poke-ball', quantity: 5),
+      ],
+    ),
+    progression: PlayerProgression(
+      caughtSpeciesIds: ['bulbasaur', 'ivysaur'],
+    ),
+  );
+}

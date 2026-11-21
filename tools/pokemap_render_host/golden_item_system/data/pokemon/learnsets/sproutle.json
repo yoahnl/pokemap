@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "sproutle",
+  "startingMoves": [
+    "tackle",
+    "growl"
+  ],
+  "relearnMoves": [],
+  "levelUp": [],
+  "tm": [
+    {
+      "moveId": "protect"
+    }
+  ],
+  "hm": [
+    {
+      "moveId": "surf"
+    }
+  ]
+}

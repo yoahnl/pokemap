@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "speciesId": "sproutle",
+  "defaultFormId": "sproutle",
+  "variants": {
+    "sproutle": {
+      "frontStatic": "assets/pokemon/sprites/sproutle/front.png",
+      "backStatic": "assets/pokemon/sprites/sproutle/back.png"
+    }
+  }
+}

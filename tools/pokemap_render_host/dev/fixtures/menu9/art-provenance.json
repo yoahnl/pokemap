@@ -1,0 +1,11 @@
+{
+  "ticket": "POST-UI-MENU-007",
+  "lot": "MENU-I",
+  "asset": "train-region-draft.png",
+  "status": "ARTISTIC_REVIEW_PENDING",
+  "method": "Built-in imagegen, original image generation, 2026-09-06",
+  "prompt": "Original overhead illustrated railway map for Le train de 17h42. Three destination clusters: Hanazuki village at lower left, Aohara village with rice paddies and mill in the middle, Kodama cedar forest halt at upper right. A single continuous railway, bridges wherever needed, no branch or secret station. Sage woodland, teal river, cream fields, ochre rails, warm afternoon. Edge-to-edge storybook cartography, no text, labels, numbers, UI, pins, people or creatures. Leave clear spots for separately rendered UI markers.",
+  "scope": "Interpretive regional illustration of the three currently authored railway stops. Normalized POI positions are fitted to the generated illustration, not inferred from map tile coordinates.",
+  "sourceAuthority": "Train project manifest and Hanazuki-Aohara / Aohara-Kodama rail journeys; no external game graphics copied.",
+  "limitations": ["Artist approval pending", "Does not illustrate unimplemented regions", "The moving wagon has no fixed regional coordinate"]
+}

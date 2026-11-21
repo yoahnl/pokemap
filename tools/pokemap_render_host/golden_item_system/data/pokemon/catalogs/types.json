@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "pokemon_catalog",
+  "catalog": "types",
+  "meta": {
+    "description": "Golden item system types catalog"
+  },
+  "entries": [
+    {
+      "id": "fire"
+    },
+    {
+      "id": "grass"
+    },
+    {
+      "id": "normal"
+    },
+    {
+      "id": "water"
+    }
+  ]
+}

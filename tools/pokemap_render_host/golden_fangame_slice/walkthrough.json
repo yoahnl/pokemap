@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "projectId": "golden_fangame_slice",
+  "steps": [
+    {
+      "id": "new_game",
+      "label": "Lancer une nouvelle partie",
+      "proof": "GameState créé depuis ProjectNewGameConfig."
+    },
+    {
+      "id": "starter_chosen",
+      "label": "Choisir un starter",
+      "proof": "Le starter authoré rejoint la party."
+    },
+    {
+      "id": "wild_encounter",
+      "label": "Déclencher une rencontre",
+      "proof": "La zone golden_grass résout sparkitten."
+    },
+    {
+      "id": "wild_battle_completed",
+      "label": "Terminer le combat sauvage",
+      "proof": "Une session de combat réelle atteint un résultat."
+    },
+    {
+      "id": "capture_completed",
+      "label": "Capturer le Pokémon",
+      "proof": "La capture écrit dans la party ou le storage."
+    },
+    {
+      "id": "trainer_defeated",
+      "label": "Battre Mira",
+      "proof": "Le combat trainer produit une victoire."
+    },
+    {
+      "id": "level_up_proved",
+      "label": "Prouver la progression",
+      "proof": "La récompense augmente niveau et argent."
+    },
+    {
+      "id": "shop_used",
+      "label": "Acheter une potion",
+      "proof": "La transaction retire l'argent et ajoute l'objet."
+    },
+    {
+      "id": "heal_center_used",
+      "label": "Soigner l'équipe",
+      "proof": "Le recovery point restaure les HP et statuts."
+    },
+    {
+      "id": "badge_flag_acquired",
+      "label": "Obtenir le badge/flag",
+      "proof": "Le flag golden.badge.tide est actif."
+    },
+    {
+      "id": "surf_unlocked",
+      "label": "Débloquer Surf",
+      "proof": "FieldAbility.surf est persistée."
+    },
+    {
+      "id": "save_reloaded",
+      "label": "Sauvegarder et recharger",
+      "proof": "Le JSON de sauvegarde restitue l'état complet."
+    },
+    {
+      "id": "story_end_reached",
+      "label": "Atteindre la mini-fin",
+      "proof": "Le flag golden.story.completed est actif."
+    }
+  ]
+}

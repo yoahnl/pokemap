@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "regions": [
+    {
+      "id": "train-1742",
+      "label": "Le train de 17h42",
+      "imagePath": "assets/menu/regions/train-1742-draft.png",
+      "sampling": "smooth"
+    }
+  ],
+  "pointsOfInterest": [
+    {
+      "id": "hanazuki",
+      "regionId": "train-1742",
+      "label": "Hanazuki",
+      "description": "Le village du départ, sa pension et sa petite gare. Le voyage commence ici.",
+      "descriptions": {"en": "The starting village, its guesthouse and small station. The journey begins here."},
+      "u": 0.202,
+      "v": 0.824,
+      "visibility": "always",
+      "discovery": "onMapVisit",
+      "mapIds": ["hanazuki-village", "hanazuki-pension", "hanazuki-maison", "hanazuki-fleuriste", "hanazuki-cafe", "hanazuki-clinique", "hanazuki-sanctuaire", "hanazuki-gare", "hanazuki-hall", "hanazuki-boutique"],
+      "sortOrder": 0
+    },
+    {
+      "id": "sentier-hanazuki",
+      "regionId": "train-1742",
+      "label": "Sentier de Hanazuki",
+      "labels": {"en": "Hanazuki trail"},
+      "description": "Un sentier aux abords de Hanazuki, propice aux premières rencontres.",
+      "descriptions": {"en": "A trail near Hanazuki, a place for first encounters."},
+      "u": 0.357,
+      "v": 0.68,
+      "visibility": "discoveredOnly",
+      "discovery": "onMapVisit",
+      "mapIds": ["route-hanazuki"],
+      "sortOrder": 1
+    },
+    {
+      "id": "aohara",
+      "regionId": "train-1742",
+      "label": "Aohara",
+      "description": "Les rizières entourent le village. Le moulin rythme la vie de cette étape ferroviaire.",
+      "descriptions": {"en": "Rice paddies surround the village. The mill sets the pace of life at this railway stop."},
+      "u": 0.505,
+      "v": 0.492,
+      "visibility": "always",
+      "discovery": "onMapVisit",
+      "mapIds": ["aohara-village", "aohara-rizieres", "aohara-moulin", "aohara-hall", "aohara-pension", "aohara-boutique", "aohara-atelier"],
+      "sortOrder": 2
+    },
+    {
+      "id": "kodama",
+      "regionId": "train-1742",
+      "label": "Kodama",
+      "description": "Une halte à la lisière des cèdres. Les sentiers conduisent vers la forêt et sa clairière.",
+      "descriptions": {"en": "A halt at the edge of the cedars. Trails lead into the forest and its clearing."},
+      "u": 0.837,
+      "v": 0.173,
+      "visibility": "always",
+      "discovery": "onMapVisit",
+      "mapIds": ["kodama-halte", "kodama-foret", "kodama-clairiere", "kodama-garde"],
+      "sortOrder": 3
+    }
+  ]
+}

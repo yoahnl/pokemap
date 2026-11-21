@@ -1,0 +1,1881 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:file_selector/file_selector.dart';
+import 'package:flame/game.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
+import 'package:gamepads/gamepads.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_player_ui/map_player_ui.dart' as player_ui;
+import 'package:map_runtime/map_runtime.dart';
+
+import 'evaluation/interactive/interactive_evaluation_bridge.dart';
+import 'evaluation/interactive/interactive_evaluation_config.dart';
+import 'evaluation/interactive/player_service_automation_port.dart';
+import 'in_game_heal_flow.dart';
+import 'in_game_menu.dart';
+import 'in_game_pc_page.dart';
+import 'in_game_shop_page.dart';
+import 'runtime_gamepad_bridge.dart';
+import 'runtime_gamepad_presence.dart';
+import 'runtime_ios_project_picker.dart';
+import 'runtime_launch_save.dart';
+import 'runtime_player_options.dart';
+import 'runtime_pokedex_loader.dart';
+import 'runtime_project_picker.dart';
+import 'runtime_project_launch_map.dart';
+import 'runtime_projects_directory.dart';
+import 'runtime_startup_host.dart';
+import 'runtime_touch_controls.dart';
+import 'runtime_touch_controls_visibility.dart';
+import 'standalone_presentation_media.dart';
+
+void _runtimeHostLog(String message) {
+  debugPrint('[runtime_host] $message');
+}
+
+void runInteractiveEvaluationPlayer({
+  String? initialProjectFilePath,
+  ValueChanged<PlayableMapGame?>? onGameChanged,
+  InteractiveEvaluationConfig? evaluationConfig,
+  Directory? evaluationOutputRoot,
+  String? evaluationProjectIdentity,
+}) {
+  runApp(
+    MaterialApp(
+      title: 'PokeMap Interactive Evaluation',
+      home: _ProjectLoaderPage(
+        initialProjectFilePath: initialProjectFilePath,
+        onGameChanged: onGameChanged,
+        evaluationConfig: evaluationConfig,
+        evaluationOutputRoot: evaluationOutputRoot,
+        evaluationProjectIdentity: evaluationProjectIdentity,
+      ),
+    ),
+  );
+}
+
+// Cette page joue deux rôles très ciblés :
+// 1. charger un projet et une map runtime ;
+// 2. exposer les surfaces minimales de debug/save/menu utiles aux phases 9-10.
+class _ProjectLoaderPage extends StatefulWidget {
+  const _ProjectLoaderPage({
+    this.initialProjectFilePath,
+    this.onGameChanged,
+    this.evaluationConfig,
+    this.evaluationOutputRoot,
+    this.evaluationProjectIdentity,
+  });
+
+  final String? initialProjectFilePath;
+  final ValueChanged<PlayableMapGame?>? onGameChanged;
+  final InteractiveEvaluationConfig? evaluationConfig;
+  final Directory? evaluationOutputRoot;
+  final String? evaluationProjectIdentity;
+
+  @override
+  State<_ProjectLoaderPage> createState() => _ProjectLoaderPageState();
+}
+
+class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
+    with WidgetsBindingObserver {
+  InteractiveEvaluationConfig get _evaluationConfig =>
+      widget.evaluationConfig ?? interactiveEvaluationConfig;
+  String _projectFilePath = '';
+  List<ProjectMapEntry> _availableMaps = const [];
+  ProjectManifest? _projectManifest;
+  String? _selectedMapId;
+  PlayableMapGame? _game;
+  PlayerServiceRuntimeController? _playerServices;
+  String? _error;
+  bool _loading = false;
+  bool _showCollisionOverlay = false;
+  bool _showNpcCollisionDebugOverlay = false;
+  bool _showFpsOverlay = false;
+  bool _showRuntimeDebugPanel = true;
+  bool _touchControlsHiddenByUser = false;
+  RuntimePlayerOptions _playerOptions = const RuntimePlayerOptions();
+  bool _hasConnectedGamepad = false;
+  bool _surfingEnabled = false;
+  bool _saveLoadBusy = false;
+  String? _saveLoadStatus;
+  String? _saveLoadError;
+  Timer? _runtimeInfoTicker;
+  Timer? _gamepadPresenceTimer;
+  StreamSubscription<NormalizedGamepadEvent>? _runtimeGamepadSubscription;
+  final RuntimeGamepadPresence _runtimeGamepadPresence =
+      RuntimeGamepadPresence();
+  late final PlayerServiceAutomationPort? _playerServiceAutomationPort =
+      _evaluationConfig.enabled ? PlayerServiceAutomationPort() : null;
+  InteractiveEvaluationBridge? _interactiveBridge;
+  final GlobalKey _interactiveGameSurfaceKey = GlobalKey();
+  final _startupImageBudget = RuntimeResourceBudget();
+  final player_ui.PlayerRuntimeStartupShellController _startupShellController =
+      player_ui.PlayerRuntimeStartupShellController();
+  StandaloneRuntimeStartupHost? _startupHost;
+  player_ui.RuntimePlayerCoordinatorViewController? _startupViewController;
+  RuntimeStartupSnapshot? _startupSnapshot;
+  StreamSubscription<RuntimeStartupSnapshot>? _startupSubscription;
+  DateTime? _sessionCreatedAt;
+  Stopwatch? _sessionPlayWatch;
+
+  static const _prefsFileName = '.playable_runtime_host_prefs.json';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _bindGamepadInputsIfNeeded();
+    _startGamepadPresenceRefreshIfNeeded();
+    _restoreLastSession();
+  }
+
+  @override
+  void dispose() {
+    _startupImageBudget.dispose();
+    // Le ticker d'overlay est strictement local au host et doit toujours être
+    // arrêté quand la page sort, pour éviter toute fuite de rafraîchissement.
+    _runtimeInfoTicker?.cancel();
+    _gamepadPresenceTimer?.cancel();
+    _runtimeGamepadSubscription?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_disposeInteractiveBridge());
+    final startupSubscription = _startupSubscription;
+    _startupSubscription = null;
+    if (startupSubscription != null) {
+      unawaited(startupSubscription.cancel());
+    }
+    final startupHost = _startupHost;
+    _startupHost = null;
+    if (startupHost != null) {
+      unawaited(startupHost.dispose());
+    } else {
+      _disposeCurrentGame();
+    }
+    super.dispose();
+  }
+
+  void _disposeCurrentGame() {
+    final game = _game;
+    _game = null;
+    _playerServices = null;
+    widget.onGameChanged?.call(null);
+    game?.dispose();
+    _sessionPlayWatch?.stop();
+    _sessionPlayWatch = null;
+    _sessionCreatedAt = null;
+  }
+
+  bool get _supportsTouchControls =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
+
+  void _bindGamepadInputsIfNeeded() {
+    if (kIsWeb || _runtimeGamepadSubscription != null) {
+      return;
+    }
+    final bridge = RuntimeGamepadBridge();
+    _runtimeGamepadSubscription = Gamepads.normalizedEvents.listen((event) {
+      final game = _game;
+      if (!_hasConnectedGamepad && mounted) {
+        setState(() => _hasConnectedGamepad = true);
+      }
+      final runtimeEvents = event.button != null
+          ? bridge.handleButton(
+              gamepadId: event.gamepadId,
+              button: event.button!,
+              value: event.value,
+            )
+          : bridge.handleAxis(
+              gamepadId: event.gamepadId,
+              axis: event.axis!,
+              value: event.value,
+            );
+      for (final runtimeEvent in runtimeEvents) {
+        if (game != null) {
+          final startupHost = _startupHost;
+          if (startupHost != null) {
+            startupHost.sessionController.handleInput(runtimeEvent);
+          } else {
+            game.handleRuntimeInputEvent(runtimeEvent);
+          }
+        } else {
+          _startupShellController.handle(
+            playerInputCommandFromRuntimeEvent(
+              runtimeEvent,
+              source: PlayerInputSource.controller,
+            ),
+          );
+        }
+      }
+    }, onError: (_) {});
+  }
+
+  void _startGamepadPresenceRefreshIfNeeded() {
+    if (!_supportsTouchControls || _gamepadPresenceTimer != null) {
+      return;
+    }
+    _refreshConnectedGamepadState();
+    _gamepadPresenceTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _refreshConnectedGamepadState(),
+    );
+  }
+
+  Future<void> _refreshConnectedGamepadState() async {
+    if (!_supportsTouchControls || !mounted) {
+      return;
+    }
+    try {
+      final hasConnectedGamepad = await _runtimeGamepadPresence
+          .hasConnectedGamepads();
+      if (!mounted || _hasConnectedGamepad == hasConnectedGamepad) {
+        return;
+      }
+      setState(() => _hasConnectedGamepad = hasConnectedGamepad);
+    } catch (_) {
+      // Best-effort seulement : une erreur de détection de manette ne doit
+      // jamais bloquer le host ni le runtime.
+    }
+  }
+
+  // Les préférences locales du host ne font pas partie de la save gameplay.
+  // Elles servent seulement à rouvrir rapidement le dernier projet dans l'outil
+  // d'hébergement runtime.
+  String _prefsFilePath() {
+    final home = Platform.environment['HOME'];
+    if (home == null || home.isEmpty) {
+      return _prefsFileName;
+    }
+    return '$home/$_prefsFileName';
+  }
+
+  // La restauration des préférences est volontairement best-effort :
+  // on veut retrouver vite le dernier projet, sans jamais bloquer le chargement
+  // si le fichier local est absent ou invalide.
+  Future<void> _restoreLastSession() async {
+    final initialProjectFilePath = widget.initialProjectFilePath;
+    if (initialProjectFilePath != null) {
+      _projectFilePath = initialProjectFilePath;
+      await _loadProjectMapsFromManifest(initialProjectFilePath);
+      if (mounted) await _launchSelectedProject();
+      return;
+    }
+    if (_evaluationConfig.enabled) {
+      await _restoreInteractiveEvaluationProject();
+      return;
+    }
+    try {
+      final file = File(_prefsFilePath());
+      if (await file.exists()) {
+        final raw = await file.readAsString();
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) {
+          final restoredOptions = RuntimePlayerOptions.fromJson(
+            decoded['playerOptions'],
+          );
+          if (mounted) {
+            setState(() {
+              _playerOptions = restoredOptions;
+              _touchControlsHiddenByUser = !restoredOptions.showTouchControls;
+            });
+          }
+          final savedProjectPath = (decoded['projectFilePath'] as String?)
+              ?.trim();
+          final savedMapId = (decoded['mapId'] as String?)?.trim();
+          if (savedProjectPath != null &&
+              savedProjectPath.isNotEmpty &&
+              await File(savedProjectPath).exists() &&
+              mounted) {
+            setState(() {
+              _projectFilePath = savedProjectPath;
+              _selectedMapId = savedMapId != null && savedMapId.isNotEmpty
+                  ? savedMapId
+                  : _selectedMapId;
+            });
+            await _loadProjectMapsFromManifest(
+              savedProjectPath,
+              preferredMapId: savedMapId,
+            );
+            return;
+          }
+        }
+      }
+    } catch (_) {
+      // Restauration best-effort: on ignore silencieusement les prefs invalides.
+    }
+  }
+
+  Future<void> _restoreInteractiveEvaluationProject() async {
+    final relativeProjectFile = _evaluationConfig.projectFile!;
+    final projectFile = await _findInteractiveProjectFile(relativeProjectFile);
+    if (projectFile == null || !mounted) {
+      _runtimeHostLog(
+        'interactive project not found relativePath=$relativeProjectFile',
+      );
+      if (mounted) {
+        setState(() {
+          _error = 'Projet interactif introuvable : $relativeProjectFile';
+        });
+      }
+      return;
+    }
+    _runtimeHostLog('interactive project resolved path=${projectFile.path}');
+    setState(() {
+      _projectFilePath = projectFile.path;
+      _selectedMapId = null;
+    });
+    await _loadProjectMapsFromManifest(projectFile.path);
+    if (!mounted || _selectedMapId == null) return;
+    await _load();
+  }
+
+  Future<File?> _findInteractiveProjectFile(String relativePath) async {
+    final visited = <String>{};
+    final seeds = <Directory>[
+      Directory.current.absolute,
+      File(Platform.resolvedExecutable).parent.absolute,
+    ];
+    for (final seed in seeds) {
+      var candidate = seed;
+      while (visited.add(candidate.path)) {
+        final projectFile = File('${candidate.path}/$relativePath');
+        if (await projectFile.exists()) return projectFile.absolute;
+        final parent = candidate.parent;
+        if (parent.path == candidate.path) break;
+        candidate = parent;
+      }
+    }
+    return null;
+  }
+
+  // Host session and presentation options remain local preferences, never
+  // gameplay state. The versioned gameplay save stays in its own pipeline.
+  Future<void> _persistLastSession() async {
+    if (_evaluationConfig.enabled || widget.initialProjectFilePath != null) {
+      return;
+    }
+    try {
+      final file = File(_prefsFilePath());
+      final payload = <String, dynamic>{
+        'projectFilePath': _projectFilePath,
+        'mapId': _selectedMapId,
+        'playerOptions': _playerOptions.toJson(),
+      };
+      await file.writeAsString(jsonEncode(payload));
+    } catch (_) {
+      // Persistance best-effort: ne bloque jamais le flux utilisateur.
+    }
+  }
+
+  // Cette lecture alimente le host et résout la map de lancement : une vraie
+  // save versionnée, puis New Game, puis seulement les préférences legacy.
+  Future<void> _loadProjectMapsFromManifest(
+    String projectFilePath, {
+    String? preferredMapId,
+  }) async {
+    _runtimeHostLog('manifest read start projectFilePath=$projectFilePath');
+    try {
+      final raw = await File(projectFilePath).readAsString();
+      _runtimeHostLog('manifest read ok bytes=${raw.length}');
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        _runtimeHostLog(
+          'manifest read ignored rootType=${decoded.runtimeType}',
+        );
+        if (!mounted) return;
+        setState(() {
+          _availableMaps = const [];
+          _projectManifest = null;
+        });
+        return;
+      }
+      final manifest = ProjectManifest.fromJson(decoded);
+      _runtimeHostLog(
+        'manifest parsed maps=${manifest.maps.length} tilesets=${manifest.tilesets.length} scenarios=${manifest.scenarios.length}',
+      );
+      final versionedLaunchSave = await loadRuntimeHostLaunchSaveData(
+        projectFilePath: projectFilePath,
+      );
+      final selection = resolveRuntimeHostProjectMapSelection(
+        manifest,
+        versionedLaunchMapId: versionedLaunchSave?.currentMapId,
+        preferredMapId: preferredMapId,
+      );
+      final maps = selection.maps;
+      final nextSelected = selection.selectedMapId;
+      if (!mounted) return;
+      setState(() {
+        _availableMaps = maps;
+        _projectManifest = manifest;
+        _selectedMapId = nextSelected;
+      });
+      _runtimeHostLog(
+        'manifest maps ready selectedMapId=$nextSelected availableMapIds=${maps.map((m) => m.id).join(',')}',
+      );
+    } catch (e, stackTrace) {
+      _runtimeHostLog(
+        'manifest read failed projectFilePath=$projectFilePath error=$e',
+      );
+      debugPrintStack(
+        label: '[runtime_host] manifest read stack',
+        stackTrace: stackTrace,
+      );
+      if (!mounted) return;
+      setState(() {
+        _availableMaps = const [];
+        _projectManifest = null;
+      });
+    }
+  }
+
+  // Le ticker force un refresh léger de l'overlay runtime pour afficher
+  // les informations de debug et de save qui évoluent pendant la session.
+  void _startRuntimeInfoTicker() {
+    _runtimeInfoTicker?.cancel();
+    _runtimeInfoTicker = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (!mounted || _game == null) {
+        return;
+      }
+      setState(() {});
+    });
+  }
+
+  void _stopRuntimeInfoTicker() {
+    _runtimeInfoTicker?.cancel();
+    _runtimeInfoTicker = null;
+  }
+
+  Future<String> _ensureProjectCopiedToDocuments(String projectJsonPath) async {
+    final docsDir = await _getProjectsDirectory();
+    return importRuntimeProjectToRuntimeProjectsDirectory(
+      projectJsonPath: projectJsonPath,
+      projectsDirectory: docsDir,
+    );
+  }
+
+  Future<Directory> _getProjectsDirectory() async {
+    if (kIsWeb) {
+      return Directory('');
+    }
+    return ensureRuntimeProjectsDirectory(
+      getDocumentsDirectory: getApplicationDocumentsDirectory,
+    );
+  }
+
+  Future<void> _pickProjectFile() async {
+    _runtimeHostLog('project picker start');
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = !kIsWeb && Platform.isIOS
+          ? await pickRuntimeProjectDirectoryOnIos()
+          : await pickRuntimeProjectDirectory(
+              pickDirectoryPath: () {
+                return getDirectoryPath(
+                  confirmButtonText: 'Choisir',
+                  initialDirectory: Platform.environment['HOME'],
+                );
+              },
+              importProjectJsonPath: _ensureProjectCopiedToDocuments,
+            );
+      if (!mounted) {
+        _runtimeHostLog('project picker result ignored: widget unmounted');
+        return;
+      }
+      if (result.didCancel) {
+        _runtimeHostLog('project picker cancelled');
+        return;
+      }
+      if (!result.didSelectProject) {
+        _runtimeHostLog('project picker failed message=${result.errorMessage}');
+        setState(() => _error = result.errorMessage);
+        return;
+      }
+      final projectJsonPath = result.projectJsonPath!;
+      _runtimeHostLog(
+        'project picker selected projectJsonPath=$projectJsonPath',
+      );
+      setState(() {
+        _projectFilePath = projectJsonPath;
+        _error = null;
+      });
+      await _loadProjectMapsFromManifest(projectJsonPath);
+      await _persistLastSession();
+      _runtimeHostLog(
+        'project picker completed projectJsonPath=$_projectFilePath',
+      );
+    } catch (e, stackTrace) {
+      _runtimeHostLog('project picker exception error=$e');
+      debugPrintStack(
+        label: '[runtime_host] project picker stack',
+        stackTrace: stackTrace,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = 'Erreur projet: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  // Ce chargement construit uniquement le bundle runtime et l'instance de jeu.
+  // Il ne modifie pas la structure métier des saves.
+  Future<PlayableMapGame> _load({
+    GameSessionLaunchMode launchMode = GameSessionLaunchMode.continueGame,
+    GameState? initialGameState,
+    GameSessionProgressReporter? reportProgress,
+    RuntimeInitialMapPreloadResult? preloadedInitialMap,
+  }) async {
+    final projectFilePath = _projectFilePath;
+    final selectedMapId =
+        (initialGameState?.currentMapId ?? _selectedMapId ?? '').trim();
+    var mapId = selectedMapId;
+
+    if (projectFilePath.isEmpty) {
+      _runtimeHostLog('map load blocked: empty projectFilePath');
+      setState(() => _error = 'Sélectionnez un dossier projet valide.');
+      throw StateError('A project must be selected before launch.');
+    }
+    if (selectedMapId.isEmpty) {
+      _runtimeHostLog(
+        'map load blocked: empty mapId projectFilePath=$projectFilePath',
+      );
+      setState(() => _error = 'Saisissez un identifiant de map.');
+      throw StateError('A map must be selected before launch.');
+    }
+
+    _runtimeHostLog(
+      'map load start projectFilePath=$projectFilePath mapId=$mapId',
+    );
+    await _disposeInteractiveBridge();
+    if (!mounted) {
+      throw StateError('The runtime host closed before launch.');
+    }
+    _disposeCurrentGame();
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    reportProgress?.call(
+      const GameSessionLoadingProgress(stage: 'project', current: 0, total: 4),
+    );
+
+    try {
+      // A versioned launch save is gameplay state, unlike host preferences.
+      // Resolve it before the bundle so PlayableMapGame receives the map that
+      // actually owns the restored position/state.
+      _runtimeHostLog('launch save load start');
+      final launchSaveData = launchMode == GameSessionLaunchMode.newGame
+          ? null
+          : await loadRuntimeHostLaunchSaveData(
+              projectFilePath: projectFilePath,
+            );
+      final restoredMapId = launchSaveData?.currentMapId.trim();
+      if (restoredMapId != null && restoredMapId.isNotEmpty) {
+        mapId = restoredMapId;
+      }
+      _runtimeHostLog(
+        'launch save load ${launchSaveData == null ? 'missing: will use project/legacy fallback' : 'ok: mapId=$mapId'}',
+      );
+      reportProgress?.call(
+        const GameSessionLoadingProgress(stage: 'save', current: 1, total: 4),
+      );
+      _runtimeHostLog('bundle load start mapId=$mapId');
+      final preloadedBundle = preloadedInitialMap?.bundle;
+      final reusesPreloadedInitialMap = preloadedBundle?.map.id == mapId;
+      final bundle = reusesPreloadedInitialMap
+          ? preloadedBundle!
+          : await loadRuntimeMapBundle(
+              projectFilePath: projectFilePath,
+              mapId: mapId,
+            );
+      if (!reusesPreloadedInitialMap) preloadedInitialMap?.dispose();
+      _runtimeHostLog(
+        'bundle load ok map=${bundle.map.id} size=${bundle.map.size.width}x${bundle.map.size.height} layers=${bundle.map.layers.length} entities=${bundle.map.entities.length} tilesets=${bundle.tilesetAbsolutePathsById.length}',
+      );
+      reportProgress?.call(
+        const GameSessionLoadingProgress(stage: 'world', current: 2, total: 4),
+      );
+      final launchPlan = resolveRuntimeHostLaunchPlan(
+        newGame: bundle.manifest.newGame,
+        versionedLaunchSave: launchSaveData,
+      );
+      final initialTilesetImageCache = reusesPreloadedInitialMap
+          ? preloadedInitialMap?.takeTilesetImageCache()
+          : null;
+      // Le host standalone construit le jeu en direct, sans passer par
+      // PlayableMapGameSessionRuntime : il lui faut donc son propre passage des
+      // options d'accessibilité, sinon la préférence n'existe que dans le thème.
+      final accessibility =
+          _startupSnapshot?.playerSnapshot?.preferences?.accessibility;
+      late final PlayableMapGame nextGame;
+      try {
+        nextGame = PlayableMapGame(
+          bundle: bundle,
+          projectFilePath: projectFilePath,
+          saveData: launchPlan.saveData,
+          initialGameState: initialGameState,
+          initialMapActivationReason: launchPlan.initialMapActivationReason,
+          initialTilesetImageCache: initialTilesetImageCache,
+          audioMixer: _startupHost?.audioMixer,
+          presentationCinematicPlayer:
+              _startupHost?.presentationSession?.controller,
+          battleMessageFormatter: player_ui.localizeRuntimeBattleMessage,
+          reducedMotion: accessibility?.reducedMotion ?? false,
+          textScale: accessibility?.textScale ?? 1.0,
+        );
+      } catch (_) {
+        initialTilesetImageCache?.dispose();
+        rethrow;
+      }
+      final playerServices = PlayerServiceRuntimeController(
+        supportsRepel: true,
+        currentGameState: () => nextGame.playerServiceGameStateSnapshot,
+        host: _RuntimePlayerServiceOverlayHost(
+          contextBuilder: () => context,
+          isMounted: () => mounted,
+          automationPort: _playerServiceAutomationPort,
+        ),
+        commitAndSave: nextGame.commitAndSavePlayerServiceState,
+        setInputLocked: (locked) => nextGame.setExternalInputLock(
+          RuntimeExternalInputLock.playerService,
+          locked: locked,
+        ),
+        loadRecoveryCaps: (state) => loadRuntimePlayerServiceRecoveryCaps(
+          gameState: state,
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
+        ),
+        projectRootDirectory: bundle.projectRootDirectory,
+        pokemonConfig: bundle.manifest.pokemon,
+        bagCapacity: bundle.manifest.bagCapacity,
+        conditionContext: ScriptEvaluationContext(
+          narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
+            bundle.manifest.facts,
+          ),
+        ),
+      );
+      nextGame.setPlayerServiceRuntimeController(playerServices);
+      _runtimeHostLog('game instance created mapId=$mapId');
+      setState(() {
+        _game = nextGame;
+        _playerServices = playerServices;
+        _saveLoadStatus = null;
+        _saveLoadError = null;
+      });
+      widget.onGameChanged?.call(nextGame);
+      _sessionCreatedAt = DateTime.now().toUtc();
+      _sessionPlayWatch = Stopwatch()..start();
+      // Interactive evaluation never enables the expensive collision layers.
+      nextGame.setCollisionOverlayVisible(
+        _evaluationConfig.enabled ? false : _showCollisionOverlay,
+      );
+      nextGame.setNpcCollisionDebugOverlayVisible(
+        _evaluationConfig.enabled ? false : _showNpcCollisionDebugOverlay,
+      );
+      nextGame.setFpsOverlayVisible(_showFpsOverlay);
+      nextGame.setSurfingEnabled(_surfingEnabled);
+      nextGame.setDialogueFlutterOverlayPreferred(true);
+      final preferences = _startupHost?.playerCoordinator.snapshot.preferences;
+      if (preferences == null) {
+        nextGame.setDialogueTextSpeed(_playerOptions.dialogueTextSpeed);
+      } else {
+        nextGame.applyPlayerPreferences(preferences);
+      }
+      await WidgetsBinding.instance.endOfFrame;
+      await nextGame.loaded;
+      if (!mounted || !identical(_game, nextGame)) {
+        throw StateError('The runtime session changed before readiness.');
+      }
+      if (_evaluationConfig.enabled) {
+        _interactiveBridge = await InteractiveEvaluationBridge.attach(
+          config: _evaluationConfig,
+          outputRoot: widget.evaluationOutputRoot,
+          projectIdentity: widget.evaluationProjectIdentity,
+          game: nextGame,
+          project: bundle.manifest,
+          projectRoot: Directory(bundle.projectRootDirectory),
+          services: _playerServiceAutomationPort!,
+          captureSurface: _captureInteractiveGameSurface,
+        );
+      }
+      _startRuntimeInfoTicker();
+      await _persistLastSession();
+      _runtimeHostLog('map load completed mapId=$mapId');
+      reportProgress?.call(
+        const GameSessionLoadingProgress(stage: 'ready', current: 4, total: 4),
+      );
+      return nextGame;
+    } catch (e, stackTrace) {
+      _runtimeHostLog('map load failed mapId=$mapId error=$e');
+      debugPrintStack(
+        label: '[runtime_host] map load stack',
+        stackTrace: stackTrace,
+      );
+      if (mounted) setState(() => _error = e.toString());
+      rethrow;
+    } finally {
+      preloadedInitialMap?.dispose();
+      if (mounted) setState(() => _loading = false);
+      _runtimeHostLog('map load finished loading=false mapId=$mapId');
+    }
+  }
+
+  Future<void> _launchSelectedProject() async {
+    final manifest = _projectManifest;
+    if (_projectFilePath.isEmpty || manifest == null) {
+      setState(() => _error = 'Sélectionnez un dossier projet valide.');
+      return;
+    }
+    if ((_selectedMapId ?? '').trim().isEmpty) {
+      setState(() => _error = 'Sélectionnez une map de lancement.');
+      return;
+    }
+
+    await _disposeStartupHost();
+    if (!mounted) return;
+    final audioMixer = RuntimeAudioMixer();
+    // BETA-CIN-082: compose the shared interactive Presentation stack from
+    // the project directory before the host starts, so New Game runs cues
+    // and branches here exactly as it does in the Hub.
+    player_ui.RuntimePresentationSessionRuntime? presentationSession;
+    if (manifest.presentationCinematics.isNotEmpty) {
+      try {
+        final media = await loadStandalonePresentationMedia(
+          projectRootDirectory: p.dirname(_projectFilePath),
+        );
+        if (media != null) {
+          presentationSession = player_ui.RuntimePresentationSessionRuntime(
+            runtimeSourceId: standaloneRuntimeProfileId,
+            catalog: media.catalog,
+            mediaUris: media.mediaUris,
+            targetPlatform: player_ui.currentPresentationMediaTargetPlatform(),
+            audioMixer: audioMixer,
+            reducedMotion: false,
+          );
+        }
+      } on StandalonePresentationMediaException catch (error) {
+        setState(() => _error = error.message);
+        return;
+      }
+    }
+    if (!mounted) {
+      await presentationSession?.close();
+      return;
+    }
+    late final StandaloneRuntimeStartupHost startupHost;
+    startupHost = StandaloneRuntimeStartupHost(
+      projectFilePath: _projectFilePath,
+      manifest: manifest,
+      presentationSession: presentationSession,
+      sharedAudioMixer: audioMixer,
+      preferencesFile: () async => File(
+        p.join(
+          (await getApplicationSupportDirectory()).path,
+          'runtime-player-preferences.json',
+        ),
+      ),
+      sessionPort: CallbackStandaloneRuntimeSessionPort(
+        onPreferencesChanged: (preferences) =>
+            _game?.applyPlayerPreferences(preferences),
+        onLaunch: (descriptor, reportProgress, preloadedInitialMap) async {
+          await _load(
+            launchMode: descriptor.launchMode,
+            initialGameState: descriptor.initialGameState,
+            reportProgress: reportProgress,
+            preloadedInitialMap: preloadedInitialMap,
+          );
+        },
+        onPause: _pauseStandaloneSession,
+        onResume: _resumeStandaloneSession,
+        onCaptureCheckpoint: _captureStandaloneCheckpoint,
+        onPauseCommand: (command) async {
+          final services = _playerServices;
+          if (services == null) {
+            return const RuntimePlayerPauseCommandResult(
+              status: RuntimePlayerPauseCommandStatus.unavailable,
+              safeMessage: 'Les actions de l’équipe sont indisponibles.',
+            );
+          }
+          return switch (command.kind) {
+            RuntimePlayerPauseCommandKind.reorderPartyMember ||
+            RuntimePlayerPauseCommandKind.setPartyLead =>
+              services.reorderPartyOutsideBattle(command),
+            _ => services.useBagItemOutsideBattle(command),
+          };
+        },
+        onStop: (_) => _pauseStandaloneSession(),
+        onDispose: _disposeStandaloneSession,
+        onInput: (event) => _game?.handleRuntimeInputEvent(event) ?? false,
+      ),
+      onExternalExit: _reset,
+      stopIntroPlayback: _startupShellController.stopIntroPlayback,
+      reducedMotion: MediaQuery.maybeOf(context)?.disableAnimations ?? false,
+    );
+    final subscription = startupHost.snapshots.listen((snapshot) {
+      if (!mounted || !identical(_startupHost, startupHost)) return;
+      setState(() => _startupSnapshot = snapshot);
+    });
+    setState(() {
+      _startupHost = startupHost;
+      _startupViewController = player_ui.RuntimePlayerCoordinatorViewController(
+        startupHost.playerCoordinator,
+      );
+      _startupSnapshot = startupHost.snapshot;
+      _startupSubscription = subscription;
+      _error = null;
+    });
+    startupHost.start();
+  }
+
+  Future<void> _pauseStandaloneSession() async {
+    _sessionPlayWatch?.stop();
+    _game?.pauseEngine();
+  }
+
+  Future<void> _resumeStandaloneSession() async {
+    _game?.resumeEngine();
+    _sessionPlayWatch?.start();
+  }
+
+  Future<GameSessionCheckpoint?> _captureStandaloneCheckpoint() async {
+    final game = _game;
+    final createdAt = _sessionCreatedAt;
+    if (game == null || createdAt == null) return null;
+    final updatedAt = DateTime.now().toUtc();
+    final state = game.gameStateSnapshot;
+    final saveId = state.saveId.trim().isEmpty
+        ? 'standalone-${createdAt.microsecondsSinceEpoch}'
+        : state.saveId.trim();
+    return GameSessionCheckpoint(
+      saveId: saveId,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      playTimeSeconds: _sessionPlayWatch?.elapsed.inSeconds ?? 0,
+      state: strictGameStateSaveJson(state.copyWith(saveId: saveId)),
+    );
+  }
+
+  Future<void> _disposeStandaloneSession() async {
+    await _disposeInteractiveBridge();
+    if (_game == null) return;
+    if (mounted) {
+      setState(() {
+        _stopRuntimeInfoTicker();
+        _disposeCurrentGame();
+      });
+    } else {
+      _disposeCurrentGame();
+    }
+  }
+
+  Future<void> _disposeStartupHost() async {
+    final subscription = _startupSubscription;
+    _startupSubscription = null;
+    await subscription?.cancel();
+    final startupHost = _startupHost;
+    _startupViewController = null;
+    _startupHost = null;
+    _startupSnapshot = null;
+    await startupHost?.dispose();
+  }
+
+  // Retour au chargeur de projet.
+  // On ne détruit pas de données persistées, on ferme juste la session runtime.
+  Future<void> _reset() async {
+    await _disposeStartupHost();
+    await _disposeInteractiveBridge();
+    if (!mounted) return;
+    _disposeCurrentGame();
+    setState(() {
+      _stopRuntimeInfoTicker();
+      _error = null;
+      _saveLoadStatus = null;
+      _saveLoadError = null;
+    });
+  }
+
+  Future<void> _disposeInteractiveBridge() async {
+    final bridge = _interactiveBridge;
+    _interactiveBridge = null;
+    await bridge?.dispose();
+  }
+
+  Future<List<int>> _captureInteractiveGameSurface() async {
+    await WidgetsBinding.instance.endOfFrame;
+    final boundary = _interactiveGameSurfaceKey.currentContext
+        ?.findRenderObject();
+    if (boundary is! RenderRepaintBoundary) {
+      throw StateError('The interactive game surface is unavailable.');
+    }
+    final image = await boundary.toImage(pixelRatio: 1);
+    try {
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (bytes == null) {
+        throw StateError('The interactive game surface could not be encoded.');
+      }
+      return bytes.buffer.asUint8List();
+    } finally {
+      image.dispose();
+    }
+  }
+
+  // Les boutons historiques du host réutilisent désormais le même flux que
+  // l'écran "Sauvegarde" du menu in-game, pour garder une seule source de
+  // vérité côté runtime.
+  Future<void> _saveGame() async {
+    await _performSaveRequest();
+  }
+
+  Future<void> _loadGame() async {
+    await _performLoadRequest();
+  }
+
+  // Ce helper centralise la sauvegarde gameplay existante.
+  // Il renvoie un résultat structuré pour que le menu in-game et l'overlay
+  // historique affichent exactement le même statut utilisateur.
+  Future<InGameMenuActionResult> _performSaveRequest() async {
+    final game = _game;
+    if (game == null || _saveLoadBusy) {
+      return const InGameMenuActionResult(error: 'Sauvegarde indisponible');
+    }
+    setState(() {
+      _saveLoadBusy = true;
+      _saveLoadError = null;
+      _saveLoadStatus = null;
+    });
+    try {
+      final saved = await game.saveGame();
+      if (!mounted) {
+        return const InGameMenuActionResult();
+      }
+      final info = game.saveLoadInfo;
+      final status = saved
+          ? 'Sauvegarde OK · ${info.mapId} (${info.playerX}, ${info.playerY})'
+          : 'Sauvegarde impossible';
+      setState(() {
+        _saveLoadStatus = status;
+      });
+      return InGameMenuActionResult(status: status);
+    } catch (e) {
+      if (!mounted) {
+        return const InGameMenuActionResult();
+      }
+      final error = 'Erreur sauvegarde: $e';
+      setState(() {
+        _saveLoadError = error;
+      });
+      return InGameMenuActionResult(error: error);
+    } finally {
+      if (mounted) {
+        setState(() => _saveLoadBusy = false);
+      }
+    }
+  }
+
+  // Même principe pour le chargement :
+  // on garde un seul chemin d'exécution pour l'overlay runtime et le menu.
+  Future<InGameMenuActionResult> _performLoadRequest() async {
+    final game = _game;
+    if (game == null || _saveLoadBusy) {
+      return const InGameMenuActionResult(error: 'Chargement indisponible');
+    }
+    setState(() {
+      _saveLoadBusy = true;
+      _saveLoadError = null;
+      _saveLoadStatus = null;
+    });
+    try {
+      final loaded = await game.loadGame();
+      if (!mounted) return const InGameMenuActionResult();
+      if (!loaded) {
+        const error = 'Aucune sauvegarde trouvée ou chargement impossible';
+        setState(() {
+          _saveLoadError = error;
+        });
+        return const InGameMenuActionResult(error: error);
+      }
+      final info = game.saveLoadInfo;
+      final status =
+          'Chargement OK · ${info.mapId} (${info.playerX}, ${info.playerY})';
+      setState(() {
+        _surfingEnabled = info.movementMode == MovementMode.surf.name;
+        _saveLoadStatus = status;
+      });
+      return InGameMenuActionResult(status: status);
+    } catch (e) {
+      if (!mounted) return const InGameMenuActionResult();
+      final error = 'Erreur chargement: $e';
+      setState(() {
+        _saveLoadError = error;
+      });
+      return InGameMenuActionResult(error: error);
+    } finally {
+      if (mounted) {
+        setState(() => _saveLoadBusy = false);
+      }
+    }
+  }
+
+  // Le menu phase 10 vit dans le host runtime existant, sans nouveau framework.
+  // On pousse simplement une route Flutter classique au-dessus du GameWidget.
+  Future<void> _openInGameMenu() async {
+    final game = _game;
+    if (game == null) {
+      return;
+    }
+    await runWithRuntimePauseMenuInputLock(
+      setExternalInputLock: game.setExternalInputLock,
+      openMenu: () async {
+        final manifest = _projectManifest;
+        var recoveryCaps = const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: <int, int>{},
+        );
+        var itemCatalog = ItemCatalogSnapshot.empty();
+        if (manifest != null) {
+          try {
+            recoveryCaps = await loadRuntimePlayerServiceRecoveryCaps(
+              gameState: game.gameStateSnapshot,
+              projectRootDirectory: File(_projectFilePath).parent.path,
+              pokemonConfig: manifest.pokemon,
+            );
+          } catch (error) {
+            _runtimeHostLog('player service recovery caps failed: $error');
+          }
+          try {
+            itemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
+              projectRootDirectory: File(_projectFilePath).parent.path,
+              pokemonConfig: manifest.pokemon,
+            );
+          } catch (error) {
+            _runtimeHostLog('item catalog load failed: $error');
+          }
+        }
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (routeContext) {
+              return InGameMenuPage(
+                gameStateSnapshotBuilder: () => game.gameStateSnapshot,
+                pokedexLoader: () => loadRuntimePokedexEntries(
+                  projectFilePath: _projectFilePath,
+                ),
+                onSaveRequested: _performSaveRequest,
+                onLoadRequested: _performLoadRequest,
+                playerOptions: _playerOptions,
+                itemCatalog: itemCatalog,
+                projectMaps: _availableMaps,
+                recoveryCaps: recoveryCaps,
+                onPlayerStateCommitted: game.commitAndSavePlayerServiceState,
+                supportsTouchControls: _supportsTouchControls,
+                onOptionsChanged: _updatePlayerOptions,
+                onQuitRequested: () {
+                  Navigator.of(routeContext).pop();
+                  _reset();
+                },
+                onCloseRequested: () => Navigator.of(routeContext).pop(),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _openPlayerMenu() {
+    final controller = _startupViewController;
+    if (controller == null) {
+      unawaited(_openInGameMenu());
+      return;
+    }
+    unawaited(
+      controller.dispatch(
+        RuntimePlayerCommand(
+          snapshotRevision: controller.snapshot.revision,
+          action: RuntimePlayerAction.openMenu,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updatePlayerOptions(RuntimePlayerOptions options) async {
+    if (!mounted) {
+      return;
+    }
+    final controller = _startupHost?.playerCoordinator;
+    final preferences = controller?.snapshot.preferences;
+    if (controller != null && preferences != null) {
+      final result = await controller.dispatch(
+        RuntimePlayerCommand(
+          action: RuntimePlayerAction.updatePreferences,
+          snapshotRevision: controller.snapshot.revision,
+          payload: preferences.copyWith(
+            dialogueTextSpeed: options.dialogueTextSpeed,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      if (result.status != RuntimePlayerCommandStatus.accepted) {
+        setState(() => _error = result.safeMessage);
+        return;
+      }
+    }
+    setState(() {
+      _playerOptions = options;
+      _touchControlsHiddenByUser = !options.showTouchControls;
+    });
+    if (controller == null)
+      _game?.setDialogueTextSpeed(options.dialogueTextSpeed);
+    unawaited(_persistLastSession());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final startupHost = _startupHost;
+    if (startupHost == null) return;
+    if (state == AppLifecycleState.resumed) {
+      unawaited(startupHost.coordinator.resumeFromLifecycle());
+      return;
+    }
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      unawaited(startupHost.coordinator.pauseForLifecycle());
+    }
+  }
+
+  ImageProvider? _startupImage(
+    StandaloneRuntimeStartupHost host,
+    RuntimeStartupPresentationAsset? asset,
+  ) {
+    if (asset == null) return null;
+    final resolved = host.presentation.resolvedAsset(asset.assetId);
+    if (resolved == null || resolved.resolvedUri.scheme != 'file') return null;
+    return FileImage(File.fromUri(resolved.resolvedUri));
+  }
+
+  player_ui.PlayerIntroVideoSource? _startupVideo(
+    StandaloneRuntimeStartupHost host,
+    RuntimeStartupPresentationAsset? asset,
+    ProjectVideoVariantProfile? variant, {
+    required bool looping,
+    required double volume,
+  }) {
+    if (asset == null || variant == null) return null;
+    final resolved = host.presentation.resolvedAsset(asset.assetId);
+    if (resolved == null) return null;
+    return player_ui.PlayerIntroVideoSource(
+      videoUri: resolved.resolvedUri,
+      captionsLoader: variant.captionsPath == null
+          ? null
+          : () => host.presentation.loadText(variant.captionsPath!),
+      volume: volume,
+      looping: looping,
+      aspectRatio: variant.width / variant.height,
+      focalX: variant.focalX,
+      focalY: variant.focalY,
+    );
+  }
+
+  Widget _buildStartupShell(
+    StandaloneRuntimeStartupHost host,
+    RuntimeStartupSnapshot snapshot,
+    Widget? activeGameSurface,
+  ) {
+    final profile = snapshot.presentation?.profile;
+    final introProfile = profile?.intro;
+    final orientation =
+        snapshot.presentation?.orientation ??
+        RuntimePresentationOrientation.landscape;
+    final introVariant = introProfile == null
+        ? null
+        : selectRuntimePresentationVideo(
+            introProfile.media,
+            orientation,
+          ).variant;
+    final promptMedia = profile?.titleMotion?.promptLoop;
+    final menuMedia = profile?.titleMotion?.menuLoop;
+    final promptVariant = promptMedia == null
+        ? null
+        : selectRuntimePresentationVideo(promptMedia, orientation).variant;
+    final menuVariant = menuMedia == null
+        ? null
+        : selectRuntimePresentationVideo(menuMedia, orientation).variant;
+    final introSource = _startupVideo(
+      host,
+      snapshot.presentation?.introVideo,
+      introVariant,
+      looping: false,
+      volume: 1,
+    );
+    final playerPresentation = snapshot.presentation == null
+        ? const player_ui.RuntimePlayerPresentation(
+            title: player_ui.RuntimePlayerTitlePresentation(author: ''),
+          )
+        : player_ui.RuntimePlayerPresentation.fromRuntime(
+            snapshot.presentation!,
+            imageForAsset: (asset) => _startupImage(host, asset),
+          );
+    final reducedMotion =
+        snapshot.playerSnapshot?.preferences?.accessibility.reducedMotion ??
+        false;
+    return player_ui.PlayerImageScope(
+      identity: _game?.resourceBudget ?? _startupImageBudget,
+      loader: (path, {required isCurrent}) async {
+        final lease = await loadRuntimeUiImageFromFilePath(
+          path,
+          resourceBudget: _game?.resourceBudget ?? _startupImageBudget,
+          isCurrent: isCurrent,
+        );
+        return player_ui.PlayerImageLease(
+          image: lease.image,
+          onDispose: lease.dispose,
+        );
+      },
+      child: Theme(
+        data: playerPresentation.applyTo(
+          player_ui.PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
+        ),
+        child: player_ui.PlayerRuntimeStartupShell(
+          key: const ValueKey<String>('standalone-runtime-startup-shell'),
+          controller: _startupShellController,
+          branding: standaloneRuntimeSplashBranding,
+          snapshot: snapshot,
+          titlePresentation: playerPresentation.title,
+          introSource: introSource,
+          introPoster: _startupImage(host, snapshot.presentation?.introPoster),
+          audioMixer: host.audioMixer,
+          titlePromptSource: _startupVideo(
+            host,
+            snapshot.presentation?.titlePromptVideo,
+            promptVariant,
+            looping: true,
+            volume: 0,
+          ),
+          titlePromptPoster: _startupImage(
+            host,
+            snapshot.presentation?.titlePromptPoster,
+          ),
+          titleMenuSource: _startupVideo(
+            host,
+            snapshot.presentation?.titleMenuVideo,
+            menuVariant,
+            looping: true,
+            volume: 0,
+          ),
+          titleMenuPoster: _startupImage(
+            host,
+            snapshot.presentation?.titleMenuPoster,
+          ),
+          onPresentationOrientationChanged: (nextOrientation) => unawaited(
+            host.coordinator.updatePresentationOrientation(nextOrientation),
+          ),
+          reducedMotion: reducedMotion,
+          onStartupCommand: (command) =>
+              unawaited(host.coordinator.dispatch(command)),
+          onPlayerCommand: (command) => host.coordinator.dispatchPlayerCommand(
+            startupSnapshotRevision: snapshot.revision,
+            command: command,
+          ),
+          onIntroPlaybackCompleted: (revision) => unawaited(
+            host.coordinator.introPlaybackCompleted(snapshotRevision: revision),
+          ),
+          onIntroPlaybackFailed: (revision, reason) => unawaited(
+            host.coordinator.introPlaybackFailed(
+              snapshotRevision: revision,
+              reason: reason,
+            ),
+          ),
+          sessionBuilder: (_, _) {
+            final game = _game;
+            final viewController = _startupViewController;
+            if (viewController == null) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            return player_ui.PokeMapPlayerSessionView(
+              imageScopeIdentity: game?.resourceBudget ?? viewController,
+              imageLoader: (path, {required isCurrent}) async {
+                final lease = await loadRuntimeUiImageFromFilePath(
+                  path,
+                  resourceBudget: game?.resourceBudget,
+                  isCurrent: isCurrent,
+                );
+                return player_ui.PlayerImageLease(
+                  image: lease.image,
+                  onDispose: lease.dispose,
+                );
+              },
+              key: const ValueKey<String>('standalone-runtime-player-view'),
+              controller: viewController,
+              titlePresentation: playerPresentation.title,
+              pauseMenuLabels: playerPresentation.pauseMenuLabels,
+              pausePresentation: playerPresentation.pausePresentation,
+              gameplayInputRoute: host.sessionController.handleInput,
+              gameplayViewportKey: _interactiveGameSurfaceKey,
+              gameplayInputAuthority: game?.inputAuthorityListenable,
+              overworldInteractions: game?.overworldInteractions,
+              hitTestOverworldInteraction: game?.hitTestOverworldInteraction,
+              onOverworldInteraction: game?.dispatchOverworldInteraction,
+              dialoguePresentation: game?.dialoguePresentationListenable,
+              onDialogueCommand: game?.dispatchDialoguePresentationCommand,
+              battlePresentation: game?.battleCommandOverlayListenable,
+              onBattleCommand: game?.dispatchBattlePresentationCommand,
+              presentationFrame: host.presentationSession?.controller,
+              presentationContentPort: host.presentationSession?.controller,
+              touchControlsAvailable:
+                  _supportsTouchControls && !_touchControlsHiddenByUser,
+              controllerInputEnabled: false,
+              gameSceneBuilder: (_) =>
+                  activeGameSurface ?? const SizedBox.shrink(),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Deux états d'interface seulement :
+    // 1. soit une session runtime est active et on affiche le jeu ;
+    // 2. soit on reste sur le chargeur de projet.
+    final game = _game;
+    Widget? activeGameSurface;
+    if (game != null) {
+      final info = game.saveLoadInfo;
+      final touchControlsVisibility = resolveRuntimeTouchControlsVisibility(
+        supportsTouchControls: _supportsTouchControls,
+        userHidden: _touchControlsHiddenByUser,
+        hasConnectedGamepad: _hasConnectedGamepad,
+        isBattleActive: game.isBattleUiActive,
+      );
+      activeGameSurface = Scaffold(
+        appBar: _startupViewController == null
+            ? AppBar(
+                title: Text((_selectedMapId ?? '').trim()),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: _reset,
+                ),
+                actions: [
+                  if (touchControlsVisibility.showToggleButton)
+                    IconButton(
+                      key: const Key('runtime-touch-controls-toggle-button'),
+                      tooltip: touchControlsVisibility.toggleTooltip,
+                      icon: Icon(
+                        touchControlsVisibility.userHidden
+                            ? Icons.touch_app_outlined
+                            : Icons.touch_app,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _touchControlsHiddenByUser =
+                              !_touchControlsHiddenByUser;
+                          _playerOptions = _playerOptions.copyWith(
+                            showTouchControls: !_touchControlsHiddenByUser,
+                          );
+                        });
+                        unawaited(_persistLastSession());
+                      },
+                    ),
+                  IconButton(
+                    key: const Key('runtime-debug-panel-toggle-button'),
+                    tooltip: _showRuntimeDebugPanel
+                        ? 'Masquer le panneau debug'
+                        : 'Afficher le panneau debug',
+                    icon: Icon(
+                      _showRuntimeDebugPanel
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    onPressed: () {
+                      setState(
+                        () => _showRuntimeDebugPanel = !_showRuntimeDebugPanel,
+                      );
+                    },
+                  ),
+                  IconButton(
+                    key: const Key('runtime-menu-button'),
+                    icon: const Icon(Icons.menu),
+                    onPressed: _openPlayerMenu,
+                  ),
+                ],
+              )
+            : null,
+        body: Stack(
+          children: [
+            RepaintBoundary(
+              key: _interactiveGameSurfaceKey,
+              child: GameWidget(
+                game: game,
+                autofocus: _startupViewController == null,
+              ),
+            ),
+            if (_startupViewController == null &&
+                touchControlsVisibility.showControls)
+              Positioned.fill(
+                child: RuntimeTouchControls(
+                  dispatch: game.handleRuntimeInputEvent,
+                ),
+              ),
+            if (_startupViewController == null && _showRuntimeDebugPanel)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Card(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Collisions',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _showCollisionOverlay,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(() => _showCollisionOverlay = v);
+                                      game.setCollisionOverlayVisible(v);
+                                    },
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'FPS',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _showFpsOverlay,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(() => _showFpsOverlay = v);
+                                      game.setFpsOverlayVisible(v);
+                                    },
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Surf',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _surfingEnabled,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(() => _surfingEnabled = v);
+                                      game.setSurfingEnabled(v);
+                                    },
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'NPC hitbox',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _showNpcCollisionDebugOverlay,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(
+                                        () => _showNpcCollisionDebugOverlay = v,
+                                      );
+                                      game.setNpcCollisionDebugOverlayVisible(
+                                        v,
+                                      );
+                                    },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Map: ${info.mapId}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'Pos: (${info.playerX}, ${info.playerY})  Face: ${info.facing}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'Mode: ${info.movementMode}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'FPS: ${game.currentFps.toStringAsFixed(1)}',
+                          style: const TextStyle(
+                            color: Colors.lightGreenAccent,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FilledButton.tonal(
+                              onPressed: _saveLoadBusy ? null : _saveGame,
+                              child: const Text('Sauvegarder'),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: _saveLoadBusy ? null : _loadGame,
+                              child: const Text('Charger'),
+                            ),
+                          ],
+                        ),
+                        if (_saveLoadStatus != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _saveLoadStatus!,
+                            style: const TextStyle(color: Colors.greenAccent),
+                          ),
+                        ],
+                        if (_saveLoadError != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _saveLoadError!,
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    final startupHost = _startupHost;
+    final startupSnapshot = _startupSnapshot;
+    if (startupHost != null && startupSnapshot != null) {
+      return _buildStartupShell(
+        startupHost,
+        startupSnapshot,
+        activeGameSurface,
+      );
+    }
+    if (activeGameSurface != null) return activeGameSurface;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Playable Runtime Host')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Projet', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            _ProjectFileField(
+              path: _projectFilePath,
+              onPick: _loading ? null : _pickProjectFile,
+            ),
+            const SizedBox(height: 20),
+            if (_availableMaps.isEmpty)
+              const TextField(
+                enabled: false,
+                decoration: InputDecoration(
+                  labelText: 'Map',
+                  hintText: 'Chargez un projet valide pour lister les maps',
+                  border: OutlineInputBorder(),
+                ),
+              )
+            else
+              DropdownButtonFormField<String>(
+                initialValue: _selectedMapId,
+                decoration: const InputDecoration(
+                  labelText: 'Map',
+                  border: OutlineInputBorder(),
+                ),
+                items: _availableMaps
+                    .map(
+                      (entry) => DropdownMenuItem<String>(
+                        value: entry.id,
+                        child: Text('${entry.name} (${entry.id})'),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: _loading
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        setState(() => _selectedMapId = value);
+                        _persistLastSession();
+                      },
+              ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _loading ? null : _launchSelectedProject,
+              child: Text(_loading ? 'Chargement…' : 'Lancer'),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              _ErrorBanner(message: _error!),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProjectFileField extends StatelessWidget {
+  const _ProjectFileField({required this.path, required this.onPick});
+
+  final String path;
+  final VoidCallback? onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                path.isEmpty ? 'Aucun projet sélectionné' : path,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: path.isEmpty ? Theme.of(context).hintColor : null,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.tonal(
+              onPressed: onPick,
+              child: const Text('Parcourir…'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+      ),
+    );
+  }
+}
+
+final class _RuntimePlayerServiceOverlayHost
+    implements PlayerServiceOverlayHost {
+  const _RuntimePlayerServiceOverlayHost({
+    required this.contextBuilder,
+    required this.isMounted,
+    required this.automationPort,
+  });
+
+  final BuildContext Function() contextBuilder;
+  final bool Function() isMounted;
+  final PlayerServiceAutomationPort? automationPort;
+
+  @override
+  Future<PlayerServiceHostResult> openShop(PlayerServiceShopRequest request) {
+    return _open(
+      title: request.resolvedState.storefrontLabel,
+      gameState: request.gameState,
+      bodyBuilder: (state, stageState, currentState, close) => InGameShopPage(
+        gameState: state,
+        shops: <ShopDefinition>[request.shop],
+        itemCatalog: request.itemCatalog,
+        onStateCommitted: stageState,
+        currentGameState: currentState,
+        conditionContext: request.conditionContext,
+        automationPort: automationPort,
+        onAutomationClose: close,
+      ),
+    );
+  }
+
+  @override
+  Future<PlayerServiceHostResult> openPc(PlayerServicePcRequest request) {
+    return _open(
+      title: 'PC Pokémon',
+      gameState: request.gameState,
+      bodyBuilder: (state, stageState, _, close) => InGamePcPage(
+        gameState: state,
+        onStateCommitted: stageState,
+        automationPort: automationPort,
+        onAutomationClose: close,
+      ),
+    );
+  }
+
+  @override
+  Future<PlayerServiceHostResult> openHealCenter(
+    PlayerServiceHealRequest request,
+  ) => _open(
+    title: 'Centre Pokémon',
+    gameState: request.gameState,
+    bodyBuilder: (state, stageState, _, close) => InGameHealFlow(
+      gameState: state,
+      recoveryCaps: request.recoveryCaps,
+      onStateCommitted: stageState,
+      automationPort: automationPort,
+      onAutomationClose: close,
+    ),
+  );
+
+  Future<PlayerServiceHostResult> _open({
+    required String title,
+    required GameState gameState,
+    required _PlayerServiceBodyBuilder bodyBuilder,
+  }) async {
+    if (!isMounted()) {
+      throw StateError('The runtime host is no longer mounted.');
+    }
+    final result = await Navigator.of(contextBuilder()).push<GameState>(
+      MaterialPageRoute<GameState>(
+        builder: (_) => _RuntimePlayerServiceRoute(
+          title: title,
+          initialGameState: gameState,
+          bodyBuilder: bodyBuilder,
+        ),
+      ),
+    );
+    return result == null
+        ? const PlayerServiceHostResult.cancelled()
+        : PlayerServiceHostResult.completed(result);
+  }
+}
+
+typedef _PlayerServiceBodyBuilder = Widget Function(
+  GameState gameState,
+  Future<void> Function(GameState state) stageState,
+  GameState Function() currentGameState,
+  Future<void> Function() close,
+);
+
+final class _RuntimePlayerServiceRoute extends StatefulWidget {
+  const _RuntimePlayerServiceRoute({
+    required this.title,
+    required this.initialGameState,
+    required this.bodyBuilder,
+  });
+
+  final String title;
+  final GameState initialGameState;
+  final _PlayerServiceBodyBuilder bodyBuilder;
+
+  @override
+  State<_RuntimePlayerServiceRoute> createState() =>
+      _RuntimePlayerServiceRouteState();
+}
+
+final class _RuntimePlayerServiceRouteState
+    extends State<_RuntimePlayerServiceRoute> {
+  late GameState _gameState = widget.initialGameState;
+
+  Future<void> _stageState(GameState state) async {
+    if (!mounted) return;
+    setState(() => _gameState = state);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      body: Column(
+        children: [
+          Expanded(
+            child: widget.bodyBuilder(
+              _gameState,
+              _stageState,
+              () => _gameState,
+              () async {
+                if (!mounted) return;
+                Navigator.of(context).pop(_gameState);
+              },
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    key: const Key('player-service-cancel'),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Annuler'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    key: const Key('player-service-complete'),
+                    onPressed: () => Navigator.of(context).pop(_gameState),
+                    child: const Text('Terminer'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
