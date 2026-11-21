@@ -33,21 +33,26 @@ void main() {
     expect('"apps/avelune_studio/**"'.allMatches(source), hasLength(2));
     expect('"apps/Avelune iOS/**"'.allMatches(source), hasLength(2));
     expect('"apps/avelune_android/**"'.allMatches(source), hasLength(2));
-    expect('"apps/pokemap_hub/lib/**"'.allMatches(source), hasLength(2));
-    expect(source, isNot(contains('"apps/pokemap_hub/**"')));
+    expect('"packages/**"'.allMatches(triggers(source)), hasLength(2));
+    expect(source, isNot(contains('apps/pokemap_hub')));
     expect(
-      'working-directory: apps/pokemap_hub'.allMatches(source),
-      hasLength(1),
+      source,
+      contains(
+        'name: Avelune Player save and resume\n'
+        '        working-directory: packages/map_runtime\n'
+        '        timeout-minutes: 2\n',
+      ),
     );
-    expect(source, contains('name: Avelune save compatibility baseline'));
     expect(
       source,
       contains('flutter test --no-pub --no-test-assets --timeout 2m'),
     );
     expect(
       source,
-      contains(
-        'test/features/saves/avelune_compatibility_baseline_continue_test.dart',
+      allOf(
+        contains('test/file_game_save_repository_test.dart'),
+        contains('test/game_save_load_diagnostics_test.dart'),
+        contains('test/player/runtime_player_save_race_test.dart'),
       ),
     );
     expect(

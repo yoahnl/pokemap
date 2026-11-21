@@ -72,6 +72,12 @@ const List<BetaPlayabilityCompositionEntry> betaPlayabilityComposition =
         'incohérente est laide, pas injouable.',
   ),
   BetaPlayabilityCompositionEntry(
+    sourceFileName: 'contextual_item_use_validation.dart',
+    role: BetaPlayabilityCompositionRole.outOfScope,
+    rationale: 'Cohérence des usages contextuels des objets, contrôlée à '
+        'l\'édition, dans la validation de carte et dans celle du paquet.',
+  ),
+  BetaPlayabilityCompositionEntry(
     sourceFileName: 'dialogue_validation.dart',
     role: BetaPlayabilityCompositionRole.outOfScope,
     rationale: 'Convention de chemin des fichiers de dialogue. Contrainte '
@@ -122,6 +128,12 @@ const List<BetaPlayabilityCompositionEntry> betaPlayabilityComposition =
         'contrairement à la cohérence Pokémon. À composer avec BETA-ITM-008.',
   ),
   BetaPlayabilityCompositionEntry(
+    sourceFileName: 'project_regional_map_validator.dart',
+    role: BetaPlayabilityCompositionRole.outOfScope,
+    rationale: 'Références de découverte et de destination de la carte '
+        'régionale, vérifiées par la validation du projet et de ses cartes.',
+  ),
+  BetaPlayabilityCompositionEntry(
     sourceFileName: 'shop_state_validator.dart',
     role: BetaPlayabilityCompositionRole.composed,
     rationale: 'COMPOSÉ sous BETA-SYS-005, et par APPEL DIRECT : le validateur '
@@ -134,8 +146,26 @@ const List<BetaPlayabilityCompositionEntry> betaPlayabilityComposition =
         'plutôt que de déclarer inconnue chaque référence.',
   ),
   BetaPlayabilityCompositionEntry(
+    sourceFileName: 'spatial_light_workshop_capabilities.dart',
+    role: BetaPlayabilityCompositionRole.outOfScope,
+    rationale: 'Capacités d\'éclairage, de flammes et de crépitement exigées '
+        'du Player par les contenus 3D. Contrat de compatibilité du paquet.',
+  ),
+  BetaPlayabilityCompositionEntry(
+    sourceFileName: 'spatial_weather_capabilities.dart',
+    role: BetaPlayabilityCompositionRole.outOfScope,
+    rationale: 'Capacités de météo, d\'états étendus et de son exigées du '
+        'Player par les contenus 3D. Contrat de compatibilité du paquet.',
+  ),
+  BetaPlayabilityCompositionEntry(
     sourceFileName: 'validators.dart',
     role: BetaPlayabilityCompositionRole.gate,
     rationale: 'Baril d\'exports du dossier, pas un validateur.',
+  ),
+  BetaPlayabilityCompositionEntry(
+    sourceFileName: 'world_environment_capabilities.dart',
+    role: BetaPlayabilityCompositionRole.outOfScope,
+    rationale: 'Capacités d\'environnement, d\'épisodes météo et de météo '
+        'réelle exigées du Player. Contrat de compatibilité du paquet.',
   ),
 ];
