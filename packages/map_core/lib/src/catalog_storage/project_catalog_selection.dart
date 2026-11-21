@@ -10,6 +10,21 @@ final class ProjectCatalogSelection {
 
   final PortableProjectCatalog catalog;
 
+  Future<Set<CatalogDefinitionKey>> characterStudioDefinitionKeys() async {
+    final keys = <CatalogDefinitionKey>{};
+    String? cursor;
+    do {
+      final page = await catalog.snapshot.page(
+        kind: CatalogDefinitionKind.characterStudioDefinition,
+        limit: catalog.snapshot.limits.indexPageSize,
+        cursor: cursor,
+      );
+      keys.addAll(page.items.map((entry) => entry.key));
+      cursor = page.nextCursor;
+    } while (cursor != null);
+    return keys;
+  }
+
   static bool sameMapDependencies(MapData before, MapData after) {
     if (before.id != after.id) return false;
     final previous = _mapDependencySignature(before);

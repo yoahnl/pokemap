@@ -37,11 +37,17 @@ class LocalDialogueAdapter implements DialoguePort, DialoguePortraitPort {
   @override
   Future<Uint8List?> readPortrait(String characterId, String stateId) async {
     try {
-      final baseline = await mapAdapter.resourceBaseline(session);
-      final character = baseline.manifest.characters
+      final project = session.storage == ProjectSessionStorage.manifest
+          ? (await mapAdapter.resourceBaseline(session)).manifest
+          : await mapAdapter.readResourcePreview(
+              session,
+              'character',
+              characterId,
+            );
+      final character = project.characters
           .where((value) => value.id == characterId)
           .firstOrNull;
-      if (!baseline.manifest.characterStudioCatalog.portraitStates.any(
+      if (!project.characterStudioCatalog.portraitStates.any(
         (value) => value.id == stateId,
       )) {
         return null;

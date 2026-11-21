@@ -1,6 +1,48 @@
 part of 'project_library_page.dart';
 
 extension _ProjectLibraryPageWorkshopReceipts on _ProjectLibraryPageState {
+  ProjectCharacterEditor? _characterWorkshopEditor(
+    _ProjectLibraryRead read,
+    ProjectLibraryItem item,
+    ProjectLibraryManagement? management,
+  ) {
+    final editor = management?.editor;
+    final maps = widget.maps;
+    if (editor is! ProjectCharacterWorkshopPort ||
+        management == null ||
+        maps.session.storage != ProjectSessionStorage.workingCatalog) {
+      return null;
+    }
+    return (
+      port: editor as ProjectCharacterWorkshopPort,
+      pickImage: management.pickFile,
+      pending: _workshopReceipts[item.identity],
+      retain: (receipt) => _retainWorkshopReceipt(maps, item.identity, receipt),
+      publish: (receipt) {
+        if (!mounted || !identical(maps, widget.maps)) {
+          throw const ResourceFailure('Le projet a été fermé.');
+        }
+        if (receipt.noChange) return;
+        if (maps.project == receipt.before) {
+          maps.acceptResources(receipt.before, receipt.manifest);
+        } else if (maps.project != receipt.manifest) {
+          throw const ResourceFailure(
+            'La bibliothèque n’a pas pu relire le personnage.',
+          );
+        }
+        if (widget.visuals case final ScopedResourcePreviewVisuals previews) {
+          previews.invalidateResourcePreviews(receipt.changedPaths.toSet());
+        }
+        _updateView(() {
+          if (read.revision == receipt.beforeRevision) {
+            read.revision = receipt.revision;
+          }
+          read.previews.invalidate([item.identity]);
+        });
+      },
+    );
+  }
+
   void _retainWorkshopReceipt(
     MapWorkspaceController maps,
     String identity,

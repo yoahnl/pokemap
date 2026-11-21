@@ -1,6 +1,13 @@
 part of 'project_library_page.dart';
 
 extension _ProjectLibraryPageLoading on _ProjectLibraryPageState {
+  void _refresh() {
+    if (widget.visuals case final ScopedResourcePreviewVisuals previews) {
+      previews.refreshResourcePreviews();
+    }
+    _updateView(_read);
+  }
+
   Future<ProjectResourceLibrary> _queryLibrary(
     MapWorkspaceController maps,
     ProjectManifest manifest,

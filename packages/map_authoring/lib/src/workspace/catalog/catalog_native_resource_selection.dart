@@ -1,7 +1,6 @@
 part of 'catalog_workshop_selection.dart';
 
 const _nativeResourceActions = <String, (CatalogDefinitionKind, String)>{
-  'characterStudio.animationClip.upsert': (CatalogDefinitionKind.character, 'characterId'),
   'tileset.upsert': (CatalogDefinitionKind.tileset, 'tileset'),
   'campaign.character.upsert': (CatalogDefinitionKind.character, 'value'),
   'resource.classify': (CatalogDefinitionKind.resourceLibraryEntry, ''),
@@ -58,16 +57,10 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
     CatalogWorkshopSelection.unsupported(
         actionId, 'standalone new resource publication');
   }
-  final clip = actionId == 'characterStudio.animationClip.upsert';
-  if (clip && parameters['kind'] != 'system') {
-    CatalogWorkshopSelection.unsupported(actionId, 'a system animation slot');
-  }
   final family = kind == CatalogDefinitionKind.resourceFamily;
-  final value = clip
-      ? {'id': parameters[parameter]}
-      : actionId == 'resource.classify' || family
-          ? parameters
-          : parameters[parameter];
+  final value = actionId == 'resource.classify' || family
+      ? parameters
+      : parameters[parameter];
   final inputs = value is List ? value : [value];
   final ids = <String>{};
   for (final input in inputs) {
@@ -233,10 +226,6 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         drafts.add(record);
         candidates.add(existing.payload['value']);
         replacements.add(key);
-      } else if (clip && existing != null) {
-        roots.add(key);
-        replacements.add(key);
-        candidates.add(existing.payload['value']);
       } else if (existing != null && kind == CatalogDefinitionKind.character) {
         final before = ProjectCharacterEntry.fromJson(
             Map<String, dynamic>.from(existing.payload['value'] as Map));
@@ -265,8 +254,6 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         drafts.add(before);
         replacements.add(key);
         candidates.add(existing.payload['value']);
-      } else if (clip) {
-        throw const FormatException('catalog.character_clip: character missing');
       } else if (existing != null &&
           kind != CatalogDefinitionKind.resourceLibraryEntry &&
           !family) {

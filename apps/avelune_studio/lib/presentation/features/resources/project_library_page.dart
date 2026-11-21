@@ -12,6 +12,7 @@ import '../../../features/resources/application/project_resource_library.dart';
 import '../../../features/resources/application/project_resource_preview.dart';
 import '../../../features/resources/coordination/resource_pack_transfer_controller.dart';
 import '../../../features/resources/domain/project_border_workshop_port.dart';
+import '../../../features/resources/domain/project_character_workshop_port.dart';
 import '../../../features/resources/domain/project_library_editor.dart';
 import '../../../features/resources/domain/project_library_organization.dart';
 import '../../../features/resources/domain/project_model_replacement_port.dart';
@@ -90,13 +91,6 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
   _replacementUsageProjection;
 
   void _updateView(VoidCallback update) => setState(update);
-
-  void _refresh() {
-    if (widget.visuals case final ScopedResourcePreviewVisuals previews) {
-      previews.refreshResourcePreviews();
-    }
-    setState(_read);
-  }
 
   void _setPickingFile(bool value) => setState(() => _pickingFile = value);
 
@@ -308,6 +302,9 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
         loadingMapUsages: loadingMapUsages,
       ),
       canLeaveWorkshops: () => !_workshopBusy && !_workshopHasDraft,
+      fullWidthWorkshop:
+          _workshopKind == _ProjectWorkshopKind.characters &&
+          read.catalog.entries.containsKey(_workshopEntry),
       workshopAction: (item) => _workshopAction(read, item.id),
       onManageFamilies: organization == null
           ? null

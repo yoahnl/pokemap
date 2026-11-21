@@ -85,6 +85,9 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
         active: widget.active,
         onBack: leave,
         onRename: rename,
+        editor: _characterWorkshopEditor(read, selected, management),
+        onBusyChanged: (busy) => _updateView(() => _workshopBusy = busy),
+        onDraftChanged: (dirty) => _updateView(() => _workshopHasDraft = dirty),
       ),
       _ProjectWorkshopKind.terrains => ProjectTerrainWorkshop(
         key: ValueKey(selected.identity),

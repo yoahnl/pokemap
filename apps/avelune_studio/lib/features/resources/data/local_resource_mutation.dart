@@ -10,6 +10,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
     String? createdTilesetId,
     List<BorderResourcePrimitive>? borderSources,
     String? scopedBorderId,
+    String? scopedCharacterId,
     String? expectedBeforeRevision,
     String? expectedSnapshotRevision,
     bool confirmDestructive = false,
@@ -49,13 +50,16 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             'model3d.import',
             'model3d.duplicate',
           }.contains(actionId);
-      final scopedCatalogMutation = scopedImport || scopedBorderId != null;
+      final scopedCatalogMutation =
+          scopedImport || scopedBorderId != null || scopedCharacterId != null;
       if (expectedBeforeRevision != null &&
           before.revision != expectedBeforeRevision) {
         throw ResourceFailure(switch (actionId) {
           'model3d.configure' =>
             'Le catalogue a changé. Votre réglage est conservé.',
           _ when scopedBorderId != null =>
+            'Le catalogue a changé. Votre brouillon est conservé à l’écran.',
+          _ when scopedCharacterId != null =>
             'Le catalogue a changé. Votre brouillon est conservé à l’écran.',
           _ when scopedImport =>
             'Le catalogue a changé. Actualisez la bibliothèque puis réessayez.',
@@ -229,20 +233,27 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         }
         final projectedProject = switch ((
           scopedBorderId,
+          scopedCharacterId,
           scopedImport,
           scopedModelMutation,
         )) {
-          (final id?, _, _) => _mergeBorderWorkshopProjection(
+          (final id?, _, _, _) => _mergeBorderWorkshopProjection(
             before.manifest,
             planned.projectedProject,
             id,
           ),
-          (_, true, _) => _mergeImportedLibraryResource(
+          (_, final id?, _, _) => _mergeCharacterWorkshopProjection(
+            before.manifest,
+            planned.projectedProject!,
+            id,
+            actionId,
+          ),
+          (_, _, true, _) => _mergeImportedLibraryResource(
             before.manifest,
             planned.projectedProject!,
             modelId: fields['modelId'] as String?,
           ),
-          (_, _, true) => _mergeModelSourceProjection(
+          (_, _, _, true) => _mergeModelSourceProjection(
             before.manifest,
             planned.projectedProject ?? snapshot.manifest,
           ),
@@ -291,6 +302,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           scopedModelMutation: scopedModelMutation,
           scopedImport: scopedImport,
           scopedBorderId: scopedBorderId,
+          scopedCharacterId: scopedCharacterId,
           phase: phase,
         );
         phase('reconciliation.end');

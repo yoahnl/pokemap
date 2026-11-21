@@ -267,6 +267,38 @@ final class CatalogScopedWorkingMutation {
         changedFields.remove(field);
       }
     }
+    const characterStudioField = 'characterStudioCatalog';
+    if (changedFields.remove(characterStudioField)) {
+      final studio = before.characterStudioCatalog;
+      final next = projected.characterStudioCatalog;
+      if (!next.portraitStates.toSet().containsAll(studio.portraitStates) ||
+          !next.customAnimationDefinitions
+              .toSet()
+              .containsAll(studio.customAnimationDefinitions)) {
+        throw const FormatException(
+            'catalog.character_workshop: existing definitions changed');
+      }
+      final published = PortableCatalogPublication.encodeProject(projected);
+      final generated = PortableCatalogPublication.readSync(
+          published.descriptor,
+          readObject: (reference) =>
+              published.storage.objects[reference.sha256]!);
+      final created = <CatalogDefinitionUnit>[];
+      for (final unit in generated.units) {
+        if (unit.key.kind == CatalogDefinitionKind.characterStudioDefinition &&
+            await catalog.lookup(unit.key) == null) {
+          created.add(unit);
+        }
+      }
+      if (created.length != 1) {
+        throw const FormatException(
+            'catalog.character_workshop: expected one definition');
+      }
+      upserts.add(created.single);
+      nextShell[characterStudioField] ??= (generated.units
+          .singleWhere((unit) => unit.key == shellKey)
+          .payload['value'] as Map)[characterStudioField];
+    }
     final indexed = selection.metadataDocuments;
     if (indexed != null) {
       for (final field in changedFields.toList()) {

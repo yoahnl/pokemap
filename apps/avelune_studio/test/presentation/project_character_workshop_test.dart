@@ -3,14 +3,181 @@ import 'package:avelune_studio/features/rendering/contracts/scoped_resource_prev
 import 'package:avelune_studio/features/resources/application/project_resource_library.dart';
 import 'package:avelune_studio/features/resources/application/project_resource_preview.dart';
 import 'package:avelune_studio/features/resources/application/resource_preview_source.dart';
+import 'package:avelune_studio/features/resources/domain/project_character_workshop_port.dart';
+import 'package:avelune_studio/features/resources/domain/project_library_editor.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/resources/project_character_workshop.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../support/map_workspace_fixture.dart';
 
+part 'project_character_workshop_fixture.dart';
+
 void main() {
+  testWidgets(
+    'edits one clip from the library and keeps the duration on reopen',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1280, 820);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final port = _CharacterEditorPort();
+      final previews = ProjectResourcePreviews((_) async => port.project);
+      final visuals = _CharacterVisuals();
+      var published = 0;
+      var wentBack = false;
+      Future<void> open() => tester.pumpWidget(
+        _workshop(
+          previews,
+          visuals,
+          onBack: () => wentBack = true,
+          editor: (
+            port: port,
+            pickImage: () async => null,
+            pending: null,
+            retain: (_) {},
+            publish: (receipt) {
+              published++;
+              expect(receipt.revision, 'rev-2');
+              previews.invalidate(['character:garden-guide']);
+            },
+          ),
+        ),
+      );
+      await open();
+      await tester.pumpAndSettle();
+      expect(find.text('Séquence'), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byKey(const ValueKey('character-pose-0')), findsOneWidget);
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('character-pose-duration')),
+          matching: find.byType(EditableText),
+        ),
+        '177',
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('177 ms'), findsOneWidget);
+      expect(
+        port.project.characters.single.animations[1].frames.first.durationMs,
+        100,
+      );
+      await tester.tap(find.text('Portraits'));
+      await tester.pumpAndSettle();
+      expect(find.text('Séquence'), findsOneWidget);
+      await tester.tap(find.text('Retour à la bibliothèque'));
+      await tester.pumpAndSettle();
+      expect(find.text('Abandonner les modifications'), findsOneWidget);
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+      expect(wentBack, isFalse);
+      expect(find.textContaining('177 ms'), findsOneWidget);
+
+      final save = find.widgetWithText(StudioButton, 'Enregistrer l’animation');
+      expect(save.hitTestable(), findsOneWidget);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      await tester.pumpAndSettle();
+      expect(published, 1);
+      await tester.tap(find.text('Retour à la bibliothèque'));
+      expect(wentBack, isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await open();
+      await tester.pumpAndSettle();
+      expect(find.textContaining('177 ms'), findsOneWidget);
+      expect(find.textContaining('100 ms'), findsOneWidget);
+    },
+  );
+
+  testWidgets('offers an import for an empty direction in a narrow window', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(580, 680);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final port = _CharacterEditorPort();
+    var picks = 0;
+    await tester.pumpWidget(
+      _workshop(
+        ProjectResourcePreviews((_) async => port.project),
+        _CharacterVisuals(),
+        editor: (
+          port: port,
+          pickImage: () async {
+            picks++;
+            return null;
+          },
+          pending: null,
+          retain: (_) {},
+          publish: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(StudioSelect, 'Animation'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('character-direction-north')));
+    await tester.pumpAndSettle();
+    expect(find.text('Aucune pose pour cette animation'), findsOneWidget);
+    await tester.tap(find.text('Importer une planche PNG'));
+    await tester.pumpAndSettle();
+    expect(picks, 1);
+    expect(port.revision, 'rev-1');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('lists expressions and reads only the selected portrait', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 820);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final port = _CharacterEditorPort()..project = _projectWithPortraits;
+    await tester.pumpWidget(
+      _workshop(
+        ProjectResourcePreviews((_) async => port.project),
+        _CharacterVisuals(),
+        editor: (
+          port: port,
+          pickImage: () async => null,
+          pending: null,
+          retain: (_) {},
+          publish: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(port.portraitReads, isEmpty);
+    await tester.tap(find.text('Portraits'));
+    await tester.pumpAndSettle();
+    expect(port.portraitReads, ['neutral']);
+    expect(find.text('Image associée'), findsNWidgets(2));
+    expect(find.text('Sans image'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('character-expression-sad')));
+    await tester.pumpAndSettle();
+    expect(find.text('Importer un portrait PNG'), findsOneWidget);
+    expect(port.portraitReads, ['neutral']);
+    await tester.tap(find.byKey(const ValueKey('character-expression-happy')));
+    await tester.pumpAndSettle();
+    expect(port.portraitReads, ['neutral', 'happy']);
+    expect(find.byTooltip('Actions du portrait'), findsOneWidget);
+    expect(find.text('Copier la commande de dialogue'), findsNothing);
+    await tester.tap(find.byTooltip('Actions du portrait'));
+    await tester.pumpAndSettle();
+    expect(find.text('Copier la commande de dialogue'), findsOneWidget);
+    await tester.tap(find.text('Détacher le portrait'));
+    await tester.pumpAndSettle();
+    expect(find.text('Détacher « Souriant »'), findsOneWidget);
+    await tester.tap(find.text('Annuler'));
+    await tester.pumpAndSettle();
+    expect(port.portraitReads, ['neutral', 'happy']);
+  });
+
   testWidgets('previews the configured poses and pauses off the library tab', (
     tester,
   ) async {
@@ -111,6 +278,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(_character.name), findsOneWidget);
     await _select(tester, 'Animation', 'Marche');
+    await tester.tap(find.byTooltip('Actions du personnage'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Renommer'));
     await tester.pumpAndSettle();
     expect(renamed, 1);
@@ -147,105 +316,4 @@ void main() {
     expect(visuals.last.elapsedMs, 0);
     expect(reads, 2);
   });
-}
-
-Future<void> _select(WidgetTester tester, String field, String value) async {
-  await tester.tap(find.widgetWithText(StudioSelect, field));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(value).last);
-  await tester.pumpAndSettle();
-}
-
-Widget _workshop(
-  ProjectResourcePreviews previews,
-  _CharacterVisuals visuals, {
-  bool active = true,
-  String name = 'Guide du jardin',
-  Future<void> Function()? onRename,
-  VoidCallback? onBack,
-}) => MaterialApp(
-  home: Scaffold(
-    body: ProjectCharacterWorkshop(
-      item: ProjectLibraryItem(
-        kind: 'character',
-        id: _character.id,
-        name: name,
-      ),
-      previews: previews,
-      visuals: visuals,
-      active: active,
-      onBack: onBack ?? () {},
-      onRename: onRename,
-    ),
-  ),
-);
-
-const _project = ProjectManifest(
-  name: 'Jardin',
-  maps: [],
-  tilesets: [],
-  characters: [_character],
-);
-
-const _character = ProjectCharacterEntry(
-  id: 'garden-guide',
-  name: 'Guide du jardin',
-  tilesetId: 'guide',
-  animations: [
-    CharacterAnimation(
-      state: CharacterAnimationState.idle,
-      direction: EntityFacing.south,
-      frames: [_firstFrame],
-    ),
-    CharacterAnimation(
-      state: CharacterAnimationState.walk,
-      direction: EntityFacing.south,
-      frames: [_firstFrame, _secondFrame],
-    ),
-    CharacterAnimation(
-      state: CharacterAnimationState.walk,
-      direction: EntityFacing.east,
-      frames: [_firstFrame, _secondFrame],
-    ),
-    CharacterAnimation(
-      state: CharacterAnimationState.walk,
-      direction: EntityFacing.north,
-    ),
-    CharacterAnimation(
-      state: CharacterAnimationState.cut,
-      direction: EntityFacing.west,
-      frames: [_firstFrame, _secondFrame],
-      loop: false,
-    ),
-  ],
-);
-
-const _firstFrame = CharacterAnimationFrame(
-  source: TilesetSourceRect(x: 0, y: 0, width: 16, height: 32),
-  durationMs: 100,
-);
-const _secondFrame = CharacterAnimationFrame(
-  source: TilesetSourceRect(x: 16, y: 0, width: 16, height: 32),
-  durationMs: 100,
-);
-
-class _CharacterVisuals extends WorkspaceTestVisuals
-    implements ScopedResourcePreviewVisuals {
-  late CharacterPreviewSource last;
-
-  @override
-  Widget scopedResourcePreview(
-    ResourcePreviewSource source,
-    ProjectManifest project, {
-    required double size,
-  }) {
-    last = source as CharacterPreviewSource;
-    return SizedBox.square(dimension: size);
-  }
-
-  @override
-  void refreshResourcePreviews() {}
-
-  @override
-  void invalidateResourcePreviews(Set<String> changedRelativePaths) {}
 }

@@ -24,6 +24,7 @@ import '../../project_session/domain/project_session.dart';
 import '../../project_session/data/studio_project_document_revision.dart';
 import '../application/project_resource_library.dart';
 import '../domain/project_border_workshop_port.dart';
+import '../domain/project_character_workshop_port.dart';
 import '../domain/project_library_editor.dart';
 import '../domain/project_library_organization.dart';
 import '../domain/project_model_replacement_port.dart';
@@ -61,6 +62,7 @@ part 'local_project_library_organization.dart';
 part 'local_project_model_replacement.dart';
 part 'local_project_model_workshop.dart';
 part 'local_project_border_workshop.dart';
+part 'local_project_character_workshop.dart';
 part 'local_project_tileset_workshop.dart';
 
 final class LocalResourceAdapter
@@ -75,6 +77,7 @@ final class LocalResourceAdapter
         ResourceIndexPreparationPort,
         ResourceLifecyclePreparationPort,
         ProjectLibraryEditor,
+        ProjectCharacterWorkshopPort,
         ResourceUsageProvider {
   LocalResourceAdapter({
     required this.session,
@@ -132,6 +135,28 @@ final class LocalResourceAdapter
     String characterId,
     String stateId,
   ) => _readCharacterPortrait(this, characterId, stateId);
+
+  @override
+  Future<ProjectCharacterWorkshopRead> readWorkshopCharacter(String id) =>
+      _readWorkshopCharacter(id, includeDefinitions: true);
+
+  @override
+  Future<ResourceMutationReceipt> editWorkshopCharacter(
+    String id,
+    String action,
+    Map<String, Object?> parameters, {
+    required String expectedRevision,
+    PickedProjectLibraryFile? image,
+  }) => _editWorkshopCharacter(id, action, parameters, expectedRevision, image);
+
+  @override
+  Future<void> reconcileWorkshopCharacter(
+    String id,
+    ResourceMutationReceipt receipt,
+  ) => mapAdapter.withResourceMutation(() async {
+    await _verifyWorkshopCharacter(id, receipt);
+    await mapAdapter.acceptResourceMutation(session, receipt);
+  });
 
   @override
   Future<ResourceMutationReceipt> importImage(ResourceImageImport request) =>

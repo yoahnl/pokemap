@@ -59,7 +59,22 @@ AuthoringActionDescriptor characterStudioActionDescriptor(
     extensions: {
       if (inputSchema != null) 'inputSchema': inputSchema,
       if (id.startsWith('characterStudio.animation'))
-        'systemStates': ['base', 'walk', 'run', 'bicycle_idle', 'bicycle', 'climb', 'surf_idle', 'surf', 'surf_enter', 'surf_exit'],
+        'systemStates': [
+          'base',
+          'walk',
+          'run',
+          'bicycle_idle',
+          'bicycle',
+          'climb',
+          'surf_idle',
+          'surf',
+          'surf_enter',
+          'surf_exit',
+          'cut',
+          'rock_smash',
+          'strength',
+          'push',
+        ],
     },
     guarantees: const <AuthoringGuarantee>[
       AuthoringGuarantee.dryRun,
@@ -167,7 +182,8 @@ AuthoringMutationDraft characterStudioProjectDraft(
     );
   }
   return AuthoringMutationDraft(
-    projectedProject: operation == 'characterStudio.animationClip.upsert' ? projected : null,
+    projectedProject:
+        operation == 'characterStudio.animationClip.upsert' ? projected : null,
     changeSet: AuthoringChangeSet(
       changes: <AuthoringResourceChange>[
         AuthoringResourceChange(
