@@ -1,14 +1,21 @@
-part of 'avelune_mobile_splash_painter.dart';
+part of 'avelune_splash_painter.dart';
 
 const _whiteWordmark = ColorFilter.mode(Color(0xffffffff), BlendMode.srcIn);
 
-void _paintWordmark(Canvas canvas, double time, ui.Image wordmark) {
+void _paintWordmark(
+  Canvas canvas,
+  double time,
+  double ambientPhase,
+  ui.Image wordmark,
+) {
   final age = time - _SplashCue.landing;
   if (age <= 0) return;
 
   final arrival = _range(age, 0, .34);
   final color = _range(age, .44, 1.04);
   final rise = Curves.easeOutCubic.transform(arrival);
+  final drift =
+      3.4 * math.sin(ambientPhase) + 1.6 * (1 - math.cos(ambientPhase));
   final source = Rect.fromLTWH(
     0,
     0,
@@ -16,7 +23,7 @@ void _paintWordmark(Canvas canvas, double time, ui.Image wordmark) {
     wordmark.height.toDouble(),
   );
   final target = Rect.fromCenter(
-    center: Offset(360, 803 + (1 - rise) * 24),
+    center: Offset(360, 803 + (1 - rise) * 24 + drift),
     width: 266,
     height: 266 * source.height / source.width,
   );
@@ -28,8 +35,7 @@ void _paintWordmark(Canvas canvas, double time, ui.Image wordmark) {
       source,
       target,
       tint: _whiteWordmark,
-      hidden: arrival < 1 ? _arrivalWave(target, arrival) : null,
-      feather: 3.1,
+      visible: arrival < 1 ? _arrivalWave(target, arrival) : null,
     );
   }
   if (color > 0) {
@@ -38,8 +44,7 @@ void _paintWordmark(Canvas canvas, double time, ui.Image wordmark) {
       wordmark,
       source,
       target,
-      hidden: color < 1 ? _descendingWave(target, color) : null,
-      feather: 2.25,
+      visible: color < 1 ? _descendingWave(target, color) : null,
     );
   }
 }
@@ -70,8 +75,8 @@ Path _arrivalWave(Rect target, double progress) {
       front - 6,
       target.bottom + overscan,
     )
-    ..lineTo(target.right + 2 * overscan, target.bottom + overscan)
-    ..lineTo(target.right + 2 * overscan, top - overscan)
+    ..lineTo(target.left - 2 * overscan, target.bottom + overscan)
+    ..lineTo(target.left - 2 * overscan, top - overscan)
     ..close();
 }
 
@@ -82,8 +87,8 @@ Path _descendingWave(Rect target, double progress) {
   final height = target.top - overscan + (target.height + 2 * overscan) * slope;
   final left = target.left - overscan;
   final right = target.right + overscan;
-  final bottom = target.bottom + overscan;
-  final path = Path()..moveTo(left, bottom);
+  final top = target.top - overscan * 2;
+  final path = Path()..moveTo(left, top);
   for (var i = 0; i <= steps; i++) {
     final fraction = i / steps;
     final phase = 2 * math.pi * (fraction * 1.48 - progress * .63);
@@ -93,7 +98,7 @@ Path _descendingWave(Rect target, double progress) {
     path.lineTo(left + (right - left) * fraction, height + crest);
   }
   return path
-    ..lineTo(right, bottom)
+    ..lineTo(right, top)
     ..close();
 }
 
@@ -103,23 +108,15 @@ void _paintWordmarkLayer(
   Rect source,
   Rect target, {
   ColorFilter? tint,
-  Path? hidden,
-  required double feather,
+  Path? visible,
 }) {
   final paint = Paint()
     ..filterQuality = FilterQuality.medium
     ..colorFilter = tint;
-  if (hidden == null) {
-    canvas.drawImageRect(wordmark, source, target, paint);
-    return;
+  if (visible != null) {
+    canvas.save();
+    canvas.clipPath(visible);
   }
-  canvas.saveLayer(target.inflate(6), Paint());
   canvas.drawImageRect(wordmark, source, target, paint);
-  canvas.drawPath(
-    hidden,
-    Paint()
-      ..blendMode = BlendMode.dstOut
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, feather),
-  );
-  canvas.restore();
+  if (visible != null) canvas.restore();
 }

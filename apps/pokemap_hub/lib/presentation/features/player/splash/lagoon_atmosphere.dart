@@ -1,4 +1,4 @@
-part of 'avelune_mobile_splash_painter.dart';
+part of 'avelune_splash_painter.dart';
 
 final _sky = List.generate(45, (i) {
   final random = math.Random(92 + i * 7);
@@ -14,7 +14,8 @@ final _sky = List.generate(45, (i) {
 void _backdrop(
   Canvas canvas,
   double t,
-  AveluneMobileSplashPalette brand,
+  double ambientPhase,
+  AveluneSplashPalette brand,
   double width,
 ) {
   final spread = math.max(1.0, width / 850);
@@ -25,20 +26,25 @@ void _backdrop(
   final finalHold = Curves.easeInOut.transform(
     _range(t, 3.03, _SplashCue.duration),
   );
+  final drift = math.sin(ambientPhase);
+  final lift = math.cos(ambientPhase) - 1;
 
   _glow(
     canvas,
-    Offset(289 + 100 * math.sin(t * 1.18 - .48), 516 + 34 * math.sin(t * .95)),
+    Offset(
+      289 + 100 * math.sin(t * 1.18 - .48) + 26 * drift,
+      516 + 34 * math.sin(t * .95) + 9 * lift,
+    ),
     (800 + 65 * bloom) * spread,
     842,
     brand.skyGlow,
-    .33 + .30 * bloom + .065 * landing,
+    .33 + .30 * bloom + .065 * landing + .025 * drift,
   );
   _glow(
     canvas,
     Offset(
-      465 - 191 * tide + 36 * math.sin(1.9 * t),
-      732 - 107 * tide + 32 * impact,
+      465 - 191 * tide + 36 * math.sin(1.9 * t) - 17 * drift,
+      732 - 107 * tide + 32 * impact - 6 * lift,
     ),
     (726 + 112 * impact) * spread,
     476 + 94 * tide,
@@ -53,9 +59,17 @@ void _backdrop(
     _glow(canvas, _starAt(t), 354, 314, brand.star, .15 * light);
   }
 
-  _drawCurrent(canvas, t, tide, impact, bloom * (1 - .53 * finalHold), brand);
+  _drawCurrent(
+    canvas,
+    t,
+    ambientPhase,
+    tide,
+    impact,
+    bloom * (1 - .53 * finalHold),
+    brand,
+  );
   _drawWake(canvas, t, brand);
-  _drawDriftingLights(canvas, t, bloom, impact, finalHold, brand);
+  _drawDriftingLights(canvas, t, ambientPhase, bloom, impact, finalHold, brand);
 }
 
 void _glow(
@@ -84,12 +98,13 @@ void _glow(
 void _drawCurrent(
   Canvas canvas,
   double t,
+  double ambientPhase,
   double tide,
   double impact,
   double clarity,
-  AveluneMobileSplashPalette brand,
+  AveluneSplashPalette brand,
 ) {
-  final phase = t * 1.73;
+  final phase = t * 1.73 + .33 * math.sin(ambientPhase);
   final roll =
       1 - Curves.easeOutCubic.transform(_range(t, _SplashCue.wave - .18, 1.70));
   final drift = 31 * math.sin(phase * .73);
@@ -130,7 +145,7 @@ void _drawCurrent(
   }
 }
 
-void _drawWake(Canvas canvas, double t, AveluneMobileSplashPalette brand) {
+void _drawWake(Canvas canvas, double t, AveluneSplashPalette brand) {
   final paint = Paint()..style = PaintingStyle.stroke;
   for (var i = 0; i < 4; i++) {
     final start = _SplashCue.splash + .064 * i;
@@ -162,10 +177,11 @@ void _drawWake(Canvas canvas, double t, AveluneMobileSplashPalette brand) {
 void _drawDriftingLights(
   Canvas canvas,
   double t,
+  double ambientPhase,
   double bloom,
   double impact,
   double finalHold,
-  AveluneMobileSplashPalette brand,
+  AveluneSplashPalette brand,
 ) {
   final paint = Paint();
   final flow = _range(t, _SplashCue.wave - .17, 1.89);
@@ -181,11 +197,15 @@ void _drawDriftingLights(
     final outward = at - _touch;
     final distance = outward.distance;
     final push = math.max(0.0, 1 - (distance - waveFront).abs() / 140) * impact;
+    final twinkle =
+        .10 *
+        (math.sin(light.phase + 2 * ambientPhase) - math.sin(light.phase));
     final brightness =
         (.42 +
             .32 * bloom +
             .32 * push +
-            .18 * math.sin(t * 2.03 + light.phase)) *
+            .18 * math.sin(t * 2.03 + light.phase) +
+            twinkle) *
         (1 - .31 * finalHold);
     final center = at + outward / math.max(distance, 1) * (32 * push);
     paint.color = Color.lerp(
@@ -197,7 +217,7 @@ void _drawDriftingLights(
   }
 }
 
-void _spray(Canvas canvas, double t, AveluneMobileSplashPalette brand) {
+void _spray(Canvas canvas, double t, AveluneSplashPalette brand) {
   final p = _range(t, _SplashCue.splash, 2.52);
   if (p <= 0 || p >= 1) return;
   for (var i = 0; i < 11; i++) {

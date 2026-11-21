@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart' show TargetPlatform;
 import 'package:flutter/painting.dart';
 
-enum AveluneMobileSplashPalette {
+enum AveluneSplashPalette {
   ios(
     background: Color(0xff070d1c),
     skyGlow: Color(0xff3d518d),
@@ -31,7 +31,7 @@ enum AveluneMobileSplashPalette {
     wordmarkAsset: 'assets/avelune/splash/avelune-android-lettrage-vague.png',
   );
 
-  const AveluneMobileSplashPalette({
+  const AveluneSplashPalette({
     required this.background,
     required this.skyGlow,
     required this.moon,
@@ -61,10 +61,13 @@ enum AveluneMobileSplashPalette {
 
   AssetImage get wordmark => AssetImage(wordmarkAsset, package: 'pokemap_hub');
 
-  static AveluneMobileSplashPalette? forPlatform(TargetPlatform platform) =>
+  static AveluneSplashPalette? forPlatform(TargetPlatform platform) =>
       switch (platform) {
-        TargetPlatform.iOS => ios,
+        TargetPlatform.iOS ||
+        TargetPlatform.macOS ||
+        TargetPlatform.windows ||
+        TargetPlatform.linux => ios,
         TargetPlatform.android => android,
-        _ => null,
+        TargetPlatform.fuchsia => null,
       };
 }
