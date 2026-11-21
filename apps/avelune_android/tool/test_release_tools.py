@@ -4,11 +4,12 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import urllib.error
 import zipfile
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from publish_play import API, UPLOAD, PlayPublisher
+from publish_play import API, UPLOAD, PlayPublisher, PlayReviewInProgress
 from read_app_version import read_app_version
 from verify_release_bundle import PACKAGE, verify_elf_alignment, verify_libraries, verify_manifest
 
@@ -154,8 +155,62 @@ class PlayPublicationTest(unittest.TestCase):
         self.assertEqual(update.args[1], API + "/edit/tracks/internal")
         self.assertEqual(update.args[2]["releases"][0]["versionCodes"], ["3"])
         self.assertTrue(any(call.args[1] == API + "/edit:validate" for call in calls))
-        self.assertTrue(any(call.args[1] == API + "/edit:commit" for call in calls))
+        self.assertTrue(any(call.args[1] == API + "/edit:commit?changesInReviewBehavior=ERROR_IF_IN_REVIEW" for call in calls))
         publisher.request.assert_called_with("DELETE", API + "/verify")
+
+    def test_promote_alpha_reuses_latest_completed_internal_bundle(self):
+        release = {"name": "Avelune 1.0.5 (340)", "versionCodes": ["340"], "status": "completed", "releaseNotes": []}
+        publisher = self.publisher([
+            {"id": "edit"},
+            {"releases": [{"versionCodes": ["341"], "status": "draft"}, release]},
+            {"releases": [{"versionCodes": ["4"], "status": "completed"}]},
+            {}, {}, {},
+        ])
+
+        result = publisher.promote_alpha()
+
+        self.assertEqual(result, {"package": "com.yoahnl.avelune.player", "track": "alpha", "versionCode": 340, "status": "committed"})
+        self.assertEqual(publisher.request.call_args_list[3].args, (
+            "PUT", API + "/edit/tracks/alpha", {"track": "alpha", "releases": [release]},
+        ))
+        self.assertEqual(publisher.request.call_args_list[4].args[1], API + "/edit:validate")
+        self.assertEqual(publisher.request.call_args_list[5].args[1], API + "/edit:commit?changesInReviewBehavior=ERROR_IF_IN_REVIEW")
+        self.assertEqual(publisher.request.call_count, 6)
+
+    def test_promote_alpha_does_not_rollback_or_replace_a_draft(self):
+        for code, status, expected in ((340, "completed", "up_to_date"), (342, "completed", "up_to_date"), (4, "draft", "alpha_release_in_progress")):
+            with self.subTest(code=code, status=status):
+                publisher = self.publisher([
+                    {"id": "edit"},
+                    {"releases": [{"versionCodes": ["340"], "status": "completed"}]},
+                    {"releases": [{"versionCodes": [str(code)], "status": status}]},
+                    {},
+                ])
+
+                self.assertEqual(publisher.promote_alpha()["status"], expected)
+                self.assertEqual(publisher.request.call_count, 4)
+                publisher.request.assert_called_with("DELETE", API + "/edit")
+
+    def test_promote_alpha_defers_when_google_is_reviewing_another_change(self):
+        publisher = self.publisher([
+            {"id": "edit"},
+            {"releases": [{"versionCodes": ["340"], "status": "completed"}]},
+            {"releases": [{"versionCodes": ["4"], "status": "completed"}]},
+            {}, {},
+            PlayReviewInProgress("changes in review"),
+            {},
+        ])
+
+        self.assertEqual(publisher.promote_alpha()["status"], "review_in_progress")
+        publisher.request.assert_called_with("DELETE", API + "/edit")
+
+    def test_request_parses_google_review_conflict(self):
+        error_body = b'{"error":{"message":"Changes in review","details":[{"reason":"CHANGES_ALREADY_IN_REVIEW"}]}}'
+        error = urllib.error.HTTPError(API, 400, "Bad Request", {}, io.BytesIO(error_body))
+        self.addCleanup(error.close)
+        with patch("publish_play.urllib.request.urlopen", side_effect=error):
+            with self.assertRaisesRegex(PlayReviewInProgress, "Changes in review"):
+                PlayPublisher("test-token").request("POST", API)
 
 
 if __name__ == "__main__":
