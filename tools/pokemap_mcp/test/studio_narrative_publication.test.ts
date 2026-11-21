@@ -25,7 +25,7 @@ async function data(client: Client, name: string, args: JsonRecord = {}): Promis
 test("packaged MCP publishes source and authoritative dirty map coherently", { timeout: 120_000 }, async () => {
   const temporary = await mkdtemp(join(tmpdir(), "studio-narrative-mcp-"));
   const projectRoot = join(temporary, "project");
-  await cp(resolve(process.cwd(), "../../examples/playable_runtime_host/golden_item_system"), projectRoot, { recursive: true });
+  await cp(resolve(process.cwd(), "../../tools/pokemap_render_host/golden_item_system"), projectRoot, { recursive: true });
   const original = record(JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8")));
   const entry = (original.maps as JsonRecord[])[0]!;
   const mapPath = join(projectRoot, String(entry.relativePath));
@@ -74,7 +74,7 @@ test("packaged MCP publishes source and authoritative dirty map coherently", { t
 test("packaged MCP publishes UI07 story ownership without touching maps", { timeout: 120_000 }, async () => {
   const temporary = await mkdtemp(join(tmpdir(), "studio-story-mcp-"));
   const projectRoot = join(temporary, "project");
-  await cp(resolve(process.cwd(), "../../examples/playable_runtime_host/golden_item_system"), projectRoot, { recursive: true });
+  await cp(resolve(process.cwd(), "../../tools/pokemap_render_host/golden_item_system"), projectRoot, { recursive: true });
   const original = record(JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8")));
   const maps = await Promise.all((original.maps as JsonRecord[]).map(async (entry) => ({
     path: join(projectRoot, String(entry.relativePath)),

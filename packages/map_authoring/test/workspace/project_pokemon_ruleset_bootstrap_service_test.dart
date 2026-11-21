@@ -242,6 +242,6 @@ final class _Fixture {
 
 Directory _realFixtureDirectory() {
   return Directory(
-    '${Directory.current.parent.parent.path}/examples/playable_runtime_host/p3_narrative_smoke_slice',
+    '${Directory.current.parent.parent.path}/tools/pokemap_render_host/p3_narrative_smoke_slice',
   );
 }

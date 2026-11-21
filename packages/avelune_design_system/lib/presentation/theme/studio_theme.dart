@@ -2,35 +2,63 @@ import 'package:flutter/material.dart';
 
 import 'studio_tokens.dart';
 
-ThemeData studioTheme() {
-  const colors = ColorScheme.dark(
-    primary: Color(0xff2163df),
-    onPrimary: Color(0xffedf4ff),
-    primaryContainer: Color(0xff173e70),
-    onPrimaryContainer: Color(0xffedf3ff),
-    secondary: Color(0xffa4b5d2),
-    secondaryContainer: Color(0xff233b5e),
-    onSecondaryContainer: Color(0xffedf3ff),
-    surface: Color(0xff0d1d2c),
-    surfaceContainerLowest: Color(0xff071522),
-    surfaceContainerLow: Color(0xff0a1928),
-    surfaceContainer: Color(0xff14283b),
-    surfaceContainerHigh: Color(0xff1b3249),
-    surfaceContainerHighest: Color(0xff263e55),
-    onSurface: Color(0xffedf4ff),
-    onSurfaceVariant: Color(0xffa4b7cd),
-    outline: Color(0xff29445f),
-    outlineVariant: Color(0xff20364b),
-    error: Color(0xffe45c69),
-    errorContainer: Color(0xff492b34),
-    onErrorContainer: Color(0xffffdad6),
-    tertiary: Color(0xff25c49a),
-  );
+ThemeData studioTheme({Brightness brightness = Brightness.dark}) {
+  final light = brightness == Brightness.light;
+  final colors = light
+      ? const ColorScheme.light(
+          primary: Color(0xff2057c4),
+          onPrimary: Color(0xffffffff),
+          primaryContainer: Color(0xffe0ebff),
+          onPrimaryContainer: Color(0xff182a42),
+          secondary: Color(0xff3e628f),
+          onSecondary: Color(0xffffffff),
+          secondaryContainer: Color(0xffe1ebfc),
+          onSecondaryContainer: Color(0xff182a42),
+          surface: Color(0xffffffff),
+          surfaceContainerLowest: Color(0xffeef3fa),
+          surfaceContainerLow: Color(0xfff8fbff),
+          surfaceContainer: Color(0xffe8eff9),
+          surfaceContainerHigh: Color(0xffe1ebfa),
+          surfaceContainerHighest: Color(0xffd4dfed),
+          onSurface: Color(0xff182a42),
+          onSurfaceVariant: Color(0xff465f7b),
+          outline: Color(0xff768aa7),
+          outlineVariant: Color(0xffd4dfed),
+          error: Color(0xffa72e47),
+          onError: Color(0xffffffff),
+          errorContainer: Color(0xfffceef2),
+          onErrorContainer: Color(0xff86253e),
+          tertiary: Color(0xff126b52),
+          onTertiary: Color(0xffffffff),
+        )
+      : const ColorScheme.dark(
+          primary: Color(0xff2163df),
+          onPrimary: Color(0xffedf4ff),
+          primaryContainer: Color(0xff173e70),
+          onPrimaryContainer: Color(0xffedf3ff),
+          secondary: Color(0xffa4b5d2),
+          secondaryContainer: Color(0xff233b5e),
+          onSecondaryContainer: Color(0xffedf3ff),
+          surface: Color(0xff0d1d2c),
+          surfaceContainerLowest: Color(0xff071522),
+          surfaceContainerLow: Color(0xff0a1928),
+          surfaceContainer: Color(0xff14283b),
+          surfaceContainerHigh: Color(0xff1b3249),
+          surfaceContainerHighest: Color(0xff263e55),
+          onSurface: Color(0xffedf4ff),
+          onSurfaceVariant: Color(0xffa4b7cd),
+          outline: Color(0xff29445f),
+          outlineVariant: Color(0xff20364b),
+          error: Color(0xffe45c69),
+          errorContainer: Color(0xff492b34),
+          onErrorContainer: Color(0xffffdad6),
+          tertiary: Color(0xff25c49a),
+        );
   final shape = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(StudioMetrics.controlRadius),
   );
   final base = ThemeData(
-    brightness: Brightness.dark,
+    brightness: brightness,
     useMaterial3: true,
     colorScheme: colors,
     scaffoldBackgroundColor: colors.surfaceContainerLowest,
@@ -83,7 +111,17 @@ ThemeData studioTheme() {
     borderSide: BorderSide(color: colors.outline),
   );
   return base.copyWith(
-    extensions: const [StudioColors()],
+    extensions: [
+      if (light)
+        const StudioColors(
+          canvasSelection: Color(0xff096787),
+          success: Color(0xff126b52),
+          warning: Color(0xff825000),
+          featureAccent: Color(0xff6346a5),
+        )
+      else
+        const StudioColors(),
+    ],
     textTheme: text.copyWith(
       bodyLarge: text.bodyLarge?.copyWith(fontSize: StudioTypeScale.body),
       bodyMedium: text.bodyMedium?.copyWith(fontSize: StudioTypeScale.body),

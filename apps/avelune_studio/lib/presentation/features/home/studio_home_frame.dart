@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
@@ -9,7 +7,7 @@ import '../../shell/studio_rail.dart';
 import '../../shell/studio_top_bar.dart';
 import '../settings/studio_settings_page.dart';
 
-class StudioHomeFrame extends StatelessWidget {
+class StudioHomeFrame extends StatefulWidget {
   const StudioHomeFrame({
     super.key,
     required this.child,
@@ -29,10 +27,32 @@ class StudioHomeFrame extends StatelessWidget {
   final VoidCallback? onClose;
 
   @override
+  State<StudioHomeFrame> createState() => _StudioHomeFrameState();
+}
+
+class _StudioHomeFrameState extends State<StudioHomeFrame> {
+  var _showSettings = false;
+
+  VoidCallback? _sectionAction(StudioRailSection section) {
+    if (widget.busy) return null;
+    return switch (section) {
+      StudioRailSection.settings =>
+        widget.destinations[section.name] ??
+            () => setState(() => _showSettings = true),
+      StudioRailSection.home when _showSettings => () => setState(
+        () => _showSettings = false,
+      ),
+      _ => widget.destinations[section.name],
+    };
+  }
+
+  @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) {
       final compact = bounds.maxWidth < 1200;
       final colors = Theme.of(context).colorScheme;
+      final projectName = widget.projectName;
+      final onClose = widget.onClose;
       return Material(
         child: Column(
           children: [
@@ -66,7 +86,7 @@ class StudioHomeFrame extends StatelessWidget {
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 180),
                       child: Text(
-                        projectName!,
+                        projectName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -75,9 +95,9 @@ class StudioHomeFrame extends StatelessWidget {
                   ],
                   Expanded(
                     child: StudioSearchField(
-                      controller: search,
+                      controller: widget.search,
                       label: 'Rechercher dans vos projets et cartes',
-                      onChanged: onSearch,
+                      onChanged: widget.onSearch,
                     ),
                   ),
                   if (onClose != null) ...[
@@ -86,7 +106,7 @@ class StudioHomeFrame extends StatelessWidget {
                       key: const ValueKey('studio-project-home-close'),
                       label: context.l10n.homeCloseProject,
                       icon: Icons.folder_off_outlined,
-                      onPressed: busy ? null : onClose,
+                      onPressed: widget.busy ? null : onClose,
                     ),
                   ],
                 ],
@@ -97,17 +117,27 @@ class StudioHomeFrame extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   StudioRail(
-                    section: StudioRailSection.home,
-                    sectionAction: busy
-                        ? null
-                        : (section) => switch (section) {
-                            StudioRailSection.settings =>
-                              destinations[section.name] ??
-                                  () => unawaited(openStudioSettings(context)),
-                            _ => destinations[section.name],
-                          },
+                    section: _showSettings
+                        ? StudioRailSection.settings
+                        : StudioRailSection.home,
+                    sectionAction: _sectionAction,
                   ),
-                  Expanded(child: child),
+                  Expanded(
+                    child: IndexedStack(
+                      index: _showSettings ? 1 : 0,
+                      sizing: StackFit.expand,
+                      children: [
+                        TickerMode(
+                          enabled: !_showSettings,
+                          child: ExcludeFocus(
+                            excluding: _showSettings,
+                            child: widget.child,
+                          ),
+                        ),
+                        if (_showSettings) const StudioSettingsPage(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

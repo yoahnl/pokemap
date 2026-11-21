@@ -5,16 +5,7 @@
       "name": "PokeMap — Studio",
       "type": "dart",
       "request": "launch",
-      "cwd": "${workspaceFolder}/packages/map_editor",
-      "program": "lib/main.dart",
-      "deviceId": "macos",
-      "flutterMode": "debug"
-    },
-    {
-      "name": "PokeMap — Player",
-      "type": "dart",
-      "request": "launch",
-      "cwd": "${workspaceFolder}/examples/playable_runtime_host",
+      "cwd": "${workspaceFolder}/apps/avelune_studio",
       "program": "lib/main.dart",
       "deviceId": "macos",
       "flutterMode": "debug"

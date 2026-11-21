@@ -356,11 +356,11 @@ Future<Directory> _resolveFixture(String name) async {
   switch (name) {
     case 'small':
       return Directory(
-        '${repository.path}/examples/playable_runtime_host/golden_battle_slice',
+        '${repository.path}/tools/pokemap_render_host/golden_battle_slice',
       );
     case 'intermediate':
       return Directory(
-        '${repository.path}/examples/playable_runtime_host/golden_fangame_slice',
+        '${repository.path}/tools/pokemap_render_host/golden_fangame_slice',
       );
     case 'synthetic-10mb':
       return _syntheticFixture();

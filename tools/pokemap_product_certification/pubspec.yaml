@@ -15,6 +15,8 @@ dependencies:
     sdk: flutter
   map_authoring:
     path: ../../packages/map_authoring
+  map_battle:
+    path: ../../packages/map_battle
   map_core:
     path: ../../packages/map_core
   map_distribution:
@@ -26,8 +28,6 @@ dependencies:
   map_runtime:
     path: ../../packages/map_runtime
   path: ^1.9.0
-  pokemap_loader:
-    path: ../../examples/playable_runtime_host
   avelune_player_host:
     path: ../../packages/avelune_player_host
   pub_semver: ^2.2.0

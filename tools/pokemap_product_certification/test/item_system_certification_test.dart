@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_loader/src/golden_item_system_journey.dart';
+import 'package:pokemap_product_certification/src/golden_item_system_journey.dart';
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 
 void main() {
@@ -12,7 +12,7 @@ void main() {
     final projectRoot = Directory(
       p.join(
         repositoryRoot,
-        'examples/playable_runtime_host/golden_item_system',
+        'tools/pokemap_render_host/golden_item_system',
       ),
     );
     final mcpRoot = Directory(p.join(repositoryRoot, 'tools/pokemap_mcp'));
@@ -203,7 +203,7 @@ void main() {
       final journey = await GoldenItemSystemJourney.run(
         projectRootDirectory: p.join(
           repositoryRoot,
-          'examples/playable_runtime_host/golden_item_system',
+          'tools/pokemap_render_host/golden_item_system',
         ),
         saveRootDirectory: saveRoot.path,
         sourceRevision: sourceRevision,

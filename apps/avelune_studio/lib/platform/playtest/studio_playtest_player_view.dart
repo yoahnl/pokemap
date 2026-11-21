@@ -93,9 +93,7 @@ class _StudioPlaytestPlayerViewState extends State<StudioPlaytestPlayerView>
     final presentation = profile == null
         ? null
         : RuntimePlayerPresentation.fromProfile(profile);
-    final baseTheme = Theme.of(context).brightness == Brightness.dark
-        ? PokeMapPlayerTheme.dark()
-        : PokeMapPlayerTheme.light();
+    final baseTheme = PokeMapPlayerTheme.dark();
     return ClipRect(
       child: Stack(
         fit: StackFit.expand,

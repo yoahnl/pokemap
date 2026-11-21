@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../feedback/studio_progress_indicator.dart';
+
 enum StudioButtonVariant { primary, secondary, quiet, destructive }
 
 class StudioButton extends StatelessWidget {
@@ -34,11 +36,7 @@ class StudioButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (loading)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+                const StudioProgressIndicator.compact()
               else
                 Icon(icon, size: 16),
               const SizedBox(width: 8),

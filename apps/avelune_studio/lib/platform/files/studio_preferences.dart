@@ -7,7 +7,7 @@ import '../../features/home/data/local_recent_projects_adapter.dart';
 import '../../features/home/data/memory_recent_projects_adapter.dart';
 import '../../features/home/domain/recent_studio_project.dart';
 
-RecentProjectsPort studioRecentProjects() {
+String? studioPreferencesDirectory() {
   final home = Platform.environment['HOME'];
   final base = Platform.isWindows
       ? Platform.environment['APPDATA']
@@ -17,8 +17,13 @@ RecentProjectsPort studioRecentProjects() {
             : '$home/Library/Application Support'
       : Platform.environment['XDG_CONFIG_HOME'] ??
             (home == null ? null : '$home/.config');
-  if (base == null) return MemoryRecentProjectsAdapter();
-  final filePath = '$base/Avelune Studio/recent-projects.json';
+  return base == null ? null : '$base/Avelune Studio';
+}
+
+RecentProjectsPort studioRecentProjects() {
+  final directory = studioPreferencesDirectory();
+  if (directory == null) return MemoryRecentProjectsAdapter();
+  final filePath = '$directory/recent-projects.json';
   if (!Platform.isMacOS) return LocalRecentProjectsAdapter(filePath);
   return LegacyRecentProjectsAdapter(
     filePath,

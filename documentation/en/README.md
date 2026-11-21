@@ -42,7 +42,7 @@ Its ambition goes beyond drawing maps: connecting locations, characters, dialogu
 | **PokéMap editor** | Build maps, prepare content, configure systems, and test an adventure. | [`packages/map_editor`](../../packages/map_editor/) |
 | **PokéMap runtime** | Execute project data: exploration, events, battles, presentation, and game state. | [`packages/map_runtime`](../../packages/map_runtime/) |
 | **Avelune** | Provide the player application and integrate distributed games. Its technical name in the repository is `pokemap_hub`. | [`apps/pokemap_hub`](../../apps/pokemap_hub/) |
-| **Development host** | Load a local project and exercise the runtime without going through the full Avelune application. | [`examples/playable_runtime_host`](../../examples/playable_runtime_host/) |
+| **Rendering and playtest tooling** | Run 3D renders and automated MCP scenarios. | [Evaluation guide](../../tools/pokemap_render_host/evaluation/README.md) |
 | **Authoring API and MCP** | Work with projects through explicit operations, validation, and automation tools. | [`packages/map_authoring`](../../packages/map_authoring/) and [`tools/pokemap_mcp`](../../tools/pokemap_mcp/) |
 
 Creators work on a **PokéMap project**. The runtime interprets that project. Avelune provides the application in which players experience the resulting game.
@@ -176,17 +176,9 @@ The parenthesized blocks below use Bash or Zsh and start from the repository roo
 
 This is the entry point for creating and editing content. Internal dependencies use relative paths: keep the monorepo layout intact instead of copying only `map_editor` into another directory.
 
-### Run the development host
+### Playtest a project during authoring
 
-```bash
-(
-  cd examples/playable_runtime_host &&
-  flutter pub get &&
-  flutter run -d macos
-)
-```
-
-The host lets you select a project folder containing `project.json`. The repository includes the [`selbrume`](../../selbrume/) project and a reference scenario described in the [host README](../../examples/playable_runtime_host/README.md).
+Use the built-in playtest in Avelune Studio. To verify the experience in the native player, export the game from Studio and open it in Avelune iOS.
 
 ### Run Avelune on an available device
 
@@ -219,7 +211,7 @@ A project that opens in the editor is not necessarily playable yet. Catalogs, as
 
 ### Reference scenario: golden battle slice
 
-The [development host](../../examples/playable_runtime_host/README.md) documents a small battle scenario with a `golden_field` map, a wild encounter, a trainer, and the data needed to start.
+The [golden battle slice](../../tools/pokemap_render_host/golden_battle_slice/project.json) contains a `golden_field` map, a wild encounter, and a trainer.
 
 It is a useful starting point for understanding the transition from **exploration → battle → return to the game**. Absolute paths in some historical notes should be replaced with the paths to your local clone.
 
@@ -243,11 +235,10 @@ pokemap/
 │   ├── map_editor/
 │   ├── gamepads_darwin/
 │   └── gamepads_ios/
-├── examples/
-│   └── playable_runtime_host/
 ├── selbrume/
 ├── documentation/
 ├── tools/
+│   ├── pokemap_render_host/
 │   └── pokemap_mcp/
 ├── tool/
 ├── skills/
@@ -428,7 +419,7 @@ After installing the relevant packages' dependencies, run the following from the
 
 ```bash
 (
-  cd examples/playable_runtime_host &&
+  cd tools/pokemap_render_host &&
   flutter test test/phase_a_golden_slice_launch_test.dart
 )
 ```
@@ -506,20 +497,6 @@ A local build is not a signed, published release. The [PokeMap desktop distribut
 
 The editor's export workflow relies on the distribution contracts. Check content, assets, customization, and compatibility before distributing a package, then test loading it in the target player application.
 
-### Build a standalone Selbrume application
-
-The [host README](../../examples/playable_runtime_host/README.md) documents a dedicated command:
-
-```bash
-(
-  cd examples/playable_runtime_host &&
-  flutter pub get &&
-  dart run tool/package_selbrume_macos.dart --project ../../selbrume --release
-)
-```
-
-This workflow bundles the project into the application's resources and produces its artifacts in the host's `build/mvp-release/` directory. The documentation for this MVP package targets **Apple Silicon (`arm64`)**, with ad hoc signing; this workflow is not equivalent to a notarized Developer ID distribution.
-
 ### Distribute Avelune
 
 Avelune has its own configurations and workflows, including [Android distribution](../../.github/workflows/avelune_android_release.yml) and [hub product certification](../../.github/workflows/pokemap_hub_product_certification.yml).
@@ -558,7 +535,7 @@ To follow priorities, start with the [gameplay roadmap](../../pokemap_roadmap_me
 | Track mechanic completeness and validation criteria | [Fangame gameplay roadmap](../../pokemap_roadmap_mecaniques_fangame.md) |
 | Inspect authoring operations and MCP contracts | [Action catalog](../../pokemap_authoring_api_mcp_action_catalog.md) |
 | Configure, use, and verify the local server | [PokeMap MCP README](../../tools/pokemap_mcp/README.md) |
-| Run a project, the golden slice, or Selbrume packaging | [Host README](../../examples/playable_runtime_host/README.md) |
+| Run automated playtest scenarios | [Evaluation guide](../../tools/pokemap_render_host/evaluation/README.md) |
 | Explore a reference project | [`selbrume/`](../../selbrume/) |
 | Find specifications, audits, and reports | [`documentation/`](../../documentation/) |
 | Understand automated checks and distribution | [GitHub Actions workflows](../../.github/workflows/) |
@@ -604,10 +581,6 @@ Install the package's dependencies, identify its generator, and follow the [Code
 ### The project opens, but images or maps are missing
 
 Check that the complete folder has been preserved and that references point to existing assets. An isolated `project.json` does not replace the project it depends on.
-
-### The host does not start in the expected state
-
-The [host](../../examples/playable_runtime_host/README.md) documents loading `runtime_host_launch_save.json` when it is present alongside the project. Check which project and save are actually loaded before concluding that there is a new-game issue.
 
 ### MCP rejects the project path
 

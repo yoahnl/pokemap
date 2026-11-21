@@ -110,7 +110,7 @@ void main() {
     final project = ProjectManifest.fromJson(
       jsonDecode(
         await File(
-          '../../examples/playable_runtime_host/'
+          '../../tools/pokemap_render_host/'
           'golden_personalization_v3/project.json',
         ).readAsString(),
       ) as Map<String, Object?>,

@@ -238,7 +238,7 @@ SceneAsset _rewardScene() => SceneAsset(
 Future<({Directory root, RuntimeMapBundle bundle, GameState state})> _fixture(
     String kind) async {
   final source = p.normalize(p.join(Directory.current.path, '..', '..',
-      'examples', 'playable_runtime_host', 'golden_battle_slice'));
+      'tools', 'pokemap_render_host', 'golden_battle_slice'));
   final original = await loadRuntimeMapBundle(
       projectFilePath: p.join(source, 'project.json'), mapId: 'golden_field');
   final root = await Directory.systemTemp.createTemp('spatial-battle-outcome-');

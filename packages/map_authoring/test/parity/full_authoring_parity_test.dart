@@ -939,7 +939,7 @@ void main() {
         'authoring_preview/runtime_authoring_asset_render_worker.dart',
       ).readAsStringSync();
       final playtestWorker = File(
-        '${repositoryRoot.path}/examples/playable_runtime_host/lib/src/'
+        '${repositoryRoot.path}/tools/pokemap_render_host/lib/src/'
         'evaluation/driver/evaluation_playtest_adapter.dart',
       ).readAsStringSync();
       for (final command in catalog.runtimeCommands) {

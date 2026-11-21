@@ -511,15 +511,6 @@ final class CatalogAuthoringSession {
       await (await _editing()).prepareMapDirectory();
       return;
     }
-    await preparePendingTransactionJournals(reader.store.gateway);
-    if (scope == 'assetImport' || scope == 'nativeResources') {
-      await (await _editing()).prepareAssetImport(nativeResources: scope == 'nativeResources');
-      return;
-    }
-    if (scope == 'mapCreation') {
-      await (await _editing()).prepareMapCreation();
-      return;
-    }
     if (scope == 'metadataContext') {
       final store = reader.store;
       final history = await FileAuthoringHistoryStore.open(
@@ -537,6 +528,15 @@ final class CatalogAuthoringSession {
       await CatalogHistoryRetention(store: store, history: history, blobs: blobs)
           .prepareNavigableAdmissions(projectId: reader.projectId,
               requirePreparedMetadataIndex: true);
+      return;
+    }
+    await preparePendingTransactionJournals(reader.store.gateway);
+    if (scope == 'assetImport' || scope == 'nativeResources') {
+      await (await _editing()).prepareAssetImport(nativeResources: scope == 'nativeResources');
+      return;
+    }
+    if (scope == 'mapCreation') {
+      await (await _editing()).prepareMapCreation();
       return;
     }
     if (scope != null) throw const FormatException('catalog.preparation_scope_unsupported');

@@ -126,9 +126,7 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
                 ),
               Positioned.fill(
                 child: Theme(
-                  data: Theme.of(context).brightness == Brightness.dark
-                      ? PokeMapPlayerTheme.dark()
-                      : PokeMapPlayerTheme.light(),
+                  data: PokeMapPlayerTheme.dark(),
                   child: Stack(
                     children: [
                       if (runtime.battle case final battle?)

@@ -268,8 +268,8 @@ void main() {
     final bundle = (await tester.runAsync(() => loadRuntimeMapBundle(
       projectFilePath: p.join(projectRoot, 'project.json'), mapId: 'route-29',
     )))!;
-    final savePath = p.join(Directory.current.path, '..', '..', 'examples',
-        'playable_runtime_host', 'golden_battle_slice', 'runtime_host_launch_save.json');
+    final savePath = p.join(Directory.current.path, '..', '..', 'tools',
+        'pokemap_render_host', 'golden_battle_slice', 'runtime_host_launch_save.json');
     final saveText = await tester.runAsync(() => File(savePath).readAsString());
     final save = jsonDecode(saveText!) as Map<String, dynamic>;
     final member = Map<String, dynamic>.from(((save['party'] as Map)['members'] as List).first as Map);
@@ -2481,7 +2481,7 @@ WildBattleStartRequest _packagedWild() => WildBattleStartRequest(
 
 Future<({RuntimeMapBundle bundle, GameState state})> _fixture({bool contextual = false}) async {
   final root = p.normalize(p.join(Directory.current.path, '..', '..',
-      'examples', 'playable_runtime_host', 'golden_battle_slice'));
+      'tools', 'pokemap_render_host', 'golden_battle_slice'));
   final bundle = await loadRuntimeMapBundle(
       projectFilePath: p.join(root, 'project.json'), mapId: 'golden_field');
   final temporary =

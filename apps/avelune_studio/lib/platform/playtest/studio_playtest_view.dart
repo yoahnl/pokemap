@@ -159,9 +159,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView>
           context: context,
           delegates: PokeMapPlayerLocalizations.localizationsDelegates,
           child: Theme(
-            data: Theme.of(context).brightness == Brightness.dark
-                ? PokeMapPlayerTheme.dark()
-                : PokeMapPlayerTheme.light(),
+            data: PokeMapPlayerTheme.dark(),
             child: PlayerSceneInteractionSurface(
               request: request,
               onResult: (result) {

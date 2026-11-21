@@ -33,7 +33,7 @@ test(
     const temporaryRoot = await mkdtemp(join(tmpdir(), "pokemap-live-menu-"));
     const projectRoot = join(temporaryRoot, "project");
     await cp(
-      resolve(process.cwd(), "../../examples/playable_runtime_host/golden_item_system"),
+      resolve(process.cwd(), "../../tools/pokemap_render_host/golden_item_system"),
       projectRoot,
       { recursive: true },
     );

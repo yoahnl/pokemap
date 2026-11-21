@@ -25,7 +25,7 @@ async function data(client: Client, name: string, args: JsonRecord = {}): Promis
 test("packaged MCP discovers and commits Studio native image import", { timeout: 120_000 }, async () => {
   const temporary = await mkdtemp(join(tmpdir(), "studio-resource-mcp-"));
   const projectRoot = join(temporary, "project");
-  await cp(resolve(process.cwd(), "../../examples/playable_runtime_host/golden_item_system"), projectRoot, { recursive: true });
+  await cp(resolve(process.cwd(), "../../tools/pokemap_render_host/golden_item_system"), projectRoot, { recursive: true });
   const sourcePath = join(projectRoot, "input.png");
   const pixels = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==", "base64");
   await writeFile(sourcePath, pixels);
@@ -71,7 +71,7 @@ test("packaged MCP discovers and commits Studio native image import", { timeout:
 test("packaged MCP refuses a PNG that does not decode before planning an import", { timeout: 120_000 }, async () => {
   const temporary = await mkdtemp(join(tmpdir(), "studio-resource-mcp-"));
   const projectRoot = join(temporary, "project");
-  await cp(resolve(process.cwd(), "../../examples/playable_runtime_host/golden_item_system"), projectRoot, { recursive: true });
+  await cp(resolve(process.cwd(), "../../tools/pokemap_render_host/golden_item_system"), projectRoot, { recursive: true });
   const sourcePath = join(projectRoot, "input.png");
   await writeFile(sourcePath, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==", "base64"));
   const projectBytes = await readFile(join(projectRoot, "project.json"));

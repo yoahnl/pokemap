@@ -88,6 +88,10 @@ extension _MapBuilderProjectSections on _MapBuilderPageState {
     );
   }
 
+  Widget _studioSettings() => _section == StudioRailSection.settings
+      ? const StudioSettingsPage()
+      : const SizedBox.shrink();
+
   Widget _projectPokemon() => _retainedSurface(
     visible: _section == StudioRailSection.pokemon && !_sceneShown,
     child: _pokemonShown

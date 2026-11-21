@@ -12,7 +12,7 @@ void main() {
       'map_editor:',
       'map_player_ui:',
       'pokemap_hub:',
-      'playable_runtime_host',
+      'pokemap_render_host',
     ]) {
       expect(pubspec, isNot(contains(forbidden)), reason: forbidden);
     }
@@ -31,7 +31,7 @@ void main() {
         'package:map_editor/',
         'package:map_player_ui/',
         'apps/pokemap_hub',
-        'examples/playable_runtime_host',
+        'tools/pokemap_render_host',
       ]) {
         expect(
           contents,

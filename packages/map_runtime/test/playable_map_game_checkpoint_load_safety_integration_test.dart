@@ -335,7 +335,7 @@ void main() {
       });
     }
     test('real Scene battle defeat and whiteOut coalesce after the defeat branch', () async {
-      final fixtureRoot = Directory('../../examples/playable_runtime_host/golden_battle_slice').absolute;
+      final fixtureRoot = Directory('../../tools/pokemap_render_host/golden_battle_slice').absolute;
       final fixture = ProjectManifest.fromJson(jsonDecode(await File('${fixtureRoot.path}/project.json').readAsString()) as Map<String, dynamic>);
       final source = _sceneBundle(recovery: SceneBattleDefeatRecovery.returnToRecoveryPoint);
       final original = source.manifest.scenes.single;
@@ -458,7 +458,7 @@ void main() {
       expect(game.gameStateSnapshot.metadata[playerDefeatCountMetadataKey], '1');
     });
     test('real Scene battle continueScene does not publish the native recovery Fact', () async {
-      final fixtureRoot = Directory('../../examples/playable_runtime_host/golden_battle_slice').absolute;
+      final fixtureRoot = Directory('../../tools/pokemap_render_host/golden_battle_slice').absolute;
       final fixture = ProjectManifest.fromJson(jsonDecode(await File('${fixtureRoot.path}/project.json').readAsString()) as Map<String, dynamic>);
       final source = _sceneBundle();
       final manifest = source.manifest.copyWith(pokemon: fixture.pokemon,

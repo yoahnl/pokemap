@@ -5,20 +5,34 @@ import 'map_builder_shell_harness.dart';
 
 void main() {
   testWidgets(
-    'settings returns to the open project home without reopening it',
+    'settings uses the editor rail and header without pushing a route',
     (tester) async {
       await openShell(tester);
       final settings = find.byKey(const ValueKey('studio-rail-settings'));
-      final back = find.byKey(const ValueKey('studio-settings-back'));
       final projectHome = find.byKey(const ValueKey('studio-project-home'));
       final map = find.byKey(const ValueKey('map-canvas'));
+      final rail = find.byKey(const ValueKey('studio-rail'));
+      final export = find.byKey(const ValueKey('studio-export-game'));
+      final rootRoute = ModalRoute.of(tester.element(rail));
+      final editorRail = tester.element(rail);
 
-      expect(find.byKey(const ValueKey('studio-export-game')), findsOneWidget);
+      expect(export, findsOneWidget);
       await tester.tap(settings);
       await tester.pumpAndSettle();
       expect(find.text('Réglages du Studio'), findsWidgets);
-      expect(map, findsNothing);
-      await tester.tap(back);
+      expect(ModalRoute.of(tester.element(rail)), same(rootRoute));
+      expect(tester.element(rail), same(editorRail));
+      expect(export.hitTestable(), findsOneWidget);
+      expect(map.hitTestable(), findsNothing);
+      expect(find.byKey(const ValueKey('studio-settings-back')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('studio-rail-resources')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('studio-settings-language')),
+        findsNothing,
+      );
+      expect(tester.element(rail), same(editorRail));
+      await tester.tap(find.byKey(const ValueKey('studio-rail-map')));
       await tester.pumpAndSettle();
       expect(map, findsOneWidget);
 
@@ -28,7 +42,8 @@ void main() {
       expect(find.byKey(const ValueKey('home-export-game')), findsNothing);
       await tester.tap(settings);
       await tester.pumpAndSettle();
-      await tester.tap(back);
+      expect(ModalRoute.of(tester.element(rail)), same(rootRoute));
+      await tester.tap(find.byKey(const ValueKey('studio-rail-home')));
       await tester.pumpAndSettle();
       expect(projectHome, findsOneWidget);
       expect(sessions.requests, hasLength(1));

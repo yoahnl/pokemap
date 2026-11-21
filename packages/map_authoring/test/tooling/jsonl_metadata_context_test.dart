@@ -1,9 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
 
+import '../support/create_metadata_context_fixture.dart'
+    show CatalogFixtureAdmissions;
 import '../support/resource_pack_stdio_client.dart';
 
 void main() {
@@ -17,6 +18,7 @@ void main() {
       final directory =
           await Directory.systemTemp.createTemp('context-prerequisites-');
       final root = Directory('${directory.path}/project');
+      final admissions = CatalogFixtureAdmissions();
       try {
         final result = await Process.run('dart', [
           'run',
@@ -27,7 +29,7 @@ void main() {
         expect(result.exitCode, 0,
             reason: '${result.stdout}\n${result.stderr}');
       } finally {
-        await _removeAdmissions(root.path);
+        await _removeAdmissions(root, admissions);
         await directory.delete(recursive: true);
       }
     }, timeout: const Timeout(Duration(minutes: 2)));
@@ -39,6 +41,7 @@ void main() {
       final directory =
           await Directory.systemTemp.createTemp('context-transport-');
       final root = Directory('${directory.path}/project');
+      final admissions = CatalogFixtureAdmissions();
       ResourcePackStdioClient? client;
       try {
         final fixture = await Process.run('dart', [
@@ -86,34 +89,20 @@ void main() {
             .call('close', {'workspaceHandle': opened['workspaceHandle']});
       } finally {
         await client?.close();
-        await _removeAdmissions(root.path);
+        await _removeAdmissions(root, admissions);
         await directory.delete(recursive: true);
       }
     }, timeout: const Timeout(Duration(minutes: 2)));
   }
 }
 
-Future<void> _removeAdmissions(String project) async {
-  final home =
-      Platform.environment[Platform.isWindows ? 'LOCALAPPDATA' : 'HOME'];
-  final directory = Directory('$home/.avelune/authoring/catalog-admissions');
-  if (!await directory.exists()) return;
-  await for (final file in directory.list()) {
-    if (file is! File || !file.path.endsWith('.json')) continue;
-    final String source;
+Future<void> _removeAdmissions(
+    Directory project, CatalogFixtureAdmissions admissions) async {
+  for (final path in (await admissions.readFor(project)).keys) {
     try {
-      source = await file.readAsString();
+      await File(path).delete();
     } on PathNotFoundException {
       continue;
-    }
-    final value = jsonDecode(source) as Map;
-    if (value['projectRoot'] == project ||
-        (value['admission'] as Map?)?['projectRoot'] == project) {
-      try {
-        await file.delete();
-      } on PathNotFoundException {
-        continue;
-      }
     }
   }
 }

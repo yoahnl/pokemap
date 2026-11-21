@@ -12,8 +12,8 @@ Future<void> main(List<String> arguments) async {
   final lifecycle = arguments.contains('--lifecycle');
   final repository = Directory.current.parent.parent;
   for (final fixture in {
-    'S': 'examples/playable_runtime_host/golden_battle_slice',
-    'M': 'examples/playable_runtime_host/golden_fangame_slice',
+    'S': 'tools/pokemap_render_host/golden_battle_slice',
+    'M': 'tools/pokemap_render_host/golden_fangame_slice',
   }.entries) {
     final parent = await Directory.systemTemp.createTemp(
       'uwu-catalogue-measure-',

@@ -92,6 +92,6 @@ Future<ProjectManifest> _readAcceptanceProject() async {
 }
 
 File _fixtureFile(String relativePath) => File(
-      '${Directory.current.path}/../../examples/playable_runtime_host/'
+      '${Directory.current.path}/../../tools/pokemap_render_host/'
       'golden_personalization_v3/$relativePath',
     );

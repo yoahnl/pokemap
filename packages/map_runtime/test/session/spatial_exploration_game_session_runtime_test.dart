@@ -444,7 +444,7 @@ void main() {
   }) async {
     var state = descriptor().initialGameState!;
     if (battleData) {
-      final reference = Directory('../../examples/playable_runtime_host/golden_battle_slice');
+      final reference = Directory('../../tools/pokemap_render_host/golden_battle_slice');
       for (final file in reference.listSync(recursive: true).whereType<File>()) {
         final target = File('${root.path}/${file.path.substring(reference.path.length + 1)}');
         await target.parent.create(recursive: true);

@@ -40,7 +40,7 @@ void main() {
             );
             final imageBytes =
                 await File(
-                  '../../examples/playable_runtime_host/golden_personalization_v3/assets/presentation/hero.png',
+                  '../../tools/pokemap_render_host/golden_personalization_v3/assets/presentation/hero.png',
                 ).readAsBytes();
             final built = const GamePackageBuilder().build(
               manifest: _manifest(profile),
@@ -470,7 +470,7 @@ void main() {
           'dirtyPaths': const <String>[],
           'acceptanceProject': <String, Object?>{
             'relativePath':
-                'examples/playable_runtime_host/golden_personalization_v3/'
+                'tools/pokemap_render_host/golden_personalization_v3/'
                 'project.json',
             'sha256': presentationFixtureSha256.toString(),
           },
@@ -555,8 +555,8 @@ File _goldenPresentationFile() => File(
     Directory.current.path,
     '..',
     '..',
-    'examples',
-    'playable_runtime_host',
+    'tools',
+    'pokemap_render_host',
     'golden_personalization_v3',
     'project.json',
   ),

@@ -7,8 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/di/language_providers.dart';
 import '../../../app/di/rendering_providers.dart';
+import '../../../app/di/studio_settings_providers.dart';
 import '../../../features/language/coordination/studio_language_preferences.dart';
 import '../../../features/rendering/coordination/studio_rendering_preferences.dart';
+import '../../../features/settings/studio_appearance_preferences.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../shared/localization/studio_locale.dart';
 
@@ -94,14 +96,42 @@ class _StudioDisplaySettingsState extends ConsumerState<StudioDisplaySettings> {
   @override
   Widget build(BuildContext context) {
     final preferences = ref.watch(studioRenderingPreferencesProvider);
+    final appearance = ref.watch(studioAppearancePreferencesProvider);
     final l10n = context.l10n;
     return ListenableBuilder(
-      listenable: preferences,
+      listenable: Listenable.merge([appearance, preferences]),
       builder: (context, _) => StudioPanel(
         title: l10n.studioSettingsDisplay,
         icon: Icons.monitor_outlined,
         compact: true,
         children: [
+          SizedBox(
+            width: 260,
+            child: StudioSelect(
+              key: const ValueKey('studio-settings-appearance'),
+              label: l10n.studioSettingsAppearance,
+              value: appearance.appearance.name,
+              options: {
+                StudioAppearance.dark.name: l10n.studioAppearanceDark,
+                StudioAppearance.light.name: l10n.studioAppearanceLight,
+              },
+              onChanged: appearance.loaded && !appearance.saving
+                  ? (value) => unawaited(
+                      appearance.select(StudioAppearance.values.byName(value)),
+                    )
+                  : null,
+            ),
+          ),
+          if (appearance.saving)
+            StudioNotice(l10n.studioSettingsSaving)
+          else if (appearance.error case final error?)
+            StudioNotice(
+              error == StudioAppearanceFailure.load
+                  ? l10n.studioSettingsReadError
+                  : l10n.studioSettingsWriteError,
+              isError: true,
+            ),
+          const SizedBox(height: StudioSpacing.l),
           Wrap(
             spacing: StudioSpacing.xl,
             runSpacing: StudioSpacing.m,

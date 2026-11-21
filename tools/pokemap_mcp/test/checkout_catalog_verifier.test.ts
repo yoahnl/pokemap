@@ -11,7 +11,7 @@ import {
 const repositoryRoot = resolve(process.cwd(), "../..");
 const projectRoot = resolve(
   repositoryRoot,
-  "examples/playable_runtime_host/golden_personalization_v3",
+  "tools/pokemap_render_host/golden_personalization_v3",
 );
 
 test("checkout verifier certifies the packaged server from the requested repository", async () => {

@@ -70,7 +70,7 @@ L'ambition dépasse le dessin de cartes : relier les lieux, les personnages, les
 | **📱 Avelune iOS** | Fournir le lecteur natif SwiftUI et embarquer le runtime partagé. | [`apps/Avelune iOS`](apps/Avelune%20iOS/) |
 | **🤖 Avelune Android** | Fournir le lecteur natif Kotlin/Compose et embarquer le runtime partagé. | [`apps/avelune_android`](apps/avelune_android/) |
 | **Outillage d'édition partagé** | Regrouper les interfaces et capacités d'authoring réutilisées par Studio. | [`packages/map_editor`](packages/map_editor/) |
-| **Host de développement** | Charger un projet local et exercer le runtime sans passer par toute l'application Avelune. | [`examples/playable_runtime_host`](examples/playable_runtime_host/) |
+| **Outillage de rendu et de playtest** | Exécuter les rendus 3D et les scénarios automatisés du MCP. | [Guide d'évaluation](tools/pokemap_render_host/evaluation/README.md) |
 | **API d'authoring et MCP** | Manipuler les projets avec des opérations explicites, des validations et des outils d'automatisation. | [API d'authoring](packages/map_authoring/) et [serveur MCP](tools/pokemap_mcp/) |
 
 Le créateur travaille sur un **projet Avelune** dans Studio. Le runtime interprète ce projet. Les applications natives Avelune fournissent l'expérience joueur.
@@ -222,17 +222,9 @@ Les blocs avec parenthèses ci-dessous utilisent Bash ou Zsh et partent de la ra
 
 C'est le point d'entrée pour créer et modifier le contenu. Les dépendances internes sont référencées par chemins relatifs : conserver l'organisation du monorepo. Le [README Studio](apps/avelune_studio/README.md) détaille les parcours de l'atelier.
 
-### Lancer le host de développement
+### Tester un projet pendant sa création
 
-```bash
-(
-  cd examples/playable_runtime_host &&
-  flutter pub get &&
-  flutter run -d macos
-)
-```
-
-Le host permet de sélectionner un dossier de projet contenant `project.json`. Pour tester votre aventure, utiliser une copie de travail du projet créé ou ouvert dans Avelune Studio. Le [README du host](examples/playable_runtime_host/README.md) décrit ses options de lancement.
+Utiliser le playtest intégré à Avelune Studio. Pour vérifier l'expérience joueur dans l'application native, exporter le jeu depuis Studio puis l'ouvrir dans Avelune iOS.
 
 ### 📱 Préparer Avelune iOS sur simulateur
 
@@ -275,7 +267,7 @@ Un projet qui s'ouvre dans l'éditeur n'est pas forcément déjà jouable. Les c
 
 ### Scénario de référence : golden battle slice
 
-Le [host de développement](examples/playable_runtime_host/README.md) documente un petit scénario de combat avec une carte `golden_field`, une rencontre sauvage, un dresseur et les données nécessaires au lancement.
+Le [projet de référence golden battle slice](tools/pokemap_render_host/golden_battle_slice/project.json) contient une carte `golden_field`, une rencontre sauvage et un dresseur.
 
 C'est un bon point de départ pour comprendre le passage **exploration → combat → retour à la partie**. Les chemins absolus figurant dans certaines notes historiques doivent être remplacés par ceux de votre clone local.
 
@@ -302,10 +294,9 @@ avelune/
 │   ├── map_editor/
 │   ├── gamepads_darwin/
 │   └── gamepads_ios/
-├── examples/
-│   └── playable_runtime_host/
 ├── documentation/
 ├── tools/
+│   ├── pokemap_render_host/
 │   └── release/
 ├── tool/
 ├── skills/
@@ -477,7 +468,7 @@ Après installation des dépendances des packages concernés, depuis la racine :
 
 ```bash
 (
-  cd examples/playable_runtime_host &&
+  cd tools/pokemap_render_host &&
   flutter test test/phase_a_golden_slice_launch_test.dart
 )
 ```
@@ -590,7 +581,7 @@ Pour suivre les priorités, commencer par la [roadmap mécanique](pokemap_roadma
 | Suivre la complétude des mécaniques et leurs critères de validation | [Roadmap mécanique fangame](pokemap_roadmap_mecaniques_fangame.md) |
 | Examiner les opérations d'authoring et les contrats MCP | [Catalogue d'actions](pokemap_authoring_api_mcp_action_catalog.md) |
 | Configurer, utiliser et vérifier le serveur local | [Guide du serveur MCP Avelune](tools/pokemap_mcp/README.md) |
-| Lancer un projet ou le scénario de référence golden slice | [README du host](examples/playable_runtime_host/README.md) |
+| Exécuter les scénarios automatisés | [Guide d'évaluation](tools/pokemap_render_host/evaluation/README.md) |
 | Retrouver les spécifications, audits et rapports | [`documentation/`](documentation/) |
 | Comprendre les contrôles et distributions automatisés | [Workflows GitHub Actions](.github/workflows/) |
 
@@ -635,10 +626,6 @@ Installer les dépendances du package, identifier son générateur et suivre la 
 ### Le projet s'ouvre, mais les images ou les cartes manquent
 
 Vérifier que le dossier complet a été conservé et que les références pointent vers des ressources présentes. Un `project.json` isolé ne remplace pas le projet dont il dépend.
-
-### Le host ne démarre pas dans l'état attendu
-
-Le [host](examples/playable_runtime_host/README.md) documente le chargement de `runtime_host_launch_save.json` lorsqu'il est présent à côté du projet. Vérifier quel projet et quelle sauvegarde sont réellement chargés avant de conclure à un problème de nouvelle partie.
 
 ### Le MCP refuse le chemin du projet
 

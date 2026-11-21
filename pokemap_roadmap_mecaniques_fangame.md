@@ -65,7 +65,7 @@ Le repo est un monorepo Dart/Flutter. Les responsabilités doivent rester sépar
 | `packages/map_battle` | moteur de combat | pur Dart, indépendant de Flutter |
 | `packages/map_runtime` | intégration runtime Flutter/Flame | handoff battle, save/load, UI runtime, overlays |
 | `packages/map_editor` | outil auteur desktop | no-code authoring, ne pas coupler au rendu runtime |
-| `examples/playable_runtime_host` | host de smoke tests runtime | golden slice jouable |
+| `tools/pokemap_render_host` | host de smoke tests runtime | golden slice jouable |
 
 Règle importante : **les règles gameplay ne doivent pas être cachées dans Flame**. Les règles vont dans `map_gameplay` ou `map_core`. Flame consomme des décisions déjà calculées.
 
@@ -89,15 +89,15 @@ cd packages/map_runtime && flutter analyze
 cd packages/map_editor && flutter test
 cd packages/map_editor && flutter analyze
 
-cd examples/playable_runtime_host && flutter test
-cd examples/playable_runtime_host && flutter analyze
+cd tools/pokemap_render_host && flutter test
+cd tools/pokemap_render_host && flutter analyze
 ```
 
 Smoke tests runtime à privilégier dès qu’un lot touche la boucle joueur ou battle :
 
 ```bash
 cd packages/map_runtime && flutter test test/phase_a_golden_battle_slice_smoke_test.dart
-cd examples/playable_runtime_host && flutter test test/phase_a_golden_slice_launch_test.dart
+cd tools/pokemap_render_host && flutter test test/phase_a_golden_slice_launch_test.dart
 ```
 
 ### 0.5 Format de mise à jour de statut
@@ -305,7 +305,7 @@ packages/map_gameplay
 packages/map_battle
 packages/map_runtime
 packages/map_editor
-examples/playable_runtime_host
+tools/pokemap_render_host
 reports/
 docs/combat/
 ```
@@ -403,7 +403,7 @@ Objectif : le joueur peut démarrer une partie, recevoir un état initial, chois
 
 ## FG-011 — New Game Runtime Flow V0
 
-**Packages probables :** `map_runtime`, `examples/playable_runtime_host`.  
+**Packages probables :** `map_runtime`, `tools/pokemap_render_host`.
 **But :** brancher le builder à un flux runtime “Nouvelle partie”.
 
 ### DoD
@@ -485,7 +485,7 @@ son catalogue de moves sous `/tmp/checkpoint_load_safety` est absent.
 
 ## FG-016 — Golden Runtime Boot Smoke V0
 
-**Packages probables :** `examples/playable_runtime_host`, `map_runtime`.  
+**Packages probables :** `tools/pokemap_render_host`, `map_runtime`.
 **But :** fixture de smoke test pour la boucle boot/new game.
 
 ### DoD
@@ -1204,8 +1204,9 @@ cd packages/map_core && dart test test/shop_definition_test.dart test/shop_state
 cd packages/map_gameplay && dart test test/key_item_gate_test.dart test/held_item_operations_test.dart test/pokemon_move_machine_service_test.dart test/player_item_use_service_test.dart test/shop_operations_test.dart test/shop_state_resolution_validator_test.dart test/shop_state_resolver_test.dart
 cd packages/map_runtime && flutter test test/item_pickup_give_item_readiness_test.dart test/key_item_door_gate_readiness_test.dart test/player/runtime_pause_bag_item_service_test.dart test/runtime_held_item_bridge_v0_test.dart test/runtime_move_machine_loader_test.dart test/player/runtime_shop_service_test.dart
 cd packages/map_editor && flutter test test/narrative_studio_shop_route_test.dart test/shop_editor_controller_test.dart test/shop_editor_panel_test.dart test/shop_state_preview_strip_test.dart test/shop_state_simulation_controller_test.dart
-cd examples/playable_runtime_host && flutter test test/golden_item_system_flow_test.dart test/in_game_shop_page_test.dart
-cd examples/playable_runtime_host && flutter test test/selbrume_dynamic_shop_e2e_test.dart
+cd tools/pokemap_product_certification && flutter test test/golden_item_system_flow_test.dart
+cd ../../tools/pokemap_render_host && flutter test test/in_game_shop_page_test.dart
+cd tools/pokemap_render_host && flutter test test/selbrume_dynamic_shop_e2e_test.dart
 ```
 
 Résultats exacts : 11 Core, 43 Gameplay, 41 Runtime, 14 Editor et 6 Host
@@ -2131,23 +2132,23 @@ une promotion en bloc. Chaque lot conserve son DoD et son Evidence Pack propre.
 |---:|---|---|---|
 | MVP-01 | Créer une nouvelle partie | FG-010, FG-011, FG-016, FG-180, FG-182 | `packages/map_runtime/test/selbrume_new_game_starter_integration_test.dart` |
 | MVP-02 | Choisir un starter | FG-012, FG-013, FG-180, FG-182 | `packages/map_runtime/test/selbrume_new_game_starter_integration_test.dart` |
-| MVP-03 | Explorer 2–3 maps connectées | FG-180, FG-181, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
-| MVP-04 | Parler à des PNJ | FG-080, FG-082, FG-092, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
-| MVP-05 | Avoir des dialogues conditionnels | FG-081, FG-082, FG-088, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
-| MVP-06 | Déclencher des cutscenes simples | FG-082, FG-092, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
-| MVP-07 | Faire des rencontres sauvages en herbe | FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-03 | Explorer 2–3 maps connectées | FG-180, FG-181, FG-182 | `tools/pokemap_render_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-04 | Parler à des PNJ | FG-080, FG-082, FG-092, FG-093, FG-180, FG-182 | `tools/pokemap_render_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-05 | Avoir des dialogues conditionnels | FG-081, FG-082, FG-088, FG-093, FG-180, FG-182 | `tools/pokemap_render_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-06 | Déclencher des cutscenes simples | FG-082, FG-092, FG-093, FG-180, FG-182 | `tools/pokemap_render_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-07 | Faire des rencontres sauvages en herbe | FG-180, FG-182 | `tools/pokemap_render_host/test/selbrume_player_journey_e2e_test.dart` |
 | MVP-08 | Capturer des Pokémon | FG-049, FG-083, FG-180, FG-182 | `packages/map_runtime/test/p6_selbrume_route_1_encounter_capture_golden_slice_test.dart` |
 | MVP-09 | Envoyer automatiquement au PC si la party est pleine | FG-022, FG-023, FG-024, FG-025, FG-029, FG-030, FG-180, FG-182 | `packages/map_gameplay/test/player_storage_operations_test.dart` (planifié Phase 3) |
-| MVP-10 | Combattre des trainers | FG-086, FG-140, FG-141, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-10 | Combattre des trainers | FG-086, FG-140, FG-141, FG-180, FG-182 | `tools/pokemap_render_host/test/selbrume_player_journey_e2e_test.dart` |
 | MVP-11 | Gagner XP + argent | FG-020, FG-021, FG-040, FG-043, FG-044, FG-048, FG-051, FG-180, FG-182 | `packages/map_gameplay/test/battle_progression_service_test.dart` (planifié Phase 2) |
 | MVP-12 | Level-up | FG-020, FG-021, FG-040, FG-044, FG-045, FG-047, FG-048, FG-180, FG-182 | `packages/map_gameplay/test/battle_progression_service_test.dart` (planifié Phase 2) |
 | MVP-13 | Apprendre une attaque | FG-020, FG-021, FG-040, FG-041, FG-046, FG-048, FG-180, FG-182 | `packages/map_gameplay/test/battle_move_learning_test.dart` (planifié Phase 2) |
 | MVP-14 | Obtenir un badge ou flag | FG-051, FG-089, FG-143, FG-180, FG-182 | `packages/map_core/test/badge_definition_test.dart` (planifié Phase 3) |
-| MVP-15 | Débloquer Surf ou Cut | FG-089, FG-120, FG-129, FG-180, FG-182 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` à étendre en Phase 5 : refus avant unlock puis traversée Surf |
-| MVP-16 | Utiliser un shop | FG-060, FG-069, FG-070, FG-082, FG-091, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/in_game_shop_page_test.dart` (planifié Phase 3) |
-| MVP-17 | Se soigner dans un centre Pokémon | FG-060, FG-062, FG-063, FG-071, FG-085, FG-093, FG-180, FG-182 | `examples/playable_runtime_host/test/in_game_heal_flow_test.dart` (planifié Phase 3) |
+| MVP-15 | Débloquer Surf ou Cut | FG-089, FG-120, FG-129, FG-180, FG-182 | `tools/pokemap_render_host/test/selbrume_player_journey_e2e_test.dart` à étendre en Phase 5 : refus avant unlock puis traversée Surf |
+| MVP-16 | Utiliser un shop | FG-060, FG-069, FG-070, FG-082, FG-091, FG-093, FG-180, FG-182 | `tools/pokemap_render_host/test/in_game_shop_page_test.dart` (planifié Phase 3) |
+| MVP-17 | Se soigner dans un centre Pokémon | FG-060, FG-062, FG-063, FG-071, FG-085, FG-093, FG-180, FG-182 | `tools/pokemap_render_host/test/in_game_heal_flow_test.dart` (planifié Phase 3) |
 | MVP-18 | Sauvegarder / charger proprement | FG-014, FG-163, FG-180, FG-182, FG-183, FG-185 | `packages/map_runtime/test/playable_map_game_save_load_transaction_test.dart` |
-| MVP-19 | Finir une mini-histoire | FG-080, FG-081, FG-082, FG-088, FG-092, FG-093, FG-140, FG-141, FG-146, FG-147, FG-180, FG-181, FG-182, FG-183, FG-185 | `examples/playable_runtime_host/test/selbrume_player_journey_e2e_test.dart` |
+| MVP-19 | Finir une mini-histoire | FG-080, FG-081, FG-082, FG-088, FG-092, FG-093, FG-140, FG-141, FG-146, FG-147, FG-180, FG-181, FG-182, FG-183, FG-185 | `tools/pokemap_render_host/test/selbrume_player_journey_e2e_test.dart` |
 
 Exclusions signées : FG-065, FG-066, FG-104, FG-105, FG-121, FG-122,
 FG-123, FG-124, FG-125, FG-126, FG-127, FG-128 et FG-142 restent

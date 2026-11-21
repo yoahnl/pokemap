@@ -104,7 +104,7 @@ BattleSession _session() {
 
 Future<ProjectManifest> _loadGoldenManifest() async {
   final file = File(
-    '/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json',
+    '/Users/karim/Project/pokemonProject/tools/pokemap_render_host/golden_battle_slice/project.json',
   );
   final decoded = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
   return ProjectManifest.fromJson(decoded);
@@ -170,7 +170,7 @@ void main() {
     final spriteResolver = BattlePokemonSpriteResolver(
       manifest: manifest,
       projectRootDirectory:
-          '/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice',
+          '/Users/karim/Project/pokemonProject/tools/pokemap_render_host/golden_battle_slice',
     );
     final captures = <ui.Size>[
       const ui.Size(390, 844),

@@ -28,6 +28,7 @@ Uint8List experimentalSkinFixture({
   bool extraJoints = false,
   bool normals = true,
   bool sharedEdge = false,
+  int trianglesPerPalette = 1,
 }) {
   final binary = BytesBuilder();
   final views = <Map<String, Object>>[];
@@ -110,10 +111,14 @@ Uint8List experimentalSkinFixture({
   );
   final before = add([0, 1, 2], 5123, 'SCALAR', 3);
   final middle = add(
-    sharedEdge ? [0, 1, 2, 2, 3, 4] : [0, 1, 2, 3, 4, 5],
+    [
+      for (var i = 0; i < trianglesPerPalette; i++) ...[0, 1, 2],
+      for (var i = 0; i < trianglesPerPalette; i++)
+        ...(sharedEdge ? [2, 3, 4] : [3, 4, 5]),
+    ],
     5123,
     'SCALAR',
-    6,
+    trianglesPerPalette * 6,
   );
   final after = add([3, 4, 5], 5123, 'SCALAR', 3);
   final times = add([0, 1], 5126, 'SCALAR', 2);
@@ -591,6 +596,27 @@ void main() {
     expect(budget.transientBytes, 0);
     expect(budget.activeDecodes, 0);
     held!.release();
+    expect(budget.residentBytes, 0);
+  });
+
+  test('admits another resource after a rig uses fewer surfaces than reserved',
+      () async {
+    final budget = RuntimeResourceBudget(
+      profile: const RuntimeResourceProfile(maximumResidentBytes: 4 * 1024 * 1024),
+    );
+    addTearDown(budget.dispose);
+    late RuntimeResourceReservation rig;
+    final model = await ModelByteLoader.load(
+      experimentalSkinFixture(trianglesPerPalette: 128),
+      budget: budget,
+      experimentalPartitionSkinnedMeshes: true,
+      onResident: (reservation) => rig = reservation,
+    );
+    expect(model.nodes[0]!.mesh!.surfaceCount, 4);
+    final next = await budget.acquire(residentBytes: 3 * 1024 * 1024);
+    expect(rig.residentBytes, greaterThan(0));
+    next.release();
+    rig.release();
     expect(budget.residentBytes, 0);
   });
 

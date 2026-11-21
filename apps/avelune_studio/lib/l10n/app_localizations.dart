@@ -434,6 +434,24 @@ abstract class AppLocalizations {
   /// **'Affichage'**
   String get studioSettingsDisplay;
 
+  /// No description provided for @studioSettingsAppearance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Apparence'**
+  String get studioSettingsAppearance;
+
+  /// No description provided for @studioAppearanceDark.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sombre'**
+  String get studioAppearanceDark;
+
+  /// No description provided for @studioAppearanceLight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clair'**
+  String get studioAppearanceLight;
+
   /// No description provided for @studioSettingsAi.
   ///
   /// In fr, this message translates to:

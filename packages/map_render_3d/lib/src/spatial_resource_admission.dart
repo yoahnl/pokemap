@@ -226,11 +226,7 @@ spatialModelResourceEstimate(
     );
   }
   return (
-    retainedStaticResident: _sum([
-      geometryBytes,
-      partitionResidentBytes,
-      _product(pixels, 2),
-    ]),
+    retainedStaticResident: _sum([geometryBytes, _product(pixels, 2)]),
     resident: _sum([
       geometryBytes,
       partitionResidentBytes,
@@ -251,6 +247,7 @@ spatialModelResourceEstimate(
 int spatialRetainedModelResourceBytes(
   Model model, {
   required int staticResidentBytes,
+  required bool partitionedSkinnedMeshes,
 }) {
   final values = <int>[staticResidentBytes, 1024];
   final materials = <Object>{};
@@ -265,6 +262,9 @@ int spatialRetainedModelResourceBytes(
     if (surfaces == null) continue;
     for (final surface in surfaces) {
       values.add(256);
+      if (partitionedSkinnedMeshes && node.joints.isNotEmpty) {
+        values.addAll([8192, _product(surface.vertexCount, 256)]);
+      }
       final material = surface.material;
       if (materials.add(material)) {
         values.add(16384);

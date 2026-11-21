@@ -2,11 +2,12 @@ import 'dart:io';
 
 import 'package:avelune_rendering/avelune_rendering.dart';
 import 'package:flutter/material.dart';
-import 'package:pokemap_loader/main.dart' as runtime;
-import 'package:pokemap_loader/evaluation.dart';
 import 'package:map_authoring/map_authoring_local.dart'
     show initializeCompanionProcessAccess;
 
+import 'evaluation.dart'
+    show InteractiveEvaluationConfig, interactiveEvaluationConfig;
+import 'src/interactive_player.dart';
 import 'src/render_host.dart';
 
 final _boundaryKey = GlobalKey();
@@ -19,7 +20,7 @@ Future<void> main() async {
     const enabled = bool.fromEnvironment('AVELUNE_RUNTIME_COMPANION');
     if (!enabled) throw StateError('Installed evaluation is unavailable.');
     final environment = Platform.environment;
-    runtime.runRuntimeHost(
+    runInteractiveEvaluationPlayer(
       evaluationOutputRoot: Directory.current.absolute,
       evaluationProjectIdentity: environment['AVELUNE_EVALUATION_PROJECT_ID'],
       evaluationConfig: InteractiveEvaluationConfig.resolve(
@@ -32,6 +33,10 @@ Future<void> main() async {
         playbackRateDefine: environment['POKEMAP_EVAL_PLAYBACK_RATE'] ?? '1',
       ),
     );
+    return;
+  }
+  if (interactiveEvaluationConfig.enabled) {
+    runInteractiveEvaluationPlayer(evaluationConfig: interactiveEvaluationConfig);
     return;
   }
   final errors = <String>[];

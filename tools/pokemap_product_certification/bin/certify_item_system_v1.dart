@@ -32,7 +32,7 @@ Future<void> main(List<String> arguments) async {
       _resolvedPath(
         repositoryRoot,
         options['project-root'] ??
-            'examples/playable_runtime_host/golden_item_system',
+            'tools/pokemap_render_host/golden_item_system',
       ),
     );
     final mcpRoot = Directory(

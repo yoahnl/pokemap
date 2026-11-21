@@ -32,7 +32,7 @@ package_path="$phase6_tmp/aube.avelunegame"
 )
 
 (
-  cd "$repository_root/examples/playable_runtime_host"
+  cd "$repository_root/tools/pokemap_render_host"
   flutter test \
     test/phase_a_golden_slice_launch_test.dart \
     --reporter expanded

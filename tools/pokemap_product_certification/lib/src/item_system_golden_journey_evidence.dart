@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:pokemap_loader/src/golden_item_system_journey.dart';
+import 'package:pokemap_product_certification/src/golden_item_system_journey.dart';
 
 import 'item_system_certification.dart';
 import 'item_system_execution_receipt.dart';

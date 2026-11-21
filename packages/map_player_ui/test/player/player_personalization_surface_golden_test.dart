@@ -416,7 +416,7 @@ MemoryImage _fixtureImage(String relativePath) => _fixtureProviders.putIfAbsent(
   relativePath,
   () => MemoryImage(
     File(
-      '${Directory.current.path}/../../examples/playable_runtime_host/'
+      '${Directory.current.path}/../../tools/pokemap_render_host/'
       'golden_personalization_v3/$relativePath',
     ).readAsBytesSync(),
   ),
@@ -445,7 +445,7 @@ Future<void> _seedFixtureImages() async {
 Future<({ProjectPresentationProfile profile, String projectName})>
 _readGoldenFixture() async {
   final file = File(
-    '${Directory.current.path}/../../examples/playable_runtime_host/'
+    '${Directory.current.path}/../../tools/pokemap_render_host/'
     'golden_personalization_v3/project.json',
   );
   final decoded = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
@@ -459,7 +459,7 @@ _readGoldenFixture() async {
 
 Future<void> _loadFixtureFont() async {
   final bytes = await File(
-    '${Directory.current.path}/../../examples/playable_runtime_host/'
+    '${Directory.current.path}/../../tools/pokemap_render_host/'
     'golden_personalization_v3/assets/presentation/fonts/display.ttf',
   ).readAsBytes();
   await _loadFont('Aube Display', bytes);

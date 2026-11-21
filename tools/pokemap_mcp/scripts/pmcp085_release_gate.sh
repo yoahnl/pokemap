@@ -118,7 +118,7 @@ flutter test --reporter failures-only \
   test/application/authoring_preview/runtime_authoring_map_render_adapter_test.dart
 flutter analyze --no-fatal-infos
 
-cd "$repo_root/examples/playable_runtime_host"
+cd "$repo_root/tools/pokemap_render_host"
 flutter test --reporter failures-only \
   test/evaluation/evaluation_authoring_job_service_test.dart \
   test/evaluation/evaluation_playtest_adapter_test.dart

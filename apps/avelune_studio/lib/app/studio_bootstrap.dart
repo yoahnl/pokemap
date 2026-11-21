@@ -27,6 +27,7 @@ import '../platform/mcp/studio_mcp_process.dart';
 import '../platform/mcp/studio_mcp_service.dart';
 import '../features/rendering/coordination/studio_rendering_preferences.dart';
 import '../platform/files/local_rendering_preferences_store.dart';
+import '../platform/files/local_appearance_preferences_store.dart';
 import '../platform/files/local_map_layout_preferences_store.dart';
 import '../features/map_workspace/coordination/map_layout_preferences.dart';
 import '../platform/files/studio_preferences.dart';
@@ -93,6 +94,9 @@ class StudioBootstrap extends StatelessWidget {
         ref.onDispose(preferences.dispose);
         return preferences;
       }),
+      studioAppearanceStoreProvider.overrideWith(
+        (ref) => studioAppearanceStore(),
+      ),
       studioRenderingPreferencesProvider.overrideWith((ref) {
         final supplied = renderingPreferences;
         if (supplied != null) return supplied;

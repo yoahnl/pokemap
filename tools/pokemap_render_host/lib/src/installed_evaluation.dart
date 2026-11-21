@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:pokemap_loader/evaluation.dart';
+import 'package:pokemap_render_host/evaluation.dart';
 
 Future<Map<String, Object?>> evaluateInstalledRequest(
   Map<String, Object?> args,

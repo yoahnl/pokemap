@@ -389,8 +389,8 @@ ProjectSnapshot _snapshot() {
 String _fixtureManifestPath() {
   return [
     Directory.current.parent.parent.path,
-    'examples',
-    'playable_runtime_host',
+    'tools',
+    'pokemap_render_host',
     'p3_narrative_smoke_slice',
     'project.json',
   ].join(Platform.pathSeparator);

@@ -593,7 +593,7 @@ Future<PlayableMapGame> mountWhirlpool(
     await Directory('${data.path}/species').create(recursive: true);
     await Directory('${data.path}/learnsets').create(recursive: true);
     const sourceRoot =
-        '../../examples/playable_runtime_host/golden_battle_slice/data/pokemon';
+        '../../tools/pokemap_render_host/golden_battle_slice/data/pokemon';
     final moves = jsonDecode(
       await File('$sourceRoot/catalogs/moves.json').readAsString(),
     ) as Map<String, dynamic>;

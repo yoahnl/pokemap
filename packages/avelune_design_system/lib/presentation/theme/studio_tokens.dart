@@ -144,3 +144,27 @@ class StudioColors extends ThemeExtension<StudioColors> {
           featureAccent: Color.lerp(featureAccent, other.featureAccent, t)!,
         );
 }
+
+class StudioProgressColors {
+  const StudioProgressColors({
+    required this.moon,
+    required this.wave,
+    required this.star,
+  });
+
+  final List<Color> moon;
+  final List<Color> wave;
+  final Color star;
+
+  static const dark = StudioProgressColors(
+    moon: [Color(0xff9bc1ff), Color(0xff6297f4), Color(0xff476ad6)],
+    wave: [Color(0xffc4a0ff), Color(0xffa77cff), Color(0xff8465e8)],
+    star: Color(0xff49dde6),
+  );
+
+  static const light = StudioProgressColors(
+    moon: [Color(0xff3b70ca), Color(0xff2a5dba), Color(0xff2745a3)],
+    wave: [Color(0xff8454d0), Color(0xff7745bd), Color(0xff6240a7)],
+    star: Color(0xff087b8b),
+  );
+}

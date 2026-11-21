@@ -200,6 +200,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studioSettingsDisplay => 'Display';
 
   @override
+  String get studioSettingsAppearance => 'Appearance';
+
+  @override
+  String get studioAppearanceDark => 'Dark';
+
+  @override
+  String get studioAppearanceLight => 'Light';
+
+  @override
   String get studioSettingsAi => 'AI and API keys';
 
   @override

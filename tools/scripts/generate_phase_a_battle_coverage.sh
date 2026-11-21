@@ -21,8 +21,8 @@ mkdir -p "$REPORT_DIR"
   cd "$REPO_ROOT/packages/map_runtime"
   /opt/homebrew/bin/flutter pub run tool/phase_a_battle_coverage.dart \
     --bootstrap-json "$BOOTSTRAP_JSON" \
-    --project "$REPO_ROOT/examples/playable_runtime_host/golden_battle_slice/project.json" \
-    --save "$REPO_ROOT/examples/playable_runtime_host/golden_battle_slice/runtime_host_launch_save.json" \
+    --project "$REPO_ROOT/tools/pokemap_render_host/golden_battle_slice/project.json" \
+    --save "$REPO_ROOT/tools/pokemap_render_host/golden_battle_slice/runtime_host_launch_save.json" \
     --output "$REPORT_DIR/phase-a-battle-coverage.md"
 )
 

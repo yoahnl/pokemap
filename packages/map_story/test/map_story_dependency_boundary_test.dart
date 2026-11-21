@@ -44,7 +44,7 @@ const _consumerRoots = [
   '../../apps/avelune_converter',
   '../../tools/avelune_converter_cli',
   '../../tools/pokemap_product_certification',
-  '../../examples/playable_runtime_host',
+  '../../tools/pokemap_render_host',
 ];
 
 Iterable<File> _dartFiles(String root) sync* {

@@ -378,7 +378,7 @@ Future<({PlayableMapGame game, EncounterRandom random})> mountInteractive(
   final root = await Directory.systemTemp.createTemp('runtime-interactive-');
   addTearDown(() => root.delete(recursive: true));
   final reference = Directory(
-    '../../examples/playable_runtime_host/golden_battle_slice',
+    '../../tools/pokemap_render_host/golden_battle_slice',
   ).absolute;
   final project = ProjectManifest.fromJson(
     jsonDecode(await File('${reference.path}/project.json').readAsString())

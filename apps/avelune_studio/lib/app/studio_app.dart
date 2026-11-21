@@ -5,11 +5,13 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/settings/studio_appearance_preferences.dart';
 import '../l10n/app_localizations.dart';
 import '../presentation/shared/localization/studio_locale.dart';
 import 'di/language_providers.dart';
 import '../presentation/shell/studio_root.dart';
 import 'di/studio_lifecycle_providers.dart';
+import 'di/studio_settings_providers.dart';
 import 'studio_lifecycle_controller.dart';
 
 class StudioApp extends ConsumerStatefulWidget {
@@ -20,6 +22,8 @@ class StudioApp extends ConsumerStatefulWidget {
 }
 
 class _StudioAppState extends ConsumerState<StudioApp> {
+  static final _lightTheme = studioTheme(brightness: Brightness.light);
+  static final _darkTheme = studioTheme();
   late final StudioLifecycleController _lifecycle;
   late final AppLifecycleListener _appLifecycle;
 
@@ -46,8 +50,9 @@ class _StudioAppState extends ConsumerState<StudioApp> {
   @override
   Widget build(BuildContext context) {
     final language = ref.watch(studioLanguagePreferencesProvider);
+    final appearance = ref.watch(studioAppearancePreferencesProvider);
     return ListenableBuilder(
-      listenable: language,
+      listenable: Listenable.merge([language, appearance]),
       builder: (context, _) => MaterialApp(
         title: 'Avelune Studio',
         debugShowCheckedModeBanner: false,
@@ -56,7 +61,12 @@ class _StudioAppState extends ConsumerState<StudioApp> {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         localeResolutionCallback: (requested, _) =>
             resolveStudioLocale(requested),
-        theme: studioTheme(),
+        theme: _lightTheme,
+        darkTheme: _darkTheme,
+        themeMode: switch (appearance.appearance) {
+          StudioAppearance.dark => ThemeMode.dark,
+          StudioAppearance.light => ThemeMode.light,
+        },
         home: const StudioRoot(),
       ),
     );

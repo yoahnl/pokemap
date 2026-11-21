@@ -81,7 +81,7 @@ Future<void> seedCombatProject(M3StoryFixture source) async {
     );
     await target.parent.create(recursive: true);
     await File(
-      '../../examples/playable_runtime_host/golden_item_system/data/pokemon/catalogs/$name.json',
+      '../../tools/pokemap_render_host/golden_item_system/data/pokemon/catalogs/$name.json',
     ).copy(target.path);
     if (name == 'moves') {
       final catalog =

@@ -265,7 +265,7 @@ void main() {
 
 Future<void> _loadFixtureFont() async {
   final bytes = await File(
-    '${Directory.current.path}/../../examples/playable_runtime_host/'
+    '${Directory.current.path}/../../tools/pokemap_render_host/'
     'golden_personalization_v3/assets/presentation/fonts/display.ttf',
   ).readAsBytes();
   await _loadFont('Aube Display', bytes);

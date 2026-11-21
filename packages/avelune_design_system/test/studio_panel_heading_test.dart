@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -76,10 +79,58 @@ void main() {
       ),
     );
 
-    final progress = find.byType(CircularProgressIndicator);
+    final progress = find.byType(StudioProgressIndicator);
     expect(tester.getSize(progress), const Size.square(16));
-    expect(tester.widget<CircularProgressIndicator>(progress).strokeWidth, 2);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.bySemanticsLabel('Aperçu en cours'), findsOneWidget);
+  });
+
+  testWidgets('the progress logo stays static with reduced motion', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(child: StudioProgressIndicator()),
+        ),
+      ),
+    );
+    expect(
+      tester.getSize(find.byType(StudioProgressIndicator)),
+      const Size.square(36),
+    );
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(tester.binding.transientCallbackCount, 0);
+  });
+
+  testWidgets('the rotating logo draws the crescent, wave and star in stages', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: const Scaffold(body: Center(child: StudioProgressIndicator())),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    final first = await _paintedProgress(tester);
+    expect(first.blue, greaterThan(10));
+    expect(first.purple, 0);
+    expect(first.cyan, 0);
+
+    await tester.pump(const Duration(milliseconds: 980));
+    final middle = await _paintedProgress(tester);
+    expect(middle.blue, greaterThan(first.blue));
+    expect(middle.purple, greaterThan(100));
+    expect(middle.cyan, 0);
+
+    await tester.pump(const Duration(milliseconds: 680));
+    final complete = await _paintedProgress(tester);
+    expect(complete.purple, greaterThan(100));
+    expect(complete.cyan, greaterThan(50));
   });
 
   testWidgets('inline search keeps the query local and supports disabled use', (
@@ -125,4 +176,46 @@ void main() {
     expect(disabled.decoration?.isDense, isTrue);
     expect(find.byTooltip('Effacer la recherche'), findsNothing);
   });
+}
+
+Future<({int blue, int purple, int cyan})> _paintedProgress(
+  WidgetTester tester,
+) async {
+  final paint = tester.widget<CustomPaint>(
+    find.descendant(
+      of: find.byType(StudioProgressIndicator),
+      matching: find.byType(CustomPaint),
+    ),
+  );
+  final pixels = (await tester.runAsync<ByteData>(() async {
+    final recorder = ui.PictureRecorder();
+    paint.painter!.paint(ui.Canvas(recorder), const Size.square(144));
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(144, 144);
+    try {
+      return (await image.toByteData(
+        format: ui.ImageByteFormat.rawStraightRgba,
+      ))!;
+    } finally {
+      image.dispose();
+      picture.dispose();
+    }
+  }))!;
+  var blue = 0;
+  var purple = 0;
+  var cyan = 0;
+  for (var i = 0; i < pixels.lengthInBytes; i += 4) {
+    if (pixels.getUint8(i + 3) < 160) continue;
+    final r = pixels.getUint8(i);
+    final g = pixels.getUint8(i + 1);
+    final b = pixels.getUint8(i + 2);
+    if (g > 180 && g - r > 80) {
+      cyan++;
+    } else if (r > 1.13 * g && b > r + 25) {
+      purple++;
+    } else if (b > g + 25 && g > r) {
+      blue++;
+    }
+  }
+  return (blue: blue, purple: purple, cyan: cyan);
 }

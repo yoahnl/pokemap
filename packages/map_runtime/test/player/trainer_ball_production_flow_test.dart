@@ -400,7 +400,7 @@ Future<({RuntimeMapBundle bundle, GameState state})> _fixture({
   bool characterPortrait = false,
 }) async {
   final source = Directory(
-    '${Directory.current.path}/../../examples/playable_runtime_host/golden_battle_slice',
+    '${Directory.current.path}/../../tools/pokemap_render_host/golden_battle_slice',
   );
   final temporary = await Directory.systemTemp.createTemp('trainer-balls-');
   addTearDown(() => temporary.delete(recursive: true));

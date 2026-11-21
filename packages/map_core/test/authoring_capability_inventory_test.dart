@@ -195,7 +195,7 @@ void main() {
 
     test('collects every PokeMap Eval command', () {
       final commandSource = File(
-        '${repositoryRoot.path}/examples/playable_runtime_host/lib/src/'
+        '${repositoryRoot.path}/tools/pokemap_render_host/lib/src/'
         'evaluation/scenario/evaluation_command_catalog.dart',
       ).readAsStringSync();
       final declaredCommands = RegExp(

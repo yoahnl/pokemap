@@ -250,7 +250,7 @@ async function main(): Promise<void> {
   const repositoryRoot = resolve(moduleDirectory, "../../../..");
   const projectRoot = resolve(
     repositoryRoot,
-    "examples/playable_runtime_host/golden_personalization_v3",
+    "tools/pokemap_render_host/golden_personalization_v3",
   );
   const receipt = await verifyCheckoutCatalog({ repositoryRoot, projectRoot });
   process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);

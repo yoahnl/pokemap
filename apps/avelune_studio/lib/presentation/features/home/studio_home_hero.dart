@@ -65,7 +65,7 @@ class StudioHomeHero extends StatelessWidget {
                     Text(
                       'BIENVENUE DANS AVELUNE STUDIO',
                       style: TextStyle(
-                        color: StudioHomeTokens.titleAccent,
+                        color: StudioHomeTokens.titleAccent(context),
                         fontSize: 11,
                         letterSpacing: 2,
                       ),

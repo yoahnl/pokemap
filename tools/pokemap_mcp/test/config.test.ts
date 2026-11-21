@@ -29,8 +29,12 @@ test("installed configuration never accepts checkout or executable overrides",()
 
 test("parses artifact roots separately from project roots", () => {
   const repositoryRoot = resolve(process.cwd(), "../..");
-  const projectRoot = resolve(repositoryRoot, "examples/playable_runtime_host");
+  const projectRoot = resolve(repositoryRoot, "tools/pokemap_render_host");
   const artifactRoot = resolve(repositoryRoot, ".dart_tool/pokemap-artifacts");
+
+  const checkout = parseConfig(["--root", projectRoot, "--repository-root", repositoryRoot]);
+  assert.equal(checkout.runtimeHostRoot, projectRoot);
+  assert.equal(checkout.renderHostRoot, projectRoot);
 
   const config = parseConfig([
     "--root",
@@ -44,7 +48,7 @@ test("parses artifact roots separately from project roots", () => {
     "--runtime-package",
     resolve(repositoryRoot, "packages/map_runtime"),
     "--runtime-host",
-    resolve(repositoryRoot, "examples/playable_runtime_host"),
+    resolve(repositoryRoot, "tools/pokemap_render_host"),
   ]);
 
   assert.deepEqual(config.allowedRoots, [projectRoot]);

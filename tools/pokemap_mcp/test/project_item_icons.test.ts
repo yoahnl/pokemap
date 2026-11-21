@@ -25,7 +25,7 @@ async function data(client: Client, name: string, args: JsonRecord = {}): Promis
 test("packaged MCP imports item icons as project-owned resources", { timeout: 120_000 }, async () => {
   const temporary = await mkdtemp(join(tmpdir(), "project-item-icons-mcp-"));
   const projectRoot = join(temporary, "project");
-  await cp(resolve(process.cwd(), "../../examples/playable_runtime_host/golden_item_system"), projectRoot, { recursive: true });
+  await cp(resolve(process.cwd(), "../../tools/pokemap_render_host/golden_item_system"), projectRoot, { recursive: true });
   const sourcePath = join(projectRoot, "input.png");
   const pixels = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==", "base64");
   await writeFile(sourcePath, pixels);

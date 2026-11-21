@@ -146,9 +146,9 @@ final class RepositoryAuthoringCapabilityCollector {
   Iterable<AuthoringCapabilityInventoryEntry>
       _collectEvaluationCommands() sync* {
     const catalogPath =
-        'examples/playable_runtime_host/lib/src/evaluation/scenario/'
+        'tools/pokemap_render_host/lib/src/evaluation/scenario/'
         'evaluation_command_catalog.dart';
-    const evidencePath = 'examples/playable_runtime_host/test/evaluation/'
+    const evidencePath = 'tools/pokemap_render_host/test/evaluation/'
         'evaluation_scenario_runner_test.dart';
     final source = _readRepositoryFile(catalogPath);
     final commandIds = RegExp(
@@ -165,7 +165,7 @@ final class RepositoryAuthoringCapabilityCollector {
       yield AuthoringCapabilityInventoryEntry(
         id: 'eval.command.$commandId',
         kind: AuthoringCapabilityKind.evaluationCommand,
-        ownerPackage: 'playable_runtime_host',
+        ownerPackage: 'pokemap_render_host',
         status: AuthoringCapabilityStatus.supported,
         sourceReference: '$catalogPath#$commandId',
         runtimeConsumer: 'map_runtime',

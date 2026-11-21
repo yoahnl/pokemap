@@ -1,4 +1,5 @@
 import 'package:avelune_design_system/presentation/shared/widgets/buttons/studio_button.dart';
+import 'package:avelune_design_system/presentation/shared/widgets/feedback/studio_progress_indicator.dart';
 import 'package:avelune_design_system/presentation/shared/widgets/inputs/studio_search_field.dart';
 import 'package:avelune_design_system/presentation/shared/widgets/layout/studio_panel.dart';
 import 'package:avelune_design_system/presentation/theme/studio_theme.dart';
@@ -53,11 +54,11 @@ void main() {
         await tester.tap(find.text('Enregistrer'));
         await tester.pump();
         expect(calls, 0);
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        expect(find.byType(StudioProgressIndicator), findsOneWidget);
 
         rebuild(() => loading = false);
         await tester.pumpAndSettle();
-        expect(find.byType(CircularProgressIndicator), findsNothing);
+        expect(find.byType(StudioProgressIndicator), findsNothing);
         await tester.tap(find.text('Enregistrer'));
         expect(calls, 1);
       },
@@ -114,16 +115,13 @@ void main() {
     await tester.tap(find.text('Importer'));
     expect(imports, 1);
   });
-
-
 }
 
 Widget _app(Widget child, {double textScale = 1}) => MaterialApp(
   theme: studioTheme(),
   builder: (context, child) => MediaQuery(
-    data: MediaQuery.of(
-      context,
-    ).copyWith(textScaler: TextScaler.linear(textScale)),
+    data: MediaQuery.of(context)
+        .copyWith(textScaler: TextScaler.linear(textScale)),
     child: child!,
   ),
   home: Scaffold(body: child),

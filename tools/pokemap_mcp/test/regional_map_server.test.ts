@@ -25,7 +25,7 @@ async function data(client: Client, name: string, args: JsonRecord = {}): Promis
 test("MENU-I packaged MCP authors and queries regional map semantics", { timeout: 120_000 }, async () => {
   const temporaryRoot = await mkdtemp(join(tmpdir(), "pokemap-regional-map-"));
   const projectRoot = join(temporaryRoot, "project");
-  await cp(resolve(process.cwd(), "../../examples/playable_runtime_host/golden_item_system"), projectRoot, { recursive: true });
+  await cp(resolve(process.cwd(), "../../tools/pokemap_render_host/golden_item_system"), projectRoot, { recursive: true });
   const manifest = record(JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8")));
   const mapEntry = record((manifest.maps as unknown[])[0]);
   const mapId = String(mapEntry.id);

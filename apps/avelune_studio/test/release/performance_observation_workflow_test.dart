@@ -34,7 +34,6 @@ void main() {
         final base =
             path.startsWith('packages/') ||
                 path.startsWith('apps/') ||
-                path.startsWith('examples/') ||
                 path.startsWith('tools/')
             ? repositoryRoot.uri
             : shellDirectory;

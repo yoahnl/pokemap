@@ -235,7 +235,7 @@ Future<void> _configureCombatAuthoring(AuthoringExportFixture author) async {
 Future<void> _prepareCombatExportFixture(M3StoryFixture source) async {
   await prepareGameExportFixture(source);
   await seedCombatProject(source);
-  const goldenRoot = '../../examples/playable_runtime_host/golden_item_system';
+  const goldenRoot = '../../tools/pokemap_render_host/golden_item_system';
   final projectFile = File(p.join(source.directory.path, 'project.json'));
   final project = ProjectManifest.fromJson(
     jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,

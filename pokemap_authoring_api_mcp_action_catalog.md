@@ -37,7 +37,7 @@ Le dépôt contient déjà beaucoup de briques :
 - persistance revisionnée et atomique pour certains documents ;
 - transactions et recovery pour certains workflows ;
 - moteur de gameplay et battle réutilisable ;
-- framework de playtest déterministe dans `playable_runtime_host` ;
+- framework de playtest déterministe dans `pokemap_render_host` ;
 - construction et inspection de packages dans `map_distribution`.
 
 Le manque principal n’est donc pas « toutes les fonctions métier », mais :
@@ -3199,7 +3199,7 @@ parité API directe / MCP
 | Gameplay pur | `packages/map_gameplay/lib/src/` |
 | Battle | `packages/map_battle/lib/src/` |
 | Runtime | `packages/map_runtime/lib/src/` |
-| Playtest déterministe | `examples/playable_runtime_host/lib/src/evaluation/` |
+| Playtest déterministe | `tools/pokemap_render_host/lib/src/evaluation/` |
 | Packaging | `packages/map_distribution/lib/src/` |
 
 ## 29. Lacunes prioritaires avant le MCP

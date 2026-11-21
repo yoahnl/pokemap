@@ -53,7 +53,7 @@ void main() {
     final owner = await Directory.systemTemp.createTemp('battle-cry-2d-');
     addTearDown(() => owner.delete(recursive: true));
     final source = Directory(
-      p.absolute('../../examples/playable_runtime_host/golden_battle_slice'),
+      p.absolute('../../tools/pokemap_render_host/golden_battle_slice'),
     );
     await for (final entry in source.list(recursive: true, followLinks: false)) {
       final destination = p.join(

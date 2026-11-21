@@ -453,8 +453,8 @@ Future<({RuntimeMapBundle bundle, GameState state})> _fixture() async {
       Directory.current.path,
       '..',
       '..',
-      'examples',
-      'playable_runtime_host',
+      'tools',
+      'pokemap_render_host',
       'golden_battle_slice',
     ),
   );

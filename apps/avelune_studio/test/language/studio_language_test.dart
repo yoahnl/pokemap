@@ -42,9 +42,14 @@ void main() {
     expect(Localizations.localeOf(tester.element(home)).languageCode, 'en');
     expect(find.byKey(const ValueKey('studio-language')), findsNothing);
     expect(find.byKey(const ValueKey('home-export-game')), findsNothing);
+    final rail = find.byKey(const ValueKey('studio-rail'));
+    final homeRail = tester.element(rail);
+    final homeRoute = ModalRoute.of(homeRail);
     await tester.tap(find.byKey(const ValueKey('studio-rail-settings')));
     await tester.pumpAndSettle();
     expect(find.text('Studio settings'), findsWidgets);
+    expect(ModalRoute.of(tester.element(rail)), same(homeRoute));
+    expect(tester.element(rail), same(homeRail));
 
     Future<void> choose(String code) async {
       await tester.tap(find.byKey(const ValueKey('studio-settings-language')));
@@ -67,7 +72,7 @@ void main() {
     expect(store.languageCode, 'en');
 
     await choose('system');
-    await tester.tap(find.byKey(const ValueKey('studio-settings-back')));
+    await tester.tap(find.byKey(const ValueKey('studio-rail-home')));
     await tester.pumpAndSettle();
     expect(Localizations.localeOf(tester.element(home)).languageCode, 'en');
     expect(store.languageCode, isNull);

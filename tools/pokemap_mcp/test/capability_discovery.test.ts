@@ -6,7 +6,7 @@ import { LocalAuthoringClient, type JsonRecord } from "../src/authoring_client.j
 
 test("real JSONL discovery is compact, targeted and preserves schema details", async () => {
   const authoring = new LocalAuthoringClient({
-    allowedRoots: [resolve(process.cwd(), "../../examples/playable_runtime_host/golden_fangame_slice")],
+    allowedRoots: [resolve(process.cwd(), "../../tools/pokemap_render_host/golden_fangame_slice")],
     authoringPackageRoot: resolve(process.cwd(), "../../packages/map_authoring"),
     workerTimeoutMs: 60000,
     requestTimeoutMs: 65000,

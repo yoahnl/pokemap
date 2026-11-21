@@ -23,7 +23,7 @@ const repositoryRoot = resolve(process.cwd(), "../..");
 const authoringPackageRoot = resolve(repositoryRoot, "packages/map_authoring");
 const scaffold = resolve(
   repositoryRoot,
-  "examples/playable_runtime_host/phase6_authoring_golden_slice/project.json",
+  "tools/pokemap_render_host/phase6_authoring_golden_slice/project.json",
 );
 
 function record(value: unknown): JsonRecord {

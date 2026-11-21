@@ -235,7 +235,7 @@ jobs:
             test/benchmark/smart_tiles_rich_authoring_scaling_cli_test.dart
           cd ../map_battle
           dart test test/benchmark/battle_turn_baseline_cli_test.dart
-          cd ../../examples/playable_runtime_host
+          cd ../../tools/pokemap_render_host
           flutter pub get
           flutter test \
             test/evaluation/interactive_frame_metrics_test.dart \
@@ -253,4 +253,4 @@ jobs:
             packages/map_gameplay/build/performance/*.json
             packages/map_authoring/build/performance/*.json
             packages/map_battle/build/performance/*.json
-            examples/playable_runtime_host/build/performance/*.json
+            tools/pokemap_render_host/build/performance/*.json

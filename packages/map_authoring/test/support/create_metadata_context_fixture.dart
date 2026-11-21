@@ -21,6 +21,9 @@ Future<void> main(List<String> arguments) async {
   final missingWindow = arguments.contains('--verify-no-window-api');
   final missingV3 = arguments.contains('--verify-unprepared-v3-api');
   final v3Race = arguments.contains('--verify-v3-race-api');
+  final verify = arguments.contains('--verify-api') ||
+      missingWindow || missingV3 || v3Race;
+  final fixtureAdmissions = verify ? CatalogFixtureAdmissions() : null;
   if (missingV3 || v3Race) {
     final publication = PortableCatalogPublication.encodeProject(project);
     final units = CatalogSnapshot.readAllSync(
@@ -49,12 +52,9 @@ Future<void> main(List<String> arguments) async {
     await WorkingProjectCatalog.create(
         store: store, projectId: 'metadata-context', project: project);
   }
-  if (!arguments.contains('--verify-api') &&
-      !missingWindow &&
-      !missingV3 &&
-      !v3Race) {
-    return;
-  }
+  if (fixtureAdmissions == null) return;
+  Future<String> projectAdmissions() async =>
+      canonicalAuthoringJson(await fixtureAdmissions.readFor(root));
   const reader = LocalProjectFileReader();
   final handles = WorkspaceHandleStore();
   final policy = await WorkspacePolicy.create(
@@ -80,7 +80,7 @@ Future<void> main(List<String> arguments) async {
       final stableHead =
           await File('${root.path}/catalog/HEAD.json').readAsBytes();
       final tree = jsonDecode(await _projectTree(root)) as Map<String, dynamic>;
-      final admissions = await _projectAdmissions(root.path);
+      final admissions = await projectAdmissions();
       final injectedHead = CatalogStorageStore.encodeHead(originalRoot!);
       final expectedTree = canonicalAuthoringJson({
         ...tree,
@@ -107,14 +107,14 @@ Future<void> main(List<String> arguments) async {
             failure.code != 'catalog.preparation_required' ||
             probes != 2 ||
             expectedTree != await _projectTree(root) ||
-            admissions != await _projectAdmissions(root.path)) {
+            admissions != await projectAdmissions()) {
           throw StateError(jsonEncode({
             'expected': 'catalog.preparation_required',
             'actual': failure.toString(),
             'headProbes': probes,
             'onlyInjectedHeadChanged': expectedTree == await _projectTree(root),
             'admissionsPreserved':
-                admissions == await _projectAdmissions(root.path)
+                admissions == await projectAdmissions()
           }));
         }
         await File('${root.path}/catalog/HEAD.json').writeAsBytes(stableHead);
@@ -136,7 +136,7 @@ Future<void> main(List<String> arguments) async {
           ? 'history.preparation_required'
           : 'catalog.preparation_required';
       final tree = await _projectTree(root);
-      final admissions = await _projectAdmissions(root.path);
+      final admissions = await projectAdmissions();
       for (var attempt = 0; attempt < 2; attempt++) {
         Object? failure;
         try {
@@ -151,8 +151,7 @@ Future<void> main(List<String> arguments) async {
           _ => failure?.toString(),
         };
         final treePreserved = tree == await _projectTree(root);
-        final admissionsPreserved =
-            admissions == await _projectAdmissions(root.path);
+        final admissionsPreserved = admissions == await projectAdmissions();
         if (code != expectedCode || !treePreserved || !admissionsPreserved) {
           throw StateError(jsonEncode({
             'expected': expectedCode,
@@ -186,12 +185,12 @@ Future<void> main(List<String> arguments) async {
       throw StateError('The explicit metadata context contract differs');
     }
     final tree = await _projectTree(root);
-    final admissions = await _projectAdmissions(root.path);
+    final admissions = await projectAdmissions();
     final repeated = await api.prepareWorkshopDocument(opened.projectHandle,
         scope: 'metadataContext');
     if (canonicalAuthoringJson(repeated) != canonicalAuthoringJson(result) ||
         tree != await _projectTree(root) ||
-        admissions != await _projectAdmissions(root.path)) {
+        admissions != await projectAdmissions()) {
       throw StateError('Repeated context preparation changed durable state');
     }
     stdout.writeln(jsonEncode(result));
@@ -210,27 +209,46 @@ Future<String> _projectTree(Directory root) async => canonicalAuthoringJson({
                 : 'link',
     });
 
-Future<String> _projectAdmissions(String projectRoot) async {
-  final home =
-      Platform.environment[Platform.isWindows ? 'LOCALAPPDATA' : 'HOME'];
-  final directory = Directory('$home/.avelune/authoring/catalog-admissions');
-  if (!await directory.exists()) return '{}';
-  final records = <String, String>{};
-  await for (final entity in directory.list()) {
-    if (entity is! File || !entity.path.endsWith('.json')) continue;
-    final String source;
-    try {
-      source = await entity.readAsString();
-    } on PathNotFoundException {
-      continue;
-    }
-    final value = jsonDecode(source) as Map;
-    if (value['projectRoot'] == projectRoot ||
-        (value['admission'] as Map?)?['projectRoot'] == projectRoot) {
-      records[entity.path] = source;
-    }
+final class CatalogFixtureAdmissions {
+  CatalogFixtureAdmissions() {
+    final userDirectory =
+        Platform.environment[Platform.isWindows ? 'LOCALAPPDATA' : 'HOME'];
+    _directory = Directory('$userDirectory/.avelune/authoring/catalog-admissions');
+    _existingPaths = _files().map((file) => file.path).toSet();
   }
-  return canonicalAuthoringJson(records);
+
+  late final Directory _directory;
+  late final Set<String> _existingPaths;
+
+  Future<Map<String, String>> readFor(Directory root) async {
+    if (!await root.exists()) return const {};
+    final canonicalRoot = await root.resolveSymbolicLinks();
+    final records = <String, String>{};
+    for (final file in _files()) {
+      if (_existingPaths.contains(file.path)) continue;
+      try {
+        final source = await file.readAsString();
+        final value = jsonDecode(source);
+        if (value is! Map) continue;
+        final admission = value['admission'];
+        if (value['projectRoot'] == canonicalRoot ||
+            admission is Map && admission['projectRoot'] == canonicalRoot) {
+          records[file.path] = source;
+        }
+      } on PathNotFoundException {
+        continue;
+      } on FormatException {
+        continue;
+      }
+    }
+    return records;
+  }
+
+  Iterable<File> _files() => _directory.existsSync()
+      ? _directory.listSync(followLinks: false).whereType<File>().where(
+            (file) => file.path.endsWith('.json'),
+          )
+      : const [];
 }
 
 final class _HeadProbeReader

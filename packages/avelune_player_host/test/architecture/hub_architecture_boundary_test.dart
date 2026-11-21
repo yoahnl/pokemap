@@ -12,8 +12,8 @@ void main() {
       final source = await entity.readAsString();
       for (final forbidden in <String>[
         'package:map_editor/',
-        'examples/playable_runtime_host',
-        'package:playable_runtime_host/',
+        'tools/pokemap_render_host',
+        'package:pokemap_render_host/',
       ]) {
         if (source.contains(forbidden)) {
           violations.add('${p.relative(entity.path)} imports $forbidden');
@@ -37,7 +37,7 @@ void main() {
       for (final forbidden in <String>[
         'package:map_editor/',
         'package:avelune_player_host/',
-        'examples/playable_runtime_host',
+        'tools/pokemap_render_host',
       ]) {
         if (source.contains(forbidden)) {
           violations.add('${p.relative(entity.path)} imports $forbidden');

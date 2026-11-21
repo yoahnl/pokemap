@@ -400,7 +400,7 @@ mountFishing({
   final root = await Directory.systemTemp.createTemp('runtime-fishing-');
   addTearDown(() => root.delete(recursive: true));
   final referenceRoot = Directory(
-    '../../examples/playable_runtime_host/golden_battle_slice',
+    '../../tools/pokemap_render_host/golden_battle_slice',
   ).absolute;
   final referenceProject = battleData
       ? ProjectManifest.fromJson(

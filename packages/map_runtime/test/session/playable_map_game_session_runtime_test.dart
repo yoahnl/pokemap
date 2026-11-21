@@ -100,7 +100,7 @@ void main() {
         accessibility: const GameSessionAccessibilityOptions(),
       ),
       projectFilePath: () async => File(
-        '../../examples/playable_runtime_host/golden_battle_slice/project.json',
+        '../../tools/pokemap_render_host/golden_battle_slice/project.json',
       ).absolute.path,
       initialSave: () async => save,
       mountGame: (_) async => mounts++,
@@ -165,7 +165,7 @@ void main() {
         accessibility: const GameSessionAccessibilityOptions(),
       ),
       projectFilePath: () async => File(
-        '../../examples/playable_runtime_host/golden_battle_slice/project.json',
+        '../../tools/pokemap_render_host/golden_battle_slice/project.json',
       ).absolute.path,
       initialSave: () async => save,
       mountGame: (mounted) async {

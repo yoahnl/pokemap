@@ -13,11 +13,11 @@ import { authoringToolReadOnlyHints } from "./authoring_tool_contract.js";
 const repositoryRoot = resolve(process.cwd(), "../..");
 const projectRoot = resolve(
   repositoryRoot,
-  "examples/playable_runtime_host/golden_fangame_slice",
+  "tools/pokemap_render_host/golden_fangame_slice",
 );
 const presentationProjectRoot = resolve(
   repositoryRoot,
-  "examples/playable_runtime_host/golden_personalization_v3",
+  "tools/pokemap_render_host/golden_personalization_v3",
 );
 const authoringPackageRoot = resolve(repositoryRoot, "packages/map_authoring");
 

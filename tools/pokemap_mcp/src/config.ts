@@ -136,12 +136,12 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   const runtimePackage =
     runtimePackageRoot ?? resolve(repository, "packages/map_runtime");
   const runtimeHost =
-    runtimeHostRoot ?? resolve(repository, "examples/playable_runtime_host");
+    runtimeHostRoot ?? resolve(repository, "tools/pokemap_render_host");
   if (!installedRoot&&!existsSync(resolve(runtimePackage, "tool/pokemap_render_worker_test.dart"))) {
     throw new PokeMapMcpConfigError("The map_runtime render worker is unavailable.");
   }
   if (!installedRoot&&!existsSync(resolve(runtimeHost, "tool/pokemap_eval.dart"))) {
-    throw new PokeMapMcpConfigError("The playable runtime host is unavailable.");
+    throw new PokeMapMcpConfigError("The PokeMap evaluation host is unavailable.");
   }
   return {
     transport,companion,port,...(runtimeManifest?{runtimeManifest}:{}),

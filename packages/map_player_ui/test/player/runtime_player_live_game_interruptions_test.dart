@@ -201,8 +201,8 @@ Future<_LoadedGame> _loadGame(WidgetTester tester,
         Directory.current.path,
         '..',
         '..',
-        'examples',
-        'playable_runtime_host',
+        'tools',
+        'pokemap_render_host',
         'golden_item_system',
         'project.json'));
     final loadedBundle = await loadRuntimeMapBundle(

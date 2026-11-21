@@ -8,7 +8,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 type RecordValue = Record<string, unknown>;
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const packageRoot = join(root, "tools/pokemap_mcp");
-const fixture = join(root, "examples/playable_runtime_host/dev/fixtures/menu9");
+const fixture = join(root, "tools/pokemap_render_host/dev/fixtures/menu9");
 const [projectArgument, receiptArgument] = process.argv.slice(2);
 assert.ok(projectArgument && receiptArgument, "Usage: menu9_train_region.ts ABSOLUTE_PROJECT ABSOLUTE_RECEIPT");
 assert.ok(projectArgument.startsWith("/") && receiptArgument.startsWith("/"));

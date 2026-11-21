@@ -94,7 +94,7 @@ void main() {
       _app(const StudioLoadingState(label: 'Lecture des états…')),
     );
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(StudioProgressIndicator), findsOneWidget);
     expect(
       tester.getSemantics(find.bySemanticsLabel('Lecture des états…')),
       matchesSemantics(label: 'Lecture des états…', isLiveRegion: true),

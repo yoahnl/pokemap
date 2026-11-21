@@ -204,6 +204,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get studioSettingsDisplay => 'Affichage';
 
   @override
+  String get studioSettingsAppearance => 'Apparence';
+
+  @override
+  String get studioAppearanceDark => 'Sombre';
+
+  @override
+  String get studioAppearanceLight => 'Clair';
+
+  @override
   String get studioSettingsAi => 'IA et clés API';
 
   @override

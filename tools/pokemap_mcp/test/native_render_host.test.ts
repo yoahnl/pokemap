@@ -20,7 +20,7 @@ import { createPokeMapMcpServer } from "../src/server.js";
 import { PokeMapToolError } from "../src/tool_error.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
-const projectRoot = resolve(repositoryRoot, "examples/playable_runtime_host/golden_fangame_slice");
+const projectRoot = resolve(repositoryRoot, "tools/pokemap_render_host/golden_fangame_slice");
 const png = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
@@ -206,7 +206,7 @@ test("pokemap_render_3d renders the opened project and returns a readable artifa
     roots: authoring,
     artifacts,
     runtimePackageRoot: resolve(repositoryRoot, "packages/map_runtime"),
-    runtimeHostRoot: resolve(repositoryRoot, "examples/playable_runtime_host"),
+    runtimeHostRoot: resolve(repositoryRoot, "tools/pokemap_render_host"),
     repositoryRoot,
     render3dExecutor: createNativeRender3dExecutor({ artifacts, host }),
     scan3dExecutor: createNativeScan3dExecutor({ artifacts, host }),

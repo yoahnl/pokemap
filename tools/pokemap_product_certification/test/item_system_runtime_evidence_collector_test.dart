@@ -16,7 +16,7 @@ void main() {
         projectRootDirectory: Directory(
           p.join(
             repositoryRoot,
-            'examples/playable_runtime_host/golden_item_system',
+            'tools/pokemap_render_host/golden_item_system',
           ),
         ),
         sourceRevision: sourceRevision,

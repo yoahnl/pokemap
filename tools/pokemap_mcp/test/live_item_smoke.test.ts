@@ -21,7 +21,7 @@ import { mutationRevision } from "./mutation_revision.js";
 const repositoryRoot = resolve(process.cwd(), "../..");
 const fixtureRoot = resolve(
   repositoryRoot,
-  "examples/playable_runtime_host/golden_item_system",
+  "tools/pokemap_render_host/golden_item_system",
 );
 const packagedServer = resolve(process.cwd(), "dist/src/index.js");
 

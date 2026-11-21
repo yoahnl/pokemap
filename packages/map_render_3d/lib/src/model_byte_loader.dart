@@ -155,6 +155,7 @@ final class ModelByteLoader {
       final retained = spatialRetainedModelResourceBytes(
         model,
         staticResidentBytes: estimate.retainedStaticResident,
+        partitionedSkinnedMeshes: experimentalPartitionSkinnedMeshes,
       );
       lease.resize(
         residentBytes: retained < estimate.resident

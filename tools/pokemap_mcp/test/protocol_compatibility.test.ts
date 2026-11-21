@@ -114,7 +114,7 @@ test("unsupported pinned protocol fails closed", async () => {
 test("the packaged stdio entrypoint completes a real modern client exchange", async () => {
   const projectRoot = resolve(
     process.cwd(),
-    "../../examples/playable_runtime_host/golden_fangame_slice",
+    "../../tools/pokemap_render_host/golden_fangame_slice",
   );
   const transport = new StdioClientTransport({
     command: process.execPath,

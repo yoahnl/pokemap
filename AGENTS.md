@@ -37,7 +37,7 @@ No workspace orchestrator (`melos.yaml` absent): run commands per package.
 | `packages/map_battle` | Battle mechanics. Pure Dart. |
 | `packages/map_runtime` | Flutter + Flame runtime integration. |
 | `packages/map_editor` | Desktop authoring UI and editor use cases. |
-| `examples/playable_runtime_host` | Runtime host and smoke fixtures. |
+| `tools/pokemap_render_host` | MCP rendering, automated playtests, and shared smoke fixtures. |
 
 Preserve the public barrels `lib/<package>.dart` of `map_core`, `map_story`,
 `map_gameplay`, `map_battle` and `map_runtime` when adding exported API.
@@ -196,7 +196,7 @@ cd packages/map_gameplay && dart test && dart analyze
 cd packages/map_battle && dart test && dart analyze
 cd packages/map_runtime && flutter test && flutter analyze
 cd packages/map_editor && flutter test && flutter analyze
-cd examples/playable_runtime_host && flutter test && flutter analyze
+cd tools/pokemap_render_host && flutter test && flutter analyze
 ```
 
 Run the test files your change concerns before any full suite. For a full
@@ -205,7 +205,7 @@ re-run a failing file alone with the default reporter to read its details.
 
 Runtime smoke checks for player-loop or battle/runtime work:
 `packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart` and
-`examples/playable_runtime_host/test/phase_a_golden_slice_launch_test.dart`.
+`tools/pokemap_render_host/test/phase_a_golden_slice_launch_test.dart`.
 
 ## 9. Maintenance
 

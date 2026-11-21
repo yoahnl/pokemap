@@ -159,7 +159,7 @@ try {
   await runFlutter(["pub", "get"]);
   const commit = (await run("git", ["rev-parse", "HEAD"])).trim();
   const digest = await digestTree(
-    join(repository, "examples/playable_runtime_host/lib/src/evaluation"),
+    join(repository, "tools/pokemap_render_host/lib/src/evaluation"),
   );
   const platform =
     process.platform === "darwin"

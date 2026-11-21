@@ -15,7 +15,7 @@ import { PokeMapToolError } from "../src/tool_error.js";
 const repositoryRoot = resolve(process.cwd(), "../..");
 const projectRoot = resolve(
   repositoryRoot,
-  "examples/playable_runtime_host/golden_fangame_slice",
+  "tools/pokemap_render_host/golden_fangame_slice",
 );
 
 function record(value: unknown): JsonRecord {
@@ -56,7 +56,7 @@ async function runtimeFixture() {
     roots: authoring,
     artifacts,
     runtimePackageRoot: resolve(repositoryRoot, "packages/map_runtime"),
-    runtimeHostRoot: resolve(repositoryRoot, "examples/playable_runtime_host"),
+    runtimeHostRoot: resolve(repositoryRoot, "tools/pokemap_render_host"),
     repositoryRoot,
     jobIdFactory: () => `job-test-${++nextJob}`,
     playtestProjectionFactory: async ({ jobId, request }) => {

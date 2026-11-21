@@ -210,6 +210,7 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
                           ),
                           const SizedBox.shrink(),
                           _projectPokemon(),
+                          _studioSettings(),
                         ],
                       ),
                       ?_scenePage(),

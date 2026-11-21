@@ -24,7 +24,7 @@ test("asset.import exposes opt-in adoption and preserves the source through undo
     return record(failure ? envelope.error : envelope.data);
   }
   try {
-    await cp(resolve("../../examples/playable_runtime_host/golden_item_system"), root, { recursive: true });
+    await cp(resolve("../../tools/pokemap_render_host/golden_item_system"), root, { recursive: true });
     const logicalPath = "assets/presentation/LICENSE.txt";
     const source = join(root, logicalPath);
     const text = "Licensed for this project";
