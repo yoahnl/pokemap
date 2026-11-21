@@ -17,6 +17,144 @@ import '../domains/maps/healing_display_fixture.dart';
 import '../domains/maps/spatial_field_obstacle_actions_test.dart' show obstacleProject, obstacleMap;
 
 void main() {
+  test(
+      'character workshop writes only the selected character and its portraits',
+      () async {
+    final base = spatialEnvironmentFixture();
+    const hero = ProjectCharacterEntry(
+      id: 'hero',
+      name: 'Hero',
+      tilesetId: 'hero-sheet',
+    );
+    final fixture = await _Fixture.open(20, content: (
+      project: base.project.copyWith(
+        characters: [hero],
+        tilesets: const [
+          ProjectTilesetEntry(
+              id: 'hero-sheet', name: 'Hero', relativePath: 'assets/hero.png'),
+        ],
+        characterStudioCatalog: const ProjectCharacterStudioCatalog(
+          portraitStates: [
+            CharacterPortraitStateDefinition(
+                id: 'neutral', displayName: 'Neutre'),
+          ],
+        ),
+      ),
+      map: base.map,
+    ));
+    addTearDown(fixture.close);
+    final artifact = await fixture.api.artifacts.put(
+      base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jX2sAAAAASUVORK5CYII=',
+      ),
+      declaredMediaType: 'image/png',
+    );
+    final import = <String, Object?>{
+      'assetId': 'hero-happy',
+      'logicalPath': 'assets/characters/hero/happy.png',
+      'artifactHandle': artifact.reference.handle,
+      'mediaKind': 'portrait',
+      'binding': {
+        'kind': 'portrait',
+        'characterId': 'hero',
+        'portraitStateId': 'souriant',
+      },
+    };
+    const clip = {
+      'characterId': 'hero',
+      'kind': 'system',
+      'state': 'surf_enter',
+      'direction': 'north',
+      'frames': [
+        {
+          'source': {'x': 0, 'y': 0, 'width': 1, 'height': 1},
+          'durationMs': 123
+        },
+      ],
+      'loop': false,
+    };
+    final before = await fixture.mapFile.readAsBytes();
+    fixture.reader.paths.clear();
+    await fixture.apply('characterStudio.portraitState.create',
+        {'displayName': 'Souriant'}, 'happy-state');
+    await fixture.apply(
+        'characterStudio.asset.import', import, 'happy-portrait');
+    await fixture.apply(
+      'characterStudio.animationDefinition.create',
+      {'displayName': 'Peche', 'mode': 'single'},
+      'fishing-definition',
+    );
+    await fixture.apply(
+        'characterStudio.asset.import',
+        {
+          'assetId': 'hero-fishing',
+          'logicalPath': 'assets/characters/hero/fishing.png',
+          'artifactHandle': artifact.reference.handle,
+          'mediaKind': 'spriteSheet',
+          'binding': {
+            'kind': 'animationClip',
+            'slotKind': 'custom',
+            'characterId': 'hero',
+            'definitionId': 'peche',
+            'frames': [
+              {
+                'source': {'x': 0, 'y': 0, 'width': 1, 'height': 1},
+                'durationMs': 150
+              },
+            ],
+          },
+        },
+        'fishing-sprite');
+    await fixture.apply('characterStudio.animationClip.upsert', clip, 'surf');
+    await fixture.apply(
+        'characterStudio.animationClip.upsert',
+        {
+          ...clip,
+          'frames': [
+            {
+              'source': {'x': 0, 'y': 0, 'width': 1, 'height': 1},
+              'durationMs': 147
+            },
+          ],
+        },
+        'surf-duration');
+    expect(fixture.reader.paths.where((p) => p.startsWith('maps/')), isEmpty);
+    expect(
+        fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+    expect(await fixture.mapFile.readAsBytes(), before);
+    await fixture.reopen();
+    final read = await fixture.api.readWorkshopSnapshot(
+      fixture.opened.projectHandle,
+      actionId: 'characterStudio.animationClip.upsert',
+      parameters: clip,
+    );
+    expect(
+        read.manifest.characters.single.portraits.single.assetId, 'hero-happy');
+    expect(
+        read.manifest.characters.single.animations.single.frames.single
+            .durationMs,
+        147);
+    expect(read.manifest.characters.single.animations.single.loop, isFalse);
+    expect(
+      read.manifest.characters.single.customAnimations.single.sourceAssetId,
+      'hero-fishing',
+    );
+    expect(
+        read.manifest.characterStudioCatalog.customAnimationDefinitions.single
+            .id,
+        'peche');
+    final states = await fixture.api.readWorkshopSnapshot(
+      fixture.opened.projectHandle,
+      actionId: 'characterStudio.portraitState.create',
+      parameters: const {'displayName': 'Inquiet'},
+    );
+    expect(
+      states.manifest.characterStudioCatalog.portraitStates
+          .map((state) => state.id),
+      unorderedEquals(['neutral', 'souriant']),
+    );
+  });
+
   final encounterCreationIo = <int, List<Map<String, int>>>{};
   for (final unrelated in [0, 90]) {
     test('encounter zone creation stays targeted with $unrelated foreign maps', () async {

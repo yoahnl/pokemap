@@ -50,6 +50,7 @@ part 'catalog_contextual_item_scope.dart';
 part 'catalog_asset_import_selection.dart';
 part 'catalog_usage_replacement_selection.dart';
 part 'catalog_native_resource_selection.dart';
+part 'catalog_character_workshop_selection.dart';
 part 'catalog_presentation_reset_selection.dart';
 part 'catalog_scene_workshop_selection.dart';
 part 'catalog_dialogue_creation_selection.dart';
@@ -104,6 +105,7 @@ final class CatalogWorkshopSelection {
   };
 
   static bool supports(String action, {Map<String, Object?>? parameters}) =>
+      _supportsCharacterWorkshop(action, parameters) ||
       action == 'model3d.prune_unused' ||
       action == 'model3d.duplicate' ||
       (action == 'resource.usages.replace' &&
@@ -243,6 +245,15 @@ final class CatalogWorkshopSelection {
     if (actionId == 'map.library.reorganize') {
       if (readDependencies.isNotEmpty) unsupported(actionId);
       return _readMapGroupAdditionsWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters);
+    }
+    if (_supportsCharacterWorkshop(actionId, parameters)) {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readCharacterWorkshop(
+        reader: reader,
+        projectHandle: projectHandle,
+        actionId: actionId,
+        parameters: parameters,
+      );
     }
     if (_nativeResourceActions.containsKey(actionId)) {
       if (readDependencies.isNotEmpty) unsupported(actionId);

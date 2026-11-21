@@ -99,10 +99,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(port.previewReads, ['$kind:$id']);
+      if (kind == 'character') expect(find.text('Ateliers'), findsNothing);
       await tester.tap(find.text('Retour à la bibliothèque'));
       await tester.pumpAndSettle();
 
       expect(find.byKey(ValueKey('library-detail-$kind:$id')), findsOneWidget);
+      expect(find.text('Ateliers'), findsOneWidget);
       expect(maps.active, same(draft));
       expect(draft.current.name, 'Brouillon en cours');
       expect(port.fullReads, 0);

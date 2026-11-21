@@ -210,6 +210,38 @@ const List<Map<String, Object?>> _systemAnimationDefinitions = [
   {'id': 'surf', 'displayName': 'Surf', 'mode': 'directional', 'sortOrder': 7, 'system': true, 'state': 'surf'},
   {'id': 'surf_enter', 'displayName': 'Entrée dans l’eau', 'mode': 'directional', 'sortOrder': 8, 'system': true, 'state': 'surf_enter'},
   {'id': 'surf_exit', 'displayName': 'Sortie de l’eau', 'mode': 'directional', 'sortOrder': 9, 'system': true, 'state': 'surf_exit'},
+  {
+    'id': 'cut',
+    'displayName': 'Coupe',
+    'mode': 'directional',
+    'sortOrder': 10,
+    'system': true,
+    'state': 'cut'
+  },
+  {
+    'id': 'rock_smash',
+    'displayName': 'Éclate-Roc',
+    'mode': 'directional',
+    'sortOrder': 11,
+    'system': true,
+    'state': 'rock_smash'
+  },
+  {
+    'id': 'strength',
+    'displayName': 'Force',
+    'mode': 'directional',
+    'sortOrder': 12,
+    'system': true,
+    'state': 'strength'
+  },
+  {
+    'id': 'push',
+    'displayName': 'Poussée',
+    'mode': 'directional',
+    'sortOrder': 13,
+    'system': true,
+    'state': 'push'
+  },
   <String, Object?>{
     'id': 'bicycle_idle', 'displayName': 'Vélo au repos',
     'mode': 'directional', 'sortOrder': 3, 'system': true, 'state': 'bicycle_idle',

@@ -35,6 +35,7 @@ class ResourceLibraryView extends StatefulWidget {
     this.workshops,
     this.buildWorkshops,
     this.canLeaveWorkshops,
+    this.fullWidthWorkshop = false,
     this.workshopAction,
     this.onManageFamilies,
     this.onClassifySelection,
@@ -64,6 +65,7 @@ class ResourceLibraryView extends StatefulWidget {
   final Widget? workshops;
   final ResourceLibraryWorkshopsBuilder? buildWorkshops;
   final bool Function()? canLeaveWorkshops;
+  final bool fullWidthWorkshop;
   final ResourceLibraryWorkshopAction? Function(ResourceLibraryItemView)?
   workshopAction;
   final VoidCallback? onManageFamilies;
@@ -230,7 +232,10 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
       autofocus: true,
       child: LayoutBuilder(
         builder: (context, bounds) {
-          final sidebar = bounds.maxWidth >= 740;
+          final focusedWorkshop =
+              _section == ResourceLibrarySection.workshops &&
+              widget.fullWidthWorkshop;
+          final sidebar = bounds.maxWidth >= 740 && !focusedWorkshop;
           final docked = bounds.maxWidth >= 910;
           final words = _searchWords;
           final roleItems = _section == ResourceLibrarySection.library
@@ -282,7 +287,7 @@ class _ResourceLibraryViewState extends State<ResourceLibraryView> {
               Expanded(
                 child: Column(
                   children: [
-                    if (!sidebar)
+                    if (!sidebar && !focusedWorkshop)
                       ResourceLibraryTabs(
                         section: _section,
                         onSelected: _setSection,

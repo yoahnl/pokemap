@@ -94,7 +94,12 @@ void main() {
 }
 
 Future<Directory> _writeSprite() async {
-  final directory = await Directory.systemTemp.createTemp('library_sprite_');
+  final qaRoot = Platform.environment['AVELUNE_QA_ROOT'];
+  final parent = qaRoot == null
+      ? Directory.systemTemp
+      : await Directory(qaRoot).create(recursive: true);
+  final temporary = await parent.createTemp('library_sprite_');
+  final directory = Directory(await temporary.resolveSymbolicLinks());
   try {
     final recorder = ui.PictureRecorder();
     ui.Canvas(recorder)

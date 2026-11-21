@@ -1,25 +1,38 @@
-part of 'project_character_workshop.dart';
+import 'package:avelune_design_system/avelune_design_system.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:map_core/map_core_domain.dart';
 
-class _CharacterWorkshopPreview extends StatefulWidget {
-  const _CharacterWorkshopPreview({
+import '../../../features/rendering/contracts/character_workspace_visuals.dart';
+import '../../../features/rendering/contracts/map_workspace_visuals.dart';
+import '../../../features/rendering/contracts/scoped_resource_preview_visuals.dart';
+import '../../../features/resources/application/resource_preview_source.dart';
+
+class ProjectCharacterWorkshopPreview extends StatefulWidget {
+  const ProjectCharacterWorkshopPreview({
     super.key,
     required this.active,
     required this.character,
     required this.project,
     required this.visuals,
+    this.showSelectors = true,
+    this.initialElapsedMs = 0,
   });
 
   final bool active;
   final ProjectCharacterEntry character;
   final ProjectManifest project;
   final MapWorkspaceVisuals? visuals;
+  final bool showSelectors;
+  final int initialElapsedMs;
 
   @override
-  State<_CharacterWorkshopPreview> createState() =>
+  State<ProjectCharacterWorkshopPreview> createState() =>
       _CharacterWorkshopPreviewState();
 }
 
-class _CharacterWorkshopPreviewState extends State<_CharacterWorkshopPreview>
+class _CharacterWorkshopPreviewState
+    extends State<ProjectCharacterWorkshopPreview>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker = createTicker(_tick);
   final _elapsedMs = ValueNotifier<int>(0);
@@ -41,9 +54,13 @@ class _CharacterWorkshopPreviewState extends State<_CharacterWorkshopPreview>
   }
 
   @override
-  void didUpdateWidget(_CharacterWorkshopPreview oldWidget) {
+  void didUpdateWidget(ProjectCharacterWorkshopPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.character != widget.character) _setCharacter();
+    if (oldWidget.initialElapsedMs != widget.initialElapsedMs) {
+      _ticker.stop();
+      _elapsedMs.value = widget.initialElapsedMs;
+    }
     if (!widget.active || oldWidget.visuals != widget.visuals) _ticker.stop();
   }
 
@@ -72,7 +89,7 @@ class _CharacterWorkshopPreviewState extends State<_CharacterWorkshopPreview>
 
   void _selectDirection(EntityFacing facing) {
     _ticker.stop();
-    _elapsedMs.value = 0;
+    _elapsedMs.value = widget.initialElapsedMs;
     _facing = facing;
     _durationMs =
         _clip?.frames.fold<int>(
@@ -112,48 +129,69 @@ class _CharacterWorkshopPreviewState extends State<_CharacterWorkshopPreview>
   }
 
   @override
-  Widget build(BuildContext context) => StudioPanel(
-    title: 'Aperçu du sprite',
-    icon: Icons.person_outline,
-    children: [
-      LayoutBuilder(
-        builder: (context, constraints) {
-          final preview = SizedBox(
-            height: 256,
-            child: ColoredBox(
-              color: Theme.of(context).colorScheme.surfaceContainer,
-              child: Center(
-                child: RepaintBoundary(
-                  child: ValueListenableBuilder<int>(
-                    valueListenable: _elapsedMs,
-                    builder: (context, elapsed, _) => _sprite(elapsed),
-                  ),
-                ),
-              ),
+  Widget build(BuildContext context) => widget.showSelectors
+      ? StudioPanel(
+          title: 'Aperçu du sprite',
+          icon: Icons.person_outline,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final preview = _stage();
+                final controls = _controls();
+                return constraints.maxWidth >= 580
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: preview),
+                          const SizedBox(width: StudioSpacing.xl),
+                          SizedBox(width: 230, child: controls),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          preview,
+                          const SizedBox(height: StudioSpacing.l),
+                          controls,
+                        ],
+                      );
+              },
             ),
-          );
-          final controls = _controls();
-          return constraints.maxWidth >= 580
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: preview),
-                    const SizedBox(width: StudioSpacing.xl),
-                    SizedBox(width: 230, child: controls),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    preview,
-                    const SizedBox(height: StudioSpacing.l),
-                    controls,
-                  ],
-                );
-        },
+          ],
+        )
+      : Stack(
+          children: [
+            _stage(height: 216),
+            if (_canPlay)
+              Positioned(
+                bottom: StudioSpacing.l,
+                left: StudioSpacing.l,
+                child: _playButton(StudioButtonVariant.secondary),
+              ),
+          ],
+        );
+
+  Widget _stage({double height = 256}) => StudioAssetPreview(
+    height: height,
+    child: RepaintBoundary(
+      child: ValueListenableBuilder<int>(
+        valueListenable: _elapsedMs,
+        builder: (context, elapsed, _) => _sprite(elapsed),
       ),
-    ],
+    ),
   );
+
+  bool get _canPlay => _durationMs > 0 && (_clip?.frames.length ?? 0) > 1;
+
+  Widget _playButton(StudioButtonVariant variant) {
+    final playing = _ticker.isActive;
+    return StudioButton(
+      label: playing ? 'Pause' : 'Lecture',
+      icon: playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+      onPressed: widget.active ? () => setState(_togglePlayback) : null,
+      variant: variant,
+    );
+  }
 
   Widget _sprite(int elapsed) {
     const size = 168.0;
@@ -184,42 +222,39 @@ class _CharacterWorkshopPreviewState extends State<_CharacterWorkshopPreview>
 
   Widget _controls() {
     if (_clip == null) return const Text('Aucune animation renseignée.');
-    final canPlay = _durationMs > 0 && _clip!.frames.length > 1;
-    final playing = _ticker.isActive;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        StudioSelect(
-          label: 'Animation',
-          value: _state.name,
-          options: {
-            for (final state in _clips.keys) state.name: _animationLabel(state),
-          },
-          onChanged: (value) => setState(
-            () => _selectState(CharacterAnimationState.values.byName(value)),
+        if (widget.showSelectors) ...[
+          StudioSelect(
+            label: 'Animation',
+            value: _state.name,
+            options: {
+              for (final state in _clips.keys)
+                state.name: characterAnimationLabel(state),
+            },
+            onChanged: (value) => setState(
+              () => _selectState(CharacterAnimationState.values.byName(value)),
+            ),
           ),
-        ),
-        const SizedBox(height: StudioSpacing.l),
-        StudioSelect(
-          label: 'Direction',
-          value: _facing.name,
-          options: {
-            for (final direction in _directions.keys)
-              direction.name: _directionLabel(direction),
-          },
-          onChanged: (value) => setState(
-            () => _selectDirection(EntityFacing.values.byName(value)),
+          const SizedBox(height: StudioSpacing.l),
+          StudioSelect(
+            label: 'Direction',
+            value: _facing.name,
+            options: {
+              for (final direction in _directions.keys)
+                direction.name: characterFacingLabel(direction),
+            },
+            onChanged: (value) => setState(
+              () => _selectDirection(EntityFacing.values.byName(value)),
+            ),
           ),
-        ),
-        if (canPlay) ...[
+        ],
+        if (_canPlay) ...[
           const SizedBox(height: StudioSpacing.l),
           Align(
             alignment: Alignment.centerLeft,
-            child: StudioButton(
-              label: playing ? 'Pause' : 'Lecture',
-              icon: playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              onPressed: widget.active ? () => setState(_togglePlayback) : null,
-            ),
+            child: _playButton(StudioButtonVariant.primary),
           ),
         ],
       ],
@@ -227,24 +262,25 @@ class _CharacterWorkshopPreviewState extends State<_CharacterWorkshopPreview>
   }
 }
 
-String _animationLabel(CharacterAnimationState state) => switch (state) {
-  CharacterAnimationState.idle => 'Au repos',
-  CharacterAnimationState.walk => 'Marche',
-  CharacterAnimationState.run => 'Course',
-  CharacterAnimationState.climb => 'Échelle',
-  CharacterAnimationState.bicycleIdle => 'Vélo au repos',
-  CharacterAnimationState.bicycle => 'Vélo',
-  CharacterAnimationState.surfIdle => 'Surf au repos',
-  CharacterAnimationState.surf => 'Surf',
-  CharacterAnimationState.surfEnter => 'Entrée dans l’eau',
-  CharacterAnimationState.surfExit => 'Sortie de l’eau',
-  CharacterAnimationState.cut => 'Coupe',
-  CharacterAnimationState.rockSmash => 'Éclate-Roc',
-  CharacterAnimationState.strength => 'Force',
-  CharacterAnimationState.push => 'Poussée',
-};
+String characterAnimationLabel(CharacterAnimationState state) =>
+    switch (state) {
+      CharacterAnimationState.idle => 'Au repos',
+      CharacterAnimationState.walk => 'Marche',
+      CharacterAnimationState.run => 'Course',
+      CharacterAnimationState.climb => 'Échelle',
+      CharacterAnimationState.bicycleIdle => 'Vélo au repos',
+      CharacterAnimationState.bicycle => 'Vélo',
+      CharacterAnimationState.surfIdle => 'Surf au repos',
+      CharacterAnimationState.surf => 'Surf',
+      CharacterAnimationState.surfEnter => 'Entrée dans l’eau',
+      CharacterAnimationState.surfExit => 'Sortie de l’eau',
+      CharacterAnimationState.cut => 'Coupe',
+      CharacterAnimationState.rockSmash => 'Éclate-Roc',
+      CharacterAnimationState.strength => 'Force',
+      CharacterAnimationState.push => 'Poussée',
+    };
 
-String _directionLabel(EntityFacing facing) => switch (facing) {
+String characterFacingLabel(EntityFacing facing) => switch (facing) {
   EntityFacing.north => 'Nord',
   EntityFacing.south => 'Sud',
   EntityFacing.east => 'Est',

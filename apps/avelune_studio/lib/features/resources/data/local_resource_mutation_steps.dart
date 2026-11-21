@@ -37,6 +37,7 @@ final _resourceMutationActions = {
   'characterStudio.character.delete',
   'characterStudio.animationClip.upsert',
   'characterStudio.animationClip.delete',
+  'characterStudio.animationDefinition.create',
   'characterStudio.portraitState.create',
   'characterStudio.character.portrait.clear',
   'characterStudio.asset.import',
@@ -131,6 +132,7 @@ extension _LocalResourceMutationSteps on LocalResourceAdapter {
     required bool scopedModelMutation,
     required bool scopedImport,
     required String? scopedBorderId,
+    required String? scopedCharacterId,
     required void Function(String name) phase,
   }) async {
     try {
@@ -139,6 +141,8 @@ extension _LocalResourceMutationSteps on LocalResourceAdapter {
       _requireAvailable();
       if (scopedBorderId != null) {
         await _verifyWorkshopBorderReceipt(this, scopedBorderId, receipt);
+      } else if (scopedCharacterId != null) {
+        await _verifyWorkshopCharacter(scopedCharacterId, receipt);
       } else if (scopedImport) {
         if (await mapAdapter.resourceRevision(session) != receipt.revision) {
           throw const ResourceFailure(
