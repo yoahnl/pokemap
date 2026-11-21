@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "map_editor",
+      "name": "avelune_studio",
       "runtimeExecutable": "flutter",
       "runtimeArgs": ["run", "-d", "macos", "--target", "lib/main.dart"],
-      "cwd": "packages/map_editor",
+      "cwd": "apps/avelune_studio",
       "port": 0
     }
   ]
