@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
 
 import 'package:pokemap_hub/features/installation/data/repositories/installed_game_content_seal.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/installed_game_manifest_memo.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 
 final class GameCurrentPointerCodec {
@@ -213,15 +214,27 @@ final class InstalledGameVerifier {
   }) {
     if (_usesDefaultIntegrityCheck &&
         depth == InstalledGameVerificationDepth.content) {
-      return _installedGameContentChecks.run(
-        () => _verifyInstalledGameContent(
+      return _installedGameContentChecks.run(() async {
+        final (verification, decoded) = await _verifyInstalledGameContent(
           supportRoot.path,
           gameId,
           pointer,
           receiptFileName,
           _effectiveMaxConcurrentFileChecks,
-        ),
-      );
+          _installedGameManifests.peek(
+            p.join(
+              supportRoot.path,
+              'games',
+              gameId,
+              'versions',
+              pointer.gameVersion.toString(),
+              'game-manifest.json',
+            ),
+          ),
+        );
+        if (decoded != null) _installedGameManifests.remember(decoded);
+        return verification;
+      });
     }
     return _verify(
       supportRoot: supportRoot,
@@ -229,6 +242,10 @@ final class InstalledGameVerifier {
       pointer: pointer,
       receiptFileName: receiptFileName,
       depth: depth,
+      readManifest: (path) => _installedGameManifests.read(
+        path,
+        (path) => Isolate.run(() => _readInstalledGameManifest(path)),
+      ),
     );
   }
 
@@ -238,6 +255,7 @@ final class InstalledGameVerifier {
     required InstalledGamePointer pointer,
     required String receiptFileName,
     required InstalledGameVerificationDepth depth,
+    required InstalledGameManifestDecoder readManifest,
   }) async {
     try {
       GameIdentity.validateGameId(gameId);
@@ -277,11 +295,9 @@ final class InstalledGameVerifier {
     }
     late final GamePackageManifest manifest;
     try {
-      final manifestPath = p.join(versionRoot.path, 'game-manifest.json');
-      manifest = _usesDefaultIntegrityCheck &&
-              depth == InstalledGameVerificationDepth.content
-          ? await _readInstalledGameManifest(manifestPath)
-          : await Isolate.run(() => _readInstalledGameManifest(manifestPath));
+      manifest = await readManifest(
+        p.join(versionRoot.path, 'game-manifest.json'),
+      );
     } on Object {
       return InstalledGameVerification(
         code: InstalledGameVerificationCode.manifestInvalid,
@@ -516,25 +532,39 @@ const int _maxConcurrentIntegrityWorkers = 8;
 final _installedGameContentChecks = _InstalledGameIntegrityIsolateLimiter(
   maxConcurrent: 1,
 );
+final _installedGameManifests = InstalledGameManifestMemo();
 
-Future<InstalledGameVerification> _verifyInstalledGameContent(
+Future<(InstalledGameVerification, InstalledGameDecodedManifest?)>
+    _verifyInstalledGameContent(
   String supportRootPath,
   String gameId,
   InstalledGamePointer pointer,
   String receiptFileName,
   int maxConcurrentFileChecks,
-) => Isolate.run(() {
-      final verifier = InstalledGameVerifier(
-        maxConcurrentFileChecks: maxConcurrentFileChecks,
-      );
-      return verifier._verify(
-        supportRoot: Directory(supportRootPath),
-        gameId: gameId,
-        pointer: pointer,
-        receiptFileName: receiptFileName,
-        depth: InstalledGameVerificationDepth.content,
-      );
-    });
+  InstalledGameDecodedManifest? known,
+) =>
+        Isolate.run(() async {
+          InstalledGameDecodedManifest? decoded;
+          final verification = await InstalledGameVerifier(
+            maxConcurrentFileChecks: maxConcurrentFileChecks,
+          )._verify(
+            supportRoot: Directory(supportRootPath),
+            gameId: gameId,
+            pointer: pointer,
+            receiptFileName: receiptFileName,
+            depth: InstalledGameVerificationDepth.content,
+            readManifest: (path) async {
+              final read = await readInstalledGameManifestOnce(
+                path,
+                known: known,
+                decode: _readInstalledGameManifest,
+              );
+              if (!identical(read, known)) decoded = read;
+              return read.manifest;
+            },
+          );
+          return (verification, decoded);
+        });
 
 Future<GamePackageManifest> _readInstalledGameManifest(String path) async =>
     const GamePackageManifestCodec().decodeUtf8(await File(path).readAsBytes());
