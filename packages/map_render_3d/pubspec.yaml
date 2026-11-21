@@ -21,6 +21,7 @@ dependencies:
   map_core:
     path: ../map_core
 dev_dependencies:
+  analyzer: ^14.7.0
   image: ^4.0.9
   flutter_test:
     sdk: flutter
