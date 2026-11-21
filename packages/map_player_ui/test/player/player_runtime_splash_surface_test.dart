@@ -20,10 +20,10 @@ void main() {
 
   setUpAll(() async {
     logo = MemoryImage(await File(
-      '../../apps/pokemap_hub/assets/avelune/logo/avelune_moon.png',
+      '../avelune_player_host/assets/avelune/logo/avelune_moon.png',
     ).readAsBytes());
     wordmark = MemoryImage(await File(
-      '../../apps/pokemap_hub/assets/avelune/logo/avelune_glass_wordmark.png',
+      '../avelune_player_host/assets/avelune/logo/avelune_glass_wordmark.png',
     ).readAsBytes());
     await (FontLoader('packages/map_player_ui/PokeMapSplashDMSans')
           ..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf')))
