@@ -4,11 +4,13 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 
+import 'installed_file_stamps.dart';
+
 final class InstalledGameContentSeal {
   InstalledGameContentSeal._(this._stamps);
 
   static const _magic = 'AVSEAL1';
-  static const _fieldsPerFile = 3;
+  static const _fieldsPerFile = installedFileStampFields;
 
   final Int64List _stamps;
 
@@ -26,17 +28,8 @@ final class InstalledGameContentSeal {
     ),
   );
 
-  static InstalledGameContentSeal capture(List<File> files) {
-    final stamps = Int64List(files.length * _fieldsPerFile);
-    for (final (index, file) in files.indexed) {
-      final stat = file.statSync();
-      final offset = index * _fieldsPerFile;
-      stamps[offset] = stat.type == FileSystemEntityType.file ? stat.size : -1;
-      stamps[offset + 1] = stat.modified.microsecondsSinceEpoch;
-      stamps[offset + 2] = stat.changed.microsecondsSinceEpoch;
-    }
-    return InstalledGameContentSeal._(stamps);
-  }
+  static InstalledGameContentSeal capture(List<File> files) =>
+      InstalledGameContentSeal._(readInstalledFileStamps(files));
 
   static InstalledGameContentSeal? read(File file, {required int fileCount}) {
     try {
