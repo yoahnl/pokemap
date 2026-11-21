@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:ui' as ui show Gradient, Image;
 import 'dart:math' as math;
 
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:flame_3d/camera.dart';
@@ -464,7 +465,8 @@ class SpatialSceneController extends ModelPreviewController {
     }
   }
 
-  Future<bool> Function(SpatialScenePreparation)? _prepareDestination;
+  Future<DestinationReadiness> Function(SpatialScenePreparation)?
+  _prepareDestination;
   Offset? Function(Model3dVector3)? _projectPoint;
   Offset? projectToViewport(Model3dVector3 point) =>
       _projectPoint?.call(point);
@@ -476,8 +478,11 @@ class SpatialSceneController extends ModelPreviewController {
   SpatialShadowStats get shadowStats =>
       _readShadowStats?.call() ?? const SpatialShadowStats();
 
-  Future<bool> prepareDestination(SpatialScenePreparation request) =>
-      _prepareDestination?.call(request) ?? Future.value(false);
+  Future<DestinationReadiness> prepareDestination(
+    SpatialScenePreparation request,
+  ) =>
+      _prepareDestination?.call(request) ??
+      Future.value(const DestinationPreparationUnavailable());
   @override
   void dolly(double delta) {
     zoom = (zoom * math.exp(delta * .001)).clamp(.125, 1 / .15);
@@ -726,8 +731,12 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     initialize();
   }
 
-  Future<bool> prepareDestination(SpatialScenePreparation request) async =>
-      mounted ? await game?.prepareDestination(request) ?? false : false;
+  Future<DestinationReadiness> prepareDestination(
+    SpatialScenePreparation request,
+  ) async => mounted
+      ? await game?.prepareDestination(request) ??
+            const DestinationPreparationUnavailable()
+      : const DestinationPreparationUnavailable();
 
   Offset? projectPoint(Model3dVector3 point) =>
       mounted ? game?.projectScenePoint(point) : null;
@@ -1632,16 +1641,18 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   final retiredReservations = <RuntimeResourceReservation>[];
   SpatialSceneResourcePreparation? _destinationPreparation;
 
-  Future<bool> prepareDestination(SpatialScenePreparation request) async {
+  Future<DestinationReadiness> prepareDestination(
+    SpatialScenePreparation request,
+  ) async {
     if (!sceneReady ||
         closed ||
         refreshing ||
         request.resourceIdentity.isEmpty ||
         request.resourceIdentity != configuration.resourceIdentity ||
-        !identical(request.resourceBudget, resourceBudget) ||
-        !request.isCurrent())
-      return false;
-    if (_retainedChunkCovers(request)) return true;
+        !identical(request.resourceBudget, resourceBudget))
+      return const DestinationPreparationUnavailable();
+    if (!request.isCurrent()) return const DestinationSuperseded();
+    if (_retainedChunkCovers(request)) return const DestinationAlreadyCovered();
     _destinationPreparation?.discard();
     final ticket = generation;
     final preparation = SpatialSceneResourcePreparation(
@@ -1664,7 +1675,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     );
     _destinationPreparation = preparation;
     try {
-      if (!await preparation.prepare()) return false;
+      if (!await preparation.prepare()) return const DestinationSuperseded();
       preparation.adoptInto(
         cache,
         groundTextureCache,
@@ -1673,7 +1684,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       );
       _wantedGroundImages.addAll(preparation.preparedGroundImageIds);
       _protectWantedGroundTextures();
-      return true;
+      return const DestinationPrepared();
     } on Object {
       preparation.discard();
       if (identical(_destinationPreparation, preparation)) {

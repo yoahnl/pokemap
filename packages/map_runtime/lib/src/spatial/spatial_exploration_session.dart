@@ -415,12 +415,8 @@ final class SpatialExplorationSession {
   final mapRevision = ValueNotifier(0);
   final transitioning = ValueNotifier(false);
   final nativeDoorBlackout = ValueNotifier<double>(0);
-  Future<void> Function()? waitForNativeDoorBlackoutFrame;
-  Future<void> Function()? waitForNativeTraversalStartFrame;
-  Future<void> Function(
-    RuntimeMapBundle destination,
-    bool Function() isCurrent,
-  )? prepareNativeDoorDestination;
+  DestinationRenderPort<RuntimeMapBundle>? _doorRenderer;
+  DestinationRenderPort<RuntimeMapBundle>? get doorRenderer => _doorRenderer;
   int _transferGeneration = 0;
   final _nativeDoor = SpatialDoorTraversalController();
   Object? _nativeDoorLease;
@@ -2266,6 +2262,26 @@ final class SpatialExplorationSession {
       completion.complete(ready);
   }
 
+  void attachDoorRenderer(DestinationRenderPort<RuntimeMapBundle> renderer) {
+    if (!_disposed) _doorRenderer = renderer;
+  }
+
+  void detachDoorRenderer(DestinationRenderPort<RuntimeMapBundle> renderer) {
+    if (identical(_doorRenderer, renderer)) _doorRenderer = null;
+  }
+
+  Future<void> _prepareDoorRenderer(
+    RuntimeMapBundle destination,
+    bool Function() isCurrent,
+  ) async {
+    final renderer = _doorRenderer;
+    if (renderer == null) return;
+    final readiness = await renderer.prepareDestination(destination, isCurrent);
+    if (readiness case DestinationPreparationFailed(:final error, :final stackTrace)) {
+      Error.throwWithStackTrace(error, stackTrace);
+    }
+  }
+
   void reportNativeDoorRenderFailure(String mapId, Object error) {
     if (_disposed || !nativeDoorTraversalActive || bundle.map.id != mapId)
       return;
@@ -2509,7 +2525,7 @@ final class SpatialExplorationSession {
       );
       if (departure != null) unawaited(projectAudio?.play(ProjectSoundCue.doorOpen));
       departureStarted = true;
-      final firstFrame = waitForNativeTraversalStartFrame?.call();
+      final firstFrame = _doorRenderer?.nextFrame();
       if (firstFrame != null &&
           !await Future.any<bool>([
             firstFrame.then((_) => true),
@@ -2526,7 +2542,7 @@ final class SpatialExplorationSession {
       }
       final coveredFrame = passage.transition.type == MapWarpTransitionType.none
           ? null
-          : waitForNativeDoorBlackoutFrame?.call();
+          : _doorRenderer?.nextFrame();
       if (coveredFrame != null &&
           !await Future.any<bool>([
             coveredFrame.then((_) => true),
@@ -2592,14 +2608,12 @@ final class SpatialExplorationSession {
 
         try {
           final rendererPreparation = native
-              ? Future<void>.sync(
-                  () => prepareNativeDoorDestination?.call(
-                    next,
-                    () =>
-                        acceptingCandidate &&
-                        !_disposed &&
-                        generation == _transferGeneration,
-                  ),
+              ? _prepareDoorRenderer(
+                  next,
+                  () =>
+                      acceptingCandidate &&
+                      !_disposed &&
+                      generation == _transferGeneration,
                 )
               : Future<void>.value();
           await Future.wait<void>([
@@ -2711,7 +2725,7 @@ final class SpatialExplorationSession {
         if (!await rendered || _disposed || generation != _transferGeneration) {
           return;
         }
-        final coveredDestinationFrame = waitForNativeDoorBlackoutFrame?.call();
+        final coveredDestinationFrame = _doorRenderer?.nextFrame();
         if (coveredDestinationFrame != null &&
             !await Future.any<bool>([
               coveredDestinationFrame.then((_) => true),
@@ -2784,8 +2798,7 @@ final class SpatialExplorationSession {
     nativeDoorBlackout.dispose();
     cinematicFadeOpacity.dispose();
     graphics.dispose();
-    waitForNativeDoorBlackoutFrame = null;
-    prepareNativeDoorDestination = null;
+    _doorRenderer = null;
     _disposed = true;
     _transferGeneration++;
     onFrame = null;

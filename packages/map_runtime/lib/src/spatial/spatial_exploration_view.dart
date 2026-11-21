@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -46,7 +47,8 @@ class SpatialExplorationView extends StatefulWidget {
 }
 
 class _SpatialExplorationViewState extends State<SpatialExplorationView>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver
+    implements DestinationRenderPort<RuntimeMapBundle> {
   final focus = FocusNode();
   Timer? _fireAudioTimer;
   late RuntimeBrazierAudioController fireAudio = RuntimeBrazierAudioController(
@@ -206,26 +208,36 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   Object? neighborError;
   String? renderedFramesMapId;
   Map<String, SpatialActorVisual> renderedFrames = const {};
-  Future<void> waitForBlackoutFrame() => WidgetsBinding.instance.endOfFrame;
-  Future<void> prepareNativeDestination(
+  @override
+  Future<FrameAcknowledgement> nextFrame() async {
+    await WidgetsBinding.instance.endOfFrame;
+    return FrameAcknowledgement.flutterFrameSubmitted;
+  }
+
+  @override
+  Future<DestinationReadiness> prepareDestination(
     RuntimeMapBundle destination,
     bool Function() isCurrent,
   ) async {
     final identity = destination.projectCatalog?.identity;
-    if (identity == null) return;
+    if (identity == null) return const DestinationPreparationUnavailable();
     final session = widget.session;
-    await camera.prepareDestination(
-      SpatialScenePreparation(
-        map: destination.map,
-        project: destination.manifest,
-        loadModel: (id) => session.modelBytesForBundle(destination, id),
-        loadGroundImage: (id) => groundBytes(destination, id),
-        resourceIdentity: identity,
-        resourceBudget: destination.resourceBudget,
-        isCurrent: () =>
-            mounted && identical(widget.session, session) && isCurrent(),
-      ),
-    );
+    try {
+      return await camera.prepareDestination(
+        SpatialScenePreparation(
+          map: destination.map,
+          project: destination.manifest,
+          loadModel: (id) => session.modelBytesForBundle(destination, id),
+          loadGroundImage: (id) => groundBytes(destination, id),
+          resourceIdentity: identity,
+          resourceBudget: destination.resourceBudget,
+          isCurrent: () =>
+              mounted && identical(widget.session, session) && isCurrent(),
+        ),
+      );
+    } on Object catch (error, stackTrace) {
+      return DestinationPreparationFailed(error, stackTrace);
+    }
   }
 
   void release() {
@@ -263,9 +275,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     );
     applyVisuals();
     camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
-    widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
-    widget.session.waitForNativeTraversalStartFrame = waitForBlackoutFrame;
-    widget.session.prepareNativeDoorDestination = prepareNativeDestination;
+    widget.session.attachDoorRenderer(this);
     widget.session.setVisibleMaps({});
     loadNeighbors();
   }
@@ -447,18 +457,14 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     oldWidget.session.graphics.removeListener(_graphicsChanged);
     oldWidget.session.mapRevision.removeListener(mapChanged);
     oldWidget.session.transitioning.removeListener(release);
-    oldWidget.session.waitForNativeDoorBlackoutFrame = null;
-    oldWidget.session.waitForNativeTraversalStartFrame = null;
-    oldWidget.session.prepareNativeDoorDestination = null;
+    oldWidget.session.detachDoorRenderer(this);
     keys.clear();
     widget.session.realWeather?.addListener(applyVisuals);
     widget.session.graphics.addListener(_graphicsChanged);
     _graphicsOverrides = widget.session.graphics.value.visualOverrides;
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
-    widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
-    widget.session.waitForNativeTraversalStartFrame = waitForBlackoutFrame;
-    widget.session.prepareNativeDoorDestination = prepareNativeDestination;
+    widget.session.attachDoorRenderer(this);
     activeBundle = widget.session.bundle;
     applyVisuals();
     camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
@@ -566,9 +572,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     widget.session.realWeather?.removeListener(applyVisuals);
     widget.session.graphics.removeListener(_graphicsChanged);
     widget.session.mapRevision.removeListener(mapChanged);
-    widget.session.waitForNativeDoorBlackoutFrame = null;
-    widget.session.waitForNativeTraversalStartFrame = null;
-    widget.session.prepareNativeDoorDestination = null;
+    widget.session.detachDoorRenderer(this);
     widget.session.transitioning.removeListener(release);
     WidgetsBinding.instance.removeObserver(this);
     focus.dispose();

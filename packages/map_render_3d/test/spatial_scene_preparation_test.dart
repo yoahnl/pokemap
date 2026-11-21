@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flame_3d/model.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:flame_3d/core.dart' show Vector2;
@@ -229,7 +230,7 @@ void main() {
               isCurrent: () => true,
             ),
           ),
-          isTrue,
+          isA<DestinationPrepared>(),
         );
         game.groundElapsed = elapsed / 1000;
         expect(await game.refresh(), isTrue);
@@ -362,7 +363,7 @@ void main() {
             isCurrent: () => true,
           ),
         ),
-        isFalse,
+        isA<DestinationPreparationUnavailable>(),
       );
       expect(reads, 0);
     },

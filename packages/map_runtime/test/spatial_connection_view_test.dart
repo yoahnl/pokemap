@@ -89,10 +89,10 @@ void main() {
       theme: ThemeData(brightness: brightness),
       home: SpatialExplorationView(session: session),
     );
-    expect(session.prepareNativeDoorDestination, isNull);
+    expect(session.doorRenderer, isNull);
     await tester.pumpWidget(app(Brightness.light));
-    final preparation = session.prepareNativeDoorDestination;
-    expect(preparation, isNotNull);
+    final renderer = session.doorRenderer;
+    expect(renderer, isNotNull);
     final before = tester.widget<SpatialSceneView>(
       find.byType(SpatialSceneView),
     );
@@ -126,7 +126,7 @@ void main() {
     );
     expect(after.controller.atmosphereProfile, same(atmosphereProfile));
     expect(after.background, Colors.black);
-    expect(session.prepareNativeDoorDestination, preparation);
+    expect(session.doorRenderer, same(renderer));
     session.graphics.value = const RuntimeGraphicsPreferences(
       renderScalePercent: 75,
       upscaling: RuntimeUpscaling.fsr1,
@@ -185,7 +185,7 @@ void main() {
         .adaptivePlaybackFraming, isFalse);
     debugDefaultTargetPlatformOverride = null;
     await tester.pumpWidget(const SizedBox());
-    expect(session.prepareNativeDoorDestination, isNull);
+    expect(session.doorRenderer, isNull);
     session.dispose();
     await tester.runAsync(() => directory.delete(recursive: true));
   });

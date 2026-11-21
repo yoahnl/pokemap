@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/graphics.dart';
 import 'package:flutter/widgets.dart';
@@ -24,7 +25,10 @@ void main() {
     expect(f.game.sceneChunks.keys, ['b']);
     expect(f.game.cache.keys, contains('tree-source'));
     expect(f.game.groundTextureCache.keys, contains('ground'));
-    expect(await f.game.prepareDestination(f.request(f.a)), isTrue);
+    expect(
+      await f.game.prepareDestination(f.request(f.a)),
+      isA<DestinationAlreadyCovered>(),
+    );
     expect(await f.show(f.a), isTrue);
     expect(f.game.sceneChunks['a'], same(chunk));
     expect((f.modelReads, f.imageReads), reads);
@@ -69,7 +73,9 @@ void main() {
               },
             ),
           ),
-          isTrue,
+          covered
+              ? isA<DestinationAlreadyCovered>()
+              : isA<DestinationPrepared>(),
         );
         expect(checks, covered ? 1 : greaterThan(1));
       },
@@ -92,7 +98,7 @@ void main() {
     expect(f.game.groundReservations, isEmpty);
     expect(f.budget.residentBytes, f.budget.profile.maximumResidentBytes);
     other.release();
-    expect(await f.game.prepareDestination(f.request(f.a)), isTrue);
+    expect(await f.game.prepareDestination(f.request(f.a)), isA<DestinationPrepared>());
     expect(await f.show(f.a), isTrue);
     expect(f.game.sceneChunks['a'], isNot(same(chunk)));
     expect(f.modelReads, 2);

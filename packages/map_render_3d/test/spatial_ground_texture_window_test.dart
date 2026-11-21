@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/model.dart';
@@ -849,7 +850,7 @@ void main() {
             isCurrent: () => current,
           ),
         ),
-        isTrue,
+        isA<DestinationPrepared>(),
       );
       final texture = game.groundTextureCache['page-3'];
       final lease = game.groundReservations['page-3'];
@@ -1309,7 +1310,7 @@ void main() {
             isCurrent: () => true,
           ),
         ),
-        isTrue,
+        isA<DestinationPrepared>(),
       );
       expect(reads['page-2'], 2);
       expect(game.groundTextureCache['page-2'], same(initial));

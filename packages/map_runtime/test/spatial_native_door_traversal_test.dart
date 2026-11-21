@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'support/fake_door_renderer.dart';
 import 'support/project_audio_test_driver.dart';
 
 void main() {
@@ -297,7 +299,11 @@ void main() {
         },
       );
       addTearDown(session.dispose);
-      session.waitForNativeTraversalStartFrame = () => firstFrame.future;
+      session.attachDoorRenderer(
+        FakeDoorRenderer(
+          frame: (request) => request == 1 ? firstFrame.future : Future.value(),
+        ),
+      );
       final operation = session.enterWarp(portal);
       await flush();
       expect(loads, 0);
@@ -613,7 +619,7 @@ void main() {
     const sprite = 'neighbor:npc:destination-npc';
     expect(session.frames(0), contains(sprite));
     final renderer = Completer<void>();
-    session.prepareNativeDoorDestination = (_, _) => renderer.future;
+    session.attachDoorRenderer(FakeDoorRenderer(prepare: (_, _) => renderer.future));
     final operation = session.enterWarp(entrance);
     try {
       await untilCovered(session);
@@ -853,11 +859,15 @@ void main() {
     );
     addTearDown(session.dispose);
     bool Function()? isCurrent;
-    session.prepareNativeDoorDestination = (destination, current) {
-      expect(destination.map.id, 'inside');
-      isCurrent = current;
-      return rendererReady.future;
-    };
+    session.attachDoorRenderer(
+      FakeDoorRenderer(
+        prepare: (destination, current) {
+          expect(destination.map.id, 'inside');
+          isCurrent = current;
+          return rendererReady.future;
+        },
+      ),
+    );
     final operation = session.enterWarp(entrance);
     await flush();
     expect(isCurrent, isNull);
@@ -887,26 +897,29 @@ void main() {
     session.setVisibleMaps({'outside'});
     final sourcePaint = Completer<void>();
     final destinationPaint = Completer<void>();
-    var paintRequests = 0;
-    session.waitForNativeDoorBlackoutFrame = () {
-      paintRequests++;
-      return paintRequests == 1 ? sourcePaint.future : destinationPaint.future;
-    };
+    final renderer = FakeDoorRenderer(
+      frame: (request) => switch (request) {
+        2 => sourcePaint.future,
+        3 => destinationPaint.future,
+        _ => Future.value(),
+      },
+    );
+    session.attachDoorRenderer(renderer);
     final operation = session.enterWarp(entrance);
     await flush();
-    for (var i = 0; i < 120 && paintRequests == 0; i++) {
+    for (var i = 0; i < 120 && renderer.frameRequests < 2; i++) {
       session.frames(1 / 60);
       await flush();
     }
-    expect(paintRequests, 1);
+    expect(renderer.frameRequests, 2);
     expect(session.bundle.map.id, 'outside');
     expect(session.nativeDoorBlackout.value, 1);
     sourcePaint.complete();
     await untilMap(session, 'inside');
-    expect(paintRequests, 1);
+    expect(renderer.frameRequests, 2);
     session.setVisibleMaps({'inside'});
     await flush();
-    expect(paintRequests, 2);
+    expect(renderer.frameRequests, 3);
     session.frames(1);
     expect(session.nativeDoorBlackout.value, 1);
     expect(session.nativeDoorHeroVisible, isFalse);
@@ -933,17 +946,17 @@ void main() {
     session.setVisibleMaps({'outside'});
     final original = session.movement.spatialPosition;
     final destinationPaint = Completer<void>();
-    var paintRequests = 0;
-    session.waitForNativeDoorBlackoutFrame = () {
-      paintRequests++;
-      return paintRequests == 1 ? Future.value() : destinationPaint.future;
-    };
+    final renderer = FakeDoorRenderer(
+      frame: (request) =>
+          request < 3 ? Future.value() : destinationPaint.future,
+    );
+    session.attachDoorRenderer(renderer);
     var finished = false;
     final operation = session.enterWarp(entrance).then((_) => finished = true);
     await untilMap(session, 'inside');
     session.setVisibleMaps({'inside'});
     await flush();
-    expect(paintRequests, 2);
+    expect(renderer.frameRequests, 3);
     session.cancelPendingTransition();
     await flush();
     expect(finished, isTrue);
@@ -1012,10 +1025,14 @@ void main() {
       final original = session.movement.spatialPosition;
       final rendererReady = Completer<void>();
       bool Function()? isCurrent;
-      session.prepareNativeDoorDestination = (_, current) {
-        isCurrent = current;
-        return rendererReady.future;
-      };
+      session.attachDoorRenderer(
+        FakeDoorRenderer(
+          prepare: (_, current) {
+            isCurrent = current;
+            return rendererReady.future;
+          },
+        ),
+      );
       final operation = session.enterWarp(entrance);
       await untilCovered(session);
       await waitFor(() => budget.residentBytes > baseline && budget.activeDecodes == 0);
@@ -1048,7 +1065,9 @@ void main() {
       knownMaps: [outside.map, inside.map],
     );
     addTearDown(session.dispose);
-    session.prepareNativeDoorDestination = (_, _) => rendererReady.future;
+    session.attachDoorRenderer(
+      FakeDoorRenderer(prepare: (_, _) => rendererReady.future),
+    );
     final operation = session.enterWarp(entrance);
     await flush();
     for (var i = 0; i < 120; i++) {
@@ -1086,7 +1105,9 @@ void main() {
     addTearDown(blocker.release);
     final rendererReady = Completer<void>();
     final failure = StateError('destination GPU preparation failed');
-    session.prepareNativeDoorDestination = (_, _) => rendererReady.future;
+    session.attachDoorRenderer(
+      FakeDoorRenderer(prepare: (_, _) => rendererReady.future),
+    );
     var finished = false;
     final operation = session.enterWarp(entrance).then((_) => finished = true);
     await untilCovered(session);
@@ -1119,12 +1140,109 @@ void main() {
       knownMaps: [source.map, inside.map],
     );
     addTearDown(session.dispose);
-    var calls = 0;
-    session.prepareNativeDoorDestination = (_, _) async => calls++;
+    final renderer = FakeDoorRenderer();
+    session.attachDoorRenderer(renderer);
     await session.enterWarp(portal);
-    expect(calls, 0);
+    expect(renderer.preparations, 0);
     expect(session.bundle.map.id, 'inside');
     expect(session.interactionError.value, isNull);
+  });
+
+  for (final readiness in const <DestinationReadiness>[
+    DestinationAlreadyCovered(),
+    DestinationSuperseded(),
+    DestinationPreparationUnavailable(),
+  ]) {
+    test('${readiness.runtimeType} keeps the door covered until the destination is visible', () async {
+      final session = await SpatialExplorationSession.load(
+        outside,
+        loadMap: (_) async => inside,
+        knownMaps: [outside.map, inside.map],
+      );
+      addTearDown(session.dispose);
+      session.setVisibleMaps({'outside'});
+      final renderer = FakeDoorRenderer(prepare: (_, _) async => readiness);
+      session.attachDoorRenderer(renderer);
+      final operation = session.enterWarp(entrance);
+      await untilMap(session, 'inside');
+      for (var i = 0; i < 30; i++) {
+        session.frames(1 / 60);
+        await flush();
+      }
+      expect(renderer.preparations, 1);
+      expect(session.nativeDoorBlackout.value, 1);
+      expect(session.nativeDoorTraversalActive, isTrue);
+      expect(session.transitioning.value, isTrue);
+      session.setVisibleMaps({'inside'});
+      await complete(session, operation);
+      expect(session.bundle.map.id, 'inside');
+      expect(session.interactionError.value, isNull);
+      expect(session.movement.paused, isFalse);
+    });
+  }
+
+  test('a late preparation of a cancelled door never unblocks the next door', () async {
+    final session = await SpatialExplorationSession.load(
+      outside,
+      loadMap: (_) async => inside,
+      knownMaps: [outside.map, inside.map],
+    );
+    addTearDown(session.dispose);
+    final preparations = <Completer<void>>[];
+    session.attachDoorRenderer(
+      FakeDoorRenderer(
+        prepare: (_, _) {
+          final preparation = Completer<void>();
+          preparations.add(preparation);
+          return preparation.future;
+        },
+      ),
+    );
+    final first = session.enterWarp(entrance);
+    await untilCovered(session);
+    await waitFor(() => preparations.length == 1);
+    session.cancelPendingTransition();
+    await first;
+    expect(session.bundle.map.id, 'outside');
+    final second = session.enterWarp(entrance);
+    await untilCovered(session);
+    await waitFor(() => preparations.length == 2);
+    preparations.first.complete();
+    for (var i = 0; i < 30; i++) {
+      session.frames(1 / 60);
+      await flush();
+    }
+    expect(session.bundle.map.id, 'outside');
+    expect(session.mapRevision.value, 0);
+    expect(session.nativeDoorBlackout.value, 1);
+    expect(session.nativeDoorTraversalActive, isTrue);
+    preparations.last.complete();
+    await complete(session, second);
+    expect(session.bundle.map.id, 'inside');
+    expect(session.interactionError.value, isNull);
+  });
+
+  test('a stale view detaching never removes the renderer of the current view', () async {
+    final session = await SpatialExplorationSession.load(
+      outside,
+      loadMap: (_) async => inside,
+      knownMaps: [outside.map, inside.map],
+    );
+    addTearDown(session.dispose);
+    final stale = FakeDoorRenderer();
+    final current = FakeDoorRenderer();
+    session.attachDoorRenderer(stale);
+    session.attachDoorRenderer(current);
+    session.detachDoorRenderer(stale);
+    expect(session.doorRenderer, same(current));
+    final operation = session.enterWarp(entrance);
+    await complete(session, operation);
+    expect(session.bundle.map.id, 'inside');
+    expect((stale.preparations, stale.frameRequests), (0, 0));
+    expect(current.preparations, 1);
+    expect(current.frameRequests, greaterThan(0));
+    session.detachDoorRenderer(current);
+    expect(session.doorRenderer, isNull);
   });
 
   test('HGSS door camera freezes its source anchor and never leaks it into the interior', () async {
@@ -1301,10 +1419,15 @@ void main() {
         knownMaps: [outside.map, inside.map],
       );
       addTearDown(session.dispose);
-      session.waitForNativeDoorBlackoutFrame = () {
-        requested = true;
-        return painted.future;
-      };
+      session.attachDoorRenderer(
+        FakeDoorRenderer(
+          frame: (request) {
+            if (request == 1) return Future.value();
+            requested = true;
+            return painted.future;
+          },
+        ),
+      );
       final operation = session.enterWarp(entrance);
       for (var i = 0; i < 500 && !requested; i++) {
         session.frames(1 / 60);
@@ -1335,10 +1458,15 @@ void main() {
         knownMaps: [outside.map, inside.map],
       );
       addTearDown(session.dispose);
-      session.waitForNativeDoorBlackoutFrame = () {
-        requested = true;
-        return painted.future;
-      };
+      session.attachDoorRenderer(
+        FakeDoorRenderer(
+          frame: (request) {
+            if (request == 1) return Future.value();
+            requested = true;
+            return painted.future;
+          },
+        ),
+      );
       var finished = false;
       final operation = session.enterWarp(entrance)
         ..then((_) => finished = true);

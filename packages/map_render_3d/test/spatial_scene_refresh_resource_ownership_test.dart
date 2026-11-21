@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/core.dart';
 import 'package:flutter/widgets.dart';
@@ -86,7 +87,7 @@ void main() {
                   isCurrent: () => true,
                 ),
               ),
-              isTrue,
+              isA<DestinationPrepared>(),
             );
             expect(materials.reads, greaterThan(0));
           }
@@ -116,7 +117,12 @@ void main() {
     final resident = f.budget.residentBytes;
     for (var cycle = 0; cycle < 10; cycle++) {
       for (final destination in [f.b, f.a]) {
-        expect(await f.game.prepareDestination(f.request(destination)), isTrue);
+        expect(
+          await f.game.prepareDestination(f.request(destination)),
+          cycle == 0 && destination == f.b
+              ? isA<DestinationPrepared>()
+              : isA<DestinationAlreadyCovered>(),
+        );
         f.materials.reads = 0;
         f.game.configuration = f.configuration(destination);
         expect(await f.game.refresh(), isTrue);
@@ -185,7 +191,7 @@ void main() {
                 isCurrent: () => current,
               ),
             ),
-            isTrue,
+            isA<DestinationPrepared>(),
           );
         }
         if (interruption == 'cancelled') current = false;
@@ -193,7 +199,7 @@ void main() {
         if (interruption == 'supplanted') {
           expect(
             await f.game.prepareDestination(f.request(f.b.copyWith(id: 'c'))),
-            isTrue,
+            isA<DestinationPrepared>(),
           );
         }
         if (interruption == 'reused chunk') {
@@ -215,7 +221,10 @@ void main() {
         expect(f.game.modelReservations['tree-source'], same(modelLease));
         expect(f.game.groundReservations['ground'], same(textureLease));
         expect(f.budget.residentBytes, resident);
-        expect(await f.game.prepareDestination(f.request(f.a)), isTrue);
+        expect(
+          await f.game.prepareDestination(f.request(f.a)),
+          isA<DestinationAlreadyCovered>(),
+        );
         f.materials.reads = 0;
         f.game.configuration = f.configuration(f.a);
         expect(await f.game.refresh(), isTrue);
