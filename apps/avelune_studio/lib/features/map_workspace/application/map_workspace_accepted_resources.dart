@@ -38,6 +38,7 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
     ProjectManifest updated, {
     Map<String, ProjectModel3dEntry> changedModels = const {},
     BorderBlueprintRecord? changedBorder,
+    ProjectSmartTilePreset? changedTerrain,
     ({String kind, String id})? removedLibraryResource,
     required bool notifyChange,
   }) {
@@ -49,7 +50,7 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
           'Le catalogue a changé pendant cette opération.',
         );
       }
-      project = _prepareModelProjection(updated);
+      project = _prepareResourceProjection(updated);
       if (_workshopDefinitions != null) _workshopDefinitions = project;
     } else {
       final current = project;
@@ -75,7 +76,7 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
           );
         }
       }
-      final sourceEpoch = ++_modelSourceEpoch;
+      final sourceEpoch = ++_resourceProjectionEpoch;
       for (final entry in changedModels.entries) {
         _acceptedModelDefinitions[entry.key] = (
           epoch: sourceEpoch,
@@ -144,6 +145,9 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
     if (changedBorder case final border?) {
       _acceptBorderProjection(border);
     }
+    if (changedTerrain case final terrain?) {
+      _acceptTerrainProjection(terrain);
+    }
     if (removedLibraryResource case final removed?) {
       _resourceClosures.remove('${removed.kind}:${removed.id}');
       if (removed.kind == 'borderBlueprint') {
@@ -151,6 +155,9 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
       }
       if (removed.kind == 'model3d') {
         _acceptedModelDefinitions.remove(removed.id);
+      }
+      if (removed.kind == 'smartTilePreset') {
+        _acceptedTerrainDefinitions.remove(removed.id);
       }
       final family = _familyDefinitions;
       final onDemand = _onDemandDefinitions;
@@ -183,11 +190,50 @@ extension MapWorkspaceAcceptedResources on MapWorkspaceController {
         record,
       );
     }
+    _updateLoadedVisualProjections(
+      (value) => replaceLoadedBorderProjection(value, record),
+    );
+  }
+
+  void _acceptTerrainProjection(ProjectSmartTilePreset terrain) {
+    _acceptedTerrainDefinitions[terrain.id] = (
+      epoch: ++_resourceProjectionEpoch,
+      definition: terrain,
+    );
+    ProjectManifest replace(ProjectManifest value) =>
+        replaceLoadedTerrainProjection(value, terrain);
+    for (final id in _selectionMapsByTerrain[terrain.id] ?? const <String>{}) {
+      terrainWorkshopProjectionsVisited++;
+      final selection = _selections[id]!;
+      _selections[id] = _selectionWithDefinitions(
+        selection,
+        replace(selection.definitions),
+      );
+    }
+    for (final id in _previewMapsByTerrain[terrain.id] ?? const <String>{}) {
+      terrainWorkshopProjectionsVisited++;
+      _previewDefinitions[id] = replace(_previewDefinitions[id]!);
+    }
+    _updateLoadedVisualProjections(replace);
+  }
+
+  void _updateLoadedVisualProjections(
+    ProjectManifest Function(ProjectManifest) update,
+  ) {
     ProjectManifest? replace(ProjectManifest? value) =>
-        value == null ? null : replaceLoadedBorderProjection(value, record);
-    _familyDefinitions = replace(_familyDefinitions);
-    _onDemandDefinitions = replace(_onDemandDefinitions);
+        value == null ? null : update(value);
+    final family = identical(_resourceVisualDefinitions, _familyDefinitions);
+    final onDemand = identical(
+      _resourceVisualDefinitions,
+      _onDemandDefinitions,
+    );
     _resourceVisualDefinitions = replace(_resourceVisualDefinitions);
+    _familyDefinitions = family
+        ? _resourceVisualDefinitions
+        : replace(_familyDefinitions);
+    _onDemandDefinitions = onDemand
+        ? _resourceVisualDefinitions
+        : replace(_onDemandDefinitions);
     if (_combinedVisuals != null) {
       _combinedVisuals = replace(_combinedVisuals);
       _visualMapSource =

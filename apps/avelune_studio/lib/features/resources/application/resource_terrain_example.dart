@@ -9,12 +9,25 @@ int regularAtlasLocalTileId({
 List<TileLayerPaletteEntry>? terrainConnectionExample(
   ProjectManifest project,
   ProjectSmartTilePreset preset,
+) => terrainConnectionExampleCells(
+  project,
+  preset,
+)?.map((cell) => cell.tile).toList(growable: false);
+
+typedef TerrainConnectionExampleCell = ({
+  String ruleId,
+  TileLayerPaletteEntry tile,
+});
+
+List<TerrainConnectionExampleCell>? terrainConnectionExampleCells(
+  ProjectManifest project,
+  ProjectSmartTilePreset preset,
 ) {
   final resolver = PreparedSmartTileResolver(
     preset: preset,
     materials: project.smartTileCatalog.materials,
   );
-  final result = <TileLayerPaletteEntry>[];
+  final result = <TerrainConnectionExampleCell>[];
   for (var y = 0; y < 3; y++) {
     for (var x = 0; x < 3; x++) {
       final resolution = resolver.resolve(
@@ -28,52 +41,19 @@ List<TileLayerPaletteEntry>? terrainConnectionExample(
         x: x,
         y: y,
       );
+      final ruleId = resolution.ruleId;
       if (resolution.status != SmartTileResolutionStatus.resolved ||
+          ruleId == null ||
           resolution.parts.length != 1) {
         return null;
       }
       final part = resolution.parts.single;
-      final visual = part.source;
-      if (visual is! SmartTileFrameSource ||
-          part.offsetX != 0 ||
-          part.offsetY != 0 ||
-          part.anchorX != 0 ||
-          part.anchorY != 0 ||
-          part.footprintWidth != 1 ||
-          part.footprintHeight != 1 ||
-          part.frameSampling != SmartTileFrameSampling.fullFrame) {
-        return null;
-      }
-      final frame = visual.frame;
-      final atlas = project.smartTileCatalog.atlases
-          .where((value) => value.id == frame.atlasId)
-          .firstOrNull;
-      final source = project.tilesets
-          .where((value) => value.id == atlas?.tilesetId)
-          .firstOrNull
-          ?.source;
-      if (atlas == null ||
-          source is! ProjectRegularAtlasTilesetSource ||
-          frame.columnSpan != 1 ||
-          frame.rowSpan != 1 ||
-          frame.column >= atlas.columns ||
-          frame.row >= atlas.rows ||
-          frame.column >= source.columns ||
-          frame.row >= source.rows ||
-          atlas.originX != 0 ||
-          atlas.originY != 0 ||
-          atlas.marginX != source.marginX ||
-          atlas.marginY != source.marginY ||
-          atlas.spacingX != source.spacingX ||
-          atlas.spacingY != source.spacingY ||
-          atlas.cellWidth != source.tileWidth ||
-          atlas.cellHeight != source.tileHeight ||
-          atlas.pixelOffsetX != 0 ||
-          atlas.pixelOffsetY != 0) {
-        return null;
-      }
-      result.add(
-        TileLayerPaletteEntry(
+      final grid = terrainFrameGrid(project, part);
+      if (grid == null) return null;
+      final (:frame, :atlas, :source) = grid;
+      result.add((
+        ruleId: ruleId,
+        tile: TileLayerPaletteEntry(
           tilesetId: atlas.tilesetId,
           localTileId: regularAtlasLocalTileId(
             row: frame.row,
@@ -85,8 +65,60 @@ List<TileLayerPaletteEntry>? terrainConnectionExample(
             second: resolution.transform,
           ),
         ),
-      );
+      ));
     }
   }
   return result;
+}
+
+typedef TerrainFrameGrid = ({
+  SmartTileFrameRef frame,
+  ProjectSmartTileAtlas atlas,
+  ProjectRegularAtlasTilesetSource source,
+});
+
+TerrainFrameGrid? terrainFrameGrid(
+  ProjectManifest project,
+  SmartTileVisualPart part,
+) {
+  final visual = part.source;
+  if (visual is! SmartTileFrameSource ||
+      part.offsetX != 0 ||
+      part.offsetY != 0 ||
+      part.anchorX != 0 ||
+      part.anchorY != 0 ||
+      part.footprintWidth != 1 ||
+      part.footprintHeight != 1 ||
+      part.frameSampling != SmartTileFrameSampling.fullFrame) {
+    return null;
+  }
+  final frame = visual.frame;
+  final atlas = project.smartTileCatalog.atlases
+      .where((value) => value.id == frame.atlasId)
+      .firstOrNull;
+  final source = project.tilesets
+      .where((value) => value.id == atlas?.tilesetId)
+      .firstOrNull
+      ?.source;
+  if (atlas == null ||
+      source is! ProjectRegularAtlasTilesetSource ||
+      frame.columnSpan != 1 ||
+      frame.rowSpan != 1 ||
+      frame.column >= atlas.columns ||
+      frame.row >= atlas.rows ||
+      frame.column >= source.columns ||
+      frame.row >= source.rows ||
+      atlas.originX != 0 ||
+      atlas.originY != 0 ||
+      atlas.marginX != source.marginX ||
+      atlas.marginY != source.marginY ||
+      atlas.spacingX != source.spacingX ||
+      atlas.spacingY != source.spacingY ||
+      atlas.cellWidth != source.tileWidth ||
+      atlas.cellHeight != source.tileHeight ||
+      atlas.pixelOffsetX != 0 ||
+      atlas.pixelOffsetY != 0) {
+    return null;
+  }
+  return (frame: frame, atlas: atlas, source: source);
 }

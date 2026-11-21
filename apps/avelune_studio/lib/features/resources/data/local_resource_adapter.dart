@@ -18,6 +18,8 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
+import '../../map_workspace/domain/map_workspace_port.dart'
+    show MapWorkspaceFailure, MapWorkspaceProblem;
 import '../../map_workspace/domain/map_workspace_workshop.dart';
 import '../../dialogues/data/local_dialogue_adapter.dart';
 import '../../project_session/domain/project_session.dart';
@@ -29,6 +31,7 @@ import '../domain/project_library_editor.dart';
 import '../domain/project_library_organization.dart';
 import '../domain/project_model_replacement_port.dart';
 import '../domain/project_model_workshop_port.dart';
+import '../domain/project_terrain_workshop_port.dart';
 import '../domain/project_tileset_workshop_port.dart';
 import '../domain/resource_port.dart';
 import '../domain/model_resource_port.dart';
@@ -64,13 +67,15 @@ part 'local_project_model_workshop.dart';
 part 'local_project_border_workshop.dart';
 part 'local_project_character_workshop.dart';
 part 'local_project_tileset_workshop.dart';
+part 'local_project_terrain_workshop.dart';
 
 final class LocalResourceAdapter
     with
         _LocalProjectLibraryOrganization,
         _LocalProjectModelWorkshop,
         _LocalProjectBorderWorkshop,
-        _LocalProjectTilesetWorkshop
+        _LocalProjectTilesetWorkshop,
+        _LocalProjectTerrainWorkshop
     implements
         ResourcePort,
         ResourceMutationPreparationPort,
@@ -96,6 +101,8 @@ final class LocalResourceAdapter
   LocalResourceAdapter get _borderWorkshopAdapter => this;
   @override
   LocalResourceAdapter get _tilesetWorkshopAdapter => this;
+  @override
+  LocalResourceAdapter get _terrainWorkshopAdapter => this;
   @override
   bool get resourceIndexPreparationAvailable =>
       session.storage == ProjectSessionStorage.workingCatalog;

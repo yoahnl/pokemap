@@ -4,7 +4,7 @@ extension MapWorkspaceVisualSettings on MapWorkspaceController {
   void _cacheVisualComposition(ProjectManifest map, ProjectManifest family) {
     _visualMapSource = map;
     _visualFamilySource = family;
-    _combinedVisuals = _prepareModelProjection(
+    _combinedVisuals = _prepareResourceProjection(
       combineResourceVisuals(map, family),
     );
     visualProjectionBuilds++;

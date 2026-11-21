@@ -17,7 +17,7 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
     }
   }
 
-  ProjectManifest _prepareModelProjection(
+  ProjectManifest _prepareResourceProjection(
     ProjectManifest value, {
     int? sourceEpoch,
   }) {
@@ -37,9 +37,22 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
     final models = replacements.isEmpty
         ? entries
         : entries.replaceSelected(replacements);
-    return identical(models, value.models3d) && identical(maps, value.maps)
+    var result =
+        identical(models, value.models3d) && identical(maps, value.maps)
         ? value
         : value.copyWith(models3d: models, maps: maps);
+    if (sourceEpoch != null && sourceEpoch < _resourceProjectionEpoch) {
+      for (final terrain in value.smartTileCatalog.presets) {
+        final replacement = _acceptedTerrainDefinitions[terrain.id];
+        if (replacement != null && replacement.epoch > sourceEpoch) {
+          result = replaceLoadedTerrainProjection(
+            result,
+            replacement.definition,
+          );
+        }
+      }
+    }
+    return result;
   }
 
   ProjectManifest _replaceModelProjection(
@@ -72,43 +85,28 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
           snapshotRevision: selection.snapshotRevision,
         );
 
-  void _indexModelProjection(
-    String mapId,
-    ProjectManifest? previous,
-    ProjectManifest next,
-    Map<String, Set<String>> index,
-  ) {
-    if (previous != null) {
-      for (final model in previous.models3d) {
-        final maps = index[model.id];
-        maps?.remove(mapId);
-        if (maps?.isEmpty == true) index.remove(model.id);
-      }
-    }
-    for (final model in next.models3d) {
-      (index[model.id] ??= {}).add(mapId);
-    }
-  }
-
-  void _cacheSelection(
+  MapWorkspaceSelection _cacheSelection(
     String mapId,
     MapWorkspaceSelection selection,
     int sourceEpoch,
   ) {
     _indexVisualScope(mapId);
-    final definitions = _prepareModelProjection(
+    final definitions = _prepareResourceProjection(
       selection.definitions,
       sourceEpoch: sourceEpoch,
     );
     final previous = _selections[mapId]?.definitions;
-    _indexModelProjection(mapId, previous, definitions, _selectionMapsByModel);
-    _indexBorderProjection(
+    _indexResourceProjections(
       mapId,
       previous,
       definitions,
+      _selectionMapsByModel,
       _selectionMapsByBorder,
+      _selectionMapsByTerrain,
     );
-    _selections[mapId] = _selectionWithDefinitions(selection, definitions);
+    final prepared = _selectionWithDefinitions(selection, definitions);
+    _selections[mapId] = prepared;
+    return prepared;
   }
 
   void _cachePreviewDefinitions(
@@ -117,13 +115,19 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
     int sourceEpoch,
   ) {
     _indexVisualScope(mapId);
-    final definitions = _prepareModelProjection(
+    final definitions = _prepareResourceProjection(
       value,
       sourceEpoch: sourceEpoch,
     );
     final previous = _previewDefinitions[mapId];
-    _indexModelProjection(mapId, previous, definitions, _previewMapsByModel);
-    _indexBorderProjection(mapId, previous, definitions, _previewMapsByBorder);
+    _indexResourceProjections(
+      mapId,
+      previous,
+      definitions,
+      _previewMapsByModel,
+      _previewMapsByBorder,
+      _previewMapsByTerrain,
+    );
     _previewDefinitions[mapId] = definitions;
   }
 
@@ -131,23 +135,50 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
     _selections.clear();
     _selectionMapsByModel.clear();
     _selectionMapsByBorder.clear();
+    _selectionMapsByTerrain.clear();
   }
 
-  void _indexBorderProjection(
+  void _indexResourceProjections(
     String mapId,
     ProjectManifest? previous,
     ProjectManifest? next,
+    Map<String, Set<String>> models,
+    Map<String, Set<String>> borders,
+    Map<String, Set<String>> terrains,
+  ) {
+    _indexResourceIds(
+      mapId,
+      previous?.models3d.map((item) => item.id),
+      next?.models3d.map((item) => item.id),
+      models,
+    );
+    _indexResourceIds(
+      mapId,
+      previous?.borderCatalog.records.map((item) => item.id),
+      next?.borderCatalog.records.map((item) => item.id),
+      borders,
+    );
+    _indexResourceIds(
+      mapId,
+      previous?.smartTileCatalog.presets.map((item) => item.id),
+      next?.smartTileCatalog.presets.map((item) => item.id),
+      terrains,
+    );
+  }
+
+  void _indexResourceIds(
+    String mapId,
+    Iterable<String>? previous,
+    Iterable<String>? next,
     Map<String, Set<String>> index,
   ) {
-    for (final record
-        in previous?.borderCatalog.records ?? const <BorderBlueprintRecord>[]) {
-      final maps = index[record.id];
+    for (final id in previous ?? const <String>[]) {
+      final maps = index[id];
       maps?.remove(mapId);
-      if (maps?.isEmpty == true) index.remove(record.id);
+      if (maps?.isEmpty == true) index.remove(id);
     }
-    for (final record
-        in next?.borderCatalog.records ?? const <BorderBlueprintRecord>[]) {
-      (index[record.id] ??= {}).add(mapId);
+    for (final id in next ?? const <String>[]) {
+      (index[id] ??= {}).add(mapId);
     }
   }
 
@@ -162,20 +193,5 @@ extension _MapWorkspaceModelProjection on MapWorkspaceController {
       }
     }
     return result;
-  }
-
-  void _unindexExternalProjection(
-    String id,
-    ProjectManifest? definitions,
-    Map<String, Set<String>> index,
-    Map<String, Set<String>> borderIndex,
-  ) {
-    for (final model
-        in definitions?.models3d ?? const <ProjectModel3dEntry>[]) {
-      final ids = index[model.id];
-      ids?.remove(id);
-      if (ids?.isEmpty == true) index.remove(model.id);
-    }
-    _indexBorderProjection(id, definitions, null, borderIndex);
   }
 }

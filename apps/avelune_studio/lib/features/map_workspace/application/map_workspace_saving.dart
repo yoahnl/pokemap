@@ -106,7 +106,7 @@ extension MapWorkspaceSaving on MapWorkspaceController {
     );
     final ticket = (_savedSelectionTickets[entry.id] ?? 0) + 1;
     _savedSelectionTickets[entry.id] = ticket;
-    final sourceEpoch = _modelSourceEpoch;
+    final sourceEpoch = _resourceProjectionEpoch;
     final refresh = source
         .loadMapSelection(session, entry)
         .then(

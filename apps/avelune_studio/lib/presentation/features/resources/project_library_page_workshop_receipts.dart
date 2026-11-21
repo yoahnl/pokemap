@@ -1,6 +1,69 @@
 part of 'project_library_page.dart';
 
 extension _ProjectLibraryPageWorkshopReceipts on _ProjectLibraryPageState {
+  ProjectTerrainWorkshopEditor? _terrainWorkshopEditor(
+    _ProjectLibraryRead read,
+    ProjectLibraryItem item,
+    ProjectLibraryEditor? editor,
+  ) {
+    final revision = read.revision;
+    if (revision == null || editor is! ProjectTerrainWorkshopPort) return null;
+    final port = editor as ProjectTerrainWorkshopPort;
+    if (!port.terrainConnectionEditingAvailable) return null;
+    final maps = widget.maps;
+    Future<ResourceMutationReceipt> accept(
+      Future<ResourceMutationReceipt> Function() write,
+    ) => _withWorkshopBusy(() async {
+      final receipt = await write();
+      final terrain = receipt.changedTerrain;
+      if (terrain == null || receipt.noChange) return receipt;
+      try {
+        if (!mounted || !identical(maps, widget.maps)) {
+          throw const ResourceFailure('Le projet a été fermé.');
+        }
+        if (maps.project == receipt.before) {
+          maps.acceptResources(
+            receipt.before,
+            receipt.manifest,
+            changedTerrain: terrain,
+          );
+        } else if (maps.project != receipt.manifest) {
+          throw const ResourceFailure('La bibliothèque a changé.');
+        }
+        _updateView(() {
+          if (read.revision == receipt.beforeRevision) {
+            read.revision = receipt.revision;
+          }
+        });
+      } on Object {
+        throw ResourceFailure(
+          'Les raccords sont enregistrés. Relisez la publication pour les afficher.',
+          partialReceipt: receipt,
+        );
+      }
+      return receipt;
+    });
+
+    return (
+      revision: revision,
+      pendingReceipt: _workshopReceipts[item.identity],
+      onPendingReceiptChanged: (receipt) =>
+          _retainWorkshopReceipt(maps, item.identity, receipt),
+      publish: (preset, expectedRevision) => accept(
+        () => port.publishTerrainConnections(
+          preset,
+          expectedRevision: expectedRevision,
+        ),
+      ),
+      reconcile: (receipt) async {
+        await accept(() async {
+          await port.reconcileTerrainConnections(receipt);
+          return receipt;
+        });
+      },
+    );
+  }
+
   ProjectCharacterEditor? _characterWorkshopEditor(
     _ProjectLibraryRead read,
     ProjectLibraryItem item,

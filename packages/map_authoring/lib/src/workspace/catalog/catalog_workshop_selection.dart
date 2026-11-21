@@ -50,6 +50,7 @@ part 'catalog_contextual_item_scope.dart';
 part 'catalog_asset_import_selection.dart';
 part 'catalog_usage_replacement_selection.dart';
 part 'catalog_native_resource_selection.dart';
+part 'catalog_terrain_frame_replacement.dart';
 part 'catalog_character_workshop_selection.dart';
 part 'catalog_presentation_reset_selection.dart';
 part 'catalog_scene_workshop_selection.dart';

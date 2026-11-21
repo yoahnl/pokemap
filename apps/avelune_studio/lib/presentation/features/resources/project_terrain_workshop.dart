@@ -1,12 +1,16 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/rendering/contracts/map_workspace_visuals.dart';
 import '../../../features/resources/application/project_resource_library.dart';
 import '../../../features/resources/application/project_resource_preview.dart';
+import '../../../features/resources/domain/project_terrain_workshop_port.dart';
+import '../../../features/resources/domain/resource_port.dart';
 import '../../../features/terrains/domain/terrain_connections.dart';
 import 'library/resource_library_map_usage_links.dart';
 import 'project_library_resource_art.dart';
+import 'project_terrain_connection_dialog.dart';
 
 class ProjectTerrainWorkshop extends StatefulWidget {
   const ProjectTerrainWorkshop({
@@ -19,6 +23,7 @@ class ProjectTerrainWorkshop extends StatefulWidget {
     this.loadingMapUsages = false,
     this.onOpenMap,
     this.onRename,
+    this.editor,
   });
 
   final ProjectLibraryItem item;
@@ -29,6 +34,7 @@ class ProjectTerrainWorkshop extends StatefulWidget {
   final bool loadingMapUsages;
   final Future<bool> Function(String)? onOpenMap;
   final Future<void> Function()? onRename;
+  final ProjectTerrainWorkshopEditor? editor;
 
   @override
   State<ProjectTerrainWorkshop> createState() => _ProjectTerrainWorkshopState();
@@ -36,10 +42,12 @@ class ProjectTerrainWorkshop extends StatefulWidget {
 
 class _ProjectTerrainWorkshopState extends State<ProjectTerrainWorkshop> {
   late ProjectResourcePreviewLease _lease;
+  String? _previewRevision;
 
   @override
   void initState() {
     super.initState();
+    _previewRevision = widget.editor?.revision;
     _lease = widget.previews.acquire(widget.item);
   }
 
@@ -49,17 +57,47 @@ class _ProjectTerrainWorkshopState extends State<ProjectTerrainWorkshop> {
     if (oldWidget.item.identity != widget.item.identity ||
         oldWidget.previews != widget.previews) {
       _read();
+    } else if (oldWidget.item.name != widget.item.name) {
+      _previewRevision = widget.editor?.revision;
     }
   }
 
-  void _read() {
+  void _read({String? revision}) {
+    _previewRevision = revision ?? widget.editor?.revision;
     _lease.release();
     _lease = widget.previews.acquire(widget.item);
   }
 
-  void _retry() {
+  void _retry({String? revision}) {
     widget.previews.invalidate([widget.item.identity]);
-    setState(_read);
+    setState(() => _read(revision: revision));
+  }
+
+  Future<void> _editConnections(
+    ProjectResourcePreview result,
+    ProjectSmartTilePreset preset,
+    MapWorkspaceVisuals visuals,
+    List<TerrainConnectionChoice> connections,
+    ProjectTerrainWorkshopEditor editor,
+  ) async {
+    final identity = widget.item.identity;
+    final revision = _previewRevision ?? editor.revision;
+    final saved = await showDialog<ResourceMutationReceipt>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ProjectTerrainConnectionDialog(
+        preset: preset.copyWith(name: widget.item.name),
+        project: result.project,
+        visuals: visuals,
+        connections: connections,
+        editor: editor,
+        revision: revision,
+      ),
+    );
+    if (!mounted || saved == null || identity != widget.item.identity) return;
+    _retry(revision: saved.revision);
+    ScaffoldMessenger.maybeOf(context)
+        ?.showSnackBar(const SnackBar(content: Text('Raccords publiés.')));
   }
 
   @override
@@ -191,10 +229,38 @@ class _ProjectTerrainWorkshopState extends State<ProjectTerrainWorkshop> {
             return const StudioEmptyState(title: 'Terrain introuvable');
           }
           final visuals = widget.visuals;
+          final editor = widget.editor;
+          final connections = editor == null || visuals == null
+              ? const <TerrainConnectionChoice>[]
+              : editableTerrainConnections(result.project, terrain);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              StudioBadge(terrainUsageLabel(terrain.usage)),
+              Wrap(
+                spacing: StudioSpacing.l,
+                runSpacing: StudioSpacing.s,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  StudioBadge(terrainUsageLabel(terrain.usage)),
+                  if (editor != null &&
+                      visuals != null &&
+                      (connections.isNotEmpty || editor.pendingReceipt != null))
+                    StudioButton(
+                      label: editor.pendingReceipt == null
+                          ? 'Modifier les raccords'
+                          : 'Relire les raccords',
+                      icon: Icons.grid_view_outlined,
+                      variant: StudioButtonVariant.secondary,
+                      onPressed: () => _editConnections(
+                        result,
+                        terrain,
+                        visuals,
+                        connections,
+                        editor,
+                      ),
+                    ),
+                ],
+              ),
               const SizedBox(height: StudioSpacing.l),
               if (visuals == null)
                 const StudioNotice('Aperçu indisponible.')

@@ -5,6 +5,8 @@ import 'package:avelune_studio/features/rendering/contracts/scoped_resource_prev
 import 'package:avelune_studio/features/resources/application/project_resource_library.dart';
 import 'package:avelune_studio/features/resources/application/project_resource_preview.dart';
 import 'package:avelune_studio/features/resources/application/resource_preview_source.dart';
+import 'package:avelune_studio/features/resources/domain/project_terrain_workshop_port.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_connections.dart';
 import 'package:avelune_studio/presentation/features/resources/model_resource_preview.dart';
 import 'package:avelune_studio/presentation/features/resources/project_terrain_workshop.dart';
@@ -14,7 +16,10 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../support/map_workspace_fixture.dart';
 
+part 'project_terrain_workshop_editing_cases.dart';
+
 void main() {
+  _editingTests();
   testWidgets('shows the tiles resolved for each connection of a 2D path', (
     tester,
   ) async {
@@ -27,6 +32,7 @@ void main() {
 
     expect(find.text('Chemin du jardin'), findsOneWidget);
     expect(find.text('Chemin automatique'), findsOneWidget);
+    expect(find.text('Modifier les raccords'), findsNothing);
     expect(visuals.tiles.map((tile) => tile.tilesetId), everyElement('sheet'));
     expect(visuals.tiles.map((tile) => tile.localTileId), [
       6,
@@ -148,6 +154,7 @@ Future<void> _pumpWorkshop(
   Future<bool> Function(String)? onOpenMap,
   VoidCallback? onBack,
   Future<void> Function()? onRename,
+  ProjectTerrainWorkshopEditor? editor,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -161,6 +168,7 @@ Future<void> _pumpWorkshop(
           onOpenMap: onOpenMap,
           onBack: onBack ?? () {},
           onRename: onRename,
+          editor: editor,
         ),
       ),
     ),

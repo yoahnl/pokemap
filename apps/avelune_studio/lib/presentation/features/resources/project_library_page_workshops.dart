@@ -99,6 +99,7 @@ extension _ProjectLibraryPageWorkshops on _ProjectLibraryPageState {
         onOpenMap: openMap,
         onBack: leave,
         onRename: rename,
+        editor: _terrainWorkshopEditor(read, selected, management?.editor),
       ),
     };
   }

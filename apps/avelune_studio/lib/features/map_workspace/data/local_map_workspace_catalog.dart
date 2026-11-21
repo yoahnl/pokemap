@@ -28,12 +28,18 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
     ResourceMutationReceipt receipt, {
     bool allowMapOrganization = false,
     BorderBlueprintRecord? changedBorder,
+    ProjectSmartTilePreset? changedTerrain,
   }) async {
     final project = _project(session);
     if (project.revision == receipt.revision &&
         project.manifest == receipt.manifest) {
       await _requireProjectRevision(session, project);
-      _acceptResourceProjections(session.sessionId, receipt, changedBorder);
+      _acceptResourceProjections(
+        session.sessionId,
+        receipt,
+        changedBorder: changedBorder,
+        changedTerrain: changedTerrain,
+      );
       return;
     }
     final originalMaps = project.manifest.maps;
@@ -66,22 +72,36 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
       metadataFields: project.metadataFields,
     );
     await _requireProjectRevision(session, next);
-    _acceptResourceProjections(session.sessionId, receipt, changedBorder);
+    _acceptResourceProjections(
+      session.sessionId,
+      receipt,
+      changedBorder: changedBorder,
+      changedTerrain: changedTerrain,
+    );
     _projects[session.sessionId] = next;
   }
 
   void _acceptResourceProjections(
     String sessionId,
-    ResourceMutationReceipt receipt,
+    ResourceMutationReceipt receipt, {
     BorderBlueprintRecord? changedBorder,
-  ) {
+    ProjectSmartTilePreset? changedTerrain,
+  }) {
     final changes = receipt.changedModels;
     final removed = receipt.removedLibraryResource;
-    if (changes.isEmpty && removed == null && changedBorder == null) return;
+    if (changes.isEmpty &&
+        removed == null &&
+        changedBorder == null &&
+        changedTerrain == null) {
+      return;
+    }
     ProjectManifest updated(ProjectManifest value) {
       if (removed != null) return withoutLibraryResource(value, removed);
       if (changedBorder != null) {
         return replaceLoadedBorderProjection(value, changedBorder);
+      }
+      if (changedTerrain != null) {
+        return replaceLoadedTerrainProjection(value, changedTerrain);
       }
       final entries = value.models3d;
       if (entries is! ProjectModel3dEntries) {
