@@ -39,12 +39,13 @@ void main() {
           ['old', 'first', 'last']);
       expect(reloaded.entities.last.properties, {'authored': 'preserved'});
       expect(await f.manifest.readAsBytes(), manifestBefore);
-      final undone = await f.undo(receipt['receiptId'] as String);
+      final entryId = receipt['receiptId'] as String;
+      final undone = await f.moveHistory(entryId);
+      expect((undone['receipt'] as Map)['actionId'], 'history.undo');
       expect(await f.map.readAsBytes(), before);
       expect(await f.manifest.readAsBytes(), manifestBefore);
-      final restored =
-          await f.undo((undone['receipt'] as Map)['receiptId'] as String);
-      expect((restored['receipt'] as Map)['actionId'], 'history.undo');
+      final restored = await f.moveHistory(entryId, redo: true);
+      expect((restored['receipt'] as Map)['actionId'], 'history.redo');
       expect(await f.map.readAsBytes(), after);
       expect(await f.manifest.readAsBytes(), manifestBefore);
       await f.reopen();
@@ -255,21 +256,25 @@ final class _Fixture {
         })
       : mutations.apply(project, planId: planId, operationId: 'apply-$planId');
 
-  Future<Map<String, Object?>> undo(String entryId) {
-    final id = 'undo-entity-${++sequence}';
-    return jsonl
-        ? wire('undo', {
-            'projectHandle': project.value,
-            'entryId': entryId,
-            'idempotencyKey': id
-          })
-        : mutations.undo(project, entryId: entryId, idempotencyKey: id);
+  Future<Map<String, Object?>> moveHistory(String entryId, {bool redo = false}) {
+    final operation = redo ? 'redo' : 'undo';
+    final id = '$operation-entity-${++sequence}';
+    if (jsonl) {
+      return wire(operation, {
+        'projectHandle': project.value,
+        'entryId': entryId,
+        'idempotencyKey': id,
+      });
+    }
+    final execute = redo ? mutations.redo : mutations.undo;
+    return execute(project, entryId: entryId, idempotencyKey: id);
   }
 
   Future<int> historyCount() async {
-    final file = File('${root.path}/.pokemap/authoring/history.jsonl');
-    if (!await file.exists()) return 0;
-    return (await file.readAsLines()).where((line) => line.isNotEmpty).length;
+    final page = jsonl
+        ? await wire('history', {'projectHandle': project.value, 'limit': 2})
+        : await mutations.history(project, limit: 2);
+    return (page['entries'] as List).length;
   }
 
   Future<void> dispose() async {

@@ -76,7 +76,7 @@ void main() {
       'footprint': {'width': 1, 'height': 1},
       'mapMode': '2d_and_3d',
       'visual': 'existingProjectElement_or_boundStaticModel',
-      'spatialKinds': ['cutTree', 'rockSmashRock'],
+      'spatialKinds': ['cutTree', 'strengthBoulder', 'rockSmashRock'],
       'clearValue': null,
       'parameters': ['mapId', 'entityId', 'fieldObstacle'],
       'iceBlock': {
