@@ -116,7 +116,7 @@ final class ProjectDraftEdits {
         (v) => v.toJson());
     collect('shops', previous.shops, draft.shops, (v) => v.id, (v) => v.toJson());
     collect('environmentPresets', previous.environmentPresets,
-        draft.environmentPresets, (v) => v.id, (v) => v.toJson());
+        draft.environmentPresets, (v) => v.id, encodeEnvironmentPreset);
     if (previous.borderCatalog != draft.borderCatalog) {
       final old = previous.borderCatalog;
       final next = draft.borderCatalog;
@@ -194,7 +194,7 @@ final class ProjectDraftEdits {
     return result;
   }
 
-  static Never _stale() => throw const AuthoringPlanException(
+  static Never _stale() => throw AuthoringPlanException(
         code: 'plan.stale',
         message: 'Le projet a été modifié depuis la création du brouillon.',
       );
