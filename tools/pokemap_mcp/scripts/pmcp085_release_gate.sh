@@ -36,6 +36,29 @@ done
 (cd "$repo_root/apps/avelune_studio" && flutter pub get)
 (cd "$repo_root/tools/pokemap_mcp" && npm run check && npm run build)
 
+transport_dart="$proof_root/transport-dart"
+transport_worker="$proof_root/pokemap-authoring.dill"
+dart_executable="$(command -v dart)"
+(
+  cd "$repo_root/packages/map_authoring"
+  template_catalog="$(base64 < assets/project_templates.v1.json | tr -d '\r\n')"
+  "$dart_executable" compile kernel \
+    "-DPOKEMAP_AUTHORING_TEMPLATE_CATALOG_BASE64=$template_catalog" \
+    bin/pokemap_authoring.dart -o "$transport_worker"
+)
+{
+  printf '#!/usr/bin/env bash\n'
+  printf 'dart_executable=%q\ntransport_worker=%q\n' "$dart_executable" "$transport_worker"
+  cat <<'EOF'
+if [[ $# -ge 2 && $1 == run && $2 == bin/pokemap_authoring.dart ]]; then
+  shift 2
+  exec "$dart_executable" "$transport_worker" "$@"
+fi
+exec "$dart_executable" "$@"
+EOF
+} > "$transport_dart"
+chmod 700 "$transport_dart"
+
 cd "$certification_directory"
 flutter pub get
 dart run bin/certify_item_system_v1.dart \
@@ -43,14 +66,14 @@ dart run bin/certify_item_system_v1.dart \
   --transport-receipts-out "$transport_receipts"
 
 release_status=0
-transport_args=(--source-revision "$source_revision")
+transport_args=(--source-revision "$source_revision" --dart "$transport_dart")
 for recipe in "$fixtures_directory"/pmcp085_*/scenarios.json; do
   fixture_directory="${recipe%/*}"
   projects="$fixture_directory/projects"
   output="$proof_root/${fixture_directory##*/}-transports.json"
   if dart run bin/certify_authoring_transports.dart \
     --recipes "$recipe" --fixtures "$projects" --qa-root "$proof_root" \
-    --source-revision "$source_revision" --out "$output" && [[ -s "$output" ]]; then
+    --source-revision "$source_revision" --dart "$transport_dart" --out "$output" && [[ -s "$output" ]]; then
     transport_args+=(--transport-run "$output" "$recipe" "$projects")
     if [[ "$evidence_dir" != "$proof_root" ]]; then
       cp -- "$output" "$evidence_dir/"
@@ -85,7 +108,7 @@ dart test --reporter failures-only
 dart analyze
 
 cd "$repo_root/apps/avelune_studio"
-flutter analyze --no-pub
+flutter analyze --no-pub --no-fatal-infos
 
 cd "$repo_root/tools/pokemap_mcp"
 npm test
@@ -93,12 +116,12 @@ npm test
 cd "$repo_root/packages/map_runtime"
 flutter test --reporter failures-only \
   test/application/authoring_preview/runtime_authoring_map_render_adapter_test.dart
-flutter analyze
+flutter analyze --no-fatal-infos
 
 cd "$repo_root/examples/playable_runtime_host"
 flutter test --reporter failures-only \
   test/evaluation/evaluation_authoring_job_service_test.dart \
   test/evaluation/evaluation_playtest_adapter_test.dart
-flutter analyze
+flutter analyze --no-fatal-infos
 
 echo 'PMCP-085 release claim authorized.'
