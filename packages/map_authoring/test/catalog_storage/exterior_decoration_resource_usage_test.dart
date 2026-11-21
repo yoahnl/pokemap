@@ -10,6 +10,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../support/exterior_decoration_fixture.dart';
+import '../support/authoring_qa_path.dart';
 
 void main() {
   late Directory root;
@@ -20,7 +21,7 @@ void main() {
   final model = CatalogDefinitionKey(CatalogDefinitionKind.model3d, 'oak');
   setUp(() async {
     final base = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/exterior-decoration/authoring');
+        authoringQaPath('exterior-decoration/authoring'));
     await base.create(recursive: true);
     root = await base.createTemp('usage_');
     store = await CatalogStorageStore.open(projectRoot: root.path);

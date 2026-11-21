@@ -7,8 +7,9 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../support/reliability_map_fixture.dart';
+import '../support/authoring_qa_path.dart';
 
-const qaRoot = '/Users/karim/Library/Caches/AveluneQA/mcp-map-reliability/r3';
+final qaRoot = authoringQaPath('mcp-map-reliability/r3');
 
 void main() {
   tearDownAll(() async {

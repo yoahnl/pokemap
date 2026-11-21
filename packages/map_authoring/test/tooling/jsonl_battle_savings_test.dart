@@ -4,6 +4,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   const config = ProjectBattleSavingsConfig(
       enabledFactId: 'after-loss',
@@ -186,7 +188,7 @@ final class _DefeatJsonlSetup {
 
   static Future<_DefeatJsonlSetup> create() async {
     final taskRoot =
-        Directory('/Users/karim/Library/Caches/AveluneQA/battle-savings');
+        Directory(authoringQaPath('battle-savings'));
     await taskRoot.create(recursive: true);
     final root = await taskRoot.createTemp('jsonl-');
     await Directory('${root.path}/maps').create(recursive: true);

@@ -5,6 +5,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../../support/authoring_qa_path.dart';
+
 const _journal = {
   'title': {
     'fallback': 'Le rival',
@@ -184,7 +186,7 @@ final class _Fixture {
   File get manifest => File('${directory.path}/project.json');
 
   static Future<_Fixture> create() async {
-    final root = await Directory('/Users/karim/Library/Caches/AveluneQA/c6')
+    final root = await Directory(authoringQaPath('c6'))
         .create(recursive: true);
     final directory = await root.createTemp('journal-');
     await File('${directory.path}/project.json')

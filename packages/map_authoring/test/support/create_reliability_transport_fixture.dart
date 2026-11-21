@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'reliability_map_fixture.dart';
+import 'authoring_qa_path.dart';
 
 Future<void> main(List<String> arguments) async {
   if (arguments.length < 2 || arguments.length > 3) {
@@ -10,7 +11,7 @@ Future<void> main(List<String> arguments) async {
   final fixture = await ReliabilityMapFixture.create(
       variant: ReliabilityMapVariant.values.byName(arguments[0]),
       storage: ReliabilityStorage.values.byName(arguments[1]),
-      qaRoot: arguments.length == 3 ? arguments[2] : '/Users/karim/Library/Caches/AveluneQA/mcp-map-reliability/r3');
+      qaRoot: arguments.length == 3 ? arguments[2] : authoringQaPath('mcp-map-reliability/r3'));
   try {
     await fixture.api.prepareWorkshopCatalog(fixture.opened.projectHandle);
     await fixture.api.detachWorkspace(fixture.opened.workspaceHandle);

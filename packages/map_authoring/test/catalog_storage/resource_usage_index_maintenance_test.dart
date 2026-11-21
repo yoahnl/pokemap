@@ -9,6 +9,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../support/resource_index_fixture.dart';
+import '../support/authoring_qa_path.dart';
 
 void main() {
   test(
@@ -326,7 +327,7 @@ MapData _map(String id, String sheet) => MapData(
 Future<ResourceIndexFixture> _fixture(
     {int unrelated = 0, bool pokemon = false, bool grouped = false}) async {
   final base = Directory(
-      '/Users/karim/Library/Caches/AveluneQA/resource-inverse-index/dart-tests');
+      authoringQaPath('resource-inverse-index/dart-tests'));
   await base.create(recursive: true);
   final root = await base.createTemp('fixture-');
   final maps = [

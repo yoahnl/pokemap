@@ -8,11 +8,12 @@ import 'package:test/test.dart';
 
 import '../support/narrative_title_fixture.dart';
 import '../support/storyline_trame_fixture.dart';
+import '../support/authoring_qa_path.dart';
 
 void main() {
   test('journal actions publish on a working catalog and undo cleanly',
       () async {
-    final qa = await Directory('/Users/karim/Library/Caches/AveluneQA/c6')
+    final qa = await Directory(authoringQaPath('c6'))
         .create(recursive: true);
     final fixture = await NarrativeTitleFixture.create(
         at: await qa.createTemp('catalog-journal-'), project: trameProject(0));

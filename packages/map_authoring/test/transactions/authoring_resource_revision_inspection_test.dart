@@ -8,6 +8,8 @@ import 'package:map_authoring/map_authoring_api.dart';
 import 'package:map_authoring/src/transactions/authoring_payload.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   for (final size in [
     0,
@@ -22,7 +24,7 @@ void main() {
         'revision inspection matches full inspection for inline and file $size',
         () async {
       final directory = Directory(
-          '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-authoring/inspection');
+          authoringQaPath('ecorcia-chapitre7-annexes/periodic-availability-authoring/inspection'));
       await directory.create(recursive: true);
       addTearDown(() async {
         if (await directory.exists()) await directory.delete(recursive: true);

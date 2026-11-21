@@ -8,6 +8,8 @@ import 'package:map_authoring/src/workspace/catalog/catalog_narrative_event_docu
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 String _event(int index, {int block = 0}) =>
     'evt_019abcde-000$block-7000-8000-${index.toRadixString(16).padLeft(12, '0')}';
 
@@ -310,7 +312,7 @@ final class _Fixture {
   static Future<_Fixture> open(
       {int unrelated = 0, _CaptureWorkObserver? observer}) async {
     final qa = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/histoire-a2/catalog-deletion');
+        authoringQaPath('histoire-a2/catalog-deletion'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('project-');
     final store = await CatalogStorageStore.open(projectRoot: root.path);

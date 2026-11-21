@@ -8,12 +8,14 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   late Directory root;
   late WorkspacePolicy policy;
   setUp(() async {
     final base = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/exterior-decoration/authoring');
+        authoringQaPath('exterior-decoration/authoring'));
     await base.create(recursive: true);
     root = await base.createTemp('fixture_');
     await Directory('${root.path}/maps').create();

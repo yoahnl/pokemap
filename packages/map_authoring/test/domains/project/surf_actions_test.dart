@@ -5,6 +5,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../../support/authoring_qa_path.dart';
+
 const configuration = <String, Object?>{
   'enabled': true,
   'requiresKnownMove': false,
@@ -156,7 +158,7 @@ final class _Harness {
 
   static Future<_Harness> create() async {
     final qa =
-        Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+        Directory(authoringQaPath('surf-v1/authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('native-');
     final file = File('${root.path}/project.json');

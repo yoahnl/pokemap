@@ -6,6 +6,8 @@ import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.d
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   test(
       'map creation accepts an observed full revision and rejects it after a concurrent commit',
@@ -433,7 +435,7 @@ final class _Fixture {
     DateTime Function()? clock,
   }) async {
     final root = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/hgss-mauville-maps/api/fixture');
+        authoringQaPath('hgss-mauville-maps/api/fixture'));
     await root.create(recursive: true);
     final project = ProjectManifest(
       name: 'Map creation',

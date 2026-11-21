@@ -9,6 +9,8 @@ import 'package:map_authoring/src/workspace/catalog/catalog_narrative_event_docu
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   test('Scene owner facets follow relocation and deletion without stale owners',
       () async {
@@ -177,7 +179,7 @@ void main() {
   test('legacy owner cache rejects changed registry until explicit reopen',
       () async {
     final qa = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/puzzle-authoring');
+        authoringQaPath('ecorcia-chapitre7-annexes/puzzle-authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('owner-cache-');
     addTearDown(() => root.delete(recursive: true));

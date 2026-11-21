@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:test/test.dart';
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
+import '../../support/authoring_qa_path.dart';
 
 void main() {
   for (final dimension in [ProjectDimension.twoD, ProjectDimension.threeD]) {
@@ -31,7 +32,7 @@ void main() {
           'periodic export validates item before dimension branch dimension=${dimension.name} scenario=$scenario',
           () async {
         final qa = Directory(Platform.environment['AVELUNE_QA_ROOT'] ??
-            '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-runtime');
+            authoringQaPath('ecorcia-chapitre7-annexes/periodic-availability-runtime'));
         await qa.create(recursive: true);
         final root = await qa.createTemp('export-');
         addTearDown(() => root.delete(recursive: true));

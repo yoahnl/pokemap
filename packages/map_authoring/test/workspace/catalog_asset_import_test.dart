@@ -10,6 +10,7 @@ import 'package:image/image.dart' as img;
 import '../support/glb_fixture.dart';
 import '../domains/maps/border_spatial_actions_test.dart'
     show spatialBorderAuthoringFixture;
+import '../support/authoring_qa_path.dart';
 
 void main() {
   test('a PNG terrain is published atomically with its source and definitions', () async {
@@ -66,7 +67,7 @@ void main() {
   for (final unrelated in [0, 80]) {
     test('classifying a preset preserves a classified source with $unrelated foreign units', () async {
       final fixture = await _Fixture.open(unrelated,
-          rootPath: '/Users/karim/Library/Caches/AveluneQA/hgss-library-cleanup/classification-$unrelated');
+          rootPath: authoringQaPath('hgss-library-cleanup/classification-$unrelated'));
       addTearDown(fixture.close);
       final png = await fixture.api.artifacts.put(
           img.encodePng(img.Image(width: 16, height: 16)),
@@ -145,7 +146,7 @@ void main() {
     test('published Border deprecation stays local with $unrelated foreign units',
         () async {
       final fixture = await _Fixture.open(unrelated,
-          rootPath: '/Users/karim/Library/Caches/AveluneQA/alpha-border-fix/api-$unrelated');
+          rootPath: authoringQaPath('alpha-border-fix/api-$unrelated'));
       addTearDown(fixture.close);
       final artifact = await fixture.api.artifacts
           .put(triangleGlb(), declaredMediaType: 'model/gltf-binary');
@@ -197,7 +198,7 @@ void main() {
     test('unpublished Border draft edits stay local with $unrelated foreign units',
         () async {
       final fixture = await _Fixture.open(unrelated,
-          rootPath: '/Users/karim/Library/Caches/AveluneQA/chapter7-native-construction/api/unpublished-border-$unrelated');
+          rootPath: authoringQaPath('chapter7-native-construction/api/unpublished-border-$unrelated'));
       addTearDown(fixture.close);
       final artifact = await fixture.api.artifacts
           .put(triangleGlb(), declaredMediaType: 'model/gltf-binary');
@@ -286,7 +287,7 @@ void main() {
         () async {
       final fixture = await _Fixture.open(unrelated,
           rootPath:
-              '/Users/karim/Library/Caches/AveluneQA/vague3-cout-ressources/api-$unrelated');
+              authoringQaPath('vague3-cout-ressources/api-$unrelated'));
       addTearDown(fixture.close);
       final artifact = await fixture.api.artifacts
           .put(triangleGlb(), declaredMediaType: 'model/gltf-binary');
@@ -401,7 +402,7 @@ void main() {
         () async {
       final fixture = await _Fixture.open(unrelated,
           rootPath:
-              '/Users/karim/Library/Caches/AveluneQA/vague3-ressources-restes/api-clear-$unrelated');
+              authoringQaPath('vague3-ressources-restes/api-clear-$unrelated'));
       addTearDown(fixture.close);
       final artifact = await fixture.api.artifacts
           .put(triangleGlb(), declaredMediaType: 'model/gltf-binary');
@@ -532,7 +533,7 @@ void main() {
         () async {
       final fixture = await _Fixture.open(unrelated,
           rootPath:
-              '/Users/karim/Library/Caches/AveluneQA/vague3-ressources-restes/api-family-$unrelated');
+              authoringQaPath('vague3-ressources-restes/api-family-$unrelated'));
       addTearDown(fixture.close);
       final results = <AuthoringMutationResult>[];
       for (final (action, parameters) in [
@@ -1017,7 +1018,7 @@ final class _Fixture {
     bool categoryFamilies = false,
   }) async {
     final root = Directory(rootPath ??
-        '/Users/karim/Library/Caches/AveluneQA/hgss-mauville-maps/api/assets-fixture');
+        authoringQaPath('hgss-mauville-maps/api/assets-fixture'));
     await root.create(recursive: true);
     final project = ProjectManifest(
       name: 'Map creation',

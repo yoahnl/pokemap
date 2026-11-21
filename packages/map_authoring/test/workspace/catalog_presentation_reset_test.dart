@@ -5,6 +5,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   for (final action in [
     'presentation.delete',
@@ -15,7 +17,7 @@ void main() {
       test('$action preserves unrelated content with $unrelated records',
           () async {
         final root = Directory(
-            '/Users/karim/Library/Caches/AveluneQA/hgss-interface-reset/fixture');
+            authoringQaPath('hgss-interface-reset/fixture'));
         await root.create(recursive: true);
         addTearDown(() async {
           if (await root.exists()) await root.delete(recursive: true);

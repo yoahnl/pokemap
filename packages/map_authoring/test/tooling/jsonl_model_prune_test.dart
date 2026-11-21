@@ -4,12 +4,13 @@ import 'package:test/test.dart';
 
 import '../support/create_duplicate_model_fixture.dart' as seed;
 import '../support/resource_pack_stdio_client.dart';
+import '../support/authoring_qa_path.dart';
 
 void main() {
   test('JSONL previews confirms prunes and restores an unused library model',
       () async {
     final base =
-        Directory('/Users/karim/Library/Caches/AveluneQA/catalog-model-delete');
+        Directory(authoringQaPath('catalog-model-delete'));
     await base.create(recursive: true);
     final root = await base.createTemp('jsonl-');
     ResourcePackStdioClient? client;

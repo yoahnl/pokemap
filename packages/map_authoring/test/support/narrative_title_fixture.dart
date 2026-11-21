@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
+import 'authoring_qa_path.dart';
+
 String narrativeTitleEvent(int index) =>
     'evt_019abcde-0000-7000-8000-${index.toRadixString(16).padLeft(12, '0')}';
 
@@ -72,7 +74,7 @@ final class NarrativeTitleFixture {
   final LocalMapAuthoringMutationApi api;
 
   static Directory get qa =>
-      Directory('/Users/karim/Library/Caches/AveluneQA/c1/narrative-titles');
+      Directory(authoringQaPath('c1/narrative-titles'));
 
   static Future<NarrativeTitleFixture> create(
       {int facts = 3,

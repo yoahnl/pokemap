@@ -6,11 +6,13 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
 import 'package:map_authoring/src/support/authoring_performance_observer.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   test('pending index growth rejects capacity before replacing a valid index',
       () async {
     final qa =
-        Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+        Directory(authoringQaPath('surf-v1/authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('index-capacity-');
     addTearDown(() => root.delete(recursive: true));
@@ -45,7 +47,7 @@ void main() {
       'interrupted transaction retirement preserves indexed intent and staged payloads',
       () async {
     final qa =
-        Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+        Directory(authoringQaPath('surf-v1/authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('retirement-');
     addTearDown(() => root.delete(recursive: true));
@@ -99,7 +101,7 @@ void main() {
   test('an inherited lock token expires before later asynchronous work runs',
       () async {
     final qa =
-        Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+        Directory(authoringQaPath('surf-v1/authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('lock-lifetime-');
     addTearDown(() => root.delete(recursive: true));
@@ -132,7 +134,7 @@ void main() {
         'pending journal reads ignore $retained retained finalized journals after explicit preparation',
         () async {
       final qa =
-          Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+          Directory(authoringQaPath('surf-v1/authoring'));
       await qa.create(recursive: true);
       final root = await qa.createTemp('pending-');
       addTearDown(() => root.delete(recursive: true));
@@ -169,7 +171,7 @@ void main() {
       'concurrent journal writers inside one filesystem lock retain both reservations',
       () async {
     final qa =
-        Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+        Directory(authoringQaPath('surf-v1/authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('concurrent-');
     addTearDown(() => root.delete(recursive: true));
@@ -192,7 +194,7 @@ void main() {
       'a durable reservation restores the journal intent after publication interruption',
       () async {
     final qa =
-        Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+        Directory(authoringQaPath('surf-v1/authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('reserved-');
     addTearDown(() => root.delete(recursive: true));
@@ -219,7 +221,7 @@ void main() {
 
   test('an unknown reservation without durable intent fails closed', () async {
     final qa =
-        Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+        Directory(authoringQaPath('surf-v1/authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('missing-reservation-');
     addTearDown(() => root.delete(recursive: true));
@@ -245,7 +247,7 @@ void main() {
   test('legacy terminal journals remain active until finalization is verified',
       () async {
     final qa =
-        Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+        Directory(authoringQaPath('surf-v1/authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('terminal-reservation-');
     addTearDown(() => root.delete(recursive: true));
@@ -264,7 +266,7 @@ void main() {
   test('explicit legacy preparation preserves an existing pending journal',
       () async {
     final qa =
-        Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+        Directory(authoringQaPath('surf-v1/authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('legacy-pending-');
     addTearDown(() => root.delete(recursive: true));

@@ -6,6 +6,7 @@ import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
+import { authoringQaPath } from "./support/authoring_qa_path.js";
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === "object" && !Array.isArray(value));
@@ -13,7 +14,7 @@ function record(value: unknown): JsonRecord {
 }
 
 test("MCP discovers, authors and clears an persistent battle savings policy", { timeout: 180_000 }, async () => {
-  const qaRoot = "/Users/karim/Library/Caches/AveluneQA/battle-savings";
+  const qaRoot = authoringQaPath("battle-savings");
   await mkdir(qaRoot, { recursive: true });
   const root = await mkdtemp(join(qaRoot, "mcp-"));
   const projectFile = join(root, "project.json");
@@ -90,7 +91,7 @@ test("MCP discovers, authors and clears an persistent battle savings policy", { 
 });
 
 test("MCP savings rejects a conflicting runtime Fact alias before mutation", { timeout: 180_000 }, async () => {
-  const qaRoot = "/Users/karim/Library/Caches/AveluneQA/battle-savings";
+  const qaRoot = authoringQaPath("battle-savings");
   await mkdir(qaRoot, { recursive: true });
   const root = await mkdtemp(join(qaRoot, "mcp-alias-"));
   const projectFile = join(root, "project.json");

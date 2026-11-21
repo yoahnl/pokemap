@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
+import '../../support/authoring_qa_path.dart';
 
 void main() {
   for (final enabled in [null, false, true]) {
@@ -13,7 +14,7 @@ void main() {
         'export declares Surf only for explicit configuration enabled=$enabled',
         () async {
       final qa =
-          Directory('/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring');
+          Directory(authoringQaPath('surf-v1/authoring'));
       await qa.create(recursive: true);
       final root = await qa.createTemp('export-');
       addTearDown(() => root.delete(recursive: true));

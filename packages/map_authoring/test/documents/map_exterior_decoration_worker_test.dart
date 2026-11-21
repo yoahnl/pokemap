@@ -9,13 +9,14 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../support/exterior_decoration_fixture.dart';
+import '../support/authoring_qa_path.dart';
 
 void main() {
   test(
       'worker keeps first and repeated saves targeted after initial playable load',
       () async {
     final base = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/exterior-decoration/authoring');
+        authoringQaPath('exterior-decoration/authoring'));
     await base.create(recursive: true);
     final root = await base.createTemp('worker_');
     addTearDown(() => root.delete(recursive: true));
@@ -148,7 +149,7 @@ void main() {
       'worker preserves actor permissions and rejects custom callback preconditions',
       () async {
     final base = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/exterior-decoration/authoring');
+        authoringQaPath('exterior-decoration/authoring'));
     await base.create(recursive: true);
     final root = await base.createTemp('worker_permissions_');
     addTearDown(() => root.delete(recursive: true));

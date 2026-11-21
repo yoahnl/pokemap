@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../support/reliability_map_fixture.dart';
+import '../support/authoring_qa_path.dart';
 
 void main() {
   test('a facade confirmation continues through canonical apply with selected dependencies',() async {
@@ -260,7 +261,7 @@ void main() {
       final fixture = await ReliabilityMapFixture.create(
           variant: ReliabilityMapVariant.healthy,
           qaRoot:
-              '/Users/karim/Library/Caches/AveluneQA/mcp-map-reliability/r2');
+              authoringQaPath('mcp-map-reliability/r2'));
       addTearDown(fixture.dispose);
       final gateway = await LocalTransactionFileGateway.open(
           projectRoot: fixture.root.path);
@@ -291,7 +292,7 @@ void main() {
     final now = DateTime.utc(2026, 10, 30);
     setUp(() async {
       final qa = await Directory(
-              '/Users/karim/Library/Caches/AveluneQA/mcp-map-reliability/r2')
+              authoringQaPath('mcp-map-reliability/r2'))
           .create(recursive: true);
       root = await qa.createTemp('operation-');
       ledgerPath = '${root.path}/.pokemap/authoring/idempotency.jsonl';

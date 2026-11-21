@@ -4,6 +4,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../../support/authoring_qa_path.dart';
+
 Map<String, dynamic> command({String output = 'ball'}) =>
     SceneInteractiveCommand.openCrafting(
         definition: DeferredCraftingDefinition(
@@ -110,7 +112,7 @@ final class _CraftingFixture {
 
   static Future<_CraftingFixture> create({required bool jsonl}) async {
     final qaRoot = Directory(Platform.environment['AVELUNE_QA_ROOT'] ??
-        '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/crafting');
+        authoringQaPath('ecorcia-chapitre7-annexes/crafting'));
     await qaRoot.create(recursive: true);
     final root = await qaRoot.createTemp('deferred-crafting-');
     await File('${root.path}/project.json').writeAsString(jsonEncode(

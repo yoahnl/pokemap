@@ -5,6 +5,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 const _actions = [
   'warp.create',
   'connection.upsert',
@@ -397,7 +399,7 @@ final class _Fixture {
       AuthoringTransactionFaultInjector? faultInjector}) async {
     final sourceId = reverseIds ? 'z-source' : 'source';
     final root = await Directory(
-            '/Users/karim/Library/Caches/AveluneQA/hgss-mauville-maps/api')
+            authoringQaPath('hgss-mauville-maps/api'))
         .create(recursive: true)
         .then((root) => root.createTemp('relations-'));
     final models = [

@@ -7,12 +7,13 @@ import 'package:test/test.dart';
 
 import '../support/glb_fixture.dart';
 import '../support/resource_index_fixture.dart';
+import '../support/authoring_qa_path.dart';
 
 void main() {
   test('model import and history preserve positions without prepared slots',
       () async {
     final base =
-        Directory('/Users/karim/Library/Caches/AveluneQA/catalog-model-delete');
+        Directory(authoringQaPath('catalog-model-delete'));
     await base.create(recursive: true);
     final root = await base.createTemp('import-slots-');
     final bytes = triangleGlb();

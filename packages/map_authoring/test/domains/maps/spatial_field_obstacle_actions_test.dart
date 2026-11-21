@@ -8,6 +8,7 @@ import 'package:map_authoring/src/domains/maps/spatial_map_actions.dart';
 import 'package:test/test.dart';
 
 import 'map_catalog_fixture.dart';
+import '../../support/authoring_qa_path.dart';
 
 const actionId = 'map3d.instance.configure_field_obstacle';
 final obstacleModel = ProjectModel3dEntry(
@@ -66,7 +67,7 @@ void main() {
   test('native obstacle workshop reads only its selected map and model',
       () async {
     final root = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/field-actions-3d/authoring-native');
+        authoringQaPath('field-actions-3d/authoring-native'));
     await root.create(recursive: true);
     addTearDown(() => root.delete(recursive: true));
     await File('${root.path}/project.json')
@@ -113,7 +114,7 @@ void main() {
         '$kind model obstacle action is discoverable and persists through JSONL catalog=$catalogStorage',
         () async {
       final root = Directory(
-          '/Users/karim/Library/Caches/AveluneQA/field-actions-3d/authoring-cli');
+          authoringQaPath('field-actions-3d/authoring-cli'));
       await root.create(recursive: true);
       addTearDown(() async {
         if (await root.exists()) await root.delete(recursive: true);

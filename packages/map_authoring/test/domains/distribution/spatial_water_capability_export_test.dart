@@ -7,12 +7,13 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
+import '../../support/authoring_qa_path.dart';
 
 void main() {
   test('exports water zones without enabling Surf in project settings',
       () async {
     final owner =
-        Directory('/Users/karim/Library/Caches/AveluneQA/hgss-export-0111');
+        Directory(authoringQaPath('hgss-export-0111'));
     await owner.create(recursive: true);
     final root = await owner.createTemp('water-');
     addTearDown(() => root.delete(recursive: true));

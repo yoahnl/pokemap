@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
+import '../../support/authoring_qa_path.dart';
 
 void main() {
   test('export declares the player journal only when the project has one',
@@ -24,7 +25,7 @@ void main() {
 }
 
 Future<Set<String>> _export({required bool withJournal}) async {
-  final qa = await Directory('/Users/karim/Library/Caches/AveluneQA/c6')
+  final qa = await Directory(authoringQaPath('c6'))
       .create(recursive: true);
   final root = await qa.createTemp('journal-export-');
   addTearDown(() => root.delete(recursive: true));

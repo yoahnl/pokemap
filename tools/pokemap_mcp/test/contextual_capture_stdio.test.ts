@@ -7,6 +7,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { Ajv } from 'ajv';
 import type { JsonRecord } from '../src/authoring_client.js';
 import { canonicalPokemonConfig, canonicalPokemonRulesetProfile } from './pokemon_fixture.js';
+import { authoringQaPath } from "./support/authoring_qa_path.js";
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === 'object' && !Array.isArray(value));
@@ -14,7 +15,7 @@ function record(value: unknown): JsonRecord {
 }
 
 test('fresh MCP discovers and authors contextual capture with explicit profile and reversible admission', { timeout: 180000 }, async () => {
-  const qaRoot = '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/capture-authoring';
+  const qaRoot = authoringQaPath('ecorcia-chapitre7-annexes/capture-authoring');
   await mkdir(qaRoot, { recursive: true });
   const root = await mkdtemp(join(qaRoot, 'contextual-mcp-'));
   const file = join(root, 'project.json');

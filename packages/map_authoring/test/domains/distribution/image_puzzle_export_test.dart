@@ -8,6 +8,7 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:test/test.dart';
 
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
+import '../../support/authoring_qa_path.dart';
 
 void main() {
   for (final puzzle in [false, true]) {
@@ -15,7 +16,7 @@ void main() {
         'export preserves puzzle media closure and conditional capability puzzle=$puzzle',
         () async {
       final qa = Directory(
-          '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/puzzle-authoring');
+          authoringQaPath('ecorcia-chapitre7-annexes/puzzle-authoring'));
       await qa.create(recursive: true);
       final root = await qa.createTemp('export-');
       addTearDown(() => root.delete(recursive: true));

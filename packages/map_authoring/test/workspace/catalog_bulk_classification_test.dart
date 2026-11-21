@@ -6,10 +6,11 @@ import 'package:test/test.dart';
 
 import '../support/glb_fixture.dart';
 import '../support/resource_index_fixture.dart';
+import '../support/authoring_qa_path.dart';
 
 void main() {
   test('a thousand classifications persist together without changing unrelated data', () async {
-    final parent = Directory('/Users/karim/Library/Caches/AveluneQA/hgss-library-dedup/dart-tests');
+    final parent = Directory(authoringQaPath('hgss-library-dedup/dart-tests'));
     await parent.create(recursive: true);
     final root = await parent.createTemp('bulk-');
     final inspection = const GlbModel3dInspector().inspect(triangleGlb());

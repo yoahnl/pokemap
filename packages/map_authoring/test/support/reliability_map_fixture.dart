@@ -9,6 +9,7 @@ import '../domains/maps/border_face_ground_warning_actions_test.dart'
     show directedCliffAuthoringFixture;
 import '../domains/maps/environment_spatial_actions_test.dart'
     show environmentModelGlb;
+import 'authoring_qa_path.dart';
 
 enum ReliabilityMapVariant {
   healthy,
@@ -248,8 +249,8 @@ final class ReliabilityMapFixture {
   ReliabilityMapFixture._(this.root, this.content, this.storage, this.reader,
       this.dispatcher, this.faultInjector);
 
-  static const defaultQaRoot =
-      '/Users/karim/Library/Caches/AveluneQA/mcp-map-reliability/r0';
+  static final defaultQaRoot =
+      authoringQaPath('mcp-map-reliability/r0');
   final Directory root;
   final ReliabilityMapContent content;
   final ReliabilityStorage storage;
@@ -272,11 +273,11 @@ final class ReliabilityMapFixture {
     required ReliabilityMapVariant variant,
     ReliabilityStorage storage = ReliabilityStorage.classic,
     int reservedVariant = 0,
-    String qaRoot = defaultQaRoot,
+    String? qaRoot,
     MapMutationDispatcher? dispatcher,
     AuthoringTransactionFaultInjector? faultInjector,
   }) async {
-    final owner = Directory(qaRoot);
+    final owner = Directory(qaRoot ?? defaultQaRoot);
     await owner.create(recursive: true);
     final root = await owner.createTemp('${storage.name}-${variant.name}-');
     final content =

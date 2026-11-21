@@ -6,6 +6,7 @@ import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
 import { canonicalPokemonConfig } from "./pokemon_fixture.js";
+import { authoringQaPath } from "./support/authoring_qa_path.js";
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === "object" && !Array.isArray(value));
@@ -13,7 +14,7 @@ function record(value: unknown): JsonRecord {
 }
 
 test("project CS and sound cues use scoped MCP settings actions", { timeout: 120_000 }, async () => {
-  const qa = "/Users/karim/Library/Caches/AveluneQA/surf-v1/authoring";
+  const qa = authoringQaPath("surf-v1/authoring");
   await mkdir(qa, { recursive: true });
   const root = await mkdtemp(join(qa, "cs-audio-mcp-"));
   const args = [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"];

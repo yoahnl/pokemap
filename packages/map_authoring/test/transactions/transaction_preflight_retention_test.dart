@@ -4,12 +4,14 @@ import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   for (final budget in [1000, 20000]) {
     test('generic transaction checks $budget byte undo budget before staging',
         () async {
       final task = Directory(
-          '/Users/karim/Library/Caches/AveluneQA/studio-project-lifecycle/transaction-preflight-tests');
+          authoringQaPath('studio-project-lifecycle/transaction-preflight-tests'));
       await task.create(recursive: true);
       final project = await task.createTemp('fixture-');
       addTearDown(() => project.delete(recursive: true));

@@ -5,6 +5,7 @@ import test from "node:test";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
+import { authoringQaPath } from "./support/authoring_qa_path.js";
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === "object" && !Array.isArray(value));
@@ -40,10 +41,10 @@ function placement(id: string, x = .5): JsonRecord {
 }
 
 test("live MCP authors native vertical platforms without replacing terrain or models", async () => {
-  await mkdir("/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7/platforms", { recursive: true });
-  const root = await mkdtemp("/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7/platforms/mcp-");
+  await mkdir(authoringQaPath("ecorcia-chapitre7/platforms"), { recursive: true });
+  const root = await mkdtemp(authoringQaPath("ecorcia-chapitre7/platforms/mcp-"));
   const transport = new StdioClientTransport({ command: process.execPath,
-    args: [resolve("dist/src/index.js"), "--root", root], cwd: process.cwd(), stderr: "pipe" });
+    args: [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"], cwd: process.cwd(), stderr: "pipe" });
   const client = new Client({ name: "instance-batch-transport-proof", version: "1.0.0" });
   async function call(name: string, args: JsonRecord = {}, failure = false): Promise<JsonRecord> {
     const result = await client.callTool({ name, arguments: args });

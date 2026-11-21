@@ -16,6 +16,8 @@ import 'package:map_authoring/src/workspace/catalog/catalog_narrative_event_docu
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   late Directory directory;
   late CatalogStorageStore store;
@@ -26,8 +28,7 @@ void main() {
   var sequence = 0;
 
   setUp(() async {
-    final task = Directory('/Users/karim/Library/Caches/AveluneQA/'
-        'studio-project-lifecycle/retention-tests');
+    final task = Directory(authoringQaPath('studio-project-lifecycle/retention-tests'));
     await task.create(recursive: true);
     directory = await task.createTemp('fixture-');
     store = await CatalogStorageStore.open(
@@ -40,7 +41,8 @@ void main() {
     await store.publish(
         CatalogStorageBuilder().build([
           _unit('initial'),
-          CatalogDefinitionUnit(key: _sharedKey, payload: {'name': 'Shared'})
+          CatalogDefinitionUnit(
+              key: _sharedKey, payload: {'name': 'Shared', 'position': 1})
         ]),
         expectedRootRevision: null);
     session = await CatalogEditingSession.open(
@@ -672,7 +674,8 @@ void main() {
     final created =
         CatalogDefinitionKey(CatalogDefinitionKind.element, 'created');
     final plan = await session.planPatch(upserts: [
-      CatalogDefinitionUnit(key: created, payload: {'name': 'Created'})
+      CatalogDefinitionUnit(
+          key: created, payload: {'name': 'Created', 'position': 2})
     ], idempotencyKey: 'cold-created');
     final receipt = await session.apply(plan);
     final freshStore = await CatalogStorageStore.open(
@@ -780,7 +783,7 @@ final _sharedKey =
     CatalogDefinitionKey(CatalogDefinitionKind.element, 'shared');
 
 CatalogDefinitionUnit _unit(String name) =>
-    CatalogDefinitionUnit(key: _key, payload: {'name': name});
+    CatalogDefinitionUnit(key: _key, payload: {'name': name, 'position': 0});
 
 Future<Set<String>> _objects(Directory directory) async => {
       await for (final item

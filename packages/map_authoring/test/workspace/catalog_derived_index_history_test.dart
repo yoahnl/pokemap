@@ -5,6 +5,8 @@ import 'package:map_authoring/src/workspace/catalog/catalog_narrative_event_cons
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 String _event(int index) =>
     'evt_019abcde-0000-7000-8000-${index.toRadixString(16).padLeft(12, '0')}';
 
@@ -179,7 +181,7 @@ final class _Fixture {
   final LocalMapAuthoringMutationApi api;
 
   static Directory get _qa =>
-      Directory('/Users/karim/Library/Caches/AveluneQA/c1/derived-history');
+      Directory(authoringQaPath('c1/derived-history'));
 
   static Future<_Fixture> open() async {
     await _qa.create(recursive: true);

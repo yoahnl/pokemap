@@ -5,6 +5,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../../support/authoring_qa_path.dart';
+
 const _localId = 'evt_019abcde-0029-7000-8000-000000000001';
 const _remoteId = 'evt_019abcde-0029-7000-8000-000000000002';
 const _localPath = 'maps/port.json';
@@ -16,7 +18,7 @@ void main() {
       '${wire ? 'JSONL' : 'direct API'} scopes event publication to A while preserving independent B without global validation',
       () async {
         final qa = Directory(
-          '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/event-scoped-transport',
+          authoringQaPath('studio-t01-retirement-20261109/event-scoped-transport'),
         );
         await qa.create(recursive: true);
         final root = await qa.createTemp('two-map-');

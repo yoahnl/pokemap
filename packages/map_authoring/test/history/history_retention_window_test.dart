@@ -12,13 +12,15 @@ import 'package:map_authoring/src/history/file_history_store.dart';
 import 'package:map_authoring/src/support/authoring_fingerprint.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   late Directory directory;
   late FileAuthoringHistoryStore store;
 
   setUp(() async {
     final task = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/studio-project-lifecycle/history-window-tests');
+        authoringQaPath('studio-project-lifecycle/history-window-tests'));
     await task.create(recursive: true);
     directory = await task.createTemp('fixture-');
     store = await FileAuthoringHistoryStore.open(

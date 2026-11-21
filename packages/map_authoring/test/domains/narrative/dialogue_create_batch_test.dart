@@ -7,6 +7,8 @@ import 'package:map_authoring/src/support/authoring_performance_observer.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../../support/authoring_qa_path.dart';
+
 void main() {
   test('dialogue batch advertises bounded create-only atomic semantics', () {
     final descriptor = AuthoringMutationDispatcher.canonical()
@@ -560,7 +562,7 @@ final class _Fixture {
       bool catalog = false,
       int unrelated = 0, String? mapOwnedPath}) async {
     final qaRoot = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/dialogue-scope');
+        authoringQaPath('ecorcia-chapitre7-annexes/dialogue-scope'));
     await qaRoot.create(recursive: true);
     final directory = await qaRoot.createTemp('dialogue-batch-');
     await Directory('${directory.path}/dialogues').create();

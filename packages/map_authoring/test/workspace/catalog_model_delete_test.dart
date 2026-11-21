@@ -8,6 +8,7 @@ import 'package:test/test.dart';
 
 import '../support/glb_fixture.dart';
 import '../support/resource_index_fixture.dart';
+import '../support/authoring_qa_path.dart';
 
 void main() {
   test('explicit maintenance can prune more than one import-sized batch',
@@ -493,7 +494,7 @@ void main() {
   test('maintenance pruning preserves shared content and can be undone',
       () async {
     final parent =
-        Directory('/Users/karim/Library/Caches/AveluneQA/catalog-model-delete');
+        Directory(authoringQaPath('catalog-model-delete'));
     await parent.create(recursive: true);
     final root = await parent.createTemp('fixture-');
     final bytes = triangleGlb();
@@ -635,7 +636,7 @@ Future<ResourceIndexFixture> _pruneFixture(
     bool sharedSource = false,
     List<String> modelIds = const ['remove', 'keep']}) async {
   final parent =
-      Directory('/Users/karim/Library/Caches/AveluneQA/catalog-model-delete');
+      Directory(authoringQaPath('catalog-model-delete'));
   await parent.create(recursive: true);
   final root = await parent.createTemp('prune-');
   addTearDown(() async {

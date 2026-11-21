@@ -12,6 +12,8 @@ import 'package:map_authoring/src/workspace/catalog/catalog_periodic_reward_cons
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../../support/authoring_qa_path.dart';
+
 void main() {
   for (final mode in ['existing', 'incoming', 'removed']) {
     for (final wire in [false, true]) {
@@ -23,7 +25,7 @@ void main() {
               catalog: false,
               wire: wire,
               unrelated: foreign,
-              qaRoot: '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/c7-07/tests-authoring/tmp',
+              qaRoot: authoringQaPath('ecorcia-chapitre7-annexes/c7-07/tests-authoring/tmp'),
             );
             addTearDown(fixture.dispose);
             final raw = jsonDecode(
@@ -140,7 +142,7 @@ void main() {
     for (final wire in [false, true]) {
       test('periodic battle policy edits, choices, undo and reopen catalog=$catalog JSONL=$wire', () async {
         final fixture = await _Fixture.create(catalog: catalog, wire: wire, unrelated: 80, encounter: true,
-          qaRoot: '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/c7-07/tests-authoring/tmp');
+          qaRoot: authoringQaPath('ecorcia-chapitre7-annexes/c7-07/tests-authoring/tmp'));
         addTearDown(fixture.dispose);
         final policy = PeriodicEncounterDefinition(rewardId: 'daily-encounter', label: 'Rencontre quotidienne',
           consumeOnOutcomes: {PeriodicEncounterOutcome.victory, PeriodicEncounterOutcome.captured});
@@ -198,7 +200,7 @@ void main() {
     for (final wire in [false, true]) {
       test('civil weekday canonical setters reopen locally catalog=$catalog JSONL=$wire', () async {
         final fixture = await _Fixture.create(catalog: catalog, wire: wire, unrelated: 80, spatial: true,
-          qaRoot: '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/c7-07/tests-civil');
+          qaRoot: authoringQaPath('ecorcia-chapitre7-annexes/c7-07/tests-civil'));
         addTearDown(fixture.dispose);
         final source = SceneConditionSource.civilWeekday(weekday: CivilWeekday.friday, expectedValue: true);
         fixture.reader.clear();
@@ -1392,7 +1394,7 @@ final class _Fixture {
       String? qaRoot,
       AuthoringTransactionFaultInjector? faultInjector}) async {
     final qa = Directory(
-        qaRoot ?? '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-authoring');
+        qaRoot ?? authoringQaPath('ecorcia-chapitre7-annexes/periodic-availability-authoring'));
     await qa.create(recursive: true);
     final root = await qa.createTemp('fixture-');
     final project = ProjectManifest(

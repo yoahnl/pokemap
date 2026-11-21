@@ -7,6 +7,8 @@ import 'package:map_authoring/src/security/resource_pack_bulk_capability.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   late Directory directory;
   late CatalogStorageStore store;
@@ -107,7 +109,7 @@ void main() {
 
   setUp(() async {
     final task = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/studio-project-lifecycle/catalog-revert-tests');
+        authoringQaPath('studio-project-lifecycle/catalog-revert-tests'));
     await task.create(recursive: true);
     directory = await task.createTemp('fixture-');
     store = await CatalogStorageStore.open(

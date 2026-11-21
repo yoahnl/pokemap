@@ -6,6 +6,7 @@ import {Client} from '@modelcontextprotocol/client';
 import {StdioClientTransport} from '@modelcontextprotocol/client/stdio';
 import type {JsonRecord} from '../src/authoring_client.js';
 import {canonicalPokemonConfig} from './pokemon_fixture.js';
+import { authoringQaPath } from "./support/authoring_qa_path.js";
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === 'object' && !Array.isArray(value));
@@ -13,7 +14,7 @@ function record(value: unknown): JsonRecord {
 }
 
 test('fresh MCP guides and persists one typed periodic Scene condition without source execution dependencies', {timeout: 120000}, async () => {
-  const qa = '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-authoring';
+  const qa = authoringQaPath('ecorcia-chapitre7-annexes/periodic-availability-authoring');
   await mkdir(qa, {recursive: true});
   const root = await mkdtemp(join(qa, 'scene-condition-mcp-'));
   const file = join(root, 'project.json');

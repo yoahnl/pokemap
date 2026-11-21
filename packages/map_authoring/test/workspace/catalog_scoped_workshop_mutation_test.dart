@@ -10,6 +10,8 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 import 'package:image/image.dart' as img;
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   final captureWork = <Map<String, Object?>>[];
   test('presentation media configuration is scoped, durable and revision checked', () async {
@@ -1239,7 +1241,7 @@ final class _Fixture {
       bool guidedMusic = false,
       bool ambiguousSavingsFacts = false,
       int unrelatedRecords = 0}) async {
-    final qaRoot = Directory('/Users/karim/Library/Caches/AveluneQA/battle-savings');
+    final qaRoot = Directory(authoringQaPath('battle-savings'));
     if (savings) await qaRoot.create(recursive: true);
     final root = savings ? await qaRoot.createTemp('catalog-') : await Directory.systemTemp.createTemp('scoped-workshops-');
     final store = await CatalogStorageStore.open(projectRoot: root.path);

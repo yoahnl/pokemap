@@ -11,6 +11,8 @@ import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.d
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   test('undo context optionally guards the durable history head', () {
     final guarded = AuthoringHistoryContext(
@@ -41,7 +43,7 @@ void main() {
   test('oversized operation is rejected before publishing catalog objects',
       () async {
     final task = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/studio-project-lifecycle/history-admission-tests');
+        authoringQaPath('studio-project-lifecycle/history-admission-tests'));
     await task.create(recursive: true);
     final parent = await task.createTemp('budget-');
     addTearDown(() => parent.delete(recursive: true));
@@ -92,7 +94,7 @@ void main() {
 
   test('bounded logical history restores two redos across reopening', () async {
     final task = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/studio-project-lifecycle/history-admission-tests');
+        authoringQaPath('studio-project-lifecycle/history-admission-tests'));
     await task.create(recursive: true);
     final parent = await task.createTemp('cursor-');
     addTearDown(() => parent.delete(recursive: true));
@@ -145,7 +147,7 @@ void main() {
     test('cold property undo is incremental with $unrelated unrelated units',
         () async {
       final task = Directory(
-          '/Users/karim/Library/Caches/AveluneQA/studio-project-lifecycle/history-admission-tests');
+          authoringQaPath('studio-project-lifecycle/history-admission-tests'));
       await task.create(recursive: true);
       final parent = await task.createTemp('fixture-');
       addTearDown(() => parent.delete(recursive: true));

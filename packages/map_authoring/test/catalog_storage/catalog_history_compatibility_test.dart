@@ -9,6 +9,8 @@ import 'package:map_authoring/src/workspace/catalog/catalog_resource_positions.d
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   test(
       'manifest rejects unsupported versions, self mappings and unsafe charges',
@@ -303,7 +305,7 @@ final class _Fixture {
       required bool legacyFacts,
       String? defect}) async {
     final task = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/studio-project-lifecycle');
+        authoringQaPath('studio-project-lifecycle'));
     await task.create(recursive: true);
     final base = await task.createTemp('history-compatibility-');
     final project = await Directory('${base.path}/project').create();

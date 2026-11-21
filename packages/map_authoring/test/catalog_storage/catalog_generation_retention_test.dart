@@ -10,6 +10,8 @@ import 'package:map_authoring/src/transactions/authoring_payload.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/authoring_qa_path.dart';
+
 void main() {
   late Directory directory;
   late CatalogStorageStore store;
@@ -20,8 +22,7 @@ void main() {
   final sessions = <CatalogEditingSession>[];
 
   setUp(() async {
-    final task = Directory('/Users/karim/Library/Caches/AveluneQA/'
-        'studio-project-lifecycle/collector-tests');
+    final task = Directory(authoringQaPath('studio-project-lifecycle/collector-tests'));
     await task.create(recursive: true);
     directory = await task.createTemp('fixture-');
     store = await CatalogStorageStore.open(

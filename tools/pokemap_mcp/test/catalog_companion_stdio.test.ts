@@ -7,6 +7,7 @@ import test from 'node:test';
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import type { JsonRecord } from '../src/authoring_client.js';
+import { authoringQaPath } from "./support/authoring_qa_path.js";
 
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === 'object' && !Array.isArray(value));
@@ -14,8 +15,8 @@ function record(value: unknown): JsonRecord {
 }
 
 test('catalog companion and contact singleton queries stay local through live MCP', { timeout: 120_000 }, async () => {
-  await mkdir('/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7/platforms', { recursive: true });
-  const root = await mkdtemp('/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7/platforms/config-mcp-');
+  await mkdir(authoringQaPath('ecorcia-chapitre7/platforms'), { recursive: true });
+  const root = await mkdtemp(authoringQaPath('ecorcia-chapitre7/platforms/config-mcp-'));
   const dart = process.env.POKEMAP_TEST_DART ?? 'dart';
   const packageRoot = resolve('../../packages/map_authoring');
   const client = new Client({ name: 'catalog-companion-proof', version: '1.0.0' });

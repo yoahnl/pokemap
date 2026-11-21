@@ -7,6 +7,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_story/map_story.dart';
 import 'package:test/test.dart';
 
+import '../../support/authoring_qa_path.dart';
+
 Map<String, dynamic> command({String output = 'mosaic-image'}) =>
     SceneInteractiveCommand.openImagePuzzle(
         definition: ImagePuzzleDefinition(
@@ -989,7 +991,7 @@ final class _PuzzleFixture {
       bool legacyOwners = false,
       AuthoringTransactionFaultInjector? faultInjector}) async {
     final qaRoot = Directory(Platform.environment['AVELUNE_QA_ROOT'] ??
-        '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/puzzle-authoring');
+        authoringQaPath('ecorcia-chapitre7-annexes/puzzle-authoring'));
     await qaRoot.create(recursive: true);
     final root = await qaRoot.createTemp('deferred-puzzle-');
     await File('${root.path}/project.json').writeAsString(jsonEncode(

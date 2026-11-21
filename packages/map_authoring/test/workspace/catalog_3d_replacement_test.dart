@@ -11,6 +11,7 @@ import '../domains/maps/environment_spatial_actions_test.dart'
     show environmentModelGlb;
 import '../support/create_model_replacement_fixture.dart';
 import '../support/resource_index_fixture.dart';
+import '../support/authoring_qa_path.dart';
 
 const _repoint = {
   'family': 'models3d',
@@ -24,7 +25,7 @@ void main() {
 
   setUp(() async {
     final base = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/model-replacement/authoring');
+        authoringQaPath('model-replacement/authoring'));
     await base.create(recursive: true);
     root = await base.createTemp('project-');
   });
