@@ -508,7 +508,10 @@ final class CatalogEditingSession {
         await _apply(plan);
       });
 
-  Future<void> prepareMetadataDocuments({bool force = false}) =>
+  Future<void> prepareMetadataDocuments({
+    bool force = false,
+    CatalogValidatedDefinitions? validated,
+  }) =>
       _serialize(() async {
         _requireOpen();
         var prepared = !force && await store.metadataIndexPrepared(snapshot);
@@ -538,7 +541,8 @@ final class CatalogEditingSession {
           await _prepareResourceSlots();
           return;
         }
-        final units = await snapshot.readAllUnits();
+        final units = validated?.unitsFor(store, snapshot.root) ??
+            await snapshot.readAllUnits();
         final initialized = CatalogMetadataDocuments.initialize(units);
         if (_metadataIndexesMatch(units, initialized)) {
           await store.gateway.withExclusiveWriteLock(() async {

@@ -540,7 +540,9 @@ final class CatalogAuthoringSession {
       return;
     }
     if (scope != null) throw const FormatException('catalog.preparation_scope_unsupported');
-    final currentGenerationPrepared = await reader.store.prepareLocalEditing();
+    CatalogValidatedDefinitions? validated;
+    final currentGenerationPrepared = await reader.store.prepareLocalEditing(
+        onValidatedDefinitions: (definitions) => validated = definitions);
     await reader.store.gateway.withExclusiveWriteLock(() =>
         CatalogGenerationRetention(store: reader.store)
             .bindProjectUnderLock(reader.projectId));
@@ -551,7 +553,8 @@ final class CatalogAuthoringSession {
           .withExclusiveWriteLock(() => history.prepareLocalHistory());
     }
     await editing.prepareFinalizedJournals();
-    await editing.prepareMetadataDocuments(force: currentGenerationPrepared);
+    await editing.prepareMetadataDocuments(
+        force: currentGenerationPrepared, validated: validated);
   }
 
   Future<Map<String, Object?>> maintainHistory(

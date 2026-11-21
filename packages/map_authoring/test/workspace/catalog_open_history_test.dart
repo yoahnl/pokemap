@@ -106,6 +106,11 @@ void main() {
       final historyFile = File('${root.path}/.pokemap/authoring/history.jsonl');
       final historyBefore = await historyFile.readAsBytes();
       final head = (await original.readHead())!;
+      final current = (await original.openRoot(head)).snapshot;
+      final selected =
+          CatalogDefinitionKey(CatalogDefinitionKind.tileset, 'selected');
+      final object = (await current.indexEntry(selected))!.reference;
+      final currentDefinitionPath = 'catalog/objects/${object.sha256}.json';
       final reader = _CountingReader();
       final coldStore = CatalogStorageStore(
           projectRoot: root.path,
@@ -125,6 +130,10 @@ void main() {
       await IOOverrides.runWithIOOverrides(
           session.prepareWorkshopCatalog, historyReads);
 
+      expect(
+          reader.paths.where((path) => path == currentDefinitionPath),
+          hasLength(1),
+          reason: 'Metadata checks reuse the validated current definition');
       expect(reader.paths.where(oldRootPaths.contains), isEmpty);
       expect(historyReads.fullReads, preparedHistory ? 0 : 1);
       expect(await coldStore.readHead(), head);
@@ -135,9 +144,11 @@ void main() {
       expect((await reopenedHistory.latestLocalEntry(projectId: 'game')),
           isNotNull);
       historyReads.fullReads = 0;
+      reader.paths.clear();
       await IOOverrides.runWithIOOverrides(
           session.prepareWorkshopCatalog, historyReads);
       expect(historyReads.fullReads, 0);
+      expect(reader.paths, isNot(contains(currentDefinitionPath)));
       expect(reader.paths.where(oldRootPaths.contains), isEmpty);
     }, timeout: const Timeout(Duration(minutes: 2)));
   }
