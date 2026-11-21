@@ -1002,6 +1002,52 @@ void main() {
       );
     });
 
+    test('rejects payload digests that are not lowercase SHA-256 hex', () {
+      const valid =
+          '1bcbf797acc5b8dc08dcba7f4da52a7d7b09f97cc5ec1905b8093d6f0faa097a';
+      for (final digest in <String>[
+        valid.toUpperCase(),
+        '${valid.substring(0, 63)}g',
+        '${valid.substring(0, 63)}/',
+        '${valid.substring(0, 63)}:',
+        '${valid.substring(0, 63)}`',
+        '${valid.substring(0, 63)}\u00e9',
+      ]) {
+        final json = _minimalManifestJson();
+        final content = json['content']! as Map<String, Object?>;
+        ((content['files']! as List<Object?>).single
+            as Map<String, Object?>)['sha256'] = digest;
+        _expectCode(
+          () => codec.decodeJson(json),
+          'invalidSha256',
+          r'$.content.files[0].sha256',
+        );
+      }
+      final accepted = codec.decodeJson(_minimalManifestJson());
+      expect(accepted.content.files.single.sha256, valid);
+    });
+
+    test('rejects payload paths outside the package roots', () {
+      for (final path in <String>[
+        'Project/project.json',
+        'projects/project.json',
+        'assets/project.json',
+        'project',
+        'legal/a\u2028b.txt',
+        'legal/a\u2029b.txt',
+      ]) {
+        final json = _minimalManifestJson();
+        final content = json['content']! as Map<String, Object?>;
+        ((content['files']! as List<Object?>).single
+            as Map<String, Object?>)['path'] = path;
+        _expectCode(
+          () => codec.decodeJson(json),
+          'invalidPackagePath',
+          r'$.content.files[0].path',
+        );
+      }
+    });
+
     test('rejects invalid capabilities and locale configuration', () {
       final duplicate = _minimalManifestJson();
       (duplicate['compatibility']!

@@ -2402,7 +2402,7 @@ final class GamePackageManifestCodec {
         64,
         64,
       );
-      if (!_sha256.hasMatch(digest)) {
+      if (!_isSha256Hex(digest)) {
         _fail('invalidSha256', '$filePath.sha256', 'Invalid SHA-256 digest.');
       }
       final mediaType = fileJson.containsKey('mediaType')
@@ -2617,6 +2617,17 @@ final class GamePackageManifestCodec {
     r'^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$',
   );
   static final RegExp _sha256 = RegExp(r'^[0-9a-f]{64}$');
+
+  static bool _isSha256Hex(String value) {
+    if (value.length != 64) return false;
+    for (var index = 0; index < value.length; index++) {
+      final unit = value.codeUnitAt(index);
+      if ((unit < 0x30 || unit > 0x39) && (unit < 0x61 || unit > 0x66)) {
+        return false;
+      }
+    }
+    return true;
+  }
   static final RegExp _mediaType = RegExp(
     r'^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$',
   );
