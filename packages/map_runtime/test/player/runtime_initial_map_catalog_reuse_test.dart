@@ -22,7 +22,7 @@ void main() {
     final release = Completer<SaveEnvelope>();
     final preloader = RuntimeInitialMapPreloader(
       projectFilePath: () async => file.path,
-      preparedProjectCatalog: catalog,
+      preparedProjectCatalog: Future.value(catalog),
       loadSave: (_) {
         loading.complete();
         return release.future;
@@ -127,7 +127,7 @@ void main() {
       final preloader = RuntimeInitialMapPreloader(
         projectFilePath: () async => file.path,
         loadSave: (_) async => null,
-        preparedProjectCatalog: catalog,
+        preparedProjectCatalog: Future.value(catalog),
       );
       addTearDown(preloader.clear);
       await preloader.preloadInitialMap(
@@ -149,10 +149,73 @@ void main() {
     final preloader = RuntimeInitialMapPreloader(
       projectFilePath: () async => file.path,
       loadSave: (_) async => null,
-      preparedProjectCatalog: catalog,
+      preparedProjectCatalog: Future.value(catalog),
     );
     preloader.clear();
+    await Future<void>.delayed(Duration.zero);
     expect(RuntimeProjectCatalog.ownerOf(catalog.projectMetadata), isNull);
+  });
+
+  test('initial preload waits for the catalog its host is still opening',
+      () async {
+    final file = await _project();
+    final opening = Completer<RuntimeProjectCatalog>();
+    final preloader = RuntimeInitialMapPreloader(
+      projectFilePath: () async => file.path,
+      loadSave: (_) async => null,
+      preparedProjectCatalog: opening.future,
+    );
+    addTearDown(preloader.clear);
+    final preload = preloader.preloadInitialMap(
+      const RuntimeInitialMapPreloadRequest.newGame(),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(preloader.preparedNewGameBundle(projectFilePath: file.path), isNull);
+    final catalog = await RuntimeProjectCatalog.open(file.path);
+    opening.complete(catalog);
+    await preload;
+    expect(
+      preloader.preparedNewGameBundle(projectFilePath: file.path)!
+          .projectCatalog,
+      same(catalog),
+    );
+  });
+
+  test('clearing releases a host catalog that finishes opening later',
+      () async {
+    final file = await _project();
+    final opening = Completer<RuntimeProjectCatalog>();
+    final preloader = RuntimeInitialMapPreloader(
+      projectFilePath: () async => file.path,
+      loadSave: (_) async => null,
+      preparedProjectCatalog: opening.future,
+    );
+    preloader.clear();
+    final catalog = await RuntimeProjectCatalog.open(file.path);
+    opening.complete(catalog);
+    await Future<void>.delayed(Duration.zero);
+    expect(RuntimeProjectCatalog.ownerOf(catalog.projectMetadata), isNull);
+  });
+
+  test('a host catalog that fails to open falls back to the project file',
+      () async {
+    final file = await _project();
+    final preloader = RuntimeInitialMapPreloader(
+      projectFilePath: () async => file.path,
+      loadSave: (_) async => null,
+      preparedProjectCatalog: Future<RuntimeProjectCatalog>.error(
+        const FormatException('host catalog failed'),
+      ),
+    );
+    addTearDown(preloader.clear);
+    await preloader.preloadInitialMap(
+      const RuntimeInitialMapPreloadRequest.newGame(),
+    );
+    final bundle = preloader.preparedNewGameBundle(
+      projectFilePath: file.path,
+    )!;
+    expect(bundle.projectCatalog, isNotNull);
+    expect(bundle.manifest.name, 'Original');
   });
 
   test(
@@ -164,7 +227,7 @@ void main() {
       final preloader = RuntimeInitialMapPreloader(
         projectFilePath: () async => file.path,
         loadSave: (_) async => null,
-        preparedProjectCatalog: catalog,
+        preparedProjectCatalog: Future.value(catalog),
       );
       await preloader.preloadInitialMap(
         const RuntimeInitialMapPreloadRequest.newGame(),
@@ -191,7 +254,7 @@ void main() {
     final preloader = RuntimeInitialMapPreloader(
       projectFilePath: () async => '${file.parent.path}/missing.json',
       loadSave: (_) async => null,
-      preparedProjectCatalog: catalog,
+      preparedProjectCatalog: Future.value(catalog),
     );
     addTearDown(preloader.clear);
     await expectLater(
@@ -215,7 +278,7 @@ void main() {
       final preloader = RuntimeInitialMapPreloader(
         projectFilePath: () async => file.path,
         loadSave: (_) async => null,
-        preparedProjectCatalog: catalog,
+        preparedProjectCatalog: Future.value(catalog),
       );
       addTearDown(preloader.clear);
       await preloader.preloadInitialMap(
@@ -405,7 +468,7 @@ void main() {
       final preloader = RuntimeInitialMapPreloader(
         projectFilePath: () async => file.path,
         loadSave: (_) async => null,
-        preparedProjectCatalog: catalog,
+        preparedProjectCatalog: Future.value(catalog),
       );
       addTearDown(preloader.clear);
       await preloader.preloadInitialMap(

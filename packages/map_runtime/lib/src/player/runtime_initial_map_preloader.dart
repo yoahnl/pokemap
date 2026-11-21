@@ -128,7 +128,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     this.preparedNarrativeMapsLoader,
     this.preparedNarrativeCorpusLoader,
     this.cacheNarrativeCorpus,
-    RuntimeProjectCatalog? preparedProjectCatalog,
+    Future<RuntimeProjectCatalog>? preparedProjectCatalog,
     this.resourceProfile = const RuntimeResourceProfile(),
     RuntimeInitialMapManifestLoader? manifestLoader,
     RuntimeInitialMapBundleLoader? bundleLoader,
@@ -136,7 +136,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
         loadTilesetImagesById,
   }) : _projectFilePath = projectFilePath,
        _loadSave = loadSave,
-       _preparedProjectCatalog = preparedProjectCatalog,
+       _preparedProjectCatalog = preparedProjectCatalog?..ignore(),
        _manifestLoader = manifestLoader,
        _bundleLoader = bundleLoader,
        _tilesetImageLoader = tilesetImageLoader;
@@ -155,7 +155,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
   final RuntimeInitialMapBundleLoader? _bundleLoader;
   final RuntimeInitialMapTilesetImageLoader _tilesetImageLoader;
 
-  RuntimeProjectCatalog? _preparedProjectCatalog;
+  Future<RuntimeProjectCatalog>? _preparedProjectCatalog;
   _RuntimeInitialMapCacheEntry? _cached;
   _PendingInitialMapPreload? _pending;
   final Map<int, RuntimeTilesetImageSingleFlightCache>
@@ -203,8 +203,14 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     publish(RuntimeInitialMapPreloadStage.projectResolution, 0.08);
     final RuntimeProjectCatalog? catalog;
     if (_manifestLoader == null && _bundleLoader == null) {
-      final prepared = _preparedProjectCatalog;
+      final preparing = _preparedProjectCatalog;
       _preparedProjectCatalog = null;
+      RuntimeProjectCatalog? prepared;
+      try {
+        prepared = await preparing;
+      } on Object {
+        prepared = null;
+      }
       try {
         if (prepared != null &&
             prepared.projectFilePath ==
@@ -225,8 +231,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
       }
       _activeCatalogByGeneration[generation] = catalog;
     } else {
-      _preparedProjectCatalog?.dispose();
-      _preparedProjectCatalog = null;
+      _discardPreparedCatalog();
       catalog = null;
     }
     try {
@@ -499,10 +504,17 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
 
   @override
   void clear() {
-    _preparedProjectCatalog?.dispose();
-    _preparedProjectCatalog = null;
+    _discardPreparedCatalog();
     _generation++;
     _disposePreloadedResources();
+  }
+
+  void _discardPreparedCatalog() {
+    _preparedProjectCatalog?.then(
+      (catalog) => catalog.dispose(),
+      onError: (Object _) {},
+    );
+    _preparedProjectCatalog = null;
   }
 
   int _beginGeneration() {

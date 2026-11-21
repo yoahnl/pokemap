@@ -107,24 +107,9 @@ final class RuntimeProjectCatalog {
         maximumCatalogJsonValues > 8000000) {
       throw ArgumentError('Runtime catalog ceilings can only be lowered.');
     }
-    final canonicalPath = await File(projectFilePath).resolveSymbolicLinks();
+    final (:canonicalPath, :sourceFingerprint, :raw) =
+        await _readProjectDocument(projectFilePath, expectedSourceSha256);
     final file = File(canonicalPath);
-    if (await file.length() > 128 * 1024 * 1024) {
-      throw const FormatException('Project document exceeds its byte limit.');
-    }
-    final bytes = await _readBoundedFile(file, 128 * 1024 * 1024);
-    final sourceFingerprint = _runtimePublicationFingerprint(bytes);
-    if (expectedSourceSha256 != null &&
-        sourceFingerprint != 'sha256:$expectedSourceSha256') {
-      throw const FormatException(
-        'Project source fingerprint does not match the admitted bytes.',
-      );
-    }
-    final source = utf8.decode(bytes);
-    final raw = decodeNarrativeEventJsonStrict(source);
-    if (raw is! Map<String, Object?>) {
-      throw const FormatException('Expected a project JSON object.');
-    }
     if (raw['format'] == 'avelune.working-catalog') {
       final descriptor = WorkingProjectCatalogDescriptor.fromJson(raw);
       final reader = _RuntimeCatalogObjectReader(
@@ -228,6 +213,76 @@ final class RuntimeProjectCatalog {
         resourceLibraryCatalog: const ResourceLibraryCatalog.empty(),
       ),
       native: _nativeDefinitions(project),
+    );
+  }
+
+  static Future<ProjectManifest> readMetadata(
+    String projectFilePath, {
+    required Set<String> fields,
+    String? expectedSourceSha256,
+  }) async {
+    final (:canonicalPath, sourceFingerprint: _, :raw) =
+        await _readProjectDocument(projectFilePath, expectedSourceSha256);
+    if (raw['format'] != 'avelune.portable-catalog') {
+      final catalog = await open(
+        projectFilePath,
+        expectedSourceSha256: expectedSourceSha256,
+      );
+      catalog.dispose();
+      return catalog.projectMetadata;
+    }
+    final limits = CatalogStorageLimits(maxStoredBytes: 128 * 1024 * 1024);
+    final reader = _RuntimeCatalogObjectReader(
+      File(canonicalPath).parent.path,
+      limits: limits,
+      maximumJsonValues: 8000000,
+    );
+    try {
+      final portable = await PortableProjectCatalog.open(
+        raw,
+        limits: limits,
+        readObject: reader.read,
+        metadataFields: fields,
+        decodeMetadataInBackground: true,
+      );
+      return portable.projectMetadata;
+    } finally {
+      reader.dispose();
+    }
+  }
+
+  static Future<
+    ({
+      String canonicalPath,
+      String sourceFingerprint,
+      Map<String, Object?> raw,
+    })
+  >
+  _readProjectDocument(
+    String projectFilePath,
+    String? expectedSourceSha256,
+  ) async {
+    final canonicalPath = await File(projectFilePath).resolveSymbolicLinks();
+    final file = File(canonicalPath);
+    if (await file.length() > 128 * 1024 * 1024) {
+      throw const FormatException('Project document exceeds its byte limit.');
+    }
+    final bytes = await _readBoundedFile(file, 128 * 1024 * 1024);
+    final sourceFingerprint = _runtimePublicationFingerprint(bytes);
+    if (expectedSourceSha256 != null &&
+        sourceFingerprint != 'sha256:$expectedSourceSha256') {
+      throw const FormatException(
+        'Project source fingerprint does not match the admitted bytes.',
+      );
+    }
+    final raw = decodeNarrativeEventJsonStrict(utf8.decode(bytes));
+    if (raw is! Map<String, Object?>) {
+      throw const FormatException('Expected a project JSON object.');
+    }
+    return (
+      canonicalPath: canonicalPath,
+      sourceFingerprint: sourceFingerprint,
+      raw: raw,
     );
   }
 

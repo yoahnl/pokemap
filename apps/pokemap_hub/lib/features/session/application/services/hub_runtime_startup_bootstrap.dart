@@ -151,7 +151,7 @@ final class HubRuntimeStartupBootstrap
     RuntimeStartupBootstrapStageSink onStageCompleted,
   ) async {
     HubInstalledPresentationRuntime? presentationRuntime;
-    RuntimeProjectCatalog? preparedCatalog;
+    Future<RuntimeProjectCatalog>? preparedCatalog;
     RuntimeInitialMapPreloader? ownedPreloader;
     try {
       final launching = Future.sync(() => launchResolver.resolve(game))
@@ -213,15 +213,20 @@ final class HubRuntimeStartupBootstrap
 
       final projectFile = await launch.assets.resolveReference(launch.project);
       lifetime?.ensureActive();
-      final metadataCatalog = await RuntimeProjectCatalog.open(
+      final projectSha256 = launch.manifest.content.files
+          .firstWhere((entry) => entry.path == launch.project.packagePath)
+          .sha256;
+      final installedProject = await RuntimeProjectCatalog.readMetadata(
         projectFile.path,
-        expectedSourceSha256: launch.manifest.content.files
-            .firstWhere((entry) => entry.path == launch.project.packagePath)
-            .sha256,
+        fields: const {'presentationCinematics'},
+        expectedSourceSha256: projectSha256,
       );
-      preparedCatalog = metadataCatalog;
-      final installedProject = metadataCatalog.projectMetadata;
       lifetime?.ensureActive();
+      final projectCatalog = RuntimeProjectCatalog.open(
+        projectFile.path,
+        expectedSourceSha256: projectSha256,
+      )..ignore();
+      preparedCatalog = projectCatalog;
       final spatial =
           installedProject.settings.dimension == ProjectDimension.threeD;
       if (spatial != launch.grantedCapabilities.contains('map3d@1')) {
@@ -268,7 +273,7 @@ final class HubRuntimeStartupBootstrap
         supportRoot: supportRoot,
       );
       final initialMapPreloader = RuntimeInitialMapPreloader(
-        preparedProjectCatalog: metadataCatalog,
+        preparedProjectCatalog: projectCatalog,
         preparedNarrativeCorpusLoader: (catalog) =>
             preparedNarrativeIndex.loadForStartup(
               catalog: catalog,
@@ -361,10 +366,17 @@ final class HubRuntimeStartupBootstrap
         stopIntroPlayback: stopIntroPlayback,
       );
       unawaited(
-        resolveHubGameOptionsAvailability(
-          catalog: metadataCatalog,
-          capabilities: launch.grantedCapabilities,
-        ).then(coordinator.updateOptionsAvailability, onError: (Object _) {}),
+        projectCatalog
+            .then(
+              (catalog) => resolveHubGameOptionsAvailability(
+                catalog: catalog,
+                capabilities: launch.grantedCapabilities,
+              ),
+            )
+            .then(
+              coordinator.updateOptionsAvailability,
+              onError: (Object _) {},
+            ),
       );
       onStageCompleted(RuntimeStartupBootstrapStage.runtimeGraph);
       return RuntimeStartupBootstrapResult<HubRuntimeStartupPreparedData>(
@@ -382,7 +394,10 @@ final class HubRuntimeStartupBootstrap
         ),
       );
     } on Object catch (error, stackTrace) {
-      preparedCatalog?.dispose();
+      preparedCatalog?.then(
+        (catalog) => catalog.dispose(),
+        onError: (Object _) {},
+      );
       ownedPreloader?.clear();
       await presentationRuntime?.close();
       if (error is _HubRuntimeStartupCancelled) rethrow;
