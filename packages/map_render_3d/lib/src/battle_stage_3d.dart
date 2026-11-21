@@ -118,6 +118,11 @@ typedef BattleStageTextureDiagnostics = ({
   int evictions,
 });
 
+typedef _BattleStageResidentTexture = ({
+  SpatialActorTexture texture,
+  RuntimeResourceReservation lease,
+});
+
 final class BattleStageTextureCache {
   BattleStageTextureCache({
     RuntimeResourceBudget? resourceBudget,
@@ -132,18 +137,14 @@ final class BattleStageTextureCache {
   final bool _ownsBudget;
   final Future<SpatialActorTexture> Function(ui.Image) _importer;
   final void Function(Object, StackTrace) _onError;
-  final _textures =
-      <
-        ui.Image,
-        ({SpatialActorTexture texture, RuntimeResourceReservation lease})
-      >{};
+  final _textures = <ui.Image, _BattleStageResidentTexture>{};
   final _pending = <ui.Image, Object>{};
   final _failed = <ui.Image>{};
   final _inFlight = <Future<void>>{};
   final _obsoleteImports = <Future<void>>{};
   final _sourceRequests = <ui.Image, Set<Future<void>>>{};
   final _leases = <RuntimeResourceReservation>{};
-  final _retired = <RuntimeResourceReservation>[];
+  final _retired = <_BattleStageResidentTexture>[];
   Completer<void>? _retirementPurged;
   Set<ui.Image> _active = {};
   bool _closed = false;
@@ -187,7 +188,7 @@ final class BattleStageTextureCache {
     _failed.removeWhere((image) => !images.contains(image));
     for (final image
         in _textures.keys.where((image) => !images.contains(image)).toList()) {
-      _retired.add(_textures.remove(image)!.lease);
+      _retired.add(_textures.remove(image)!);
       _evictions++;
     }
     if (_retired.isNotEmpty) _retirementPurged ??= Completer<void>();
@@ -228,6 +229,7 @@ final class BattleStageTextureCache {
 
   Future<void> _load(ui.Image source, ui.Image owned, Object token) async {
     RuntimeResourceReservation? lease;
+    SpatialActorTexture? texture;
     var transient = 0;
     var retained = false;
     try {
@@ -252,7 +254,7 @@ final class BattleStageTextureCache {
       _transientBytes += transient;
       lease.ensureCurrent();
       _startedImports++;
-      final texture = await _importer(owned);
+      texture = await _importer(owned);
       lease.ensureCurrent();
       lease.commit();
       _textures[source] = (texture: texture, lease: lease);
@@ -266,9 +268,12 @@ final class BattleStageTextureCache {
     } finally {
       owned.dispose();
       _transientBytes -= transient;
-      if (!retained && lease != null) {
-        _leases.remove(lease);
-        lease.release();
+      if (!retained) {
+        texture?.release();
+        if (lease != null) {
+          _leases.remove(lease);
+          lease.release();
+        }
       }
       if (identical(_pending[source], token)) _pending.remove(source);
     }
@@ -277,7 +282,8 @@ final class BattleStageTextureCache {
   void releaseRetired() {
     final retirement = _retirementPurged;
     _retirementPurged = null;
-    for (final lease in _retired) {
+    for (final (:texture, :lease) in _retired) {
+      texture.release();
       _leases.remove(lease);
       lease.release();
     }
@@ -291,7 +297,7 @@ final class BattleStageTextureCache {
     _active.clear();
     _pending.clear();
     _failed.clear();
-    _retired.addAll(_textures.values.map((entry) => entry.lease));
+    _retired.addAll(_textures.values);
     _textures.clear();
     releaseRetired();
     _disposeOwnedBudgetIfIdle();

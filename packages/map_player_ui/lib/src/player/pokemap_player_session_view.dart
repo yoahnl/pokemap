@@ -159,6 +159,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     required this.gameSceneBuilder,
     this.loadingLogo,
     this.loadingWordmark,
+    this.showMapLoadingScene = false,
     this.loadingSceneBuilder,
     this.payloadForAction,
     this.onShowDiagnostics,
@@ -213,6 +214,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final RuntimePlayerTitlePresentation titlePresentation;
   final ImageProvider? loadingLogo;
   final ImageProvider? loadingWordmark;
+  final bool showMapLoadingScene;
   final PlayerWorldLoadingSceneBuilder? loadingSceneBuilder;
 
   /// Builds the runtime scene below the player surfaces.
@@ -1447,6 +1449,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
             titlePresentation: widget.titlePresentation,
             loadingLogo: widget.loadingLogo,
             loadingWordmark: widget.loadingWordmark,
+            showMapLoadingScene: widget.showMapLoadingScene,
             loadingSceneBuilder: widget.loadingSceneBuilder,
             initialMapActivating: showInitialMapCurtain,
             activeInputSource: _activeInputSource,

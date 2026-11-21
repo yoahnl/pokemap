@@ -6,6 +6,7 @@ import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'player_session_surfaces.dart';
+import 'player_world_map_loading_scene.dart';
 
 typedef PlayerWorldLoadingSceneBuilder = Widget Function(
   BuildContext context,
@@ -22,6 +23,7 @@ class PlayerWorldLoadingSurface extends StatelessWidget {
     this.progress,
     this.onCancel,
     this.reducedMotion = false,
+    this.showMapScene = false,
     this.sceneBuilder,
   });
 
@@ -32,6 +34,7 @@ class PlayerWorldLoadingSurface extends StatelessWidget {
   final double? progress;
   final VoidCallback? onCancel;
   final bool reducedMotion;
+  final bool showMapScene;
   final PlayerWorldLoadingSceneBuilder? sceneBuilder;
 
   @override
@@ -50,9 +53,15 @@ class PlayerWorldLoadingSurface extends StatelessWidget {
       container: true,
       label: '$title. $stage',
       value: percentage,
-      child: scene == null
-          ? _standardPanel(context, title, fraction, percentage)
-          : scene(context, _sceneDetails(title, fraction, percentage)),
+      child: switch (scene) {
+        final builder? => builder(context, _sceneDetails(title, fraction, percentage)),
+        null when showMapScene => PlayerWorldMapLoadingScene(
+          progress: fraction,
+          reducedMotion: reducedMotion,
+          details: _sceneDetails(title, fraction, percentage),
+        ),
+        null => _standardPanel(context, title, fraction, percentage),
+      },
     );
   }
 

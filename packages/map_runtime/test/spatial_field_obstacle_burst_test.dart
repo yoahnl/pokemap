@@ -26,8 +26,18 @@ void main() {
       expect(burst.frames(0, mapId: 'room'), isEmpty);
       expect(burst.frames(0, mapId: 'field'), isEmpty);
     }
+    final held = [
+      for (final ability in [FieldAbility.cut, FieldAbility.rockSmash])
+        (burst..start(ability, mapId: 'field', x: 0, y: 0, z: 0))
+            .frames(0, mapId: 'field')
+            .values
+            .first
+            .texture,
+    ];
+    expect(held.any((texture) => texture.isReleased), isFalse);
     burst.dispose();
     expect(budget.residentBytes, 0);
+    expect(held.every((texture) => texture.isReleased), isTrue);
     expect(burst.frames(0, mapId: 'field'), isEmpty);
   });
 }

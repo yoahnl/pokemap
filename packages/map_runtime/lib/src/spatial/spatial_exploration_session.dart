@@ -2933,6 +2933,7 @@ final class _SpatialActorAssets {
         reservation.ensureCurrent();
         final texture = await plan.createTexture(id, image);
         if (disposed) {
+          texture.release();
           throw StateError('Les ressources de la session sont fermées.');
         }
         images[id] = image;
@@ -2962,7 +2963,7 @@ final class _SpatialActorAssets {
     for (final id
         in images.keys.where((id) => !retained.contains(id)).toList()) {
       images.remove(id)!.dispose();
-      textures.remove(id);
+      textures.remove(id)?.release();
       reservations.remove(id)?.release();
     }
   }
@@ -2975,6 +2976,9 @@ final class _SpatialActorAssets {
       image.dispose();
     }
     images.clear();
+    for (final texture in textures.values) {
+      texture.release();
+    }
     textures.clear();
     owners.clear();
     for (final reservation in reservations.values) {

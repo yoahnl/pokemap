@@ -454,6 +454,7 @@ void main() {
       expect(session.character.id, 'costume');
       expect(after.frame, const Rect.fromLTWH(0, 0, 64, 48));
       expect(identical(after.texture, before.texture), isFalse);
+      expect(before.texture.isReleased, isFalse);
       expect(identical(session.movement, movement), isTrue);
       expect(movement.spatialPosition, position);
       expect(movement.facing, facing);
@@ -491,9 +492,13 @@ void main() {
       );
       await session.restoreGameState(restoredState, restorePlayerAvatar: false);
       expect(session.character.id, 'costume');
+      expect(after.texture.isReleased, isFalse);
       await session.restoreGameState(restoredState);
       expect(session.character.id, 'hero');
       expect(session.frame(0).frame, before.frame);
+      expect(after.texture.isReleased, isTrue);
+      expect(session.frame(0).texture, same(before.texture));
+      expect(before.texture.isReleased, isFalse);
     },
   );
 }

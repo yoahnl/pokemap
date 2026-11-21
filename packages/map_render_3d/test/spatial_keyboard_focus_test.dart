@@ -2,7 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_render_3d/map_render_3d.dart';
+import 'package:map_render_3d/src/spatial_game_surface.dart';
 
 void main() {
   testWidgets('shared scene surface leaves held keys to its exploration host', (

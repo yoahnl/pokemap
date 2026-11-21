@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/src/player/player_world_map_loading_scene.dart';
 import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -3234,7 +3235,7 @@ void main() {
     expect(find.text('43%'), findsNothing);
   });
 
-  testWidgets('keeps the branded scene through activation and fades to the map',
+  testWidgets('keeps the map loading scene through activation and fades to the game',
       (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(
       revision: 1,
@@ -3253,18 +3254,18 @@ void main() {
     ));
     addTearDown(controller.dispose);
     addTearDown(authority.dispose);
-    final scene = find.byKey(const ValueKey('test-loading-scene'));
+    final scene = find.byKey(const ValueKey('player-world-loading-map'));
 
     await _pumpMeasuredSessionWidget(tester, _app(_view(
       controller,
       gameplayInputAuthority: authority,
-      loadingSceneBuilder: (_, details) => KeyedSubtree(
-        key: const ValueKey('test-loading-scene'),
-        child: Center(child: details),
-      ),
+      showMapLoadingScene: true,
     )));
     final opened = tester.element(scene);
+    expect(find.byKey(const ValueKey('runtime-player-loading-logo')), findsNothing);
     expect(find.text('Annuler'), findsOneWidget);
+    final composition = find.byType(PlayerWorldMapLoadingScene);
+    expect(tester.widget<PlayerWorldMapLoadingScene>(composition).progress, isNull);
 
     for (final (revision, loadedImages, percentage) in [
       (2, 1, '53%'),
@@ -3288,6 +3289,10 @@ void main() {
       expect(tester.element(scene), same(opened));
       expect(find.text('Chargement des ressources'), findsOneWidget);
       expect(find.text(percentage), findsOneWidget);
+      expect(
+        tester.widget<PlayerWorldMapLoadingScene>(composition).progress,
+        (4 + loadedImages / 4) / 8,
+      );
     }
 
     controller.publish(_snapshot(
@@ -3320,6 +3325,7 @@ void main() {
     await tester.pump();
     expect(find.text('Prêt'), findsOneWidget);
     expect(find.text('100%'), findsOneWidget);
+    expect(tester.widget<PlayerWorldMapLoadingScene>(composition).progress, 1);
     final indicator =
         find.byKey(const ValueKey('runtime-player-loading-progress'));
     expect(tester.widget<LinearProgressIndicator>(indicator).value, 1);
@@ -3336,6 +3342,72 @@ void main() {
     expect(scene, findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  for (final size in [
+    const Size(390, 844),
+    const Size(844, 390),
+    const Size(568, 320),
+  ]) {
+    testWidgets('the map and its interactive emblem fit at $size',
+        (tester) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+        revision: 1,
+        phase: RuntimePlayerPhase.loadingSession,
+        loadingProgress: const GameSessionLoadingProgress(
+          stage: 'resources',
+          current: 4,
+          total: 7,
+          measuresWork: true,
+        ),
+        actions: const [
+          RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.cancel),
+        ],
+      ));
+      addTearDown(controller.dispose);
+      await _pumpMeasuredSessionWidget(tester, _app(
+        MediaQuery(
+          data: MediaQueryData(size: size, textScaler: TextScaler.linear(1.6)),
+          child: _view(
+            controller,
+            showMapLoadingScene: true,
+            loadingLogo: const AssetImage(
+              'assets/splash/eclipse_disc.png',
+              package: 'map_player_ui',
+            ),
+          ),
+        ),
+      ));
+
+      final map = tester.getRect(find.byKey(const ValueKey('player-world-loading-map')));
+      final title = tester.getRect(find.byKey(const ValueKey('player-session-title')));
+      if (size.width > size.height) {
+        expect(map.right, lessThan(title.left));
+      } else {
+        expect(map.bottom, lessThan(title.top));
+      }
+      expect(find.text('50%'), findsOneWidget);
+      final emblem = find.byKey(const ValueKey('player-world-loading-emblem'));
+      final sparkle = find.byKey(const ValueKey('player-world-loading-sparkle'));
+      expect(emblem.hitTestable(), findsOneWidget);
+      expect(map.contains(tester.getCenter(emblem)), isTrue);
+      await tester.tap(emblem);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 140));
+      expect(sparkle, findsOneWidget);
+      expect(find.text('50%'), findsOneWidget);
+      expect(controller.commands, isEmpty);
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(sparkle, findsNothing);
+
+      final cancel = find.text('Annuler');
+      expect(cancel.hitTestable(), findsOneWidget);
+      await tester.tap(cancel);
+      expect(controller.commands.single.action, RuntimePlayerAction.cancel);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('keeps loading artwork until the first map accepts the menu',
       (tester) async {
@@ -4891,6 +4963,7 @@ PokeMapPlayerSessionView _view(
   ValueListenable<RuntimeInputAuthoritySnapshot>? gameplayInputAuthority,
   ImageProvider? loadingLogo,
   ImageProvider? loadingWordmark,
+  bool showMapLoadingScene = false,
   PlayerWorldLoadingSceneBuilder? loadingSceneBuilder,
   ValueListenable<RuntimeOverworldInteractionSnapshot>? overworldInteractions,
   RuntimeOverworldInteractionRequest? Function(Offset)? hitTestOverworldInteraction,
@@ -4940,6 +5013,7 @@ PokeMapPlayerSessionView _view(
     gameplayInputAuthority: gameplayInputAuthority,
     loadingLogo: loadingLogo,
     loadingWordmark: loadingWordmark,
+    showMapLoadingScene: showMapLoadingScene,
     loadingSceneBuilder: loadingSceneBuilder,
     overworldInteractions: overworldInteractions,
     hitTestOverworldInteraction: hitTestOverworldInteraction,

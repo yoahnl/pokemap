@@ -23,6 +23,7 @@ final class SpatialFieldObstacleBurst {
         residentBytes: 256,
         isCurrent: () => !_disposed,
       );
+      ActorTexture? texture;
       try {
         final recorder = ui.PictureRecorder();
         final canvas = ui.Canvas(recorder);
@@ -48,15 +49,16 @@ final class SpatialFieldObstacleBurst {
         final image = await picture.toImage(8, 8);
         picture.dispose();
         try {
-          final texture = await SpatialActorTexture.fromImage(image);
+          texture = await SpatialActorTexture.fromImage(image);
           lease.ensureCurrent();
-          _textures[ability] = texture;
           lease.commit();
+          _textures[ability] = texture;
           _reservations.add(lease);
         } finally {
           image.dispose();
         }
       } on Object {
+        texture?.release();
         lease.release();
         rethrow;
       }
@@ -112,6 +114,9 @@ final class SpatialFieldObstacleBurst {
   void dispose() {
     _disposed = true;
     _ability = null;
+    for (final texture in _textures.values) {
+      texture.release();
+    }
     _textures.clear();
     for (final reservation in _reservations) {
       reservation.release();

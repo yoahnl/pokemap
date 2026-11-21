@@ -43,6 +43,7 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
     required this.onAction,
     this.loadingLogo,
     this.loadingWordmark,
+    this.showMapLoadingScene = false,
     this.loadingSceneBuilder,
     this.initialMapActivating = false,
     this.onReturnToTitle,
@@ -79,6 +80,7 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
   final RuntimePlayerTitlePresentation titlePresentation;
   final ImageProvider? loadingLogo;
   final ImageProvider? loadingWordmark;
+  final bool showMapLoadingScene;
   final PlayerWorldLoadingSceneBuilder? loadingSceneBuilder;
   final bool initialMapActivating;
   final WidgetBuilder gameSceneBuilder;
@@ -348,7 +350,8 @@ class _RuntimePlayerSurfaceRouterState
           key: const ValueKey('runtime-player-world-loading-layer'),
           child: AnimatedSwitcher(
             duration: Duration.zero,
-            reverseDuration: reducedMotion || widget.loadingSceneBuilder == null
+            reverseDuration: reducedMotion ||
+                (!widget.showMapLoadingScene && widget.loadingSceneBuilder == null)
                 ? Duration.zero
                 : const Duration(milliseconds: 180),
             switchOutCurve: Curves.easeInOutSine,
@@ -383,6 +386,7 @@ class _RuntimePlayerSurfaceRouterState
                         ? _activationLoadProgress
                         : _measuredProgress(widget.snapshot),
                     sceneBuilder: widget.loadingSceneBuilder,
+                    showMapScene: widget.showMapLoadingScene,
                     onCancel: widget.initialMapActivating || _showLoadedFrame
                         ? null
                         : _callbackFor(RuntimePlayerAction.cancel),

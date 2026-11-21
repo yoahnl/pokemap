@@ -13,7 +13,8 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_gameplay/map_gameplay.dart';
-import 'package:map_render_3d/map_render_3d.dart' show SpatialGameSurface, SpatialSceneView;
+import 'package:map_render_3d/map_render_3d.dart' show SpatialSceneView;
+import 'package:map_render_3d/src/spatial_game_surface.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_runtime/map_runtime.dart' show
     SpatialExplorationGameSessionRuntime, GameSessionDescriptor, GameIdentity,

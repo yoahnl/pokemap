@@ -138,9 +138,15 @@ void main() {
       session.setLifecyclePaused(false);
       session.frames(.1);
       expect(gameState.spatialWorldState.actorState('map', 'walker')!.x, 3.5);
+      final heldTextures = [
+        first['hero']!.texture,
+        first['cinematic-emote:hero']!.texture,
+      ];
+      expect(heldTextures.any((texture) => texture.isReleased), isFalse);
       story.dispose();
       session.dispose();
       expect(budget.residentBytes, 0);
+      expect(heldTextures.every((texture) => texture.isReleased), isTrue);
     },
   );
   test('conditional spatial sprites preserve saved pose and apply only changed facing declarations', () async {

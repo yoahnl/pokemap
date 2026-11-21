@@ -12,7 +12,7 @@ final class SpatialCinematicEmoteVisuals {
   final RuntimeResourceBudget resourceBudget;
   final CinematicEmoteSpriteCache _cache;
   final _textures = <String, Future<ActorTexture>>{};
-  final _reservations = <RuntimeResourceReservation>[];
+  final _resident = <(ActorTexture, RuntimeResourceReservation)>[];
   final _frames = <String, (ActorTexture, List<Sprite>)>{};
   bool _disposed = false;
 
@@ -42,13 +42,15 @@ final class SpatialCinematicEmoteVisuals {
           ),
           isCurrent: () => !_disposed,
         );
+        ActorTexture? texture;
         try {
-          final texture = await SpatialActorTexture.fromImage(image);
+          texture = await SpatialActorTexture.fromImage(image);
           lease.ensureCurrent();
           lease.commit();
-          _reservations.add(lease);
+          _resident.add((texture, lease));
           return texture;
         } on Object {
+          texture?.release();
           lease.release();
           rethrow;
         }
@@ -89,10 +91,11 @@ final class SpatialCinematicEmoteVisuals {
     _disposed = true;
     _frames.clear();
     _textures.clear();
-    for (final lease in _reservations) {
+    for (final (texture, lease) in _resident) {
+      texture.release();
       lease.release();
     }
-    _reservations.clear();
+    _resident.clear();
     _cache.dispose();
   }
 }

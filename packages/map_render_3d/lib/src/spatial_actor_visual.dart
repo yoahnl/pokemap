@@ -12,8 +12,12 @@ import 'package:map_core/map_core.dart';
 import 'spatial_ground.dart' show applySpatialGroundColorKey;
 
 final class SpatialActorTexture implements ActorTexture {
-  SpatialActorTexture._(this._gpuTexture, this._alpha);
-  final Texture _gpuTexture;
+  SpatialActorTexture._(Texture texture, Uint8List alpha)
+    : _gpuTexture = texture,
+      _alpha = alpha,
+      width = texture.width,
+      height = texture.height;
+  Texture? _gpuTexture;
   final Uint8List _alpha;
   final _footAnchors = <ui.Rect, ({double x, double y})?>{};
 
@@ -28,16 +32,25 @@ final class SpatialActorTexture implements ActorTexture {
   }
 
   @override
-  int get width => _gpuTexture.width;
+  final int width;
 
   @override
-  int get height => _gpuTexture.height;
+  final int height;
+
+  @override
+  bool get isReleased => _gpuTexture == null;
+
+  @override
+  void release() => _gpuTexture = null;
 
   static Future<SpatialActorTexture> fromImage(
     ui.Image image, {
     TilesetTransparentColor? transparentColor,
   }) => createSpatialActorTexture(image, transparentColor: transparentColor);
 }
+
+StateError _releasedError() =>
+    StateError('This actor texture was released by its owner.');
 
 SpatialActorTexture resolveSpatialActorTexture(ActorTexture texture) {
   if (texture is SpatialActorTexture) return texture;
@@ -49,7 +62,7 @@ SpatialActorTexture resolveSpatialActorTexture(ActorTexture texture) {
 }
 
 extension SpatialActorTextureGpu on SpatialActorTexture {
-  Texture get gpuTexture => _gpuTexture;
+  Texture get gpuTexture => _gpuTexture ?? (throw _releasedError());
 }
 
 Future<SpatialActorTexture> createSpatialActorTexture(

@@ -4,7 +4,7 @@ import 'package:avelune_render_contracts/avelune_render_contracts.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 import 'package:map_render_3d/src/spatial_actor_visual.dart'
-    show resolveSpatialActorTexture;
+    show SpatialActorTextureGpu, resolveSpatialActorTexture;
 
 final class _ForeignActorTexture implements ActorTexture {
   @override
@@ -12,6 +12,12 @@ final class _ForeignActorTexture implements ActorTexture {
 
   @override
   int get height => 6;
+
+  @override
+  bool get isReleased => false;
+
+  @override
+  void release() {}
 }
 
 Image _image(int width, int height) {
@@ -76,5 +82,33 @@ void main() {
 
     expect(ownVisual.contactShadowFootAnchor, own.footAnchor(frame));
     expect(() => foreignVisual.contactShadowFootAnchor, throwsArgumentError);
+  });
+
+  test('a released Flame texture keeps its metadata but no GPU texture', () async {
+    final image = _image(8, 6);
+    final texture = await SpatialActorTexture.fromImage(image);
+    image.dispose();
+    const frame = Rect.fromLTWH(0, 0, 8, 6);
+    final visual = SpatialActorVisual(
+      x: 0,
+      y: 0,
+      z: 0,
+      texture: texture,
+      frame: frame,
+    );
+    expect(texture.isReleased, isFalse);
+    final anchor = visual.contactShadowFootAnchor;
+
+    texture.release();
+    texture.release();
+
+    expect(texture.isReleased, isTrue);
+    expect(texture.width, 8);
+    expect(texture.height, 6);
+    expect(
+      () => resolveSpatialActorTexture(texture).gpuTexture,
+      throwsStateError,
+    );
+    expect(visual.contactShadowFootAnchor, anchor);
   });
 }
