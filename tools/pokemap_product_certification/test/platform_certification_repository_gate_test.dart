@@ -8,18 +8,27 @@ import 'package:pokemap_product_certification/pokemap_product_certification.dart
 void main() {
   test('committed CIN-045, CIN-046 and CIN-047 receipts aggregate cleanly', () {
     final repository = Directory.current.parent.parent;
-    final supportFile = File(
-      '${repository.path}/apps/pokemap_hub/tool/release/platform_support.json',
-    );
-    final evidenceFile = File(
-      '${repository.path}/apps/pokemap_hub/tool/release/'
-      'platform_certification_evidence.json',
-    );
-    final lockFile = File('${repository.path}/apps/pokemap_hub/pubspec.lock');
-    final support =
-        jsonDecode(supportFile.readAsStringSync()) as Map<String, Object?>;
-    final evidence =
-        jsonDecode(evidenceFile.readAsStringSync()) as Map<String, Object?>;
+    const hub = 'apps/pokemap_hub';
+    const evidencePath =
+        '$hub/tool/release/platform_certification_evidence.json';
+    final revision = _git(repository, [
+      'log',
+      '-1',
+      '--format=%H',
+      '--',
+      evidencePath,
+    ]).trim();
+    expect(revision, matches(RegExp(r'^[0-9a-f]{40}$')));
+    final supportJson = _git(repository, [
+      'show',
+      '$revision:$hub/tool/release/platform_support.json',
+    ]);
+    final lock = _git(repository, ['show', '$revision:$hub/pubspec.lock']);
+    final tree = _git(repository, ['ls-tree', '-r', revision]);
+    final support = jsonDecode(supportJson) as Map<String, Object?>;
+    final evidence = jsonDecode(
+      _git(repository, ['show', '$revision:$evidencePath']),
+    ) as Map<String, Object?>;
     final sourceCommits = (evidence['platforms']! as List<Object?>)
         .map(
           (entry) =>
@@ -44,19 +53,17 @@ void main() {
       platformSupport: support,
       platformEvidence: evidence,
       provenance: <String, Object?>{
-        'releaseCommit': 'a' * 40,
+        'releaseCommit': revision,
         'treeState': 'clean',
-        'treeFingerprint': 'b' * 64,
+        'treeFingerprint': sha256.convert(utf8.encode(tree)).toString(),
         'platformSupportSha256': sha256
-            .convert(supportFile.readAsBytesSync())
+            .convert(utf8.encode(supportJson))
             .toString(),
-        'pluginLockSha256': sha256
-            .convert(lockFile.readAsBytesSync())
-            .toString(),
+        'pluginLockSha256': sha256.convert(utf8.encode(lock)).toString(),
         'bundleVersion': '1.0.1+3',
         'pluginVersions': <String, Object?>{
-          'audioplayers': _version(lockFile, 'audioplayers'),
-          'video_player': _version(lockFile, 'video_player'),
+          'audioplayers': _version(lock, 'audioplayers'),
+          'video_player': _version(lock, 'video_player'),
         },
       },
     );
@@ -75,11 +82,21 @@ void main() {
   });
 }
 
-String _version(File lockFile, String package) {
+String _git(Directory repository, List<String> arguments) {
+  final result = Process.runSync(
+    'git',
+    arguments,
+    workingDirectory: repository.path,
+  );
+  expect(result.exitCode, 0, reason: result.stderr.toString());
+  return result.stdout as String;
+}
+
+String _version(String lock, String package) {
   final match = RegExp(
     '^  $package:\\n(?:    .*\\n)*?    version: "?([^"\\n]+)"?',
     multiLine: true,
-  ).firstMatch(lockFile.readAsStringSync());
+  ).firstMatch(lock);
   if (match == null) throw StateError('$package is absent from the lock.');
   return match.group(1)!;
 }
