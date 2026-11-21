@@ -99,6 +99,27 @@ void main() {
     expect(voices.map((voice) => voice.volumes.length), writes);
     expect(player.livePlayerCount, 0);
   });
+
+  test('a precache abandoned in a stalled zone never blocks a later player',
+      () async {
+    final abandoned = FlameAudioBattleSfxPlayer(playerFactory: _Voice.new);
+    final next = FlameAudioBattleSfxPlayer(playerFactory: _Voice.new);
+    addTearDown(next.dispose);
+    final stalledMicrotasks = <void Function()>[];
+    Zone.current.fork(
+      specification: ZoneSpecification(
+        scheduleMicrotask: (_, _, _, task) => stalledMicrotasks.add(task),
+      ),
+    ).run(() => unawaited(abandoned.precache(['hit', 'hitplus', 'hitlow'])));
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    await expectLater(
+      next.precache(['hit', 'hitplus', 'hitlow'])
+          .timeout(const Duration(seconds: 10)),
+      completes,
+    );
+    expect(stalledMicrotasks, isNotEmpty);
+  });
 }
 
 final class _Voice implements AudioPlayer {

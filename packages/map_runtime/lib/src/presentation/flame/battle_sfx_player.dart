@@ -96,7 +96,10 @@ final class FlameAudioBattleSfxPlayer {
   Future<recipe_source.BattleRecipeSoundSource> _loadEncodedSource(
     String fileName,
   ) => _encodedSources.putIfAbsent(fileName, () async {
-    final encoded = await rootBundle.loadString('$_assetPrefix$fileName');
+    final encoded = await rootBundle.loadString(
+      '$_assetPrefix$fileName',
+      cache: false,
+    );
     final compressed = base64Decode(encoded.replaceAll(RegExp(r'\s'), ''));
     final bytes = ZLibDecoder().decodeBytes(compressed);
     final source = await recipe_source.BattleRecipeSoundSource.create(
