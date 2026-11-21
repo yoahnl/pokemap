@@ -47,12 +47,15 @@ MapEntity? findSpatialFieldObstacleTarget(
     required EntityFacing facing,
     bool Function(String)? entityIsPresent,
     SpatialActorRuntimeState? Function(String)? actorStateProvider}) {
-  final resources = models.toList();
   final scene = map.spatialScene;
-  final instance = gameState.mapInstanceWorldState.instanceRef(map.id);
-  if (scene == null || instance == null || map.id != gameState.currentMapId) {
+  if (scene == null || !map.entities.any((entity) => entity.fieldObstacle != null)) {
     return null;
   }
+  final instance = gameState.mapInstanceWorldState.instanceRef(map.id);
+  if (instance == null || map.id != gameState.currentMapId) {
+    return null;
+  }
+  final resources = models.toList();
   bool cleared(String? id) =>
       id != null &&
       gameState.mapInstanceWorldState.isFieldObstacleCleared(instance, id);

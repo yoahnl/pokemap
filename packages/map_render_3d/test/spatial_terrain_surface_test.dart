@@ -1,9 +1,47 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_ground.dart';
+import 'package:map_render_3d/src/spatial_terrain_contours.dart';
 import 'package:map_render_3d/src/spatial_terrain_geometry.dart';
 
 void main() {
+  test('far footprints and shared edges never enter polygon clipping', () {
+    BorderGroundFootprint square(double x) => BorderGroundFootprint(
+      points: [
+        BorderGroundPoint(x: x, z: 0),
+        BorderGroundPoint(x: x + 1, z: 0),
+        BorderGroundPoint(x: x + 1, z: 1),
+        BorderGroundPoint(x: x, z: 1),
+      ],
+    );
+    final surface = SpatialTerrainSurface(
+      id: 'strips',
+      x: .25,
+      z: .5,
+      height: 2,
+      footprints: [square(1), square(0), square(15)],
+    );
+    List<SpatialTerrainContour> sample(
+      SpatialTerrainSurface surface,
+      double left,
+      double right,
+    ) => SpatialTerrainContour.overlapping(
+      surface,
+      left: left,
+      right: right,
+      top: .5,
+      bottom: 1.5,
+    ).toList();
+    final both = sample(surface, .25, 2.25);
+    expect(both.map((contour) => contour.points.first.x), [1.25, .25]);
+    expect(sample(surface, 1.25, 2.25).single, same(both.first));
+    expect(sample(surface, 2.25, 3.25), isEmpty);
+    final moved = surface.copyWith(x: 1.25);
+    expect(sample(moved, .25, 1.25), isEmpty);
+    expect(sample(moved, 1.25, 2.25).single.points.first.x, 1.25);
+    expect(sample(surface, .25, 1.25).single, same(both.last));
+  });
+
   test('continuous terrain replaces the base only inside its footprints', () {
     final scene = terrainScene();
     final patches = spatialSurfacePatches(scene).toList();

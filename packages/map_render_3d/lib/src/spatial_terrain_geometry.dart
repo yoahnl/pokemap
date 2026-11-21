@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flame_3d/core.dart';
 import 'package:map_core/map_core.dart';
 
+import 'spatial_terrain_contours.dart';
+
 part 'spatial_ground_polygon.dart';
 part 'spatial_terrain_flank_walls.dart';
 

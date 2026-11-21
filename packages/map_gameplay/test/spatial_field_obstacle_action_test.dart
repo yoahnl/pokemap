@@ -16,6 +16,33 @@ void main() {
               max: Model3dVector3(x: .3, y: 2, z: .3)),
           meshCount: 1,
           triangleCount: 1));
+  test('maps without field obstacles skip model and presence queries', () {
+    final map = fixture.obstacleMap(FieldObstacleKind.cutTree).copyWith(
+      spatialScene: MapSpatialScene(width: 6, depth: 4),
+      entities: const [
+        MapEntity(id: 'sign', kind: MapEntityKind.custom, pos: GridPos(x: 2, y: 1)),
+      ],
+    );
+    var modelReads = 0;
+    var presenceReads = 0;
+    final result = findSpatialFieldObstacleTarget(
+      map: map,
+      gameState: fixture.ready(FieldAbility.cut),
+      models: [model].map((value) {
+        modelReads++;
+        return value;
+      }),
+      x: 1.5,
+      z: 1.5,
+      facing: EntityFacing.east,
+      entityIsPresent: (_) {
+        presenceReads++;
+        return true;
+      },
+    );
+    expect(result, isNull);
+    expect((modelReads, presenceReads), (0, 0));
+  });
   for (final kind in [
     FieldObstacleKind.cutTree,
     FieldObstacleKind.rockSmashRock

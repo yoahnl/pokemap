@@ -3,6 +3,45 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('model candidates follow live blocking overrides and custom providers', () {
+    final model = ProjectModel3dEntry(
+      id: 'tree', name: 'Tree', sourceAssetId: 'tree', relativePath: 'assets/models3d/tree.glb',
+      inspection: Model3dInspection(
+        bounds: Model3dBounds(min: Model3dVector3(x: -.4, y: 0, z: -.4),
+            max: Model3dVector3(x: .4, y: 2, z: .4)),
+        meshCount: 1, triangleCount: 1,
+      ),
+    );
+    final map = MapData(id: 'map', name: 'Map', version: ProjectVersion.v9,
+      size: const GridSize(width: 8, height: 8),
+      spatialScene: MapSpatialScene(width: 8, depth: 8, instances: [
+        SpatialModelInstance(id: 'tree', modelId: model.id, blocksMovement: false,
+            position: Model3dVector3(x: 2.5, y: 0, z: 1.5)),
+      ]),
+    );
+    final controller = SpatialMovementController.fromMap(map: map, models: [model],
+        spatialArrival: PlayerSpatialPosition(x: 1.5, z: 1.5));
+    final solid = SpatialModelRuntimeState(modelId: 'tree', animationIndex: null,
+        normalizedTime: 0, blocksMovement: true);
+    final overrides = <String, SpatialModelRuntimeState>{};
+    var poseReads = 0;
+    controller.setRuntimeStateProviders(
+      modelStateProvider: (id) {
+        poseReads++;
+        return overrides[id];
+      },
+      additionalBlockingModelIds: () => overrides.keys,
+    );
+    bool canCross() => controller.canTraverseActor(1.5, 1.5, 2.5, 1.5);
+    expect(canCross(), isTrue);
+    expect(poseReads, 0);
+    overrides['tree'] = solid;
+    expect(canCross(), isFalse);
+    overrides.clear();
+    expect(canCross(), isTrue);
+    controller.modelStateProvider = (id) => solid;
+    expect(canCross(), isFalse);
+  });
   test('an owned boulder motion ignores only its own bound collision', () {
     final model = ProjectModel3dEntry(id: 'rock', name: 'Rock', sourceAssetId: 'source',
         relativePath: 'assets/models3d/rock.glb', inspection: Model3dInspection(bounds: Model3dBounds(

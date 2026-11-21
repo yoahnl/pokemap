@@ -1,9 +1,46 @@
-import 'package:flame_3d/core.dart';
+import 'package:flame_3d/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_runtime_model_transform.dart';
 
 void main() {
+  test('only changed renderer coordinates invalidate a model transform', () {
+    final anchor = Model3dVector3(x: 2, y: 1, z: 3);
+    final instance = SpatialModelInstance(
+      id: 'rock',
+      modelId: 'rock',
+      position: anchor,
+    );
+    final position = NotifyingVector3(12, 1, 23);
+    final transform = SpatialRuntimeModelTransform(
+      position: position,
+      anchor: anchor,
+    );
+    final pose = SpatialModelRuntimeState(
+      modelId: 'rock',
+      animationIndex: null,
+      normalizedTime: 0,
+      blocksMovement: true,
+      translationX: .1,
+      translationY: .2,
+      translationZ: -.3,
+    );
+    var writes = 0;
+    position.addListener(() => writes++);
+
+    expect(transform.apply(position, instance, null), isFalse);
+    expect(writes, 0);
+    expect(transform.apply(position, instance, pose), isTrue);
+    expect(writes, 1);
+    for (var i = 0; i < 120; i++) {
+      expect(transform.apply(position, instance, pose), isFalse);
+    }
+    expect(writes, 1);
+    expect(transform.apply(position, instance, null), isTrue);
+    expect(position, Vector3(12, 1, 23));
+    expect(writes, 2);
+  });
+
   test('a runtime translation preserves authored offsets and resets without drift', () {
     final anchor = Model3dVector3(x: 2.2, y: 1, z: 3.7);
     final position = Vector3(12.4, 1.2, 23.9);

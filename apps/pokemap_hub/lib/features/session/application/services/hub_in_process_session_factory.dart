@@ -76,6 +76,7 @@ final class HubInProcessSessionFactory {
         runtimeFactory:
             (prepared) => SpatialExplorationGameSessionRuntime(
               descriptor: prepared,
+              immutableProject: true,
               gen5BattleSourceLoader: gen5Loader.load,
               projectFilePath:
                   () async =>

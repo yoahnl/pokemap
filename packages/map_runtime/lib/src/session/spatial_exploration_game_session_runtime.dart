@@ -89,6 +89,7 @@ final class SpatialExplorationGameSessionRuntime
         RuntimeOverworldInteractionPort {
   SpatialExplorationGameSessionRuntime({
     required this.descriptor,
+    this.immutableProject = false,
     this.gen5BattleSourceLoader,
     required SessionProjectFilePathLoader projectFilePath,
     required SpatialExplorationSessionMount mountSession,
@@ -126,6 +127,7 @@ final class SpatialExplorationGameSessionRuntime
   }
 
   final GameSessionDescriptor descriptor;
+  final bool immutableProject;
   final RuntimeGen5BattleSourceLoader? gen5BattleSourceLoader;
   final RuntimePlayerFeedbackLocalizer? feedbackLocalizer;
   final RuntimeBattleMessageFormatter? battleMessageFormatter;
@@ -1748,6 +1750,7 @@ final class SpatialExplorationGameSessionRuntime
         throw StateError('The prepared maps require ${SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId}.');
       }
       final loaded = await SpatialExplorationSession.load(bundle,
+          immutableProject: immutableProject,
           runtimeLocale: _preferences?.contentLocale(descriptor.locales)
               ?? descriptor.locale,
           locales: descriptor.locales,

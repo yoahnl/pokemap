@@ -17,13 +17,13 @@ final class RuntimeWorldRuleProjectionCache {
   }) {
     final context = rewardSceneContext ?? lookupRewardScenes;
     if (!identical(project, _project) ||
-        !identical(gameState, _gameState) ||
+        !_sameProjectionInputs(_gameState, gameState) ||
         !identical(context, _rewardSceneContext)) {
       _maps.clear();
       _project = project;
-      _gameState = gameState;
       _rewardSceneContext = context;
     }
+    _gameState = gameState;
     final existing = _maps[map];
     if (existing != null) return existing;
     final resolved = const RuntimeWorldRuleProjectionHook().resolve(
@@ -36,4 +36,25 @@ final class RuntimeWorldRuleProjectionCache {
     _maps[map] = resolved;
     return resolved;
   }
+
+  bool _sameProjectionInputs(GameState? previous, GameState next) =>
+      identical(previous, next) ||
+      previous != null &&
+          identical(previous.storyFlags, next.storyFlags) &&
+          identical(
+            previous.narrativeFactRuntimeState,
+            next.narrativeFactRuntimeState,
+          ) &&
+          identical(previous.progression, next.progression) &&
+          previous.consumedEventIds == next.consumedEventIds &&
+          identical(
+            previous.narrativeEventProgress,
+            next.narrativeEventProgress,
+          ) &&
+          identical(
+            previous.mapInstanceWorldState,
+            next.mapInstanceWorldState,
+          ) &&
+          previous.gameplayCalendarState == next.gameplayCalendarState &&
+          identical(previous.periodicRewardState, next.periodicRewardState);
 }

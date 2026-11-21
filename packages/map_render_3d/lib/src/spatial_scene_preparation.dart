@@ -14,6 +14,11 @@ typedef SpatialPreparedScenePlans = ({
   SpatialActorOcclusionPlan occlusion,
 });
 
+typedef SpatialDestinationProjection = ({
+  MapData map,
+  Map<String, Set<(int, int)>> groundReplacements,
+});
+
 final class SpatialScenePreparation {
   const SpatialScenePreparation({
     required this.map,
@@ -37,16 +42,19 @@ final class SpatialScenePreparation {
 final class SpatialSceneResourcePreparation {
   SpatialSceneResourcePreparation(
     this.request, {
+    SpatialDestinationProjection Function()? projectMap,
     required Map<String, Future<Model>> modelCache,
     required Map<String, Future<Texture>> groundTextureCache,
     required bool Function() isCurrent,
-  }) : _models = Map.of(modelCache),
+  }) : _projectMap = projectMap,
+       _models = Map.of(modelCache),
        _textures = Map.of(groundTextureCache),
        _initialModels = modelCache.keys.toSet(),
        _initialTextures = groundTextureCache.keys.toSet(),
        _sourceCurrent = isCurrent;
 
   final SpatialScenePreparation request;
+  final SpatialDestinationProjection Function()? _projectMap;
   final Map<String, Future<Model>> _models;
   final Map<String, Future<Texture>> _textures;
   final Set<String> _initialModels, _initialTextures;
@@ -69,12 +77,15 @@ final class SpatialSceneResourcePreparation {
     try {
       if (!isCurrent) return false;
       final project = request.project;
-      final map = projectSpatialSmartTileModels(
-        map: request.map,
-        catalog: project.smartTileCatalog,
-        sourceCellWidth: project.settings.tileWidth,
-        sourceCellHeight: project.settings.tileHeight,
-      );
+      final projection = _projectMap?.call();
+      final map =
+          projection?.map ??
+          projectSpatialSmartTileModels(
+            map: request.map,
+            catalog: project.smartTileCatalog,
+            sourceCellWidth: project.settings.tileWidth,
+            sourceCellHeight: project.settings.tileHeight,
+          );
       final scene = map.spatialScene;
       if (scene == null) throw StateError('A spatial destination is required.');
       final definitions = {
@@ -119,7 +130,11 @@ final class SpatialSceneResourcePreparation {
         discard();
         return false;
       }
-      final ground = SpatialGroundPlan(map, project);
+      final ground = SpatialGroundPlan(
+        map,
+        project,
+        modelGroundReplacements: projection?.groundReplacements,
+      );
       final occlusion = SpatialActorOcclusionPlan(map, project);
       Set<String> imagesAt(int elapsed) => {
         ...ground.imageIdsAt(elapsed),
