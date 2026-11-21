@@ -3,7 +3,14 @@ name: Avelune Android Release
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '17 8 * * 3'
   workflow_dispatch:
+    inputs:
+      promote_alpha:
+        description: Promote the latest internal Play release to closed testing (Alpha) without rebuilding
+        type: boolean
+        default: false
 
 concurrency:
   group: avelune-play-internal
@@ -15,6 +22,7 @@ permissions:
 
 jobs:
   publish:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.promote_alpha)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: pokemap-release
@@ -120,3 +128,31 @@ jobs:
         if: always()
         shell: bash
         run: rm -f "$RUNNER_TEMP/avelune-release.jks"
+
+  promote-alpha:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.promote_alpha))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: pokemap-release
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify Play release tooling
+        run: python3 -m unittest discover -s apps/avelune_android/tool -p 'test_release_tools.py' -v
+      - name: Authenticate to the existing Play application
+        id: promote-auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+      - name: Promote the signed internal bundle to closed testing
+        env:
+          GOOGLE_ACCESS_TOKEN: ${{ steps.promote-auth.outputs.access_token }}
+        shell: bash
+        run: |
+          python3 apps/avelune_android/tool/publish_play.py promote-alpha | tee "$RUNNER_TEMP/play-alpha-promotion.json"
+          {
+            echo 'Google Play closed testing (Alpha) promotion result'
+            cat "$RUNNER_TEMP/play-alpha-promotion.json"
+          } >> "$GITHUB_STEP_SUMMARY"
