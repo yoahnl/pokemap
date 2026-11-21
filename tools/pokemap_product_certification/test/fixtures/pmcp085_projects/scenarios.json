@@ -412,6 +412,117 @@
       ]
     },
     {
+      "id": "project-identity-and-transitions",
+      "projectRoot": "world-rules",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "project.rename",
+          "actionVersion": 1,
+          "parameters": {"name": "Canopy Crossing"},
+          "observations": [
+            {"path": "project.json", "at": ["name"], "equals": "Canopy Crossing"}
+          ]
+        },
+        {
+          "actionId": "project.battle_transitions.update",
+          "actionVersion": 1,
+          "parameters": {
+            "definitions": [
+              {"id": "aurora", "label": "Aurora", "usages": ["wild"], "phases": [{"kind": "fadeToBlack", "durationSeconds": 0.2}]},
+              {"id": "clockwork", "label": "Clockwork", "usages": ["trainer"], "phases": [{"kind": "fadeToBlack", "durationSeconds": 0.4}]}
+            ],
+            "wildTransitionId": "aurora",
+            "trainerTransitionId": "clockwork"
+          },
+          "observations": [
+            {"path": "project.json", "at": ["name"], "equals": "Canopy Crossing"},
+            {"path": "project.json", "at": ["battleTransitions", "wildTransitionId"], "equals": "aurora"},
+            {"path": "project.json", "at": ["battleTransitions", "trainerTransitionId"], "equals": "clockwork"},
+            {"path": "project.json", "at": ["battleTransitions", "definitions", 0, "phases", 0, "durationSeconds"], "equals": 0.2},
+            {"path": "project.json", "at": ["battleTransitions", "definitions", 1, "phases", 0, "durationSeconds"], "equals": 0.4},
+            {"path": "maps/map.json", "sha256": "sha256:bb3730f6b881cd417613f1fb3239e43600884d872aab183f5483dab564092a5d"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "project-publish-draft",
+      "projectRoot": "world-rules",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "project.publish_draft",
+          "actionVersion": 1,
+          "parameters": {
+            "name": {"before": "Transport parity fixture", "after": "North Station"},
+            "documents": {
+              "facts": {
+                "parcel_ready": {
+                  "before": null,
+                  "after": {"id": "parcel_ready", "label": "Parcel ready", "defaultValue": false}
+                }
+              }
+            }
+          },
+          "observations": [
+            {"path": "project.json", "at": ["name"], "equals": "North Station"},
+            {"path": "project.json", "at": ["facts", 0, "id"], "equals": "parcel_ready"},
+            {"path": "project.json", "at": ["facts", 0, "label"], "equals": "Parcel ready"},
+            {"path": "project.json", "at": ["facts", 0, "defaultValue"], "equals": false},
+            {"path": "maps/map.json", "sha256": "sha256:bb3730f6b881cd417613f1fb3239e43600884d872aab183f5483dab564092a5d"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "project-catalog-partition",
+      "projectRoot": "world-rules",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "project.catalog.partition",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {},
+          "observations": [
+            {"path": "project.json", "at": ["format"], "equals": "avelune.working-catalog"},
+            {"path": "project.json", "at": ["version"], "equals": 1},
+            {
+              "path": "catalog/HEAD.json",
+              "catalogDefinition": {"kind": "catalogMetadata", "id": "[\"projectDefinition\",\"maps\",0]"},
+              "at": ["value", "definition", "relativePath"],
+              "equals": "maps/map.json"
+            },
+            {"path": "maps/map.json", "sha256": "sha256:bb3730f6b881cd417613f1fb3239e43600884d872aab183f5483dab564092a5d"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "catalog-definition-metadata",
+      "projectRoot": "working-catalog-resources",
+      "catalogPreparation": ["resourceIndexes"],
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "catalog.definition.update",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"resourceKind": "model3d", "id": "tree", "name": "Canopy oak"},
+          "observations": [
+            {
+              "path": "catalog/HEAD.json",
+              "catalogDefinition": {"kind": "model3d", "id": "tree"},
+              "at": ["value", "name"],
+              "equals": "Canopy oak"
+            },
+            {"path": "assets/models3d/tree.glb", "sha256": "sha256:e8cd74fa40f68d1824e471ade4378dcc2aba3be4c8d05d4fa955ceee4aa11ecc"}
+          ]
+        }
+      ]
+    },
+    {
       "id": "presentation-visuals",
       "projectRoot": "presentation-visuals",
       "steps": [

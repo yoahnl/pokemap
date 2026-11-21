@@ -210,9 +210,7 @@ Future<({List<Map<String, Object?>> rows, String? failure})> _trial(
         'The copied fixture differs from the input digest.',
       );
     }
-    if (scenario.catalogPreparation case final scopes?) {
-      await catalogFixtures.prepare(project, trial, scopes);
-    }
+    await catalogFixtures.prepare(project, trial, scenario);
     final measuresPreviews = scenario.steps.any((step) => step.planOnly);
     if (measuresPreviews) {
       final gateway = await LocalTransactionFileGateway.open(

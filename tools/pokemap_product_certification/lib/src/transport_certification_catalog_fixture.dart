@@ -13,8 +13,13 @@ final class TransportCatalogFixturePreparation {
   Future<void> prepare(
     Directory project,
     Directory trial,
-    List<String> scopes,
+    AuthoringTransportScenario scenario,
   ) async {
+    final scopes = scenario.catalogPreparation;
+    final partitionsCatalog = scenario.steps.any(
+      (step) => step.actionId == 'project.catalog.partition',
+    );
+    if (scopes == null && !partitionsCatalog) return;
     final root = await project.resolveSymbolicLinks();
     final trialRoot = await trial.resolveSymbolicLinks();
     if (root != project.path ||
@@ -22,6 +27,8 @@ final class TransportCatalogFixturePreparation {
         p.dirname(root) != trialRoot) {
       throw const FormatException('Catalog preparation requires a QA copy.');
     }
+    _projectRoots.add(root);
+    if (scopes == null) return;
     final descriptor = File(p.join(root, 'project.json'));
     WorkingProjectCatalogDescriptor.fromJson(
       transportEvidenceObject(
@@ -29,8 +36,6 @@ final class TransportCatalogFixturePreparation {
         'working catalog descriptor',
       ),
     );
-    _projectRoots.add(root);
-
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: [root],

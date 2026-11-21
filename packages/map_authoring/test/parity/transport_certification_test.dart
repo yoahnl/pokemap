@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:map_authoring/map_authoring.dart' show CatalogStorageStore;
 import 'package:map_authoring/transport_certification.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -51,6 +53,54 @@ void main() {
         throwsFormatException,
       );
     }
+  });
+
+  test('observes the definition referenced by the current catalog head',
+      () async {
+    final temporary = await Directory.systemTemp.createTemp('pmcp085-catalog-');
+    addTearDown(() => temporary.delete(recursive: true));
+    final parent = await temporary.resolveSymbolicLinks();
+    final root = await Directory('$parent/project').create();
+    final store = await CatalogStorageStore.open(
+      projectRoot: root.path,
+      trustedAdmissionDirectory: Directory('$parent/admissions'),
+    );
+    final key = CatalogDefinitionKey(CatalogDefinitionKind.model3d, 'tree');
+    final observation = AuthoringTransportObservation.fromJson({
+      'path': CatalogStorageStore.headStorageKey,
+      'catalogDefinition': key.toJson(),
+      'at': ['name'],
+      'equals': 'Canopy oak',
+    });
+
+    CatalogStorageBuild generation(String name) =>
+        CatalogStorageBuilder().build([
+          CatalogDefinitionUnit(key: key, payload: {'name': name})
+        ]);
+
+    expect(await observation.read(root), {'present': false});
+    final previous =
+        await store.publish(generation('Tree'), expectedRootRevision: null);
+    final before = await observation.read(root);
+    expect(before, {'present': true, 'value': 'Tree'});
+    expect(() => observation.verify(before, before), throwsFormatException);
+
+    await store.publish(generation('Canopy oak'),
+        expectedRootRevision: previous.rootRevision);
+    final after = await observation.read(root);
+    expect(after, {'present': true, 'value': 'Canopy oak'});
+    expect(() => observation.verify(before, after), returnsNormally);
+  });
+
+  test('rejects catalog definition observations on unrelated file paths', () {
+    expect(
+      () => AuthoringTransportObservation.fromJson({
+        'path': 'project.json',
+        'catalogDefinition': {'kind': 'model3d', 'id': 'tree'},
+        'exists': true,
+      }),
+      throwsFormatException,
+    );
   });
 
   test('admits only explicit supported revision scopes', () {
