@@ -721,6 +721,7 @@ export 'src/presentation/flame/warp_presentation_renderer.dart';
 export 'src/presentation/flame/warp_presentation_overlay_component.dart';
 
 export 'src/application/narrative_event_runtime_snapshot.dart';
+export 'src/application/runtime_prepared_narrative_corpus.dart';
 
 export 'src/presentation/map_warp_transition_overlay.dart';
 

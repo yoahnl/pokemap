@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:crypto/crypto.dart' as crypto;
 
@@ -63,6 +64,7 @@ final class PortableProjectCatalog {
     required CatalogObjectReader readObject,
     CatalogStorageLimits? limits,
     Set<String>? metadataFields,
+    bool decodeMetadataInBackground = false,
   }) async {
     if (descriptor.length != 4 ||
         descriptor['format'] != 'avelune.portable-catalog' ||
@@ -84,12 +86,17 @@ final class PortableProjectCatalog {
         'catalog.publication: internal workspace state',
       );
     }
-    return fromSnapshot(snapshot, metadataFields: metadataFields);
+    return fromSnapshot(
+      snapshot,
+      metadataFields: metadataFields,
+      decodeMetadataInBackground: decodeMetadataInBackground,
+    );
   }
 
   static Future<PortableProjectCatalog> fromSnapshot(
     CatalogSnapshot snapshot, {
     Set<String>? metadataFields,
+    bool decodeMetadataInBackground = false,
   }) async {
     if (metadataFields != null &&
         metadataFields.any(
@@ -152,12 +159,9 @@ final class PortableProjectCatalog {
         cursor = page.nextCursor;
       } while (cursor != null);
     }
-    final decoded = ProjectManifest.fromJson(_reconstruct(metadata));
-    final project = decoded.copyWith(
-      globalProperties:
-          _immutableProjectProperty(decoded.globalProperties, 0)
-              as Map<String, dynamic>,
-    );
+    final project = decodeMetadataInBackground
+        ? await _decodePortableMetadataInBackground(metadata)
+        : _decodePortableMetadata(metadata);
     final projection = ProjectManifest(
       name: project.name,
       version: project.version,
@@ -322,37 +326,20 @@ final class PortableProjectCatalog {
     };
   }
 
-  ProjectManifest definitions(Iterable<CatalogDefinitionUnit> definitions) {
-    final grouped = <String, List<CatalogDefinitionUnit>>{};
-    for (final unit in definitions) {
-      final section = _definitionSection(unit);
-      (grouped[section] ??= []).add(unit);
-    }
-    return ProjectManifest.fromJson(
-      _reconstruct([
-        _shell,
-        for (final units in grouped.values)
-          ...((units..sort(
-                (a, b) => (a.payload['position']! as int).compareTo(
-                  b.payload['position']! as int,
-                ),
-              ))
-              .indexed
-              .map(
-                (entry) => CatalogDefinitionUnit(
-                  key: entry.$2.key,
-                  payload: {...entry.$2.payload, 'position': entry.$1},
-                  references: entry.$2.references,
-                ),
-              )),
-      ]),
-    );
-  }
+  ProjectManifest definitions(Iterable<CatalogDefinitionUnit> definitions) =>
+      _decodePortableDefinitions(_shell, definitions);
 
   ProjectManifest projectWithDefinitions(
     Iterable<CatalogDefinitionUnit> definitions,
-  ) {
-    final selected = this.definitions(definitions);
+  ) => _mergeDefinitions(this.definitions(definitions));
+
+  Future<ProjectManifest> projectWithDefinitionsInBackground(
+    List<CatalogDefinitionUnit> definitions,
+  ) async => _mergeDefinitions(
+    await _decodePortableDefinitionsInBackground(_shell, definitions),
+  );
+
+  ProjectManifest _mergeDefinitions(ProjectManifest selected) {
     return projectMetadata.copyWith(
       tilesets: selected.tilesets,
       elements: selected.elements,
@@ -367,6 +354,53 @@ final class PortableProjectCatalog {
       resourceLibraryCatalog: selected.resourceLibraryCatalog,
     );
   }
+}
+
+Future<ProjectManifest> _decodePortableMetadataInBackground(
+  List<CatalogDefinitionUnit> metadata,
+) => Isolate.run(() => _decodePortableMetadata(metadata));
+
+ProjectManifest _decodePortableMetadata(List<CatalogDefinitionUnit> metadata) {
+  final decoded = ProjectManifest.fromJson(_reconstruct(metadata));
+  return decoded.copyWith(
+    globalProperties: _immutableProjectProperty(decoded.globalProperties, 0)
+        as Map<String, dynamic>,
+  );
+}
+
+Future<ProjectManifest> _decodePortableDefinitionsInBackground(
+  CatalogDefinitionUnit shell,
+  List<CatalogDefinitionUnit> definitions,
+) => Isolate.run(() => _decodePortableDefinitions(shell, definitions));
+
+ProjectManifest _decodePortableDefinitions(
+  CatalogDefinitionUnit shell,
+  Iterable<CatalogDefinitionUnit> definitions,
+) {
+  final grouped = <String, List<CatalogDefinitionUnit>>{};
+  for (final unit in definitions) {
+    final section = _definitionSection(unit);
+    (grouped[section] ??= []).add(unit);
+  }
+  return ProjectManifest.fromJson(
+    _reconstruct([
+      shell,
+      for (final units in grouped.values)
+        ...((units..sort(
+              (a, b) => (a.payload['position']! as int).compareTo(
+                b.payload['position']! as int,
+              ),
+            ))
+            .indexed
+            .map(
+              (entry) => CatalogDefinitionUnit(
+                key: entry.$2.key,
+                payload: {...entry.$2.payload, 'position': entry.$1},
+                references: entry.$2.references,
+              ),
+            )),
+    ]),
+  );
 }
 
 String _definitionSection(CatalogDefinitionUnit unit) {

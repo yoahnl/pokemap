@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:pokemap_hub/features/session/data/repositories/hub_prepared_narrative_index.dart';
 import 'package:pokemap_hub/pokemap_hub.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -99,6 +101,92 @@ void main() {
     bytes[bytes.length - 1] ^= 1;
     await file.writeAsBytes(bytes);
     expect(await store.load(manifest), isNull);
+  });
+
+  test('the installed index retains the narrative visual definitions', () async {
+    await store.prepare(versionRoot: version, manifest: manifest);
+    final bytes = await store.fileFor(manifest).readAsBytes();
+    final payload = jsonDecode(utf8.decode(gzip.decode(bytes.sublist(32))))
+        as Map<String, dynamic>;
+    expect(payload['visualDefinitions'], isA<Map<String, dynamic>>());
+    expect(payload['validatorVersion'], 2);
+  });
+
+  test('installed version one indices are reusable and can be upgraded', () async {
+    await store.prepare(versionRoot: version, manifest: manifest);
+    final current = store.fileFor(manifest);
+    final bytes = await current.readAsBytes();
+    final payload = jsonDecode(utf8.decode(gzip.decode(bytes.sublist(32))))
+        as Map<String, dynamic>;
+    payload.remove('visualDefinitions');
+    payload['validatorVersion'] = 1;
+    final key = await File('${current.parent.path}/.key').readAsBytes();
+    final body = gzip.encode(utf8.encode(jsonEncode(payload)));
+    final legacy = File(
+      '${current.parent.path}/${manifest.gameId}-${manifest.content.treeSha256}-1.index',
+    );
+    await legacy.writeAsBytes([...Hmac(sha256, key).convert(body).bytes, ...body]);
+    await current.delete();
+
+    final catalog = await RuntimeProjectCatalog.open('${version.path}/project/project.json');
+    addTearDown(catalog.dispose);
+    final legacyCorpus = await store.loadForStartup(
+      catalog: catalog,
+      versionRoot: version,
+      manifest: manifest,
+    );
+    expect(legacyCorpus.maps.single.id, 'field');
+    expect(legacyCorpus.visualDefinitions, isNull);
+
+    await store.store(
+      manifest,
+      RuntimePreparedNarrativeCorpus(
+        maps: legacyCorpus.maps,
+        visualDefinitions: RuntimeNarrativeVisualDefinitions.fromProject(catalog.projectMetadata),
+      ),
+    );
+    final currentCorpus = await store.loadForStartup(
+      catalog: catalog,
+      versionRoot: version,
+      manifest: manifest,
+    );
+    expect(currentCorpus.visualDefinitions, isNotNull);
+    expect(currentCorpus.maps.single.sourceMapFingerprint, legacyCorpus.maps.single.sourceMapFingerprint);
+  });
+
+  test('startup reads checked maps when the installed index is missing', () async {
+    final catalog = await RuntimeProjectCatalog.open(
+      '${version.path}/project/project.json',
+    );
+    addTearDown(catalog.dispose);
+    final corpus = await store.loadForStartup(
+      catalog: catalog,
+      versionRoot: version,
+      manifest: manifest,
+    );
+    expect(corpus.maps.map((map) => map.id), ['field']);
+    expect(corpus.visualDefinitions, isNull);
+    expect(await store.fileFor(manifest).exists(), isFalse);
+  });
+
+  test('startup with a missing index rejects changed map bytes', () async {
+    final catalog = await RuntimeProjectCatalog.open(
+      '${version.path}/project/project.json',
+    );
+    addTearDown(catalog.dispose);
+    final file = File('${version.path}/project/maps/field.json');
+    await file.writeAsString(
+      (await file.readAsString()).replaceFirst('Field', 'Changed'),
+    );
+    await expectLater(
+      store.loadForStartup(
+        catalog: catalog,
+        versionRoot: version,
+        manifest: manifest,
+      ),
+      throwsFormatException,
+    );
+    expect(await store.fileFor(manifest).exists(), isFalse);
   });
 
   test('an artifact from another installation key cannot be used', () async {

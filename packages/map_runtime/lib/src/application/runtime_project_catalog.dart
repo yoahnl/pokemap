@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart';
@@ -10,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'runtime_character_refs.dart';
 import 'runtime_catalog_map_cache.dart';
 import 'runtime_manifest_tilesets.dart';
+import 'runtime_prepared_narrative_corpus.dart';
 
 final class RuntimeCatalogDefinitionMissingException extends FormatException {
   RuntimeCatalogDefinitionMissingException(this.key)
@@ -172,6 +174,7 @@ final class RuntimeProjectCatalog {
         raw,
         limits: effective,
         readObject: reader.read,
+        decodeMetadataInBackground: true,
       );
       return RuntimeProjectCatalog._(
         sourceFingerprint: sourceFingerprint,
@@ -269,21 +272,11 @@ final class RuntimeProjectCatalog {
   Future<AssetCatalog?> loadAssetCatalog() {
     _ensureOpen();
     return _assetCatalog ??= () async {
-      final file = File(
+      final catalog = await _readRuntimeAssetCatalog(
         p.join(p.dirname(projectFilePath), assetCatalogStorageKey),
       );
-      if (!await file.exists()) return null;
-      if (await file.length() > 32 * 1024 * 1024) {
-        throw const FormatException('Asset catalog exceeds its byte limit.');
-      }
-      final json = decodeNarrativeEventJsonStrict(
-        utf8.decode(await _readBoundedFile(file, 32 * 1024 * 1024)),
-      );
       _ensureOpen();
-      if (json is! Map<String, Object?>) {
-        throw const FormatException('Expected an asset catalog JSON object.');
-      }
-      return AssetCatalog.fromJson(json);
+      return catalog;
     }();
   }
 
@@ -440,8 +433,9 @@ final class RuntimeProjectCatalog {
 
   ProjectManifest mergeNarrativeVisualDefinitions(
     ProjectManifest project,
-    Iterable<ProjectManifest> views,
-  ) {
+    Iterable<ProjectManifest> views, {
+    RuntimeNarrativeVisualDefinitions? preparedDefinitions,
+  }) {
     _ensureOpen();
     final sources = [project, ...views];
     if (sources.any((view) => !identical(ownerOf(view), this))) {
@@ -451,27 +445,37 @@ final class RuntimeProjectCatalog {
     }
     final merged = project.copyWith(
       models3d: _mergeNarrativeVisualDefinitions(
-        sources.expand((view) => view.models3d),
+        sources.expand((view) => view.models3d).followedBy(
+          preparedDefinitions?.models3d ?? const [],
+        ),
         (entry) => entry.id,
         (entry) => entry.toJson(),
       ),
       elements: _mergeNarrativeVisualDefinitions(
-        sources.expand((view) => view.elements),
+        sources.expand((view) => view.elements).followedBy(
+          preparedDefinitions?.elements ?? const [],
+        ),
         (entry) => entry.id,
         (entry) => entry.toJson(),
       ),
       characters: _mergeNarrativeVisualDefinitions(
-        sources.expand((view) => view.characters),
+        sources.expand((view) => view.characters).followedBy(
+          preparedDefinitions?.characters ?? const [],
+        ),
         (entry) => entry.id,
         (entry) => entry.toJson(),
       ),
       tilesets: _mergeNarrativeVisualDefinitions(
-        sources.expand((view) => view.tilesets),
+        sources.expand((view) => view.tilesets).followedBy(
+          preparedDefinitions?.tilesets ?? const [],
+        ),
         (entry) => entry.id,
         (entry) => entry.toJson(),
       ),
       elementCategories: _mergeNarrativeVisualDefinitions(
-        sources.expand((view) => view.elementCategories),
+        sources.expand((view) => view.elementCategories).followedBy(
+          preparedDefinitions?.elementCategories ?? const [],
+        ),
         (entry) => entry.id,
         (entry) => entry.toJson(),
       ),
@@ -545,6 +549,8 @@ final class RuntimeProjectCatalog {
     final units = <CatalogDefinitionKey, CatalogDefinitionUnit>{};
     final selected = <CatalogDefinitionKey, Object>{};
     final active = <CatalogDefinitionKey>{};
+    final portable = _portable;
+    final prefetched = <CatalogDefinitionKey, CatalogDefinitionUnit?>{};
     final dynamic = {
       for (final declaration
           in PortableCatalogPublication.projectDynamicDependencies(
@@ -566,9 +572,10 @@ final class RuntimeProjectCatalog {
       active.add(key);
       ProjectManifest? view;
       Object? libraryValue;
-      final portable = _portable;
       if (portable != null) {
-        final unit = await portable.lookup(key);
+        final unit = prefetched.containsKey(key)
+            ? prefetched.remove(key)
+            : await portable.lookup(key);
         _ensureOpen();
         if (unit == null) {
           throw RuntimeCatalogDefinitionMissingException(key);
@@ -626,13 +633,35 @@ final class RuntimeProjectCatalog {
       active.remove(key);
     }
 
-    for (final root in roots) {
-      await visit(root, 0);
+    if (portable != null && roots.length > 256) {
+      const batchSize = 16;
+      for (var offset = 0; offset < roots.length; offset += batchSize) {
+        _ensureOpen();
+        final batch = roots.skip(offset).take(batchSize)
+            .where((key) => !selected.containsKey(key))
+            .toList();
+        final values = await Future.wait(batch.map(portable.lookup));
+        for (var index = 0; index < batch.length; index++) {
+          prefetched[batch[index]] = values[index];
+        }
+        for (final root in batch) {
+          await visit(root, 0);
+        }
+      }
+    } else {
+      for (final root in roots) {
+        await visit(root, 0);
+      }
     }
     _ensureOpen();
-    final selectedProject =
-        _portable?.projectWithDefinitions(units.values) ??
-        _nativeProjection(projectMetadata, selected);
+    final selectedProject = portable == null
+        ? _nativeProjection(projectMetadata, selected)
+        : units.length > 256
+        ? await portable.projectWithDefinitionsInBackground(
+            units.values.toList(growable: false),
+          )
+        : portable.projectWithDefinitions(units.values);
+    _ensureOpen();
     final project = selectedProject.copyWith(
       elements: [
         for (final element in selectedProject.elements)
@@ -647,7 +676,6 @@ final class RuntimeProjectCatalog {
       ],
     );
     var sourceBytes = 0;
-    final portable = _portable;
     if (portable != null) {
       if (units.length > 256) {
         sourceBytes = _maximumManifestSourceBytes + 1;
@@ -1378,3 +1406,20 @@ ProjectManifest _nativeProjection(
 
 String _runtimePublicationFingerprint(List<int> bytes) =>
     narrativeEventBytesFingerprint(bytes);
+
+Future<AssetCatalog?> _readRuntimeAssetCatalog(String path) =>
+    Isolate.run(() async {
+      final file = File(path);
+      if (!await file.exists()) return null;
+      const maximumBytes = 32 * 1024 * 1024;
+      if (await file.length() > maximumBytes) {
+        throw const FormatException('Asset catalog exceeds its byte limit.');
+      }
+      final json = decodeNarrativeEventJsonStrict(
+        utf8.decode(await _readBoundedFile(file, maximumBytes)),
+      );
+      if (json is! Map<String, Object?>) {
+        throw const FormatException('Expected an asset catalog JSON object.');
+      }
+      return AssetCatalog.fromJson(json);
+    });

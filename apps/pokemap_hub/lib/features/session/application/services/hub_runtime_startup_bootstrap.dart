@@ -215,6 +215,9 @@ final class HubRuntimeStartupBootstrap
       lifetime?.ensureActive();
       final metadataCatalog = await RuntimeProjectCatalog.open(
         projectFile.path,
+        expectedSourceSha256: launch.manifest.content.files
+            .firstWhere((entry) => entry.path == launch.project.packagePath)
+            .sha256,
       );
       preparedCatalog = metadataCatalog;
       final installedProject = metadataCatalog.projectMetadata;
@@ -261,20 +264,21 @@ final class HubRuntimeStartupBootstrap
         preferencesGateway: preferencesGateway,
       );
       final resourceProfile = hubRuntimeResourceProfile(spatial: spatial);
+      final preparedNarrativeIndex = HubPreparedNarrativeIndex(
+        supportRoot: supportRoot,
+      );
       final initialMapPreloader = RuntimeInitialMapPreloader(
         preparedProjectCatalog: metadataCatalog,
-        preparedNarrativeMapsLoader: (_) async {
-          final index = HubPreparedNarrativeIndex(supportRoot: supportRoot);
-          final cached = await index.load(launch.manifest);
-          if (cached != null) return cached;
-          try {
-            await index.prepare(versionRoot: projectFile.parent.parent, manifest: launch.manifest);
-          } on PreparedNarrativeCacheUnavailable {
-            return null;
-          }
-          lifetime?.ensureActive();
-          return index.load(launch.manifest);
-        },
+        preparedNarrativeCorpusLoader: (catalog) =>
+            preparedNarrativeIndex.loadForStartup(
+              catalog: catalog,
+              versionRoot: projectFile.parent.parent,
+              manifest: launch.manifest,
+            ),
+        cacheNarrativeCorpus: (corpus) => preparedNarrativeIndex.store(
+          launch.manifest,
+          corpus,
+        ),
         expectedIdentity: launch.identity,
         projectFilePath: () async => projectFile.path,
         loadSave: saveGateway.readLaunchableEnvelope,

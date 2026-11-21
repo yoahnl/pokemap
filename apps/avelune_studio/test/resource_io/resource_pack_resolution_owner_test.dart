@@ -28,8 +28,9 @@ void main() {
       port: port,
       picker: () async => '/retained.aveluneassets',
       accept: (_) async {
-        if (++accepts <= 2)
+        if (++accepts <= 2) {
           throw const ResourceFailure('Relecture indisponible');
+        }
       },
     );
     addTearDown(controller.dispose);

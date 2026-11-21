@@ -3,6 +3,7 @@ import 'dart:isolate';
 import 'package:map_core/map_core.dart';
 
 import 'runtime_project_catalog.dart';
+import 'runtime_prepared_narrative_corpus.dart';
 
 /// Immutable Event V2 runtime view built from one project/map corpus.
 ///
@@ -48,6 +49,7 @@ final class NarrativeEventRuntimeSnapshot {
     loadMap,
     void Function(int completed, int total)? onMapLoaded,
     List<NarrativeMapProjection>? preparedMaps,
+    RuntimePreparedNarrativeCorpus? preparedCorpus,
   }) async {
     final registry =
         project.eventRegistry ??
@@ -92,12 +94,13 @@ final class NarrativeEventRuntimeSnapshot {
     String? projectFingerprint;
     final owner = RuntimeProjectCatalog.ownerOf(project);
     final mapsById = <String, NarrativeMapView>{};
-    final preparedById = preparedMaps == null
+    final cachedMaps = preparedCorpus?.maps ?? preparedMaps;
+    final preparedById = cachedMaps == null
         ? null
-        : {for (final map in preparedMaps) map.id: map};
-    if (preparedMaps != null &&
-        (preparedById!.length != preparedMaps.length ||
-            preparedMaps.length != project.maps.length ||
+        : {for (final map in cachedMaps) map.id: map};
+    if (cachedMaps != null &&
+        (preparedById!.length != cachedMaps.length ||
+            cachedMaps.length != project.maps.length ||
             !project.maps.every(
               (entry) => preparedById.containsKey(entry.id),
             ))) {
@@ -140,7 +143,8 @@ final class NarrativeEventRuntimeSnapshot {
       onMapLoaded?.call(mapsById.length, project.maps.length);
     }
 
-    if (owner != null) {
+    final preparedDefinitions = preparedCorpus?.visualDefinitions;
+    if (owner != null && preparedDefinitions == null) {
       final hydrated = await owner.manifestForNarrativeMaps(mapsById.values);
       if (!identical(owner, RuntimeProjectCatalog.ownerOf(hydrated))) {
         throw StateError(
@@ -152,7 +156,11 @@ final class NarrativeEventRuntimeSnapshot {
 
     final validationProject = owner == null
         ? project
-        : owner.mergeNarrativeVisualDefinitions(project, validatedProjects);
+        : owner.mergeNarrativeVisualDefinitions(
+            project,
+            validatedProjects,
+            preparedDefinitions: preparedDefinitions,
+          );
     if (presentationMediaCatalog == null && _hasWorldPictures(validationProject)) {
       presentationMediaCatalog = await loadPresentationMediaCatalog?.call();
     }
