@@ -199,14 +199,7 @@ class DialogueOverlayComponent extends PositionComponent {
 
   void _failFeedback(Object error) {
     if (_finished) return;
-    _finished = true;
-    for (final lease in _iconLeases.values) {
-      lease.dispose();
-    }
-    _iconLeases.clear();
-    _iconBytes.clear();
-    _iconImages.clear();
-    if (_ownsResourceBudget) _resourceBudget.dispose();
+    disposePresentation();
     removeFromParent();
     onFailed?.call(error);
   }
@@ -247,6 +240,11 @@ class DialogueOverlayComponent extends PositionComponent {
 
   @override
   void onRemove() {
+    disposePresentation();
+    super.onRemove();
+  }
+
+  void disposePresentation() {
     _finished = true;
     for (final lease in _iconLeases.values) {
       lease.dispose();
@@ -254,8 +252,8 @@ class DialogueOverlayComponent extends PositionComponent {
     _iconLeases.clear();
     _iconBytes.clear();
     _iconImages.clear();
+    _currentPresentationSnapshot = null;
     if (_ownsResourceBudget) _resourceBudget.dispose();
-    super.onRemove();
   }
 
   void setRenderInFlame(bool renderInFlame) {
@@ -535,7 +533,7 @@ class DialogueOverlayComponent extends PositionComponent {
       revision: nextPresentationRevision?.call() ?? ++_presentationRevision,
       visibleText: visibleText,
       isCurrentLineFullyRevealed: isCurrentLineFullyRevealed,
-      resolvePortrait: portraitResolver?.resolve,
+      resolvePortrait: portraitResolver?.resolveForDialogue,
       iconPngBytes: _iconBytes,
       iconImages: _iconImages,
     );

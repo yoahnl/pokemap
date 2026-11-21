@@ -123,11 +123,31 @@ final class DialoguePortraitResolver {
     if (generation != _preloadGeneration) return;
     if (!_catalogLoaded || preloadLimit == 0) return;
     for (final reference in references.values.take(preloadLimit)) {
-      resolve(
+      resolveForDialogue(
         characterId: reference.characterId,
         portraitStateId: reference.portraitStateId,
       );
     }
+  }
+
+  ResolvedDialoguePortrait? resolveForDialogue({
+    required String characterId,
+    required String portraitStateId,
+  }) {
+    final requested = resolve(
+      characterId: characterId,
+      portraitStateId: portraitStateId,
+    );
+    if (requested != null) return requested;
+    for (final neutral in const ['neutre', 'neutral']) {
+      if (neutral == portraitStateId) continue;
+      final fallback = resolve(
+        characterId: characterId,
+        portraitStateId: neutral,
+      );
+      if (fallback != null) return fallback;
+    }
+    return null;
   }
 
   ResolvedDialoguePortrait? resolve({

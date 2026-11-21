@@ -15,6 +15,7 @@ import '../application/character_animation_source_resolver.dart';
 import '../application/runtime_map_bundle.dart';
 import '../application/runtime_player_avatar.dart';
 import '../application/load_runtime_map_bundle.dart';
+import '../application/dialogue_portrait_resolver.dart';
 import '../application/dialogue_runtime_models.dart';
 import '../application/dialogue_variable_interpolation.dart';
 import '../application/dialogue_feedback_playback_port.dart';
@@ -836,6 +837,7 @@ final class SpatialExplorationSession {
     null,
   );
   DialogueOverlayComponent? _dialogue;
+  DialoguePortraitResolver? _dialoguePortraits;
   DialogueFeedbackPlaybackPort? dialogueFeedbackPlaybackPort;
   FlameNarrativeSoundPlaybackAdapter? _dialogueSound;
   RuntimeMusicService? _dialogueMusic;
@@ -950,6 +952,21 @@ final class SpatialExplorationSession {
     return completion.future;
   }
 
+  DialoguePortraitResolver get _dialoguePortraitResolver {
+    final current = _dialoguePortraits;
+    final manifest = bundle.manifest;
+    final root = bundle.projectRootDirectory;
+    if (current != null &&
+        identical(current.manifest, manifest) &&
+        current.projectRootDirectory == root) {
+      return current;
+    }
+    return _dialoguePortraits = DialoguePortraitResolver(
+      manifest: manifest,
+      projectRootDirectory: root,
+    );
+  }
+
   Future<void> _openDialogue(DialogueRef ref,
       {MapEntity? entity,
       Completer<SceneDialogueRuntimeAwaitableResult>? completion,
@@ -1026,6 +1043,8 @@ final class SpatialExplorationSession {
           viewportSize: Vector2(640, 480),
           renderInFlame: false,
           textSpeed: textSpeed,
+          portraitResolver: _dialoguePortraitResolver,
+          nextPresentationRevision: () => ++_revision,
           feedbackPlaybackPort: configured.lineFeedback.any((feedback) => feedback.audioCue != null)
               ? dialogueFeedbackPlaybackPort ?? (_dialogueSound ??= FlameNarrativeSoundPlaybackAdapter(
                   mediaAssets: bundle.manifest.cinematicMediaAssets,
@@ -1049,24 +1068,21 @@ final class SpatialExplorationSession {
             );
             }
           },
-          onPresentationSnapshotChanged: (_) {
+          onPresentationSnapshotChanged: (snapshot) {
             if (!_disposed && generation == _interactionGeneration) {
-              _publishDialogue();
+              dialoguePresentation.value = snapshot;
             }
         },
       );
       _dialogue = overlay;
       await overlay.onLoad();
       if (_disposed || generation != _interactionGeneration) {
-        overlay.removeFromParent();
-        return;
+        overlay.disposePresentation();
       }
-      _publishDialogue();
     } on Object catch (error) {
       if (!_disposed && generation == _interactionGeneration) {
         interactionError.value = error;
-        _dialogue?.removeFromParent();
-        _dialogue = null;
+        _disposeDialoguePresentation();
         _completeDialogue(SceneDialogueRuntimeAwaitableResult.failed(
             errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
             message: 'The dialogue could not be shown: $error',
@@ -1134,24 +1150,6 @@ final class SpatialExplorationSession {
     }
   }
 
-  void _publishDialogue() {
-    final dialogue = _dialogue;
-    final state = dialogue?.currentSession.state;
-    if (dialogue == null ||
-        (state is! DialogueShowingLine && state is! DialogueWaitingForChoice)) {
-      closeDialogue();
-      return;
-    }
-    dialoguePresentation.value = buildDialoguePresentationSnapshot(
-        session: dialogue.currentSession,
-        revision: ++_revision,
-        visibleText: dialogue.visibleText,
-        isCurrentLineFullyRevealed: dialogue.isCurrentLineFullyRevealed,
-        iconPngBytes: dialogue.currentPresentationSnapshot?.iconPngBytes ?? const {},
-      iconImages: dialogue.currentPresentationSnapshot?.iconImages ?? const {},
-    );
-  }
-
   void closeDialogue() {
     if (_disposed) return;
     _finishDialogue(const SceneDialogueRuntimeAwaitableResult.failed(
@@ -1173,12 +1171,16 @@ final class SpatialExplorationSession {
     _surfConfirmation = null;
     _completeDialogue(result);
     _interactionGeneration++;
-    _dialogue?.removeFromParent();
-    _dialogue = null;
+    _disposeDialoguePresentation();
     _dialogueEntityId = null;
     dialoguePresentation.value = null;
     movement.setPaused(presentationPaused || transitioning.value);
     interactionActive.value = false;
+  }
+
+  void _disposeDialoguePresentation() {
+    _dialogue?.disposePresentation();
+    _dialogue = null;
   }
 
   static Future<SpatialExplorationSession> load(
@@ -2758,8 +2760,8 @@ final class SpatialExplorationSession {
     onFrame = null;
     onPresentationFrame = null;
     _interactionGeneration++;
-    _dialogue?.removeFromParent();
-    _dialogue = null;
+    _disposeDialoguePresentation();
+    _dialoguePortraits = null;
     interactionError.dispose();
     interactionActive.dispose();
     dialoguePresentation.dispose();
