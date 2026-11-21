@@ -15,6 +15,7 @@ import '../player/runtime_graphics_preferences.dart';
 import '../player/runtime_player_feedback.dart';
 import '../player/runtime_world_time_preferences.dart';
 import '../presentation/map_warp_transition_overlay.dart';
+import 'spatial_exploration_clock.dart';
 import 'spatial_exploration_session.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 
@@ -50,6 +51,9 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     with WidgetsBindingObserver
     implements DestinationRenderPort<RuntimeMapBundle> {
   final focus = FocusNode();
+  late final _clock = SpatialExplorationClock(
+    (dt) => widget.session.advanceFrom(this, dt),
+  );
   Timer? _fireAudioTimer;
   late RuntimeBrazierAudioController fireAudio = RuntimeBrazierAudioController(
     mixer: widget.audioMixer ??
@@ -382,13 +386,23 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     if (failure != null) widget.onError?.call(failure);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _clock.enabled = TickerMode.valuesOf(context).enabled;
+  }
+
+  void _presented() {
+    _clock.presented = true;
+    widget.onReady?.call();
+  }
+
   Map<String, SpatialActorVisual> frames(
-    double dt,
     Offset renderedOrigin,
     Set<String> renderedMaps,
     String renderedMapId,
   ) {
-    final frames = widget.session.frames(dt, mapIds: renderedMaps);
+    final frames = widget.session.visuals(mapIds: renderedMaps);
     applyVisuals();
     if (widget.session.bundle.map.id != renderedMapId &&
         widget.session.connectionEntry == null) {
@@ -449,6 +463,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     oldWidget.session.mapRevision.removeListener(mapChanged);
     oldWidget.session.transitioning.removeListener(release);
     oldWidget.session.detachDoorRenderer(this);
+    oldWidget.session.releaseClock(this);
+    _clock.presented = false;
     keys.clear();
     widget.session.realWeather?.addListener(applyVisuals);
     widget.session.graphics.addListener(_graphicsChanged);
@@ -564,6 +580,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     widget.session.graphics.removeListener(_graphicsChanged);
     widget.session.mapRevision.removeListener(mapChanged);
     widget.session.detachDoorRenderer(this);
+    _clock.dispose();
+    widget.session.releaseClock(this);
     widget.session.transitioning.removeListener(release);
     WidgetsBinding.instance.removeObserver(this);
     focus.dispose();
@@ -622,10 +640,10 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                 onCell: (_, _) {
                   if (widget.keyboardInputEnabled) focus.requestFocus();
                 },
-                onReady: widget.onReady,
+                onReady: _presented,
                 onVisibleMapsChanged: widget.session.setVisibleMaps,
-                actorFrames: (dt) =>
-                    frames(dt, renderedOrigin, renderedMaps, renderedMapId),
+                actorFrames: (_) =>
+                    frames(renderedOrigin, renderedMaps, renderedMapId),
                 modelRuntimeState: widget.session.modelRuntimeState,
                 modelPresence: widget.session.modelIsPresent,
                 actorOcclusionStateForCell:

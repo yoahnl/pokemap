@@ -616,8 +616,15 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20));
     expect(world.paints, greaterThan(0));
-    final surfaceFinder = find.byWidgetPredicate(
-      (widget) => widget is SpatialGameSurface,
+    final surfaceFinder = find.descendant(
+      of: find.byWidgetPredicate(
+        (widget) => widget is SpatialGameSurface,
+        skipOffstage: false,
+      ),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is GameWidget,
+        skipOffstage: false,
+      ),
       skipOffstage: false,
     );
     final initialState = tester.state<State>(surfaceFinder);
@@ -784,6 +791,7 @@ void main() {
     sessionTicks.clear();
     for (var i = 0; i < 8; i++) {
       scene().actorFrames!(.02);
+      session.frames(.02);
       await tester.pump(const Duration(milliseconds: 20));
     }
     expect(sessionTicks, List.filled(8, (.02, false)));
@@ -795,7 +803,7 @@ void main() {
       session.dialoguePaused = !lifecycle;
       session.setLifecyclePaused(lifecycle);
       final seconds = session.environmentClock.elapsedSeconds;
-      scene().actorFrames!(.02);
+      session.frames(.02);
       expect(sessionTicks.last, (.02, true));
       expect(session.environmentClock.elapsedSeconds, seconds);
       expect(scene().presentationPaused!(), true);

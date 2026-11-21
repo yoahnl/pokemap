@@ -417,6 +417,9 @@ final class SpatialExplorationSession {
   final nativeDoorBlackout = ValueNotifier<double>(0);
   DestinationRenderPort<RuntimeMapBundle>? _doorRenderer;
   DestinationRenderPort<RuntimeMapBundle>? get doorRenderer => _doorRenderer;
+  Object? _clockDriver;
+  Set<String>? _visualMapIds;
+  Map<String, SpatialActorVisual> _visuals = const {};
   int _transferGeneration = 0;
   final _nativeDoor = SpatialDoorTraversalController();
   Object? _nativeDoorLease;
@@ -1820,7 +1823,24 @@ final class SpatialExplorationSession {
       final animations = id == bundle.map.id ? _smartTileAnimations : _preparedMaps[id]!.animations;
       animations.synchronizeActorOccupancy(occupants[id] ?? const {}, reactingActors: reactingActors[id] ?? const {});
     }
-    return result;
+    return _visuals = result;
+  }
+
+  bool advanceFrom(Object driver, double dt) {
+    if (_disposed) return false;
+    if (!identical(_clockDriver ??= driver, driver)) return false;
+    frames(dt, mapIds: _visualMapIds);
+    return true;
+  }
+
+  void releaseClock(Object driver) {
+    if (identical(_clockDriver, driver)) _clockDriver = null;
+  }
+
+  Map<String, SpatialActorVisual> visuals({Set<String>? mapIds}) {
+    if (_disposed) return const {};
+    _visualMapIds = mapIds;
+    return _visuals;
   }
 
   SpatialActorVisual npcFrame(
@@ -2830,6 +2850,8 @@ final class SpatialExplorationSession {
     cinematicFadeOpacity.dispose();
     graphics.dispose();
     _doorRenderer = null;
+    _clockDriver = null;
+    _visuals = const {};
     _disposed = true;
     _transferGeneration++;
     onFrame = null;

@@ -102,7 +102,9 @@ void main() {
         final visibleComponent =
             visible.game.modelComponents['lamp']!.component;
         final hiddenComponent = hidden.game.modelComponents['lamp']!.component;
+        var coveredFrames = 0;
         void advance() {
+          if (hidden.covered) coveredFrames++;
           visible.game.update(.02);
           hidden.game.update(.02);
           expect(
@@ -113,7 +115,7 @@ void main() {
             hiddenComponent.playback.paused,
             visibleComponent.playback.paused,
           );
-          expect(hidden.deltas, visible.deltas);
+          expect(hidden.deltas.length, visible.deltas.length - coveredFrames);
         }
 
         advance();
@@ -225,14 +227,14 @@ void main() {
       final modelSyncs = game.modelSyncCalls;
       game.refreshing = true;
       game.update(.02);
-      expect(frames, initialFrames + 1);
+      expect(frames, initialFrames);
       expect(game.groundElapsed, 0);
       expect(game.atmosphereElapsed, .02);
       expect(game.preparationCalls, preparation);
       expect(game.modelSyncCalls, modelSyncs + 1);
       game.renderedConfiguration = null;
       game.update(.02);
-      expect(frames, initialFrames + 1);
+      expect(frames, initialFrames);
       expect(game.atmosphereElapsed, .02);
     },
   );
@@ -274,7 +276,6 @@ void main() {
         presentationElapsedSeconds: () => elapsed,
         actorFrames: (dt) {
           deltas.add(dt);
-          if (!paused) elapsed += dt;
           SpatialActorVisual actor() => SpatialActorVisual(
             x: elapsed,
             y: 0,
@@ -311,11 +312,16 @@ void main() {
       covered = true;
       extraActor = true;
       game.configuration.controller.panBy(3, 4);
-      for (var frame = 0; frame < 8; frame++) {
+      void hostFrame() {
+        if (!paused) elapsed += .02;
         game.update(.02);
       }
+
+      for (var frame = 0; frame < 8; frame++) {
+        hostFrame();
+      }
       await Future<void>.delayed(Duration.zero);
-      expect(deltas, List.filled(8, .02));
+      expect(deltas, isEmpty);
       expect(elapsed, closeTo(.16, .000001));
       expect(game.groundElapsed, closeTo(.16, .000001));
       expect(game.atmosphereElapsed, closeTo(.16, .000001));
@@ -339,7 +345,7 @@ void main() {
       expect(game.actors['hero']!.mesh, same(actorMesh));
       expect(actorMesh.position.x, 0);
       paused = true;
-      game.update(.02);
+      hostFrame();
       expect(elapsed, closeTo(.16, .000001));
       expect(game.atmosphereElapsed, closeTo(.16, .000001));
       expect(game.groundElapsed, closeTo(.18, .000001));
@@ -347,7 +353,7 @@ void main() {
       paused = false;
       covered = false;
       deltas.clear();
-      game.update(.02);
+      hostFrame();
       expect(deltas, [.02]);
       expect(elapsed, closeTo(.18, .000001));
       expect(game.actors['hero']!.mesh, same(actorMesh));

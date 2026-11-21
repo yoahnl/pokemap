@@ -569,11 +569,13 @@ void main() {
     final sourceScene = tester.widget<SpatialSceneView>(
       find.byType(SpatialSceneView),
     );
+    session.frames(0);
     final before = sourceScene.actorFrames!(0);
     await tester.runAsync(() => session.enterWarp(outward));
     expect(session.bundle.map.id, 'target');
     expect(session.movement.x, 6.5);
     session.movement.setInput(x: -1, z: 0);
+    session.frames(.05);
     final pending = sourceScene.actorFrames!(.05);
     expect(session.movement.x, lessThan(6.5));
     expect(pending['hero'], same(before['hero']));
@@ -581,17 +583,20 @@ void main() {
     final targetScene = tester.widget<SpatialSceneView>(
       find.byType(SpatialSceneView),
     );
+    session.frames(0);
     final arrived = targetScene.actorFrames!(0);
     expect(targetScene.groundMap!.id, 'target');
     expect(arrived['hero']!.x, session.movement.x);
     expect(arrived['hero']!.z, 1.5);
     await tester.runAsync(() => session.enterWarp(back));
     expect(session.bundle.map.id, 'source');
+    session.frames(0);
     expect(targetScene.actorFrames!(0)['hero'], same(arrived['hero']));
     await tester.pump();
     final returnedScene = tester.widget<SpatialSceneView>(
       find.byType(SpatialSceneView),
     );
+    session.frames(0);
     expect(returnedScene.actorFrames!(0)['hero']!.x, 4.5);
     expect(returnedScene.actorFrames!(0)['hero']!.z, 4.5);
     await tester.pumpWidget(const SizedBox());
@@ -642,6 +647,7 @@ void main() {
       attemptExit(session, MapConnectionDirection.east);
       await settle(session);
     });
+    session.frames(0);
     final oldViewportHero = scene.actorFrames!(0)['hero']!;
     final connectionEntry = session.connectionEntry!;
     expect(
@@ -658,9 +664,11 @@ void main() {
     expect(scene.neighbors.single.map.id, 'source');
     expect(scene.neighbors.single.offset, const Offset(-8, -2));
     expect(loadedMaps.where((id) => id == 'source'), isEmpty);
+    session.frames(0);
     final first = scene.actorFrames!(0)['hero']!;
     expect(first.x + scene.sceneOffset.dx, closeTo(oldViewportHero.x, .0001));
     expect(first.z + scene.sceneOffset.dy, closeTo(oldViewportHero.z, .0001));
+    session.frames(.15);
     final arrived = scene.actorFrames!(.15)['hero']!;
     expect(arrived.x, session.movement.x);
     await tester.runAsync(() => session.enterWarp(target.map.warps.single));

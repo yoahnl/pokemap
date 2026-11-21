@@ -3088,9 +3088,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         }
       }
     }
-    if (renderPreparationPaused) {
-      visibleConfiguration.actorFrames?.call(dt);
-    } else {
+    if (!renderPreparationPaused) {
       syncActors(dt);
       syncActorOcclusions();
       if (!refreshing) _pruneGroundTextures(sample: false);
