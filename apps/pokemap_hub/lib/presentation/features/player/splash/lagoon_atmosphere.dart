@@ -11,14 +11,37 @@ final _sky = List.generate(45, (i) {
   );
 });
 
+const _waitingStars = [
+  Offset(.09, .20),
+  Offset(.21, .29),
+  Offset(.31, .19),
+  Offset(.44, .14),
+  Offset(.57, .22),
+  Offset(.67, .17),
+  Offset(.79, .25),
+  Offset(.91, .18),
+  Offset(.12, .38),
+  Offset(.22, .45),
+  Offset(.78, .38),
+  Offset(.89, .42),
+  Offset(.08, .56),
+  Offset(.23, .60),
+  Offset(.81, .58),
+  Offset(.93, .55),
+  Offset(.16, .70),
+  Offset(.36, .77),
+  Offset(.64, .73),
+  Offset(.86, .71),
+];
+
 void _backdrop(
   Canvas canvas,
   double t,
   double ambientPhase,
   AveluneSplashPalette brand,
-  double width,
+  Rect viewport,
 ) {
-  final spread = math.max(1.0, width / 850);
+  final spread = math.max(1.0, viewport.width / 850);
   final bloom = Curves.easeOutCubic.transform(_range(t, .15, 1.95));
   final tide = _pulse(t, _SplashCue.wave - .10, .98);
   final impact = _pulse(t, _SplashCue.splash, .72);
@@ -32,24 +55,24 @@ void _backdrop(
   _glow(
     canvas,
     Offset(
-      289 + 100 * math.sin(t * 1.18 - .48) + 26 * drift,
-      516 + 34 * math.sin(t * .95) + 9 * lift,
+      289 + 100 * math.sin(t * 1.18 - .48) + 64 * drift,
+      516 + 34 * math.sin(t * .95) + 21 * lift,
     ),
     (800 + 65 * bloom) * spread,
     842,
     brand.skyGlow,
-    .33 + .30 * bloom + .065 * landing + .025 * drift,
+    .33 + .30 * bloom + .065 * landing + .075 * drift,
   );
   _glow(
     canvas,
     Offset(
-      465 - 191 * tide + 36 * math.sin(1.9 * t) - 17 * drift,
-      732 - 107 * tide + 32 * impact - 6 * lift,
+      465 - 191 * tide + 36 * math.sin(1.9 * t) - 42 * drift,
+      732 - 107 * tide + 32 * impact - 14 * lift,
     ),
     (726 + 112 * impact) * spread,
     476 + 94 * tide,
     Color.lerp(brand.background, brand.wave, .54)!,
-    .13 + .25 * bloom + .26 * tide + .22 * impact,
+    .13 + .25 * bloom + .26 * tide + .22 * impact - .035 * lift,
   );
 
   if (t >= _SplashCue.star && t < _SplashCue.landing + .6) {
@@ -65,11 +88,53 @@ void _backdrop(
     ambientPhase,
     tide,
     impact,
-    bloom * (1 - .53 * finalHold),
+    bloom * (1 - .39 * finalHold - .13 * lift),
     brand,
   );
   _drawWake(canvas, t, brand);
   _drawDriftingLights(canvas, t, ambientPhase, bloom, impact, finalHold, brand);
+  final starFade = Curves.easeOut.transform(
+    _range(t, 3.55, _SplashCue.duration),
+  );
+  if (starFade > 0) {
+    _drawWaitingStars(canvas, viewport, ambientPhase, starFade, brand);
+  }
+}
+
+void _drawWaitingStars(
+  Canvas canvas,
+  Rect viewport,
+  double phase,
+  double fade,
+  AveluneSplashPalette brand,
+) {
+  final paint = Paint()..strokeCap = StrokeCap.round;
+  final color = Color.lerp(brand.moonLight, brand.starLight, .24)!;
+  for (var i = 0; i < _waitingStars.length; i++) {
+    final position = _waitingStars[i];
+    final angle = i * 2.39996;
+    final shimmer = .5 + .5 * math.sin(angle + phase * (2 + i % 2));
+    final pulse = shimmer * shimmer;
+    final radius = 1.7 + (i % 3) * .4 + 1.7 * pulse;
+    final center = Offset(
+      viewport.left + viewport.width * position.dx + 5 * math.sin(phase),
+      viewport.top + viewport.height * position.dy + 3 * (math.cos(phase) - 1),
+    );
+    paint.color = color.withValues(alpha: fade * (.13 + .59 * pulse));
+    canvas.drawCircle(center, radius * .68, paint);
+    if (i.isEven) {
+      final arm = radius * (1 + .85 * pulse);
+      paint
+        ..strokeWidth = 1.3
+        ..color = color.withValues(alpha: fade * (.07 + .34 * pulse));
+      canvas.drawLine(center - Offset(0, arm), center + Offset(0, arm), paint);
+      canvas.drawLine(
+        center - Offset(arm * .65, 0),
+        center + Offset(arm * .65, 0),
+        paint,
+      );
+    }
+  }
 }
 
 void _glow(
@@ -104,7 +169,7 @@ void _drawCurrent(
   double clarity,
   AveluneSplashPalette brand,
 ) {
-  final phase = t * 1.73 + .33 * math.sin(ambientPhase);
+  final phase = t * 1.73 + .64 * math.sin(ambientPhase);
   final roll =
       1 - Curves.easeOutCubic.transform(_range(t, _SplashCue.wave - .18, 1.70));
   final drift = 31 * math.sin(phase * .73);

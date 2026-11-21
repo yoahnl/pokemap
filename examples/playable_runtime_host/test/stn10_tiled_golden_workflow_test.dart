@@ -6,15 +6,12 @@ import 'package:crypto/crypto.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/authoring_api/authoring_mutation_adapter.dart';
-import 'package:map_editor/src/application/authoring_api/authoring_query_adapter.dart';
-import 'package:map_editor/src/features/editor/application/tiled_map_import_service.dart';
-import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
-import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/infrastructure/tile_image_loader.dart';
 import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
 import 'package:path/path.dart' as p;
+
+import 'support/tiled_golden_authoring.dart';
 
 const _erwRootEnvironmentKey = 'POKEMAP_ERW_ROOT';
 const _syntheticMapWidth = 80;
@@ -33,13 +30,14 @@ void main() {
       ..createSync(recursive: true);
     final tmxPath = await _writeSyntheticTiledFixture(sourceRoot);
 
-    final source = await loadTiledMapImportSource(tmxPath);
-
-    expect(
-      source.layerChoices.map((choice) => choice.path),
-      contains('terrain_tag'),
+    final map = parseTiledMap(await File(tmxPath).readAsString());
+    final tilesetSource = map.dependencyClosure.tilesets.first.source;
+    final tileset = parseTiledTileset(
+      await File(p.join(sourceRoot.path, tilesetSource)).readAsString(),
     );
-    expect(source.tilesets.first.document.tiles[0]?.animation, hasLength(2));
+
+    expect(map.layers.map((layer) => layer.name), contains('terrain_tag'));
+    expect(tileset.tiles[0]?.animation, hasLength(2));
   });
 
   test(
@@ -68,9 +66,7 @@ void main() {
       expect(evidence.tilesetCount, 2);
       expect(evidence.atlasAnimationCount, 1);
       expect(evidence.compiledTileObjectCount, 1);
-      expect(evidence.editorFrameColors, const <int>[_greenRgba, _blueRgba]);
       expect(evidence.runtimeFrameColors, const <int>[_greenRgba, _blueRgba]);
-      expect(evidence.editorFrameColors, isNot(contains(_technicalRgba)));
       expect(evidence.runtimeFrameColors, isNot(contains(_technicalRgba)));
       expect(evidence.playtestPhase, 'overworld');
       expect(evidence.reopenedChecksum, evidence.importedChecksum);
@@ -98,7 +94,6 @@ void main() {
       expect(evidence.mapSize, const GridSize(width: 80, height: 80));
       expect(evidence.tileLayerCount, 6);
       expect(evidence.tilesetCount, 19);
-      expect(evidence.editorFrameColors, everyElement(isNot(0)));
       expect(evidence.runtimeFrameColors, everyElement(isNot(0)));
       expect(evidence.playtestPhase, 'overworld');
       expect(evidence.reopenedChecksum, evidence.importedChecksum);
@@ -130,7 +125,6 @@ final class _GoldenWorkflowEvidence {
     required this.tilesetCount,
     required this.atlasAnimationCount,
     required this.compiledTileObjectCount,
-    required this.editorFrameColors,
     required this.runtimeFrameColors,
     required this.playtestPhase,
     required this.importedChecksum,
@@ -144,7 +138,6 @@ final class _GoldenWorkflowEvidence {
   final int tilesetCount;
   final int atlasAnimationCount;
   final int compiledTileObjectCount;
-  final List<int> editorFrameColors;
   final List<int> runtimeFrameColors;
   final String playtestPhase;
   final String importedChecksum;
@@ -175,44 +168,27 @@ Future<_GoldenWorkflowEvidence> _runGoldenWorkflow({
     flush: true,
   );
 
-  // Closing both adapters is part of the acceptance gate: the subsequent
-  // snapshot must come from disk, not from a warm editor cache.
-  final first = _EditorTransports.open();
-  final service = TiledMapImportService(
-    mutations: first.mutations,
-    queries: first.queries,
-  );
-  final source = await loadTiledMapImportSource(
-    tmxPath,
+  final result = await importGoldenTiledMap(
+    project: projectRoot,
+    tmxPath: tmxPath,
     sourceRootPath: sourceRootPath,
-  );
-  final inspection = await service.inspectSource(
-    projectRootPath: projectRoot.path,
-    source: source,
     layerModes: layerModes,
   );
-  final imported = await service.apply(inspection);
   final importedChecksum = _structuralChecksum(
-    manifest: imported.manifest,
-    map: imported.map,
+    manifest: result.imported.manifest,
+    map: result.imported.mapById(result.mapId)!,
   );
-  await first.close();
-
-  final reopened = _EditorTransports.open();
-  final snapshot = await reopened.queries.open(projectRoot.path);
-  final reopenedManifest = snapshot.manifest;
-  final map = snapshot.mapById(imported.map.id)!;
+  final reopenedManifest = result.reopened.manifest;
+  final map = result.reopened.mapById(result.mapId)!;
   final reopenedChecksum = _structuralChecksum(
     manifest: reopenedManifest,
     map: map,
   );
-  await reopened.close();
 
   final bundle = await loadRuntimeMapBundle(
     projectFilePath: projectFile.path,
     mapId: map.id,
   );
-  final editorFrameColors = await _renderEditorViewportFrames(bundle);
   final runtimeFrameColors = await _renderRuntimeViewportFrames(bundle);
   final playtestPhase = await _startPlaytest(
     bundle: bundle,
@@ -243,7 +219,6 @@ Future<_GoldenWorkflowEvidence> _runGoldenWorkflow({
     compiledTileObjectCount: map.layers
         .whereType<ObjectLayer>()
         .fold<int>(0, (count, layer) => count + layer.tileObjects.length),
-    editorFrameColors: editorFrameColors,
     runtimeFrameColors: runtimeFrameColors,
     playtestPhase: playtestPhase,
     importedChecksum: importedChecksum,
@@ -252,83 +227,6 @@ Future<_GoldenWorkflowEvidence> _runGoldenWorkflow({
   );
 }
 
-final class _EditorTransports {
-  _EditorTransports._({required this.mutations, required this.queries});
-
-  factory _EditorTransports.open() {
-    const reader = EditorProjectFileReader();
-    final queries = AuthoringQueryAdapter(fileReader: reader);
-    return _EditorTransports._(
-      mutations: AuthoringMutationAdapter(
-        fileReader: reader,
-        queries: queries,
-        projectRoots: reader,
-      ),
-      queries: queries,
-    );
-  }
-
-  final AuthoringMutationAdapter mutations;
-  final AuthoringQueryAdapter queries;
-
-  Future<void> close() async {
-    await mutations.closeAll();
-    await queries.closeAll();
-  }
-}
-
-Future<List<int>> _renderEditorViewportFrames(RuntimeMapBundle bundle) async {
-  final images = <String, ui.Image>{};
-  try {
-    for (final entry in bundle.tilesetAbsolutePathsById.entries) {
-      final bytes = await File(entry.value).readAsBytes();
-      final codec = await ui.instantiateImageCodec(bytes);
-      try {
-        images[entry.key] = (await codec.getNextFrame()).image;
-      } finally {
-        codec.dispose();
-      }
-    }
-    final colors = <int>[];
-    for (final elapsedMs in const <int>[0, 100]) {
-      final recorder = ui.PictureRecorder();
-      MapGridPainter(
-        map: bundle.map,
-        project: bundle.manifest,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: bundle.cellWidth,
-        tileHeight: bundle.cellHeight,
-        tilesetImagesById: images,
-        sourceTileWidth: bundle.manifest.settings.tileWidth,
-        sourceTileHeight: bundle.manifest.settings.tileHeight,
-        tilesPerRowById: <String, int>{
-          for (final tileset in bundle.manifest.tilesets)
-            if (tileset.source case ProjectRegularAtlasTilesetSource source)
-              tileset.id: source.columns,
-        },
-        warps: bundle.map.warps,
-        gameplayZones: bundle.map.gameplayZones,
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        editorEntityAnimationMs: elapsedMs,
-        showGrid: false,
-        showEntityEditorChrome: false,
-        showEditorOverlays: false,
-      ).paint(ui.Canvas(recorder), const ui.Size(96, 96));
-      final rendered = await recorder.endRecording().toImage(96, 96);
-      try {
-        colors.add(await _pixelRgba(rendered, 16, 16));
-      } finally {
-        rendered.dispose();
-      }
-    }
-    return colors;
-  } finally {
-    for (final image in images.values) {
-      image.dispose();
-    }
-  }
-}
 
 Future<List<int>> _renderRuntimeViewportFrames(RuntimeMapBundle bundle) async {
   final images = await loadTilesetImagesById(

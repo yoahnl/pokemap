@@ -858,7 +858,8 @@ final class SpatialExplorationGameSessionRuntime
 
   Future<void> _initializeSpatialGameplay(RuntimeMapBundle bundle, String path,
       {required int generation,
-      NarrativeEventRuntimeSnapshot? narrativeSnapshot}) async {
+      NarrativeEventRuntimeSnapshot? narrativeSnapshot,
+      void Function(int completed, int total)? onMapProgress}) async {
     final project = bundle.manifest;
     final maps = <String, MapData>{bundle.map.id: bundle.map};
     final entries = project.maps
@@ -869,7 +870,9 @@ final class SpatialExplorationGameSessionRuntime
         for (final entry in entries)
           p.join(bundle.projectRootDirectory, entry.relativePath),
       ],
-      projectDialogueContext: bundle.projectCatalog == null ? project : null);
+      projectDialogueContext: bundle.projectCatalog == null ? project : null,
+      onProgress: onMapProgress,
+    );
     _ensureLoadActive(generation);
     for (var index = 0; index < entries.length; index++) {
       maps[entries[index].id] = loadedMaps[index];
@@ -1537,8 +1540,22 @@ final class SpatialExplorationGameSessionRuntime
     }
     _loadingStarted = true;
     final generation = ++_loadGeneration;
-    reportProgress(const GameSessionLoadingProgress(
-        stage: 'project', current: 0, total: 3));
+    void report(
+      String stage,
+      int completed, {
+      ({int completed, int total})? workInProgress,
+    }) {
+      if (_disposed || _stopped || generation != _loadGeneration) return;
+      reportProgress(GameSessionLoadingProgress(
+        stage: stage,
+        current: completed,
+        total: 7,
+        measuresWork: true,
+        workInProgress: workInProgress,
+      ));
+    }
+
+    report('project', 0);
     final path = await _projectFilePath();
     _ensureLoadActive(generation);
     final save = await _initialSave?.call();
@@ -1623,6 +1640,7 @@ final class SpatialExplorationGameSessionRuntime
         throw StateError(
             'The spatial state does not reference a valid map and position.');
       }
+      report('world', 1);
       final bundle = preload?.bundle ??
           await loadRuntimeMapBundle(
               projectFilePath: path, mapId: mapId, preloadedManifest: manifest,
@@ -1693,8 +1711,7 @@ final class SpatialExplorationGameSessionRuntime
         capacity: manifest.bagCapacity,
         itemCatalog: _bagItemCatalog,
       );
-      reportProgress(const GameSessionLoadingProgress(
-          stage: 'resources', current: 1, total: 3));
+      report('resources', 2);
       _usesFieldObstacleInstances = bundle.map.entities.any((entity) => entity.fieldObstacle != null) ||
           bundle.map.gameplayZones.any(isFieldTraversalZone);
       if (_usesFieldObstacleInstances && state.mapInstanceWorldState.instanceRef(state.currentMapId) == null) {
@@ -1739,9 +1756,14 @@ final class SpatialExplorationGameSessionRuntime
         captureMusicBaseline: _mapMusicSelection,
         onMusicChanged: _applyMusicSelection,
       );
+      report('resources', 3);
       await _initializeSpatialGameplay(bundle, path,
           generation: generation,
-          narrativeSnapshot: preload?.narrativeSnapshot);
+          narrativeSnapshot: preload?.narrativeSnapshot,
+          onMapProgress: (completed, total) => report(
+            'resources', 3,
+            workInProgress: (completed: completed, total: total + 1),
+          ));
       _ensureLoadActive(generation);
       if (SpatialEntityModelOwnership.requiresCapability(_mapsById.values) &&
           !descriptor.grantedCapabilities.contains(
@@ -1751,6 +1773,10 @@ final class SpatialExplorationGameSessionRuntime
       }
       final loaded = await SpatialExplorationSession.load(bundle,
           immutableProject: immutableProject,
+          onInitialImageProgress: (completed, total) => report(
+            'resources', 4,
+            workInProgress: (completed: completed, total: total + 1),
+          ),
           runtimeLocale: _preferences?.contentLocale(descriptor.locales)
               ?? descriptor.locale,
           locales: descriptor.locales,
@@ -1893,6 +1919,7 @@ final class SpatialExplorationGameSessionRuntime
         loaded.graphics.value = preferences.graphics;
       }
       _syncMovement();
+      report('map', 5);
       _mounted = true;
       _mountFuture = Future<void>.sync(() => _mountSession(this));
       await _mountFuture;
@@ -1901,8 +1928,7 @@ final class SpatialExplorationGameSessionRuntime
       _syncMusicSuspension();
       _configureRealWeather();
       if (!_paused) _playWatch.start();
-      reportProgress(const GameSessionLoadingProgress(
-          stage: 'ready', current: 3, total: 3));
+      report('player', 6);
       final gameplay = _gameplay;
       _lastCell = gameStateSnapshot.playerPosition;
       if (gameplay != null) {
@@ -1918,6 +1944,7 @@ final class SpatialExplorationGameSessionRuntime
           _ensureLoadActive(generation);
         }
       }
+      report('ready', 7);
     } finally {
       preload?.dispose();
     }

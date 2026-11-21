@@ -3062,15 +3062,15 @@ void main() {
     },
   );
 
-  testWidgets('shows runtime loading progress and dispatches cancellation',
+  testWidgets('shows the runtime loading stage and dispatches cancellation',
       (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(
       revision: 11,
       phase: RuntimePlayerPhase.loadingSession,
       loadingProgress: const GameSessionLoadingProgress(
-        stage: 'catalogues',
-        current: 2,
-        total: 4,
+        stage: 'resources',
+        current: 1,
+        total: 3,
       ),
       actions: const <RuntimePlayerActionAvailability>[
         RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.cancel),
@@ -3080,15 +3080,22 @@ void main() {
 
     await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
 
-    expect(find.text('catalogues'), findsOneWidget);
+    expect(find.text('Chargement des ressources'), findsOneWidget);
     expect(find.byKey(const ValueKey('runtime-player-loading-art')),
         findsOneWidget);
-    expect(find.text('50%'), findsOneWidget);
-    expect(find.byKey(const ValueKey('runtime-player-loading-progress')), findsOneWidget);
+    expect(find.text('33%'), findsNothing);
+    final indicator = find.byKey(const ValueKey('runtime-player-loading-progress'));
+    expect(tester.widget<LinearProgressIndicator>(indicator).value, isNull);
+    expect(TickerMode.valuesOf(tester.element(indicator)).enabled, isTrue);
 
     await tester.tap(find.text('Annuler'));
     expect(controller.commands.single.action, RuntimePlayerAction.cancel);
     expect(controller.commands.single.snapshotRevision, 11);
+
+    controller.publish(_snapshot(revision: 12, phase: RuntimePlayerPhase.title));
+    await _settleMeasuredSession(tester);
+    expect(find.text('100%'), findsNothing);
+    expect(indicator, findsNothing);
   });
 
   testWidgets('uses host artwork while loading and mounting the first map',
@@ -3141,7 +3148,6 @@ void main() {
     ));
     await _settleMeasuredSession(tester);
 
-    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('runtime-player-loading-logo')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('runtime-player-loading-wordmark')),
@@ -3153,6 +3159,60 @@ void main() {
     await _settleMeasuredSession(tester);
     expect(find.byKey(const ValueKey('runtime-player-loading-art')),
         findsNothing);
+  });
+
+  testWidgets('loading keeps its stage visible and reaches 100% with reduced motion',
+      (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+      revision: 1,
+      phase: RuntimePlayerPhase.loadingSession,
+      preferences: const PlayerPreferencesSnapshot(
+        locale: 'fr',
+        accessibility: GameSessionAccessibilityOptions(reducedMotion: true),
+      ),
+      loadingProgress: const GameSessionLoadingProgress(
+        stage: 'resources',
+        current: 1,
+        total: 3,
+      ),
+    ));
+    final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.blocked,
+    ));
+    addTearDown(controller.dispose);
+    addTearDown(authority.dispose);
+
+    await _pumpMeasuredSessionWidget(tester, _app(_view(
+      controller,
+      gameplayInputAuthority: authority,
+      loadingSceneBuilder: (_, details) => Center(child: details),
+    )));
+
+    final indicator = find.byKey(const ValueKey('runtime-player-loading-progress'));
+    expect(find.text('Chargement des ressources'), findsOneWidget);
+    expect(find.text('33%'), findsNothing);
+    expect(TickerMode.valuesOf(tester.element(indicator)).enabled, isFalse);
+
+    controller.publish(_snapshot(
+      revision: 2,
+      phase: RuntimePlayerPhase.playing,
+      preferences: const PlayerPreferencesSnapshot(
+        locale: 'fr',
+        accessibility: GameSessionAccessibilityOptions(reducedMotion: true),
+      ),
+      actions: const [
+        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu),
+      ],
+    ));
+    await _settleMeasuredSession(tester);
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.dialogue,
+    );
+    await tester.pump();
+    expect(find.text('100%'), findsOneWidget);
+    expect(tester.widget<LinearProgressIndicator>(indicator).value, 1);
+    await tester.pump();
+    expect(indicator, findsNothing);
   });
 
   testWidgets('names the real map mounting stage in the player language',
@@ -3171,7 +3231,110 @@ void main() {
     await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
 
     expect(find.text('Construction de la scène'), findsOneWidget);
-    expect(find.text('43%'), findsOneWidget);
+    expect(find.text('43%'), findsNothing);
+  });
+
+  testWidgets('keeps the branded scene through activation and fades to the map',
+      (tester) async {
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+      revision: 1,
+      phase: RuntimePlayerPhase.loadingSession,
+      loadingProgress: const GameSessionLoadingProgress(
+        stage: 'resources',
+        current: 1,
+        total: 3,
+      ),
+      actions: const [
+        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.cancel),
+      ],
+    ));
+    final authority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.blocked,
+    ));
+    addTearDown(controller.dispose);
+    addTearDown(authority.dispose);
+    final scene = find.byKey(const ValueKey('test-loading-scene'));
+
+    await _pumpMeasuredSessionWidget(tester, _app(_view(
+      controller,
+      gameplayInputAuthority: authority,
+      loadingSceneBuilder: (_, details) => KeyedSubtree(
+        key: const ValueKey('test-loading-scene'),
+        child: Center(child: details),
+      ),
+    )));
+    final opened = tester.element(scene);
+    expect(find.text('Annuler'), findsOneWidget);
+
+    for (final (revision, loadedImages, percentage) in [
+      (2, 1, '53%'),
+      (3, 3, '59%'),
+    ]) {
+      controller.publish(_snapshot(
+        revision: revision,
+        phase: RuntimePlayerPhase.loadingSession,
+        loadingProgress: GameSessionLoadingProgress(
+          stage: 'resources',
+          current: 4,
+          total: 7,
+          measuresWork: true,
+          workInProgress: (completed: loadedImages, total: 4),
+        ),
+        actions: const [
+          RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.cancel),
+        ],
+      ));
+      await _settleMeasuredSession(tester);
+      expect(tester.element(scene), same(opened));
+      expect(find.text('Chargement des ressources'), findsOneWidget);
+      expect(find.text(percentage), findsOneWidget);
+    }
+
+    controller.publish(_snapshot(
+      revision: 4,
+      phase: RuntimePlayerPhase.loadingSession,
+      loadingProgress: const GameSessionLoadingProgress(
+        stage: 'ready', current: 7, total: 7, measuresWork: true,
+      ),
+    ));
+    await _settleMeasuredSession(tester);
+    expect(find.text('88%'), findsOneWidget);
+    expect(find.text('100%'), findsNothing);
+
+    controller.publish(_snapshot(
+      revision: 5,
+      phase: RuntimePlayerPhase.playing,
+      actions: const [
+        RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu),
+      ],
+    ));
+    await _settleMeasuredSession(tester);
+    expect(tester.element(scene), same(opened));
+    expect(find.text('Activation de la carte'), findsOneWidget);
+    expect(find.text('88%'), findsOneWidget);
+    expect(find.text('Annuler'), findsNothing);
+
+    authority.value = const RuntimeInputAuthoritySnapshot(
+      context: RuntimeInputContext.overworld,
+    );
+    await tester.pump();
+    expect(find.text('Prêt'), findsOneWidget);
+    expect(find.text('100%'), findsOneWidget);
+    final indicator =
+        find.byKey(const ValueKey('runtime-player-loading-progress'));
+    expect(tester.widget<LinearProgressIndicator>(indicator).value, 1);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 90));
+    final fade = find.ancestor(of: scene, matching: find.byType(FadeTransition));
+    expect(tester.widget<FadeTransition>(fade.first).opacity.value,
+        inExclusiveRange(0, 1));
+    expect(find.text('100%'), findsOneWidget);
+    expect(find.byKey(const ValueKey('runtime-player-touch-menu-open')),
+        findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(scene, findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('keeps loading artwork until the first map accepts the menu',
@@ -3243,6 +3406,8 @@ void main() {
       context: RuntimeInputContext.dialogue,
     );
     await tester.pump();
+    expect(find.text('100%'), findsOneWidget);
+    await _settleMeasuredSession(tester);
 
     expect(find.byKey(const ValueKey('runtime-player-loading-art')),
         findsNothing);
@@ -4726,6 +4891,7 @@ PokeMapPlayerSessionView _view(
   ValueListenable<RuntimeInputAuthoritySnapshot>? gameplayInputAuthority,
   ImageProvider? loadingLogo,
   ImageProvider? loadingWordmark,
+  PlayerWorldLoadingSceneBuilder? loadingSceneBuilder,
   ValueListenable<RuntimeOverworldInteractionSnapshot>? overworldInteractions,
   RuntimeOverworldInteractionRequest? Function(Offset)? hitTestOverworldInteraction,
   bool Function(RuntimeOverworldInteractionRequest)? onOverworldInteraction,
@@ -4774,6 +4940,7 @@ PokeMapPlayerSessionView _view(
     gameplayInputAuthority: gameplayInputAuthority,
     loadingLogo: loadingLogo,
     loadingWordmark: loadingWordmark,
+    loadingSceneBuilder: loadingSceneBuilder,
     overworldInteractions: overworldInteractions,
     hitTestOverworldInteraction: hitTestOverworldInteraction,
     onOverworldInteraction: onOverworldInteraction,

@@ -20,6 +20,7 @@ import '../domains/project/regional_map_actions.dart';
 import '../domains/project/battle_transition_default_actions.dart';
 import '../domains/project/runtime_audio_actions.dart';
 import '../domains/project/project_identity_actions.dart';
+import '../domains/project/project_draft_action.dart';
 import '../domains/project/actor_contact_shadow_actions.dart';
 import '../domains/project/contact_device_actions.dart';
 import '../domains/project/surf_actions.dart';
@@ -479,6 +480,10 @@ final class MapMutationDispatcher {
       MapMutationActionRegistration(
         descriptor: ProjectIdentityActions.descriptor,
         build: projectIdentity.build,
+      ),
+      MapMutationActionRegistration(
+        descriptor: ProjectDraftAction.descriptor,
+        build: const ProjectDraftAction().build,
       ),
       MapMutationActionRegistration(
         descriptor: RuntimeSmokeProfileActions.descriptor,

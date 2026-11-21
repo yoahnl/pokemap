@@ -11,6 +11,114 @@ import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('a matching Continue waits for the preloaded map', () async {
+    final file = await _project();
+    final catalog = await RuntimeProjectCatalog.open(file.path);
+    final descriptor = _descriptor(
+      launchMode: GameSessionLaunchMode.continueGame,
+    );
+    final save = _save(descriptor);
+    final loading = Completer<void>();
+    final release = Completer<SaveEnvelope>();
+    final preloader = RuntimeInitialMapPreloader(
+      projectFilePath: () async => file.path,
+      preparedProjectCatalog: catalog,
+      loadSave: (_) {
+        loading.complete();
+        return release.future;
+      },
+    );
+    addTearDown(() {
+      if (!release.isCompleted) release.complete(save);
+      preloader.clear();
+    });
+    final preload = preloader.preloadInitialMap(
+      RuntimeInitialMapPreloadRequest.continueGame(save.address),
+    );
+    await loading.future;
+
+    final unrelated = await preloader
+        .resolveForSession(
+          projectFilePath: file.path,
+          descriptor: _descriptor(),
+          initialSave: null,
+        )
+        .timeout(const Duration(seconds: 1));
+    expect(unrelated, isNull);
+
+    var resolved = false;
+    final continuation = preloader
+        .resolveForSession(
+          projectFilePath: file.path,
+          descriptor: descriptor,
+          initialSave: save,
+        )
+        .then((result) {
+          resolved = true;
+          return result;
+        });
+    await Future<void>.delayed(Duration.zero);
+    expect(resolved, isFalse);
+    release.complete(save);
+    await preload;
+
+    final prepared = await continuation;
+    expect(prepared?.bundle.projectCatalog, same(catalog));
+    prepared?.dispose();
+    expect(
+      await preloader.resolveForSession(
+        projectFilePath: file.path,
+        descriptor: descriptor,
+        initialSave: save,
+      ),
+      isNull,
+    );
+  });
+
+  test('clearing a pending preload releases a waiting Continue', () async {
+    final file = await _project();
+    final descriptor = _descriptor(
+      launchMode: GameSessionLaunchMode.continueGame,
+    );
+    final save = _save(descriptor);
+    final entered = Completer<void>();
+    final release = Completer<SaveEnvelope>();
+    final preloader = RuntimeInitialMapPreloader(
+      projectFilePath: () async => file.path,
+      loadSave: (_) {
+        entered.complete();
+        return release.future;
+      },
+    );
+    addTearDown(() {
+      if (!release.isCompleted) release.complete(save);
+      preloader.clear();
+    });
+    final preload = preloader.preloadInitialMap(
+      RuntimeInitialMapPreloadRequest.continueGame(save.address),
+    );
+    await entered.future;
+    final continuation = preloader.resolveForSession(
+      projectFilePath: file.path,
+      descriptor: descriptor,
+      initialSave: save,
+    );
+
+    preloader.clear();
+    expect(await continuation.timeout(const Duration(seconds: 1)), isNull);
+    expect(release.isCompleted, isFalse);
+    release.complete(save);
+    await preload;
+    expect(
+      await preloader.resolveForSession(
+        projectFilePath: file.path,
+        descriptor: descriptor,
+        initialSave: save,
+      ),
+      isNull,
+    );
+  });
+
   test(
     'initial preload consumes the catalog already opened by its host',
     () async {
@@ -204,9 +312,9 @@ void main() {
         },
       );
       addTearDown(preloader.clear);
-      await preloader.preloadInitialMap(
-        const RuntimeInitialMapPreloadRequest.newGame(),
-      ).timeout(const Duration(seconds: 5));
+      await preloader
+          .preloadInitialMap(const RuntimeInitialMapPreloadRequest.newGame())
+          .timeout(const Duration(seconds: 5));
       final upgraded = await writing.future.timeout(const Duration(seconds: 5));
       expect(upgraded.maps, maps);
       expect(upgraded.visualDefinitions, isNotNull);
@@ -403,7 +511,9 @@ Future<File> _narrativeProject({bool withTileset = false}) async {
   return file;
 }
 
-GameSessionDescriptor _descriptor() => GameSessionDescriptor(
+GameSessionDescriptor _descriptor({
+  GameSessionLaunchMode launchMode = GameSessionLaunchMode.newGame,
+}) => GameSessionDescriptor(
   sessionId: 'session',
   sessionToken: 'token',
   identity: GameIdentity(
@@ -415,11 +525,32 @@ GameSessionDescriptor _descriptor() => GameSessionDescriptor(
   ),
   profileId: 'profile',
   slotId: 'slot',
-  launchMode: GameSessionLaunchMode.newGame,
+  launchMode: launchMode,
   installedVersionHandle: 'fixture',
   runtimeApiVersion: '1.0.0',
   grantedCapabilities: const {'map.v1'},
   locale: 'fr-FR',
   accessibility: const GameSessionAccessibilityOptions(),
-  initialGameState: const GameState(saveId: 'save', currentMapId: 'start'),
+  initialGameState: launchMode == GameSessionLaunchMode.newGame
+      ? const GameState(saveId: 'save', currentMapId: 'start')
+      : null,
+  saveReadHandle: launchMode == GameSessionLaunchMode.continueGame
+      ? 'save'
+      : null,
 );
+
+SaveEnvelope _save(GameSessionDescriptor descriptor) =>
+    const GameStateSaveEnvelopeMapper().create(
+      identity: descriptor.identity,
+      profileId: descriptor.profileId,
+      slotId: descriptor.slotId,
+      saveId: '11111111-2222-4333-8444-555555555555',
+      createdAt: DateTime.utc(2026, 11, 21),
+      updatedAt: DateTime.utc(2026, 11, 21),
+      status: SaveStatus.active,
+      playTimeSeconds: 1,
+      gameState: const GameState(
+        saveId: '11111111-2222-4333-8444-555555555555',
+        currentMapId: 'start',
+      ),
+    );

@@ -43,6 +43,8 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
     required this.onAction,
     this.loadingLogo,
     this.loadingWordmark,
+    this.loadingSceneBuilder,
+    this.initialMapActivating = false,
     this.onReturnToTitle,
     this.onShowDiagnostics,
     this.gameplayTouchMenuEnabled = true,
@@ -77,6 +79,8 @@ class RuntimePlayerSurfaceRouter extends StatefulWidget {
   final RuntimePlayerTitlePresentation titlePresentation;
   final ImageProvider? loadingLogo;
   final ImageProvider? loadingWordmark;
+  final PlayerWorldLoadingSceneBuilder? loadingSceneBuilder;
+  final bool initialMapActivating;
   final WidgetBuilder gameSceneBuilder;
   final RuntimePlayerActionCallback onAction;
   final Future<RuntimePlayerCommandResult> Function(bool saveBeforeExit)?
@@ -117,6 +121,8 @@ class _RuntimePlayerSurfaceRouterState
   ValueNotifier<RuntimePlayerSnapshot>? _dialogSnapshot;
   DialogRoute<void>? _saveDialogRoute;
   RuntimePlayerSaveReceipt? _manualSaveReceipt;
+  double? _activationLoadProgress;
+  bool _showLoadedFrame = false;
 
   RuntimePlayerPokedexNavigation get _pokedexNavigation =>
       widget.pokedexNavigation ?? _ownedPokedexNavigation;
@@ -127,6 +133,26 @@ class _RuntimePlayerSurfaceRouterState
   @override
   void didUpdateWidget(RuntimePlayerSurfaceRouter oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.initialMapActivating &&
+        oldWidget.snapshot.phase == RuntimePlayerPhase.loadingSession) {
+      _activationLoadProgress = _measuredProgress(oldWidget.snapshot);
+    } else if (!widget.initialMapActivating) {
+      _activationLoadProgress = null;
+    }
+    if (widget.snapshot.phase != RuntimePlayerPhase.playing ||
+        widget.initialMapActivating) {
+      _showLoadedFrame = false;
+    } else if (oldWidget.initialMapActivating ||
+        (oldWidget.showPlayerOverlay &&
+            (oldWidget.snapshot.phase == RuntimePlayerPhase.loadingSession ||
+                oldWidget.snapshot.phase ==
+                    RuntimePlayerPhase.preparingSession))) {
+      _showLoadedFrame = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_showLoadedFrame) return;
+        setState(() => _showLoadedFrame = false);
+      });
+    }
     final sessionChanged =
         widget.snapshot.activeSaveAddress !=
             oldWidget.snapshot.activeSaveAddress ||
@@ -293,7 +319,17 @@ class _RuntimePlayerSurfaceRouterState
 
   @override
   Widget build(BuildContext context) {
-    final overlay = widget.showPlayerOverlay ? _overlay(context) : null;
+    final loadingStage = _worldLoadingStage(context);
+    final overlay = widget.showPlayerOverlay &&
+        (loadingStage == null || _showLoadedFrame)
+        ? _overlay(context)
+        : null;
+    final reducedMotion =
+        (widget.snapshot.preferences?.accessibility.reducedMotion ?? false) ||
+        MediaQuery.disableAnimationsOf(context);
+    final showingPreSessionPresentation =
+        widget.snapshot.phase == RuntimePlayerPhase.preSession &&
+        !widget.showPreSessionInteraction;
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
@@ -307,6 +343,52 @@ class _RuntimePlayerSurfaceRouterState
             'runtime-player-surface-${widget.snapshot.phase.name}',
           ),
           child: overlay ?? const SizedBox.shrink(),
+        ),
+        Positioned.fill(
+          key: const ValueKey('runtime-player-world-loading-layer'),
+          child: AnimatedSwitcher(
+            duration: Duration.zero,
+            reverseDuration: reducedMotion || widget.loadingSceneBuilder == null
+                ? Duration.zero
+                : const Duration(milliseconds: 180),
+            switchOutCurve: Curves.easeInOutSine,
+            layoutBuilder: (current, outgoing) => Stack(
+              fit: StackFit.expand,
+              children: [
+                if (!reducedMotion &&
+                    widget.snapshot.phase == RuntimePlayerPhase.playing &&
+                    loadingStage == null)
+                  for (final child in outgoing)
+                    _loadingTransitionChild(child, leaving: true),
+                if (current != null)
+                  _loadingTransitionChild(
+                    current,
+                    leaving: _showLoadedFrame,
+                    animate: !reducedMotion &&
+                        !showingPreSessionPresentation &&
+                        !_showLoadedFrame,
+                  ),
+              ],
+            ),
+            child: loadingStage == null
+                ? null
+                : PlayerWorldLoadingSurface(
+                    gameTitle: widget.snapshot.gameTitle,
+                    logo: widget.loadingLogo,
+                    wordmark: widget.loadingWordmark,
+                    stage: loadingStage,
+                    progress: _showLoadedFrame
+                        ? 1.0
+                        : widget.initialMapActivating
+                        ? _activationLoadProgress
+                        : _measuredProgress(widget.snapshot),
+                    sceneBuilder: widget.loadingSceneBuilder,
+                    onCancel: widget.initialMapActivating || _showLoadedFrame
+                        ? null
+                        : _callbackFor(RuntimePlayerAction.cancel),
+                    reducedMotion: reducedMotion,
+                  ),
+          ),
         ),
         if (widget.snapshot.saveRecovery case final recovery?
             when widget.snapshot.phase == RuntimePlayerPhase.title)
@@ -327,6 +409,23 @@ class _RuntimePlayerSurfaceRouterState
       ],
     );
   }
+
+  Widget _loadingTransitionChild(
+    Widget child, {
+    required bool leaving,
+    bool animate = false,
+  }) =>
+      IgnorePointer(
+        key: child.key,
+        ignoring: leaving,
+        child: ExcludeSemantics(
+          excluding: leaving,
+          child: ExcludeFocus(
+            excluding: leaving,
+            child: TickerMode(enabled: animate, child: child),
+          ),
+        ),
+      );
 
   void _dispatchRecovery(SaveRecoveryAction action) {
     switch (action) {
@@ -391,34 +490,9 @@ class _RuntimePlayerSurfaceRouterState
           ),
           onResult: widget.onPreSessionResult ?? (_) {},
         ),
-      RuntimePlayerPhase.preSession => PlayerWorldLoadingSurface(
-        gameTitle: widget.snapshot.gameTitle,
-        logo: widget.loadingLogo,
-        wordmark: widget.loadingWordmark,
-        stage: l10n.preparingSession,
-        onCancel: _callbackFor(RuntimePlayerAction.cancel),
-        reducedMotion:
-            widget.snapshot.preferences?.accessibility.reducedMotion ?? false,
-      ),
-      RuntimePlayerPhase.preparingSession => PlayerWorldLoadingSurface(
-        gameTitle: widget.snapshot.gameTitle,
-        logo: widget.loadingLogo,
-        wordmark: widget.loadingWordmark,
-        stage: l10n.preparingSession,
-        onCancel: _callbackFor(RuntimePlayerAction.cancel),
-        reducedMotion:
-            widget.snapshot.preferences?.accessibility.reducedMotion ?? false,
-      ),
-      RuntimePlayerPhase.loadingSession => PlayerWorldLoadingSurface(
-        gameTitle: widget.snapshot.gameTitle,
-        logo: widget.loadingLogo,
-        wordmark: widget.loadingWordmark,
-        stage: _sessionLoadingStage(context),
-        progress: _progress,
-        onCancel: _callbackFor(RuntimePlayerAction.cancel),
-        reducedMotion:
-            widget.snapshot.preferences?.accessibility.reducedMotion ?? false,
-      ),
+      RuntimePlayerPhase.preSession ||
+      RuntimePlayerPhase.preparingSession ||
+      RuntimePlayerPhase.loadingSession => null,
       RuntimePlayerPhase.playing => RuntimePlayerTouchMenuButton(
         hitRegionKey: widget.gameplayTouchMenuKey,
         actionCapsule: widget.gameplayAction,
@@ -723,11 +797,30 @@ class _RuntimePlayerSurfaceRouterState
     };
   }
 
-  double? get _progress {
-    final progress = widget.snapshot.loadingProgress;
-    final total = progress?.total;
-    if (progress == null || total == null || total == 0) return null;
-    return (progress.current / total).clamp(0, 1);
+  String? _worldLoadingStage(BuildContext context) {
+    if (_showLoadedFrame) return context.playerL10n.loadingReady;
+    if (widget.initialMapActivating) {
+      return context.playerL10n.loadingActivatingMap;
+    }
+    if (!widget.showPlayerOverlay) return null;
+    return switch (widget.snapshot.phase) {
+      RuntimePlayerPhase.preSession
+          when widget.snapshot.preSessionRequest == null ||
+              !widget.showPreSessionInteraction =>
+        context.playerL10n.preparingSession,
+      RuntimePlayerPhase.preparingSession => context.playerL10n.preparingSession,
+      RuntimePlayerPhase.loadingSession => _sessionLoadingStage(context),
+      _ => null,
+    };
+  }
+
+  double? _measuredProgress(RuntimePlayerSnapshot snapshot) {
+    if (snapshot.phase != RuntimePlayerPhase.loadingSession) return null;
+    final report = snapshot.loadingProgress;
+    final total = report?.total;
+    final completed = report?.completedWork;
+    if (total == null || completed == null) return null;
+    return completed.clamp(0, total) / (total + 1);
   }
 
   String _sessionLoadingStage(BuildContext context) {
@@ -740,7 +833,8 @@ class _RuntimePlayerSurfaceRouterState
       'resources' => context.playerL10n.loadingAssets,
       'map' => context.playerL10n.loadingMountingMap,
       'player' => context.playerL10n.loadingPlacingPlayer,
-      'ready' => context.playerL10n.loadingReady,
+      'ready' => context.playerL10n.loadingActivatingMap,
+      'runtime' => context.playerL10n.loadingGame,
       _ => stage ?? context.playerL10n.loadingGame,
     };
   }

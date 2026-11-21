@@ -14,8 +14,7 @@ void _paintWordmark(
   final arrival = _range(age, 0, .34);
   final color = _range(age, .44, 1.04);
   final rise = Curves.easeOutCubic.transform(arrival);
-  final drift =
-      3.4 * math.sin(ambientPhase) + 1.6 * (1 - math.cos(ambientPhase));
+  final drift = 5 * math.sin(ambientPhase) + 2.6 * (1 - math.cos(ambientPhase));
   final source = Rect.fromLTWH(
     0,
     0,

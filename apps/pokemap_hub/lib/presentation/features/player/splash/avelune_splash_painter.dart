@@ -30,6 +30,7 @@ const _scale = .47;
 final _dock = _pool + (_starCenter - _markCenter) * _scale;
 const _touch = Offset(389, 647);
 const _hang = Offset(270, 386);
+const _brandBounds = Rect.fromLTRB(182, 392, 538, 854);
 
 final _crescent = Path()
   ..moveTo(554.306, 134.346)
@@ -54,6 +55,8 @@ final _crescent = Path()
   ..cubicTo(565.028, 136.357, 559.613, 135.292, 554.306, 134.346)
   ..close();
 
+enum AveluneSplashLayer { scene, atmosphere, branding }
+
 class AveluneSplashPainter extends CustomPainter {
   AveluneSplashPainter({
     required this.progress,
@@ -61,6 +64,7 @@ class AveluneSplashPainter extends CustomPainter {
     required this.wordmark,
     required this.brand,
     required this.reducedMotion,
+    this.layer = AveluneSplashLayer.scene,
   }) : super(
          repaint: reducedMotion ? null : Listenable.merge([progress, ambient]),
        );
@@ -70,6 +74,7 @@ class AveluneSplashPainter extends CustomPainter {
   final ui.Image? wordmark;
   final AveluneSplashPalette brand;
   final bool reducedMotion;
+  final AveluneSplashLayer layer;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -79,30 +84,55 @@ class AveluneSplashPainter extends CustomPainter {
     final phase = !reducedMotion && progress.value >= 1
         ? ambient.value * math.pi * 2
         : 0.0;
+    if (layer == AveluneSplashLayer.branding) {
+      final scale = math.min(
+        size.width / _brandBounds.width,
+        size.height / _brandBounds.height,
+      );
+      final offset = size.center(Offset.zero) - _brandBounds.center * scale;
+      canvas.save();
+      canvas.clipRect(Offset.zero & size);
+      canvas.translate(offset.dx, offset.dy);
+      canvas.scale(scale);
+      _paintBrand(canvas, t, phase);
+      canvas.restore();
+      return;
+    }
     final landscape = Curves.easeInOutSine.transform(
       _range(size.aspectRatio, 1, 1.6),
     );
     final stageHeight = ui.lerpDouble(1280, 864, landscape)!;
     final stageCenterY = ui.lerpDouble(640, 622, landscape)!;
     final scale = math.min(size.width / 720, size.height / stageHeight);
-    canvas.save();
-    canvas.clipRect(Offset.zero & size);
-    canvas.drawColor(brand.background, BlendMode.src);
-    canvas.translate(
+    final origin = Offset(
       (size.width - 720 * scale) / 2,
       size.height / 2 - stageCenterY * scale,
     );
-    canvas.scale(scale);
-    _backdrop(canvas, t, phase, brand, size.width / scale);
     canvas.save();
-    canvas.translate(0, 5 * math.sin(phase));
+    canvas.clipRect(Offset.zero & size);
+    canvas.drawColor(brand.background, BlendMode.src);
+    canvas.translate(origin.dx, origin.dy);
+    canvas.scale(scale);
+    final viewport = Rect.fromLTWH(
+      -origin.dx / scale,
+      -origin.dy / scale,
+      size.width / scale,
+      size.height / scale,
+    );
+    _backdrop(canvas, t, phase, brand, viewport);
+    if (layer == AveluneSplashLayer.scene) _paintBrand(canvas, t, phase);
+    canvas.restore();
+  }
+
+  void _paintBrand(Canvas canvas, double t, double phase) {
+    canvas.save();
+    canvas.translate(0, 10 * math.sin(phase));
     _moon(canvas, t, phase);
     _spray(canvas, t, brand);
     _guestStar(canvas, t, phase, brand);
     canvas.restore();
     final image = wordmark;
     if (image != null) _paintWordmark(canvas, t, phase, image);
-    canvas.restore();
   }
 
   void _moon(Canvas canvas, double t, double phase) {
@@ -183,11 +213,11 @@ class AveluneSplashPainter extends CustomPainter {
     final waveTime = math.max(0.0, t - _SplashCue.wave);
     final swell =
         29 * math.sin(waveTime * 9) * math.exp(-waveTime * 3.0) +
-        11 * math.sin(phase);
+        17 * math.sin(phase);
     final hitTime = math.max(0.0, t - _SplashCue.splash);
     final hit =
         101 * math.sin(hitTime * 19) * math.exp(-hitTime * 5.3) +
-        6 * math.sin(phase * 2);
+        9 * math.sin(phase * 2);
     final top = Path()
       ..moveTo(112, 659 + lift + swell)
       ..cubicTo(
@@ -230,6 +260,7 @@ class AveluneSplashPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(AveluneSplashPainter oldDelegate) =>
+      oldDelegate.layer != layer ||
       oldDelegate.progress != progress ||
       oldDelegate.ambient != ambient ||
       oldDelegate.reducedMotion != reducedMotion ||

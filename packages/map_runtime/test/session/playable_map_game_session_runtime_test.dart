@@ -175,7 +175,18 @@ void main() {
       now: () => DateTime.utc(2026, 8, 20),
     );
     addTearDown(runtime.dispose);
-    await runtime.load((_) {});
+    final reports = <GameSessionLoadingProgress>[];
+    await runtime.load(reports.add);
+    expect(
+      reports
+          .where((report) => report.workInProgress != null)
+          .map((report) => report.workInProgress!.completed),
+      [0, 1, 2, 3, 4],
+    );
+    final completed = reports.map((report) => report.completedWork!).toList();
+    expect(completed, orderedEquals([...completed]..sort()));
+    expect(reports.last.stage, 'ready');
+    expect(completed.last, reports.last.total);
     await runtime.resume();
     expect(game.isLoaded, isTrue);
     for (

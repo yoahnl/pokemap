@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'avelune_splash_palette.dart';
@@ -10,12 +12,21 @@ class AveluneSplash extends StatefulWidget {
     required this.palette,
     required this.reducedMotion,
     required this.active,
-  });
+  }) : details = null;
+
+  const AveluneSplash.waiting({
+    super.key,
+    required this.palette,
+    required this.reducedMotion,
+    required this.active,
+    required Widget this.details,
+  }) : progress = kAlwaysCompleteAnimation;
 
   final Animation<double> progress;
   final AveluneSplashPalette palette;
   final bool reducedMotion;
   final bool active;
+  final Widget? details;
 
   @override
   State<AveluneSplash> createState() => _AveluneSplashState();
@@ -101,7 +112,55 @@ class _AveluneSplashState extends State<AveluneSplash>
   }
 
   @override
-  Widget build(BuildContext context) => RepaintBoundary(
+  Widget build(BuildContext context) {
+    final details = widget.details;
+    if (details == null) return _paint(AveluneSplashLayer.scene);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _paint(AveluneSplashLayer.atmosphere),
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final sideBySide =
+                    constraints.maxWidth >= 600 &&
+                    constraints.maxWidth >= constraints.maxHeight * 1.1;
+                final artwork = SizedBox(
+                  width: sideBySide ? 252 : 280,
+                  height: math.min(
+                    244,
+                    constraints.maxHeight * (sideBySide ? .86 : .43),
+                  ),
+                  child: _paint(AveluneSplashLayer.branding),
+                );
+                final content = SizedBox(width: 320, child: details);
+                return Center(
+                  child: SingleChildScrollView(
+                    child: Flex(
+                      direction: sideBySide ? Axis.horizontal : Axis.vertical,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        artwork,
+                        if (sideBySide)
+                          const SizedBox(width: 28)
+                        else
+                          const SizedBox(height: 14),
+                        content,
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _paint(AveluneSplashLayer layer) => RepaintBoundary(
     child: CustomPaint(
       painter: AveluneSplashPainter(
         progress: widget.progress,
@@ -109,6 +168,7 @@ class _AveluneSplashState extends State<AveluneSplash>
         wordmark: _wordmark?.image,
         brand: widget.palette,
         reducedMotion: _reducedMotion,
+        layer: layer,
       ),
       child: const SizedBox.expand(),
     ),

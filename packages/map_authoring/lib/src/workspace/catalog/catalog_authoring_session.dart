@@ -608,8 +608,14 @@ final class CatalogAuthoringSession {
       ...await _prepareBattleCry(request),
       ...await _preparePokemonPngs(request),
     };
-    final current = (await CatalogProjectReader.open(store: reader.store,
-        descriptor: reader.descriptor, metadataFields: {}))!;
+    final reuseAttachedCatalog = request.actionId == 'smart_tile.preset.publish' &&
+        !reader.recoveryRequired &&
+        request.expectedRevision == reader.revision &&
+        await reader.store.readHead() == reader.catalog.snapshot.root;
+    final current = reuseAttachedCatalog
+        ? reader
+        : (await CatalogProjectReader.open(store: reader.store,
+            descriptor: reader.descriptor, metadataFields: {}))!;
     final readDependencies = Map<String, String>.from(
         request.extensions['workshopReadDependencies'] as Map? ?? const {});
     final reusable = previous != null &&
@@ -635,7 +641,8 @@ final class CatalogAuthoringSession {
     } else {
       selection = await CatalogWorkshopSelection.read(reader: current,
           projectHandle: projectHandle, actionId: request.actionId,
-          parameters: request.parameters, readDependencies: readDependencies);
+          parameters: request.parameters, readDependencies: readDependencies,
+          planTerrainFrames: request.actionId == 'smart_tile.preset.publish');
     }
     selection.requireSafeParameters(request);
     var scopedRequest = request;
@@ -677,8 +684,11 @@ final class CatalogAuthoringSession {
           workspaceFingerprint: mutation.workspaceFingerprint,
           publicBaseRevision: publicRevision,
           publicDiff: mutation.diff, publicPlan: publicPlan,
-          objectWriteConcurrency: const {'dialogue.update', 'dialogue.source_update'}
-              .contains(request.actionId) ? 16 : 1,
+          objectWriteConcurrency: selection.terrainFrameReplacement != null ||
+                  const {'dialogue.update', 'dialogue.source_update'}
+                      .contains(request.actionId)
+              ? 16
+              : 1,
           currentProjectRevision: currentRevision,
           idempotencyKey: request.idempotencyKey!, request: request);
       _plans[prepared.plan.planId] = prepared;

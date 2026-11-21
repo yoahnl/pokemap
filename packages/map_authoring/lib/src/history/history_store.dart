@@ -106,10 +106,7 @@ final class AuthoringHistoryRecorder
   Future<void> record(AuthoringCommittedMutation mutation) async {
     final prepared = await _prepareEntry(mutation, persist: true);
     final history = _store;
-    if (history is FileAuthoringHistoryStore &&
-        await history.localWindow(mutation.scope.projectId,
-                allowPending: true) !=
-            null) {
+    if (history is FileAuthoringHistoryStore) {
       await history.appendWithRetention(prepared.entry, costs: prepared.costs);
     } else {
       await _store.append(prepared.entry);
@@ -120,15 +117,17 @@ final class AuthoringHistoryRecorder
   Future<void> requireCommitAllowed(AuthoringCommittedMutation mutation) async {
     final history = _store;
     if (history is! FileAuthoringHistoryStore) return;
-    await history.ensureRetentionWindowIfEmpty(mutation.scope.projectId);
-    if (await history.localWindow(mutation.scope.projectId) == null) return;
-    final prepared = await _prepareEntry(mutation, persist: false);
+    if (!await history.ensureRetentionWindowIfEmpty(mutation.scope.projectId)) {
+      return;
+    }
+    final prepared = await _prepareEntry(mutation,
+        persist: false, hasRetentionWindow: true);
     await history.checkRetentionEntry(prepared.entry, costs: prepared.costs);
   }
 
   Future<({AuthoringHistoryEntry entry, Map<String, int> costs})> _prepareEntry(
       AuthoringCommittedMutation mutation,
-      {required bool persist}) async {
+      {required bool persist, bool? hasRetentionWindow}) async {
     final retained = <AuthoringHistoryResourceChange>[];
     final costs = <String, int>{};
     Future<AuthoringContentBlobRef?> retain(AuthoringPayload? payload) async {
@@ -180,9 +179,10 @@ final class AuthoringHistoryRecorder
     );
     final history = _store;
     if (history is FileAuthoringHistoryStore &&
-        await history.localWindow(mutation.scope.projectId,
-                allowPending: true) !=
-            null) {
+        (hasRetentionWindow ??
+            (await history.localWindow(mutation.scope.projectId,
+                    allowPending: true) !=
+                null))) {
       final catalogStore = _catalogStore;
       final head = mutation.changes
           .where((change) =>

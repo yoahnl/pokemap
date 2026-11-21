@@ -37,11 +37,15 @@ void main() {
     () async {
       final first = await writeMap('first');
       final second = await writeMap('second');
-      final loaded = await loadMapDataFiles([
-        second,
-        first,
-      ], projectDialogueContext: project);
+      final progress = <(int, int)>[];
+      final loaded = await loadMapDataFiles(
+        [second, first],
+        projectDialogueContext: project,
+        onProgress: (completed, total) => progress.add((completed, total)),
+      );
       expect(loaded.map((map) => map.id), ['second', 'first']);
+      expect(progress.last, (2, 2));
+      expect(progress, anyOf(equals([(2, 2)]), equals([(1, 2), (2, 2)])));
       await writeMap('second', name: 'Changed');
       final fresh = await loadMapDataFiles([
         second,
@@ -53,11 +57,13 @@ void main() {
 
   test('rejects a missing map instead of returning a partial corpus', () async {
     final first = await writeMap('first');
+    final progress = <int>[];
     await expectLater(
-      loadMapDataFiles([
-        first,
-        '${root.path}/missing.json',
-      ], projectDialogueContext: project),
+      loadMapDataFiles(
+        [first, '${root.path}/missing.json'],
+        projectDialogueContext: project,
+        onProgress: (completed, _) => progress.add(completed),
+      ),
       throwsA(
         isA<MapLoadException>().having(
           (error) => error.message,
@@ -66,6 +72,7 @@ void main() {
         ),
       ),
     );
+    expect(progress, isNot(contains(2)));
   });
 
   test('validates the dimensions of every map against the project', () async {

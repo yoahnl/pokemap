@@ -46,6 +46,16 @@ void preflightNativeSmartTileMutation({
     );
   }
 
+  if (snapshot.verifiedTerrainFramePreset case final preset?) {
+    final expected = snapshot.manifest.copyWith(
+        smartTileCatalog: ProjectSmartTileCatalog(presets: [preset]));
+    if (projectedMaps.isNotEmpty || projectedManifest != expected) {
+      throw semanticFailure('smart_tile_projected_state_invalid',
+          'The projected terrain does not match the verified frame replacement.');
+    }
+    return;
+  }
+
   try {
     ProjectValidator.validate(projectedManifest);
     for (final map in maps) {

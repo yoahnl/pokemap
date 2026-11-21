@@ -276,6 +276,7 @@ Future<List<MapData>> loadMapDataFiles(
   List<String> absoluteMapPaths, {
   required ProjectManifest? projectDialogueContext,
   PixelSize? projectTileSize,
+  void Function(int completed, int total)? onProgress,
 }) {
   if (absoluteMapPaths.isEmpty) return Future.value(const <MapData>[]);
   final owner = projectDialogueContext == null
@@ -283,12 +284,41 @@ Future<List<MapData>> loadMapDataFiles(
       : RuntimeProjectCatalog.ownerOf(projectDialogueContext);
   final rewardScenes =
       owner?.rewardSceneIndex ?? const <String, List<SceneAsset>>{};
+  var reportedMaps = 0;
+  final progressPort = onProgress == null
+      ? null
+      : RawReceivePort((message) {
+          reportedMaps = message as int;
+          onProgress(reportedMaps, absoluteMapPaths.length);
+        });
+  return _loadMapDataFilesInIsolate(
+    absoluteMapPaths,
+    projectDialogueContext,
+    projectTileSize,
+    rewardScenes,
+    progressPort?.sendPort,
+  ).then((maps) {
+    if (onProgress != null && reportedMaps < maps.length) {
+      onProgress(maps.length, absoluteMapPaths.length);
+    }
+    return maps;
+  }).whenComplete(() => progressPort?.close());
+}
+
+Future<List<MapData>> _loadMapDataFilesInIsolate(
+  List<String> absoluteMapPaths,
+  ProjectManifest? projectDialogueContext,
+  PixelSize? projectTileSize,
+  Map<String, List<SceneAsset>> rewardScenes,
+  SendPort? progressPort,
+) {
   return Isolate.run(
     () => _readMapDataFiles(
       absoluteMapPaths,
       projectDialogueContext,
       projectTileSize,
       rewardScenes,
+      progressPort,
     ),
   );
 }
@@ -298,6 +328,7 @@ Future<List<MapData>> _readMapDataFiles(
   ProjectManifest? projectDialogueContext,
   PixelSize? projectTileSize,
   Map<String, List<SceneAsset>> rewardScenes,
+  SendPort? progressPort,
 ) async {
   final maps = <MapData>[];
   for (final absoluteMapPath in absoluteMapPaths) {
@@ -320,6 +351,7 @@ Future<List<MapData>> _readMapDataFiles(
         'map validated id=${map.id} size=${map.size.width}x${map.size.height} layers=${map.layers.length} entities=${map.entities.length} placedElements=${map.placedElements.length} warps=${map.warps.length} triggers=${map.triggers.length}',
       );
       maps.add(map);
+      progressPort?.send(maps.length);
     } catch (e) {
       _runtimeLoaderLog('map load failed path=$absoluteMapPath error=$e');
       throw MapLoadException('Failed to load map: $e');

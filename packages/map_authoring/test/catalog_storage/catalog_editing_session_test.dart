@@ -119,7 +119,7 @@ void main() {
       }
       return outside.run(() => File(path));
     });
-    expect(windowAccesses, lessThanOrEqualTo(6));
+    expect(windowAccesses, 2);
     expect(
         (await session.snapshot.lookup(_key('a')))!.payload['name'], 'after');
   });
@@ -227,8 +227,11 @@ void main() {
   test('a stale source dependency blocks the prepared catalog patch', () async {
     final source = File('${directory.path}/source.yarn');
     await source.writeAsString('Original');
-    Future<String> revision() async =>
-        (await store.gateway.readResourceRevision('source.yarn'))!;
+    var revisionReads = 0;
+    Future<String> revision() async {
+      revisionReads++;
+      return (await store.gateway.readResourceRevision('source.yarn'))!;
+    }
     final before = await store.readHead();
     final planned = await session.planPatch(
       upserts: [_unit('a', 'after')],
@@ -236,13 +239,48 @@ void main() {
       publicBaseRevision: await revision(),
       currentProjectRevision: revision,
     );
+    revisionReads = 0;
     await source.writeAsString('External change');
     await expectLater(session.apply(planned),
         throwsA(isA<CatalogStorageException>().having(
             (error) => error.code, 'code', 'catalog.project_revision_conflict')));
+    expect(revisionReads, 1);
     expect(await store.readHead(), before);
     expect(await store.gateway.listJournals(), isEmpty);
     expect(await source.readAsString(), 'External change');
+  });
+
+  test('a failed revision read preserves another plan journal', () async {
+    final before = await store.readHead();
+    final revision = 'sha256:${before!.sha256}';
+    var readable = true;
+    final planned = await session.planPatch(
+      upserts: [_unit('a', 'after')],
+      idempotencyKey: 'unavailable-source',
+      publicBaseRevision: revision,
+      currentProjectRevision: () async {
+        if (!readable) throw StateError('Source unavailable');
+        return revision;
+      },
+    );
+    final other = await _open(store, faultInjector: (context) {
+      if (context.checkpoint ==
+          AuthoringTransactionCheckpoint.afterJournalPreparing) {
+        throw const AuthoringTransactionSimulatedCrash();
+      }
+    });
+    addTearDown(other.close);
+    final interrupted = await other.planPatch(
+        upserts: [_unit('b', 'after')], idempotencyKey: 'interrupted-plan');
+    await expectLater(
+      other.apply(interrupted, operationId: planned.operationId),
+      throwsA(isA<AuthoringTransactionSimulatedCrash>()),
+    );
+    readable = false;
+    await expectLater(session.apply(planned), throwsStateError);
+    final journal = await store.gateway.readJournal(planned.operationId);
+    expect(journal?.planId, interrupted.plan.planId);
+    expect(await store.readHead(), before);
   });
 
   test('a new branch rejects redo without overwriting the new unit', () async {

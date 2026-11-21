@@ -13,6 +13,9 @@ void main() {
     final fixture = await _TerrainFixture.open();
     addTearDown(fixture.close);
     final original = await fixture.readTerrain();
+    final originalUnit = await fixture.readTerrainUnit();
+    final tilesetDefinition = await fixture.readDefinitionPath(
+        CatalogDefinitionKind.tileset, 'water');
     final map = File('${fixture.root.path}/maps/$terrainWorkshopMapId.json');
     final mapBytes = await map.readAsBytes();
     final asset = File('${fixture.root.path}/assets/water.png');
@@ -24,10 +27,10 @@ void main() {
     var current = original;
     for (final (index, column) in [2, 1].indexed) {
       final next = _withCenterColumn(current, column);
+      final request = await fixture.request('raccord-$index', next);
       fixture.reader.paths.clear();
       fixture.snapshotLoads.clear();
       fixture.promotions.clear();
-      final request = await fixture.request('raccord-$index', next);
       final head = await fixture.readHead();
       final plan =
           await fixture.mutations.planMutation(fixture.project, request);
@@ -47,7 +50,8 @@ void main() {
             fixture.foreignPaths.contains(path)),
         isEmpty,
       );
-      expect(fixture.reader.paths.length, lessThan(160));
+      expect(fixture.reader.paths.length, lessThan(64));
+      expect(fixture.reader.paths, isNot(contains(tilesetDefinition)));
       expect(await map.readAsBytes(), mapBytes);
       expect(await asset.readAsBytes(), imageBytes);
       expect(await File('${fixture.root.path}/project.json').readAsBytes(),
@@ -55,6 +59,13 @@ void main() {
       await fixture.reopen();
       expect(await fixture.readTerrain(), next);
       expect(await fixture.readCenter(), column * 32);
+      final saved = await fixture.readTerrainUnit();
+      final compact = ProjectSmartTileCatalog(presets: [next]).toJson();
+      expect(saved.payload, {
+        ...originalUnit.payload,
+        'value': (compact['presets'] as List).single,
+      });
+      expect(saved.references, originalUnit.references);
       current = next;
     }
   });
@@ -72,12 +83,14 @@ void main() {
       throwsA(isA<AuthoringPlanException>().having(
           (error) => error.code, 'code', 'catalog.mutation_scope_required')),
     );
-    final invalid =
-        await fixture.request('hors-planche', _withCenterColumn(original, 4));
-    await expectLater(
-      fixture.mutations.planMutation(fixture.project, invalid),
-      throwsA(isA<MapAuthoringException>()),
-    );
+    for (final column in [4, 0x7fffffffffffffff]) {
+      final invalid = await fixture.request(
+          'hors-planche-$column', _withCenterColumn(original, column));
+      await expectLater(
+        fixture.mutations.planMutation(fixture.project, invalid),
+        throwsA(isA<MapAuthoringException>()),
+      );
+    }
     expect(await fixture.readHead(), head);
     expect(await fixture.readTerrain(), original);
   });
@@ -211,14 +224,23 @@ final class _TerrainFixture {
         extensions: const {'workshopScope': true});
   }
 
-  Future<ProjectSmartTilePreset> readTerrain() async {
+  Future<ProjectSmartTilePreset> readTerrain() async =>
+      ProjectSmartTilePreset.fromJson(Map<String, dynamic>.from(
+          (await readTerrainUnit()).payload['value'] as Map));
+
+  Future<CatalogDefinitionUnit> readTerrainUnit() async {
     final catalog = (await openService.catalogProject(project))!;
-    return catalog.read((current) async {
-      final unit = await current.lookup(CatalogDefinitionKey(
-          CatalogDefinitionKind.smartTilePreset, terrainWorkshopPresetId));
-      return ProjectSmartTilePreset.fromJson(
-          Map<String, Object?>.from(unit!.payload['value'] as Map));
-    });
+    return catalog.read((current) async => (await current.lookup(
+        CatalogDefinitionKey(
+            CatalogDefinitionKind.smartTilePreset, terrainWorkshopPresetId)))!);
+  }
+
+  Future<String> readDefinitionPath(
+      CatalogDefinitionKind kind, String id) async {
+    final catalog = (await openService.catalogProject(project))!;
+    final entry = await catalog.read(
+        (current) => current.snapshot.indexEntry(CatalogDefinitionKey(kind, id)));
+    return 'catalog/objects/${entry!.reference.sha256}.json';
   }
 
   Future<int> readCenter() async {

@@ -123,6 +123,47 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  test('reports decoded images and waits for the scene to mount', () async {
+    final mounting = Completer<void>();
+    final mounted = Completer<void>();
+    addTearDown(() {
+      if (!mounted.isCompleted) mounted.complete();
+    });
+    await runtime.dispose();
+    runtime = SpatialExplorationGameSessionRuntime(
+      descriptor: descriptor(),
+      projectFilePath: () async => '${root.path}/project.json',
+      preloadedInitialMap: ({
+        required projectFilePath,
+        required descriptor,
+        required initialSave,
+      }) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+      mountSession: (_) {
+        mounting.complete();
+        return mounted.future;
+      },
+      unmountSession: (_) async {},
+    );
+    final reports = <GameSessionLoadingProgress>[];
+    final loading = runtime.load(reports.add);
+    await Future.any([mounting.future, loading]);
+    final decodedImages = reports.where(
+      (report) => report.stage == 'resources' && report.current == 4,
+    );
+    expect(
+      decodedImages.map((report) => report.workInProgress?.completed),
+      [0, 1],
+    );
+    expect(reports.last.stage, 'map');
+    expect(reports.last.completedWork, 5);
+    mounted.complete();
+    await loading;
+    final completed = reports.map((report) => report.completedWork!).toList();
+    expect(completed, orderedEquals([...completed]..sort()));
+    expect(reports.last.stage, 'ready');
+    expect(completed.last, reports.last.total);
+  });
+
   test('spatial walking advances the saved friendship counter once', () async {
     const movement = CommittedMovement(
       kind: CommittedMovementKind.walk,

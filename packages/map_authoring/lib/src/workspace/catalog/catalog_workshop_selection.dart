@@ -31,6 +31,7 @@ import 'catalog_resource_index_snapshot.dart';
 import '../../domains/assets/model3d_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
 import '../../domains/maps/model_visibility_dependencies.dart';
+import '../../domains/maps/semantic_map_action_support.dart' show semanticFailure;
 import '../../catalog_storage/catalog_storage_store.dart';
 import 'catalog_spatial_map_selection.dart';
 import '../../domains/narrative/standard_event_template.dart';
@@ -65,7 +66,8 @@ final class CatalogWorkshopSelection {
       this.reader, this.snapshot, this.writableSections, this.resourceRevisions,
       {this.metadataDocuments, this.resourceCounts = const {}, this.resourceReplacements = const {},
       this.resourceRemovals = const {}, this.resourceMoves = const {},
-      this.maintenanceRevision, this.requireDependencies});
+      this.maintenanceRevision, this.requireDependencies,
+      this.terrainFrameReplacement});
 
   final CatalogProjectReader reader;
   final ProjectSnapshot snapshot;
@@ -76,6 +78,7 @@ final class CatalogWorkshopSelection {
   final Set<CatalogDefinitionKey> resourceReplacements;
   final Set<CatalogDefinitionKey> resourceRemovals;
   final Map<CatalogDefinitionKey, int> resourceMoves;
+  final CatalogDefinitionUnit? terrainFrameReplacement;
   final Future<String> Function()? maintenanceRevision;
   final Future<void> Function()? requireDependencies;
 
@@ -205,6 +208,7 @@ final class CatalogWorkshopSelection {
     required String actionId,
     Map<String, Object?> parameters = const {},
     Map<String, String> readDependencies = const {},
+    bool planTerrainFrames = false,
   }) async {
     if (actionId != 'map.create' && actionId != 'map.duplicate' && actionId != 'map.library.reorganize' && !_nativeResourceActions.containsKey(actionId) &&
         !const {'model3d.import', 'model3d.import_batch', 'tileset.import_image'}.contains(actionId) &&
@@ -258,7 +262,9 @@ final class CatalogWorkshopSelection {
     }
     if (_nativeResourceActions.containsKey(actionId)) {
       if (readDependencies.isNotEmpty) unsupported(actionId);
-      return _readNativeResourceWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
+      return _readNativeResourceWorkshop(
+          reader: reader, projectHandle: projectHandle, actionId: actionId,
+          parameters: parameters, planTerrainFrames: planTerrainFrames);
     }
     if (const {'model3d.import', 'model3d.import_batch', 'model3d.duplicate', 'tileset.import_image'}.contains(actionId)) {
       if (readDependencies.isNotEmpty) unsupported(actionId);

@@ -163,7 +163,35 @@ final class CatalogScopedWorkingMutation {
         changedFields.remove('models3d');
       }
     }
-    if (selection.resourceCounts.isNotEmpty) {
+    final terrain = selection.terrainFrameReplacement;
+    if (terrain != null && changedFields.remove('smartTileCatalog')) {
+      final previous = previousJson['smartTileCatalog'] as Map;
+      final next = projectedJson['smartTileCatalog'] as Map;
+      final previousPresets = (previous['presets'] as List).cast<Map>();
+      final nextPresets = (next['presets'] as List).cast<Map>();
+      final oldPreset =
+          previousPresets.singleWhere((preset) => preset['id'] == terrain.key.id);
+      final editedPreset =
+          nextPresets.singleWhere((preset) => preset['id'] == terrain.key.id);
+      if (!_same({
+        ...previous,
+        'presets': [
+          for (final preset in previousPresets)
+            preset['id'] == terrain.key.id ? editedPreset : preset,
+        ],
+      }, next)) {
+        throw const FormatException(
+            'catalog.terrain: publication changed another definition');
+      }
+      upserts.add(CatalogDefinitionUnit(
+          key: terrain.key,
+          payload: {
+            ...terrain.payload,
+            'value': _preserveUntouched(
+                terrain.payload['value'], oldPreset, editedPreset),
+          },
+          references: terrain.references));
+    } else if (selection.resourceCounts.isNotEmpty) {
       final pruning = publicPlan.request.actionId == 'model3d.prune_unused';
       final built = pruning
           ? null

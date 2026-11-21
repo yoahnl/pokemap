@@ -1419,6 +1419,35 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         ).narrativeIdentity;
   }
 
+  Widget _buildWorldLoadingScene(BuildContext context, Widget details) {
+    final palette = _splashPalette!;
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
+    return Theme(
+      data: player_ui.PokeMapPlayerTheme.dark(
+        highContrast: Theme.of(context)
+                .extension<player_ui.PokeMapPlayerColors>()
+                ?.highContrast ??
+            false,
+        reducedMotion: reducedMotion,
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: ProgressIndicatorTheme(
+          data: ProgressIndicatorThemeData(
+            color: palette.waveLight,
+            linearTrackColor: palette.wave.withValues(alpha: .18),
+          ),
+          child: AveluneSplash.waiting(
+            palette: palette,
+            reducedMotion: reducedMotion,
+            active: _lifecycleActive,
+            details: details,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSessionView(
     player_ui.RuntimePlayerCoordinatorViewController viewController,
     player_ui.RuntimePlayerPresentation presentation,
@@ -1498,6 +1527,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       onCompanionInput: widget.onCompanionInput,
       loadingLogo: widget.splashLogo,
       loadingWordmark: widget.splashWordmark,
+      loadingSceneBuilder: _splashPalette == null
+          ? null
+          : _buildWorldLoadingScene,
       titlePresentation: presentation.title,
       pauseMenuLabels: presentation.pauseMenuLabels,
       pausePresentation: presentation.pausePresentation,

@@ -5,20 +5,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('shouldShowRuntimeBattleCommandOverlay', () {
-    test(
-      'shows the Flutter battle overlay whenever battle is active and snapshot exists',
-      () {
-        expect(
-          shouldShowRuntimeBattleCommandOverlay(
-            supportsTouchControls: false,
-            hasConnectedGamepad: true,
-            isBattleActive: true,
-            hasSnapshot: true,
-          ),
-          isTrue,
-        );
-      },
-    );
+    test('shows the Flutter battle overlay whenever battle is active and snapshot exists', () {
+      expect(
+        shouldShowRuntimeBattleCommandOverlay(
+          supportsTouchControls: false,
+          hasConnectedGamepad: true,
+          isBattleActive: true,
+          hasSnapshot: true,
+        ),
+        isTrue,
+      );
+    });
 
     test(
       'hides the Flutter battle overlay when there is no battle snapshot',
@@ -51,13 +48,11 @@ void main() {
       final loaderSource = await File('lib/main.dart').readAsString();
       expect(
         loaderSource,
-        contains(
-          'battlePresentation: game.battleCommandOverlayListenable',
-        ),
+        contains('battlePresentation: game?.battleCommandOverlayListenable'),
       );
       expect(
         loaderSource,
-        contains('onBattleCommand: game.dispatchBattlePresentationCommand'),
+        contains('onBattleCommand: game?.dispatchBattlePresentationCommand'),
       );
       expect(loaderSource, isNot(contains('BattleMobileCommandOverlay(')));
     });

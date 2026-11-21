@@ -331,6 +331,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     RuntimeTilesetImageSingleFlightCache? initialTilesetImageCache,
     NarrativeEventRuntimeSnapshot? initialNarrativeSnapshot,
     this.onInitialLoadProgress,
+    this.onInitialResourceProgress,
     this.onCommittedMovement,
     RuntimePlayerPokemonProgressionCatalogLoader?
         runtimePlayerPokemonProgressionCatalogLoader,
@@ -568,6 +569,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   RuntimeCommittedMovement? get lastCommittedMovement => _lastCommittedMovement;
   final void Function(PlayableMapGameInitialLoadStage stage)?
       onInitialLoadProgress;
+  final void Function(int completed, int total)? onInitialResourceProgress;
   final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
 
   /// Le joueur a-t-il demandé un mouvement réduit ?
@@ -5557,12 +5559,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         retainUntilMount: true,
         resourceBundle: _bundle,
       );
+      var completedResources = 0;
+      Future<T> trackResource<T>(Future<T> resource) async {
+        final result = await resource;
+        if (!_isRemoved) onInitialResourceProgress?.call(++completedResources, 4);
+        return result;
+      }
+
+      onInitialResourceProgress?.call(0, 4);
       final bootResources = await Future.wait<Object?>(
         <Future<Object?>>[
-          hydratedGameState,
-          rootBorderAssets,
-          tilesetImages,
-          itemCatalog,
+          trackResource(hydratedGameState),
+          trackResource(rootBorderAssets),
+          trackResource(tilesetImages),
+          trackResource(itemCatalog),
         ],
         eagerError: false);
       _gameState = bootResources[0]! as GameState;

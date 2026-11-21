@@ -10,6 +10,81 @@ import 'package:pokemap_hub/presentation/features/player/splash/avelune_splash_p
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    testWidgets('the waiting scene fits its art and controls at $size', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      var cancelled = false;
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MediaQuery(
+            data: MediaQueryData(
+              size: size,
+              textScaler: TextScaler.linear(1.6),
+            ),
+            child: AveluneSplash.waiting(
+              palette: size.width > size.height
+                  ? AveluneSplashPalette.android
+                  : AveluneSplashPalette.ios,
+              reducedMotion: false,
+              active: true,
+              details: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Une très longue aventure'),
+                  const Text('Chargement des ressources'),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => cancelled = true,
+                    child: const SizedBox(
+                      height: 48,
+                      child: Center(child: Text('Annuler')),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+
+      Finder layer(AveluneSplashLayer layer) =>
+          find.byWidgetPredicate((widget) {
+            if (widget is! CustomPaint) return false;
+            final painter = widget.painter;
+            return painter is AveluneSplashPainter && painter.layer == layer;
+          });
+      final branding = layer(AveluneSplashLayer.branding);
+      final atmosphere = layer(AveluneSplashLayer.atmosphere);
+      final brandPainter =
+          tester.widget<CustomPaint>(branding).painter! as AveluneSplashPainter;
+      final skyPainter =
+          tester.widget<CustomPaint>(atmosphere).painter!
+              as AveluneSplashPainter;
+      expect(brandPainter.progress.value, 1);
+      expect(brandPainter.ambient, same(skyPainter.ambient));
+      expect(brandPainter.ambient.value, greaterThan(0));
+      expect(tester.getSize(atmosphere), size);
+
+      final title = tester.getRect(find.text('Une très longue aventure'));
+      final artwork = tester.getRect(branding);
+      if (size.width > size.height) {
+        expect(artwork.right, lessThan(title.left));
+      } else {
+        expect(artwork.bottom, lessThan(title.top));
+      }
+      await tester.tap(find.text('Annuler'));
+      expect(cancelled, isTrue);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   test('the splash stays inside its own viewport on a shared canvas', () async {
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder)
@@ -76,10 +151,54 @@ void main() {
       60 * width * 4,
     );
 
-    expect(markDrift.abs(), inExclusiveRange(.5, 5));
-    expect(titleDrift.abs(), inExclusiveRange(.6, 4));
+    expect(markDrift.abs(), inExclusiveRange(3.5, 8));
+    expect(titleDrift.abs(), inExclusiveRange(2.2, 5));
     expect(Object.hashAll(movingBackground), isNot(Object.hashAll(background)));
   });
+
+  for (final (:width, :height, :palette) in [
+    (width: 390, height: 844, palette: AveluneSplashPalette.ios),
+    (width: 844, height: 390, palette: AveluneSplashPalette.android),
+  ]) {
+    test('stars visibly twinkle across the ${palette.name} viewport', () async {
+      Future<ByteData> frame(double phase) {
+        final recorder = ui.PictureRecorder();
+        AveluneSplashPainter(
+          progress: const AlwaysStoppedAnimation(1),
+          ambient: AlwaysStoppedAnimation(phase),
+          wordmark: null,
+          brand: palette,
+          reducedMotion: false,
+        ).paint(
+          ui.Canvas(recorder),
+          ui.Size(width.toDouble(), height.toDouble()),
+        );
+        return _pixels(recorder, width, height);
+      }
+
+      final early = await frame(.125);
+      final late = await frame(.375);
+      for (final (left, right) in [
+        ((width * .05).round(), (width * .25).round()),
+        ((width * .75).round(), (width * .95).round()),
+      ]) {
+        var visibleShimmers = 0;
+        for (var y = (height * .12).round(); y < height * .46; y++) {
+          for (var x = left; x < right; x++) {
+            int contrast(ByteData frame) =>
+                frame.getUint8((y * width + x) * 4 + 2) -
+                frame.getUint8((y * width + x + 6) * 4 + 2);
+            final first = contrast(early);
+            final second = contrast(late);
+            if ((first - second).abs() > 25 && (first > 50 || second > 50)) {
+              visibleShimmers++;
+            }
+          }
+        }
+        expect(visibleShimmers, greaterThan(3));
+      }
+    });
+  }
 
   testWidgets('ambient motion starts after the intro and follows visibility', (
     tester,

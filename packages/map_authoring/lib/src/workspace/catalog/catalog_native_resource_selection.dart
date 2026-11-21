@@ -49,6 +49,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
   required ProjectHandle projectHandle,
   required String actionId,
   required Map<String, Object?> parameters,
+  required bool planTerrainFrames,
 }) async {
   final (kind, parameter) = _nativeResourceActions[actionId]!;
   final publishingBorder = actionId == 'border.blueprint.publish';
@@ -77,8 +78,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
           'catalog.native_resource: unique target identities required');
     }
   }
-  final selected = await reader.withMetadataFields({'settings'});
-  return selected.read((catalog) async {
+  return reader.read((catalog) async {
     await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
     final roots = <CatalogDefinitionKey>{};
     final replacements = <CatalogDefinitionKey>{};
@@ -88,6 +88,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
     final candidates = <Object?>[parameters];
     final usageMaps = <String, Set<String>>{};
     final scopedMapIds = <String>{};
+    CatalogDefinitionUnit? terrainFrameReplacement;
     var count = 0;
     if (family) {
       count = await CatalogResourcePositions.read(catalog.snapshot, kind);
@@ -233,6 +234,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         }
         roots.add(key);
         replacements.add(key);
+        terrainFrameReplacement = existing;
       } else if (existing != null && kind == CatalogDefinitionKind.character) {
         final before = ProjectCharacterEntry.fromJson(
             Map<String, dynamic>.from(existing.payload['value'] as Map));
@@ -268,6 +270,14 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
             actionId, 'a new resource identity');
       }
     }
+    final terrainFrames = planTerrainFrames &&
+            terrainFrameReplacement != null &&
+            parameters.length == 1
+        ? await _readTerrainFrameProjection(
+            catalog, terrainFrameReplacement, value as Map)
+        : null;
+    final dependencyCandidates =
+        terrainFrames == null ? candidates : const <Object?>[];
     for (final (dependencyKind, keys) in const [
       (CatalogDefinitionKind.tileset, {'tilesetId'}),
       (CatalogDefinitionKind.model3d, {'modelId', 'sourceModelId'}),
@@ -285,7 +295,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
       ),
     ]) {
       for (final id
-          in CatalogWorkshopSelection._referenceIds(candidates, keys)) {
+          in CatalogWorkshopSelection._referenceIds(dependencyCandidates, keys)) {
         final key = CatalogDefinitionKey(dependencyKind, id);
         if (await catalog.snapshot.indexEntry(key) != null) roots.add(key);
       }
@@ -295,7 +305,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         ? CatalogDefinitionKind.elementCategory
         : CatalogDefinitionKind.smartTileCategory;
     for (final id
-        in CatalogWorkshopSelection._referenceIds(candidates, {'categoryId'})) {
+        in CatalogWorkshopSelection._referenceIds(dependencyCandidates, {'categoryId'})) {
       roots.add(CatalogDefinitionKey(categoryKind, id));
     }
     final familyRoots = roots.where((key) => key.kind == CatalogDefinitionKind.resourceFamily).toList();
@@ -309,7 +319,8 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         throw const FormatException('catalog.native_resource: family depth');
       }
     }
-    var manifest = await ProjectCatalogSelection(catalog).resolve(roots);
+    var manifest = terrainFrames?.project ??
+        await ProjectCatalogSelection(catalog).resolve(roots);
     for (final entry in manifest.resourceLibraryCatalog.entries) {
       if (entry.mapId == null) continue;
       scopedMapIds.add(entry.mapId!);
@@ -378,9 +389,10 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
     final snapshot = ProjectSnapshot(
         projectHandle: projectHandle,
         materializedCatalogProject: true,
+        verifiedTerrainFramePreset: terrainFrames?.preset,
         resourceLibraryMapUsageOverrides: usageMaps,
         revision:
-            CatalogWorkshopSelection.fingerprint(selected.revision, revisions),
+            CatalogWorkshopSelection.fingerprint(reader.revision, revisions),
         manifest: manifest,
         maps: const [],
         availableProjectSections: {
@@ -401,9 +413,10 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
           for (final entry in paths.entries) entry.key: revisions[entry.value]!,
         });
     final result = CatalogWorkshopSelection._(
-        selected, snapshot, {section}, revisions,
+        reader, snapshot, {section}, revisions,
         resourceCounts: {kind: count}, resourceReplacements: replacements,
-        resourceRemovals: removals.keys.toSet(), resourceMoves: moves);
+        resourceRemovals: removals.keys.toSet(), resourceMoves: moves,
+        terrainFrameReplacement: terrainFrameReplacement);
     await result.requireCurrent();
     return result;
   });

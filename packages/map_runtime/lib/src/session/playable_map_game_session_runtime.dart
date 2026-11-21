@@ -212,14 +212,25 @@ final class PlayableMapGameSessionRuntime
     _ensureNotDisposed();
     if (_loadingStarted) throw StateError('The runtime graph is single-use.');
     _loadingStarted = true;
-    reportProgress(
-      const GameSessionLoadingProgress(stage: 'project', current: 0, total: 7),
-    );
+    void report(
+      String stage,
+      int completed, {
+      ({int completed, int total})? workInProgress,
+    }) {
+      if (_disposed) return;
+      reportProgress(GameSessionLoadingProgress(
+        stage: stage,
+        current: completed,
+        total: 7,
+        measuresWork: true,
+        workInProgress: workInProgress,
+      ));
+    }
+
+    report('project', 0);
     final projectFilePath = await _projectFilePath();
     _ensureNotDisposed();
-    reportProgress(
-      const GameSessionLoadingProgress(stage: 'save', current: 1, total: 7),
-    );
+    report('save', 1);
     final save = await _initialSave();
     _ensureNotDisposed();
     _validateInitialSave(save);
@@ -303,9 +314,7 @@ final class PlayableMapGameSessionRuntime
         throw StateError('A 2D session cannot consume spatial player state.');
       }
 
-      reportProgress(
-        const GameSessionLoadingProgress(stage: 'world', current: 2, total: 7),
-      );
+      report('world', 2);
       final RuntimeMapBundle bundle;
       if (preloadedBundle == null) {
         bundle = await loadRuntimeMapBundle(
@@ -442,19 +451,18 @@ final class PlayableMapGameSessionRuntime
               : MapActivationReason.saveRestore,
           initialTilesetImageCache: initialTilesetImageCache,
           initialNarrativeSnapshot: preloadedInitialMap?.narrativeSnapshot,
+          onInitialResourceProgress: (completed, total) => report(
+            'resources',
+            3,
+            workInProgress: (completed: completed, total: total + 1),
+          ),
           onInitialLoadProgress: (stage) {
             final (name, current) = switch (stage) {
               PlayableMapGameInitialLoadStage.resources => ('resources', 4),
               PlayableMapGameInitialLoadStage.map => ('map', 5),
               PlayableMapGameInitialLoadStage.player => ('player', 6),
             };
-            reportProgress(
-              GameSessionLoadingProgress(
-                stage: name,
-                current: current,
-                total: 7,
-              ),
-            );
+            report(name, current);
           },
           audioMixer: audioMixer,
           presentationCinematicPlayer: presentationCinematicPlayer,
@@ -510,9 +518,7 @@ final class PlayableMapGameSessionRuntime
         _publishWorldService,
       );
       game.setPlayerServiceRuntimeController(playerServices);
-      reportProgress(
-        const GameSessionLoadingProgress(stage: 'mount', current: 3, total: 7),
-      );
+      report('mount', 3);
       final mount = () async {
         await _mountGame(game);
         _mounted = true;
@@ -523,9 +529,7 @@ final class PlayableMapGameSessionRuntime
       _interactionsEnabled = true;
       _publishOverworldInteractions();
       _playWatch.start();
-      reportProgress(
-        const GameSessionLoadingProgress(stage: 'ready', current: 7, total: 7),
-      );
+      report('ready', 7);
     } catch (_) {
       preloadedInitialMap?.dispose();
       if (!_disposed) await dispose();

@@ -227,13 +227,13 @@ final class MvpReleaseCommandMatrix {
         _flutterTest(
           root,
           id: 'editor-tests',
-          packagePath: 'packages/map_editor',
+          packagePath: 'apps/avelune_studio',
           criterion: MvpReleaseGateCriterion.criticalPackageTests,
         ),
         _analyze(
           root,
           id: 'editor-analyze',
-          packagePath: 'packages/map_editor',
+          packagePath: 'apps/avelune_studio',
           flutter: true,
         ),
         _flutterTest(

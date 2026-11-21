@@ -849,13 +849,10 @@ final class CatalogEditingSession {
             .snapshot
             .deltaFrom(snapshot))
         .removals;
-    final currentRevision = prepared._currentProjectRevision == null
-        ? 'sha256:${snapshot.root.sha256}'
-        : await prepared._currentProjectRevision();
     final receipt = await _transaction.apply(
         planId: prepared.plan.planId,
         request: prepared.plan.request,
-        currentProjectRevision: currentRevision,
+        currentProjectRevision: prepared.plan.baseRevision,
         scope: prepared.scope,
         operationId: prepared.operationId,
         beforeReservation: beforeReservation,
@@ -875,7 +872,9 @@ final class CatalogEditingSession {
           }
           await _requireProjectRevision(
               prepared._currentProjectRevision, prepared.plan.baseRevision);
-          await _checkRetentionCosts(prepared);
+          if (prepared._retentionCosts == null) {
+            await _checkRetentionCosts(prepared);
+          }
           await precondition?.call();
           await requireUnusedExteriorReferences(
               prepared._exteriorRemovals!, store.gateway);
@@ -899,17 +898,21 @@ final class CatalogEditingSession {
   Future<Never> _rollBackUnpromoted(
       CatalogEditingPlan prepared, Object error, StackTrace stack) async {
     try {
-      final journal = await store.gateway.readJournal(prepared.operationId);
-      if (journal != null &&
-          journal.status != AuthoringTransactionStatus.committed &&
-          journal.status != AuthoringTransactionStatus.compensated) {
-        final head = journal.entries.singleWhere(
-            (entry) => entry.storageKey == CatalogStorageStore.headStorageKey);
-        if (await store.gateway.readResourceRevision(head.storageKey) ==
-            head.beforeRevision) {
-          await _reconcile(prepared.operationId, compensate: true);
+      await store.gateway.withExclusiveWriteLock(() async {
+        final journal = await store.gateway.readJournal(prepared.operationId);
+        if (journal != null &&
+            journal.planId == prepared.plan.planId &&
+            journal.scope.storageKey == prepared.scope.storageKey &&
+            journal.status != AuthoringTransactionStatus.committed &&
+            journal.status != AuthoringTransactionStatus.compensated) {
+          final head = journal.entries.singleWhere(
+              (entry) => entry.storageKey == CatalogStorageStore.headStorageKey);
+          if (await store.gateway.readResourceRevision(head.storageKey) ==
+              head.beforeRevision) {
+            await _reconcile(prepared.operationId, compensate: true);
+          }
         }
-      }
+      });
     } on Object {
       Error.throwWithStackTrace(error, stack);
     }

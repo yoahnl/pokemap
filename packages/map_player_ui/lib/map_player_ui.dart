@@ -55,6 +55,8 @@ export 'src/player/player_save_recovery_surface.dart';
 export 'src/player/player_pokemon_summary_sheet.dart';
 export 'src/player/player_pokemon_summary_strings.dart';
 export 'src/player/player_session_surfaces.dart';
+export 'src/player/player_world_loading_surface.dart'
+    show PlayerWorldLoadingSceneBuilder;
 export 'src/player/player_title_screen.dart';
 export 'src/player/player_title_motion.dart';
 export 'src/player/player_title_options_surface.dart';

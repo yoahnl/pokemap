@@ -279,13 +279,25 @@ final class GameSessionLoadingProgress {
     required this.stage,
     required this.current,
     this.total,
+    this.measuresWork = false,
+    this.workInProgress,
   })  : assert(stage != ''),
         assert(current >= 0),
-        assert(total == null || total >= current);
+        assert(total == null || total >= current),
+        assert(!measuresWork || (total != null && total > 0));
 
   final String stage;
   final int current;
   final int? total;
+  final bool measuresWork;
+  final ({int completed, int total})? workInProgress;
+
+  double? get completedWork {
+    if (!measuresWork) return null;
+    final work = workInProgress;
+    return current +
+        (work == null || work.total == 0 ? 0.0 : work.completed / work.total);
+  }
 }
 
 /// Runtime-owned state proposed to the Hub, never persisted by the runtime.

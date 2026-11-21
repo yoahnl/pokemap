@@ -1222,6 +1222,7 @@ final class SpatialExplorationSession {
     bool allowNpcOverlapRecovery = false,
     Iterable<MapData> knownMaps = const [],
     bool immutableProject = false,
+    void Function(int completed, int total)? onInitialImageProgress,
   }) =>
       _load(bundle,
           immutableProject: immutableProject,
@@ -1238,6 +1239,7 @@ final class SpatialExplorationSession {
           presentationStateProvider: presentationStateProvider,
           worldStateProvider: worldStateProvider,
           loadMap: loadMap,
+          onInitialImageProgress: onInitialImageProgress,
     knownMaps: knownMaps,
   );
 
@@ -1262,6 +1264,7 @@ final class SpatialExplorationSession {
     bool immutableProject = false,
     bool allowNpcOverlapRecovery = false,
     Iterable<MapData> knownMaps = const [],
+    void Function(int completed, int total)? onInitialImageProgress,
   }) async {
     final scene = bundle.map.spatialScene;
     if (scene == null ||
@@ -1411,12 +1414,15 @@ final class SpatialExplorationSession {
       };
       session._imageIds = ids;
       assets.owners[session._assetOwner] = session._ownedImageIds;
+      var completedImages = 0;
+      onInitialImageProgress?.call(completedImages, ids.length);
       for (final imageId in ids) {
         final path = paths[imageId];
         if (path == null) {
           throw StateError('Image du héros introuvable : $imageId');
         }
         await assets.load(imageId, path, entityVisuals);
+        onInitialImageProgress?.call(++completedImages, ids.length);
       }
       await assets.emotes.prepare(bundle.manifest.cinematics.where((asset) => asset.mapId == bundle.map.id));
       entityVisuals.validateImages(images);

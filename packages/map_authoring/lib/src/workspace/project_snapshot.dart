@@ -84,6 +84,7 @@ final class ProjectSnapshot {
     Iterable<SceneAsset> rewardReferenceScenes = const [],
     this.pokemonInventoryComplete = false,
     this.materializedCatalogProject = false,
+    this.verifiedTerrainFramePreset,
     Map<String, Set<String>>? resourceLibraryMapUsageOverrides,
     Set<String>? availableProjectSections,
     Map<String, Set<String>>? availableProjectDocuments,
@@ -227,6 +228,7 @@ final class ProjectSnapshot {
         rewardReferenceScenes = source.rewardReferenceScenes,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         materializedCatalogProject = source.materializedCatalogProject,
+        verifiedTerrainFramePreset = source.verifiedTerrainFramePreset,
         resourceLibraryMapUsageOverrides = source.resourceLibraryMapUsageOverrides,
         availableProjectSections = source.availableProjectSections,
         availableProjectDocuments = source.availableProjectDocuments,
@@ -257,6 +259,7 @@ final class ProjectSnapshot {
         projectHandle = source.projectHandle,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         materializedCatalogProject = source.materializedCatalogProject,
+        verifiedTerrainFramePreset = null,
         resourceLibraryMapUsageOverrides = source.resourceLibraryMapUsageOverrides,
         availableProjectSections = source.availableProjectSections,
         availableProjectDocuments = source.availableProjectDocuments,
@@ -297,6 +300,7 @@ final class ProjectSnapshot {
   }
   final bool pokemonInventoryComplete;
   final bool materializedCatalogProject;
+  final ProjectSmartTilePreset? verifiedTerrainFramePreset;
   final Map<String, Set<String>>? resourceLibraryMapUsageOverrides;
   final Set<String>? availableProjectSections;
   final Map<String, Set<String>>? availableProjectDocuments;
@@ -421,6 +425,7 @@ final class ProjectSnapshot {
           rewardReferenceScenes: rewardReferenceScenes,
           pokemonInventoryComplete: pokemonInventoryComplete,
           materializedCatalogProject: materializedCatalogProject,
+          verifiedTerrainFramePreset: verifiedTerrainFramePreset,
           availableProjectSections: availableProjectSections,
           availableProjectDocuments: availableProjectDocuments,
           scopedStorageRevisions: scopedStorageRevisions,

@@ -467,6 +467,10 @@ List<int> _encodeSmartTileManifest(
   ProjectManifest manifest,
 ) {
   if (manifest == snapshot.manifest) return snapshot.authoringProjectBytes;
+  if (snapshot.materializedCatalogProject &&
+      snapshot.availableProjectSections?.contains('smartTileCatalog') == true) {
+    return utf8.encode(jsonEncode(manifest.toJson()));
+  }
   final merged = jsonDecode(
     utf8.decode(encodeResourceInformationDocument(snapshot, manifest)),
   ) as Map<String, dynamic>;
