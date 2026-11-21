@@ -85,7 +85,8 @@ void main() {
     final manifest = ProjectManifest.fromJson(
         jsonDecode(utf8.decode(await direct.projectBytes()))
             as Map<String, dynamic>);
-    expect(manifest.borderCatalog.formatVersion, 12);
+    expect(manifest.borderCatalog.formatVersion,
+        ProjectBorderCatalog.latestSupportedFormatVersion);
     final published = manifest.borderCatalog.records.single.latestPublished!;
     expect(published.definition.template,
         BorderBlueprintTemplate.horizontalFacade);

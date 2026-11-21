@@ -16,8 +16,8 @@ void main() {
           version: ProjectVersion.v8,
           maps: const [],
           tilesets: const []);
-      await File('${root.path}/project.json')
-          .writeAsString(jsonEncode(manifest.toJson()));
+      final manifestBytes = utf8.encode(jsonEncode(manifest.toJson()));
+      await File('${root.path}/project.json').writeAsBytes(manifestBytes);
       const reader = LocalProjectFileReader();
       final canonicalRoot = await root.resolveSymbolicLinks();
       final policy = await WorkspacePolicy.create(
@@ -28,7 +28,8 @@ void main() {
       var failAfterCommit = mode != 'undo';
       final registered = handles.registerProject(
           projectName: 'Refresh',
-          initialFingerprint: 'fixture',
+          initialFingerprint: computeAuthoringBytesFingerprint(manifestBytes,
+              logicalName: 'project.json'),
           requireMutationRoot: (path) async {
             if (await policy.authorizeProjectRoot(path) != canonicalRoot) {
               throw StateError('Foreign mutation root');

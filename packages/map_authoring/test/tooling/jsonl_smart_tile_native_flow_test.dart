@@ -211,8 +211,9 @@ void main() {
         'fractional model sources publish paint and reopen with pivots identically',
         () async {
       final direct =
-          await _Harness.create('model_offsets_direct', spatial: true);
-      final jsonl = await _Harness.create('model_offsets_jsonl', spatial: true);
+          await _Harness.create('model_offsets_direct', spatial: true, size: 3);
+      final jsonl =
+          await _Harness.create('model_offsets_jsonl', spatial: true, size: 3);
       addTearDown(direct.dispose);
       addTearDown(jsonl.dispose);
       const part = SmartTileVisualPart(

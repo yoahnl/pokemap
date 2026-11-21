@@ -191,11 +191,13 @@ final class _Fixture {
     final root =
         await Directory.systemTemp.createTemp('discard-preparation-api-');
     final project = File('${root.path}/project.json');
-    await project.writeAsString(jsonEncode(ProjectManifest(
+    final manifest = ProjectManifest(
         name: 'Discard',
         version: ProjectVersion.v8,
         maps: const [],
-        tilesets: const []).toJson()));
+        tilesets: const []);
+    final manifestBytes = utf8.encode(jsonEncode(manifest.toJson()));
+    await project.writeAsBytes(manifestBytes);
     final staged = File('${root.path}/staged-unrelated.bin');
     await staged.writeAsBytes([0, 4, 8, 255]);
     const reader = LocalProjectFileReader();
@@ -206,7 +208,8 @@ final class _Fixture {
     var snapshotReadsAllowed = true;
     final registered = handles.registerProject(
         projectName: 'Discard',
-        initialFingerprint: 'fixture',
+        initialFingerprint: computeAuthoringBytesFingerprint(manifestBytes,
+            logicalName: 'project.json'),
         requireMutationRoot: (path) async {
           if (await policy.authorizeProjectRoot(path) != canonicalRoot) {
             throw StateError('Foreign mutation root');
