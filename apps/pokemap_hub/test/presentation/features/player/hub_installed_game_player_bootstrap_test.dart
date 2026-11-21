@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -16,8 +18,8 @@ import 'package:pokemap_hub/features/session/domain/entities/installed_game_laun
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_game_player.dart';
-import 'package:pokemap_hub/presentation/features/player/splash/avelune_mobile_splash.dart';
-import 'package:pokemap_hub/presentation/features/player/splash/avelune_mobile_splash_palette.dart';
+import 'package:pokemap_hub/presentation/features/player/splash/avelune_splash.dart';
+import 'package:pokemap_hub/presentation/features/player/splash/avelune_splash_palette.dart';
 
 import '../../../support/runtime_player_hub_fixture.dart';
 
@@ -285,17 +287,29 @@ void main() {
     await tester.pump();
   });
 
-  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+  for (final platform in [
+    TargetPlatform.android,
+    TargetPlatform.iOS,
+    TargetPlatform.macOS,
+    TargetPlatform.windows,
+    TargetPlatform.linux,
+  ]) {
     testWidgets(
-      'keeps the Flutter splash mounted on rotation on ${platform.name}',
+      'keeps the Flutter splash moving through resizing on ${platform.name}',
       (tester) async {
-        await tester.binding.setSurfaceSize(const Size(390, 844));
+        final mobile =
+            platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+        final portrait = mobile ? const Size(390, 844) : const Size(440, 640);
+        final landscape = mobile ? const Size(844, 390) : const Size(1040, 620);
+        await tester.binding.setSurfaceSize(portrait);
         addTearDown(() => tester.binding.setSurfaceSize(null));
         final launch = Completer<InstalledGameLaunchContext>();
         final preferences = Completer<HubPreferencesRead>();
         final audio = _GateSplashAudioDriver();
-        final bundle = _MobileSplashAssets();
-        final palette = AveluneMobileSplashPalette.forPlatform(platform)!;
+        final bundle = _SplashAssets();
+        final palette = platform == TargetPlatform.android
+            ? AveluneSplashPalette.android
+            : AveluneSplashPalette.ios;
         await tester.runAsync(() async {
           final stream = palette.wordmark.resolve(
             ImageConfiguration(bundle: bundle),
@@ -337,13 +351,13 @@ void main() {
             ),
           ),
         );
-        final splash = find.byKey(const ValueKey('avelune-mobile-splash'));
+        final splash = find.byKey(const ValueKey('avelune-splash'));
         expect(splash, findsOneWidget);
-        expect(tester.getSize(splash), const Size(390, 844));
+        expect(tester.getSize(splash), portrait);
         final state = tester.state(splash);
-        await tester.binding.setSurfaceSize(const Size(844, 390));
+        await tester.binding.setSurfaceSize(landscape);
         await tester.pump();
-        expect(tester.getSize(splash), const Size(844, 390));
+        expect(tester.getSize(splash), landscape);
         expect(tester.state(splash), same(state));
         preferences.complete(
           const HubPreferencesRead(
@@ -367,20 +381,55 @@ void main() {
           isTrue,
         );
         await tester.pump(const Duration(milliseconds: 900));
-        final progress = tester.widget<AveluneMobileSplash>(splash).progress;
+        final cinematic = tester.widget<AveluneSplash>(splash);
+        expect(cinematic.palette, palette);
+        final progress = cinematic.progress;
         final beforeRotation = progress.value;
         expect(beforeRotation, inExclusiveRange(0, 1));
-        await tester.binding.setSurfaceSize(const Size(390, 844));
+        await tester.binding.setSurfaceSize(portrait);
         await tester.pump();
         expect(tester.state(splash), same(state));
         expect(progress.value, closeTo(beforeRotation, .002));
         expect(audio.playCalls, 1);
         await tester.pump(const Duration(milliseconds: 3500));
         expect(progress.value, 1);
+
+        final restingPortrait = await _splashPixels(tester, splash);
+        await tester.pump(const Duration(milliseconds: 900));
+        expect(await _splashPixels(tester, splash), isNot(restingPortrait));
+        await tester.binding.setSurfaceSize(landscape);
+        await tester.pump();
+        expect(tester.state(splash), same(state));
+        final restingLandscape = await _splashPixels(tester, splash);
+        await tester.pump(const Duration(milliseconds: 900));
+        expect(await _splashPixels(tester, splash), isNot(restingLandscape));
+        expect(progress.value, 1);
+        expect(audio.playCalls, 1);
+
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        await tester.pump();
+        final paused = await _splashPixels(tester, splash);
+        await tester.pump(const Duration(seconds: 2));
+        expect(await _splashPixels(tester, splash), paused);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 900));
+        expect(await _splashPixels(tester, splash), isNot(paused));
+        expect(audio.playCalls, 1);
+
+        tester.platformDispatcher.accessibilityFeaturesTestValue =
+            const FakeAccessibilityFeatures(disableAnimations: true);
+        addTearDown(
+          tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+        );
+        await tester.pump();
+        final reducedMotion = await _splashPixels(tester, splash);
+        await tester.pump(const Duration(seconds: 2));
+        expect(await _splashPixels(tester, splash), reducedMotion);
+
         launch.completeError(StateError('bootstrap test completed'));
         await tester.pump();
         await tester.pumpWidget(const SizedBox());
-        await tester.pump(const Duration(milliseconds: 2600));
       },
       variant: TargetPlatformVariant({platform}),
     );
@@ -461,7 +510,22 @@ void main() {
   });
 }
 
-final class _MobileSplashAssets extends CachingAssetBundle {
+Future<int> _splashPixels(WidgetTester tester, Finder splash) async {
+  final boundary = tester.renderObject<RenderRepaintBoundary>(splash);
+  return (await tester.runAsync(() async {
+    final image = await boundary.toImage(pixelRatio: .5);
+    try {
+      final bytes = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      return Object.hashAll(bytes.buffer.asUint32List());
+    } finally {
+      image.dispose();
+    }
+  }))!;
+}
+
+final class _SplashAssets extends CachingAssetBundle {
   @override
   Future<ByteData> load(String key) =>
       rootBundle.load(key.replaceFirst('packages/pokemap_hub/', ''));

@@ -16,6 +16,7 @@ class PlayerRuntimeSplashSurface extends StatelessWidget {
     required this.animationProgress,
     this.exitProgress = 0,
     this.ambientProgress,
+    this.loadingSweep,
     this.loadingLabel,
     this.logo,
     this.wordmark,
@@ -32,6 +33,7 @@ class PlayerRuntimeSplashSurface extends StatelessWidget {
   final double animationProgress;
   final double exitProgress;
   final double? ambientProgress;
+  final Animation<double>? loadingSweep;
   final String? loadingLabel;
   final ImageProvider? logo;
   final ImageProvider? wordmark;
@@ -56,6 +58,7 @@ class PlayerRuntimeSplashSurface extends StatelessWidget {
         progress: timelineProgress,
         exitProgress: progress >= 1 ? exitProgress : 0,
         ambientProgress: ambientProgress ?? animationProgress,
+        loadingSweep: loadingSweep,
         loadingProgress: progress,
         loadingLabel: loadingLabel,
         logo: logo,
@@ -77,6 +80,7 @@ class PlayerSplashTimeline extends StatelessWidget {
     required this.loadingProgress,
     required this.reducedMotion,
     this.loadingLabel,
+    this.loadingSweep,
     this.logo,
     this.wordmark,
     this.cinematic,
@@ -89,6 +93,7 @@ class PlayerSplashTimeline extends StatelessWidget {
   final double progress;
   final double exitProgress;
   final double ambientProgress;
+  final Animation<double>? loadingSweep;
   final double loadingProgress;
   final bool reducedMotion;
   final String? loadingLabel;
@@ -119,7 +124,9 @@ class PlayerSplashTimeline extends StatelessWidget {
         reducedMotion ? 1.0 : _smooth(eclipseTime, 2.16, 2.55);
     return Semantics(
       label: '${branding.displayName}. ${branding.signature}',
-      value: '${(loadingProgress * 100).round()} %',
+      value: loadingSweep == null
+          ? '${(loadingProgress * 100).round()} %'
+          : loadingLabel,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final viewport = constraints.biggest;
@@ -261,8 +268,9 @@ class PlayerSplashTimeline extends StatelessWidget {
                     child: Center(
                       child: _LoadingZone(
                         width: math.min(viewport.width * .72, 380.0),
-                        progress: loadingProgress,
-                        ambientProgress: ambientProgress,
+                        progress: loadingSweep == null ? loadingProgress : 0,
+                        ambientProgress: reducedMotion ? .5 : ambientProgress,
+                        sweep: reducedMotion ? null : loadingSweep,
                         label: loadingLabel ?? 'CHARGEMENT',
                       ),
                     ),
@@ -440,12 +448,14 @@ class _LoadingZone extends StatelessWidget {
     required this.progress,
     required this.ambientProgress,
     required this.label,
+    this.sweep,
   });
 
   final double width;
   final double progress;
   final double ambientProgress;
   final String label;
+  final Animation<double>? sweep;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -492,9 +502,11 @@ class _LoadingZone extends StatelessWidget {
             SizedBox(
               height: 1,
               width: width,
-              child: CustomPaint(
-                key: const ValueKey<String>('startup-splash-progress'),
-                painter: _ProgressPainter(progress, ambientProgress),
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  key: const ValueKey<String>('startup-splash-progress'),
+                  painter: _ProgressPainter(progress, ambientProgress, sweep),
+                ),
               ),
             ),
           ],
@@ -503,22 +515,22 @@ class _LoadingZone extends StatelessWidget {
 }
 
 class _ProgressPainter extends CustomPainter {
-  const _ProgressPainter(this.progress, this.ambientProgress);
+  _ProgressPainter(this.progress, this.ambientProgress, this.sweep)
+      : super(repaint: sweep);
 
   final double progress;
   final double ambientProgress;
+  final Animation<double>? sweep;
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = const Color(0xFF33313B),
-    );
+    final bounds = Offset.zero & size;
+    canvas.drawRect(bounds, Paint()..color = const Color(0xFF33313B));
     final width = progress > 0 ? size.width * progress : size.width * .18;
-    final start =
-        progress > 0 ? 0.0 : (size.width + width) * ambientProgress - width;
+    final phase = sweep?.value ?? ambientProgress;
+    final start = progress > 0 ? 0.0 : (size.width + width) * phase - width;
     canvas.drawRect(
-      Rect.fromLTWH(start, 0, width, size.height),
+      Rect.fromLTWH(start, 0, width, size.height).intersect(bounds),
       Paint()..color = const Color(0xFFB9B3C6),
     );
   }
@@ -526,7 +538,7 @@ class _ProgressPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ProgressPainter oldDelegate) =>
       oldDelegate.progress != progress ||
-      oldDelegate.ambientProgress != ambientProgress;
+      oldDelegate.ambientProgress != ambientProgress || oldDelegate.sweep != sweep;
 }
 
 class _BackdropPainter extends CustomPainter {

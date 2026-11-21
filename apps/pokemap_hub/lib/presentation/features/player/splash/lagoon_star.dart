@@ -1,4 +1,4 @@
-part of 'avelune_mobile_splash_painter.dart';
+part of 'avelune_splash_painter.dart';
 
 final _star = Path()
   ..moveTo(0, -74)
@@ -8,25 +8,34 @@ final _star = Path()
   ..cubicTo(-20, -11, -6, -31, 0, -74)
   ..close();
 
-void _guestStar(Canvas canvas, double t, AveluneMobileSplashPalette brand) {
+void _guestStar(
+  Canvas canvas,
+  double t,
+  double ambientPhase,
+  AveluneSplashPalette brand,
+) {
   if (t < _SplashCue.star) return;
   final at = _starAt(t);
   final entry = Curves.easeOut.transform(_range(t, _SplashCue.star, 1.62));
   final squeeze = _pulse(t, _SplashCue.splash - .018, .14);
   final landing = _pulse(t, _SplashCue.landing, .36);
   final onOrbit = 1 - _range(t, _SplashCue.landing, 3.14);
-  for (var i = 9; i > 0; i--) {
-    final behind = t - .018 * i;
-    if (behind < _SplashCue.star) continue;
-    final opacity = (1 - i / 10) * .31 * entry * onOrbit;
-    final trail = _starAt(behind);
-    if ((trail - at).distance < 12) continue;
-    canvas.drawCircle(
-      trail,
-      1.8 + (9 - i) * .50,
-      Paint()..color = brand.star.withValues(alpha: opacity),
-    );
+  if (onOrbit > 0) {
+    final paint = Paint();
+    for (var i = 9; i > 0; i--) {
+      final behind = t - .018 * i;
+      if (behind < _SplashCue.star) continue;
+      final opacity = (1 - i / 10) * .31 * entry * onOrbit;
+      final trail = _starAt(behind);
+      if ((trail - at).distance < 12) continue;
+      canvas.drawCircle(
+        trail,
+        1.8 + (9 - i) * .50,
+        paint..color = brand.star.withValues(alpha: opacity),
+      );
+    }
   }
+  final shimmer = math.sin(ambientPhase * 2);
   final halo = Rect.fromCircle(center: at, radius: 96 + 35 * landing);
   canvas.drawCircle(
     at,
@@ -34,7 +43,9 @@ void _guestStar(Canvas canvas, double t, AveluneMobileSplashPalette brand) {
     Paint()
       ..shader = RadialGradient(
         colors: [
-          brand.star.withValues(alpha: entry * (.22 + .17 * landing)),
+          brand.star.withValues(
+            alpha: entry * (.22 + .17 * landing + .035 * shimmer),
+          ),
           brand.star.withValues(alpha: 0),
         ],
       ).createShader(halo),
@@ -46,7 +57,7 @@ void _guestStar(Canvas canvas, double t, AveluneMobileSplashPalette brand) {
       .51 * (1 - _range(t, _SplashCue.star, _SplashCue.splash)) +
       .22 * wobble * math.sin((t - _SplashCue.wobble) * 49) +
       roll;
-  final size = _scale * entry;
+  final size = _scale * entry * (1 + .025 * shimmer);
   canvas.save();
   canvas.translate(at.dx, at.dy);
   canvas.rotate(tilt);
@@ -66,18 +77,21 @@ void _guestStar(Canvas canvas, double t, AveluneMobileSplashPalette brand) {
   );
   canvas.restore();
   final glint = _pulse(t, _SplashCue.landing, .62);
-  for (var i = 0; i < 5; i++) {
-    final angle = i * 1.2566 + .19;
-    final radius = 41 + _range(t, _SplashCue.landing, 3.38) * (27 + i * 4);
-    final direction = Offset(math.cos(angle), math.sin(angle));
-    canvas.drawLine(
-      at + direction * radius,
-      at + direction * (radius + 11 * glint),
-      Paint()
-        ..color = brand.star.withValues(alpha: .72 * glint)
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = 2.7,
-    );
+  if (glint > 0) {
+    final paint = Paint()
+      ..color = brand.star.withValues(alpha: .72 * glint)
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 2.7;
+    for (var i = 0; i < 5; i++) {
+      final angle = i * 1.2566 + .19;
+      final radius = 41 + _range(t, _SplashCue.landing, 3.38) * (27 + i * 4);
+      final direction = Offset(math.cos(angle), math.sin(angle));
+      canvas.drawLine(
+        at + direction * radius,
+        at + direction * (radius + 11 * glint),
+        paint,
+      );
+    }
   }
   if (wobble > 0) {
     final flick = Paint()

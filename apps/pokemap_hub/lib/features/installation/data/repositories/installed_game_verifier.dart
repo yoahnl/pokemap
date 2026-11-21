@@ -183,7 +183,7 @@ typedef InstalledGameFileIntegrityCheck = Future<InstalledGameVerificationCode?>
 
 final class InstalledGameVerifier {
   const InstalledGameVerifier({
-    this.maxConcurrentFileChecks = 8,
+    this.maxConcurrentFileChecks = 4,
     InstalledGameFileIntegrityCheck? fileIntegrityCheck,
   })  : fileIntegrityCheck =
             fileIntegrityCheck ?? _checkInstalledGameFileIntegrity,

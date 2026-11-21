@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/core/config/avelune_runtime_splash_branding.dart';
 import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
-import 'package:pokemap_hub/presentation/features/player/splash/avelune_mobile_splash_palette.dart';
+import 'package:pokemap_hub/presentation/features/player/splash/avelune_splash_palette.dart';
 
 import 'avelune_library_bridge.dart';
 import 'avelune_frame_rate_bridge.dart';
@@ -155,7 +155,7 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp>
                     ),
                 splashWordmark:
                     widget.splashWordmark ??
-                    AveluneMobileSplashPalette.forPlatform(
+                    AveluneSplashPalette.forPlatform(
                       defaultTargetPlatform,
                     )?.wordmark ??
                     const AssetImage(

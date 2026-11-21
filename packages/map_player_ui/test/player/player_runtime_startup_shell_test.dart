@@ -790,6 +790,37 @@ void main() {
       find.byType(PlayerRuntimeSplashSurface),
     );
     expect(surface.progress, .35);
+    expect(find.text('35%'), findsOneWidget);
+  });
+
+  testWidgets('unmeasured startup work shows the active stage at 99%', (
+    tester,
+  ) async {
+    await _pumpMeasuredStartupWidget(
+      tester,
+      _app(
+        PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: RuntimeStartupSnapshot(
+            revision: 1,
+            phase: RuntimeStartupPhase.splash,
+            progress: .99,
+            currentStage: RuntimeStartupPreparationStage.initialMap,
+            isPreparationReady: false,
+            isMinimumElapsed: true,
+            isLifecycleActive: true,
+          ),
+          titlePresentation: presentation,
+          onStartupCommand: (_) {},
+          onPlayerCommand: _acceptPlayerCommand,
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, _) {},
+        ),
+      ),
+    );
+
+    expect(find.text('99%'), findsNothing);
+    expect(find.text('CARTES ET RESSOURCES DU MONDE'), findsOneWidget);
   });
 
   testWidgets('player input cannot shorten the runtime loading splash',
@@ -903,14 +934,14 @@ void main() {
       find.byType(PlayerRuntimeSplashSurface),
     );
     expect(surface.animationProgress, closeTo(kPlayerSplashHoldProgress, .001));
-    final ambientAtHold = surface.ambientProgress!;
+    final sweepAtHold = surface.loadingSweep!.value;
 
     await tester.pump(const Duration(milliseconds: 500));
     surface = tester.widget<PlayerRuntimeSplashSurface>(
       find.byType(PlayerRuntimeSplashSurface),
     );
     expect(surface.animationProgress, closeTo(kPlayerSplashHoldProgress, .001));
-    expect(surface.ambientProgress, ambientAtHold);
+    expect(surface.loadingSweep!.value, isNot(sweepAtHold));
 
     await _pumpMeasuredStartupWidget(tester,
       _app(

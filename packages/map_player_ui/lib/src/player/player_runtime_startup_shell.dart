@@ -288,6 +288,15 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       widget.snapshot.isLifecycleActive &&
       widget.snapshot.phase != RuntimeStartupPhase.lifecyclePaused;
 
+  bool get _indeterminateSplash =>
+      widget.splashLoadingProgress == null && !widget.snapshot.isPreparationReady;
+
+  double get _splashLoadingProgress => widget.splashLoadingProgress ??
+      (widget.snapshot.isPreparationReady ? 1 : widget.snapshot.progress);
+
+  bool _systemReducedMotion = false;
+  bool get _splashMotionReduced => widget.reducedMotion || _systemReducedMotion;
+
   @override
   void initState() {
     super.initState();
@@ -374,6 +383,11 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final systemReducedMotion = MediaQuery.disableAnimationsOf(context);
+    if (_systemReducedMotion != systemReducedMotion) {
+      _systemReducedMotion = systemReducedMotion;
+      _syncSplashAnimations();
+    }
     final size = MediaQuery.sizeOf(context);
     final orientation = size.height > size.width
         ? RuntimePresentationOrientation.portrait
@@ -449,17 +463,18 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   Widget _buildSplash() => AnimatedBuilder(
     animation: Listenable.merge(<Listenable>[
       _splashAnimation,
-      _splashAmbientAnimation,
+      if (!_indeterminateSplash) _splashAmbientAnimation,
       _splashFinishAnimation,
     ]),
     child: widget.splashCinematic,
     builder: (context, cinematic) => PlayerRuntimeSplashSurface(
       branding: widget.branding,
-      progress: widget.splashLoadingProgress ?? widget.snapshot.progress,
+      progress: _splashLoadingProgress,
       animationProgress:
           widget.splashAnimationProgress ?? _splashAnimation.value,
       exitProgress: _splashFinishAnimation.value,
       ambientProgress: _splashAmbientAnimation.value,
+      loadingSweep: _indeterminateSplash ? _splashAmbientAnimation : null,
       loadingLabel: _runtimeStartupLoadingLabel(
         widget.snapshot,
         context.playerL10n,
@@ -467,12 +482,12 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       logo: widget.splashLogo,
       wordmark: widget.splashWordmark,
       cinematic: cinematic,
-      reducedMotion: widget.reducedMotion,
+      reducedMotion: _splashMotionReduced,
     ),
   );
 
   void _syncSplashAnimations() {
-    if (widget.reducedMotion) {
+    if (_splashMotionReduced) {
       _splashAnimation.stop(canceled: false);
       _splashAnimation.value = kPlayerSplashHoldProgress;
       _splashAmbientAnimation.stop(canceled: false);
@@ -498,17 +513,18 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       _splashFinishAnimation.stop(canceled: false);
       return;
     }
-    final loadingProgress =
-        widget.splashLoadingProgress ?? widget.snapshot.progress;
-    if (loadingProgress <= 0) {
+    final loadingProgress = _splashLoadingProgress;
+    if (_indeterminateSplash || loadingProgress <= 0) {
       if (!_splashAmbientAnimation.isAnimating) {
         _splashAmbientAnimation.repeat();
       }
     } else {
       _splashAmbientAnimation.stop(canceled: false);
     }
-    final target = loadingProgress >= 1 ? 1.0 : kPlayerSplashHoldProgress;
-    if (loadingProgress < 1) {
+    final target = !_indeterminateSplash && loadingProgress >= 1
+        ? 1.0
+        : kPlayerSplashHoldProgress;
+    if (target < 1) {
       _splashFinishAnimation.stop(canceled: false);
       _splashFinishAnimation.value = 0;
     }
@@ -976,7 +992,7 @@ String _runtimeStartupLoadingLabel(
   RuntimeStartupSnapshot snapshot,
   PokeMapPlayerLocalizations strings,
 ) {
-  if (snapshot.progress >= 1) return strings.startupReady;
+  if (snapshot.isPreparationReady) return strings.startupReady;
   return switch (snapshot.currentStage) {
     RuntimeStartupPreparationStage.manifestAndIdentity =>
       strings.startupPreparingJourney,
