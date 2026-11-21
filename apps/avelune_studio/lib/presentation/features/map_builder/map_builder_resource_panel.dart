@@ -260,7 +260,7 @@ class _MapBuilderResourcePanelState extends State<MapBuilderResourcePanel> {
   ) {
     final visuals = widget.visuals;
     if (widget.loading || project == null || visuals == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: StudioProgressIndicator());
     }
     if (items.isEmpty) {
       return Padding(

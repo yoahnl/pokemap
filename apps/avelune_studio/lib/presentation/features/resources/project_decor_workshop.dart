@@ -50,9 +50,7 @@ class _ProjectDecorWorkshopState extends State<ProjectDecorWorkshop> {
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(
-              child: CircularProgressIndicator(
-                semanticsLabel: 'Chargement du décor',
-              ),
+              child: StudioProgressIndicator(label: 'Chargement du décor'),
             );
           }
           if (snapshot.hasError) {

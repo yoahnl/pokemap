@@ -39,9 +39,6 @@ extension _MapBuilderProjectSections on _MapBuilderPageState {
       canTest: canTest,
       onOpen: access.open,
       onResume: resume,
-      onExport: _editable && project != null
-          ? () => unawaited(_exportGame())
-          : null,
       onClose: () => unawaited(widget.onHome()),
       onCreateMap: canCreateMap ? createMap : null,
       destinations: {
@@ -53,6 +50,7 @@ extension _MapBuilderProjectSections on _MapBuilderPageState {
         },
         'story': () => _setSection(StudioRailSection.story),
         'pokemon': () => _setSection(StudioRailSection.pokemon),
+        'settings': () => _setSection(StudioRailSection.settings),
         if (canTest) 'test': () => unawaited(_testMap()),
         if (canCreateMap) 'createMap': createMap,
       },

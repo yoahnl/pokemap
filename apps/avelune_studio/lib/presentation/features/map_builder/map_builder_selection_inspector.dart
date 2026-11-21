@@ -57,9 +57,10 @@ class MapBuilderSelectionInspector extends StatelessWidget {
         SpatialModelProperties() => _spatial(context, l10n, properties),
         GridElementProperties() => _grid(context, l10n, properties),
         GroupSelectionProperties(:final count) => [
-          _Heading(
+          StudioPanelHeading.inspector(
+            eyebrow: l10n.selectionEyebrow,
             title: l10n.selectionCount(count),
-            subtitle: l10n.selectionGroupHint,
+            description: l10n.selectionGroupHint,
             titleKey: const ValueKey('selection-count'),
           ),
         ],
@@ -95,7 +96,11 @@ class MapBuilderSelectionInspector extends StatelessWidget {
     AppLocalizations l10n,
     SpatialModelProperties model,
   ) => [
-    _Heading(title: model.name, subtitle: l10n.selectionKind3d),
+    StudioPanelHeading.inspector(
+      eyebrow: l10n.selectionEyebrow,
+      title: model.name,
+      description: l10n.selectionKind3d,
+    ),
     _field(
       'selection-x',
       l10n.selectionX,
@@ -141,9 +146,10 @@ class MapBuilderSelectionInspector extends StatelessWidget {
     AppLocalizations l10n,
     GridElementProperties element,
   ) => [
-    _Heading(
+    StudioPanelHeading.inspector(
+      eyebrow: l10n.selectionEyebrow,
       title: element.name,
-      subtitle: switch (element.target.family) {
+      description: switch (element.target.family) {
         MapSelectionFamily.decor => l10n.selectionKindDecor,
         MapSelectionFamily.character => l10n.selectionKindCharacter,
         MapSelectionFamily.marker => l10n.selectionKindMarker,
@@ -165,44 +171,4 @@ class MapBuilderSelectionInspector extends StatelessWidget {
       (v) => onGrid(element, element.position.copyWith(y: v.round())),
     ),
   ];
-}
-
-class _Heading extends StatelessWidget {
-  const _Heading({required this.title, required this.subtitle, this.titleKey});
-
-  final String title;
-  final String subtitle;
-  final Key? titleKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          context.l10n.selectionEyebrow,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-            letterSpacing: 1,
-          ),
-        ),
-        const SizedBox(height: StudioSpacing.m),
-        Text(
-          title,
-          key: titleKey,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
 }

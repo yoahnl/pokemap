@@ -41,7 +41,7 @@ class MapBuilderEffectSources extends StatelessWidget {
       key: const ValueKey('map-ambiance-effect-sources-panel'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Caption(switch (effect) {
+        StudioCaption(switch (effect) {
           MapEffect.halos => l10n.effectHaloSources(settings.halos.length),
           MapEffect.fireflies => l10n.effectFireflySources(
             settings.fireflyZones.length,
@@ -157,40 +157,3 @@ IconData mapBuilderEffectIcon(MapEffect effect) => switch (effect) {
   MapEffect.water => Icons.waves,
   MapEffect.windows => Icons.window_outlined,
 };
-
-class _Caption extends StatelessWidget {
-  const _Caption(this.text, {super.key});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-    );
-  }
-}
-
-class _Eyebrow extends StatelessWidget {
-  const _Eyebrow(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: theme.textTheme.labelSmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-        letterSpacing: 1,
-      ),
-    );
-  }
-}

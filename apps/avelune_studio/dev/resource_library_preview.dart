@@ -1,6 +1,6 @@
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/presentation/features/resources/library/resource_library_view.dart';
-import 'package:avelune_studio/presentation/shared/widgets/avelune_wordmark.dart';
+import 'package:avelune_studio/presentation/shared/widgets/avelune_studio_brand.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -39,7 +39,7 @@ class _PreviewShell extends StatelessWidget {
                 height: 62,
                 child: Row(
                   children: [
-                    AveluneWordmark(height: compact ? 25 : 32),
+                    AveluneStudioBrand(compact: compact),
                     const SizedBox(width: StudioSpacing.xl),
                     if (!compact) ...[
                       Text('Vallée d’Ambre', style: theme.textTheme.bodyMedium),

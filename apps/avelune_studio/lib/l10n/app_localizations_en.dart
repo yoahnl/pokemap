@@ -182,6 +182,122 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add a character, object or zone in Interactions to attach a trigger to it.';
 
   @override
+  String get studioSettings => 'Studio settings';
+
+  @override
+  String get studioSettingsDevice => 'Application preferences on this device.';
+
+  @override
+  String get studioSettingsBack => 'Back';
+
+  @override
+  String get studioSettingsOverview => 'Overview';
+
+  @override
+  String get studioSettingsGeneral => 'General';
+
+  @override
+  String get studioSettingsDisplay => 'Display';
+
+  @override
+  String get studioSettingsAi => 'AI and API keys';
+
+  @override
+  String get studioSettingsLanguage => 'Interface language';
+
+  @override
+  String get studioSettingsFps => 'Target frame rate';
+
+  @override
+  String get studioSettingsFpsHelp =>
+      'Applies to Studio, previews and playtests.';
+
+  @override
+  String get studioSettingsReadError => 'Could not load preferences.';
+
+  @override
+  String get studioSettingsWriteError => 'Could not save the preference.';
+
+  @override
+  String get studioSettingsSaving => 'Saving…';
+
+  @override
+  String get studioSettingsRetry => 'Try again';
+
+  @override
+  String get studioSettingsAiLocal =>
+      'API keys are stored in this device’s secure storage.';
+
+  @override
+  String get studioSettingsNoProvider => 'No providers configured.';
+
+  @override
+  String get studioSettingsAddProvider => 'Add a provider';
+
+  @override
+  String get studioSettingsProvider => 'Provider';
+
+  @override
+  String get studioSettingsApiKey => 'API key';
+
+  @override
+  String get studioSettingsKeySaved => 'API key saved';
+
+  @override
+  String get studioSettingsShowKey => 'Show key';
+
+  @override
+  String get studioSettingsHideKey => 'Hide key';
+
+  @override
+  String get studioSettingsChangeKey => 'Replace key';
+
+  @override
+  String get studioSettingsDeleteKey => 'Delete key';
+
+  @override
+  String get studioSettingsDeleteKeyConfirm =>
+      'Delete the API key from this device?';
+
+  @override
+  String get studioSettingsSaveKey => 'Save key';
+
+  @override
+  String get studioSettingsCancel => 'Cancel';
+
+  @override
+  String get studioSettingsInvalidKey => 'Enter a valid API key.';
+
+  @override
+  String get studioSettingsKeyReadError => 'Could not access secure storage.';
+
+  @override
+  String get studioSettingsKeyWriteError =>
+      'Could not update the key in secure storage.';
+
+  @override
+  String get studioSettingsTestConnection => 'Test connection';
+
+  @override
+  String get studioSettingsTestingConnection => 'Testing…';
+
+  @override
+  String get studioSettingsConnectionOk => 'Connection successful.';
+
+  @override
+  String get studioSettingsConnectionDenied =>
+      'The key was rejected or has insufficient access.';
+
+  @override
+  String get studioSettingsConnectionUnavailable =>
+      'Provider unavailable. Try again shortly.';
+
+  @override
+  String studioSettingsFramesPerSecond(int fps) {
+    return '$fps frames/s';
+  }
+
+  @override
   String get languageMenu => 'Language';
 
   @override

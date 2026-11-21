@@ -141,15 +141,10 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     }
     final animation = _findAnimation();
     if (animation == null || animation.frames.isEmpty) return null;
-    final strideTimeScale =
-        _strideBobActive && animation.frames.length <= 3 ? 2.4 : 1.0;
-    final frame = _pickFrame(
-      animation.frames,
-      timeScale: strideTimeScale);
     return _sourceResolver.resolveFrame(
       character: character,
       animation: animation,
-      frame: frame,
+      frame: _pickMotionFrame(animation),
       tileWidth: _tileWidth,
       tileHeight: _tileHeight,
       availableImageIds: _availableImageIds,
@@ -401,13 +396,10 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
       _renderFallback(canvas);
       return;
     }
-    final strideTimeScale =
-        _strideBobActive && anim.frames.length <= 3 ? 2.4 : 1.0;
-    final frame = _pickFrame(anim.frames, timeScale: strideTimeScale);
     final resolved = _sourceResolver.resolveFrame(
       character: character,
       animation: anim,
-      frame: frame,
+      frame: _pickMotionFrame(anim),
       tileWidth: _tileWidth,
       tileHeight: _tileHeight,
       availableImageIds: _availableImageIds,
@@ -523,6 +515,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
           case CharacterAnimationState.climb:
           case CharacterAnimationState.bicycleIdle:
           case CharacterAnimationState.bicycle:
+          case CharacterAnimationState.fishing:
             break;
           case CharacterAnimationState.idle:
             idleFacing = a;
@@ -555,6 +548,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
           case CharacterAnimationState.climb:
           case CharacterAnimationState.bicycleIdle:
           case CharacterAnimationState.bicycle:
+          case CharacterAnimationState.fishing:
             break;
           case CharacterAnimationState.idle:
             idleAny ??= a;
@@ -610,10 +604,19 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     return null;
   }
 
+  CharacterAnimationFrame _pickMotionFrame(CharacterAnimation animation) =>
+      _pickFrame(
+        animation.frames,
+        timeScale: _strideBobActive && animation.frames.length <= 3 ? 2.4 : 1.0,
+        loop: animation.state != CharacterAnimationState.fishing ||
+            animation.loop,
+      );
+
   CharacterAnimationFrame _pickFrame(
     List<CharacterAnimationFrame> frames, {
     double timeScale = 1.0,
     double? elapsedSeconds,
+    bool loop = true,
   }) {
     if (frames.length == 1) return frames.first;
     final elapsedMs =
@@ -623,7 +626,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
       total += f.durationMs;
     }
     if (total <= 0) return frames.first;
-    var t = elapsedMs % total;
+    var t = loop ? elapsedMs % total : elapsedMs.clamp(0, total - 1);
     for (final f in frames) {
       if (t < f.durationMs) return f;
       t -= f.durationMs;

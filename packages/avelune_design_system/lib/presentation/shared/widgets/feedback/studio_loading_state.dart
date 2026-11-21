@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../theme/studio_tokens.dart';
+import '../typography/studio_text.dart';
+import 'studio_progress_indicator.dart';
 
 class StudioLoadingState extends StatelessWidget {
   const StudioLoadingState({super.key, required this.label});
@@ -9,7 +11,6 @@ class StudioLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Center(
       child: Semantics(
         liveRegion: true,
@@ -20,18 +21,9 @@ class StudioLoadingState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox.square(
-                dimension: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+              const StudioProgressIndicator.compact(size: 24),
               const SizedBox(height: StudioSpacing.l),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
+              StudioCaption(label, textAlign: TextAlign.center),
             ],
           ),
         ),

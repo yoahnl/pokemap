@@ -3,6 +3,7 @@ export 'presentation/shared/widgets/feedback/studio_badge.dart';
 export 'presentation/shared/widgets/feedback/studio_empty_state.dart';
 export 'presentation/shared/widgets/feedback/studio_loading_state.dart';
 export 'presentation/shared/widgets/feedback/studio_notice.dart';
+export 'presentation/shared/widgets/feedback/studio_progress_indicator.dart';
 export 'presentation/shared/widgets/feedback/studio_state_badge.dart';
 export 'presentation/shared/widgets/inputs/studio_choice.dart';
 export 'presentation/shared/widgets/inputs/studio_draft_field.dart';
@@ -16,6 +17,7 @@ export 'presentation/shared/widgets/inputs/studio_toggle_row.dart';
 export 'presentation/shared/widgets/layout/studio_page_header.dart';
 export 'presentation/shared/widgets/layout/studio_navigation_entry.dart';
 export 'presentation/shared/widgets/layout/studio_panel.dart';
+export 'presentation/shared/widgets/layout/studio_panel_heading.dart';
 export 'presentation/shared/widgets/layout/studio_section.dart';
 export 'presentation/shared/widgets/layout/studio_tab_bar.dart';
 export 'presentation/shared/widgets/layout/studio_sidebar.dart';
@@ -24,6 +26,7 @@ export 'presentation/shared/widgets/layout/studio_asset_preview.dart';
 export 'presentation/shared/widgets/dialogs/studio_review_dialog.dart';
 export 'presentation/shared/widgets/dialogs/studio_save_choice_dialog.dart';
 export 'presentation/shared/widgets/overlay/studio_context_menu.dart';
+export 'presentation/shared/widgets/typography/studio_text.dart';
 export 'presentation/theme/studio_theme.dart';
 export 'presentation/theme/studio_tokens.dart'
     show

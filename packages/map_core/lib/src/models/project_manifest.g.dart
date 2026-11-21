@@ -1086,6 +1086,7 @@ const _$CharacterAnimationStateEnumMap = {
   CharacterAnimationState.rockSmash: 'rock_smash',
   CharacterAnimationState.strength: 'strength',
   CharacterAnimationState.push: 'push',
+  CharacterAnimationState.fishing: 'fishing',
 };
 
 _ProjectCharacterEntry _$ProjectCharacterEntryFromJson(

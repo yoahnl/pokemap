@@ -6,6 +6,34 @@ import 'package:test/test.dart';
 
 void main() {
   group('Character Studio animation clip actions', () {
+    test('authors a directional fishing pose through the existing clip action', () {
+      final draft = const CharacterStudioAnimationClipActions().build(
+        _context(
+          snapshot: _snapshot(),
+          actionId: 'characterStudio.animationClip.upsert',
+          parameters: {
+            'characterId': 'elia',
+            'kind': 'system',
+            'state': 'fishing',
+            'direction': 'east',
+            'sourceAssetId': 'surf-source',
+            'frames': [
+              {
+                'source': {'x': 0, 'y': 0, 'width': 32, 'height': 32},
+                'durationMs': 100,
+              },
+            ],
+          },
+        ),
+      );
+      final clip = _character(draft).animations.singleWhere(
+            (value) => value.state == CharacterAnimationState.fishing,
+          );
+      expect(clip.state, CharacterAnimationState.fishing);
+      expect(clip.direction, EntityFacing.east);
+      expect(clip.toJson()['state'], 'fishing');
+    });
+
     for (final kind in ['system', 'custom']) {
       final slot = <String, Object?>{
         'characterId': 'elia',

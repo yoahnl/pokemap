@@ -38,7 +38,7 @@ class ProjectLoadingPhaseRow extends StatelessWidget {
             ),
             ProjectOpeningStepStatus.running => const Padding(
               padding: EdgeInsets.all(StudioSpacing.xxs),
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: StudioProgressIndicator.compact(size: 14),
             ),
             ProjectOpeningStepStatus.done => Icon(
               Icons.check_circle,

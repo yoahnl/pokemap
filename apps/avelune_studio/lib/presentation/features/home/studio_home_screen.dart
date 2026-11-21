@@ -28,7 +28,6 @@ class StudioHomeScreen extends StatefulWidget {
     this.canTest = false,
     required this.onOpen,
     this.onResume,
-    this.onExport,
     this.onClose,
     this.onCreate,
     this.onCreateMap,
@@ -47,7 +46,7 @@ class StudioHomeScreen extends StatefulWidget {
   final String? projectName, projectPath;
   final bool busy, canTest;
   final VoidCallback onOpen;
-  final VoidCallback? onResume, onExport, onClose, onCreate, onCreateMap;
+  final VoidCallback? onResume, onClose, onCreate, onCreateMap;
   final Map<String, VoidCallback> destinations;
   final ValueChanged<String> onMap;
   final List<RecentStudioProject> recentProjects;
@@ -186,7 +185,6 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
         busy: widget.busy,
         onOpen: widget.onOpen,
         onResume: widget.onResume,
-        onExport: widget.onExport,
         projectName: widget.projectName,
         compact: bounds.maxHeight < 850 || narrow,
         smallWindow: bounds.maxWidth < 600,

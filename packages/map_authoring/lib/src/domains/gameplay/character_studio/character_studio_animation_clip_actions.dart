@@ -421,6 +421,7 @@ CharacterAnimationState _systemState(String value) {
     'rock_smash' => CharacterAnimationState.rockSmash,
     'strength' => CharacterAnimationState.strength,
     'push' => CharacterAnimationState.push,
+    'fishing' => CharacterAnimationState.fishing,
     _ => throw CharacterStudioActionException(
         'character_studio.animation.state_invalid',
         'state must be a supported character animation state.',

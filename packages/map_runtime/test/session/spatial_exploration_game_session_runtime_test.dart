@@ -19,6 +19,7 @@ import '../support/spatial_smart_tile_fixture.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import '../support/scene_catalog_pokemon_gift_fixture.dart';
 import '../playable_map_game_fishing_test.dart' show fishingTool;
+import '../support/fishing_animation_fixture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -439,6 +440,7 @@ void main() {
     bool battleData = false,
     FlameCinematicAudioDriver? musicDriver,
     GameSessionCheckpointCommitter? commitCheckpoint,
+    EntityFacing? fishingAnimationFacing,
   }) async {
     var state = descriptor().initialGameState!;
     if (battleData) {
@@ -484,6 +486,16 @@ void main() {
               ),
             ],
           ),
+        ],
+        characters: [
+          for (final character in bundle.manifest.characters)
+            if (character.id == 'hero' && fishingAnimationFacing != null)
+              character.copyWith(animations: [
+                ...character.animations,
+                authoredFishingClip(fishingAnimationFacing, 'hero-sheet'),
+              ])
+            else
+              character,
         ],
       ),
       map: bundle.map.copyWith(
@@ -650,6 +662,21 @@ void main() {
       expect(runtime.battle!.isActive, isFalse);
       expect(runtime.dialoguePresentationListenable.value, isNull);
       expect(await runtime.captureCheckpoint(), isNotNull);
+    });
+  }
+
+  for (final direction in [EntityFacing.north, EntityFacing.south]) {
+    test('spatial authored fishing pose applies only in its direction: $direction', () async {
+      await configureFishing(fishingAnimationFacing: direction);
+      expect(runtime.session!.frames(0)['hero']!.frame.left, 0);
+      expect((await useFishingRod()).status, RuntimePlayerPauseCommandStatus.accepted);
+      await runtime.resume();
+      expect(runtime.session!.frames(.1)['hero']!.frame.left,
+          direction == EntityFacing.north ? 8 : 0);
+      expect(runtime.session!.frames(.4)['hero']!.frame.left,
+          direction == EntityFacing.north ? 16 : 0);
+      runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+      expect(runtime.session!.frames(0)['hero']!.frame.left, 0);
     });
   }
 

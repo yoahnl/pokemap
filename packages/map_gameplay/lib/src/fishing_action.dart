@@ -233,11 +233,20 @@ enum FishingAttemptPhase {
 }
 
 final class FishingAttemptFlow {
+  static const _castSeconds = .35;
+  static const _waitSeconds = 1.0;
+
   FishingAttemptPhase _phase = FishingAttemptPhase.casting;
   FishingAttemptResult? _result;
   FishingAttemptPhase get phase => _phase;
   FishingAttemptResult? get result => _result;
   double _elapsed = 0;
+
+  double get elapsedSeconds => _elapsed + switch (_phase) {
+    FishingAttemptPhase.casting || FishingAttemptPhase.cancelled => 0,
+    FishingAttemptPhase.waiting => _castSeconds,
+    _ => _castSeconds + _waitSeconds,
+  };
 
   void cancel() {
     _phase = FishingAttemptPhase.cancelled;
@@ -249,12 +258,12 @@ final class FishingAttemptFlow {
     _elapsed += seconds;
     switch (_phase) {
       case FishingAttemptPhase.casting:
-        if (_elapsed >= .35) {
+        if (_elapsed >= _castSeconds) {
           _phase = FishingAttemptPhase.waiting;
           _elapsed = 0;
         }
       case FishingAttemptPhase.waiting:
-        if (_elapsed >= 1) {
+        if (_elapsed >= _waitSeconds) {
           _result = resolve();
           _phase = result?.encounterCheck?.triggered == true
               ? FishingAttemptPhase.bite

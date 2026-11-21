@@ -100,7 +100,7 @@ class SceneGraphInspector extends StatelessWidget {
             )
           else if (!_plainKinds.contains(node.kind)) ...[
             Text(l10n.storyStepAdvanced),
-            SceneStepCaption(l10n.storyStepAdvancedHint),
+            StudioCaption(l10n.storyStepAdvancedHint),
           ],
           for (final problem in checks.ofNode(node.id))
             _Problem(problem: problem, onTap: null),
@@ -118,8 +118,7 @@ class SceneGraphInspector extends StatelessWidget {
       key: const ValueKey('scene-graph-checks'),
       title: l10n.sceneGraphChecksTitle,
       children: [
-        if (checks.problems.isEmpty)
-          SceneStepCaption(l10n.sceneGraphChecksClear),
+        if (checks.problems.isEmpty) StudioCaption(l10n.sceneGraphChecksClear),
         for (final (index, problem) in checks.problems.indexed)
           _Problem(
             key: ValueKey('scene-graph-problem-$index'),

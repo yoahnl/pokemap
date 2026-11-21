@@ -2,9 +2,8 @@ import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import 'package:avelune_studio/presentation/shared/widgets/avelune_wordmark.dart';
+import 'package:avelune_studio/presentation/shared/widgets/avelune_studio_brand.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
-import 'package:avelune_studio/presentation/shared/localization/studio_language_menu.dart';
 
 const studioTopBarHeight = 64.0;
 const studioTopBarWideWidth = 1600.0;
@@ -54,8 +53,8 @@ class StudioTopBar extends StatelessWidget {
       color: scheme.onSurfaceVariant,
     );
     final location = <Widget>[
-      const AveluneWordmark(height: 36),
-      const SizedBox(width: StudioSpacing.xxl * 2),
+      const AveluneStudioBrand(),
+      const SizedBox(width: StudioSpacing.xxl),
       Flexible(
         child: Text(projectName, style: muted, overflow: TextOverflow.ellipsis),
       ),
@@ -96,8 +95,6 @@ class StudioTopBar extends StatelessWidget {
         compact: compact,
       ),
       const SizedBox(width: StudioSpacing.l),
-      const StudioLanguageMenu(),
-      const SizedBox(width: StudioSpacing.s),
       _SaveStatus(saveState, compact: compact),
       const SizedBox(width: StudioSpacing.l),
       StudioButton(

@@ -40,21 +40,11 @@ class MapBuilderSpacePanel extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(StudioSpacing.l),
               children: [
-                Text(
-                  outline.eyebrow,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    letterSpacing: 1,
-                  ),
+                StudioPanelHeading(
+                  eyebrow: outline.eyebrow,
+                  title: outline.title,
+                  description: outline.subtitle,
                 ),
-                const SizedBox(height: StudioSpacing.xs),
-                Text(
-                  outline.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(outline.subtitle, style: muted),
                 const SizedBox(height: StudioSpacing.l),
                 for (final rubric in outline.rubrics)
                   if (liveRubrics.contains(rubric.id))
@@ -69,14 +59,7 @@ class MapBuilderSpacePanel extends StatelessWidget {
                     MapBuilderRubricTile(rubric: rubric),
                 if (outline.searchHint case final hint?) ...[
                   const SizedBox(height: StudioSpacing.l),
-                  TextField(
-                    enabled: false,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: hint,
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                    ),
-                  ),
+                  StudioInlineSearchField(hint: hint),
                 ],
                 if (outline.addLabel case final label?) ...[
                   const SizedBox(height: StudioSpacing.m),

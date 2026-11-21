@@ -1,3 +1,4 @@
+import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
 import '../../../features/rendering/contracts/map_workspace_visuals.dart';
@@ -47,12 +48,7 @@ class _ProjectLibraryPreviewState extends State<ProjectLibraryPreview> {
     future: _lease.result,
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(
-          child: SizedBox.square(
-            dimension: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        );
+        return const Center(child: StudioProgressIndicator.compact());
       }
       final result = snapshot.data;
       if (result == null) {

@@ -1,3 +1,5 @@
+import 'package:avelune_design_system/avelune_design_system.dart';
+
 import 'dart:async';
 import 'dart:collection';
 import 'dart:typed_data';
@@ -232,12 +234,7 @@ class _ModelResourcePreviewState extends State<ModelResourcePreview> {
           if (compact) {
             return const Center(child: Icon(Icons.hourglass_empty, size: 18));
           }
-          return const Center(
-            child: SizedBox.square(
-              dimension: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          );
+          return const Center(child: StudioProgressIndicator.compact());
         }
         final bounds = widget.model.inspection.bounds;
         return ModelPreview(

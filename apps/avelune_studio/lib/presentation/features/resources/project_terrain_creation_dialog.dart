@@ -220,8 +220,8 @@ class _ProjectTerrainCreationDialogState
         if (_loading) ...[
           const SizedBox(height: StudioSpacing.l),
           const Center(
-            child: CircularProgressIndicator(
-              semanticsLabel: 'Chargement du terrain de départ',
+            child: StudioProgressIndicator(
+              label: 'Chargement du terrain de départ',
             ),
           ),
         ],

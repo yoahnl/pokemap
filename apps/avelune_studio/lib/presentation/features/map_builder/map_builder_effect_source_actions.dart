@@ -27,12 +27,12 @@ extension _MapBuilderEffectSourceActions on MapBuilderEffectSources {
         : const <(String, SpatialAtmosphereMaterialTarget)>[];
     return [
       if (selected == null)
-        _Caption(
+        StudioCaption(
           l10n.effectPickModel,
           key: const ValueKey('map-ambiance-source-hint'),
         )
       else ...[
-        _Eyebrow(l10n.effectSelectedModel),
+        StudioEyebrow(l10n.effectSelectedModel, singleLine: true),
         const SizedBox(height: StudioSpacing.xs),
         Text(
           sources.modelOf(selected)?.name ?? l10n.effectUnknownModel,
@@ -55,7 +55,7 @@ extension _MapBuilderEffectSourceActions on MapBuilderEffectSources {
       ],
       if (ground.isNotEmpty) ...[
         const SizedBox(height: StudioSpacing.m),
-        _Eyebrow(l10n.effectGround),
+        StudioEyebrow(l10n.effectGround, singleLine: true),
         const SizedBox(height: StudioSpacing.xs),
         ..._materialChoices(
           context,
@@ -89,7 +89,7 @@ extension _MapBuilderEffectSourceActions on MapBuilderEffectSources {
         ),
         if (full) ...[
           const SizedBox(height: StudioSpacing.xs),
-          _Caption(l10n.effectHaloLimit(mapBuilderHaloLimit)),
+          StudioCaption(l10n.effectHaloLimit(mapBuilderHaloLimit)),
         ],
       ],
     );
@@ -103,7 +103,7 @@ extension _MapBuilderEffectSourceActions on MapBuilderEffectSources {
     String? empty,
   }) {
     if (targets.isEmpty) {
-      return [if (empty != null) _Caption(empty)];
+      return [if (empty != null) StudioCaption(empty)];
     }
     final current = effect == MapEffect.water
         ? settings.waterTargets

@@ -57,20 +57,3 @@ final class _Form {
 
   void edit(SceneNode node) => widget.onEdit(node);
 }
-
-class SceneStepCaption extends StatelessWidget {
-  const SceneStepCaption(this.text, {super.key});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-    );
-  }
-}

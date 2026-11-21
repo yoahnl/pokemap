@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'di/home_providers.dart';
 import 'di/rendering_providers.dart';
+import 'di/studio_settings_providers.dart';
 import 'di/studio_mcp_providers.dart';
 import '../platform/mcp/studio_mcp_process.dart';
 import '../platform/mcp/studio_mcp_service.dart';
@@ -29,6 +30,8 @@ import '../platform/files/local_rendering_preferences_store.dart';
 import '../platform/files/local_map_layout_preferences_store.dart';
 import '../features/map_workspace/coordination/map_layout_preferences.dart';
 import '../platform/files/studio_preferences.dart';
+import '../platform/settings/http_studio_ai_connection.dart';
+import '../platform/settings/secure_studio_ai_key_store.dart';
 import '../features/project_session/application/project_session_controller.dart';
 
 import 'package:avelune_studio/app/di/providers.dart';
@@ -58,6 +61,12 @@ class StudioBootstrap extends StatelessWidget {
   Widget build(BuildContext context) => ProviderScope(
     overrides: [
       studioMcpExternalMutations,
+      studioAiKeyStoreProvider.overrideWithValue(
+        const SecureStudioAiKeyStore(),
+      ),
+      studioAiConnectionProvider.overrideWithValue(
+        const HttpStudioAiConnection(),
+      ),
       studioMcpServiceProvider.overrideWith((ref) {
         final service =
             mcpService ??

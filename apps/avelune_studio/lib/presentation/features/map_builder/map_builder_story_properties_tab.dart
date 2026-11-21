@@ -25,7 +25,7 @@ class _Properties extends StatelessWidget {
         (element.target == MapStoryElementTarget.entity ||
             element.target == MapStoryElementTarget.trigger);
     if (element.kind == MapStoryElementKind.map) {
-      return _Caption(l10n.storyMapProperties);
+      return StudioCaption(l10n.storyMapProperties);
     }
     int? number(String text) => int.tryParse(text.trim());
     final trainers = [...?project?.trainers]
@@ -226,7 +226,7 @@ class _Properties extends StatelessWidget {
                 : null,
           ),
           const SizedBox(height: StudioSpacing.xs),
-          _Caption(l10n.storyTrainerHint),
+          StudioCaption(l10n.storyTrainerHint),
         ],
         if (sign != null)
           MapBuilderNameField(

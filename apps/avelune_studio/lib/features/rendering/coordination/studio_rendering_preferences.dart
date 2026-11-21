@@ -22,13 +22,13 @@ class StudioRenderingPreferences extends ChangeNotifier {
   bool _loaded = false;
   bool _hasSaved = false;
   bool _disposed = false;
-  String? _error;
+  StudioRenderingPreferencesFailure? _error;
 
   int get limit => AveluneFrameRate.limit;
   bool get loaded => _loaded;
   bool get saving => _pendingCount > 0;
   bool get hasSaved => _hasSaved;
-  String? get error => _error;
+  StudioRenderingPreferencesFailure? get error => _error;
 
   Future<void> load() => _loading ??= _load();
 
@@ -44,7 +44,7 @@ class StudioRenderingPreferences extends ChangeNotifier {
       _hasSaved = stored != null;
       AveluneFrameRate.setLimit(value);
     } catch (_) {
-      _error = 'Impossible de charger les préférences d’affichage.';
+      _error = StudioRenderingPreferencesFailure.load;
     } finally {
       _loaded = true;
       _changed();
@@ -75,7 +75,7 @@ class StudioRenderingPreferences extends ChangeNotifier {
         if (request == _lastRequest) _error = null;
       } catch (_) {
         if (!_disposed && request == _lastRequest) {
-          _error = 'Impossible d’enregistrer les préférences d’affichage. Votre dernier réglage enregistré a été rétabli.';
+          _error = StudioRenderingPreferencesFailure.save;
           AveluneFrameRate.setLimit(_savedLimit);
         }
         rethrow;
@@ -100,6 +100,8 @@ class StudioRenderingPreferences extends ChangeNotifier {
     super.dispose();
   }
 }
+
+enum StudioRenderingPreferencesFailure { load, save }
 
 class MemoryRenderingPreferencesStore
     implements StudioRenderingPreferencesStore {

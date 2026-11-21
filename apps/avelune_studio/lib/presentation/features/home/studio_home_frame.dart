@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 
-import '../../shared/localization/studio_language_menu.dart';
-import 'studio_home_display_preferences.dart';
-import 'studio_home_navigation.dart';
+import '../../shared/localization/studio_locale.dart';
+import '../../shared/widgets/avelune_studio_brand.dart';
+import '../../shell/studio_rail.dart';
+import '../../shell/studio_top_bar.dart';
+import '../settings/studio_settings_page.dart';
 
 class StudioHomeFrame extends StatelessWidget {
   const StudioHomeFrame({
@@ -33,14 +37,17 @@ class StudioHomeFrame extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              constraints: const BoxConstraints(minHeight: 64),
+              constraints: const BoxConstraints(minHeight: studioTopBarHeight),
               decoration: BoxDecoration(
                 color: colors.surfaceContainerLow,
                 border: Border(
                   bottom: BorderSide(color: colors.outlineVariant),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+              padding: const EdgeInsets.symmetric(
+                horizontal: StudioSpacing.xl,
+                vertical: 2,
+              ),
               child: Row(
                 children: [
                   SizedBox(
@@ -49,27 +56,9 @@ class StudioHomeFrame extends StatelessWidget {
                         : compact
                         ? 250
                         : 300,
-                    height: 60,
-                    child: Row(
-                      children: [
-                        Image.asset(
-                          'assets/home/avelune_symbol.png',
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.contain,
-                          semanticLabel: 'Symbole Avelune Studio',
-                        ),
-                        if (bounds.maxWidth >= 650) ...[
-                          const SizedBox(width: 10),
-                          Image.asset(
-                            'assets/home/avelune_logo.png',
-                            width: 184,
-                            height: 54,
-                            fit: BoxFit.contain,
-                            semanticLabel: 'Avelune Studio',
-                          ),
-                        ],
-                      ],
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: AveluneStudioBrand(compact: bounds.maxWidth < 650),
                     ),
                   ),
                   if (projectName != null && bounds.maxWidth >= 700) ...[
@@ -91,9 +80,15 @@ class StudioHomeFrame extends StatelessWidget {
                       onChanged: onSearch,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const StudioLanguageMenu(),
-                  const StudioDisplayPreferencesButton(),
+                  if (onClose != null) ...[
+                    const SizedBox(width: StudioSpacing.s),
+                    StudioTool(
+                      key: const ValueKey('studio-project-home-close'),
+                      label: context.l10n.homeCloseProject,
+                      icon: Icons.folder_off_outlined,
+                      onPressed: busy ? null : onClose,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -101,12 +96,16 @@ class StudioHomeFrame extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  StudioHomeNavigation(
-                    destinations: destinations,
-                    projectName: projectName,
-                    busy: busy,
-                    compact: compact,
-                    onClose: onClose,
+                  StudioRail(
+                    section: StudioRailSection.home,
+                    sectionAction: busy
+                        ? null
+                        : (section) => switch (section) {
+                            StudioRailSection.settings =>
+                              destinations[section.name] ??
+                                  () => unawaited(openStudioSettings(context)),
+                            _ => destinations[section.name],
+                          },
                   ),
                   Expanded(child: child),
                 ],

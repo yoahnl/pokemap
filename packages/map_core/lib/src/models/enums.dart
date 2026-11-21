@@ -461,6 +461,8 @@ enum CharacterAnimationState {
   strength,
   @JsonValue('push')
   push,
+  @JsonValue('fishing')
+  fishing,
 }
 
 enum CharacterPortraitFitMode {

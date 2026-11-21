@@ -165,7 +165,7 @@ class _ProjectCharacterPortraitEditorState
       future: _image!.result,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: StudioProgressIndicator());
         }
         final bytes = snapshot.data;
         return bytes == null

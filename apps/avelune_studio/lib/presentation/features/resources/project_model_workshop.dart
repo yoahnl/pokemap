@@ -206,9 +206,7 @@ class _ProjectModelWorkshopState extends State<ProjectModelWorkshop> {
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const Center(
-                child: CircularProgressIndicator(
-                  semanticsLabel: 'Chargement du modèle',
-                ),
+                child: StudioProgressIndicator(label: 'Chargement du modèle'),
               );
             }
             if (snapshot.hasError) {

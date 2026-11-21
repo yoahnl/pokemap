@@ -23,36 +23,44 @@ class StudioLanguagePreferences extends ChangeNotifier {
 
   final StudioLanguageStore store;
   String? _languageCode;
-  String? _error;
+  StudioLanguageFailure? _error;
   bool _loaded = false;
+  bool _saving = false;
   bool _disposed = false;
   Future<void>? _loading;
 
   String? get languageCode => _languageCode;
-  String? get error => _error;
+  StudioLanguageFailure? get error => _error;
   bool get loaded => _loaded;
+  bool get saving => _saving;
 
   Future<void> load() => _loading ??= _load();
 
   Future<void> _load() async {
     try {
       _languageCode = await store.load();
-    } on Object catch (failure) {
-      _error = failure.toString();
+    } on Object {
+      _error = StudioLanguageFailure.load;
     }
     _loaded = true;
     _notify();
   }
 
   Future<void> select(String? languageCode) async {
-    if (languageCode == _languageCode) return;
+    if (!_loaded) await load();
+    if (_disposed || _saving || languageCode == _languageCode) return;
+    final saved = _languageCode;
+    _saving = true;
     _languageCode = languageCode;
     _error = null;
     _notify();
     try {
       await store.save(languageCode);
-    } on Object catch (failure) {
-      _error = failure.toString();
+    } on Object {
+      _languageCode = saved;
+      _error = StudioLanguageFailure.save;
+    } finally {
+      _saving = false;
       _notify();
     }
   }
@@ -67,3 +75,5 @@ class StudioLanguagePreferences extends ChangeNotifier {
     super.dispose();
   }
 }
+
+enum StudioLanguageFailure { load, save }

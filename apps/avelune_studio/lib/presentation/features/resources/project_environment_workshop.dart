@@ -95,7 +95,7 @@ class _ProjectEnvironmentWorkshopState
             future: _reading,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: StudioProgressIndicator());
               }
               final project = snapshot.data;
               final environment = project == null

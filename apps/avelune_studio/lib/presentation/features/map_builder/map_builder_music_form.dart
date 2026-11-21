@@ -66,7 +66,7 @@ class _MapBuilderMusicFormState extends State<MapBuilderMusicForm> {
       key: const ValueKey('map-ambiance-music'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Eyebrow(l10n.musicExploration),
+        StudioEyebrow(l10n.musicExploration, singleLine: true),
         const SizedBox(height: StudioSpacing.xs),
         _Slot(
           key: const ValueKey('map-ambiance-music-slot-exploration'),
@@ -96,7 +96,7 @@ class _MapBuilderMusicFormState extends State<MapBuilderMusicForm> {
                 : null,
           ),
         const SizedBox(height: StudioSpacing.m),
-        _Eyebrow(l10n.musicBattle),
+        StudioEyebrow(l10n.musicBattle, singleLine: true),
         const SizedBox(height: StudioSpacing.xs),
         _Slot(
           key: const ValueKey('map-ambiance-music-slot-battle'),
@@ -108,10 +108,11 @@ class _MapBuilderMusicFormState extends State<MapBuilderMusicForm> {
           onTap: () => binding.selectMusicSlot(MapMusicSlot.battle),
         ),
         const SizedBox(height: StudioSpacing.xl),
-        _Eyebrow(
+        StudioEyebrow(
           binding.musicSlot == MapMusicSlot.battle
               ? l10n.musicChooseBattle
               : l10n.musicChooseExploration,
+          singleLine: true,
         ),
         const SizedBox(height: StudioSpacing.s),
         StudioSearchField(
@@ -154,13 +155,13 @@ class _MapBuilderMusicFormState extends State<MapBuilderMusicForm> {
     if (binding.audioLoading) {
       return [
         const SizedBox(height: StudioSpacing.s),
-        _Caption(l10n.musicLoading),
+        StudioCaption(l10n.musicLoading),
       ];
     }
     if (binding.audioLoaded && binding.audio.isEmpty) {
       return [
         const SizedBox(height: StudioSpacing.s),
-        _Caption(
+        StudioCaption(
           binding.audioQuery.trim().isEmpty
               ? l10n.musicLibraryEmpty
               : l10n.musicNoMatch,
@@ -204,41 +205,4 @@ class _Slot extends StatelessWidget {
     selected: selected,
     onTap: onTap,
   );
-}
-
-class _Caption extends StatelessWidget {
-  const _Caption(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-    );
-  }
-}
-
-class _Eyebrow extends StatelessWidget {
-  const _Eyebrow(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: theme.textTheme.labelSmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-        letterSpacing: 1,
-      ),
-    );
-  }
 }

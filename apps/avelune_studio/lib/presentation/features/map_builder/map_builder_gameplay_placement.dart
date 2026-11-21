@@ -15,12 +15,14 @@ class _WarpPlacement extends StatelessWidget {
       key: const ValueKey('map-gameplay-warp-placement'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Heading(
+        StudioPanelHeading.inspector(
+          key: const ValueKey('map-space-inspector'),
           eyebrow: l10n.warpBetweenMaps,
           title: l10n.warpNew,
-          hint: binding.placingWarp
+          description: binding.placingWarp
               ? l10n.warpPlaceClick
               : l10n.warpPlaceChoose,
+          descriptionGap: StudioSpacing.s,
         ),
         const SizedBox(height: StudioSpacing.l),
         StudioSelect(
@@ -69,7 +71,13 @@ class _Placement extends StatelessWidget {
     key: ValueKey(placementKey),
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      _Heading(eyebrow: eyebrow, title: title, hint: hint),
+      StudioPanelHeading.inspector(
+        key: const ValueKey('map-space-inspector'),
+        eyebrow: eyebrow,
+        title: title,
+        description: hint,
+        descriptionGap: StudioSpacing.s,
+      ),
       const SizedBox(height: StudioSpacing.l),
       _CancelPlacement(binding: binding),
     ],

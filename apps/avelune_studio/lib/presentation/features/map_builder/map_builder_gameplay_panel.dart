@@ -61,21 +61,11 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
             child: ListView(
               padding: const EdgeInsets.all(StudioSpacing.l),
               children: [
-                Text(
-                  outline.eyebrow,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    letterSpacing: 1,
-                  ),
+                StudioPanelHeading(
+                  eyebrow: outline.eyebrow,
+                  title: outline.title,
+                  description: outline.subtitle,
                 ),
-                const SizedBox(height: StudioSpacing.xs),
-                Text(
-                  outline.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(outline.subtitle, style: muted),
                 const SizedBox(height: StudioSpacing.l),
                 for (final rubric in outline.rubrics)
                   MapBuilderRubricTile(
@@ -89,15 +79,11 @@ class _MapBuilderGameplayPanelState extends State<MapBuilderGameplayPanel> {
                         : null,
                   ),
                 const SizedBox(height: StudioSpacing.l),
-                TextField(
+                StudioInlineSearchField(
                   key: const ValueKey('map-gameplay-search'),
                   controller: _search,
                   onChanged: binding.search,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: outline.searchHint,
-                    prefixIcon: const Icon(Icons.search, size: 18),
-                  ),
+                  hint: outline.searchHint,
                 ),
                 const SizedBox(height: StudioSpacing.m),
                 ...switch (binding.rubric) {

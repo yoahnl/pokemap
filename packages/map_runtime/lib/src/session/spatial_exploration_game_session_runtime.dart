@@ -1866,6 +1866,8 @@ final class SpatialExplorationGameSessionRuntime
       loaded.realWeather = _realWeather;
       _realWeatherDeclared = WorldEnvironmentCapabilities.requiresRealProject(bundle.manifest);
       _session = loaded;
+      loaded.heroFishingElapsedSeconds = () =>
+          identical(_session, loaded) ? _fishingFlow?.elapsedSeconds : null;
       loaded.projectAudio = projectAudio;
       loaded.lookupRewardScenes = (id) =>
           _gameplay?.rewardScenes(id) ?? const [];

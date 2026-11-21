@@ -109,8 +109,8 @@ class _ProjectTilesetWorkshopState extends State<ProjectTilesetWorkshop> {
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const Center(
-                child: CircularProgressIndicator(
-                  semanticsLabel: 'Chargement de la planche',
+                child: StudioProgressIndicator(
+                  label: 'Chargement de la planche',
                 ),
               );
             }

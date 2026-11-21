@@ -5,11 +5,14 @@ import 'dart:math';
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/presentation/flame/player_component.dart';
 
 import 'playable_map_game_flash_test.dart' show MemorySave, tickUntil;
+import 'support/fishing_animation_fixture.dart';
 
 const fishingTool = ProjectItemDefinition(
   id: 'tool',
@@ -30,6 +33,65 @@ const fishingTool = ProjectItemDefinition(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final direction in [EntityFacing.east, EntityFacing.west]) {
+    test('2D authored fishing pose applies only in its direction: $direction', () async {
+      final mounted = await mountFishing(fishingAnimationFacing: direction);
+      final player = mounted.game.world.children.whereType<PlayerComponent>().single;
+      expect(player.debugAnimationSource!.sourceRect.left, 0);
+
+      final used = await mounted.controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'tool'),
+      );
+      expect(used.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(player.debugAnimationSource!.sourceRect.left,
+          direction == EntityFacing.east ? 8 : 0);
+
+      await mounted.game.advanceTestSimulation(const Duration(milliseconds: 175));
+      expect(player.debugAnimationSource!.sourceRect.left,
+          direction == EntityFacing.east ? 16 : 0);
+      await mounted.game.advanceTestSimulation(const Duration(milliseconds: 200));
+      expect(player.debugAnimationSource!.sourceRect.left,
+          direction == EntityFacing.east ? 16 : 0);
+
+      mounted.game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.secondary),
+      );
+      expect(player.debugAnimationSource!.sourceRect.left, 0);
+      expect(mounted.random.doubleCalls, 0);
+    });
+  }
+
+  for (final completion in [true, false]) {
+    test('2D terminal fishing cleanup permits a checkpoint: completion=$completion', () async {
+      final mounted = await mountFishing(
+        fishingAnimationFacing: EntityFacing.east,
+      );
+      final game = mounted.game;
+      final player = game.world.children.whereType<PlayerComponent>().single;
+      final result = await mounted.controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'tool'),
+      );
+      expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(player.debugAnimationSource!.sourceRect.left, 8);
+      expect(game.canCapturePlayerCheckpoint, isFalse);
+
+      if (completion) {
+        game.setExternalInputLock(
+          RuntimeExternalInputLock.gameCompletion,
+          locked: true,
+        );
+        expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isFalse);
+      } else {
+        game.cancelFishingForSessionExit();
+        game.pauseEngine();
+      }
+      expect(game.fishingPhase, isNull);
+      expect(player.debugAnimationSource!.sourceRect.left, 0);
+      expect(game.canCapturePlayerCheckpoint, isTrue);
+      expect(mounted.random.doubleCalls, 0);
+    });
+  }
 
   test(
     'bag closes before casting, cancellation releases only the fishing lock',
@@ -333,6 +395,7 @@ mountFishing({
   bool battleData = false,
   MovementMode initialMode = MovementMode.walk,
   Future<void> Function(GameState)? checkpoint,
+  EntityFacing? fishingAnimationFacing,
 }) async {
   final root = await Directory.systemTemp.createTemp('runtime-fishing-');
   addTearDown(() => root.delete(recursive: true));
@@ -387,7 +450,7 @@ mountFishing({
       ),
     ],
   );
-  final manifest =
+  var manifest =
       (referenceProject ??
               const ProjectManifest(name: 'Fishing', maps: [], tilesets: []))
           .copyWith(
@@ -417,6 +480,36 @@ mountFishing({
               ),
             ],
           );
+  final actorPaths = <String, String>{};
+  if (fishingAnimationFacing != null) {
+    final path = '${root.path}/hero.png';
+    await File(path).writeAsBytes(img.encodePng(img.Image(width: 32, height: 32)));
+    actorPaths['hero-sheet'] = path;
+    manifest = manifest.copyWith(
+      settings: manifest.settings.copyWith(defaultPlayerCharacterId: 'hero'),
+      characters: [
+        ProjectCharacterEntry(
+          id: 'hero',
+          name: 'Hero',
+          tilesetId: 'unused',
+          animations: [
+            const CharacterAnimation(
+              state: CharacterAnimationState.idle,
+              direction: EntityFacing.east,
+              sourceAssetId: 'hero-sheet',
+              frames: [
+                CharacterAnimationFrame(
+                  source: TilesetSourceRect(x: 0, y: 0, width: 16, height: 32),
+                  durationMs: 100,
+                ),
+              ],
+            ),
+            authoredFishingClip(fishingAnimationFacing, 'hero-sheet'),
+          ],
+        ),
+      ],
+    );
+  }
   final initial = GameState(
     saveId: 'fishing',
     currentMapId: 'shore',
@@ -438,6 +531,7 @@ mountFishing({
     map: map,
     projectRootDirectory: battleData ? referenceRoot.path : root.path,
     tilesetAbsolutePathsById: {},
+    characterAnimationAbsolutePathsByAssetId: actorPaths,
   );
   await File('${root.path}/project.json')
       .writeAsString(jsonEncode(manifest.toJson()));

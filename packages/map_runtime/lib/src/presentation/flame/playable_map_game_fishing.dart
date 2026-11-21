@@ -81,6 +81,7 @@ extension _PlayableMapFishing on PlayableMapGame {
         mapActivationId: activation!,
       );
       _fishingFlow = FishingAttemptFlow();
+      _player.setFishingPose(true);
       _fishingFeedbackPhase = null;
       reserved = true;
       return null;
@@ -215,6 +216,7 @@ extension _PlayableMapFishing on PlayableMapGame {
   }
 
   void _finishPlayerFishing() {
+    if (_fishingFlow != null) _player.setFishingPose(false);
     final token = _fishingInputLock;
     _fishingInputLock = null;
     _fishingTicket = null;

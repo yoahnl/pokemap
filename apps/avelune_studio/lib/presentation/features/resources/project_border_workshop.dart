@@ -136,8 +136,8 @@ class _ProjectBorderWorkshopState extends State<ProjectBorderWorkshop> {
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const Center(
-                child: CircularProgressIndicator(
-                  semanticsLabel: 'Chargement de la bordure',
+                child: StudioProgressIndicator(
+                  label: 'Chargement de la bordure',
                 ),
               );
             }

@@ -89,9 +89,11 @@ extension _MapBuilderPageLayout on _MapBuilderPageState {
               children: [
                 StudioRail(
                   section: _section,
-                  onSection: _exporting || _packDialogOpen || _pokemonImporting
+                  sectionAction:
+                      _exporting || _packDialogOpen || _pokemonImporting
                       ? null
-                      : _setSection,
+                      : (section) =>
+                            () => _setSection(section),
                 ),
                 Expanded(
                   child: Stack(

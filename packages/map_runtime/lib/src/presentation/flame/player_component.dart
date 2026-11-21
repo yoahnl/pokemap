@@ -54,12 +54,13 @@ class PlayerComponent extends PositionComponent with HasVisibility {
 
   bool _hasRunningAnimation() => _hasAnimation(CharacterAnimationState.run);
 
-  bool _hasAnimation(CharacterAnimationState state) {
+  bool _hasAnimation(CharacterAnimationState state, {EntityFacing? facing}) {
     final character = characterEntry;
     if (character == null) return false;
     final resolver = CharacterAnimationSourceResolver();
     final availableImageIds = tileImages.keys.toSet();
-    return EntityFacing.values.every((direction) {
+    final directions = facing == null ? EntityFacing.values : [facing];
+    return directions.every((direction) {
       final animations = character.animations.where((animation) =>
           animation.state == state &&
           animation.direction == direction);
@@ -87,8 +88,20 @@ class PlayerComponent extends PositionComponent with HasVisibility {
     });
   }
 
-  CharacterAnimationState get _idleAnimation =>
-      _state.movementMode == MovementMode.bicycle
+  bool _fishingPose = false;
+
+  void setFishingPose(bool active) {
+    final facing = cinematicFacing;
+    final next = active &&
+        _hasAnimation(CharacterAnimationState.fishing, facing: facing);
+    if (next == _fishingPose) return;
+    _fishingPose = next;
+    _actor?.setMotion(facing, _idleAnimation);
+  }
+
+  CharacterAnimationState get _idleAnimation => _fishingPose
+      ? CharacterAnimationState.fishing
+      : _state.movementMode == MovementMode.bicycle
           ? CharacterAnimationState.bicycleIdle
           : _state.movementMode == MovementMode.surf
               ? CharacterAnimationState.surfIdle

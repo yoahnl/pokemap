@@ -257,31 +257,14 @@ class _ObstacleColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     return Column(
       key: ValueKey(formKey),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          eyebrow,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-            letterSpacing: 1,
-          ),
-        ),
-        const SizedBox(height: StudioSpacing.m),
-        Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
+        StudioPanelHeading.inspector(
+          eyebrow: eyebrow,
+          title: title,
+          description: subtitle,
         ),
         const SizedBox(height: StudioSpacing.l),
         ...children,

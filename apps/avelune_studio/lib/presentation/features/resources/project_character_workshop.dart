@@ -294,9 +294,7 @@ class _ProjectCharacterWorkshopState extends State<ProjectCharacterWorkshop> {
     if (project == null || character == null) {
       return Center(
         child: _working
-            ? const CircularProgressIndicator(
-                semanticsLabel: 'Chargement du personnage',
-              )
+            ? const StudioProgressIndicator(label: 'Chargement du personnage')
             : StudioButton(label: 'Réessayer', onPressed: _load),
       );
     }

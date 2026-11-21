@@ -17,6 +17,8 @@ void main() {
   testWidgets('the Studio follows the system language until one is chosen', (
     tester,
   ) async {
+    tester.binding.platformDispatcher.localesTestValue = const [Locale('en')];
+    addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
     final session = ProjectSessionController(ControlledProjectSessionPort());
     addTearDown(session.dispose);
     final store = MemoryStudioLanguageStore();
@@ -36,25 +38,38 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Import a project'), findsOneWidget);
+    final home = find.byKey(const ValueKey('studio-home'));
+    expect(Localizations.localeOf(tester.element(home)).languageCode, 'en');
+    expect(find.byKey(const ValueKey('studio-language')), findsNothing);
+    expect(find.byKey(const ValueKey('home-export-game')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('studio-rail-settings')));
+    await tester.pumpAndSettle();
+    expect(find.text('Studio settings'), findsWidgets);
 
     Future<void> choose(String code) async {
-      await tester.tap(find.byKey(const ValueKey('studio-language')));
+      await tester.tap(find.byKey(const ValueKey('studio-settings-language')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(ValueKey('studio-language-$code')));
+      final label = switch (code) {
+        'fr' => 'Français',
+        'en' => 'English',
+        _ => 'System language',
+      };
+      await tester.tap(find.text(label).last);
       await tester.pumpAndSettle();
     }
 
     await choose('fr');
-    expect(find.text('Importer un projet'), findsOneWidget);
+    expect(find.text('Réglages du Studio'), findsWidgets);
     expect(store.languageCode, 'fr');
 
     await choose('en');
-    expect(find.text('Import a project'), findsOneWidget);
+    expect(find.text('Studio settings'), findsWidgets);
     expect(store.languageCode, 'en');
 
     await choose('system');
-    expect(find.text('Import a project'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('studio-settings-back')));
+    await tester.pumpAndSettle();
+    expect(Localizations.localeOf(tester.element(home)).languageCode, 'en');
     expect(store.languageCode, isNull);
     await tester.pumpWidget(const SizedBox());
   });
@@ -73,4 +88,25 @@ void main() {
       throwsA(isA<FormatException>()),
     );
   });
+
+  test('a failed language write restores the last saved preference', () async {
+    final preferences = StudioLanguagePreferences(_ReadOnlyLanguageStore());
+    addTearDown(preferences.dispose);
+    await preferences.load();
+    await preferences.select('fr');
+
+    expect(preferences.languageCode, 'en');
+    expect(preferences.error, StudioLanguageFailure.save);
+    expect(preferences.saving, isFalse);
+  });
+}
+
+class _ReadOnlyLanguageStore implements StudioLanguageStore {
+  @override
+  Future<String?> load() async => 'en';
+
+  @override
+  Future<void> save(String? languageCode) async {
+    throw const FileSystemException('Read-only preferences fixture');
+  }
 }

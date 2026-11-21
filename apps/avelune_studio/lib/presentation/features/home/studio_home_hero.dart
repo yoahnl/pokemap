@@ -9,7 +9,6 @@ class StudioHomeHero extends StatelessWidget {
     required this.busy,
     required this.onOpen,
     this.onResume,
-    this.onExport,
     this.projectName,
     this.compact = false,
     this.smallWindow = false,
@@ -17,7 +16,6 @@ class StudioHomeHero extends StatelessWidget {
   final bool busy;
   final VoidCallback onOpen;
   final VoidCallback? onResume;
-  final VoidCallback? onExport;
   final String? projectName;
   final bool compact;
   final bool smallWindow;
@@ -117,18 +115,6 @@ class StudioHomeHero extends StatelessWidget {
                 secondary: onResume != null,
                 icon: Icons.folder_open,
                 onPressed: busy ? null : onOpen,
-              ),
-              Tooltip(
-                message: projectName == null
-                    ? 'Ouvrez un projet pour exporter le jeu'
-                    : 'Créer un paquet .avelunegame pour Avelune Player',
-                child: StudioButton(
-                  key: const Key('home-export-game'),
-                  label: 'Exporter le jeu…',
-                  secondary: true,
-                  icon: Icons.archive_outlined,
-                  onPressed: busy ? null : onExport,
-                ),
               ),
             ],
           ),

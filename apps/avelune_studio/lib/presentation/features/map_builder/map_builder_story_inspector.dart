@@ -39,7 +39,10 @@ class MapBuilderStoryInspector extends StatelessWidget {
       key: ValueKey('map-story-inspector-${element.key}'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Eyebrow(l10n.storyKindEyebrow(element.kind.name)),
+        StudioEyebrow(
+          l10n.storyKindEyebrow(element.kind.name),
+          singleLine: true,
+        ),
         const SizedBox(height: StudioSpacing.xs),
         Row(
           children: [
@@ -137,47 +140,10 @@ class _Fact extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Eyebrow(label),
+          StudioEyebrow(label, singleLine: true),
           const SizedBox(height: StudioSpacing.xxs),
           Text(value, style: theme.textTheme.bodyMedium),
         ],
-      ),
-    );
-  }
-}
-
-class _Caption extends StatelessWidget {
-  const _Caption(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-    );
-  }
-}
-
-class _Eyebrow extends StatelessWidget {
-  const _Eyebrow(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: theme.textTheme.labelSmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-        letterSpacing: 1,
       ),
     );
   }

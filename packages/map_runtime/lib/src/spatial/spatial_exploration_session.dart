@@ -462,6 +462,7 @@ final class SpatialExplorationSession {
     liftModelPose = _authoredTransportPose = pose;
   }
   SpatialCinematicActorPose? Function()? heroStoryPose;
+  double? Function()? heroFishingElapsedSeconds;
   SpatialCinematicActorPose? Function(MapEntity)? npcStoryPose;
   SpatialCinematicActorPose? Function(MapEntity)? npcAutonomousPose;
   SpatialCinematicCameraPose? Function()? storyCamera;
@@ -1483,7 +1484,7 @@ final class SpatialExplorationSession {
     }
   }
 
-  ResolvedCharacterAnimationFrameSource _resolve(
+  ResolvedCharacterAnimationFrameSource? _frameSource(
     CharacterAnimation animation,
     CharacterAnimationFrame frame, {
     ProjectCharacterEntry? actor,
@@ -1495,8 +1496,56 @@ final class SpatialExplorationSession {
           tileWidth: bundle.manifest.settings.tileWidth,
           tileHeight: bundle.manifest.settings.tileHeight,
         availableImageIds: _assets.imageIds,
-      ) ??
+      );
+
+  ResolvedCharacterAnimationFrameSource _resolve(
+    CharacterAnimation animation,
+    CharacterAnimationFrame frame, {
+    ProjectCharacterEntry? actor,
+  }) => _frameSource(animation, frame, actor: actor) ??
       (throw StateError('Source d’animation du héros indisponible.'));
+
+  CharacterAnimationFrame _animationFrameAt(
+    CharacterAnimation animation,
+    double seconds,
+  ) {
+    final total = animation.frames.fold<int>(
+      0,
+      (sum, frame) => sum + frame.durationMs,
+    );
+    var remaining = (seconds * 1000).floor();
+    remaining = animation.loop
+        ? remaining % total
+        : remaining.clamp(0, total - 1);
+    for (final frame in animation.frames) {
+      if (remaining < frame.durationMs) return frame;
+      remaining -= frame.durationMs;
+    }
+    return animation.frames.last;
+  }
+
+  ResolvedCharacterAnimationFrameSource? _fishingPose(
+    EntityFacing facing,
+    double? seconds,
+  ) {
+    if (seconds == null) return null;
+    final clip = character.animations.where((animation) =>
+        animation.state == CharacterAnimationState.fishing &&
+        animation.direction == facing &&
+        animation.frames.isNotEmpty).firstOrNull;
+    if (clip == null) return null;
+    final source = _frameSource(clip, _animationFrameAt(clip, seconds));
+    if (source == null) return null;
+    final texture = _textures[source.imageId];
+    final frame = source.sourceRect;
+    if (texture == null || texture.isReleased ||
+        frame.left < 0 || frame.top < 0 ||
+        frame.right > texture.width || frame.bottom > texture.height) {
+      return null;
+    }
+    return source;
+  }
+
   SpatialActorVisual frame(double dt) {
     if (!_disposed) {
       _fieldAction.update(dt, paused: presentationPaused || transitioning.value);
@@ -1629,10 +1678,6 @@ final class SpatialExplorationSession {
         'Animation directionnelle du héros absente : ${movement.facing.name}',
       );
     }
-    final total = animation.frames.fold<int>(
-      0,
-      (sum, frame) => sum + frame.durationMs,
-    );
     final animationSeconds =
         story?.animationSeconds ??
         (_fieldMotion.isActive
@@ -1645,19 +1690,12 @@ final class SpatialExplorationSession {
                   animation.state == CharacterAnimationState.surfIdle
             ? _surfLoopSeconds
             : movement.animationSeconds);
-    var remaining = (animationSeconds * 1000).floor();
-    remaining = animation.loop
-        ? remaining % total
-        : remaining.clamp(0, total - 1);
-    var selected = animation.frames.last;
-    for (final frame in animation.frames) {
-      if (remaining < frame.durationMs) {
-        selected = frame;
-        break;
-      }
-      remaining -= frame.durationMs;
-    }
-    final resolved = _resolve(animation, selected);
+    final fishingPose = story == null && !climbing &&
+        !_fieldMotion.isActive && !_fieldAction.isActive
+        ? _fishingPose(facing, heroFishingElapsedSeconds?.call())
+        : null;
+    final resolved = fishingPose ??
+        _resolve(animation, _animationFrameAt(animation, animationSeconds));
     final canvas = resolved.presentationRect(width: 1.92, height: 1.92);
     return SpatialActorVisual(
       width: resolved.presentationReferenceHeightPx == null

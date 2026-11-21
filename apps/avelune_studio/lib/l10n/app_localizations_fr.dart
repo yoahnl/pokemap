@@ -185,6 +185,126 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajoutez un personnage, un objet ou une zone dans Interactions pour lui associer un déclencheur.';
 
   @override
+  String get studioSettings => 'Réglages du Studio';
+
+  @override
+  String get studioSettingsDevice =>
+      'Préférences de l’application sur cet appareil.';
+
+  @override
+  String get studioSettingsBack => 'Retour';
+
+  @override
+  String get studioSettingsOverview => 'Vue d’ensemble';
+
+  @override
+  String get studioSettingsGeneral => 'Général';
+
+  @override
+  String get studioSettingsDisplay => 'Affichage';
+
+  @override
+  String get studioSettingsAi => 'IA et clés API';
+
+  @override
+  String get studioSettingsLanguage => 'Langue de l’interface';
+
+  @override
+  String get studioSettingsFps => 'Cible de FPS';
+
+  @override
+  String get studioSettingsFpsHelp =>
+      'Pour le Studio, les aperçus et les tests de jeu.';
+
+  @override
+  String get studioSettingsReadError =>
+      'Impossible de charger les préférences.';
+
+  @override
+  String get studioSettingsWriteError =>
+      'Impossible d’enregistrer la préférence.';
+
+  @override
+  String get studioSettingsSaving => 'Enregistrement…';
+
+  @override
+  String get studioSettingsRetry => 'Réessayer';
+
+  @override
+  String get studioSettingsAiLocal =>
+      'Les clés API sont conservées dans le stockage sécurisé de cet appareil.';
+
+  @override
+  String get studioSettingsNoProvider => 'Aucun fournisseur configuré.';
+
+  @override
+  String get studioSettingsAddProvider => 'Ajouter un fournisseur';
+
+  @override
+  String get studioSettingsProvider => 'Fournisseur';
+
+  @override
+  String get studioSettingsApiKey => 'Clé API';
+
+  @override
+  String get studioSettingsKeySaved => 'Clé API enregistrée';
+
+  @override
+  String get studioSettingsShowKey => 'Afficher la clé';
+
+  @override
+  String get studioSettingsHideKey => 'Masquer la clé';
+
+  @override
+  String get studioSettingsChangeKey => 'Remplacer la clé';
+
+  @override
+  String get studioSettingsDeleteKey => 'Supprimer la clé';
+
+  @override
+  String get studioSettingsDeleteKeyConfirm =>
+      'Supprimer la clé API de cet appareil ?';
+
+  @override
+  String get studioSettingsSaveKey => 'Enregistrer la clé';
+
+  @override
+  String get studioSettingsCancel => 'Annuler';
+
+  @override
+  String get studioSettingsInvalidKey => 'Saisis une clé API valide.';
+
+  @override
+  String get studioSettingsKeyReadError =>
+      'Impossible d’accéder au stockage sécurisé.';
+
+  @override
+  String get studioSettingsKeyWriteError =>
+      'Impossible de modifier la clé dans le stockage sécurisé.';
+
+  @override
+  String get studioSettingsTestConnection => 'Tester la connexion';
+
+  @override
+  String get studioSettingsTestingConnection => 'Test en cours…';
+
+  @override
+  String get studioSettingsConnectionOk => 'Connexion réussie.';
+
+  @override
+  String get studioSettingsConnectionDenied =>
+      'Clé refusée ou accès insuffisant.';
+
+  @override
+  String get studioSettingsConnectionUnavailable =>
+      'Fournisseur indisponible. Réessaie dans un instant.';
+
+  @override
+  String studioSettingsFramesPerSecond(int fps) {
+    return '$fps images/s';
+  }
+
+  @override
   String get languageMenu => 'Langue';
 
   @override

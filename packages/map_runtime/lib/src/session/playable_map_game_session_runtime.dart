@@ -756,6 +756,7 @@ final class PlayableMapGameSessionRuntime
     final game = _game;
     if (game == null) return;
     game.cancelContextualItemUse();
+    game.cancelFishingForSessionExit();
     _playWatch.stop();
     game.pauseEngine();
   }

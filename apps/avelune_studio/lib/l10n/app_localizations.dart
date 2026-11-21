@@ -398,6 +398,222 @@ abstract class AppLocalizations {
   /// **'Ajoutez un personnage, un objet ou une zone dans Interactions pour lui associer un déclencheur.'**
   String get triggersNoSourcesHint;
 
+  /// No description provided for @studioSettings.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réglages du Studio'**
+  String get studioSettings;
+
+  /// No description provided for @studioSettingsDevice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préférences de l’application sur cet appareil.'**
+  String get studioSettingsDevice;
+
+  /// No description provided for @studioSettingsBack.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour'**
+  String get studioSettingsBack;
+
+  /// No description provided for @studioSettingsOverview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue d’ensemble'**
+  String get studioSettingsOverview;
+
+  /// No description provided for @studioSettingsGeneral.
+  ///
+  /// In fr, this message translates to:
+  /// **'Général'**
+  String get studioSettingsGeneral;
+
+  /// No description provided for @studioSettingsDisplay.
+  ///
+  /// In fr, this message translates to:
+  /// **'Affichage'**
+  String get studioSettingsDisplay;
+
+  /// No description provided for @studioSettingsAi.
+  ///
+  /// In fr, this message translates to:
+  /// **'IA et clés API'**
+  String get studioSettingsAi;
+
+  /// No description provided for @studioSettingsLanguage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Langue de l’interface'**
+  String get studioSettingsLanguage;
+
+  /// No description provided for @studioSettingsFps.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cible de FPS'**
+  String get studioSettingsFps;
+
+  /// No description provided for @studioSettingsFpsHelp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pour le Studio, les aperçus et les tests de jeu.'**
+  String get studioSettingsFpsHelp;
+
+  /// No description provided for @studioSettingsReadError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de charger les préférences.'**
+  String get studioSettingsReadError;
+
+  /// No description provided for @studioSettingsWriteError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d’enregistrer la préférence.'**
+  String get studioSettingsWriteError;
+
+  /// No description provided for @studioSettingsSaving.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrement…'**
+  String get studioSettingsSaving;
+
+  /// No description provided for @studioSettingsRetry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer'**
+  String get studioSettingsRetry;
+
+  /// No description provided for @studioSettingsAiLocal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les clés API sont conservées dans le stockage sécurisé de cet appareil.'**
+  String get studioSettingsAiLocal;
+
+  /// No description provided for @studioSettingsNoProvider.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun fournisseur configuré.'**
+  String get studioSettingsNoProvider;
+
+  /// No description provided for @studioSettingsAddProvider.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un fournisseur'**
+  String get studioSettingsAddProvider;
+
+  /// No description provided for @studioSettingsProvider.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur'**
+  String get studioSettingsProvider;
+
+  /// No description provided for @studioSettingsApiKey.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clé API'**
+  String get studioSettingsApiKey;
+
+  /// No description provided for @studioSettingsKeySaved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clé API enregistrée'**
+  String get studioSettingsKeySaved;
+
+  /// No description provided for @studioSettingsShowKey.
+  ///
+  /// In fr, this message translates to:
+  /// **'Afficher la clé'**
+  String get studioSettingsShowKey;
+
+  /// No description provided for @studioSettingsHideKey.
+  ///
+  /// In fr, this message translates to:
+  /// **'Masquer la clé'**
+  String get studioSettingsHideKey;
+
+  /// No description provided for @studioSettingsChangeKey.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remplacer la clé'**
+  String get studioSettingsChangeKey;
+
+  /// No description provided for @studioSettingsDeleteKey.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer la clé'**
+  String get studioSettingsDeleteKey;
+
+  /// No description provided for @studioSettingsDeleteKeyConfirm.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer la clé API de cet appareil ?'**
+  String get studioSettingsDeleteKeyConfirm;
+
+  /// No description provided for @studioSettingsSaveKey.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer la clé'**
+  String get studioSettingsSaveKey;
+
+  /// No description provided for @studioSettingsCancel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler'**
+  String get studioSettingsCancel;
+
+  /// No description provided for @studioSettingsInvalidKey.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisis une clé API valide.'**
+  String get studioSettingsInvalidKey;
+
+  /// No description provided for @studioSettingsKeyReadError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d’accéder au stockage sécurisé.'**
+  String get studioSettingsKeyReadError;
+
+  /// No description provided for @studioSettingsKeyWriteError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de modifier la clé dans le stockage sécurisé.'**
+  String get studioSettingsKeyWriteError;
+
+  /// No description provided for @studioSettingsTestConnection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tester la connexion'**
+  String get studioSettingsTestConnection;
+
+  /// No description provided for @studioSettingsTestingConnection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Test en cours…'**
+  String get studioSettingsTestingConnection;
+
+  /// No description provided for @studioSettingsConnectionOk.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connexion réussie.'**
+  String get studioSettingsConnectionOk;
+
+  /// No description provided for @studioSettingsConnectionDenied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clé refusée ou accès insuffisant.'**
+  String get studioSettingsConnectionDenied;
+
+  /// No description provided for @studioSettingsConnectionUnavailable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur indisponible. Réessaie dans un instant.'**
+  String get studioSettingsConnectionUnavailable;
+
+  /// No description provided for @studioSettingsFramesPerSecond.
+  ///
+  /// In fr, this message translates to:
+  /// **'{fps} images/s'**
+  String studioSettingsFramesPerSecond(int fps);
+
   /// Tooltip of the button that opens the language menu.
   ///
   /// In fr, this message translates to:

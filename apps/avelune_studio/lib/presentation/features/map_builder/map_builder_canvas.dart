@@ -182,7 +182,7 @@ class MapBuilderCanvas extends StatelessWidget {
             child: surface == null
                 ? Center(
                     child: error == null
-                        ? const CircularProgressIndicator()
+                        ? const StudioProgressIndicator()
                         : const SizedBox(),
                   )
                 : Row(

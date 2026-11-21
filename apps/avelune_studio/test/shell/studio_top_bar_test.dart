@@ -46,11 +46,11 @@ void main() {
             'studio-save',
             'studio-test-map',
             'studio-export-game',
-            'studio-language',
             'studio-map-selector',
           ]) {
             expect(find.byKey(ValueKey(key)).hitTestable(), findsOneWidget);
           }
+          expect(find.byKey(const ValueKey('studio-language')), findsNothing);
         }
       },
     );

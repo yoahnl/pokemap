@@ -37,10 +37,7 @@ extension _ProjectLibraryPackReview on _ProjectLibraryPackDialogState {
     padding: const EdgeInsets.only(bottom: StudioSpacing.l),
     child: Row(
       children: [
-        const SizedBox.square(
-          dimension: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+        const StudioProgressIndicator.compact(),
         const SizedBox(width: StudioSpacing.m),
         Expanded(
           child: Text(switch (transfer.phase) {

@@ -169,7 +169,7 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
     final reading = _reading;
     if (reading == null) {
       return widget.active
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: StudioProgressIndicator())
           : const SizedBox.shrink();
     }
     return ExcludeFocus(
@@ -195,7 +195,7 @@ class _ProjectLibraryPageState extends State<ProjectLibraryPage> {
           }
           final result = snapshot.data;
           if (result == null) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: StudioProgressIndicator());
           }
           return FutureBuilder<void>(
             future: result.withDimensions,

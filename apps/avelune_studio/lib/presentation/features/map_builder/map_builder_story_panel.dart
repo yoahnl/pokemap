@@ -88,21 +88,11 @@ class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
             child: ListView(
               padding: const EdgeInsets.all(StudioSpacing.l),
               children: [
-                Text(
-                  outline.eyebrow,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    letterSpacing: 1,
-                  ),
+                StudioPanelHeading(
+                  eyebrow: outline.eyebrow,
+                  title: outline.title,
+                  description: outline.subtitle,
                 ),
-                const SizedBox(height: StudioSpacing.xs),
-                Text(
-                  outline.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(outline.subtitle, style: muted),
                 if (binding.openMapInStory case final open?)
                   StudioButton(
                     key: const ValueKey('map-story-open-history'),
@@ -112,15 +102,11 @@ class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
                     onPressed: () => unawaited(open()),
                   ),
                 const SizedBox(height: StudioSpacing.l),
-                TextField(
+                StudioInlineSearchField(
                   key: const ValueKey('map-story-search'),
                   controller: _search,
                   onChanged: binding.search,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: outline.searchHint,
-                    prefixIcon: const Icon(Icons.search, size: 18),
-                  ),
+                  hint: outline.searchHint,
                 ),
                 const SizedBox(height: StudioSpacing.m),
                 StudioSelect(
@@ -257,15 +243,11 @@ class _MapBuilderStoryPanelState extends State<MapBuilderStoryPanel> {
         else if (binding.characters.isEmpty)
           Text(l10n.storyNoCharacters, style: muted)
         else ...[
-          TextField(
+          StudioInlineSearchField(
             key: const ValueKey('map-story-character-search'),
             controller: _characterSearch,
             onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              isDense: true,
-              hintText: l10n.storyCharacterSearch,
-              prefixIcon: const Icon(Icons.search, size: 18),
-            ),
+            hint: l10n.storyCharacterSearch,
           ),
           const SizedBox(height: StudioSpacing.s),
           for (final character in binding.characters)

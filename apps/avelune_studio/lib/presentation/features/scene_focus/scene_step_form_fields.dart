@@ -120,7 +120,7 @@ class _PresenceForm extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (!sameMap)
-          SceneStepCaption(
+          StudioCaption(
             '${l10n.storyStepOtherMap(change.mapId)} · ${change.entityId}',
           ),
         _Pair(
@@ -172,7 +172,7 @@ class _DialogueView extends StatelessWidget {
       key: ValueKey('story-step-dialogue-${node.id}'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SceneStepCaption(steps.l10n.storyStepDialogue),
+        StudioCaption(steps.l10n.storyStepDialogue),
         Text(dialogue?.name ?? steps.l10n.sceneGraphMissing),
         const SizedBox(height: StudioSpacing.s),
         StoryDialogueLink(
@@ -182,7 +182,7 @@ class _DialogueView extends StatelessWidget {
         ),
         if (payload.speakerHints.isNotEmpty) ...[
           const SizedBox(height: StudioSpacing.xs),
-          SceneStepCaption(steps.l10n.storyStepSpeaker),
+          StudioCaption(steps.l10n.storyStepSpeaker),
           Text(payload.speakerHints.join(', ')),
         ],
       ],
@@ -231,7 +231,7 @@ class _ConditionForm extends StatelessWidget {
     if (source == null ||
         source.sourceKind != SceneConditionSourceKind.fact ||
         source.operator == SceneConditionOperator.equals) {
-      return SceneStepCaption(
+      return StudioCaption(
         '${l10n.storyStepAdvancedCondition}'
         '${payload.conditionLabel == null ? '' : ' · ${payload.conditionLabel}'}',
       );

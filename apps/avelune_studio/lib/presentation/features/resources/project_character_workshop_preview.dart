@@ -274,6 +274,7 @@ String characterAnimationLabel(CharacterAnimationState state) =>
       CharacterAnimationState.surf => 'Surf',
       CharacterAnimationState.surfEnter => 'Entrée dans l’eau',
       CharacterAnimationState.surfExit => 'Sortie de l’eau',
+      CharacterAnimationState.fishing => 'Pêche',
       CharacterAnimationState.cut => 'Coupe',
       CharacterAnimationState.rockSmash => 'Éclate-Roc',
       CharacterAnimationState.strength => 'Force',

@@ -5,7 +5,7 @@ import 'package:avelune_studio/features/project_session/application/project_open
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/home/project_loading_phase_row.dart';
 import 'package:avelune_studio/presentation/shared/localization/studio_locale.dart';
-import 'package:avelune_studio/presentation/shared/widgets/avelune_wordmark.dart';
+import 'package:avelune_studio/presentation/shared/widgets/avelune_studio_brand.dart';
 
 class ProjectLoadingScreen extends StatefulWidget {
   const ProjectLoadingScreen({
@@ -100,7 +100,7 @@ class _ProjectLoadingContent extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Center(child: AveluneWordmark(height: 40)),
+                  const Center(child: AveluneStudioBrand()),
                   const SizedBox(height: StudioSpacing.xxl * 2),
                   Text(l10n.openingTitle, style: theme.textTheme.titleMedium),
                   const SizedBox(height: StudioSpacing.xs),

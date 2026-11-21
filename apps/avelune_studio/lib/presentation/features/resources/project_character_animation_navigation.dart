@@ -28,6 +28,7 @@ const _animationGroups = [
       CharacterAnimationState.surf,
       CharacterAnimationState.surfEnter,
       CharacterAnimationState.surfExit,
+      CharacterAnimationState.fishing,
     ],
   ),
   (

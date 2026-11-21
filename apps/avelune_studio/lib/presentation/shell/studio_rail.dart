@@ -5,17 +5,17 @@ import 'package:avelune_studio/presentation/shared/localization/studio_locale.da
 
 const studioRailWidth = 64.0;
 
-enum StudioRailSection { map, story, resources, home, pokemon }
+enum StudioRailSection { map, story, resources, home, pokemon, settings }
 
 class StudioRail extends StatelessWidget {
   const StudioRail({
     super.key,
     this.section = StudioRailSection.map,
-    this.onSection,
+    this.sectionAction,
   });
 
   final StudioRailSection section;
-  final ValueChanged<StudioRailSection>? onSection;
+  final VoidCallback? Function(StudioRailSection)? sectionAction;
 
   @override
   Widget build(BuildContext context) {
@@ -31,54 +31,64 @@ class StudioRail extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: StudioSpacing.l),
       child: Column(
         children: [
-          _RailEntry(
-            key: const ValueKey('studio-rail-home'),
-            label: l10n.railHome,
-            icon: Icons.home_outlined,
-            selected: section == StudioRailSection.home,
-            onPressed: _open(StudioRailSection.home),
+          Expanded(
+            child: SingleChildScrollView(
+              primary: false,
+              child: Column(
+                children: [
+                  _entry(
+                    StudioRailSection.home,
+                    l10n.railHome,
+                    Icons.home_outlined,
+                  ),
+                  _entry(
+                    StudioRailSection.map,
+                    l10n.railMapBuilder,
+                    Icons.map_outlined,
+                  ),
+                  _RailEntry(
+                    label: l10n.railRegionalMap,
+                    icon: Icons.explore_outlined,
+                  ),
+                  _entry(
+                    StudioRailSection.resources,
+                    l10n.railResources,
+                    Icons.view_in_ar_outlined,
+                  ),
+                  _entry(
+                    StudioRailSection.story,
+                    l10n.railStory,
+                    Icons.menu_book_outlined,
+                  ),
+                  _entry(
+                    StudioRailSection.pokemon,
+                    l10n.railPokemon,
+                    Icons.catching_pokemon,
+                  ),
+                ],
+              ),
+            ),
           ),
-          _RailEntry(
-            key: const ValueKey('studio-rail-map'),
-            label: l10n.railMapBuilder,
-            icon: Icons.map_outlined,
-            selected: section == StudioRailSection.map,
-            onPressed: _open(StudioRailSection.map),
-          ),
-          _RailEntry(label: l10n.railRegionalMap, icon: Icons.explore_outlined),
-          _RailEntry(
-            key: const ValueKey('studio-rail-resources'),
-            label: l10n.railResources,
-            icon: Icons.view_in_ar_outlined,
-            selected: section == StudioRailSection.resources,
-            onPressed: _open(StudioRailSection.resources),
-          ),
-          _RailEntry(
-            key: const ValueKey('studio-rail-story'),
-            label: l10n.railStory,
-            icon: Icons.menu_book_outlined,
-            selected: section == StudioRailSection.story,
-            onPressed: _open(StudioRailSection.story),
-          ),
-          _RailEntry(
-            key: const ValueKey('studio-rail-pokemon'),
-            label: l10n.railPokemon,
-            icon: Icons.catching_pokemon,
-            selected: section == StudioRailSection.pokemon,
-            onPressed: _open(StudioRailSection.pokemon),
-          ),
-          const Spacer(),
           _RailEntry(label: l10n.railHelp, icon: Icons.help_outline),
           _RailEntry(label: l10n.railProjectSettings, icon: Icons.tune),
+          _entry(
+            StudioRailSection.settings,
+            l10n.studioSettings,
+            Icons.settings_outlined,
+          ),
         ],
       ),
     );
   }
 
-  VoidCallback? _open(StudioRailSection target) {
-    final open = onSection;
-    return open == null ? null : () => open(target);
-  }
+  Widget _entry(StudioRailSection target, String label, IconData icon) =>
+      _RailEntry(
+        key: ValueKey('studio-rail-${target.name}'),
+        label: label,
+        icon: icon,
+        selected: section == target,
+        onPressed: sectionAction?.call(target),
+      );
 }
 
 class _RailEntry extends StatelessWidget {

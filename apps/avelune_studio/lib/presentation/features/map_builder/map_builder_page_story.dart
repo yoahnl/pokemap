@@ -2,6 +2,10 @@ part of 'map_builder_page.dart';
 
 extension _MapBuilderPageStory on _MapBuilderPageState {
   void _setSection(StudioRailSection section, {bool navigation = false}) {
+    if (section == StudioRailSection.settings) {
+      unawaited(_openSettings());
+      return;
+    }
     if (!navigation) {
       _storyNavigation++;
       _storyOrigins.clear();
@@ -15,6 +19,13 @@ extension _MapBuilderPageStory on _MapBuilderPageState {
     _storyShown |= section == StudioRailSection.story;
     _pokemonShown |= section == StudioRailSection.pokemon;
     _changed();
+  }
+
+  Future<void> _openSettings() async {
+    final destination = await openStudioSettings(context, returnTo: _section);
+    if (mounted && destination != null && destination != _section) {
+      _setSection(destination);
+    }
   }
 
   Widget _storyPage() {

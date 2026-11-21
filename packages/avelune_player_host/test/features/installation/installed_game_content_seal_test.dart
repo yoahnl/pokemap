@@ -112,6 +112,63 @@ void main() {
     },
   );
 
+  Future<void> relabel(Iterable<File> files) async {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    for (final file in files) {
+      final mode = (file.statSync().mode & 0x1ff).toRadixString(8);
+      expect(Process.runSync('chmod', ['000', file.path]).exitCode, 0);
+      expect(Process.runSync('chmod', [mode, file.path]).exitCode, 0);
+    }
+  }
+
+  List<File> installedFiles(InstalledGameVerification verification) => [
+    installed('game-manifest.json'),
+    for (final entry in verification.manifest!.content.files)
+      installed(entry.path),
+  ];
+
+  test('an install relabeled as a whole keeps its seal', () async {
+    final (first, _) = await verify();
+    await relabel(installedFiles(first));
+
+    final (verification, hashed) = await verify();
+    expect(verification.isHealthy, isTrue);
+    expect(hashed, isEmpty);
+    final (_, again) = await verify();
+    expect(again, isEmpty);
+  });
+
+  test(
+    'a rewritten file is hashed again when the rest was not relabeled',
+    () async {
+      final (first, _) = await verify();
+      final files = installedFiles(first);
+      final project = installed('project/project.json');
+      await relabel(files.where((file) => file.path != project.path).skip(1));
+      final modified = project.lastModifiedSync();
+      final bytes = project.readAsBytesSync();
+      bytes[bytes.length - 1] ^= 1;
+      project.writeAsBytesSync(bytes, flush: true);
+      project.setLastModifiedSync(modified);
+
+      final (verification, hashed) = await verify();
+      expect(hashed, contains('project/project.json'));
+      expect(verification.code, InstalledGameVerificationCode.hashMismatch);
+    },
+  );
+
+  test('a relabeled install with a resized file is hashed again', () async {
+    final (first, _) = await verify();
+    final project = installed('project/project.json');
+    project.writeAsBytesSync([...project.readAsBytesSync(), 32], flush: true);
+    await relabel(installedFiles(first));
+
+    final (verification, hashed) = await verify();
+    expect(hashed, hasLength(first.manifest!.content.files.length));
+    expect(verification.code, InstalledGameVerificationCode.hashMismatch);
+    expect(verification.affectedPaths, ['project/project.json']);
+  });
+
   test('a damaged seal falls back to hashing every file', () async {
     await verify();
     seal().writeAsStringSync('not a seal');

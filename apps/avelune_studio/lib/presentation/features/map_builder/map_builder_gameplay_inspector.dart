@@ -183,55 +183,12 @@ class MapBuilderGameplayInspector extends StatelessWidget {
         binding: binding,
       );
     }
-    return _Heading(
+    return StudioPanelHeading.inspector(
+      key: const ValueKey('map-space-inspector'),
       eyebrow: outline.inspectorEyebrow,
       title: outline.inspectorTitle,
-      hint: outline.inspectorHint,
-    );
-  }
-}
-
-class _Heading extends StatelessWidget {
-  const _Heading({
-    required this.eyebrow,
-    required this.title,
-    required this.hint,
-  });
-
-  final String eyebrow;
-  final String title;
-  final String hint;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Column(
-      key: const ValueKey('map-space-inspector'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          eyebrow,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-            letterSpacing: 1,
-          ),
-        ),
-        const SizedBox(height: StudioSpacing.m),
-        Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: StudioSpacing.s),
-        Text(
-          hint,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-      ],
+      description: outline.inspectorHint,
+      descriptionGap: StudioSpacing.s,
     );
   }
 }

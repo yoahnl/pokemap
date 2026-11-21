@@ -2960,6 +2960,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   FishingAttemptPhase? get fishingPhase => _fishingFlow?.phase;
 
+  void cancelFishingForSessionExit() => _cancelPlayerFishing(notify: false);
+
   bool get canCapturePlayerCheckpoint => _cancelFieldTerrainTraversal == null && _fieldObstacleMovement == null && !_playerSlide.isSliding && !_isFishingBusy && _pendingInteractiveEncounter == null && _activeInteractiveEncounterAttemptId == null;
 
   GameState get gameStateSnapshot =>
@@ -3831,6 +3833,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _cancelInteractiveEncounter();
       }
       if (owner == RuntimeExternalInputLock.gameCompletion) {
+        cancelFishingForSessionExit();
         _cancelFieldTerrainTraversal?.call();
         _cancelFieldObstacleMovement();
         _playerSlide.reset();

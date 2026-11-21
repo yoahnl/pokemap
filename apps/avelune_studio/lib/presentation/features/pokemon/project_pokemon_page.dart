@@ -94,7 +94,7 @@ class _ProjectPokemonPageState extends ConsumerState<ProjectPokemonPage> {
             Expanded(
               child: switch (snapshot.connectionState) {
                 ConnectionState.waiting => const Center(
-                  child: CircularProgressIndicator(),
+                  child: StudioProgressIndicator(),
                 ),
                 _ when snapshot.hasError => StudioEmptyState(
                   title: l10n.pokemonReadFailed,
@@ -278,7 +278,7 @@ class _ProjectPokemonPageState extends ConsumerState<ProjectPokemonPage> {
     VoidCallback onRetry,
   ) {
     if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: StudioProgressIndicator());
     }
     if (snapshot.hasData) return data(snapshot.requireData);
     return StudioEmptyState(

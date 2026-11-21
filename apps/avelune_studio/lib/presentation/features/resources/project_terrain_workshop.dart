@@ -211,9 +211,7 @@ class _ProjectTerrainWorkshopState extends State<ProjectTerrainWorkshop> {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: StudioSpacing.xl),
               child: Center(
-                child: CircularProgressIndicator(
-                  semanticsLabel: 'Chargement du terrain',
-                ),
+                child: StudioProgressIndicator(label: 'Chargement du terrain'),
               ),
             );
           }
