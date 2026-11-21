@@ -209,6 +209,34 @@ final class InstalledGameVerifier {
     required String receiptFileName,
     InstalledGameVerificationDepth depth =
         InstalledGameVerificationDepth.content,
+  }) {
+    if (_usesDefaultIntegrityCheck &&
+        depth == InstalledGameVerificationDepth.content) {
+      return _installedGameContentChecks.run(
+        () => _verifyInstalledGameContent(
+          supportRoot.path,
+          gameId,
+          pointer,
+          receiptFileName,
+          _effectiveMaxConcurrentFileChecks,
+        ),
+      );
+    }
+    return _verify(
+      supportRoot: supportRoot,
+      gameId: gameId,
+      pointer: pointer,
+      receiptFileName: receiptFileName,
+      depth: depth,
+    );
+  }
+
+  Future<InstalledGameVerification> _verify({
+    required Directory supportRoot,
+    required String gameId,
+    required InstalledGamePointer pointer,
+    required String receiptFileName,
+    required InstalledGameVerificationDepth depth,
   }) async {
     try {
       GameIdentity.validateGameId(gameId);
@@ -248,10 +276,11 @@ final class InstalledGameVerifier {
     }
     late final GamePackageManifest manifest;
     try {
-      manifest = const GamePackageManifestCodec().decodeUtf8(
-        await File(p.join(versionRoot.path, 'game-manifest.json'))
-            .readAsBytes(),
-      );
+      final manifestPath = p.join(versionRoot.path, 'game-manifest.json');
+      manifest = _usesDefaultIntegrityCheck &&
+              depth == InstalledGameVerificationDepth.content
+          ? await _readInstalledGameManifest(manifestPath)
+          : await Isolate.run(() => _readInstalledGameManifest(manifestPath));
     } on Object {
       return InstalledGameVerification(
         code: InstalledGameVerificationCode.manifestInvalid,
@@ -380,31 +409,12 @@ final class InstalledGameVerifier {
     required List<GamePackageFileEntry> entries,
     required List<InstalledGameVerificationCode?> failureByIndex,
   }) async {
-    final bufferedBatches = List<List<List<Object>>>.generate(
-      _effectiveMaxConcurrentFileChecks,
-      (_) => <List<Object>>[],
-    );
-    var bufferedIndex = 0;
-    for (var index = 0; index < entries.length; index++) {
-      final entry = entries[index];
-      bufferedBatches[bufferedIndex++ % bufferedBatches.length].add(
-        <Object>[
-          index,
-          p.joinAll(<String>[
-            versionRoot.path,
-            ...p.posix.split(entry.path),
-          ]),
-          entry.size,
-          entry.sha256,
-        ],
-      );
-    }
-
-    Future<void> checkBufferedBatch(List<List<Object>> batch) async {
-      final failure = await _installedGameIntegrityIsolates.run(
-        () => Isolate.run(
-          () => _checkBufferedInstalledGameFiles(batch),
-        ),
+    Future<void> checkBufferedBatch(int batchIndex) async {
+      final failure = await _runInstalledGameFileChecks(
+        versionRoot.path,
+        entries,
+        start: batchIndex,
+        stride: _effectiveMaxConcurrentFileChecks,
       );
       if (failure == null) return;
       final index = failure[0] as int;
@@ -413,8 +423,10 @@ final class InstalledGameVerifier {
     }
 
     await Future.wait<void>(<Future<void>>[
-      for (final batch in bufferedBatches)
-        if (batch.isNotEmpty) checkBufferedBatch(batch),
+      for (var index = 0;
+          index < entries.length && index < _effectiveMaxConcurrentFileChecks;
+          index++)
+        checkBufferedBatch(index),
     ]);
   }
 
@@ -475,26 +487,68 @@ Future<InstalledGameVerificationCode?> _checkInstalledGameFileIntegrity(
 
 const int _maxBufferedIntegrityFileBytes = 4 * 1024 * 1024;
 const int _maxConcurrentIntegrityWorkers = 8;
-final _installedGameIntegrityIsolates = _InstalledGameIntegrityIsolateLimiter(
-  maxConcurrent: _maxConcurrentIntegrityWorkers,
+final _installedGameContentChecks = _InstalledGameIntegrityIsolateLimiter(
+  maxConcurrent: 1,
 );
 
-List<Object>? _checkBufferedInstalledGameFiles(List<List<Object>> entries) {
-  for (final entry in entries) {
-    final index = entry[0] as int;
+Future<InstalledGameVerification> _verifyInstalledGameContent(
+  String supportRootPath,
+  String gameId,
+  InstalledGamePointer pointer,
+  String receiptFileName,
+  int maxConcurrentFileChecks,
+) => Isolate.run(() {
+      final verifier = InstalledGameVerifier(
+        maxConcurrentFileChecks: maxConcurrentFileChecks,
+      );
+      return verifier._verify(
+        supportRoot: Directory(supportRootPath),
+        gameId: gameId,
+        pointer: pointer,
+        receiptFileName: receiptFileName,
+        depth: InstalledGameVerificationDepth.content,
+      );
+    });
+
+Future<GamePackageManifest> _readInstalledGameManifest(String path) async =>
+    const GamePackageManifestCodec().decodeUtf8(await File(path).readAsBytes());
+
+Future<List<Object>?> _runInstalledGameFileChecks(
+  String root,
+  List<GamePackageFileEntry> entries, {
+  required int start,
+  required int stride,
+}) {
+  final batch = [
+    for (var index = start; index < entries.length; index += stride)
+      entries[index],
+  ];
+  return Isolate.run(
+    () => _checkBufferedInstalledGameFiles(root, batch, start, stride),
+  );
+}
+
+List<Object>? _checkBufferedInstalledGameFiles(
+  String root,
+  List<GamePackageFileEntry> batch,
+  int start,
+  int stride,
+) {
+  for (var offset = 0; offset < batch.length; offset++) {
+    final entry = batch[offset];
+    final index = start + offset * stride;
     try {
-      final file = File(entry[1] as String);
-      final expectedSize = entry[2] as int;
-      final digest = expectedSize <= _maxBufferedIntegrityFileBytes
-          ? _digestBufferedFile(file, expectedSize)
-          : _digestStreamedFile(file, expectedSize);
+      final file = File(p.joinAll([root, ...p.posix.split(entry.path)]));
+      final digest = entry.size <= _maxBufferedIntegrityFileBytes
+          ? _digestBufferedFile(file, entry.size)
+          : _digestStreamedFile(file, entry.size);
       if (digest == null) {
         return <Object>[
           index,
           InstalledGameVerificationCode.sizeMismatch.index,
         ];
       }
-      if (digest != entry[3]) {
+      if (digest != entry.sha256) {
         return <Object>[
           index,
           InstalledGameVerificationCode.hashMismatch.index,

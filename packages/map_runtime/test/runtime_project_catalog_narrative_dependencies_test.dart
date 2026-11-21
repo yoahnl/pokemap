@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/narrative_event_runtime_snapshot.dart';
+import 'package:map_runtime/src/application/runtime_prepared_narrative_corpus.dart';
 import 'package:map_runtime/src/application/runtime_project_catalog.dart';
 
 import '../../map_gameplay/test/support/border_jump_fixture.dart';
@@ -143,6 +144,23 @@ void main() {
           project: catalog.projectMetadata,
           loadMap: (_) async => (project: catalog.projectMetadata, map: map),
         );
+        final visuals = RuntimeNarrativeVisualDefinitions.fromProject(leanSnapshot.project);
+        final restored = await NarrativeEventRuntimeSnapshot.build(
+          project: catalog.projectMetadata,
+          preparedCorpus: RuntimePreparedNarrativeCorpus(
+            maps: [NarrativeMapProjection.fromMapData(map)],
+            visualDefinitions: RuntimeNarrativeVisualDefinitions.fromJson(
+              jsonDecode(jsonEncode(visuals.toJson())) as Map<String, Object?>,
+            ),
+          ),
+          loadMap: (_) async => throw StateError('Prepared maps must be reused.'),
+        );
+        expect(_semantics(restored.projectCatalog), _semantics(leanSnapshot.projectCatalog));
+        expect(_claims(restored.legacyClaimIndex), _claims(leanSnapshot.legacyClaimIndex));
+        expect(restored.project.characters, leanSnapshot.project.characters);
+        expect(restored.project.elements, leanSnapshot.project.elements);
+        expect(restored.project.tilesets, leanSnapshot.project.tilesets);
+        expect(restored.matchesProject(catalog.projectMetadata), isTrue);
         expect(
           _semantics(leanSnapshot.projectCatalog),
           _semantics(fullSnapshot.projectCatalog),

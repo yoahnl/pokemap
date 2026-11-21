@@ -10,6 +10,10 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
+import 'hub_narrative_sources.dart';
+
+part 'hub_prepared_narrative_index_codec.dart';
+
 final class PreparedNarrativeCacheUnavailable implements Exception {
   const PreparedNarrativeCacheUnavailable();
 }
@@ -17,13 +21,16 @@ final class PreparedNarrativeCacheUnavailable implements Exception {
 final class HubPreparedNarrativeIndex {
   HubPreparedNarrativeIndex({required this.supportRoot});
 
-  static const validatorVersion = 1;
+  static const validatorVersion = 2;
   static const _maximumBytes = 128 * 1024 * 1024;
   static final _pending = <String, Future<void>>{};
   static final _pendingKeys = <String, Future<List<int>?>>{};
   final Directory supportRoot;
 
-  File fileFor(GamePackageManifest manifest) {
+  File fileFor(GamePackageManifest manifest) =>
+      _fileFor(manifest, validatorVersion);
+
+  File _fileFor(GamePackageManifest manifest, int version) {
     GameIdentity.validateGameId(manifest.gameId);
     if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(manifest.content.treeSha256)) {
       throw const FormatException(
@@ -34,16 +41,27 @@ final class HubPreparedNarrativeIndex {
       p.join(
         supportRoot.path,
         'runtime-narrative',
-        '${manifest.gameId}-${manifest.content.treeSha256}-$validatorVersion.index',
+        '${manifest.gameId}-${manifest.content.treeSha256}-$version.index',
       ),
     );
   }
 
   Future<List<NarrativeMapProjection>?> load(
     GamePackageManifest manifest,
+  ) async => (await _loadCorpus(manifest))?.maps;
+
+  Future<RuntimePreparedNarrativeCorpus?> _loadCorpus(
+    GamePackageManifest manifest,
+  ) async =>
+      await _loadVersion(manifest, validatorVersion) ??
+      await _loadVersion(manifest, 1);
+
+  Future<RuntimePreparedNarrativeCorpus?> _loadVersion(
+    GamePackageManifest manifest,
+    int version,
   ) async {
     try {
-      final file = fileFor(manifest);
+      final file = _fileFor(manifest, version);
       if (!await _safeCacheDirectory(create: false) ||
           await FileSystemEntity.type(file.path, followLinks: false) !=
               FileSystemEntityType.file ||
@@ -70,54 +88,67 @@ final class HubPreparedNarrativeIndex {
         body,
         manifest.gameId,
         manifest.content.treeSha256,
+        version,
       );
     } on Object {
       return null;
     }
   }
 
-  static Future<List<NarrativeMapProjection>> _decodeCorpus(
-    Uint8List body,
-    String gameId,
-    String treeSha256,
-  ) => Isolate.run(() async {
-    final output = BytesBuilder(copy: false);
-    await for (final chunk in gzip.decoder.bind(Stream.value(body))) {
-      if (output.length + chunk.length > _maximumBytes) {
-        throw const PreparedNarrativeCacheUnavailable();
+  Future<RuntimePreparedNarrativeCorpus> loadForStartup({
+    required RuntimeProjectCatalog catalog,
+    required Directory versionRoot,
+    required GamePackageManifest manifest,
+  }) async {
+    final project = catalog.projectMetadata;
+    final cached = await _loadCorpus(manifest);
+    if (cached != null) {
+      final cachedIds = cached.maps.map((map) => map.id).toSet();
+      if (cachedIds.length == cached.maps.length &&
+          cachedIds.length == project.maps.length &&
+          project.maps.every((map) => cachedIds.contains(map.id))) {
+        return cached;
       }
-      output.add(chunk);
     }
-    final json = decodeNarrativeEventJsonStrict(
-      utf8.decode(output.takeBytes()),
+    await verifyNarrativeSources(versionRoot, manifest, [
+      'project/project.json',
+      for (final map in project.maps) 'project/${map.relativePath}',
+    ]);
+    final maps = await catalog.loadNarrativeMapData(
+      expectedSha256ByMapId: narrativeMapSourceHashes(project, {
+        for (final entry in manifest.content.files) entry.path: entry,
+      }),
     );
-    if (json is! Map<String, Object?> ||
-        json.length != 5 ||
-        json['format'] != 'avelune.runtime-narrative' ||
-        json['validatorVersion'] is! int ||
-        json['validatorVersion'] != validatorVersion ||
-        json['gameId'] != gameId ||
-        json['treeSha256'] != treeSha256 ||
-        json['maps'] is! List) {
+    if (!await catalog.isCurrentPublication()) {
       throw const FormatException(
-        'Prepared narrative index identity mismatch.',
+        'Project changed while preparing narrative data.',
       );
     }
-    return List<NarrativeMapProjection>.unmodifiable([
-      for (final map in json['maps']! as List)
-        NarrativeMapProjection.fromJson(Map<String, Object?>.from(map as Map)),
-    ]);
-  });
+    return RuntimePreparedNarrativeCorpus(maps: await _projectMaps(maps));
+  }
 
   Future<void> prepare({
     required Directory versionRoot,
     required GamePackageManifest manifest,
     bool sourceAlreadyVerified = false,
-  }) {
+  }) => _singleFlight(
+    manifest,
+    () => _prepare(versionRoot, manifest, sourceAlreadyVerified),
+  );
+
+  Future<void> store(
+    GamePackageManifest manifest,
+    RuntimePreparedNarrativeCorpus corpus,
+  ) => _singleFlight(manifest, () => _writeCorpus(manifest, corpus));
+
+  Future<void> _singleFlight(
+    GamePackageManifest manifest,
+    Future<void> Function() work,
+  ) {
     final identity = p.normalize(p.absolute(fileFor(manifest).path));
     return _pending.putIfAbsent(identity, () async {
       try {
-        await _prepare(versionRoot, manifest, sourceAlreadyVerified);
+        await work();
       } finally {
         _pending.remove(identity);
       }
@@ -131,7 +162,7 @@ final class HubPreparedNarrativeIndex {
   ) async {
     Future<void> verifySource(List<String> paths) async {
       if (sourceAlreadyVerified) return;
-      await _verifySource(versionRoot, manifest, paths);
+      await verifyNarrativeSources(versionRoot, manifest, paths);
     }
 
     await verifySource(['project/project.json']);
@@ -158,13 +189,10 @@ final class HubPreparedNarrativeIndex {
       ];
       await verifySource(mapPaths);
       final maps = await catalog.loadNarrativeMapData(
-        expectedSha256ByMapId: {
-          for (final entry in project.maps)
-            entry.id: inventory['project/${entry.relativePath}']!.sha256,
-        },
+        expectedSha256ByMapId: narrativeMapSourceHashes(project, inventory),
       );
       final mapsById = {for (final map in maps) map.id: map};
-      await NarrativeEventRuntimeSnapshot.build(
+      final snapshot = await NarrativeEventRuntimeSnapshot.build(
         project: project,
         loadMap: (id) async => (
           project: project,
@@ -173,67 +201,63 @@ final class HubPreparedNarrativeIndex {
               (throw const FormatException('Missing narrative map.')),
         ),
       );
-      final corpus = await _projectMaps(maps);
+      final projections = await _projectMaps(maps);
       await verifySource(['project/project.json', ...mapPaths]);
       if (!await catalog.isCurrentPublication()) {
         throw const FormatException(
           'Project changed while preparing narrative data.',
         );
       }
-      final encoded = await _encodeCorpus(
-        corpus,
-        manifest.gameId,
-        manifest.content.treeSha256,
+      await _writeCorpus(
+        manifest,
+        RuntimePreparedNarrativeCorpus(
+          maps: projections,
+          visualDefinitions: RuntimeNarrativeVisualDefinitions.fromProject(
+            snapshot.project,
+          ),
+        ),
       );
-      if (encoded.length + 32 > _maximumBytes) {
-        throw const PreparedNarrativeCacheUnavailable();
-      }
-      try {
-        await _safeCacheDirectory(create: true);
-        final key = (await _key(create: true))!;
-        final signature = Hmac(sha256, key).convert(encoded).bytes;
-        final file = fileFor(manifest);
-        final temporary = File(
-          '${file.path}.$pid.${Random.secure().nextInt(1 << 32)}.tmp',
-        );
-        try {
-          await temporary.create(exclusive: true);
-          await temporary.writeAsBytes([...signature, ...encoded], flush: true);
-          if (await FileSystemEntity.type(file.path, followLinks: false) ==
-              FileSystemEntityType.link) {
-            throw const PreparedNarrativeCacheUnavailable();
-          }
-          await temporary.rename(file.path);
-        } finally {
-          if (await temporary.exists()) await temporary.delete();
-        }
-      } on FileSystemException {
-        throw const PreparedNarrativeCacheUnavailable();
-      }
     } finally {
       catalog.dispose();
     }
   }
 
-  static Future<List<int>> _encodeCorpus(
-    List<Map<String, Object?>> corpus,
-    String gameId,
-    String treeSha256,
-  ) => Isolate.run(() {
-    final bytes = utf8.encode(
-      jsonEncode({
-        'format': 'avelune.runtime-narrative',
-        'validatorVersion': validatorVersion,
-        'gameId': gameId,
-        'treeSha256': treeSha256,
-        'maps': corpus,
-      }),
+  Future<void> _writeCorpus(
+    GamePackageManifest manifest,
+    RuntimePreparedNarrativeCorpus corpus,
+  ) async {
+    final encoded = await _encodeCorpus(
+      corpus,
+      manifest.gameId,
+      manifest.content.treeSha256,
     );
-    if (bytes.length > _maximumBytes) {
+    if (encoded.length + 32 > _maximumBytes) {
       throw const PreparedNarrativeCacheUnavailable();
     }
-    return gzip.encode(bytes);
-  });
+    try {
+      await _safeCacheDirectory(create: true);
+      final key = (await _key(create: true))!;
+      final signature = Hmac(sha256, key).convert(encoded).bytes;
+      final file = fileFor(manifest);
+      final temporary = File(
+        '${file.path}.$pid.${Random.secure().nextInt(1 << 32)}.tmp',
+      );
+      try {
+        await temporary.create(exclusive: true);
+        await temporary.writeAsBytes([...signature, ...encoded], flush: true);
+        if (await FileSystemEntity.type(file.path, followLinks: false) ==
+            FileSystemEntityType.link) {
+          throw const PreparedNarrativeCacheUnavailable();
+        }
+        await temporary.rename(file.path);
+      } finally {
+        if (await temporary.exists()) await temporary.delete();
+      }
+    } on FileSystemException {
+      throw const PreparedNarrativeCacheUnavailable();
+    }
+  }
+
   Future<bool> _safeCacheDirectory({required bool create}) async {
     final directory = Directory(p.join(supportRoot.path, 'runtime-narrative'));
     var type = await FileSystemEntity.type(directory.path, followLinks: false);
@@ -304,35 +328,5 @@ final class HubPreparedNarrativeIndex {
   }
 }
 
-Future<List<Map<String, Object?>>> _projectMaps(List<MapData> maps) =>
-    Isolate.run(
-      () => [
-        for (final map in maps)
-          NarrativeMapProjection.fromMapData(map).toJson(),
-      ],
-    );
-
-Future<void> _verifySource(
-  Directory root,
-  GamePackageManifest manifest,
-  List<String> paths,
-) => Isolate.run(() async {
-  final entries = {
-    for (final entry in manifest.content.files) entry.path: entry,
-  };
-  final canonicalRoot = await root.resolveSymbolicLinks();
-  for (final path in paths) {
-    final entry = entries[path];
-    final file = File(p.join(root.path, path));
-    if (entry == null ||
-        !p.isWithin(canonicalRoot, await file.resolveSymbolicLinks()) ||
-        await FileSystemEntity.type(file.path, followLinks: false) !=
-            FileSystemEntityType.file ||
-        await file.length() != entry.size ||
-        (await sha256.bind(file.openRead()).first).toString() != entry.sha256) {
-      throw const FormatException(
-        'Narrative source does not match the verified inventory.',
-      );
-    }
-  }
-});
+Future<List<NarrativeMapProjection>> _projectMaps(List<MapData> maps) =>
+    Isolate.run(() => maps.map(NarrativeMapProjection.fromMapData).toList());

@@ -181,6 +181,46 @@ void main() {
   );
 
   test(
+    'a legacy corpus is upgraded after preload without blocking the session',
+    () async {
+      final file = await _narrativeProject();
+      final maps = [
+        NarrativeMapProjection.fromMapData(_map),
+        NarrativeMapProjection.fromMapData(_otherMap),
+      ];
+      final writing = Completer<RuntimePreparedNarrativeCorpus>();
+      final releaseWrite = Completer<void>();
+      addTearDown(() {
+        if (!releaseWrite.isCompleted) releaseWrite.complete();
+      });
+      final preloader = RuntimeInitialMapPreloader(
+        projectFilePath: () async => file.path,
+        loadSave: (_) async => null,
+        preparedNarrativeCorpusLoader: (_) async =>
+            RuntimePreparedNarrativeCorpus(maps: maps),
+        cacheNarrativeCorpus: (corpus) {
+          writing.complete(corpus);
+          return releaseWrite.future;
+        },
+      );
+      addTearDown(preloader.clear);
+      await preloader.preloadInitialMap(
+        const RuntimeInitialMapPreloadRequest.newGame(),
+      ).timeout(const Duration(seconds: 5));
+      final upgraded = await writing.future.timeout(const Duration(seconds: 5));
+      expect(upgraded.maps, maps);
+      expect(upgraded.visualDefinitions, isNotNull);
+      final result = await preloader.resolveForSession(
+        projectFilePath: file.path,
+        descriptor: _descriptor(),
+        initialSave: null,
+      );
+      expect(result?.narrativeSnapshot?.mapsById.keys, ['start', 'other']);
+      result?.dispose();
+    },
+  );
+
+  test(
     'clear during prepared corpus load releases catalog and warmed images',
     () async {
       final file = await _narrativeProject(withTileset: true);

@@ -8,6 +8,7 @@ import '../application/load_runtime_map_bundle.dart';
 import '../application/narrative_event_runtime_snapshot.dart';
 import '../application/runtime_map_bundle.dart';
 import '../application/runtime_project_catalog.dart';
+import '../application/runtime_prepared_narrative_corpus.dart';
 import '../infrastructure/runtime_tileset_image.dart';
 import '../infrastructure/tile_image_loader.dart';
 import '../session/game_session_contract.dart';
@@ -124,6 +125,8 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     required RuntimeInitialMapSaveLoader loadSave,
     this.expectedIdentity,
     this.preparedNarrativeMapsLoader,
+    this.preparedNarrativeCorpusLoader,
+    this.cacheNarrativeCorpus,
     RuntimeProjectCatalog? preparedProjectCatalog,
     this.resourceProfile = const RuntimeResourceProfile(),
     RuntimeInitialMapManifestLoader? manifestLoader,
@@ -141,6 +144,10 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
   final GameIdentity? expectedIdentity;
   final Future<List<NarrativeMapProjection>?> Function(RuntimeProjectCatalog)?
   preparedNarrativeMapsLoader;
+  final Future<RuntimePreparedNarrativeCorpus?> Function(RuntimeProjectCatalog)?
+  preparedNarrativeCorpusLoader;
+  final Future<void> Function(RuntimePreparedNarrativeCorpus)?
+  cacheNarrativeCorpus;
   final RuntimeResourceProfile resourceProfile;
   final RuntimeInitialMapSaveLoader _loadSave;
   final RuntimeInitialMapManifestLoader? _manifestLoader;
@@ -295,17 +302,27 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
             (registry.mode != EventSystemMode.legacyOnly ||
                 registry.hasLocalRuntimeAuthority)) {
           publish(RuntimeInitialMapPreloadStage.narrativeCatalog, 0.75);
-          final preparedMaps = catalog == null
+          final preparedCorpus = catalog == null
               ? null
-              : await preparedNarrativeMapsLoader?.call(catalog);
+              : await preparedNarrativeCorpusLoader?.call(catalog);
           if (generation != _generation) return;
-          final batchMaps = preparedMaps == null && catalog != null
-              ? {for (final map in await catalog.loadNarrativeMapData()) map.id: map}
+          final preparedMaps = preparedCorpus == null && catalog != null
+              ? await preparedNarrativeMapsLoader?.call(catalog)
+              : null;
+          if (generation != _generation) return;
+          final batchMaps = preparedCorpus == null && preparedMaps == null && catalog != null
+              ? {
+                  for (final map in await catalog.loadNarrativeMapData())
+                    map.id: map,
+                }
               : null;
           if (generation != _generation) return;
           narrativeSnapshot = await NarrativeEventRuntimeSnapshot.build(
-            loadPresentationMediaCatalog: () => WorldPresentationImageLoader(bundle.projectRootDirectory).loadCatalog(),
+            loadPresentationMediaCatalog: () => WorldPresentationImageLoader(
+              bundle.projectRootDirectory,
+            ).loadCatalog(),
             preparedMaps: preparedMaps,
+            preparedCorpus: preparedCorpus,
             project: manifest,
             loadMap: (id) async {
               final entry = projectMapEntryForId(manifest, id);
@@ -337,6 +354,19 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
               0.75 + (0.22 * completed / total),
             ),
           );
+          final cacheCorpus = cacheNarrativeCorpus;
+          if (generation == _generation &&
+              preparedCorpus != null &&
+              preparedCorpus.visualDefinitions == null &&
+              cacheCorpus != null) {
+            final corpus = RuntimePreparedNarrativeCorpus(
+              maps: preparedCorpus.maps,
+              visualDefinitions: RuntimeNarrativeVisualDefinitions.fromProject(
+                narrativeSnapshot.project,
+              ),
+            );
+            Future<void>(() => cacheCorpus(corpus)).ignore();
+          }
         }
         if (generation != _generation) return;
         publish(RuntimeInitialMapPreloadStage.worldPreparation, 0.98);
