@@ -6,6 +6,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/load_flame_component.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -169,7 +171,7 @@ void main() {
       mountGame: (mounted) async {
         game = mounted;
         game.onGameResize(Vector2(640, 480));
-        await game.load();
+        await loadFlameComponent(game);
       },
       unmountGame: (_) async {},
       now: () => DateTime.utc(2026, 8, 20),

@@ -3,12 +3,8 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_gameplay/map_gameplay.dart';
-import 'package:map_runtime/src/application/map_activation.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
-import 'package:map_runtime/src/application/narrative_spatial_production_dispatch_bridge.dart';
 import 'package:map_runtime/src/application/scene_runtime/scene_runtime_host_callbacks.dart';
-import 'package:map_runtime/src/application/scene_runtime/scene_consequence_runtime_writer.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/spatial/spatial_gameplay_events.dart';
 
@@ -185,10 +181,6 @@ final class _Host {
 
 String _id(String prefix, int value) =>
     '${prefix}_019abcde-0000-7000-8000-${value.toRadixString(16).padLeft(12, '0')}';
-MapActivation _activation(
-  String id, [
-  MapActivationReason reason = MapActivationReason.initialBoot,
-]) => MapActivation(activationId: id, mapId: 'map', reason: reason);
 
 MapData _map({
   List<MapEntity> entities = const [],
@@ -240,29 +232,6 @@ ProjectManifest _project(
   ),
   scenes: scenes,
   worldRules: worldRules,
-);
-
-NarrativeEventRecord _event(
-  int id,
-  NarrativeEventSourceRef source,
-  String sceneId, {
-  bool oneShot = true,
-  List<NarrativeEventCondition> conditions = const [],
-}) => NarrativeEventRecord.configuredStructurallyUnchecked(
-  NarrativeEventDefinition(
-    id: _id('evt', id),
-    name: sceneId,
-    source: source,
-    conditions: conditions,
-    sceneId: sceneId,
-    reusePolicy: oneShot
-        ? NarrativeEventReusePolicy.oneShot
-        : NarrativeEventReusePolicy.reusable,
-    priority: 0,
-    order: id,
-    resetPolicy: const NarrativeEventResetPolicy.never(),
-  ),
-  enabled: true,
 );
 
 SceneAsset _scene(

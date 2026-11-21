@@ -17,7 +17,7 @@ import 'package:map_render_3d/map_render_3d.dart' show SpatialSceneView;
 import 'package:map_render_3d/src/spatial_game_surface.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_runtime/map_runtime.dart' show
-    SpatialExplorationGameSessionRuntime, GameSessionDescriptor, GameIdentity,
+    SpatialExplorationGameSessionRuntime, GameSessionDescriptor,
     GameSessionLaunchMode, GameSessionAccessibilityOptions,
     RuntimeInitialMapPreloadResult, SpatialOverworldPresentation,
     RuntimeBattleMessageId,

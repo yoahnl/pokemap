@@ -990,7 +990,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     return _run(
       worldRequest,
       (state, caps) {
-        return _host!.openPc(
+        return _host.openPc(
           PlayerServicePcRequest(
             gameState: state,
             recoveryCaps: caps,
@@ -1059,7 +1059,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     return _run(
       worldRequest,
       (state, caps) {
-        return _host!.openHealCenter(
+        return _host.openHealCenter(
           PlayerServiceHealRequest(
             gameState: state,
             recoveryCaps: caps,
