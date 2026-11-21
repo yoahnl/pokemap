@@ -58,7 +58,9 @@ class PlayerWorldLoadingSurface extends StatelessWidget {
         null when showMapScene => PlayerWorldMapLoadingScene(
           progress: fraction,
           reducedMotion: reducedMotion,
-          details: _sceneDetails(title, fraction, percentage),
+          logo: logo,
+          detailsBuilder: (compact) =>
+              _sceneDetails(title, fraction, percentage, compact: compact),
         ),
         null => _standardPanel(context, title, fraction, percentage),
       },
@@ -122,7 +124,12 @@ class PlayerWorldLoadingSurface extends StatelessWidget {
     ],
   );
 
-  Widget _sceneDetails(String title, double? fraction, String? percentage) =>
+  Widget _sceneDetails(
+    String title,
+    double? fraction,
+    String? percentage, {
+    bool compact = false,
+  }) =>
       PlayerMenuThemeScope(
         key: const ValueKey('runtime-player-loading-art'),
         child: Builder(
@@ -137,7 +144,7 @@ class PlayerWorldLoadingSurface extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: theme.title,
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: compact ? 4 : 10),
                 Text(
                   stage,
                   textAlign: TextAlign.center,
@@ -149,13 +156,13 @@ class PlayerWorldLoadingSurface extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: theme.body,
                   ),
-                const SizedBox(height: 14),
+                SizedBox(height: compact ? 4 : 14),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 260),
                   child: _indicator(fraction, rounded: true),
                 ),
                 if (onCancel != null) ...[
-                  const SizedBox(height: 20),
+                  SizedBox(height: compact ? 6 : 20),
                   PlayerActionButton(
                     label: context.playerL10n.cancel,
                     icon: Icons.close,

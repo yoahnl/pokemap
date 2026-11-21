@@ -3343,18 +3343,25 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  for (final size in [
-    const Size(390, 844),
-    const Size(844, 390),
-    const Size(568, 320),
+  for (final (size, reducedMotion) in [
+    (const Size(390, 844), false),
+    (const Size(844, 390), false),
+    (const Size(568, 320), false),
+    (const Size(390, 844), true),
   ]) {
-    testWidgets('the map and its interactive emblem fit at $size',
+    testWidgets('the map and emblem fit at $size with reduced motion $reducedMotion',
         (tester) async {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final controller = _FakeRuntimePlayerCoordinator(_snapshot(
         revision: 1,
         phase: RuntimePlayerPhase.loadingSession,
+        preferences: PlayerPreferencesSnapshot(
+          locale: 'fr',
+          accessibility: GameSessionAccessibilityOptions(
+            reducedMotion: reducedMotion,
+          ),
+        ),
         loadingProgress: const GameSessionLoadingProgress(
           stage: 'resources',
           current: 4,
@@ -3392,13 +3399,24 @@ void main() {
       final sparkle = find.byKey(const ValueKey('player-world-loading-sparkle'));
       expect(emblem.hitTestable(), findsOneWidget);
       expect(map.contains(tester.getCenter(emblem)), isTrue);
-      await tester.tap(emblem);
+      if (size == const Size(844, 390)) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      } else {
+        await tester.tap(emblem);
+      }
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 140));
       expect(sparkle, findsOneWidget);
       expect(find.text('50%'), findsOneWidget);
       expect(controller.commands, isEmpty);
       await tester.pump(const Duration(milliseconds: 500));
+      if (reducedMotion) {
+        expect(sparkle, findsOneWidget);
+        await tester.tap(emblem);
+        await tester.pump();
+      }
       expect(sparkle, findsNothing);
 
       final cancel = find.text('Annuler');

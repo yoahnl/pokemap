@@ -1051,8 +1051,20 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
 
   KeyEventResult _routeHardwareInput(KeyEvent event) {
     if (!mounted) return KeyEventResult.ignored;
-    var runtimeEvent = _controlProfile.runtimeEventFromKeyEvent(event);
     final isHardwareGamepad = event.deviceType == ui.KeyEventDeviceType.gamepad;
+    if (!isHardwareGamepad &&
+        widget.showMapLoadingScene &&
+        (_latestSnapshot.phase == RuntimePlayerPhase.preparingSession ||
+            _latestSnapshot.phase == RuntimePlayerPhase.loadingSession)) {
+      switch (event.logicalKey) {
+        case LogicalKeyboardKey.tab:
+        case LogicalKeyboardKey.enter:
+        case LogicalKeyboardKey.numpadEnter:
+        case LogicalKeyboardKey.space:
+          return KeyEventResult.ignored;
+      }
+    }
+    var runtimeEvent = _controlProfile.runtimeEventFromKeyEvent(event);
     if (isHardwareGamepad) {
       if (event is KeyUpEvent) {
         final held = _hardwareControllerControls.remove(event.physicalKey);
