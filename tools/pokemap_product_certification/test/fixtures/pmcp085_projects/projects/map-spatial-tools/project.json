@@ -13,7 +13,9 @@
   ],
   "groups": [],
   "tilesetFolders": [],
-  "tilesets": [],
+  "tilesets": [
+    {"id": "companion-sheet", "name": "Companion sheet", "relativePath": "assets/companion-sheet.png"}
+  ],
   "models3d": [
     {
       "id": "tree",
@@ -89,7 +91,19 @@
   "shops": [],
   "badges": [],
   "trainers": [],
-  "characters": [],
+  "characters": [
+    {
+      "id": "ranger",
+      "name": "Ranger",
+      "tilesetId": "companion-sheet",
+      "animations": [
+        {"state": "walk", "direction": "north", "frames": [{"source": {"x": 0, "y": 0, "width": 16, "height": 16}, "durationMs": 100}]},
+        {"state": "walk", "direction": "south", "frames": [{"source": {"x": 16, "y": 0, "width": 16, "height": 16}, "durationMs": 100}]},
+        {"state": "walk", "direction": "east", "frames": [{"source": {"x": 0, "y": 16, "width": 16, "height": 16}, "durationMs": 100}]},
+        {"state": "walk", "direction": "west", "frames": [{"source": {"x": 16, "y": 16, "width": 16, "height": 16}, "durationMs": 100}]}
+      ]
+    }
+  ],
   "settings": {
     "dimension": "threeD",
     "spatialCamera": {

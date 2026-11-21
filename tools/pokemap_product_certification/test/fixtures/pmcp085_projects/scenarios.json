@@ -121,6 +121,178 @@
       ]
     },
     {
+      "id": "campaign-progression",
+      "projectRoot": "map-spatial-tools",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "fact.create_batch",
+          "actionVersion": 1,
+          "parameters": {
+            "facts": [
+              {"id": "fact_savings_enabled", "label": "Savings enabled", "defaultValue": false},
+              {"id": "fact_savings_balance", "label": "Savings balance", "valueType": "int", "defaultValue": 0},
+              {"id": "fact_recovered_after_a_defeat", "label": "Recovered after a defeat", "defaultValue": false},
+              {"id": "fact_radio_acquired", "label": "Radio acquired", "defaultValue": false},
+              {"id": "fact_ranger_registered", "label": "Ranger registered", "defaultValue": false}
+            ]
+          },
+          "observations": [
+            {"path":"project.json","at":["facts",0,"id"],"equals":"fact_savings_enabled"},
+            {"path":"project.json","at":["facts",1,"id"],"equals":"fact_savings_balance"},
+            {"path":"project.json","at":["facts",2,"id"],"equals":"fact_recovered_after_a_defeat"},
+            {"path":"project.json","at":["facts",3,"id"],"equals":"fact_radio_acquired"},
+            {"path":"project.json","at":["facts",4,"id"],"equals":"fact_ranger_registered"},
+            {"path":"project.json","at":["facts",1,"defaultValue"],"equals":0}
+          ]
+        },
+        {
+          "actionId": "campaign.battle_savings.update",
+          "actionVersion": 1,
+          "parameters": {"battleSavings":{"enabledFactId":"fact_savings_enabled","balanceFactId":"fact_savings_balance","percentage":25,"maximumBalance":1000}},
+          "observations": [
+            {"path":"project.json","at":["battleSavings"],"equals":{"enabledFactId":"fact_savings_enabled","balanceFactId":"fact_savings_balance","percentage":25,"maximumBalance":1000}}
+          ]
+        },
+        {
+          "actionId": "campaign.defeat_recovery.update",
+          "actionVersion": 1,
+          "parameters": {"defeatRecovery":{"recoveredFactId":"fact_recovered_after_a_defeat"}},
+          "observations": [
+            {"path":"project.json","at":["defeatRecovery","recoveredFactId"],"equals":"fact_recovered_after_a_defeat"},
+            {"path":"project.json","at":["battleSavings"],"equals":{"enabledFactId":"fact_savings_enabled","balanceFactId":"fact_savings_balance","percentage":25,"maximumBalance":1000}}
+          ]
+        },
+        {
+          "actionId": "scene.upsert",
+          "actionVersion": 1,
+          "parameters": {"scene":{"id":"ranger-call","name":"Ranger answers","graph":{"startNodeId":"start","nodes":[{"id":"start","kind":"start"},{"id":"end","kind":"end"}],"edges":[{"id":"finish","fromNodeId":"start","fromPortId":"completed","toNodeId":"end","kind":"default"}]}}},
+          "observations": [
+            {"path":"project.json","at":["scenes",0,"id"],"equals":"ranger-call"}
+          ]
+        },
+        {
+          "actionId": "scene.upsert",
+          "actionVersion": 1,
+          "parameters": {"scene":{"id":"ranger-busy","name":"Ranger is unavailable","graph":{"startNodeId":"start","nodes":[{"id":"start","kind":"start"},{"id":"end","kind":"end"}],"edges":[{"id":"finish","fromNodeId":"start","fromPortId":"completed","toNodeId":"end","kind":"default"}]}}},
+          "observations": [
+            {"path":"project.json","at":["scenes",1,"id"],"equals":"ranger-busy"}
+          ]
+        },
+        {
+          "actionId": "contact_device.configure",
+          "actionVersion": 1,
+          "parameters": {"configuration":{"id":"trail-radio","label":"Trail radio","acquiredFactId":"fact_radio_acquired","emptyMessage":"No contacts.","contacts":[{"id":"ranger","label":"Ranger","registeredFactId":"fact_ranger_registered","sceneId":"ranger-call","unavailableSceneId":"ranger-busy"}]}},
+          "observations": [
+            {"path":"project.json","at":["contactDevice"],"equals":{"id":"trail-radio","label":"Trail radio","acquiredFactId":"fact_radio_acquired","emptyMessage":"No contacts.","contacts":[{"id":"ranger","label":"Ranger","registeredFactId":"fact_ranger_registered","sceneId":"ranger-call","unavailableSceneId":"ranger-busy"}]}},
+            {"path":"project.json","at":["defeatRecovery","recoveredFactId"],"equals":"fact_recovered_after_a_defeat"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "campaign-game-data",
+      "projectRoot": "campaign-content",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "campaign.encounter_table.upsert",
+          "actionVersion": 1,
+          "parameters": {"value":{"id":"orchard","name":"Orchard","encounterKind":"walk","entries":[{"speciesId":"sproutle","minLevel":4,"maxLevel":6}]}},
+          "observations": [
+            {"path":"project.json","at":["encounterTables",0,"id"],"equals":"orchard"},
+            {"path":"project.json","at":["encounterTables",0,"entries",0,"speciesId"],"equals":"sproutle"},
+            {"path":"project.json","at":["encounterTables",0,"entries",0,"maxLevel"],"equals":6}
+          ]
+        },
+        {
+          "actionId": "campaign.encounter_table.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"id":"orchard"},
+          "observations": [
+            {"path":"project.json","at":["encounterTables"],"equals":[]}
+          ]
+        },
+        {
+          "actionId": "bag.capacity.set",
+          "actionVersion": 1,
+          "parameters": {"pockets":{"supplies":{"maxDistinctItems":4,"maxQuantityPerItem":12}}},
+          "observations": [
+            {"path":"project.json","at":["bagCapacity","pockets","supplies"],"equals":{"maxDistinctItems":4,"maxQuantityPerItem":12}}
+          ]
+        },
+        {
+          "actionId": "pokemon.ruleset.set",
+          "actionVersion": 1,
+          "parameters": {"profile":{"schemaVersion":1,"profileId":"pokemap-standard-v1","typeChartId":"mainline-modern-v1","maxLevel":100,"experiencePolicyId":"pokemap-simple-exp-v1","capturePolicyId":"pokemap-capture-mvp-v1","moveMachinePolicyId":"authored-consumability-v1","criticalHitPolicyId":"mainline-gen9-critical","speedTiePolicyId":"mainline-gen9-seeded-random","friendshipPolicyId":"mainline-0-255-v1","evolutionPolicyId":"pokemap-beta-evolution-v1","disabledFeatures":["breeding","modern-gimmicks","online"]}},
+          "observations": [
+            {"path":"project.json","at":["pokemon","ruleset","profileId"],"equals":"pokemap-standard-v1"},
+            {"path":"project.json","at":["pokemon","ruleset","disabledFeatures"],"equals":["breeding","modern-gimmicks","online"]}
+          ]
+        },
+        {
+          "actionId": "pokemon.configuration.set_enabled",
+          "actionVersion": 1,
+          "parameters": {"enabled":false},
+          "observations": [
+            {"path":"project.json","at":["pokemon","enabled"],"equals":false},
+            {"path":"project.json","at":["pokemon","ruleset","profileId"],"equals":"pokemap-standard-v1"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "campaign-companion",
+      "projectRoot": "map-spatial-tools",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "party_companion.configure",
+          "actionVersion": 1,
+          "parameters": {"enabled": true, "mappings": [{"speciesId": "sproutle", "formId": "base", "characterId": "ranger"}]},
+          "observations": [
+            {"path": "project.json", "at": ["partyCompanion", "enabled"], "equals": true},
+            {"path": "project.json", "at": ["partyCompanion", "mappings", 0], "equals": {"speciesId": "sproutle", "formId": "base", "characterId": "ranger"}}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "campaign-map-entities",
+      "projectRoot": "campaign-content",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "entity.create_batch",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","entities":[{"id":"orchard-gift","name":"Orchard gift","kind":"item","pos":{"x":2,"y":1},"blocksMovement":false,"item":{"gameItemId":"trail-tonic","quantity":1}},{"id":"healing-display","name":"Healing display","kind":"custom","pos":{"x":3,"y":1},"blocksMovement":false}]},
+          "observations": [
+            {"path":"maps/map.json","at":["entities",0,"id"],"equals":"orchard-gift"},
+            {"path":"maps/map.json","at":["entities",1,"id"],"equals":"healing-display"}
+          ]
+        },
+        {
+          "actionId": "entity.set_item_payload",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","entityId":"orchard-gift","payload":{"gameItemId":"trail-tonic","quantity":3}},
+          "observations": [
+            {"path":"maps/map.json","at":["entities",0,"item","gameItemId"],"equals":"trail-tonic"},
+            {"path":"maps/map.json","at":["entities",0,"item","quantity"],"equals":3}
+          ]
+        },
+        {
+          "actionId": "entity.set_healing_display",
+          "actionVersion": 1,
+          "parameters": {"mapId":"map","entityId":"healing-display","healingDisplay":{"variantElementIds":["healing-light-1","healing-light-2","healing-light-3","healing-light-4","healing-light-5","healing-light-6"]}},
+          "observations": [
+            {"path":"maps/map.json","at":["entities",1,"healingDisplay","variantElementIds"],"equals":["healing-light-1","healing-light-2","healing-light-3","healing-light-4","healing-light-5","healing-light-6"]},
+            {"path":"maps/map.json","at":["entities",0,"item","quantity"],"equals":3}
+          ]
+        }
+      ]
+    },
+    {
       "id": "pokemon-documents-write",
       "projectRoot": "pokemon-documents-write",
       "steps": [
@@ -724,6 +896,540 @@
           "observations": [
             {"path": "assets/.pokemap-media.json", "at": ["entries"], "equals": []},
             {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "id"], "equals": "proof"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cinematic-library",
+      "projectRoot": "cinematic-timeline",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "cinematicLibraryFolder.create",
+          "actionVersion": 1,
+          "parameters": {
+            "folderId": "planning",
+            "family": "world",
+            "name": "Planning",
+            "parentFolderId": null,
+            "targetIndex": 0
+          },
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 0, "id"], "equals": "planning"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryFolder.create",
+          "actionVersion": 1,
+          "parameters": {
+            "folderId": "chapters",
+            "family": "world",
+            "name": "Chapters",
+            "parentFolderId": null,
+            "targetIndex": 1
+          },
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 1, "id"], "equals": "chapters"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryFolder.create",
+          "actionVersion": 1,
+          "parameters": {
+            "folderId": "opening",
+            "family": "world",
+            "name": "Draft opening",
+            "parentFolderId": "planning",
+            "targetIndex": 0
+          },
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 2, "parentFolderId"], "equals": "planning"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryFolder.rename",
+          "actionVersion": 1,
+          "parameters": {"folderId": "opening", "name": "Opening"},
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 2, "name"], "equals": "Opening"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryFolder.move",
+          "actionVersion": 1,
+          "parameters": {"folderId": "opening", "targetParentFolderId": "chapters", "targetIndex": 0},
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 2, "parentFolderId"], "equals": "chapters"},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 2, "name"], "equals": "Opening"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryFolder.reorder",
+          "actionVersion": 1,
+          "parameters": {"folderId": "chapters", "targetIndex": 0},
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 0, "id"], "equals": "chapters"},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 1, "sortOrder"], "equals": 1}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryFolder.setArchived",
+          "actionVersion": 1,
+          "parameters": {"folderId": "planning", "isArchived": true},
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 1, "isArchived"], "equals": true},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 0, "isArchived"], "absent": true}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryAsset.create",
+          "actionVersion": 1,
+          "parameters": {
+            "family": "world",
+            "cinematicId": "departure",
+            "title": "Departure",
+            "targetFolderId": "opening",
+            "targetIndex": 0,
+            "startingPoint": "blank"
+          },
+          "observations": [
+            {"path": "project.json", "at": ["cinematics", 0, "id"], "equals": "departure"},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 0, "folderId"], "equals": "opening"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryAsset.duplicate",
+          "actionVersion": 1,
+          "parameters": {
+            "family": "world",
+            "cinematicId": "departure",
+            "duplicateId": "departure-copy",
+            "title": "Departure copy",
+            "targetFolderId": "opening",
+            "targetIndex": 1
+          },
+          "observations": [
+            {"path": "project.json", "at": ["cinematics", 1, "id"], "equals": "departure-copy"},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 1, "cinematicId"], "equals": "departure-copy"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryEntry.reorder",
+          "actionVersion": 1,
+          "parameters": {"family": "world", "cinematicId": "departure-copy", "targetIndex": 0},
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 0, "cinematicId"], "equals": "departure-copy"},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 1, "cinematicId"], "equals": "departure"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryEntry.setArchived",
+          "actionVersion": 1,
+          "parameters": {"family": "world", "cinematicId": "departure", "isArchived": true},
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 1, "isArchived"], "equals": true},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 0, "isArchived"], "absent": true}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryEntry.remove",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"family": "world", "cinematicId": "departure"},
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 1], "absent": true},
+            {"path": "project.json", "at": ["cinematics", 0, "id"], "equals": "departure"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryEntry.place",
+          "actionVersion": 1,
+          "parameters": {
+            "family": "world",
+            "cinematicId": "departure",
+            "targetFolderId": "chapters",
+            "targetIndex": 0
+          },
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 0, "cinematicId"], "equals": "departure"},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 0, "folderId"], "equals": "chapters"},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 1, "folderId"], "equals": "opening"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryAsset.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"family": "world", "cinematicId": "departure-copy"},
+          "observations": [
+            {"path": "project.json", "at": ["cinematics", 1], "absent": true},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 1], "absent": true},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 0, "cinematicId"], "equals": "departure"}
+          ]
+        },
+        {
+          "actionId": "cinematicLibraryFolder.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"folderId": "planning"},
+          "observations": [
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 2], "absent": true},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 1, "id"], "equals": "opening"},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "folders", 1, "parentFolderId"], "equals": "chapters"},
+            {"path": "project.json", "at": ["cinematicLibraryCatalog", "entries", 0, "folderId"], "equals": "chapters"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-cinematic-editing",
+      "projectRoot": "world-rules",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "presentationCinematic.create",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "title-reel",
+            "title": "Title reel",
+            "description": null,
+            "durationUs": 4000000
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "id"], "equals": "title-reel"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "durationUs"], "equals": 4000000}
+          ]
+        },
+        {
+          "actionId": "presentationCinematic.update",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "title-reel",
+            "title": "Arrival",
+            "description": "Opening text",
+            "durationUs": 6000000
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "title"], "equals": "Arrival"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "durationUs"], "equals": 6000000},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "description"], "equals": "Opening text"}
+          ]
+        },
+        {
+          "actionId": "presentationTimeline.insert",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "title-reel",
+            "targetVisualFolderId": null,
+            "layer": {"id": "title-text", "label": "Title text", "zIndex": 0, "visible": true, "locked": false},
+            "track": {
+              "id": "titles",
+              "label": "Titles",
+              "kind": "visual",
+              "clips": [
+                {
+                  "id": "welcome",
+                  "kind": "visual",
+                  "startUs": 500000,
+                  "durationUs": 750000,
+                  "contentKind": "text",
+                  "layerId": "title-text",
+                  "text": "Welcome to the orchard"
+                }
+              ]
+            }
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "id"], "equals": "titles"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 0, "id"], "equals": "title-text"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "clips", 0, "text"], "equals": "Welcome to the orchard"}
+          ]
+        },
+        {
+          "actionId": "presentationTrack.duplicate",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "title-reel",
+            "trackId": "titles",
+            "duplicateId": "secondary",
+            "label": "Secondary titles"
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "id"], "equals": "secondary"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "clips", 0, "id"], "equals": "secondary-welcome"}
+          ]
+        },
+        {
+          "actionId": "presentationTrack.move",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "title-reel", "trackId": "secondary", "insertionIndex": 0},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "id"], "equals": "secondary"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "id"], "equals": "titles"}
+          ]
+        },
+        {
+          "actionId": "presentationClip.update",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "title-reel",
+            "trackId": "titles",
+            "clip": {
+              "id": "welcome",
+              "kind": "visual",
+              "startUs": 500000,
+              "durationUs": 750000,
+              "contentKind": "text",
+              "layerId": "title-text",
+              "text": "Welcome home"
+            }
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "clips", 0, "text"], "equals": "Welcome home"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "clips", 0, "text"], "equals": "Welcome to the orchard"}
+          ]
+        },
+        {
+          "actionId": "presentationClip.resize",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "title-reel", "clipId": "welcome", "durationUs": 900000},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "clips", 0, "durationUs"], "equals": 900000}
+          ]
+        },
+        {
+          "actionId": "presentationClip.move",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "title-reel",
+            "clipId": "welcome",
+            "targetTrackId": "secondary",
+            "startUs": 1500000
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "clips"], "equals": []},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "clips", 1, "startUs"], "equals": 1500000}
+          ]
+        },
+        {
+          "actionId": "presentationClip.duplicate",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "title-reel",
+            "clipId": "welcome",
+            "duplicateId": "welcome-echo",
+            "targetTrackId": "titles",
+            "startUs": 2500000
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "clips", 0, "id"], "equals": "welcome-echo"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "clips", 0, "text"], "equals": "Welcome home"}
+          ]
+        },
+        {
+          "actionId": "presentationClip.batch",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "title-reel",
+            "operations": [
+              {
+                "kind": "edit",
+                "clipId": "welcome",
+                "targetTrackId": "secondary",
+                "startUs": 1700000,
+                "durationUs": 600000
+              },
+              {
+                "kind": "edit",
+                "clipId": "welcome-echo",
+                "targetTrackId": "titles",
+                "startUs": 3000000,
+                "durationUs": 1200000
+              }
+            ]
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "clips", 1, "startUs"], "equals": 1700000},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "clips", 1, "durationUs"], "equals": 600000},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "clips", 0, "startUs"], "equals": 3000000},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "clips", 0, "durationUs"], "equals": 1200000}
+          ]
+        },
+        {
+          "actionId": "presentationCinematic.duplicate",
+          "actionVersion": 1,
+          "parameters": {"cinematicId": "title-reel", "duplicateId": "title-copy", "title": "Arrival copy"},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 1, "id"], "equals": "title-copy"},
+            {"path": "project.json", "at": ["presentationCinematics", 1, "tracks", 0, "clips", 1, "startUs"], "equals": 1700000},
+            {"path": "project.json", "at": ["presentationCinematics", 1, "tracks", 1, "clips", 0, "durationUs"], "equals": 1200000}
+          ]
+        },
+        {
+          "actionId": "presentationClip.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"cinematicId": "title-reel", "clipId": "secondary-welcome"},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "clips", 0, "id"], "equals": "welcome"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "clips", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "presentationClip.deleteBatch",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"cinematicId": "title-reel", "clipIds": ["welcome", "welcome-echo"]},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "clips"], "equals": []},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1, "clips"], "equals": []},
+            {"path": "project.json", "at": ["presentationCinematics", 1, "tracks", 1, "clips", 0, "durationUs"], "equals": 1200000}
+          ]
+        },
+        {
+          "actionId": "presentationTrack.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"cinematicId": "title-reel", "trackId": "secondary"},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "id"], "equals": "titles"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 1], "absent": true}
+          ]
+        },
+        {
+          "actionId": "presentationCinematic.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"cinematicId": "title-copy"},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 1], "absent": true},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "id"], "equals": "title-reel"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "tracks", 0, "id"], "equals": "titles"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-layer-editing",
+      "projectRoot": "presentation-visuals",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "presentationLayer.update",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "opening",
+            "layer": {
+              "id": "background",
+              "label": "Backdrop",
+              "zIndex": 0,
+              "visible": true,
+              "locked": false
+            }
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 1, "label"], "equals": "Backdrop"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 0, "label"], "equals": "Foreground"}
+          ]
+        },
+        {
+          "actionId": "presentationLayer.duplicate",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "opening",
+            "layerId": "background",
+            "duplicateId": "paper",
+            "label": "Paper",
+            "zIndex": 9
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 2, "id"], "equals": "paper"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 2, "zIndex"], "equals": 9}
+          ]
+        },
+        {
+          "actionId": "presentationLayer.move",
+          "actionVersion": 1,
+          "parameters": {
+            "cinematicId": "opening",
+            "layerId": "background",
+            "insertionIndex": 1,
+            "targetFolderId": "characters"
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 0, "id"], "equals": "paper"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 1, "id"], "equals": "background"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "visualFolders", 0, "layerIds"], "equals": ["background", "foreground"]}
+          ]
+        },
+        {
+          "actionId": "presentationLayer.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"cinematicId": "opening", "layerId": "paper"},
+          "observations": [
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 0, "id"], "equals": "background"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 1, "id"], "equals": "foreground"},
+            {"path": "project.json", "at": ["presentationCinematics", 0, "layers", 2], "absent": true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-preset-export",
+      "projectRoot": "presentation-preset",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "presentation.preset.import_apply",
+          "actionVersion": 1,
+          "artifact": {"path": "inputs/preset.zip", "mediaType": "application/zip"},
+          "parameters": {},
+          "observations": [
+            {"path": "project.json", "at": ["presentation", "dialogue", "placement"], "equals": "top"},
+            {"path": "project.json", "at": ["presentationPresets", 0, "id"], "equals": "audit-dialogue-top"}
+          ]
+        },
+        {
+          "actionId": "presentation.preset.export",
+          "actionVersion": 1,
+          "parameters": {
+            "presetId": "opening-preset",
+            "label": "Opening preset",
+            "description": "Opening dialogue and presentation.",
+            "licenses": {}
+          },
+          "observations": [
+            {"path": "project.json", "at": ["presentationPresets", 1, "id"], "equals": "opening-preset"},
+            {"path": "project.json", "at": ["presentationPresets", 1, "label"], "equals": "Opening preset"},
+            {"path": "project.json", "at": ["presentation", "dialogue", "placement"], "equals": "top"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-media-import",
+      "projectRoot": "presentation-media",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "presentationMedia.import",
+          "actionVersion": 1,
+          "artifact": {"path": "assets/proof.png", "mediaType": "image/png"},
+          "parameters": {
+            "assetId": "title-poster-source",
+            "mediaId": "poster",
+            "label": "Poster",
+            "kind": "image",
+            "logicalPath": "assets/title/poster.png"
+          },
+          "observations": [
+            {"path": "assets/.pokemap-media.json", "at": ["entries", 1, "id"], "equals": "poster"},
+            {"path": "assets/.pokemap-media.json", "at": ["entries", 1, "kind"], "equals": "image"},
+            {"path": "assets/.pokemap-media.json", "at": ["entries", 1, "sourceAssetId"], "equals": "title-poster-source"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 1, "logicalPath"], "equals": "assets/title/poster.png"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 1, "artifact", "digest"], "equals": "sha256:7c2ac387f27677d5e0ed7e97131956400f95cec65aa25f534c2ca275a8e84396"}
           ]
         }
       ]

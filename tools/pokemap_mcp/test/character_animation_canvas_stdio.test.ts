@@ -92,6 +92,18 @@ test("animation canvas is discoverable and survives MCP set preserve clear and c
           assert.deepEqual(await readFile(file), before);
         }
       }
+      const current = await query();
+      const fishingId = `fishing-clip-${++sequence}`;
+      const fishing = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
+        requestId: fishingId, idempotencyKey: fishingId, workspaceHandle: opened.workspaceHandle,
+        actionId: action.id, actionVersion: 1, expectedRevision: current.snapshotRevision,
+        parameters: {
+          characterId: "hero", kind: "system", state: "fishing", direction: "south",
+          sourceAssetId: "surf", frames: [frame],
+        },
+      } });
+      await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
+        planId: fishing.planId, operationId: fishingId });
       await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
     });
     await session(async call => {
@@ -99,8 +111,12 @@ test("animation canvas is discoverable and survives MCP set preserve clear and c
       const result = await call("pokemap_query", { projectHandle: opened.projectHandle, resourceKind: "characterStudioCharacter", operation: "get", ids: ["hero"], view: "detail" });
       const character = record((result.items as unknown[])[0]);
       for (const key of ["animations", "customAnimations"]) {
-        assert.equal(record((character[key] as unknown[])[0]).presentationReferenceHeightPx, 32);
+        const clip = (character[key] as unknown[]).map(record).find(value => value.state !== "fishing");
+        assert.equal(clip?.presentationReferenceHeightPx, 32);
       }
+      const fishing = (character.animations as unknown[]).map(record).find(value => value.state === "fishing");
+      assert.equal(fishing?.direction, "south");
+      assert.deepEqual(fishing?.frames, [frame]);
       await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
     });
   } finally {

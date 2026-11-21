@@ -12,7 +12,16 @@
     {
       "id": "proof",
       "name": "Proof",
-      "relativePath": "assets/proof.png"
+      "relativePath": "assets/proof.png",
+      "source": {
+        "kind": "regular_atlas",
+        "assetId": "proof",
+        "pixelWidth": 32,
+        "pixelHeight": 32,
+        "tileWidth": 1,
+        "tileHeight": 1,
+        "tileProperties": []
+      }
     }
   ],
   "pokemon": {
@@ -69,7 +78,13 @@
           "durationMs": 100
         }
       ]
-    }
+    },
+    {"id":"healing-light-1","name":"Healing light 1","tilesetId":"proof","categoryId":"props","frames":[{"source":{"x":0,"y":1,"width":1,"height":1},"durationMs":100}]},
+    {"id":"healing-light-2","name":"Healing light 2","tilesetId":"proof","categoryId":"props","frames":[{"source":{"x":1,"y":1,"width":1,"height":1},"durationMs":100}]},
+    {"id":"healing-light-3","name":"Healing light 3","tilesetId":"proof","categoryId":"props","frames":[{"source":{"x":2,"y":1,"width":1,"height":1},"durationMs":100}]},
+    {"id":"healing-light-4","name":"Healing light 4","tilesetId":"proof","categoryId":"props","frames":[{"source":{"x":3,"y":1,"width":1,"height":1},"durationMs":100}]},
+    {"id":"healing-light-5","name":"Healing light 5","tilesetId":"proof","categoryId":"props","frames":[{"source":{"x":4,"y":1,"width":1,"height":1},"durationMs":100}]},
+    {"id":"healing-light-6","name":"Healing light 6","tilesetId":"proof","categoryId":"props","frames":[{"source":{"x":5,"y":1,"width":1,"height":1},"durationMs":100}]}
   ],
   "characters": [
     {
