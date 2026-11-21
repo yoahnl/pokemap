@@ -482,6 +482,311 @@
       ]
     },
     {
+      "id": "narrative-event-lifecycle",
+      "projectRoot": "narrative-actions",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "scene.upsert",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {
+            "scene": {
+              "id": "arrival_scene",
+              "name": "Arrival",
+              "graph": {
+                "startNodeId": "start",
+                "nodes": [{"id":"start","kind":"start"},{"id":"end","kind":"end"}],
+                "edges": [{"id":"edge-0","fromNodeId":"start","fromPortId":"completed","toNodeId":"end","kind":"default"}]
+              }
+            }
+          },
+          "observations": [
+            {"path":"project.json","at":["scenes",0,"id"],"equals":"arrival_scene"}
+          ]
+        },
+        {
+          "actionId": "event_v2.registry_mode.set",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"mode":"v2Only"},
+          "observations": [
+            {"path":"project.json","at":["eventRegistry","mode"],"equals":"v2Only"}
+          ]
+        },
+        {
+          "actionId": "event_v2.create_draft",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"name":"Arrival draft","rawUuid":"019abcde-0000-7000-8000-000000000071","initialSource":{"kind":"mapEnter","mapId":"arrival"}},
+          "observations": [
+            {"path":"project.json","at":["eventRegistry","records",0,"state"],"equals":"draft"},
+            {"path":"project.json","at":["eventRegistry","records",0,"draft","id"],"equals":"evt_019abcde-0000-7000-8000-000000000071"},
+            {"path":"project.json","at":["eventRegistry","records",0,"draft","source","mapId"],"equals":"arrival"}
+          ]
+        },
+        {
+          "actionId": "event_v2.record_upsert",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {
+            "record": {
+              "state": "draft",
+              "draft": {
+                "id": "evt_019abcde-0000-7000-8000-000000000071",
+                "name": "Welcome on arrival",
+                "conditions": [],
+                "priority": 0,
+                "order": 0,
+                "source": {"kind":"mapEnter","mapId":"arrival"},
+                "sceneId": "arrival_scene",
+                "reusePolicy": "reusable"
+              }
+            }
+          },
+          "observations": [
+            {"path":"project.json","at":["eventRegistry","records",0,"draft","sceneId"],"equals":"arrival_scene"},
+            {"path":"project.json","at":["eventRegistry","records",0,"draft","name"],"equals":"Welcome on arrival"}
+          ]
+        },
+        {
+          "actionId": "event_v2.publish",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"eventId":"evt_019abcde-0000-7000-8000-000000000071"},
+          "observations": [
+            {"path":"project.json","at":["eventRegistry","records",0,"state"],"equals":"configured"},
+            {"path":"project.json","at":["eventRegistry","records",0,"definition","sceneId"],"equals":"arrival_scene"}
+          ]
+        },
+        {
+          "actionId": "event_v2.activate",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"eventId":"evt_019abcde-0000-7000-8000-000000000071"},
+          "observations": [
+            {"path":"project.json","at":["eventRegistry","records",0,"enabled"],"equals":true}
+          ]
+        },
+        {
+          "actionId": "event_v2.deactivate",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"eventId":"evt_019abcde-0000-7000-8000-000000000071"},
+          "observations": [
+            {"path":"project.json","at":["eventRegistry","records",0,"enabled"],"equals":false}
+          ]
+        },
+        {
+          "actionId": "event_v2.unpublish",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"eventId":"evt_019abcde-0000-7000-8000-000000000071"},
+          "observations": [
+            {"path":"project.json","at":["eventRegistry","records",0,"state"],"equals":"draft"},
+            {"path":"project.json","at":["eventRegistry","records",0,"draft","name"],"equals":"Welcome on arrival"}
+          ]
+        },
+        {
+          "actionId": "event_v2.delete",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "confirm": true,
+          "parameters": {"eventId":"evt_019abcde-0000-7000-8000-000000000071"},
+          "observations": [
+            {"path":"project.json","at":["eventRegistry","records",0],"absent":true}
+          ]
+        },
+        {
+          "actionId": "event_v2.record_upsert_batch",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {
+            "records": [
+              {"state":"draft","draft":{"id":"evt_019abcde-0000-7000-8000-000000000072","name":"Open the shop","conditions":[],"priority":0,"order":0}},
+              {"state":"draft","draft":{"id":"evt_019abcde-0000-7000-8000-000000000073","name":"Check the route","conditions":[],"priority":0,"order":1}}
+            ]
+          },
+          "observations": [
+            {"path":"project.json","at":["eventRegistry","records",0,"draft","name"],"equals":"Open the shop"},
+            {"path":"project.json","at":["eventRegistry","records",1,"draft","name"],"equals":"Check the route"},
+            {"path":"project.json","at":["eventRegistry","mode"],"equals":"v2Only"},
+            {"path":"project.json","at":["eventRegistry","records",2],"absent":true}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "narrative-pre-session-scene",
+      "projectRoot": "narrative-actions",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "scene.preSession.create",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"sceneId":"onboarding","name":"New game introduction","templateId":"minimal","setAsEntrypoint":true},
+          "observations": [
+            {"path":"project.json","at":["scenes",0,"executionProfile"],"equals":"preSession"}
+          ]
+        },
+        {
+          "actionId": "presentationCinematicTemplate.instantiate",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"templateId":"titleIdentity","templateVersion":1,"cinematicId":"opening","title":"Opening title","description":null},
+          "observations": [
+            {"path":"project.json","at":["presentationCinematics",0,"id"],"equals":"opening"}
+          ]
+        },
+        {
+          "actionId": "scene.preSession.interaction.insert",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {
+            "sceneId": "onboarding",
+            "nodeId": "ask-name",
+            "targetNodeId": "end",
+            "interaction": {"kind":"text","prompt":{"localizationKey":"opening.playerName","fallbackText":"Ton nom ?"},"resultBinding":{"field":"playerName"}}
+          },
+          "observations": [
+            {"path":"project.json","at":["scenes",0,"graph","nodes",2,"id"],"equals":"ask-name"}
+          ]
+        },
+        {
+          "actionId": "scene.preSession.interaction.update",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {
+            "sceneId": "onboarding",
+            "nodeId": "ask-name",
+            "interaction": {"kind":"text","prompt":{"localizationKey":"opening.playerName","fallbackText":"Comment veux-tu t’appeler ?"},"resultBinding":{"field":"playerName"}}
+          },
+          "observations": [
+            {"path":"project.json","at":["scenes",0,"graph","nodes",2,"payload","preSessionInteraction","prompt","fallbackText"],"equals":"Comment veux-tu t’appeler ?"}
+          ]
+        },
+        {
+          "actionId": "scene.preSession.presentation.insert",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"sceneId":"onboarding","nodeId":"show-title","targetNodeId":"end","presentationCinematicId":"opening"},
+          "observations": [
+            {"path":"project.json","at":["scenes",0,"graph","nodes",3,"payload","presentationCinematicId"],"equals":"opening"}
+          ]
+        },
+        {
+          "actionId": "scene.preSession.condition.insert",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"sceneId":"onboarding","nodeId":"has-name","targetNodeId":"end","falseEndNodeId":"missing-name","draftField":"playerName","operator":"isTrue"},
+          "observations": [
+            {"path":"project.json","at":["scenes",0,"graph","nodes",4,"id"],"equals":"has-name"},
+            {"path":"project.json","at":["scenes",0,"graph","nodes",5,"id"],"equals":"missing-name"},
+            {"path":"project.json","at":["scenes",0,"graph","nodes",2,"payload","preSessionInteraction","prompt","fallbackText"],"equals":"Comment veux-tu t’appeler ?"},
+            {"path":"project.json","at":["scenes",0,"graph","nodes",3,"payload","presentationCinematicId"],"equals":"opening"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "narrative-pause-visibility",
+      "projectRoot": "narrative-actions",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "scene.upsert",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {
+            "scene": {
+              "id": "pause-control",
+              "name": "Pause menu control",
+              "graph": {
+                "startNodeId": "start",
+                "nodes": [
+                  {"id":"start","kind":"start"},
+                  {"id":"bag","kind":"action","payload":{"consequence":{"kind":"setPauseMenuEntryVisibility","actionId":"bag","visible":true}}},
+                  {"id":"end","kind":"end"}
+                ],
+                "edges": [
+                  {"id":"edge-0","fromNodeId":"start","fromPortId":"completed","toNodeId":"bag","kind":"default"},
+                  {"id":"edge-1","fromNodeId":"bag","fromPortId":"completed","toNodeId":"end","kind":"default"}
+                ]
+              }
+            }
+          },
+          "observations": [
+            {"path":"project.json","at":["scenes",0,"graph","nodes",1,"payload","consequence","visible"],"equals":true}
+          ]
+        },
+        {
+          "actionId": "scene.pause_menu_visibility.set",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"sceneId":"pause-control","nodeId":"bag","actionId":"bag","visible":false},
+          "observations": [
+            {"path":"project.json","at":["scenes",0,"graph","nodes",1,"payload","consequence","visible"],"equals":false},
+            {"path":"project.json","at":["scenes",0,"graph","nodes",1,"payload","consequence","actionId"],"equals":"bag"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "narrative-rail-journey",
+      "projectRoot": "narrative-actions",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "rail_journey.upsert",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {
+            "journey": {
+              "id": "station-loop",
+              "label": "Arrival to terminal",
+              "origin": {
+                "stationMapId": "arrival",
+                "boardingArea": {"pos":{"x":1,"y":1},"size":{"width":2,"height":2}},
+                "trainEntryPos": {"x":2,"y":2},
+                "stationArrivalPos": {"x":3,"y":2},
+                "doors": [{"side":"west","stationPlacedElementId":"origin-door","vehiclePlacedElementId":"west-door"}]
+              },
+              "destination": {
+                "stationMapId": "terminal",
+                "boardingArea": {"pos":{"x":1,"y":1},"size":{"width":2,"height":2}},
+                "trainEntryPos": {"x":2,"y":2},
+                "stationArrivalPos": {"x":3,"y":2},
+                "doors": [{"side":"east","stationPlacedElementId":"terminal-door","vehiclePlacedElementId":"east-door"}]
+              },
+              "vehicleMapId": "train-car",
+              "vehicleVariant": "regular",
+              "shellState": "day",
+              "fare": {"policy":"story_free"}
+            }
+          },
+          "observations": [
+            {"path":"project.json","at":["railJourneyCatalog","journeys",0,"id"],"equals":"station-loop"},
+            {"path":"project.json","at":["railJourneyCatalog","journeys",0,"destination","stationMapId"],"equals":"terminal"},
+            {"path":"project.json","at":["railJourneyCatalog","journeys",0,"origin","doors",0,"vehiclePlacedElementId"],"equals":"west-door"},
+            {"path":"project.json","at":["railJourneyCatalog","journeys",0,"fare","policy"],"equals":"story_free"}
+          ]
+        },
+        {
+          "actionId": "rail_journey.delete",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "confirm": true,
+          "parameters": {"journeyId":"station-loop"},
+          "observations": [
+            {"path":"project.json","at":["railJourneyCatalog","journeys",0],"absent":true},
+            {"path":"maps/arrival.json","at":["placedElements",0,"id"],"equals":"origin-door"},
+            {"path":"maps/train-car.json","at":["placedElements",1,"id"],"equals":"east-door"}
+          ]
+        }
+      ]
+    },
+    {
       "id": "publish-document",
       "projectRoot": "project",
       "steps": [

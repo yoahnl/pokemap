@@ -1,0 +1,110 @@
+{
+  "id": "train-car",
+  "name": "Train car",
+  "version": "v8",
+  "size": {
+    "width": 8,
+    "height": 8
+  },
+  "layers": [
+    {
+      "id": "doors",
+      "name": "Doors",
+      "runtimeType": "tile",
+      "cells": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "placedElements": [
+    {
+      "id": "west-door",
+      "elementId": "sign-prop",
+      "layerId": "doors",
+      "pos": {
+        "x": 1,
+        "y": 1
+      },
+      "applyCollision": false,
+      "properties": {
+        "pokemapPlacementOrigin": "authored"
+      }
+    },
+    {
+      "id": "east-door",
+      "elementId": "sign-prop",
+      "layerId": "doors",
+      "pos": {
+        "x": 4,
+        "y": 1
+      },
+      "applyCollision": false,
+      "properties": {
+        "pokemapPlacementOrigin": "authored"
+      }
+    }
+  ]
+}

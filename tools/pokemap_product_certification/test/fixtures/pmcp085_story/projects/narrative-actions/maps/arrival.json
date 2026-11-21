@@ -1,0 +1,97 @@
+{
+  "id": "arrival",
+  "name": "Arrival",
+  "version": "v8",
+  "size": {
+    "width": 8,
+    "height": 8
+  },
+  "layers": [
+    {
+      "id": "doors",
+      "name": "Doors",
+      "runtimeType": "tile",
+      "cells": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "placedElements": [
+    {
+      "id": "origin-door",
+      "elementId": "sign-prop",
+      "layerId": "doors",
+      "pos": {
+        "x": 1,
+        "y": 1
+      },
+      "applyCollision": false,
+      "properties": {
+        "pokemapPlacementOrigin": "authored"
+      }
+    }
+  ]
+}
