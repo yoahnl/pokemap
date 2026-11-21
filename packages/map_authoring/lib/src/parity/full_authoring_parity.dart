@@ -2466,7 +2466,7 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/project/actor_contact_shadow_actions_test.dart',
   ),
   _ContractEvidenceRule(
-    ['project.rename'],
+    ['project.rename', 'project.publish_draft'],
     'test/domains/project/project_identity_actions_test.dart',
   ),
   _ContractEvidenceRule(

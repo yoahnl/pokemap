@@ -66,6 +66,49 @@ void main() {
       await expectLater(h.apply(plan, jsonl), throwsA(anything));
       expect(await h.file.readAsBytes(), before);
     });
+
+    test('$transport publishes a draft only if its original data still matches',
+        () async {
+      final h = await _Harness.create();
+      addTearDown(h.dispose);
+      final before = await h.file.readAsBytes();
+      final map = await h.mapFile.readAsBytes();
+      const action = 'project.publish_draft';
+      const fact = {
+        'id': 'parcel_ready',
+        'label': 'Parcel ready',
+        'defaultValue': false,
+      };
+      const documents = {
+        'facts': {
+          'parcel_ready': {'before': null, 'after': fact},
+        },
+      };
+
+      await expectLater(
+        h.plan({
+          'name': {'before': 'Stale', 'after': 'North Station'},
+          'documents': documents,
+        }, jsonl, actionId: action),
+        throwsA(anything),
+      );
+      expect(await h.file.readAsBytes(), before);
+
+      final plan = await h.plan({
+        'name': {'before': 'Adventure', 'after': 'North Station'},
+        'documents': documents,
+      }, jsonl, actionId: action);
+      expect(await h.file.readAsBytes(), before);
+      final result = await h.apply(plan, jsonl);
+      expect((result['receipt']! as Map)['actionId'], action);
+      final published = await h.document();
+      expect(published['name'], 'North Station');
+      final savedFact = (published['facts']! as List).single as Map;
+      expect(savedFact['id'], 'parcel_ready');
+      expect(savedFact['label'], 'Parcel ready');
+      expect(savedFact['defaultValue'], isFalse);
+      expect(await h.mapFile.readAsBytes(), map);
+    });
   }
 }
 
@@ -138,12 +181,12 @@ final class _Harness {
     return response.data;
   }
 
-  Future<Map<String, Object?>> plan(
-      Map<String, Object?> parameters, bool jsonl) async {
-    final id = 'rename-${sequence++}';
+  Future<Map<String, Object?>> plan(Map<String, Object?> parameters, bool jsonl,
+      {String actionId = 'project.rename'}) async {
+    final id = '$actionId-${sequence++}';
     final request = AuthoringRequest(
         requestId: id,
-        actionId: 'project.rename',
+        actionId: actionId,
         actionVersion: 1,
         workspaceHandle: opened.workspaceHandle.value,
         expectedRevision: (await snapshots.load(opened.projectHandle)).revision,
