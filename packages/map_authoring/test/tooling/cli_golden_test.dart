@@ -1,3 +1,6 @@
+@Timeout(Duration(minutes: 4))
+library;
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -14,6 +17,11 @@ void main() {
     cli = CompiledDartExecutable.build(
       entrypoint: 'bin/pokemap_authoring.dart',
       name: 'pokemap_authoring',
+      defines: {
+        'POKEMAP_AUTHORING_TEMPLATE_CATALOG_BASE64': base64Encode(
+          File('assets/project_templates.v1.json').readAsBytesSync(),
+        ),
+      },
     );
   });
 

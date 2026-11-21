@@ -16,24 +16,37 @@ final class CompiledDartExecutable {
   static Future<CompiledDartExecutable> build({
     required String entrypoint,
     required String name,
+    Map<String, String> defines = const {},
   }) async {
-    final outputDirectory = await Directory('build/test').createTemp(
+    final buildDirectory = await Directory('build/test').create(recursive: true);
+    final outputDirectory = await buildDirectory.createTemp(
       'compiled_${name}_',
     );
     final executable = File(
       '${outputDirectory.path}/$name${Platform.isWindows ? '.exe' : ''}',
     );
-    final result = await _runProcess(
-      Platform.resolvedExecutable,
-      <String>['compile', 'exe', entrypoint, '-o', executable.path],
-      workingDirectory: Directory.current.path,
-      timeout: const Duration(minutes: 1),
-    );
-    if (result.exitCode != 0) {
-      await outputDirectory.delete(recursive: true);
-      throw StateError(
-        'Could not compile $entrypoint for process tests: ${result.stderr}',
+    try {
+      final result = await _runProcess(
+        Platform.resolvedExecutable,
+        <String>[
+          'compile',
+          'exe',
+          for (final define in defines.entries) '-D${define.key}=${define.value}',
+          entrypoint,
+          '-o',
+          executable.path,
+        ],
+        workingDirectory: Directory.current.path,
+        timeout: const Duration(minutes: 3),
       );
+      if (result.exitCode != 0) {
+        throw StateError(
+          'Could not compile $entrypoint for process tests: ${result.stderr}',
+        );
+      }
+    } on Object {
+      await outputDirectory.delete(recursive: true);
+      rethrow;
     }
     return CompiledDartExecutable._(
       executable: executable,
