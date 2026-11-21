@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/presentation/features/home/studio_home_frame.dart';
 import 'package:avelune_studio/presentation/shell/studio_rail.dart';
@@ -7,6 +9,29 @@ import 'package:flutter/semantics.dart' show SemanticsProperties;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final density in [1.0, 1.5, 2.0, 3.0, 4.0]) {
+    test('the Studio symbol is transparent at ${density}x', () async {
+      final asset = await const AssetImage('assets/home/avelune_symbol.png')
+          .obtainKey(ImageConfiguration(devicePixelRatio: density));
+      expect(asset.scale, density);
+      final png = await asset.bundle.load(asset.name);
+      final codec = await ui.instantiateImageCodec(
+        png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes),
+      );
+      addTearDown(codec.dispose);
+      final image = (await codec.getNextFrame()).image;
+      addTearDown(image.dispose);
+      final pixels = (await image.toByteData())!;
+
+      int alpha(int x, int y) => pixels.getUint8((y * image.width + x) * 4 + 3);
+      expect(alpha(image.width ~/ 2, image.height ~/ 8), 0);
+      expect(alpha(image.width ~/ 2, image.height * 7 ~/ 8), 0);
+      expect(alpha(image.width ~/ 4, image.height ~/ 2), 255);
+    });
+  }
+
   testWidgets('shared navigation and brand at desktop and small window sizes', (
     tester,
   ) async {
