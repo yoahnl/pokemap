@@ -3,7 +3,7 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 
-const installedFileStampFields = 3;
+const installedFileStampFields = 2;
 
 Int64List readInstalledFileStamps(List<File> files) =>
     readInstalledFileStampsInBulk(files) ?? statInstalledFileStamps(files);
@@ -15,7 +15,6 @@ Int64List statInstalledFileStamps(List<File> files) {
     final offset = index * installedFileStampFields;
     stamps[offset] = stat.type == FileSystemEntityType.file ? stat.size : -1;
     stamps[offset + 1] = stat.modified.microsecondsSinceEpoch;
-    stamps[offset + 2] = stat.changed.microsecondsSinceEpoch;
   }
   return stamps;
 }
@@ -108,7 +107,7 @@ final class _DarwinDirectoryReader {
 
   static const _attributeListLength = 24;
   static const _bufferLength = 256 * 1024;
-  static const _commonAttributes = 0x80000000 | 0x1 | 0x8 | 0x400 | 0x800;
+  static const _commonAttributes = 0x80000000 | 0x1 | 0x8 | 0x400;
   static const _fileDataLength = 0x200;
   static const _directoryOnly = 0x100000;
   static const _regularFile = 1;
@@ -155,10 +154,9 @@ final class _DarwinDirectoryReader {
           final type = bytes.getUint32(entry + 32, Endian.host);
           entries[name] = Int64List.fromList([
             type == _regularFile && fileAttributes & _fileDataLength != 0
-                ? bytes.getInt64(entry + 68, Endian.host)
+                ? bytes.getInt64(entry + 52, Endian.host)
                 : -1,
             _micros(bytes, entry + 36),
-            _micros(bytes, entry + 52),
           ]);
           entry += length;
         }

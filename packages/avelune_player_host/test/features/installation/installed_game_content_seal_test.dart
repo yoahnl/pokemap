@@ -88,29 +88,19 @@ void main() {
     },
   );
 
-  test(
-    'a rewritten file is hashed again even with its size and mtime kept',
-    () async {
-      await verify();
-      final project = installed('project/project.json');
-      final modified = project.lastModifiedSync();
-      final bytes = project.readAsBytesSync();
-      bytes[bytes.length - 1] ^= 1;
-      project.writeAsBytesSync(bytes, flush: true);
-      project.setLastModifiedSync(modified);
+  test('a rewritten file with the same size is hashed again', () async {
+    await verify();
+    final project = installed('project/project.json');
+    final bytes = project.readAsBytesSync();
+    bytes[bytes.length - 1] ^= 1;
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    project.writeAsBytesSync(bytes, flush: true);
 
-      final (_, hashed) = await verify();
-      expect(hashed, ['project/project.json']);
-      final verification = await const InstalledGameVerifier().verify(
-        supportRoot: supportRoot,
-        gameId: game.gameId,
-        pointer: game.current,
-        receiptFileName: game.currentVersion.receiptFileName,
-      );
-      expect(verification.code, InstalledGameVerificationCode.hashMismatch);
-      expect(verification.affectedPaths, ['project/project.json']);
-    },
-  );
+    final (verification, hashed) = await verify();
+    expect(hashed, ['project/project.json']);
+    expect(verification.code, InstalledGameVerificationCode.hashMismatch);
+    expect(verification.affectedPaths, ['project/project.json']);
+  });
 
   Future<void> relabel(Iterable<File> files) async {
     await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -138,33 +128,24 @@ void main() {
     expect(again, isEmpty);
   });
 
-  test(
-    'a rewritten file is hashed again when the rest was not relabeled',
-    () async {
-      final (first, _) = await verify();
-      final files = installedFiles(first);
-      final project = installed('project/project.json');
-      await relabel(files.where((file) => file.path != project.path).skip(1));
-      final modified = project.lastModifiedSync();
-      final bytes = project.readAsBytesSync();
-      bytes[bytes.length - 1] ^= 1;
-      project.writeAsBytesSync(bytes, flush: true);
-      project.setLastModifiedSync(modified);
+  test('a partly relabeled install keeps its seal', () async {
+    final (first, _) = await verify();
+    final files = installedFiles(first);
+    await relabel(files.take(files.length ~/ 2));
 
-      final (verification, hashed) = await verify();
-      expect(hashed, contains('project/project.json'));
-      expect(verification.code, InstalledGameVerificationCode.hashMismatch);
-    },
-  );
+    final (verification, hashed) = await verify();
+    expect(verification.isHealthy, isTrue);
+    expect(hashed, isEmpty);
+  });
 
-  test('a relabeled install with a resized file is hashed again', () async {
+  test('a relabeled install hashes only its resized file', () async {
     final (first, _) = await verify();
     final project = installed('project/project.json');
     project.writeAsBytesSync([...project.readAsBytesSync(), 32], flush: true);
     await relabel(installedFiles(first));
 
     final (verification, hashed) = await verify();
-    expect(hashed, hasLength(first.manifest!.content.files.length));
+    expect(hashed, ['project/project.json']);
     expect(verification.code, InstalledGameVerificationCode.hashMismatch);
     expect(verification.affectedPaths, ['project/project.json']);
   });

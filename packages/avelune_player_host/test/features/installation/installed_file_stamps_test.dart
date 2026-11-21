@@ -42,10 +42,13 @@ void main() {
       Directory(p.join(root.path, 'here', 'folder'))..createSync(),
     ].map((entity) => File(entity.path)).toList();
     final stamps = readInstalledFileStamps(files);
-    expect(stamps[0], 5);
-    expect(stamps[3], -1);
-    expect(stamps[6], -1);
-    expect(stamps[9], -1);
+    expect(
+      [
+        for (var index = 0; index < files.length; index++)
+          stamps[index * installedFileStampFields],
+      ],
+      [5, -1, -1, -1],
+    );
     expect(stamps, statInstalledFileStamps(files));
   });
 
