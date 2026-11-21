@@ -18,6 +18,7 @@ import '../../../features/resources/domain/project_library_organization.dart';
 import '../../../features/resources/domain/project_model_replacement_port.dart';
 import '../../../features/resources/domain/project_model_workshop_port.dart';
 import '../../../features/resources/domain/project_tileset_workshop_port.dart';
+import '../../../features/resources/domain/project_terrain_workshop_port.dart';
 import '../../../features/resources/domain/resource_pack_port.dart';
 import '../../../features/resources/domain/resource_port.dart';
 import '../../../features/resources/domain/studio_search_text.dart';

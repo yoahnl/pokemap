@@ -10,7 +10,7 @@ extension _MapWorkspaceMapLoading on MapWorkspaceController {
           : await port.loadProject(session);
       if (_disposed) return;
       _catalogNewGame = manifest.newGame;
-      project = _prepareModelProjection(manifest);
+      project = _prepareResourceProjection(manifest);
       notify();
       if (manifest.maps.isNotEmpty) {
         final initial = manifest.newGame.enabled
@@ -57,7 +57,7 @@ extension _MapWorkspaceMapLoading on MapWorkspaceController {
         pending = _loading.putIfAbsent(entry.id, () async {
           final source = port;
           if (!hasCompleteProject && source is MapWorkspaceScopedPort) {
-            final sourceEpoch = _modelSourceEpoch;
+            final sourceEpoch = _resourceProjectionEpoch;
             final selection = await source.loadMapSelection(
               session,
               currentEntry,
@@ -89,7 +89,7 @@ extension _MapWorkspaceMapLoading on MapWorkspaceController {
           !hasCompleteProject &&
           source is MapWorkspaceScopedPort &&
           !_selections.containsKey(entry.id)) {
-        final sourceEpoch = _modelSourceEpoch;
+        final sourceEpoch = _resourceProjectionEpoch;
         final selection = await source.loadMapSelection(session, currentEntry);
         _cacheSelection(entry.id, selection, sourceEpoch);
       }
@@ -211,7 +211,7 @@ extension _MapWorkspaceMapLoading on MapWorkspaceController {
     pending = () async {
       try {
         final previewPort = port;
-        final sourceEpoch = _modelSourceEpoch;
+        final sourceEpoch = _resourceProjectionEpoch;
         final selection = previewPort is MapWorkspacePreviewSelectionPort
             ? await (previewPort as MapWorkspacePreviewSelectionPort)
                   .loadMapPreviewSelection(session, entry)

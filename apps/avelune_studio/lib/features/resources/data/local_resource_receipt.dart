@@ -9,6 +9,7 @@ ResourceMutationReceipt _resourceReceipt(
   ProjectManifest? projectedProject,
   String? projectedRevision,
   Map<String, ProjectModel3dEntry> changedModels = const {},
+  ProjectSmartTilePreset? changedTerrain,
 }) {
   final changes = plan.changeSet.changes;
   final manifestChanges = changes.where((c) => c.storageKey == 'project.json');
@@ -56,6 +57,7 @@ ResourceMutationReceipt _resourceReceipt(
         : null,
     snapshotBeforeRevision: plan.baseRevision,
     changedModels: Map.unmodifiable(changedModels),
+    changedTerrain: changedTerrain,
     modelSourceRevisions: Map.unmodifiable({
       for (final model in changedModels.values)
         for (final change in changes)

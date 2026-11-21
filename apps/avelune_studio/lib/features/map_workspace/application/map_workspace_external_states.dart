@@ -8,11 +8,13 @@ extension _MapWorkspaceExternalStates on MapWorkspaceController {
     documents.remove(id);
     _forgetVisualScope(id);
     final selection = _selections.remove(id);
-    _unindexExternalProjection(
+    _indexResourceProjections(
       id,
       selection?.definitions,
+      null,
       _selectionMapsByModel,
       _selectionMapsByBorder,
+      _selectionMapsByTerrain,
     );
     _externalConflicts.remove(id);
     _mapVisualProfiles.remove(id);

@@ -49,6 +49,31 @@ ProjectManifest replaceLoadedBorderProjection(
   );
 }
 
+ProjectManifest replaceLoadedTerrainProjection(
+  ProjectManifest current,
+  ProjectSmartTilePreset replacement,
+) {
+  final catalog = current.smartTileCatalog;
+  final index = catalog.presets.indexWhere(
+    (entry) => entry.id == replacement.id,
+  );
+  if (index == -1 || catalog.presets[index] == replacement) return current;
+  final presets = catalog.presets.toList();
+  presets[index] = replacement;
+  return current.copyWith(
+    smartTileCatalog: ProjectSmartTileCatalog(
+      formatVersion: catalog.formatVersion,
+      categories: catalog.categories,
+      atlases: catalog.atlases,
+      materials: catalog.materials,
+      animations: catalog.animations,
+      presets: presets,
+      patterns: catalog.patterns,
+      drafts: catalog.drafts,
+    ),
+  );
+}
+
 ResourceLibraryCatalog mergeResourceLibraryCatalogs(
   ResourceLibraryCatalog current,
   ResourceLibraryCatalog loaded,

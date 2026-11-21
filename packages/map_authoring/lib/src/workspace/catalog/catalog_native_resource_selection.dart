@@ -226,6 +226,13 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         drafts.add(record);
         candidates.add(existing.payload['value']);
         replacements.add(key);
+      } else if (existing != null && actionId == 'smart_tile.preset.publish') {
+        if (!_onlyReplacesTerrainFrames(existing.payload['value'], value)) {
+          CatalogWorkshopSelection.unsupported(
+              actionId, 'reassigning single-tile frames within their existing atlases');
+        }
+        roots.add(key);
+        replacements.add(key);
       } else if (existing != null && kind == CatalogDefinitionKind.character) {
         final before = ProjectCharacterEntry.fromJson(
             Map<String, dynamic>.from(existing.payload['value'] as Map));

@@ -163,6 +163,7 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
     Map<String, Object?> parameters,
     String expectedRevision, {
     String? Function()? validateBeforeApply,
+    String? terrainId,
   }) => mapAdapter.withResourceMutation(() async {
     _requireLibraryEditing();
     _resourceMutationActive = true;
@@ -180,8 +181,10 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
       final opened = context.opened;
       final catalog = await context.openService.catalogProject(
         opened.projectHandle,
+        metadataFields: terrainId == null ? null : const {},
       );
-      if (catalog == null ||
+      final revision = catalog?.revision;
+      if (revision == null ||
           await mapAdapter.resourceRevision(session) != before.revision) {
         throw const ResourceFailure(
           'Le catalogue a changé. Actualisez la bibliothèque puis réessayez.',
@@ -197,8 +200,11 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
               actionId: action,
               actionVersion: 1,
               idempotencyKey: operationId,
-              expectedRevision: catalog.revision,
+              expectedRevision: revision,
               parameters: parameters,
+              extensions: terrainId == null
+                  ? const {}
+                  : const {'workshopScope': true},
             ),
           )
           .onError<MapAuthoringException>((error, stackTrace) async {
@@ -207,7 +213,7 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
               Error.throwWithStackTrace(error, stackTrace);
             }
             final maps = before.manifest.maps;
-            final message = await catalog
+            final message = await catalog!
                 .read(
                   (project) => _tilesetGridUseMessage(
                     project.snapshot,
@@ -231,14 +237,22 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
             changedPaths: const [],
           );
         }
+        final terrain = terrainId == null
+            ? null
+            : planned.projectedProject!.smartTileCatalog.presets.singleWhere(
+                (value) => value.id == terrainId,
+              );
         final edited = _resourceReceipt(
           before.manifest,
           before.revision,
           plan,
           null,
           operationId,
-          projectedProject: before.manifest,
+          projectedProject: terrain == null
+              ? before.manifest
+              : replaceLoadedTerrainProjection(before.manifest, terrain),
           projectedRevision: await _projectedLibraryRevision(plan),
+          changedTerrain: terrain,
         );
         await _applyPlanned(
           api: context.api,
@@ -251,10 +265,19 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
         try {
           await beforeReconciliation?.call();
           _requireAvailable();
-          await mapAdapter.acceptResourceMutation(session, edited);
+          if (terrain != null) {
+            await _verifyWorkshopTerrain(this, terrain, edited.revision);
+          }
+          await mapAdapter.acceptResourceMutation(
+            session,
+            edited,
+            changedTerrain: terrain,
+          );
         } on Object {
           throw ResourceFailure(
-            'La modification est enregistrée. Actualisez la bibliothèque pour relire la fiche.',
+            terrain == null
+                ? 'La modification est enregistrée. Actualisez la bibliothèque pour relire la fiche.'
+                : 'Les raccords sont enregistrés. Relisez la publication pour les afficher.',
             partialReceipt: edited,
           );
         }
@@ -265,7 +288,9 @@ extension _LocalProjectLibraryEdits on LocalResourceAdapter {
     } on ResourceFailure {
       rethrow;
     } on Object catch (error) {
-      throw _libraryLifecycleFailure(error);
+      throw terrainId == null
+          ? _libraryLifecycleFailure(error)
+          : _terrainWorkshopMutationFailure(error);
     } finally {
       _resourceMutationActive = false;
       if (_disposed) await _closeMutationContext();

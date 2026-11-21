@@ -184,11 +184,13 @@ extension MapWorkspaceExternalMutations on MapWorkspaceController {
         _mapEpochs[id] = (_mapEpochs[id] ?? 0) + 1;
         _previews.remove(id);
         final previewDefinitions = _previewDefinitions.remove(id);
-        _unindexExternalProjection(
+        _indexResourceProjections(
           id,
           previewDefinitions,
+          null,
           _previewMapsByModel,
           _previewMapsByBorder,
+          _previewMapsByTerrain,
         );
         _loading.remove(id);
         if (document != null &&
@@ -208,7 +210,7 @@ extension MapWorkspaceExternalMutations on MapWorkspaceController {
           _closeExternallyRemovedDocument(id, document);
           continue;
         }
-        final sourceEpoch = _modelSourceEpoch;
+        final sourceEpoch = _resourceProjectionEpoch;
         final selection = source is MapWorkspaceScopedPort
             ? await source.loadMapSelection(session, entry)
             : null;
@@ -216,9 +218,9 @@ extension MapWorkspaceExternalMutations on MapWorkspaceController {
         if (!documentChanges.contains(id)) {
           if (selection != null &&
               selection.document.revision == document.base.revision) {
-            _cacheSelection(id, selection, sourceEpoch);
+            final prepared = _cacheSelection(id, selection, sourceEpoch);
             if (active == document && !hasCompleteProject) {
-              project = _withWorkshops(selection.definitions);
+              project = _withWorkshops(prepared.definitions);
             }
             continue;
           }
@@ -250,7 +252,9 @@ extension MapWorkspaceExternalMutations on MapWorkspaceController {
         document.atmosphere?.dispose();
         document.exteriorDecoration?.dispose();
         document.editor?.dispose();
-        if (selection != null) _cacheSelection(id, selection, sourceEpoch);
+        final prepared = selection == null
+            ? null
+            : _cacheSelection(id, selection, sourceEpoch);
         documents[id] = updated;
         _externalConflicts.remove(id);
         _elementOrderReceipts.remove(id);
@@ -259,8 +263,8 @@ extension MapWorkspaceExternalMutations on MapWorkspaceController {
         _fieldTraversalReceipts.remove(id);
         if (active == document) {
           active = updated;
-          if (selection != null && !hasCompleteProject) {
-            project = _withWorkshops(selection.definitions);
+          if (prepared != null && !hasCompleteProject) {
+            project = _withWorkshops(prepared.definitions);
           }
         }
       }

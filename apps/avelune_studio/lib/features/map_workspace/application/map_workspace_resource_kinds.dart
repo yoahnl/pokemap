@@ -26,19 +26,19 @@ extension MapWorkspaceResourceKinds on MapWorkspaceController {
           'Cette famille ne dispose pas de lecteur ciblé.',
         );
       }
-      final sourceEpoch = _modelSourceEpoch;
+      final sourceEpoch = _resourceProjectionEpoch;
       final loaded = await (source as MapWorkspaceResourceKindPort)
           .loadResourceKind(session, kind, placeableOnly: placeableOnly);
       if (_disposed || request != _resourceKindRequest) return;
       final map = _selections[active?.base.mapId]?.definitions ?? project!;
-      _familyDefinitions = _prepareModelProjection(
+      _familyDefinitions = _prepareResourceProjection(
         loaded.metadata,
         sourceEpoch: sourceEpoch,
       );
       _composeResourceVisuals();
       final family = _resourceVisualDefinitions!;
       _resourceVisualDefinitions = null;
-      project = _prepareModelProjection(
+      project = _prepareResourceProjection(
         mergeResourceSelection(
           project!,
           combineResourceVisuals(_withWorkshops(map), family),
@@ -130,20 +130,22 @@ extension MapWorkspaceResourceKinds on MapWorkspaceController {
     if (_disposed || loaded()) return Future.value();
     final operation = _resourceKindQueue.then((_) async {
       if (_disposed || loaded()) return;
-      final sourceEpoch = _modelSourceEpoch;
+      final sourceEpoch = _resourceProjectionEpoch;
       final selection = await load(port);
       if (_disposed || loaded()) return;
-      final prepared = _prepareModelProjection(
+      final prepared = _prepareResourceProjection(
         selection.metadata,
         sourceEpoch: sourceEpoch,
       );
       final previous = _onDemandDefinitions;
       _onDemandDefinitions = previous == null
           ? prepared
-          : _prepareModelProjection(combineResourceVisuals(previous, prepared));
+          : _prepareResourceProjection(
+              combineResourceVisuals(previous, prepared),
+            );
       remember();
       _composeResourceVisuals();
-      project = _prepareModelProjection(
+      project = _prepareResourceProjection(
         mergeBorderSelection(project!, prepared),
       );
       final map = _selections[active?.base.mapId]?.definitions ?? project!;
@@ -164,7 +166,7 @@ extension MapWorkspaceResourceKinds on MapWorkspaceController {
         ? borders
         : borders == null
         ? family
-        : _prepareModelProjection(combineResourceVisuals(family, borders));
+        : _prepareResourceProjection(combineResourceVisuals(family, borders));
   }
 
   void _resetOnDemandSelections() {

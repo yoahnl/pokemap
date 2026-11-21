@@ -16,19 +16,25 @@ extension MapWorkspaceWorkshops on MapWorkspaceController {
             'Cet atelier ne dispose pas de lecteur ciblé.',
           );
         }
-        final sourceEpoch = _modelSourceEpoch;
+        final sourceEpoch = _resourceProjectionEpoch;
         final loaded = await source.loadWorkshop(session, workshop);
         if (_disposed) return;
-        _workshopDefinitions = _prepareModelProjection(
+        _workshopDefinitions = _prepareResourceProjection(
           workshop.merge(
             _workshopDefinitions ?? project!,
-            _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch),
+            _prepareResourceProjection(
+              loaded.metadata,
+              sourceEpoch: sourceEpoch,
+            ),
           ),
         );
-        project = _prepareModelProjection(
+        project = _prepareResourceProjection(
           workshop.merge(
             project!,
-            _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch),
+            _prepareResourceProjection(
+              loaded.metadata,
+              sourceEpoch: sourceEpoch,
+            ),
           ),
         );
         _workshops.add(workshop);
@@ -52,7 +58,7 @@ extension MapWorkspaceWorkshops on MapWorkspaceController {
       }
     }
     return _withSurfConfiguration(
-      _prepareModelProjection(
+      _prepareResourceProjection(
         family == null ? merged : combineResourceVisuals(merged, family),
       ),
     );
@@ -62,10 +68,10 @@ extension MapWorkspaceWorkshops on MapWorkspaceController {
     if (hasCompleteProject || _disposed) return;
     final source = port;
     if (source is! MapWorkspaceScopedPort) return;
-    final sourceEpoch = _modelSourceEpoch;
+    final sourceEpoch = _resourceProjectionEpoch;
     final complete = await source.materializeProject(session);
     if (_disposed) return;
-    project = _prepareModelProjection(complete, sourceEpoch: sourceEpoch);
+    project = _prepareResourceProjection(complete, sourceEpoch: sourceEpoch);
     projectScope = MapWorkspaceProjectScope.completeProject;
     _clearSelections();
     notify();
@@ -86,13 +92,16 @@ extension MapWorkspaceWorkshops on MapWorkspaceController {
     _resetOnDemandSelections();
     for (final workshop in _workshops.toList()) {
       if (source is MapWorkspaceWorkshopPort) {
-        final sourceEpoch = _modelSourceEpoch;
+        final sourceEpoch = _resourceProjectionEpoch;
         final loaded = await source.loadWorkshop(session, workshop);
         if (_disposed) return;
-        _workshopDefinitions = _prepareModelProjection(
+        _workshopDefinitions = _prepareResourceProjection(
           workshop.merge(
             _workshopDefinitions ?? catalog.metadata,
-            _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch),
+            _prepareResourceProjection(
+              loaded.metadata,
+              sourceEpoch: sourceEpoch,
+            ),
           ),
         );
       }
@@ -101,7 +110,7 @@ extension MapWorkspaceWorkshops on MapWorkspaceController {
     final entry = catalog.metadata.maps
         .where((entry) => entry.id == document?.base.mapId)
         .firstOrNull;
-    final sourceEpoch = _modelSourceEpoch;
+    final sourceEpoch = _resourceProjectionEpoch;
     final selection = entry == null
         ? null
         : await source.loadMapSelection(session, entry);
@@ -112,7 +121,7 @@ extension MapWorkspaceWorkshops on MapWorkspaceController {
     }
     project = _withWorkshops(
       _selections[entry?.id]?.definitions ??
-          _prepareModelProjection(catalog.metadata),
+          _prepareResourceProjection(catalog.metadata),
     );
     projectScope = selection == null
         ? MapWorkspaceProjectScope.catalogMetadata
