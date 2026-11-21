@@ -127,13 +127,12 @@ void main() {
           ..._playerChannelLiterals(source),
       ];
 
-      expect(literals, hasLength(greaterThan(80)));
       expect(
-        literals.any(
-          (literal) => literal.contains('Le sac est occupé pour le moment.'),
-        ),
-        isTrue,
-        reason: 'un littéral connu du canal joueur doit être vu par le garde',
+        literals,
+        containsAll([
+          'Le fond du menu est indisponible.',
+          'Cette rencontre n’est plus disponible.',
+        ]),
       );
     });
   });

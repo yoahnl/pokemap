@@ -17221,7 +17221,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         itemCatalog: _itemCatalogSnapshot,
       );
     } on StateError catch (error) {
-      _showNotification('Sauvegarde impossible : ${error.message}');
+      debugPrint('[save] bag validation failed: $error');
+      _showNotification('Sauvegarde impossible. Vérifiez le contenu du sac.');
       return false;
     }
     if (kDebugMode) {
@@ -17350,8 +17351,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           itemCatalog: loadedItemCatalog,
         );
       } on StateError catch (error) {
+        debugPrint('[load] saved bag validation failed: $error');
         _showNotification(
-          'Chargement impossible : ${error.message} La partie en cours et la sauvegarde ont été conservées.',
+          'Le contenu du sac empêche le chargement. '
+          'La partie en cours et la sauvegarde ont été conservées.',
         );
         return false;
       }

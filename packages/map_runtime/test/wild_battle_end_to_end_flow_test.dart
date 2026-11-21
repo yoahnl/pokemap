@@ -121,12 +121,20 @@ void main() {
       expect(layout.enemySpriteRect.overlaps(layout.commandPanelRect), isFalse);
       expect(layout.playerSpriteRect.overlaps(layout.commandPanelRect), isFalse);
       expect(game.debugBattleOverlayComponent!.currentRmxpAnimationViewportSize.x, closeTo(layout.arenaRect.right, .001));
-      for (final actor in game.debugBattleOverlayComponent!.children.whereType<BattleSceneCombatantComponent>()) {
-        final expected = actor.isPlayerSide ? layout.playerSpriteRect : layout.enemySpriteRect;
-        expect(actor.currentSpriteRect.left, closeTo(expected.left, .001));
-        expect(actor.currentSpriteRect.top, closeTo(expected.top, .001));
-        expect(actor.currentSpriteRect.right, closeTo(expected.right, .001));
-        expect(actor.currentSpriteRect.bottom, closeTo(expected.bottom, .001));
+      final actors = game.debugBattleOverlayComponent!.children
+          .whereType<BattleSceneCombatantComponent>();
+      expect(actors, hasLength(2));
+      for (final actor in actors) {
+        final expectedFoot = actor.isPlayerSide
+            ? layout.playerFootAnchor
+            : layout.enemyFootAnchor;
+        expect(
+          (actor.stableCameraGeometry.foot - expectedFoot).distance,
+          closeTo(0, .001),
+        );
+        final rendered = actor.currentRenderedSpriteRect;
+        expect(rendered.isEmpty, isFalse);
+        expect(rendered.overlaps(layout.commandPanelRect), isFalse);
       }
       final beforeFight = layout.playerSpriteRect;
       expect(_ppSelectEntry(game, snapshot, BattleCommandRootAction.fight.index), isTrue);

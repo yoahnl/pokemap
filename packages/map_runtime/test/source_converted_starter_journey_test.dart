@@ -270,9 +270,14 @@ void main() {
                   .whereType<SceneSetNpcPoseConsequence>();
               expect(expectedPoses, hasLength(3));
               for (final expected in expectedPoses) {
+                final x = expected.x;
+                final y = expected.y;
+                if (x == null || y == null) {
+                  fail('The starter sequence must position ${expected.entityId}.');
+                }
                 expect(
                   poses[expected.entityId]?.position,
-                  GridPos(x: expected.x, y: expected.y),
+                  GridPos(x: x, y: y),
                 );
               }
             } else {
