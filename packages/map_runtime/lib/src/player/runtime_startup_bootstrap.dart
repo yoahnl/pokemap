@@ -69,6 +69,7 @@ final class RuntimeStartupPreparedGraph {
     this.presentationMetadata = const RuntimeStartupPresentationMetadata(),
     this.typographyLoader = const RuntimeProjectTypographyLoader(),
     this.reducedMotion = false,
+    this.preloadContinueInBackground = false,
     Future<void> Function()? stopIntroPlayback,
   }) : stopIntroPlayback = stopIntroPlayback ?? _noOp;
 
@@ -82,6 +83,7 @@ final class RuntimeStartupPreparedGraph {
   final RuntimeStartupPresentationMetadata presentationMetadata;
   final RuntimeProjectTypographyLoader typographyLoader;
   final bool reducedMotion;
+  final bool preloadContinueInBackground;
   final Future<void> Function() stopIntroPlayback;
   bool _disposed = false;
 
@@ -427,6 +429,7 @@ final class RuntimeStartupBootstrapCoordinator<T> {
         typographyLoader: result.graph.typographyLoader,
         minimumSplashDuration: _minimumSplashDuration,
         reducedMotion: result.graph.reducedMotion,
+        preloadContinueInBackground: result.graph.preloadContinueInBackground,
         presentationOrientation: _presentationOrientation,
         stopIntroPlayback: result.graph.stopIntroPlayback,
         initialTimelineGate: _timelineGate,

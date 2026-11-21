@@ -50,6 +50,7 @@ final class RuntimeStartupCoordinator {
         const RuntimeProjectTypographyLoader(),
     Duration? minimumSplashDuration,
     bool reducedMotion = false,
+    bool preloadContinueInBackground = false,
     RuntimePresentationOrientation presentationOrientation =
         RuntimePresentationOrientation.landscape,
     Future<void> Function()? stopIntroPlayback,
@@ -73,6 +74,7 @@ final class RuntimeStartupCoordinator {
         _finalCurtainDuration = hostBranding?.finalCurtainDuration ??
             const Duration(milliseconds: 280),
         _reducedMotion = reducedMotion,
+        _preloadContinueInBackground = preloadContinueInBackground,
         _presentationOrientation = presentationOrientation,
         _stopIntroPlayback = stopIntroPlayback ?? _noOp,
         _initialTimelineGate = initialTimelineGate,
@@ -133,6 +135,7 @@ final class RuntimeStartupCoordinator {
   final Duration _splashExitDuration;
   final Duration _finalCurtainDuration;
   final bool _reducedMotion;
+  final bool _preloadContinueInBackground;
   RuntimePresentationOrientation _presentationOrientation;
   final Future<void> Function() _stopIntroPlayback;
   final RuntimeStartupTimelineGate? _initialTimelineGate;
@@ -471,15 +474,16 @@ final class RuntimeStartupCoordinator {
 
   void _startPreparationAttempt() {
     final generation = ++_generation;
+    final firstAttempt = !_initialTimelineConsumed;
     final initialTimelineGate =
-        _initialTimelineConsumed ? null : _initialTimelineGate;
+        firstAttempt ? _initialTimelineGate : null;
     _initialTimelineConsumed = true;
     final attempt = _RuntimeStartupAttemptContext(
       orientation: _presentationOrientation,
     );
     _presentationSelectionGeneration++;
     _activePreparation?.cancel();
-    _initialMapPreloadPort.clear();
+    if (!firstAttempt) _initialMapPreloadPort.clear();
     _activeAttempt = attempt;
     _preparationActivated = false;
     _splashHoldElapsed = false;
@@ -547,6 +551,9 @@ final class RuntimeStartupCoordinator {
             _preparePlayerTitleUnit(playerPreparation, 'saveDiscoveryFailed'),
         RuntimeStartupPreparationStage.initialMap: () async {
           await playerPreparation;
+          if (!_isCurrent(generation)) {
+            return const RuntimeStartupPreparationStepResult.completed();
+          }
           if (_player.snapshot.phase != RuntimePlayerPhase.title) {
             return const RuntimeStartupPreparationStepResult.blockingFailure(
               RuntimeStartupFailure(
@@ -563,13 +570,20 @@ final class RuntimeStartupCoordinator {
             save.address,
           );
           try {
-            await _initialMapPreloadPort.preloadInitialMap(
+            final preload = _initialMapPreloadPort.preloadInitialMap(
               request,
-              onProgress: (progress) => preparation.reportStageProgress(
-                RuntimeStartupPreparationStage.initialMap,
-                progress.value,
-              ),
+              onProgress: _preloadContinueInBackground
+                  ? null
+                  : (progress) => preparation.reportStageProgress(
+                      RuntimeStartupPreparationStage.initialMap,
+                      progress.value,
+                    ),
             );
+            if (_preloadContinueInBackground) {
+              preload.ignore();
+            } else {
+              await preload;
+            }
             return const RuntimeStartupPreparationStepResult.completed();
           } on Object {
             return const RuntimeStartupPreparationStepResult.blockingFailure(

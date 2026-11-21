@@ -1,4 +1,4 @@
-import '../application/scene_runtime/world_presentation_image_loader.dart';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
@@ -9,6 +9,7 @@ import '../application/narrative_event_runtime_snapshot.dart';
 import '../application/runtime_map_bundle.dart';
 import '../application/runtime_project_catalog.dart';
 import '../application/runtime_prepared_narrative_corpus.dart';
+import '../application/scene_runtime/world_presentation_image_loader.dart';
 import '../infrastructure/runtime_tileset_image.dart';
 import '../infrastructure/tile_image_loader.dart';
 import '../session/game_session_contract.dart';
@@ -156,6 +157,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
 
   RuntimeProjectCatalog? _preparedProjectCatalog;
   _RuntimeInitialMapCacheEntry? _cached;
+  _PendingInitialMapPreload? _pending;
   final Map<int, RuntimeTilesetImageSingleFlightCache>
   _activeTilesetCacheByGeneration =
       <int, RuntimeTilesetImageSingleFlightCache>{};
@@ -166,8 +168,24 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
   Future<void> preloadInitialMap(
     RuntimeInitialMapPreloadRequest request, {
     RuntimeInitialMapPreloadProgressSink? onProgress,
-  }) async {
+  }) {
     final generation = _beginGeneration();
+    final pending = _PendingInitialMapPreload(request);
+    _pending = pending;
+    return _preload(pending, generation, onProgress).whenComplete(() {
+      if (identical(_pending, pending)) {
+        _pending = null;
+        pending.settled.complete();
+      }
+    });
+  }
+
+  Future<void> _preload(
+    _PendingInitialMapPreload pending,
+    int generation,
+    RuntimeInitialMapPreloadProgressSink? onProgress,
+  ) async {
+    final request = pending.request;
     var publishedValue = -1.0;
     void publish(RuntimeInitialMapPreloadStage stage, double value) {
       if (generation != _generation) return;
@@ -180,6 +198,8 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     }
 
     final projectFilePath = p.normalize(p.absolute(await _projectFilePath()));
+    if (generation != _generation) return;
+    pending.projectFilePath = projectFilePath;
     publish(RuntimeInitialMapPreloadStage.projectResolution, 0.08);
     final RuntimeProjectCatalog? catalog;
     if (_manifestLoader == null && _bundleLoader == null) {
@@ -217,6 +237,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
           );
       publish(RuntimeInitialMapPreloadStage.manifest, 0.24);
       final selection = await _resolveInitialSelection(request, manifest);
+      if (generation != _generation) return;
       final mapId = selection.mapId;
       if (request.mode == RuntimeInitialMapPreloadMode.continueGame) {
         publish(RuntimeInitialMapPreloadStage.saveDiscovery, 0.32);
@@ -413,10 +434,20 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     required GameSessionDescriptor descriptor,
     required SaveEnvelope? initialSave,
   }) async {
+    if (expectedIdentity != null && descriptor.identity != expectedIdentity) {
+      return null;
+    }
+    final normalizedPath = p.normalize(p.absolute(projectFilePath));
+    final pending = _pending;
+    if (pending != null &&
+        descriptor.launchMode != GameSessionLaunchMode.newGame &&
+        (pending.projectFilePath == null ||
+            pending.projectFilePath == normalizedPath) &&
+        _matchesContinueSelection(pending.request, descriptor, initialSave)) {
+      await pending.settled.future;
+    }
     final cached = _cached;
-    if ((expectedIdentity != null && descriptor.identity != expectedIdentity) ||
-        cached == null ||
-        cached.projectFilePath != p.normalize(p.absolute(projectFilePath))) {
+    if (cached == null || cached.projectFilePath != normalizedPath) {
       return null;
     }
     final expectedMapId = switch (descriptor.launchMode) {
@@ -481,6 +512,8 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
   }
 
   void _disposePreloadedResources() {
+    _pending?.settled.complete();
+    _pending = null;
     _cached?.result.dispose();
     _cached = null;
     for (final cache in _activeTilesetCacheByGeneration.values) {
@@ -547,19 +580,24 @@ String? _resolveContinueMapId(
   RuntimeInitialMapPreloadRequest request,
   GameSessionDescriptor descriptor,
   SaveEnvelope? save,
+) => _matchesContinueSelection(request, descriptor, save)
+    ? const GameStateSaveEnvelopeMapper().restore(save!).currentMapId.trim()
+    : null;
+
+bool _matchesContinueSelection(
+  RuntimeInitialMapPreloadRequest request,
+  GameSessionDescriptor descriptor,
+  SaveEnvelope? save,
 ) {
   final address = SaveSlotAddress(
     gameId: descriptor.identity.gameId,
     profileId: descriptor.profileId,
     slotId: descriptor.slotId,
   );
-  if (request.mode != RuntimeInitialMapPreloadMode.continueGame ||
-      request.saveAddress != address ||
-      save == null ||
-      !_matchesAddress(save, address)) {
-    return null;
-  }
-  return const GameStateSaveEnvelopeMapper().restore(save).currentMapId.trim();
+  return request.mode == RuntimeInitialMapPreloadMode.continueGame &&
+      request.saveAddress == address &&
+      save != null &&
+      _matchesAddress(save, address);
 }
 
 bool _matchesAddress(SaveEnvelope save, SaveSlotAddress address) =>
@@ -581,4 +619,12 @@ final class _RuntimeInitialMapCacheEntry {
   final String mapId;
   final String? saveFingerprint;
   final RuntimeInitialMapPreloadResult result;
+}
+
+final class _PendingInitialMapPreload {
+  _PendingInitialMapPreload(this.request);
+
+  final RuntimeInitialMapPreloadRequest request;
+  final settled = Completer<void>();
+  String? projectFilePath;
 }

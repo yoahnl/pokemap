@@ -1,32 +1,20 @@
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 Future<RuntimePlayerOptionsAvailability> resolveHubGameOptionsAvailability({
-  required String projectFilePath,
+  required RuntimeProjectCatalog catalog,
   required Set<String> capabilities,
-}) => Isolate.run(() async {
-  final catalog = await RuntimeProjectCatalog.open(
-    projectFilePath,
-    maximumCachedMaps: 0,
-    maximumCachedMapBytes: 0,
-  );
-  try {
-    return await hubGameOptionsAvailability(
-      project: catalog.projectMetadata,
-      capabilities: capabilities,
-      loadMap: catalog.loadMapData,
-      loadVisualProfile: (mapId) => loadSpatialVisualProfile(
-        projectRoot: File(projectFilePath).parent.path,
-        mapId: mapId,
-      ),
-    );
-  } finally {
-    catalog.dispose();
-  }
-});
+}) => hubGameOptionsAvailability(
+  project: catalog.projectMetadata,
+  capabilities: capabilities,
+  loadMap: catalog.loadMapData,
+  loadVisualProfile: (mapId) => loadSpatialVisualProfile(
+    projectRoot: File(catalog.projectFilePath).parent.path,
+    mapId: mapId,
+  ),
+);
 
 Future<RuntimePlayerOptionsAvailability> hubGameOptionsAvailability({
   required ProjectManifest project,

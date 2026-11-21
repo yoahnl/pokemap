@@ -357,11 +357,12 @@ final class HubRuntimeStartupBootstrap
           description: launch.manifest.description,
         ),
         reducedMotion: preferences.reducedMotion,
+        preloadContinueInBackground: true,
         stopIntroPlayback: stopIntroPlayback,
       );
       unawaited(
         resolveHubGameOptionsAvailability(
-          projectFilePath: projectFile.path,
+          catalog: metadataCatalog,
           capabilities: launch.grantedCapabilities,
         ).then(coordinator.updateOptionsAvailability, onError: (Object _) {}),
       );

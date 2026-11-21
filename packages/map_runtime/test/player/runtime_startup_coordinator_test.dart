@@ -426,6 +426,7 @@ void main() {
       RuntimeInitialMapPreloadMode.continueGame,
     );
     expect(preloader.requests.single.saveAddress, address);
+    expect(preloader.clearCount, 0);
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.splash);
     expect(harness.startup.snapshot.isPreparationReady, isFalse);
     expect(harness.startup.snapshot.progress, closeTo(0.825, 0.0001));
@@ -451,6 +452,44 @@ void main() {
 
     expect(preloader.requests, isEmpty);
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+  });
+
+  test('the title can appear while the Continue map is still warming up',
+      () async {
+    final gate = Completer<void>();
+    final preloader = _MemoryInitialMapPreloadPort(gate: gate.future);
+    final harness = _RuntimeStartupTestHarness(
+      latestSave: PlayerSaveSummary(
+        address: SaveSlotAddress(
+          gameId: 'com.pokemap.runtime-player-test',
+          profileId: 'player',
+          slotId: 'main',
+        ),
+        updatedAt: DateTime.utc(2026, 11, 21),
+        playTimeSeconds: 120,
+        status: SaveStatus.active,
+        canContinue: true,
+      ),
+      initialMapPreloadPort: preloader,
+      preloadContinueInBackground: true,
+    );
+    addTearDown(harness.dispose);
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
+
+    harness.startup.start();
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+
+    expect(preloader.requests, hasLength(1));
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+    expect(gate.isCompleted, isFalse);
+
+    gate.completeError(StateError('The warmup failed'));
+    await _flushEvents();
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+    expect(harness.startup.snapshot.failure, isNull);
   });
 
   test('an invalid discovered save still defers New Game preload to Player',
@@ -1153,7 +1192,7 @@ void main() {
     expect(harness.startup.isDisposed, isTrue);
     expect(snapshots, hasLength(countBeforeDispose));
     expect(harness.audio.stopCount, lessThanOrEqualTo(1));
-    expect(preloader.clearCount, 2);
+    expect(preloader.clearCount, 1);
     await subscription.cancel();
   });
 
@@ -1956,6 +1995,7 @@ final class _RuntimeStartupTestHarness {
     Future<void> Function()? stopIntroPlayback,
     RuntimeNewGamePreSessionRunner? preSessionRunner,
     bool reducedMotion = false,
+    bool preloadContinueInBackground = false,
     Completer<void>? audioStopGate,
     Future<void>? descriptorGate,
     RuntimePresentationOrientation presentationOrientation =
@@ -1993,6 +2033,7 @@ final class _RuntimeStartupTestHarness {
       clock: effectiveClock,
       minimumSplashDuration: const Duration(seconds: 7),
       reducedMotion: reducedMotion,
+      preloadContinueInBackground: preloadContinueInBackground,
       presentationOrientation: presentationOrientation,
       presentationMetadata: presentationMetadata,
       typographyLoader: typographyLoader,

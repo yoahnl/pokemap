@@ -85,17 +85,24 @@ class AveluneSplashPainter extends CustomPainter {
     final stageHeight = ui.lerpDouble(1280, 864, landscape)!;
     final stageCenterY = ui.lerpDouble(640, 622, landscape)!;
     final scale = math.min(size.width / 720, size.height / stageHeight);
-    canvas.save();
-    canvas.clipRect(Offset.zero & size);
-    canvas.drawColor(brand.background, BlendMode.src);
-    canvas.translate(
+    final origin = Offset(
       (size.width - 720 * scale) / 2,
       size.height / 2 - stageCenterY * scale,
     );
-    canvas.scale(scale);
-    _backdrop(canvas, t, phase, brand, size.width / scale);
     canvas.save();
-    canvas.translate(0, 5 * math.sin(phase));
+    canvas.clipRect(Offset.zero & size);
+    canvas.drawColor(brand.background, BlendMode.src);
+    canvas.translate(origin.dx, origin.dy);
+    canvas.scale(scale);
+    final viewport = Rect.fromLTWH(
+      -origin.dx / scale,
+      -origin.dy / scale,
+      size.width / scale,
+      size.height / scale,
+    );
+    _backdrop(canvas, t, phase, brand, viewport);
+    canvas.save();
+    canvas.translate(0, 10 * math.sin(phase));
     _moon(canvas, t, phase);
     _spray(canvas, t, brand);
     _guestStar(canvas, t, phase, brand);
@@ -183,11 +190,11 @@ class AveluneSplashPainter extends CustomPainter {
     final waveTime = math.max(0.0, t - _SplashCue.wave);
     final swell =
         29 * math.sin(waveTime * 9) * math.exp(-waveTime * 3.0) +
-        11 * math.sin(phase);
+        17 * math.sin(phase);
     final hitTime = math.max(0.0, t - _SplashCue.splash);
     final hit =
         101 * math.sin(hitTime * 19) * math.exp(-hitTime * 5.3) +
-        6 * math.sin(phase * 2);
+        9 * math.sin(phase * 2);
     final top = Path()
       ..moveTo(112, 659 + lift + swell)
       ..cubicTo(

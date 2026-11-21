@@ -76,10 +76,54 @@ void main() {
       60 * width * 4,
     );
 
-    expect(markDrift.abs(), inExclusiveRange(.5, 5));
-    expect(titleDrift.abs(), inExclusiveRange(.6, 4));
+    expect(markDrift.abs(), inExclusiveRange(3.5, 8));
+    expect(titleDrift.abs(), inExclusiveRange(2.2, 5));
     expect(Object.hashAll(movingBackground), isNot(Object.hashAll(background)));
   });
+
+  for (final (:width, :height, :palette) in [
+    (width: 390, height: 844, palette: AveluneSplashPalette.ios),
+    (width: 844, height: 390, palette: AveluneSplashPalette.android),
+  ]) {
+    test('stars visibly twinkle across the ${palette.name} viewport', () async {
+      Future<ByteData> frame(double phase) {
+        final recorder = ui.PictureRecorder();
+        AveluneSplashPainter(
+          progress: const AlwaysStoppedAnimation(1),
+          ambient: AlwaysStoppedAnimation(phase),
+          wordmark: null,
+          brand: palette,
+          reducedMotion: false,
+        ).paint(
+          ui.Canvas(recorder),
+          ui.Size(width.toDouble(), height.toDouble()),
+        );
+        return _pixels(recorder, width, height);
+      }
+
+      final early = await frame(.125);
+      final late = await frame(.375);
+      for (final (left, right) in [
+        ((width * .05).round(), (width * .25).round()),
+        ((width * .75).round(), (width * .95).round()),
+      ]) {
+        var visibleShimmers = 0;
+        for (var y = (height * .12).round(); y < height * .46; y++) {
+          for (var x = left; x < right; x++) {
+            int contrast(ByteData frame) =>
+                frame.getUint8((y * width + x) * 4 + 2) -
+                frame.getUint8((y * width + x + 6) * 4 + 2);
+            final first = contrast(early);
+            final second = contrast(late);
+            if ((first - second).abs() > 25 && (first > 50 || second > 50)) {
+              visibleShimmers++;
+            }
+          }
+        }
+        expect(visibleShimmers, greaterThan(3));
+      }
+    });
+  }
 
   testWidgets('ambient motion starts after the intro and follows visibility', (
     tester,
