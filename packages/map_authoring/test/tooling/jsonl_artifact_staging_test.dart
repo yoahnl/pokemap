@@ -101,9 +101,21 @@ void main() {
     expect(staged.status, AuthoringResultStatus.success);
     final opened = await fixture.open();
     const path = 'data/pokemon/assets/items/capture/custom.png';
-    Future<void> apply(
-        String action, Map<String, Object?> parameters, String id) async {
-      final snapshot = await fixture.snapshots.load(opened.projectHandle);
+    Future<void> apply(String action, Map<String, Object?> parameters, String id,
+        {bool workshopScope = false}) async {
+      final String revision;
+      if (workshopScope) {
+        final workshop = await fixture.request('workshop_snapshot', args: {
+          'projectHandle': opened.projectHandle.value,
+          'actionId': action,
+          'parameters': parameters,
+        });
+        expect(workshop.status, AuthoringResultStatus.success,
+            reason: jsonEncode(workshop.toJson()));
+        revision = workshop.data['snapshotRevision']! as String;
+      } else {
+        revision = (await fixture.snapshots.load(opened.projectHandle)).revision;
+      }
       final planned =
           await fixture.request('plan', requestId: 'plan-$id', args: {
         'projectHandle': opened.projectHandle.value,
@@ -113,8 +125,9 @@ void main() {
           actionVersion: 1,
           workspaceHandle: opened.workspaceHandle.value,
           parameters: parameters,
-          expectedRevision: snapshot.revision,
+          expectedRevision: revision,
           idempotencyKey: id,
+          extensions: {if (workshopScope) 'workshopScope': true},
         ).toJson(),
       });
       expect(planned.status, AuthoringResultStatus.success,
@@ -147,7 +160,8 @@ void main() {
     await apply(
         'item.update',
         {'itemId': _captureItem.id, 'definition': updated.toJson()},
-        'capture-update');
+        'capture-update',
+        workshopScope: true);
 
     final snapshot = await fixture.snapshots.load(opened.projectHandle);
     expect(snapshot.itemCatalog!.entries.single, updated);

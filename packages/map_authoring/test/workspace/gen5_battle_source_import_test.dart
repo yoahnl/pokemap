@@ -17,8 +17,9 @@ void main() {
     OpenedProject? opened;
     addTearDown(() async {
       if (service != null && opened != null) {
-        await service!.detachWorkspace(opened!.workspaceHandle);
-        handles.closeWorkspace(opened!.workspaceHandle);
+        final workspace = opened.workspaceHandle;
+        await service.detachWorkspace(workspace);
+        handles.closeWorkspace(workspace);
       }
       if (await root.exists()) await root.delete(recursive: true);
     });
