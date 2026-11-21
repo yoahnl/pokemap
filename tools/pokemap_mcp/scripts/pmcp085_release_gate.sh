@@ -25,7 +25,7 @@ certification_directory="$repo_root/tools/pokemap_product_certification"
 transport_receipts="$evidence_dir/item-transports.json"
 fixtures_directory="$certification_directory/test/fixtures"
 
-for family in maps projects story; do
+for family in characters maps projects story; do
   if [[ ! -f "$fixtures_directory/pmcp085_$family/scenarios.json" ]]; then
     echo "PMCP-085 missing scenario family: $family" >&2
     exit 1

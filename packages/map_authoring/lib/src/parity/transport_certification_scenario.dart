@@ -16,6 +16,7 @@ final class AuthoringTransportScenario {
     this.projectRoot,
     this.steps,
     this.catalogPreparation,
+    this.reopen,
   );
 
   static List<AuthoringTransportScenario> parse(Object? input) {
@@ -31,7 +32,7 @@ final class AuthoringTransportScenario {
       transportEvidenceFields(
         json,
         const {'id', 'projectRoot', 'steps'},
-        optional: const {'catalogPreparation'},
+        optional: const {'catalogPreparation', 'reopen'},
       );
       final id = json['id'];
       if (id is! String ||
@@ -47,6 +48,10 @@ final class AuthoringTransportScenario {
               preparation.toSet().length != preparation.length)) {
         throw FormatException('Invalid catalog preparation for $id.');
       }
+      final reopen = json.containsKey('reopen') ? json['reopen'] : false;
+      if (reopen is! bool) {
+        throw FormatException('Invalid reopen setting for $id.');
+      }
       return AuthoringTransportScenario._(
         id,
         transportEvidencePath(json['projectRoot']),
@@ -57,6 +62,7 @@ final class AuthoringTransportScenario {
                   )),
         ),
         preparation is List ? List<String>.unmodifiable(preparation) : null,
+        reopen,
       );
     }));
   }
@@ -65,6 +71,7 @@ final class AuthoringTransportScenario {
   final String projectRoot;
   final List<AuthoringTransportStep> steps;
   final List<String>? catalogPreparation;
+  final bool reopen;
 }
 
 final class AuthoringTransportStep {
@@ -114,6 +121,9 @@ final class AuthoringTransportStep {
     final previewAction = const {
       'presentation.preset.import_plan',
       'presentation.preset.delete_plan',
+      'characterStudio.character.deletePlan',
+      'characterStudio.portraitState.deletePlan',
+      'characterStudio.animationDefinition.deletePlan',
     }.contains(actionId);
     if (planOnly != previewAction || (planOnly && confirm)) {
       throw FormatException('Invalid plan-only step: $actionId.');

@@ -86,8 +86,8 @@ Studio adapter, and live MCP. Run the cross-package release gate with:
 ./scripts/pmcp085_release_gate.sh
 ```
 
-The gate certifies Item V1 and replays the Maps, Projects, and Story scenarios
-on disposable project copies. It requires complete transport coverage and runs
+The gate certifies Item V1 and replays the Characters, Maps, Projects, and Story
+scenarios on disposable project copies. It requires complete transport coverage and runs
 the Studio publication tests. Pass `--evidence-dir <new-directory>` to keep the
 receipts and conformance matrix. The manual PokeMap product certification
 workflow runs the same gate and retains the evidence for inspection.

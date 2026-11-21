@@ -1,0 +1,29 @@
+{
+  "name": "Character workshop transport fixture",
+  "version": "v8",
+  "maps": [{"id": "map", "name": "Workshop", "relativePath": "maps/map.json"}],
+  "tilesets": [{"id": "sprites", "name": "Sprites", "relativePath": "assets/sprites.png"}],
+  "characters": [
+    {"id": "scout", "name": "Scout", "tilesetId": "sprites", "frameWidth": 8, "frameHeight": 8}
+  ],
+  "pokemon": {
+    "ruleset": {
+      "schemaVersion": 1,
+      "profileId": "pokemap-beta-v1",
+      "typeChartId": "mainline-modern-v1",
+      "maxLevel": 100,
+      "experiencePolicyId": "pokemap-simple-exp-v1",
+      "capturePolicyId": "pokemap-capture-mvp-v1",
+      "moveMachinePolicyId": "authored-consumability-v1",
+      "criticalHitPolicyId": "mainline-gen9-critical",
+      "speedTiePolicyId": "mainline-gen9-seeded-random",
+      "friendshipPolicyId": "mainline-0-255-v1",
+      "evolutionPolicyId": "pokemap-beta-evolution-v1",
+      "disabledFeatures": ["breeding", "double-battles", "modern-gimmicks", "online"]
+    }
+  },
+  "characterStudioCatalog": {
+    "portraitStates": [{"id": "neutral", "displayName": "Neutral"}],
+    "customAnimationDefinitions": [{"id": "blink", "displayName": "Blink", "mode": "single"}]
+  }
+}

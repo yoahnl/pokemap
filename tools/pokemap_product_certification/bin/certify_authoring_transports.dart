@@ -288,6 +288,25 @@ Future<({List<Map<String, Object?>> rows, String? failure})> _trial(
     } finally {
       await session.close();
     }
+    if (scenario.reopen) {
+      final reopened = await openTransportCertificationSession(
+        transport,
+        project,
+        repository,
+        dart,
+      );
+      try {
+        final state = await scenario.steps.last.observe(project);
+        final row = rows.last;
+        if (transportEvidenceDigest(state) !=
+            transportEvidenceDigest(row['after'])) {
+          throw const FormatException('Persisted observations changed on reopen.');
+        }
+        row['afterReopen'] = state;
+      } finally {
+        await reopened.close();
+      }
+    }
     return (rows: rows, failure: null);
   } on Object catch (error) {
     return (

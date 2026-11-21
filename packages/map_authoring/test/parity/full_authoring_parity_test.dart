@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/transport_certification.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -682,6 +683,24 @@ void main() {
           reason: action.actionId,
         );
       }
+    });
+
+    test('Character Studio recipes cover every action and reopen each project', () {
+      final recipes = File(
+        '../../tools/pokemap_product_certification/test/fixtures/'
+        'pmcp085_characters/scenarios.json',
+      );
+      final scenarios = AuthoringTransportScenario.parse(
+        jsonDecode(recipes.readAsStringSync()),
+      );
+      expect(scenarios.every((scenario) => scenario.reopen), isTrue);
+      expect(
+        {
+          for (final scenario in scenarios)
+            for (final step in scenario.steps) step.actionId,
+        },
+        _characterStudioActionIds,
+      );
     });
 
     test('records the Studio proofs for the actions exercised by CIN-033', () {

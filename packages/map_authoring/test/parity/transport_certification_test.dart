@@ -174,7 +174,7 @@ void main() {
     );
   });
 
-  test('only explicit presentation previews can prove an unchanged preimage',
+  test('only explicit previews can prove an unchanged preimage',
       () {
     final json = {
       'actionId': 'presentation.preset.delete_plan',
@@ -185,15 +185,28 @@ void main() {
         {'path': 'project.json', 'exists': true},
       ],
     };
-    final step = AuthoringTransportStep.fromJson(json);
     final present = [
       {'present': true, 'value': null}
     ];
     final absent = [
       {'present': false}
     ];
-    expect(() => step.verify(present, present), returnsNormally);
-    expect(() => step.verify(absent, present), throwsFormatException);
+    for (final action in const [
+      'presentation.preset.import_plan',
+      'presentation.preset.delete_plan',
+      'characterStudio.character.deletePlan',
+      'characterStudio.portraitState.deletePlan',
+      'characterStudio.animationDefinition.deletePlan',
+    ]) {
+      final preview = {...json, 'actionId': action};
+      final step = AuthoringTransportStep.fromJson(preview);
+      expect(() => step.verify(present, present), returnsNormally);
+      expect(() => step.verify(absent, present), throwsFormatException);
+      expect(
+        () => AuthoringTransportStep.fromJson({...preview, 'planOnly': false}),
+        throwsFormatException,
+      );
+    }
     expect(
       () =>
           AuthoringTransportStep.fromJson({...json, 'actionId': 'fact.create'}),
@@ -226,6 +239,12 @@ void main() {
           'scenarios': [value]
         }).single;
     expect(parse(scenario).catalogPreparation, isNull);
+    expect(parse(scenario).reopen, isFalse);
+    expect(parse({...scenario, 'reopen': true}).reopen, isTrue);
+    expect(
+      () => parse({...scenario, 'reopen': 'true'}),
+      throwsFormatException,
+    );
     expect(
       parse({...scenario, 'catalogPreparation': <String>[]}).catalogPreparation,
       isEmpty,

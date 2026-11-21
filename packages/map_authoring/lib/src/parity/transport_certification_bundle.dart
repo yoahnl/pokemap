@@ -76,6 +76,7 @@ final class VerifiedAuthoringTransportEvidence {
         'stagedArtifacts',
         'beforeProjectDigest',
         'afterProjectDigest',
+        'afterReopen',
       });
       final scenario = scenarios[json['scenario']];
       final index = json['step'];
@@ -148,6 +149,16 @@ final class VerifiedAuthoringTransportEvidence {
           transportEvidenceList(json['before'], 'before observations');
       final after = transportEvidenceList(json['after'], 'after observations');
       step.verify(before, after);
+      if (scenario.reopen && index == scenario.steps.length - 1) {
+        final reopened =
+            transportEvidenceList(json['afterReopen'], 'reopened observations');
+        if (transportEvidenceDigest(reopened) != transportEvidenceDigest(after)) {
+          throw FormatException(
+              'Persisted state changed on reopen: ${scenario.id}/$index.');
+        }
+      } else if (json.containsKey('afterReopen')) {
+        throw const FormatException('Unexpected reopen evidence.');
+      }
       final group = trials.putIfAbsent((scenario.id, index), () => {});
       if (group.containsKey(transport)) {
         throw FormatException(
@@ -167,15 +178,17 @@ final class VerifiedAuthoringTransportEvidence {
     final selectedActions = <String>{};
     for (final entry in trials.entries) {
       final (scenarioId, index) = entry.key;
+      final scenario = scenarios[scenarioId]!;
       final group = entry.value;
       if (group.length != AuthoringTransport.values.length ||
           (index > 0 && !trials.containsKey((scenarioId, index - 1))) ||
+          (scenario.reopen &&
+              !trials.containsKey((scenarioId, scenario.steps.length - 1))) ||
           group.values.map((row) => row.beforeDigest).toSet().length != 1 ||
           group.values.map((row) => row.afterDigest).toSet().length != 1 ||
           group.values.map((row) => row.planDigest).toSet().length != 1) {
         throw FormatException('Transport state differs: $scenarioId/$index.');
       }
-      final scenario = scenarios[scenarioId]!;
       final step = scenario.steps[index];
       if (!selectedActions.add(step.actionId)) continue;
       for (final member in group.entries) {

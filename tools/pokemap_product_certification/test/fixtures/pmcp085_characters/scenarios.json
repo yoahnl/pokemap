@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "character-portraits",
+      "projectRoot": "character-workshop",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "characterStudio.character.create",
+          "actionVersion": 1,
+          "parameters": {"name": "Guide", "tilesetId": "sprites", "frameWidth": 8, "frameHeight": 8},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 1, "id"], "equals": "guide"},
+            {"path": "project.json", "at": ["characters", 1, "tilesetId"], "equals": "sprites"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.character.update",
+          "actionVersion": 1,
+          "parameters": {"characterId": "guide", "name": "Guide du phare", "tags": ["guide"]},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 1, "name"], "equals": "Guide du phare"},
+            {"path": "project.json", "at": ["characters", 1, "tags"], "equals": ["guide"]}
+          ]
+        },
+        {
+          "actionId": "characterStudio.character.setDefault",
+          "actionVersion": 1,
+          "parameters": {"characterId": "guide"},
+          "observations": [
+            {"path": "project.json", "at": ["settings", "defaultPlayerCharacterId"], "equals": "guide"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.portraitState.create",
+          "actionVersion": 1,
+          "parameters": {"displayName": "Smile"},
+          "observations": [
+            {"path": "project.json", "at": ["characterStudioCatalog", "portraitStates", 1, "id"], "equals": "smile"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.portraitState.update",
+          "actionVersion": 1,
+          "parameters": {"id": "smile", "displayName": "Smiling"},
+          "observations": [
+            {"path": "project.json", "at": ["characterStudioCatalog", "portraitStates", 1, "displayName"], "equals": "Smiling"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.portraitState.reorder",
+          "actionVersion": 1,
+          "parameters": {"orderedIds": ["smile", "neutral"]},
+          "observations": [
+            {"path": "project.json", "at": ["characterStudioCatalog", "portraitStates", 0, "id"], "equals": "smile"},
+            {"path": "project.json", "at": ["characterStudioCatalog", "portraitStates", 1, "id"], "equals": "neutral"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.asset.import",
+          "actionVersion": 1,
+          "artifact": {"path": "inputs/portrait.png", "mediaType": "image/png"},
+          "parameters": {"assetId": "guide-portrait", "logicalPath": "assets/characters/guide/portrait.png", "mediaKind": "portrait"},
+          "observations": [
+            {"path": "assets/characters/guide/portrait.png", "sha256": "sha256:431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "id"], "equals": "guide-portrait"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.asset.replace",
+          "actionVersion": 1,
+          "artifact": {"path": "assets/sprites.png", "mediaType": "image/png"},
+          "parameters": {"assetId": "guide-portrait"},
+          "observations": [
+            {"path": "assets/characters/guide/portrait.png", "sha256": "sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "id"], "equals": "guide-portrait"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.character.portrait.assign",
+          "actionVersion": 1,
+          "parameters": {"characterId": "guide", "portraitStateId": "smile", "assetId": "guide-portrait", "fitMode": "contain"},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 1, "portraits", 0, "portraitStateId"], "equals": "smile"},
+            {"path": "project.json", "at": ["characters", 1, "portraits", 0, "assetId"], "equals": "guide-portrait"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.character.portrait.clear",
+          "actionVersion": 1,
+          "parameters": {"characterId": "guide", "portraitStateId": "smile"},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 1, "portraits"], "absent": true}
+          ]
+        },
+        {
+          "actionId": "characterStudio.character.portrait.assign",
+          "actionVersion": 1,
+          "parameters": {"characterId": "guide", "portraitStateId": "smile", "assetId": "guide-portrait", "fitMode": "contain"},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 1, "portraits", 0, "portraitStateId"], "equals": "smile"},
+            {"path": "project.json", "at": ["characters", 1, "portraits", 0, "assetId"], "equals": "guide-portrait"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.portraitState.deletePlan",
+          "actionVersion": 1,
+          "planOnly": true,
+          "parameters": {"id": "smile"},
+          "observations": [
+            {"path": "project.json", "at": ["characterStudioCatalog", "portraitStates", 0, "id"], "equals": "smile"},
+            {"path": "project.json", "at": ["characters", 1, "portraits", 0, "portraitStateId"], "equals": "smile"},
+            {"path": "assets/characters/guide/portrait.png", "sha256": "sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.portraitState.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"id": "smile", "resolution": "replace", "replacementId": "neutral"},
+          "observations": [
+            {"path": "project.json", "at": ["characterStudioCatalog", "portraitStates", 0, "id"], "equals": "neutral"},
+            {"path": "project.json", "at": ["characterStudioCatalog", "portraitStates", 1], "absent": true},
+            {"path": "project.json", "at": ["characters", 1, "portraits", 0, "portraitStateId"], "equals": "neutral"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.character.deletePlan",
+          "actionVersion": 1,
+          "planOnly": true,
+          "parameters": {"characterId": "scout"},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 0, "id"], "equals": "scout"},
+            {"path": "project.json", "at": ["settings", "defaultPlayerCharacterId"], "equals": "guide"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.character.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"characterId": "scout", "resolution": "clear"},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 0, "id"], "equals": "guide"},
+            {"path": "project.json", "at": ["characters", 0, "name"], "equals": "Guide du phare"},
+            {"path": "project.json", "at": ["characters", 0, "portraits", 0, "portraitStateId"], "equals": "neutral"},
+            {"path": "project.json", "at": ["characters", 0, "portraits", 0, "assetId"], "equals": "guide-portrait"},
+            {"path": "project.json", "at": ["settings", "defaultPlayerCharacterId"], "equals": "guide"},
+            {"path": "project.json", "at": ["characters", 1], "absent": true},
+            {"path": "assets/characters/guide/portrait.png", "sha256": "sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "character-animations",
+      "projectRoot": "character-workshop",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "characterStudio.animationDefinition.create",
+          "actionVersion": 1,
+          "parameters": {"displayName": "Wave", "mode": "single"},
+          "observations": [
+            {"path": "project.json", "at": ["characterStudioCatalog", "customAnimationDefinitions", 1, "id"], "equals": "wave"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.animationDefinition.update",
+          "actionVersion": 1,
+          "parameters": {"id": "wave", "displayName": "Wave slowly"},
+          "observations": [
+            {"path": "project.json", "at": ["characterStudioCatalog", "customAnimationDefinitions", 1, "displayName"], "equals": "Wave slowly"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.animationDefinition.reorder",
+          "actionVersion": 1,
+          "parameters": {"orderedIds": ["wave", "blink"]},
+          "observations": [
+            {"path": "project.json", "at": ["characterStudioCatalog", "customAnimationDefinitions", 0, "id"], "equals": "wave"},
+            {"path": "project.json", "at": ["characterStudioCatalog", "customAnimationDefinitions", 1, "id"], "equals": "blink"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.asset.import",
+          "actionVersion": 1,
+          "artifact": {"path": "assets/sprites.png", "mediaType": "image/png"},
+          "parameters": {"assetId": "scout-sheet", "logicalPath": "assets/characters/scout/sheet.png", "mediaKind": "spriteSheet"},
+          "observations": [
+            {"path": "assets/characters/scout/sheet.png", "sha256": "sha256:417f33b3ba70994683edb0e295ecf5e98e829462b9b6233b02385610c4435c9b"},
+            {"path": "assets/.pokemap-assets.json", "at": ["records", 0, "id"], "equals": "scout-sheet"}
+          ]
+        },
+        {
+          "actionId": "characterStudio.animationClip.upsert",
+          "actionVersion": 1,
+          "parameters": {"characterId": "scout", "kind": "custom", "definitionId": "wave", "sourceAssetId": "scout-sheet", "loop": false, "frames": [{"source": {"x": 0, "y": 0, "width": 8, "height": 8}, "durationMs": 100}, {"source": {"x": 8, "y": 0, "width": 8, "height": 8}, "durationMs": 200}]},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "definitionId"], "equals": "wave"},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "loop"], "equals": false},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 0, "durationMs"], "equals": 100},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 1, "durationMs"], "equals": 200}
+          ]
+        },
+        {
+          "actionId": "characterStudio.animationFrame.insert",
+          "actionVersion": 1,
+          "parameters": {"characterId": "scout", "kind": "custom", "definitionId": "wave", "frameIndex": 1, "frame": {"source": {"x": 16, "y": 0, "width": 8, "height": 8}, "durationMs": 120}},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 1, "durationMs"], "equals": 120},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 2, "durationMs"], "equals": 200}
+          ]
+        },
+        {
+          "actionId": "characterStudio.animationFrame.update",
+          "actionVersion": 1,
+          "parameters": {"characterId": "scout", "kind": "custom", "definitionId": "wave", "frameIndex": 1, "frame": {"source": {"x": 16, "y": 0, "width": 8, "height": 8}, "durationMs": 130}},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 1, "durationMs"], "equals": 130}
+          ]
+        },
+        {
+          "actionId": "characterStudio.animationFrame.reorder",
+          "actionVersion": 1,
+          "parameters": {"characterId": "scout", "kind": "custom", "definitionId": "wave", "fromIndex": 1, "toIndex": 2},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 1, "durationMs"], "equals": 200},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 2, "durationMs"], "equals": 130}
+          ]
+        },
+        {
+          "actionId": "characterStudio.animationFrame.delete",
+          "actionVersion": 1,
+          "parameters": {"characterId": "scout", "kind": "custom", "definitionId": "wave", "frameIndex": 0},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 0, "durationMs"], "equals": 200},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 1, "durationMs"], "equals": 130},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 2], "absent": true}
+          ]
+        },
+        {
+          "actionId": "characterStudio.animationDefinition.deletePlan",
+          "actionVersion": 1,
+          "planOnly": true,
+          "parameters": {"id": "wave"},
+          "observations": [
+            {"path": "project.json", "at": ["characterStudioCatalog", "customAnimationDefinitions", 0, "id"], "equals": "wave"},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "definitionId"], "equals": "wave"},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 1, "durationMs"], "equals": 130}
+          ]
+        },
+        {
+          "actionId": "characterStudio.animationDefinition.delete",
+          "actionVersion": 1,
+          "confirm": true,
+          "parameters": {"id": "wave", "resolution": "replace", "replacementId": "blink"},
+          "observations": [
+            {"path": "project.json", "at": ["characterStudioCatalog", "customAnimationDefinitions", 0, "id"], "equals": "blink"},
+            {"path": "project.json", "at": ["characterStudioCatalog", "customAnimationDefinitions", 1], "absent": true},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "definitionId"], "equals": "blink"},
+            {"path": "project.json", "at": ["characters", 0, "customAnimations", 0, "frames", 1, "durationMs"], "equals": 130}
+          ]
+        },
+        {
+          "actionId": "characterStudio.animationClip.delete",
+          "actionVersion": 1,
+          "parameters": {"characterId": "scout", "kind": "custom", "definitionId": "blink"},
+          "observations": [
+            {"path": "project.json", "at": ["characters", 0, "customAnimations"], "absent": true},
+            {"path": "project.json", "at": ["characterStudioCatalog", "customAnimationDefinitions", 0, "id"], "equals": "blink"},
+            {"path": "project.json", "at": ["characters", 0, "id"], "equals": "scout"}
+          ]
+        }
+      ]
+    }
+  ]
+}
