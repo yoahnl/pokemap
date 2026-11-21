@@ -10,8 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  pokemap_hub:
-    path: ../../pokemap_hub
+  avelune_player_host:
+    path: ../../../packages/avelune_player_host
   map_distribution:
     path: ../../../packages/map_distribution
   map_runtime:

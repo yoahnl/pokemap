@@ -1,0 +1,834 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+const _gameplayCompanionChannel = MethodChannel(
+  'com.avelune.runtime/companion',
+);
+
+enum AveluneGameplayCompanionMode { waiting, menu, battle, blocked }
+
+class AveluneGameplayCompanionData {
+  const AveluneGameplayCompanionData({
+    required this.mode,
+    this.player,
+    this.battle,
+    this.dialogue,
+    this.presentation = const {},
+  });
+
+  final AveluneGameplayCompanionMode mode;
+  final RuntimePlayerSnapshot? player;
+  final BattleCommandOverlaySnapshot? battle;
+  final DialoguePresentationSnapshot? dialogue;
+  final Map<String, Object?> presentation;
+
+  bool get hasPrimaryDialogue =>
+      dialogue != null ||
+      player?.phase == RuntimePlayerPhase.preSession &&
+          player?.preSessionRequest is! SceneTextInteractionRequest;
+
+  String? get narrativeIdentity {
+    if (mode != AveluneGameplayCompanionMode.menu) return null;
+    final request = player?.preSessionRequest;
+    if (player?.phase == RuntimePlayerPhase.preSession && request != null) {
+      return jsonEncode({'interaction': request.toJson()});
+    }
+    if (player?.phase == RuntimePlayerPhase.title &&
+        presentation['startupRevision'] is int) {
+      return jsonEncode({
+        'title': [
+          player!.revision,
+          player!.pauseSection?.name,
+          presentation['startupRevision'],
+        ],
+      });
+    }
+    final line = dialogue;
+    if (player?.phase != RuntimePlayerPhase.playing || line == null) {
+      return null;
+    }
+    return jsonEncode({
+      'mode': line.mode.name,
+      'nodeTitle': line.nodeTitle,
+      'speaker': line.speaker,
+      'fullText': line.fullText,
+      'choices': [
+        for (final choice in line.choices)
+          [choice.index, choice.label, choice.enabled],
+      ],
+      'portrait': [
+        line.portrait?.characterId,
+        line.portrait?.portraitStateId,
+        line.portrait?.assetId,
+        line.portrait?.absoluteFilePath,
+        line.portrait?.fitMode.name,
+      ],
+      'icons': line.iconPngBytes.keys.toList()..sort(),
+    });
+  }
+
+  Map<String, Object?> toPayload() => {
+    'mode': mode.name,
+    'player': player == null
+        ? null
+        : RuntimeCompanionPresentationCodec.encodePlayer(player!),
+    'battle': battle == null
+        ? null
+        : RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(
+            battle!,
+          ),
+    'dialogue': dialogue == null
+        ? null
+        : RuntimeCompanionPresentationCodec.encodeDialogue(dialogue!),
+    'presentation': presentation,
+  };
+}
+
+class AveluneGameplayCompanionSnapshot extends AveluneGameplayCompanionData {
+  const AveluneGameplayCompanionSnapshot({
+    required this.sessionId,
+    required this.revision,
+    required this.companionAttached,
+    required super.mode,
+    super.player,
+    super.battle,
+    super.dialogue,
+    super.presentation,
+    this.narrativeGeneration = 0,
+    this.narrativeReady = false,
+    this._encodedData,
+  });
+
+  final String sessionId;
+  final int revision;
+  final bool companionAttached;
+  final int narrativeGeneration;
+  final bool narrativeReady;
+  final Map<String, Object?>? _encodedData;
+  Map<String, Object?> get dataPayload => _encodedData ?? super.toPayload();
+
+  factory AveluneGameplayCompanionSnapshot.fromPayload(Object? payload) {
+    final map = _map(payload);
+    if (map['sessionId'] is! String ||
+        (map['sessionId'] as String).trim().isEmpty ||
+        map['revision'] is! int ||
+        (map['revision'] as int) < 0 ||
+        map['companionAttached'] is! bool) {
+      throw const FormatException('Invalid gameplay companion state.');
+    }
+    return AveluneGameplayCompanionSnapshot(
+      sessionId: map['sessionId'] as String,
+      revision: map['revision'] as int,
+      companionAttached: map['companionAttached'] as bool,
+      mode: AveluneGameplayCompanionMode.values.byName(map['mode'] as String),
+      player: map['player'] == null
+          ? null
+          : RuntimeCompanionPresentationCodec.decodePlayer(_map(map['player'])),
+      battle: map['battle'] == null
+          ? null
+          : RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(
+              _map(map['battle']),
+            ),
+      dialogue: map['dialogue'] == null
+          ? null
+          : RuntimeCompanionPresentationCodec.decodeDialogue(
+              _map(map['dialogue']),
+            ),
+      narrativeGeneration: map['narrativeGeneration'] as int? ?? 0,
+      narrativeReady: map['narrativeReady'] == true,
+      presentation: _map(map['presentation']),
+      encodedData: {
+        'mode': map['mode'],
+        'player': map['player'],
+        'battle': map['battle'],
+        'dialogue': map['dialogue'],
+        'presentation': map['presentation'],
+      },
+    );
+  }
+
+  @override
+  Map<String, Object?> toPayload() => {
+    'sessionId': sessionId,
+    'revision': revision,
+    'companionAttached': companionAttached,
+    'narrativeGeneration': narrativeGeneration,
+    'narrativeReady': narrativeReady,
+    ...dataPayload,
+  };
+}
+
+abstract interface class AveluneGameplayCompanionOwnerPort {
+  bool get isPaused;
+  void releaseBattleInputs();
+  Future<AveluneGameplayCompanionData> read();
+  Future<void> execute(
+    String kind,
+    Map<String, Object?> payload,
+    AveluneGameplayCompanionSnapshot expected,
+  );
+}
+
+class AveluneGameplayCompanionOwner
+    extends ValueNotifier<AveluneGameplayCompanionSnapshot?> {
+  AveluneGameplayCompanionOwner() : super(null);
+
+  AveluneGameplayCompanionOwnerPort? _port;
+  final _sourceSequences = <String, int>{};
+  int _generation = 0;
+  int _readGeneration = 0;
+  bool _busy = false;
+  Future<void>? _refreshing;
+  bool _readRequested = false;
+  String? _dataFingerprint;
+  String? _narrativeIdentity;
+  int _narrativeGeneration = 0;
+
+  void start(String sessionId) {
+    if (sessionId.trim().isEmpty) {
+      throw PlatformException(code: 'invalidSession');
+    }
+    if (value?.sessionId == sessionId) return;
+    if (value != null) throw PlatformException(code: 'runtimeBusy');
+    _generation++;
+    _sourceSequences.clear();
+    _busy = false;
+    _narrativeIdentity = null;
+    _narrativeGeneration = 0;
+    value = AveluneGameplayCompanionSnapshot(
+      sessionId: sessionId,
+      revision: 0,
+      companionAttached: false,
+      mode: AveluneGameplayCompanionMode.waiting,
+    );
+    _dataFingerprint = jsonEncode(value!.dataPayload);
+  }
+
+  void stop(String sessionId) {
+    if (value == null) return;
+    if (value!.sessionId != sessionId) {
+      throw PlatformException(code: 'staleSession');
+    }
+    _generation++;
+    _readGeneration++;
+    _port?.releaseBattleInputs();
+    _port = null;
+    _busy = false;
+    _readRequested = false;
+    _dataFingerprint = null;
+    _narrativeIdentity = null;
+    _narrativeGeneration = 0;
+    _sourceSequences.clear();
+    value = null;
+  }
+
+  void bind(AveluneGameplayCompanionOwnerPort port) {
+    if (!identical(_port, port)) _port?.releaseBattleInputs();
+    _port = port;
+    invalidate();
+  }
+
+  void unbind(AveluneGameplayCompanionOwnerPort port) {
+    if (!identical(_port, port)) return;
+    _port?.releaseBattleInputs();
+    _port = null;
+    _readGeneration++;
+  }
+
+  void invalidate() => unawaited(refresh());
+
+  Future<void> refresh() {
+    if (value?.companionAttached != true || _port == null) {
+      return Future<void>.value();
+    }
+    _readRequested = true;
+    final pending = _refreshing;
+    if (pending != null) return pending;
+    final complete = Completer<void>();
+    _refreshing = complete.future;
+    unawaited(
+      _drainReads().then(
+        (_) {
+          _refreshing = null;
+          complete.complete();
+        },
+        onError: (Object error, StackTrace stack) {
+          _refreshing = null;
+          complete.completeError(error, stack);
+        },
+      ),
+    );
+    return complete.future;
+  }
+
+  Future<void> _drainReads() async {
+    while (_readRequested && value?.companionAttached == true && _port != null) {
+      _readRequested = false;
+      final port = _port!;
+      final generation = _generation;
+      final read = _readGeneration;
+      try {
+        final data = await port.read();
+        if (generation != _generation ||
+            read != _readGeneration ||
+            value?.companionAttached != true ||
+            !identical(port, _port) ||
+            _readRequested) {
+          continue;
+        }
+        _publishData(data);
+      } on Object catch (error) {
+        if (generation != _generation ||
+            read != _readGeneration ||
+            value?.companionAttached != true ||
+            !identical(port, _port) ||
+            _readRequested) {
+          continue;
+        }
+        debugPrint('Avelune gameplay companion read: $error');
+        _publishData(
+          const AveluneGameplayCompanionData(
+            mode: AveluneGameplayCompanionMode.blocked,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> setCompanionAttached(String sessionId, bool attached) {
+    final current = _active();
+    if (current.sessionId != sessionId) {
+      throw PlatformException(code: 'staleSession');
+    }
+    if (current.companionAttached == attached) {
+      return attached ? _refreshing ?? Future<void>.value() : Future<void>.value();
+    }
+    _readGeneration++;
+    _readRequested = false;
+    if (!attached) _port?.releaseBattleInputs();
+    if (current.narrativeIdentity != null) _narrativeGeneration++;
+    if (attached) _dataFingerprint = null;
+    value = AveluneGameplayCompanionSnapshot(
+      sessionId: current.sessionId,
+      revision: current.revision + 1,
+      companionAttached: attached,
+      mode: attached ? AveluneGameplayCompanionMode.waiting : current.mode,
+      player: attached ? null : current.player,
+      battle: attached ? null : current.battle,
+      dialogue: attached ? null : current.dialogue,
+      presentation: attached ? const {} : current.presentation,
+      narrativeGeneration: _narrativeGeneration,
+      encodedData: attached ? null : current.dataPayload,
+    );
+    return attached ? refresh() : Future<void>.value();
+  }
+
+  Future<AveluneGameplayCompanionSnapshot?> applyIntent(
+    Map<Object?, Object?> intent,
+  ) async {
+    final current = _active();
+    if (intent['sessionId'] != current.sessionId) {
+      throw PlatformException(code: 'staleSession');
+    }
+    if (!current.companionAttached) {
+      throw PlatformException(code: 'companionDetached');
+    }
+    final sourceId = intent['sourceId'];
+    final sequence = intent['sequence'];
+    if (sourceId is! String ||
+        sourceId.trim().isEmpty ||
+        sequence is! int ||
+        sequence <= 0) {
+      throw PlatformException(code: 'invalidIntent');
+    }
+    if (sequence <= (_sourceSequences[sourceId] ?? 0)) return current;
+    final revision = intent['revision'];
+    if (revision is! int || revision < 0 || revision > current.revision ||
+        revision != current.revision && intent['kind'] != 'narrativeReady') {
+      throw PlatformException(code: 'staleRevision');
+    }
+    if (intent['mode'] != current.mode.name) {
+      throw PlatformException(code: 'staleMode');
+    }
+    if (_busy) throw PlatformException(code: 'runtimeBusy');
+    final port = _port;
+    if (port == null ||
+        current.mode == AveluneGameplayCompanionMode.waiting ||
+        current.mode == AveluneGameplayCompanionMode.blocked) {
+      throw PlatformException(code: 'companionUnavailable');
+    }
+    final kind = intent['kind'];
+    if (kind is! String) throw PlatformException(code: 'invalidIntent');
+    final payload = _map(intent['payload']);
+    if (kind == 'narrativeReady') {
+      if (current.narrativeIdentity == null ||
+          payload['generation'] != current.narrativeGeneration) {
+        throw PlatformException(code: 'staleRevision');
+      }
+      _sourceSequences[sourceId] = sequence;
+      if (!current.narrativeReady) {
+        value = AveluneGameplayCompanionSnapshot(
+          sessionId: current.sessionId,
+          revision: current.revision + 1,
+          companionAttached: current.companionAttached,
+          mode: current.mode,
+          player: current.player,
+          battle: current.battle,
+          dialogue: current.dialogue,
+          presentation: current.presentation,
+          narrativeGeneration: current.narrativeGeneration,
+          narrativeReady: true,
+          encodedData: current.dataPayload,
+        );
+      }
+      return value;
+    }
+    if (current.narrativeIdentity != null && !current.narrativeReady) {
+      throw PlatformException(code: 'companionUnavailable');
+    }
+    final generation = _generation;
+    _sourceSequences[sourceId] = sequence;
+    _busy = true;
+    try {
+      await port.execute(kind, payload, current);
+      if (generation != _generation ||
+          !identical(port, _port) ||
+          value?.sessionId != current.sessionId) {
+        throw PlatformException(code: 'staleSession');
+      }
+      await refresh();
+      if (generation != _generation || value?.sessionId != current.sessionId) {
+        throw PlatformException(code: 'staleSession');
+      }
+      return value;
+    } finally {
+      if (generation == _generation) _busy = false;
+    }
+  }
+
+  Map<String, Object?>? inputPayload(RuntimeInputEvent event) {
+    final current = value;
+    if (current == null || !current.companionAttached) return null;
+    final battle =
+        current.mode == AveluneGameplayCompanionMode.battle &&
+        current.battle != null;
+    if (!battle &&
+        (current.mode != AveluneGameplayCompanionMode.menu ||
+            _port?.isPaused != true)) {
+      return null;
+    }
+    return {
+      'sessionId': current.sessionId,
+      'revision': current.revision,
+      'mode': current.mode.name,
+      if (battle) 'battleRevision': current.battle!.revision,
+      if (battle) 'battleMode': current.battle!.mode.name,
+      'control': event.control.name,
+      'phase': event.phase.name,
+      'isRepeat': event.isRepeat,
+    };
+  }
+
+  void _publishData(AveluneGameplayCompanionData data) {
+    final current = value;
+    if (current == null || !current.companionAttached) return;
+    if (current.mode == AveluneGameplayCompanionMode.battle &&
+        (data.mode != current.mode ||
+            data.battle?.mode != current.battle?.mode ||
+            data.battle?.actorCombatantId !=
+                current.battle?.actorCombatantId)) {
+      _port?.releaseBattleInputs();
+    }
+    final payload = data.toPayload();
+    final fingerprint = jsonEncode(payload);
+    if (fingerprint == _dataFingerprint) return;
+    _dataFingerprint = fingerprint;
+    final narrativeIdentity = data.narrativeIdentity;
+    final sameNarrative =
+        narrativeIdentity != null && narrativeIdentity == _narrativeIdentity;
+    if (narrativeIdentity != _narrativeIdentity) _narrativeGeneration++;
+    _narrativeIdentity = narrativeIdentity;
+    value = AveluneGameplayCompanionSnapshot(
+      sessionId: current.sessionId,
+      revision: current.revision + 1,
+      companionAttached: current.companionAttached,
+      mode: data.mode,
+      player: data.player,
+      battle: data.battle,
+      dialogue: data.dialogue,
+      presentation: data.presentation,
+      narrativeGeneration: _narrativeGeneration,
+      narrativeReady: sameNarrative && current.narrativeReady,
+      encodedData: payload,
+    );
+  }
+
+  AveluneGameplayCompanionSnapshot _active() =>
+      value ?? (throw PlatformException(code: 'companionInactive'));
+
+  @override
+  void dispose() {
+    _generation++;
+    _readGeneration++;
+    _port?.releaseBattleInputs();
+    _port = null;
+    _readRequested = false;
+    super.dispose();
+  }
+}
+
+class AveluneGameplayCompanionBridge {
+  AveluneGameplayCompanionBridge(
+    this.owner, {
+    this._channel = _gameplayCompanionChannel,
+    bool Function()? canStart,
+  }) : _canStart = canStart ?? (() => true);
+
+  final AveluneGameplayCompanionOwner owner;
+  final MethodChannel _channel;
+  final bool Function() _canStart;
+  bool _attached = false;
+
+  void attach() {
+    if (_attached) return;
+    _attached = true;
+    _channel.setMethodCallHandler(_handle);
+    owner.addListener(_publish);
+  }
+
+  void detach() {
+    if (!_attached) return;
+    _attached = false;
+    _channel.setMethodCallHandler(null);
+    owner.removeListener(_publish);
+  }
+
+  Future<void> stopOwnedSession() async {
+    final sessionId = owner.value?.sessionId;
+    if (sessionId == null) return;
+    owner.stop(sessionId);
+    await _notify('stateChanged', null);
+  }
+
+  bool forwardInput(RuntimeInputEvent event) {
+    final payload = owner.inputPayload(event);
+    if (!_attached || payload == null) return false;
+    unawaited(_notify('input', payload));
+    return true;
+  }
+
+  void _publish() =>
+      unawaited(_notify('stateChanged', owner.value?.toPayload()));
+
+  Future<void> _notify(String method, Object? payload) async {
+    try {
+      await _channel.invokeMethod<void>(method, payload);
+    } on PlatformException catch (error) {
+      debugPrint('Avelune gameplay companion: ${error.code}');
+    } on MissingPluginException {
+      debugPrint('Avelune gameplay companion host unavailable.');
+    }
+  }
+
+  Future<Object?> _handle(MethodCall call) async {
+    switch (call.method) {
+      case 'start':
+        if (!_canStart()) throw PlatformException(code: 'runtimeBusy');
+        owner.start(_session(call.arguments));
+        await owner.refresh();
+      case 'stop':
+        final sessionId = _session(call.arguments);
+        if (owner.value != null && owner.value!.sessionId != sessionId) {
+          throw PlatformException(code: 'staleSession');
+        }
+        await stopOwnedSession();
+        return null;
+      case 'snapshot':
+        await owner.refresh();
+      case 'setCompanionAttached':
+        final args = _map(call.arguments);
+        if (args['attached'] is! bool) {
+          throw PlatformException(code: 'invalidIntent');
+        }
+        if (owner.value == null && args['attached'] == false) return null;
+        await owner.setCompanionAttached(_session(args), args['attached'] as bool);
+      case 'intent':
+        await owner.applyIntent(_map(call.arguments));
+      default:
+        throw MissingPluginException(
+          'Unknown gameplay companion method: ${call.method}',
+        );
+    }
+    return owner.value?.toPayload();
+  }
+}
+
+class AveluneGameplayCompanionRemote
+    extends ValueNotifier<AveluneGameplayCompanionSnapshot?> {
+  AveluneGameplayCompanionRemote({
+    this._channel = _gameplayCompanionChannel,
+  }) : super(null);
+
+  final MethodChannel _channel;
+  final _inputs = StreamController<RuntimeInputEvent>.broadcast(sync: true);
+  final _pressedInputs = <RuntimeInputControl>{};
+  Stream<RuntimeInputEvent> get inputs => _inputs.stream;
+  int _generation = 0;
+  int _sequence = 0;
+  int _notifications = 0;
+  bool _attached = false;
+  bool _busy = false;
+  Completer<void>? _sendCompleted;
+  Future<void> _battleInputTail = Future<void>.value();
+  int _battleInputEpoch = 0;
+  bool get busy => _busy;
+
+  Future<void> attach() async {
+    if (_attached) return;
+    _attached = true;
+    final generation = ++_generation;
+    _channel.setMethodCallHandler((call) async {
+      if (!_attached || generation != _generation) return null;
+      switch (call.method) {
+        case 'stateChanged':
+          _notifications++;
+          _accept(call.arguments, generation);
+        case 'input':
+          _acceptInput(call.arguments);
+        default:
+          throw MissingPluginException(
+            'Unknown companion method: ${call.method}',
+          );
+      }
+      return null;
+    });
+    final notifications = _notifications;
+    try {
+      final payload = await _channel.invokeMethod<Object?>('companionReady');
+      if (_notifications == notifications) _accept(payload, generation);
+    } on PlatformException catch (error) {
+      debugPrint('Avelune gameplay companion connection: ${error.code}');
+    } on MissingPluginException {
+      debugPrint('Avelune gameplay companion host unavailable.');
+    }
+  }
+
+  Future<void> send(String kind, Map<String, Object?> payload) async {
+    final current = value;
+    if (!_attached || current == null || !current.companionAttached) {
+      throw PlatformException(code: 'companionDetached');
+    }
+    if (_busy) throw PlatformException(code: 'runtimeBusy');
+    final generation = _generation;
+    _busy = true;
+    final completed = Completer<void>();
+    _sendCompleted = completed;
+    notifyListeners();
+    try {
+      final response = await _channel.invokeMethod<Object?>('intent', {
+        'sessionId': current.sessionId,
+        'revision': current.revision,
+        'mode': current.mode.name,
+        'sourceId': 'companion',
+        'sequence': ++_sequence,
+        'kind': kind,
+        'payload': {
+          ...payload,
+          if (current.player?.phase == RuntimePlayerPhase.title &&
+              current.presentation['startupRevision'] is int)
+            'startupRevision': current.presentation['startupRevision'],
+        },
+      });
+      if (response != null && value?.sessionId == current.sessionId) {
+        _accept(response, generation);
+      }
+    } finally {
+      if (!completed.isCompleted) completed.complete();
+      if (generation == _generation) {
+        _sendCompleted = null;
+        _busy = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> sendBattleInput(RuntimeInputEvent event) {
+    final generation = _generation;
+    final epoch = _battleInputEpoch;
+    final sessionId = value?.sessionId;
+    final operation = _battleInputTail.then((_) async {
+      while (_busy) {
+        final pending = _sendCompleted;
+        if (pending == null) break;
+        await pending.future;
+      }
+      final current = value;
+      if (!_attached ||
+          generation != _generation ||
+          current?.sessionId != sessionId ||
+          current?.companionAttached != true) {
+        throw PlatformException(code: 'companionDetached');
+      }
+      final battle = current!.battle;
+      if (epoch != _battleInputEpoch ||
+          current.mode != AveluneGameplayCompanionMode.battle ||
+          battle == null) {
+        throw PlatformException(code: 'staleMode');
+      }
+      await send('battleInput', {
+        'snapshotRevision': battle.revision,
+        'expectedMode': battle.mode.name,
+        'control': event.control.name,
+        'phase': event.phase.name,
+        'isRepeat': event.isRepeat,
+      });
+    });
+    _battleInputTail = operation.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stack) {},
+    );
+    return operation;
+  }
+
+  Future<void> surfaceReady({bool ready = true}) async {
+    final current = value;
+    if (!_attached || current == null) return;
+    final generation = _generation;
+    try {
+      final payload = await _channel.invokeMethod<Object?>('surfaceReady', {
+        'sessionId': current.sessionId,
+        'ready': ready,
+      });
+      if (payload != null && value?.sessionId == current.sessionId) {
+        _accept(payload, generation);
+      }
+    } on PlatformException catch (error) {
+      debugPrint('Avelune companion surface readiness: ${error.code}');
+    } on MissingPluginException {
+      debugPrint('Avelune companion surface readiness unavailable.');
+    }
+  }
+
+  void detach() {
+    if (!_attached) return;
+    _attached = false;
+    _generation++;
+    _battleInputEpoch++;
+    _battleInputTail = Future<void>.value();
+    _busy = false;
+    if (_sendCompleted?.isCompleted == false) _sendCompleted!.complete();
+    _sendCompleted = null;
+    _releaseInputs();
+    _channel.setMethodCallHandler(null);
+  }
+
+  void _accept(Object? payload, int generation) {
+    if (!_attached || generation != _generation) return;
+    if (payload == null) {
+      _battleInputEpoch++;
+      _releaseInputs();
+      value = null;
+      return;
+    }
+    final next = AveluneGameplayCompanionSnapshot.fromPayload(payload);
+    final current = value;
+    if (current != null &&
+        (next.sessionId != current.sessionId ||
+            next.revision <= current.revision)) {
+      return;
+    }
+    final sameBattle =
+        current?.mode == AveluneGameplayCompanionMode.battle &&
+        next.mode == AveluneGameplayCompanionMode.battle &&
+        current?.companionAttached == true &&
+        next.companionAttached &&
+        current?.battle?.mode == next.battle?.mode &&
+        current?.battle?.actorCombatantId == next.battle?.actorCombatantId;
+    if (!sameBattle) {
+      _battleInputEpoch++;
+      _releaseInputs();
+    }
+    value = next;
+  }
+
+  void _releaseInputs() {
+    final controls = _pressedInputs.toList(growable: false);
+    _pressedInputs.clear();
+    for (final control in controls) {
+      _inputs.add(RuntimeInputEvent.release(control));
+    }
+  }
+
+  void _acceptInput(Object? payload) {
+    final current = value;
+    final input = _map(payload);
+    if (current == null ||
+        !current.companionAttached ||
+        input['sessionId'] != current.sessionId ||
+        input['revision'] != current.revision ||
+        (current.mode != AveluneGameplayCompanionMode.menu &&
+            current.mode != AveluneGameplayCompanionMode.battle)) {
+      return;
+    }
+    if (current.mode == AveluneGameplayCompanionMode.battle &&
+        (input['mode'] != 'battle' ||
+            input['battleRevision'] != current.battle?.revision ||
+            input['battleMode'] != current.battle?.mode.name)) {
+      return;
+    }
+    final event = decodeAveluneGameplayCompanionInput(input);
+    final control = event.control;
+    if (event.isRelease) {
+      _pressedInputs.remove(control);
+    } else if (!event.isRepeat) {
+      _pressedInputs.add(control);
+    }
+    _inputs.add(event);
+  }
+
+  @override
+  void dispose() {
+    detach();
+    unawaited(_inputs.close());
+    super.dispose();
+  }
+}
+
+RuntimeInputEvent decodeAveluneGameplayCompanionInput(
+  Map<String, Object?> payload,
+) {
+  final control = RuntimeInputControl.values
+      .where((value) => value.name == payload['control'])
+      .firstOrNull;
+  if (control == null || payload['isRepeat'] is! bool) {
+    throw PlatformException(code: 'invalidIntent');
+  }
+  return switch (payload['phase']) {
+    'press' => RuntimeInputEvent.press(
+      control,
+      isRepeat: payload['isRepeat'] as bool,
+    ),
+    'release' => RuntimeInputEvent.release(control),
+    _ => throw PlatformException(code: 'invalidIntent'),
+  };
+}
+
+Map<String, dynamic> _map(Object? payload) {
+  if (payload is! Map || payload.keys.any((key) => key is! String)) {
+    throw const FormatException('Invalid companion message.');
+  }
+  return RuntimeCompanionPresentationCodec.normalizeMap(payload);
+}
+
+String _session(Object? payload) {
+  final sessionId = _map(payload)['sessionId'];
+  if (sessionId is! String || sessionId.trim().isEmpty) {
+    throw PlatformException(code: 'invalidSession');
+  }
+  return sessionId;
+}

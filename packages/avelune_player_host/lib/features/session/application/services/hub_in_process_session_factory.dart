@@ -1,0 +1,146 @@
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+import 'package:avelune_player_host/features/session/domain/entities/save_read_handle.dart';
+import 'package:avelune_player_host/features/session/domain/entities/installed_game_launch_context.dart';
+import 'package:avelune_player_host/features/saves/domain/repositories/save_repository_interface.dart';
+import '../../data/repositories/installed_gen5_battle_source_loader.dart';
+import 'hub_session_checkpoint_committer.dart';
+
+/// Composition bridge from verified Hub handles to the production Flame graph.
+///
+/// The adapter factory is synchronous, but every filesystem/save lookup stays
+/// deferred until session loading and is resolved by Hub-owned services.
+final class HubInProcessSessionFactory {
+  const HubInProcessSessionFactory({
+    required this.launch,
+    required this.saves,
+    required this.mountGame,
+    required this.unmountGame,
+    this.preloadedInitialMap,
+    this.resourceProfile = const RuntimeResourceProfile(),
+    this.audioMixer,
+    this.presentationCinematicPlayer,
+    this.feedbackLocalizer,
+    this.battleMessageFormatter,
+    this.now,
+    this.dimension = ProjectDimension.twoD,
+    this.mountSpatialSession,
+    this.unmountSpatialSession,
+    this.commitCheckpoint,
+  });
+
+  final InstalledGameLaunchContext launch;
+  final SaveRepositoryInterface saves;
+  final PlayableMapGameMount mountGame;
+  final PlayableMapGameUnmount unmountGame;
+  final SessionPreloadedInitialMapLoader? preloadedInitialMap;
+  final RuntimeResourceProfile resourceProfile;
+  final RuntimeAudioMixer? audioMixer;
+  final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
+  final RuntimePlayerFeedbackLocalizer? feedbackLocalizer;
+  final RuntimeBattleMessageFormatter? battleMessageFormatter;
+  final DateTime Function()? now;
+  final ProjectDimension dimension;
+  final SpatialExplorationSessionMount? mountSpatialSession,
+      unmountSpatialSession;
+  final GameSessionCheckpointCommitter? commitCheckpoint;
+
+  GameSessionAdapter call(GameSessionDescriptor descriptor) {
+    if (descriptor.identity != launch.identity ||
+        descriptor.installedVersionHandle != launch.installedVersionHandle) {
+      throw StateError(
+        'The descriptor does not match the verified installed version.',
+      );
+    }
+    if (saves.identity != launch.identity) {
+      throw StateError('The save store does not match the launch identity.');
+    }
+    if ((dimension == ProjectDimension.threeD) !=
+        descriptor.grantedCapabilities.contains('map3d@1')) {
+      throw StateError(
+        'The project dimension does not match its runtime capability.',
+      );
+    }
+    final gen5Loader = InstalledGen5BattleSourceLoader(
+      manifest: launch.manifest,
+      assets: launch.assets,
+    );
+    if (dimension == ProjectDimension.threeD) {
+      final mount = mountSpatialSession;
+      final unmount = unmountSpatialSession;
+      if (mount == null || unmount == null) {
+        throw StateError('The host does not provide a spatial surface.');
+      }
+      return InProcessGameSessionAdapter(
+        runtimeFactory:
+            (prepared) => SpatialExplorationGameSessionRuntime(
+              descriptor: prepared,
+              immutableProject: true,
+              gen5BattleSourceLoader: gen5Loader.load,
+              projectFilePath:
+                  () async =>
+                      (await launch.assets.resolveReference(
+                        launch.project,
+                      )).path,
+              initialSave: () => _loadInitialSave(prepared),
+              commitCheckpoint:
+                  commitCheckpoint ??
+                  HubSessionCheckpointCommitter(store: saves).commit,
+              mountSession: mount,
+              audioMixer: audioMixer,
+              feedbackLocalizer: feedbackLocalizer,
+              battleMessageFormatter: battleMessageFormatter,
+              unmountSession: unmount,
+              preloadedInitialMap: preloadedInitialMap,
+              now: now,
+            ),
+      );
+    }
+    return InProcessGameSessionAdapter(
+      runtimeFactory:
+          (preparedDescriptor) => PlayableMapGameSessionRuntime(
+            descriptor: preparedDescriptor,
+            gen5BattleSourceLoader: gen5Loader.load,
+            projectFilePath: () async {
+              final file = await launch.assets.resolveReference(launch.project);
+              return file.path;
+            },
+            initialSave: () => _loadInitialSave(preparedDescriptor),
+            commitCheckpoint: commitCheckpoint ??
+                HubSessionCheckpointCommitter(store: saves).commit,
+            mountGame: mountGame,
+            unmountGame: unmountGame,
+            preloadedInitialMap: preloadedInitialMap,
+            resourceProfile: resourceProfile,
+            audioMixer: audioMixer,
+            presentationCinematicPlayer: presentationCinematicPlayer,
+            feedbackLocalizer: feedbackLocalizer,
+            battleMessageFormatter: battleMessageFormatter,
+            now: now,
+          ),
+    );
+  }
+
+  Future<SaveEnvelope?> _loadInitialSave(
+    GameSessionDescriptor descriptor,
+  ) async {
+    if (descriptor.launchMode == GameSessionLaunchMode.newGame) return null;
+    final selected = await saves.read(
+      SaveSlotAddress(
+        gameId: descriptor.identity.gameId,
+        profileId: descriptor.profileId,
+        slotId: descriptor.slotId,
+      ),
+    );
+    if (!selected.canContinue || selected.envelope == null) {
+      throw StateError('The selected save is no longer launchable.');
+    }
+    if (hubSaveReadHandle(selected.envelope!) != descriptor.saveReadHandle) {
+      throw StateError(
+        'The selected save changed after the launch was authorized.',
+      );
+    }
+    return selected.envelope;
+  }
+}

@@ -129,17 +129,20 @@ class NativeHostContractsTest(unittest.TestCase):
         for host in ("Avelune iOS", "avelune_android"):
             with self.subTest(host=host):
                 module = source(f"apps/{host}/flutter_runtime/pubspec.yaml")
-                self.assertRegex(module, r"(?m)^  pokemap_hub:\s*\n    path: ../../pokemap_hub\s*$")
+                self.assertRegex(
+                    module,
+                    r"(?m)^  avelune_player_host:\s*\n    path: ../../../packages/avelune_player_host\s*$",
+                )
                 entrypoint = source(f"apps/{host}/flutter_runtime/lib/main.dart")
-                self.assertIn("package:pokemap_hub/avelune_embedded_runtime.dart", entrypoint)
+                self.assertIn("package:avelune_player_host/avelune_embedded_runtime.dart", entrypoint)
                 self.assertRegex(entrypoint, r"\brunAveluneEmbeddedRuntime\s*\(")
         self.assertIn(
             "HubInstalledGamePlayer(",
-            source("apps/pokemap_hub/lib/embedding/avelune_runtime_app.dart"),
+            source("packages/avelune_player_host/lib/embedding/avelune_runtime_app.dart"),
         )
         self.assertIn(
             "InstallGamePackageUseCase",
-            source("apps/pokemap_hub/lib/embedding/avelune_library_bridge.dart"),
+            source("packages/avelune_player_host/lib/embedding/avelune_library_bridge.dart"),
         )
 
     def test_retired_flutter_mobile_hosts_have_no_distribution_runners(self):

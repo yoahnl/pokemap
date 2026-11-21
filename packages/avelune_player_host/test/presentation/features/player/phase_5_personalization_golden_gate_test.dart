@@ -1,0 +1,424 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
+import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_runtime/map_runtime.dart';
+import 'package:path/path.dart' as p;
+import 'package:avelune_player_host/features/session/application/services/hub_runtime_startup_adapter.dart';
+import 'package:avelune_player_host/features/session/domain/repositories/package_asset_port.dart';
+import 'package:pub_semver/pub_semver.dart';
+
+void main() {
+  test('Phase 5 golden fixture reaches installed Hub presentation', () async {
+    final profile = await _readGoldenPresentation();
+    final root = await Directory.systemTemp.createTemp('phase-5-hub-golden-');
+    addTearDown(() => root.delete(recursive: true));
+    final files = <String, File>{};
+    for (final packagePath in <String>[
+      'presentation/icon.png',
+      'presentation/hero.png',
+      'project/assets/title.ogg',
+      'presentation/intro/video.mp4',
+      'presentation/intro/poster.png',
+      'presentation/intro/captions.vtt',
+      'presentation/fonts/display.ttf',
+    ]) {
+      files[packagePath] =
+          await File(p.join(root.path, packagePath.replaceAll('/', '-')))
+              .writeAsBytes(<int>[1]);
+    }
+
+    final adapter = HubRuntimeStartupAdapter(
+      manifest: _manifest(profile),
+      assets: _MemoryPackageAssets(files),
+    );
+    final runtimeProfile = await adapter.loadPresentationProfile();
+    final logo = await adapter.resolveImage('presentation/icon.png');
+    final hero = await adapter.resolveImage('presentation/hero.png');
+    final intro = await adapter.resolveMedia('presentation/intro/video.mp4');
+    final presentation = RuntimePlayerPresentation.fromRuntime(
+      RuntimeStartupResolvedPresentation(
+        metadata: const RuntimeStartupPresentationMetadata(
+          author: 'Studio Brume',
+          description: 'Golden personalization slice',
+        ),
+        profile: runtimeProfile,
+        titleLogo: logo?.presentationAsset,
+        titleHero: hero?.presentationAsset,
+        typography: _loadedTypography(runtimeProfile!.typography!),
+      ),
+      imageForAsset: (asset) {
+        final resolved = asset == null ? null : adapter.resolvedAsset(asset.assetId);
+        return resolved == null ? null : FileImage(File.fromUri(resolved.resolvedUri));
+      },
+    );
+
+    expect(
+      presentation.title.layoutVariant,
+      PlayerTitleLayoutVariant.cinematic,
+    );
+    expect(presentation.title.logo, isA<FileImage>());
+    expect(
+      intro?.resolvedUri.toFilePath(),
+      files['presentation/intro/video.mp4']!.path,
+    );
+    expect(
+      presentation.typography.displayFamily,
+      'Aube Display',
+    );
+    expect(
+      presentation.semanticTheme?.titleSurface,
+      const Color(0xFFD9F4F6),
+    );
+    expect(
+      presentation.windowProfile
+          ?.resolve(ProjectWindowRole.pauseMenu)
+          .cornerRadius,
+      24,
+    );
+    expect(
+      presentation.layoutProfile?.title.expanded.slot,
+      ProjectPresentationLayoutSlot.bottomLeft,
+    );
+  });
+
+  testWidgets(
+      'Phase 5 golden tokens drive title, dialogue, menu and both HUD roles',
+      (tester) async {
+    final profile = await tester.runAsync(_readGoldenPresentation);
+    final semantic = _playerTheme(profile!.theme!);
+    final semanticTheme = PokeMapPlayerTheme.withSemanticTheme(
+      PokeMapPlayerTheme.withTypography(
+        PokeMapPlayerTheme.light(),
+        PokeMapPlayerTypography(
+          displayFamily: profile.typography!.display.family,
+          displayFallback: profile.typography!.display.fallbackFamilies,
+        ),
+      ),
+      semantic,
+    );
+    final windowTheme = PokeMapPlayerTheme.withWindowProfile(
+      semanticTheme,
+      profile.windows!,
+    );
+    final theme = PokeMapPlayerTheme.withLayoutProfile(
+      windowTheme,
+      profile.layouts!,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: Column(
+              children: <Widget>[
+                _panel('golden-title', PlayerPanelRole.title, 'Aube'),
+                _panel(
+                  'golden-dialogue',
+                  PlayerPanelRole.dialogue,
+                  'Bienvenue',
+                ),
+                _panel('golden-menu', PlayerPanelRole.menu, 'Continuer'),
+                _panel(
+                  'golden-overworld-hud',
+                  PlayerPanelRole.overworldHud,
+                  'Action A',
+                ),
+                _panel(
+                  'golden-battle-hud',
+                  PlayerPanelRole.battleHud,
+                  'PV 20 / 20',
+                ),
+                const PlayerBadge(
+                  label: 'Poison',
+                  icon: Icons.warning_amber_rounded,
+                  tone: PlayerBadgeTone.danger,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(_materialColor(tester, 'golden-title'), semantic.titleSurface);
+    expect(
+      _materialColor(tester, 'golden-dialogue'),
+      semantic.dialogueSurface,
+    );
+    expect(_materialColor(tester, 'golden-menu'), semantic.menuSurface);
+    final menuMaterial = tester.widget<Material>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('golden-menu')),
+        matching: find.byType(Material),
+      ),
+    );
+    final menuShape = menuMaterial.shape! as RoundedRectangleBorder;
+    expect(menuShape.borderRadius, BorderRadius.circular(24));
+    expect(menuShape.side.width, 2);
+    expect(
+      _materialColor(tester, 'golden-overworld-hud'),
+      semantic.overworldHudSurface,
+    );
+    expect(
+      _materialColor(tester, 'golden-battle-hud'),
+      semantic.battleHudSurface,
+    );
+    expect(find.text('Poison'), findsOneWidget);
+    expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+  });
+}
+
+Widget _panel(String key, PlayerPanelRole role, String label) => PlayerPanel(
+      key: ValueKey<String>(key),
+      role: role,
+      child: Text(label),
+    );
+
+Color? _materialColor(WidgetTester tester, String key) => tester
+    .widget<Material>(
+      find.descendant(
+        of: find.byKey(ValueKey<String>(key)),
+        matching: find.byType(Material),
+      ),
+    )
+    .color;
+
+Future<ProjectPresentationProfile> _readGoldenPresentation() async {
+  final file = File(
+    p.join(
+      Directory.current.path,
+      '..',
+      '..',
+      'examples',
+      'playable_runtime_host',
+      'golden_personalization_v3',
+      'project.json',
+    ),
+  );
+  final project = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+  final profile = ProjectPresentationProfile.fromJson(
+    Map<String, dynamic>.from(project['presentation'] as Map),
+  );
+  if (validateProjectPresentationProfile(profile).isNotEmpty) {
+    throw StateError('The Phase 5 golden presentation must remain valid.');
+  }
+  return profile;
+}
+
+PokeMapPlayerSemanticTheme _playerTheme(ProjectSemanticThemeProfile theme) =>
+    PokeMapPlayerSemanticTheme.tryFromHex(
+      primary: theme.primary,
+      onPrimary: theme.onPrimary,
+      background: theme.background,
+      surface: theme.surface,
+      surfaceElevated: theme.surfaceElevated,
+      textPrimary: theme.textPrimary,
+      textSecondary: theme.textSecondary,
+      outline: theme.outline,
+      success: theme.success,
+      warning: theme.warning,
+      danger: theme.danger,
+      titleSurface: theme.titleSurface,
+      dialogueSurface: theme.dialogueSurface,
+      menuSurface: theme.menuSurface,
+      overworldHudSurface: theme.overworldHudSurface,
+      battleHudSurface: theme.battleHudSurface,
+    )!;
+
+GamePackageManifest _manifest(ProjectPresentationProfile profile) {
+  final intro = profile.intro!;
+  final typography = profile.typography!;
+  return GamePackageManifest(
+    packageFormat: 1,
+    gameId: 'games.example.phase5-golden',
+    gameVersion: Version(1, 0, 0),
+    title: 'Aube',
+    description: 'Golden personalization slice',
+    author: const GamePackageParty(name: 'Studio Brume'),
+    compatibility: GamePackageCompatibility(
+      minHubVersion: Version(0, 1, 0),
+      runtimeApiExpression: '>=1.0.0 <2.0.0',
+      projectFormat: 'v2',
+      saveFormat: 1,
+      compatibilityId: 'main',
+      requiredCapabilities: const <String>[],
+    ),
+    locales: GamePackageLocales(
+      defaultLocale: 'fr',
+      supported: const <String>['fr'],
+    ),
+    presentation: GamePackagePresentation(
+      schemaVersion: profile.schemaVersion,
+      branding: GamePackageBranding(
+        icon: 'presentation/icon.png',
+        hero: 'presentation/hero.png',
+        accentColor: profile.branding.accentColor,
+        titleMusic: 'project/assets/title.ogg',
+        layoutVariant: profile.branding.layoutVariant,
+      ),
+      intro: GamePackageIntroVideo(
+        video: 'presentation/intro/video.mp4',
+        poster: 'presentation/intro/poster.png',
+        captions: 'presentation/intro/captions.vtt',
+        durationMilliseconds: intro.durationMilliseconds,
+        width: intro.width,
+        height: intro.height,
+        bitrateKbps: intro.bitrateKbps,
+        sizeBytes: intro.sizeBytes,
+        videoCodec: intro.videoCodec,
+        audioCodec: intro.audioCodec,
+        reducedMotionBehavior: intro.reducedMotionBehavior,
+        allowReplay: intro.allowReplay,
+      ),
+      typography: GamePackageTypography(
+        display: GamePackageFontRole(
+          font: 'presentation/fonts/display.ttf',
+          family: typography.display.family,
+          license: 'presentation/fonts/display-license.txt',
+          fallbackFamilies: typography.display.fallbackFamilies,
+        ),
+        body: GamePackageFontRole(
+          fallbackFamilies: typography.body.fallbackFamilies,
+        ),
+        dialogue: GamePackageFontRole(
+          fallbackFamilies: typography.dialogue.fallbackFamilies,
+        ),
+        numbers: GamePackageFontRole(
+          fallbackFamilies: typography.numbers.fallbackFamilies,
+        ),
+      ),
+      theme: _packageTheme(profile.theme!),
+      windows: _packageWindows(profile.windows!),
+      layouts: _packageLayouts(profile.layouts!),
+    ),
+    content: GamePackageContent(
+      fileCount: 0,
+      totalBytes: 0,
+      treeSha256: '0' * 64,
+      files: const <GamePackageFileEntry>[],
+    ),
+  );
+}
+
+GamePackageSemanticTheme _packageTheme(ProjectSemanticThemeProfile theme) =>
+    GamePackageSemanticTheme(
+      primary: theme.primary,
+      onPrimary: theme.onPrimary,
+      background: theme.background,
+      surface: theme.surface,
+      surfaceElevated: theme.surfaceElevated,
+      textPrimary: theme.textPrimary,
+      textSecondary: theme.textSecondary,
+      outline: theme.outline,
+      success: theme.success,
+      warning: theme.warning,
+      danger: theme.danger,
+      titleSurface: theme.titleSurface,
+      dialogueSurface: theme.dialogueSurface,
+      menuSurface: theme.menuSurface,
+      overworldHudSurface: theme.overworldHudSurface,
+      battleHudSurface: theme.battleHudSurface,
+    );
+
+GamePackagePresentationWindows _packageWindows(
+  ProjectPresentationWindowsProfile windows,
+) => GamePackagePresentationWindows(
+  styles: <GamePackageWindowStyle>[
+    for (final style in windows.styles)
+      GamePackageWindowStyle(
+        id: style.id,
+        fillToken: style.fillToken,
+        borderToken: style.borderToken,
+        borderWidth: style.borderWidth,
+        cornerRadius: style.cornerRadius,
+        contentPadding: style.contentPadding,
+        shadowElevation: style.shadowElevation,
+      ),
+  ],
+  defaultStyleId: windows.defaultStyleId,
+  pauseMenuStyleId: windows.pauseMenuStyleId,
+  dialogueStyleId: windows.dialogueStyleId,
+  pauseBackdropOpacity: windows.pauseBackdropOpacity,
+);
+
+GamePackagePresentationLayouts _packageLayouts(
+  ProjectPresentationLayoutsProfile layouts,
+) => GamePackagePresentationLayouts(
+  title: _packageResponsiveLayout(layouts.title),
+  pauseMenu: _packageResponsiveLayout(layouts.pauseMenu),
+  dialogue: _packageResponsiveLayout(layouts.dialogue),
+);
+
+GamePackageResponsiveSurfaceLayout _packageResponsiveLayout(
+  ProjectResponsiveSurfaceLayoutProfile layout,
+) => GamePackageResponsiveSurfaceLayout(
+  compact: _packageLayoutVariant(layout.compact),
+  regular: _packageLayoutVariant(layout.regular),
+  expanded: _packageLayoutVariant(layout.expanded),
+);
+
+GamePackageSurfaceLayoutVariant _packageLayoutVariant(
+  ProjectSurfaceLayoutVariant variant,
+) => GamePackageSurfaceLayoutVariant(
+  breakpoint: variant.breakpoint.name,
+  slot: variant.slot.name,
+  width: variant.width.name,
+  spacing: variant.spacing.name,
+  screenMargin: variant.screenMargin.name,
+  visibleSecondaryElements: <String>[
+    for (final element in variant.visibleSecondaryElements) element.name,
+  ],
+);
+
+RuntimeLoadedTypography _loadedTypography(ProjectTypographyProfile source) =>
+    RuntimeLoadedTypography(
+      roles: <ProjectTypographyRole, RuntimeLoadedFontRole>{
+        ProjectTypographyRole.display: RuntimeLoadedFontRole(
+          registeredFamily: source.display.family,
+          fallbackFamilies: source.display.fallbackFamilies,
+        ),
+        ProjectTypographyRole.body: RuntimeLoadedFontRole(
+          registeredFamily: source.body.family,
+          fallbackFamilies: source.body.fallbackFamilies,
+        ),
+        ProjectTypographyRole.dialogue: RuntimeLoadedFontRole(
+          registeredFamily: source.dialogue.family,
+          fallbackFamilies: source.dialogue.fallbackFamilies,
+        ),
+        ProjectTypographyRole.numbers: RuntimeLoadedFontRole(
+          registeredFamily: source.numbers.family,
+          fallbackFamilies: source.numbers.fallbackFamilies,
+        ),
+      },
+      unavailableRoles: const <ProjectTypographyRole>[],
+    );
+
+final class _MemoryPackageAssets implements PackageAssetPort {
+  const _MemoryPackageAssets(this.files);
+
+  final Map<String, File> files;
+
+  @override
+  PackageAssetReferencePort reference(String packagePath) =>
+      _MemoryPackageAssetReference(packagePath);
+
+  @override
+  Future<File> resolveFile(String packagePath) async => files[packagePath]!;
+
+  @override
+  Future<File> resolveReference(PackageAssetReferencePort reference) =>
+      resolveFile(reference.packagePath);
+}
+
+final class _MemoryPackageAssetReference implements PackageAssetReferencePort {
+  const _MemoryPackageAssetReference(this.packagePath);
+
+  @override
+  final String packagePath;
+}

@@ -1,0 +1,52 @@
+name: avelune_player_host
+description: Avelune Player host shared by the native iOS and Android apps.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: '>=3.47.5'
+
+dependencies:
+  archive: 4.0.9
+  crypto: ^3.0.7
+  flame: 2.0.0-dev.1
+  flutter:
+    sdk: flutter
+  map_core:
+    path: ../map_core
+  map_distribution:
+    path: ../map_distribution
+  map_player_ui:
+    path: ../map_player_ui
+  map_runtime:
+    path: ../map_runtime
+  path: ^1.9.0
+  path_provider: ^2.1.6
+  pub_semver: ^2.2.0
+
+dev_dependencies:
+  avelune_studio:
+    path: ../../apps/avelune_studio
+  flutter_test:
+    sdk: flutter
+  image: ^4.2.0
+  lints: ^6.1.0
+  map_authoring:
+    path: ../map_authoring
+  map_gameplay:
+    path: ../map_gameplay
+  test: ^1.24.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/avelune/logo/
+    - assets/avelune/splash/avelune-ios-lettrage-vague.png
+    - assets/avelune/splash/avelune-android-lettrage-vague.png
+
+dependency_overrides:
+  gamepads_darwin:
+    path: ../gamepads_darwin
+  gamepads_ios:
+    path: ../gamepads_ios

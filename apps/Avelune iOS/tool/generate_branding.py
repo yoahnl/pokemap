@@ -43,7 +43,7 @@ wordmark.alpha_composite(word, ((2172-word.width)//2, (724-word.height)//2))
 wordmark.save(assets / 'AveluneWordmark.imageset/nom application.png')
 wordmark.save(runtime / 'avelune-wordmark.png')
 
-original = root.parent / 'pokemap_hub/assets/avelune/splash/avelune_eclipse.mp4'
+original = root.parents[1] / 'packages/avelune_player_host/assets/avelune/splash/avelune_eclipse.mp4'
 probe = json.loads(subprocess.check_output(['ffprobe','-v','quiet','-show_streams','-show_format','-of','json',str(original)],text=True))
 video = next(s for s in probe['streams'] if s['codec_type']=='video')
 width, height = video['width'], video['height']

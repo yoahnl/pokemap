@@ -1,4 +1,4 @@
-import 'package:pokemap_hub/avelune_embedded_runtime.dart';
+import 'package:avelune_player_host/avelune_embedded_runtime.dart';
 
 void main() => runAveluneEmbeddedRuntime();
 
