@@ -11,6 +11,110 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 void main() {
+  test(
+    'resource previews skip scene owners and follow the catalogue revision',
+    () async {
+      final qa = await Directory.systemTemp.createTemp('resource-preview-');
+      addTearDown(() => qa.delete(recursive: true));
+      final root = await Directory('${qa.path}/project').create();
+      final store = await CatalogStorageStore.open(
+        projectRoot: root.path,
+        trustedAdmissionDirectory: Directory('${qa.path}/admissions'),
+      );
+      final working = await WorkingProjectCatalog.create(
+        store: store,
+        projectId: 'preview',
+        project: ProjectManifest(
+          name: 'Aperçus',
+          maps: const [
+            ProjectMapEntry(
+              id: 'town',
+              name: 'Town',
+              relativePath: 'maps/town.json',
+            ),
+          ],
+          tilesets: [
+            ProjectTilesetEntry(
+              id: 'shown',
+              name: 'Avant',
+              relativePath: 'assets/shown.png',
+            ),
+            ProjectTilesetEntry(
+              id: 'other',
+              name: 'Autre',
+              relativePath: 'assets/other.png',
+            ),
+          ],
+          dialogueFolders: [
+            for (var index = 0; index < 40; index++)
+              ProjectDialogueFolder(id: 'folder-$index', name: 'Folder $index'),
+          ],
+        ),
+      );
+      final reader = _CountingReader();
+      final adapter = LocalMapWorkspaceAdapter(reader: reader);
+      final session = ProjectSession(
+        sessionId: 'preview',
+        name: 'Aperçus',
+        directoryPath: root.path,
+        storage: ProjectSessionStorage.workingCatalog,
+      );
+      final key = CatalogDefinitionKey(CatalogDefinitionKind.tileset, 'shown');
+      Future<({ProjectManifest project, String revision})> read() =>
+          adapter.readResourcePreviewWithRevision(session, 'tileset', key.id);
+
+      final before = await read();
+      expect(before.revision, await adapter.resourceRevision(session));
+      expect(before.project.tilesets.single.name, 'Avant');
+      expect(reader.units, {
+        CatalogDefinitionKey(
+          CatalogDefinitionKind.catalogMetadata,
+          'publication-shell',
+        ),
+        key,
+      });
+      expect(reader.paths.where((path) => path.startsWith('maps/')), isEmpty);
+      expect(reader.paths.where((path) => path.startsWith('assets/')), isEmpty);
+
+      final editor = await CatalogEditingSession.open(
+        store: store,
+        projectId: working.descriptor.projectId,
+        actorId: 'preview-test',
+      );
+      addTearDown(editor.close);
+      final unit = (await editor.snapshot.lookup(key))!;
+      final rename = await editor.planPatch(
+        upserts: [
+          working.replaceDefinitionValue(unit, {
+            ...Map<String, Object?>.from(unit.payload['value']! as Map),
+            'name': 'Après',
+          }),
+        ],
+        idempotencyKey: 'rename-preview-tileset',
+      );
+      reader.onUnit = (observed) async {
+        if (observed != key) return;
+        reader.onUnit = null;
+        await editor.apply(rename);
+      };
+      await expectLater(
+        read(),
+        throwsA(
+          isA<CatalogStorageException>().having(
+            (error) => error.code,
+            'code',
+            'catalog.revision_conflict',
+          ),
+        ),
+      );
+
+      final after = await read();
+      expect(after.revision, await adapter.resourceRevision(session));
+      expect(after.revision, isNot(before.revision));
+      expect(after.project.tilesets.single.name, 'Après');
+    },
+  );
+
   for (final unrelated in [0, 900]) {
     test(
       'workshop entry reads no map files with $unrelated unrelated definitions',
@@ -125,6 +229,8 @@ final class _CountingReader
         ProjectResourceProbeReader {
   final paths = <String>[];
   final definitionFields = <String>[];
+  final units = <CatalogDefinitionKey>{};
+  Future<void> Function(CatalogDefinitionKey)? onUnit;
   final _local = const LocalProjectFileReader();
   @override
   bool get supportsStreamingResources => true;
@@ -164,6 +270,11 @@ final class _CountingReader
     if (relativePath.startsWith('catalog/objects/')) {
       final object = jsonDecode(utf8.decode(bytes)) as Map;
       if (object['type'] == 'unit') {
+        final key = CatalogDefinitionKey.fromJson(
+          Map<String, Object?>.from(object['key'] as Map),
+        );
+        units.add(key);
+        await onUnit?.call(key);
         final payload = object['payload'] as Map;
         if (payload['section'] == r'$projectDefinition') {
           definitionFields.add((payload['value'] as Map)['field'] as String);
