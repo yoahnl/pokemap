@@ -2765,6 +2765,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.deepEqual(record(presentationAction).endToEndVerifiedTransports, [
       "cli",
       "directApi",
+      "editor",
       "mcp",
     ]);
     const mediaImportAction = (

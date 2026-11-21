@@ -1504,6 +1504,8 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.directApi:
           'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
+      AuthoringTransport.editor:
+          '../../tools/pokemap_product_certification/test/fixtures/pmcp085_projects/scenarios.json',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };

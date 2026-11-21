@@ -2,6 +2,22 @@
   "schemaVersion": 1,
   "scenarios": [
     {
+      "id": "presentation-profile",
+      "projectRoot": "campaign-content",
+      "reopen": true,
+      "steps": [
+        {
+          "actionId": "presentation.update",
+          "actionVersion": 1,
+          "revisionScope": "project",
+          "parameters": {"profile": {"schemaVersion": 10, "branding": {"accentColor": "#126E78"}}},
+          "observations": [
+            {"path": "project.json", "at": ["presentation", "branding", "accentColor"], "equals": "#126E78"}
+          ]
+        }
+      ]
+    },
+    {
       "id": "campaign-content",
       "projectRoot": "campaign-content",
       "steps": [

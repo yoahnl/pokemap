@@ -542,7 +542,7 @@ void main() {
         catalog.requireMutationAction('presentation.update').toJson(),
         containsPair(
           'endToEndVerifiedTransports',
-          ['cli', 'directApi', 'mcp'],
+          ['cli', 'directApi', 'editor', 'mcp'],
         ),
       );
       expect(

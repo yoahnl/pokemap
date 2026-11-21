@@ -69,7 +69,7 @@ export async function verifyCheckoutCatalog(
 
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [serverEntryPoint, "--root", projectRoot],
+    args: [serverEntryPoint, "--root", projectRoot, "--authoring-timeout-ms", "60000"],
     cwd: packageRoot,
     stderr: "pipe",
   });
@@ -83,13 +83,12 @@ export async function verifyCheckoutCatalog(
     const result = await client.callTool({
       name: "pokemap_describe",
       arguments: {},
-    });
-    if (result.isError) {
-      throw new Error("pokemap_describe failed for the checkout server.");
-    }
+    }, { timeout: 65000 });
     const envelope = record(result.structuredContent);
-    if (envelope.ok !== true) {
-      throw new Error("pokemap_describe returned an unsuccessful envelope.");
+    if (result.isError || envelope.ok !== true) {
+      const code = record(envelope.error).code;
+      const diagnostic = typeof code === "string" ? ` (${code})` : "";
+      throw new Error(`pokemap_describe failed for the checkout server${diagnostic}.`);
     }
     const data = record(envelope.data);
     const certification = certifyPersonalizationCatalog(data);
