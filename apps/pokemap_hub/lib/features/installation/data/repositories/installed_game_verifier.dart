@@ -10,6 +10,7 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
 
+import 'package:pokemap_hub/features/installation/data/repositories/installed_game_content_seal.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 
 final class GameCurrentPointerCodec {
@@ -93,22 +94,17 @@ final class GameCurrentPointerStore {
 
   Future<InstalledGamePointer> read(String gameId) async {
     GameIdentity.validateGameId(gameId);
-    final file =
-        File(p.join(supportRoot.path, 'games', gameId, 'current.json'));
+    final file = File(
+      p.join(supportRoot.path, 'games', gameId, 'current.json'),
+    );
     try {
-      return codec.decode(
-        await file.readAsBytes(),
-        expectedGameId: gameId,
-      );
+      return codec.decode(await file.readAsBytes(), expectedGameId: gameId);
     } on Object {
       throw const FormatException('Current game pointer is unavailable.');
     }
   }
 
-  Future<void> write(
-    String gameId,
-    InstalledGamePointer pointer,
-  ) async {
+  Future<void> write(String gameId, InstalledGamePointer pointer) async {
     GameIdentity.validateGameId(gameId);
     final gameRoot = Directory(p.join(supportRoot.path, 'games', gameId));
     await gameRoot.create(recursive: true);
@@ -137,8 +133,9 @@ final class GameCurrentPointerStore {
 
   Future<void> delete(String gameId) async {
     GameIdentity.validateGameId(gameId);
-    final file =
-        File(p.join(supportRoot.path, 'games', gameId, 'current.json'));
+    final file = File(
+      p.join(supportRoot.path, 'games', gameId, 'current.json'),
+    );
     if (await file.exists()) await file.delete();
   }
 }
@@ -175,20 +172,20 @@ final class InstalledGameVerification {
   bool get isHealthy => code == InstalledGameVerificationCode.healthy;
 }
 
-typedef InstalledGameFileIntegrityCheck = Future<InstalledGameVerificationCode?>
-    Function(
-  File file,
-  GamePackageFileEntry entry,
-);
+typedef InstalledGameFileIntegrityCheck =
+    Future<InstalledGameVerificationCode?> Function(
+      File file,
+      GamePackageFileEntry entry,
+    );
 
 final class InstalledGameVerifier {
   const InstalledGameVerifier({
     this.maxConcurrentFileChecks = 4,
     InstalledGameFileIntegrityCheck? fileIntegrityCheck,
-  })  : fileIntegrityCheck =
-            fileIntegrityCheck ?? _checkInstalledGameFileIntegrity,
-        _usesDefaultIntegrityCheck = fileIntegrityCheck == null,
-        assert(maxConcurrentFileChecks > 0);
+  }) : fileIntegrityCheck =
+           fileIntegrityCheck ?? _checkInstalledGameFileIntegrity,
+       _usesDefaultIntegrityCheck = fileIntegrityCheck == null,
+       assert(maxConcurrentFileChecks > 0);
 
   final int maxConcurrentFileChecks;
   final InstalledGameFileIntegrityCheck fileIntegrityCheck;
@@ -265,10 +262,7 @@ final class InstalledGameVerifier {
         pointer.gameVersion.toString(),
       ),
     );
-    if (await FileSystemEntity.type(
-          versionRoot.path,
-          followLinks: false,
-        ) !=
+    if (await FileSystemEntity.type(versionRoot.path, followLinks: false) !=
         FileSystemEntityType.directory) {
       return InstalledGameVerification(
         code: InstalledGameVerificationCode.versionMissing,
@@ -277,7 +271,8 @@ final class InstalledGameVerifier {
     late final GamePackageManifest manifest;
     try {
       final manifestPath = p.join(versionRoot.path, 'game-manifest.json');
-      manifest = _usesDefaultIntegrityCheck &&
+      manifest =
+          _usesDefaultIntegrityCheck &&
               depth == InstalledGameVerificationDepth.content
           ? await _readInstalledGameManifest(manifestPath)
           : await Isolate.run(() => _readInstalledGameManifest(manifestPath));
@@ -336,8 +331,10 @@ final class InstalledGameVerifier {
       ...manifest.content.files.map((entry) => entry.path),
     };
     final actual = <String>{};
-    await for (final entity
-        in versionRoot.list(recursive: true, followLinks: false)) {
+    await for (final entity in versionRoot.list(
+      recursive: true,
+      followLinks: false,
+    )) {
       if (entity is Directory) continue;
       if (entity is! File) {
         return InstalledGameVerification(
@@ -370,19 +367,41 @@ final class InstalledGameVerifier {
       );
     }
     final entries = manifest.content.files;
-    final failureByIndex =
-        List<InstalledGameVerificationCode?>.filled(entries.length, null);
+    final sealFile = InstalledGameContentSeal.fileFor(
+      supportRootPath: supportRoot.path,
+      gameId: gameId,
+      receiptFileName: receiptFileName,
+    );
+    final seal = InstalledGameContentSeal.capture([
+      File(p.join(versionRoot.path, 'game-manifest.json')),
+      for (final entry in entries)
+        File(p.joinAll([versionRoot.path, ...p.posix.split(entry.path)])),
+    ]);
+    final previous = InstalledGameContentSeal.read(
+      sealFile,
+      fileCount: entries.length + 1,
+    );
+    final sealed = previous != null && seal.matches(previous, 0);
+    final indexes = <int>[
+      for (var index = 0; index < entries.length; index++)
+        if (!sealed || !seal.matches(previous, index + 1)) index,
+    ];
+    final failureByIndex = List<InstalledGameVerificationCode?>.filled(
+      entries.length,
+      null,
+    );
     if (_usesDefaultIntegrityCheck) {
       await _checkDefaultFileIntegrity(
         versionRoot: versionRoot,
         entries: entries,
+        indexes: indexes,
         failureByIndex: failureByIndex,
       );
     } else {
       await _checkFileIntegrityWithCallback(
         versionRoot: versionRoot,
         entries: entries,
-        indexes: List<int>.generate(entries.length, (index) => index),
+        indexes: indexes,
         failureByIndex: failureByIndex,
       );
     }
@@ -397,6 +416,7 @@ final class InstalledGameVerifier {
         );
       }
     }
+    seal.write(sealFile);
     return InstalledGameVerification(
       code: InstalledGameVerificationCode.healthy,
       manifest: manifest,
@@ -407,15 +427,18 @@ final class InstalledGameVerifier {
   Future<void> _checkDefaultFileIntegrity({
     required Directory versionRoot,
     required List<GamePackageFileEntry> entries,
+    required List<int> indexes,
     required List<InstalledGameVerificationCode?> failureByIndex,
   }) async {
     Future<void> checkBufferedBatch(int batchIndex) async {
-      final failure = await _runInstalledGameFileChecks(
-        versionRoot.path,
-        entries,
-        start: batchIndex,
-        stride: _effectiveMaxConcurrentFileChecks,
-      );
+      final failure = await _runInstalledGameFileChecks(versionRoot.path, [
+        for (
+          var position = batchIndex;
+          position < indexes.length;
+          position += _effectiveMaxConcurrentFileChecks
+        )
+          (indexes[position], entries[indexes[position]]),
+      ]);
       if (failure == null) return;
       final index = failure[0] as int;
       failureByIndex[index] =
@@ -423,9 +446,11 @@ final class InstalledGameVerifier {
     }
 
     await Future.wait<void>(<Future<void>>[
-      for (var index = 0;
-          index < entries.length && index < _effectiveMaxConcurrentFileChecks;
-          index++)
+      for (
+        var index = 0;
+        index < indexes.length && index < _effectiveMaxConcurrentFileChecks;
+        index++
+      )
         checkBufferedBatch(index),
     ]);
   }
@@ -442,10 +467,9 @@ final class InstalledGameVerifier {
       while (nextIndex < indexes.length) {
         final index = indexes[nextIndex++];
         final entry = entries[index];
-        final file = File(p.joinAll(<String>[
-          versionRoot.path,
-          ...p.posix.split(entry.path),
-        ]));
+        final file = File(
+          p.joinAll(<String>[versionRoot.path, ...p.posix.split(entry.path)]),
+        );
         failureByIndex[index] = await fileIntegrityCheck(file, entry);
       }
     }
@@ -498,45 +522,31 @@ Future<InstalledGameVerification> _verifyInstalledGameContent(
   String receiptFileName,
   int maxConcurrentFileChecks,
 ) => Isolate.run(() {
-      final verifier = InstalledGameVerifier(
-        maxConcurrentFileChecks: maxConcurrentFileChecks,
-      );
-      return verifier._verify(
-        supportRoot: Directory(supportRootPath),
-        gameId: gameId,
-        pointer: pointer,
-        receiptFileName: receiptFileName,
-        depth: InstalledGameVerificationDepth.content,
-      );
-    });
+  final verifier = InstalledGameVerifier(
+    maxConcurrentFileChecks: maxConcurrentFileChecks,
+  );
+  return verifier._verify(
+    supportRoot: Directory(supportRootPath),
+    gameId: gameId,
+    pointer: pointer,
+    receiptFileName: receiptFileName,
+    depth: InstalledGameVerificationDepth.content,
+  );
+});
 
 Future<GamePackageManifest> _readInstalledGameManifest(String path) async =>
     const GamePackageManifestCodec().decodeUtf8(await File(path).readAsBytes());
 
 Future<List<Object>?> _runInstalledGameFileChecks(
   String root,
-  List<GamePackageFileEntry> entries, {
-  required int start,
-  required int stride,
-}) {
-  final batch = [
-    for (var index = start; index < entries.length; index += stride)
-      entries[index],
-  ];
-  return Isolate.run(
-    () => _checkBufferedInstalledGameFiles(root, batch, start, stride),
-  );
-}
+  List<(int, GamePackageFileEntry)> batch,
+) => Isolate.run(() => _checkBufferedInstalledGameFiles(root, batch));
 
 List<Object>? _checkBufferedInstalledGameFiles(
   String root,
-  List<GamePackageFileEntry> batch,
-  int start,
-  int stride,
+  List<(int, GamePackageFileEntry)> batch,
 ) {
-  for (var offset = 0; offset < batch.length; offset++) {
-    final entry = batch[offset];
-    final index = start + offset * stride;
+  for (final (index, entry) in batch) {
     try {
       final file = File(p.joinAll([root, ...p.posix.split(entry.path)]));
       final digest = entry.size <= _maxBufferedIntegrityFileBytes
@@ -555,10 +565,7 @@ List<Object>? _checkBufferedInstalledGameFiles(
         ];
       }
     } on FileSystemException {
-      return <Object>[
-        index,
-        InstalledGameVerificationCode.missingFile.index,
-      ];
+      return <Object>[index, InstalledGameVerificationCode.missingFile.index];
     }
   }
   return null;
