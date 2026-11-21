@@ -397,10 +397,11 @@ final class InstalledGameVerifier {
       for (final entry in entries)
         File(p.joinAll([versionRoot.path, ...p.posix.split(entry.path)])),
     ]);
-    final previous = InstalledGameContentSeal.read(
+    final read = InstalledGameContentSeal.read(
       sealFile,
       fileCount: entries.length + 1,
     );
+    final previous = read != null && seal.isRelabelingOf(read) ? seal : read;
     final sealed = previous != null && seal.matches(previous, 0);
     final indexes = <int>[
       for (var index = 0; index < entries.length; index++)

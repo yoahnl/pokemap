@@ -69,6 +69,21 @@ final class InstalledGameContentSeal {
     return _stamps[offset] >= 0;
   }
 
+  bool isRelabelingOf(InstalledGameContentSeal previous) {
+    if (previous._stamps.length != _stamps.length || _stamps.isEmpty) {
+      return false;
+    }
+    for (var offset = 0; offset < _stamps.length; offset += _fieldsPerFile) {
+      if (_stamps[offset] < 0 ||
+          _stamps[offset] != previous._stamps[offset] ||
+          _stamps[offset + 1] != previous._stamps[offset + 1] ||
+          _stamps[offset + 2] == previous._stamps[offset + 2]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   bool write(File file) {
     final header = ascii.encode(_magic);
     final view = ByteData(_stamps.length * 8);
