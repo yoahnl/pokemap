@@ -105,6 +105,8 @@ jobs:
             test/pokemon_catalog_coherence_validator_test.dart
       - name: Studio domain gates (avelune_studio)
         working-directory: apps/avelune_studio
+        env:
+          AVELUNE_QA_ROOT: ${{ runner.temp }}/studio-domain-gates
         run: |
           flutter pub get
           flutter test --timeout 4m \
