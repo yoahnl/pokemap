@@ -7,7 +7,7 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_hub/pokemap_hub_player.dart';
+import 'package:avelune_player_host/avelune_player_session.dart';
 import 'package:pokemap_loader/src/evaluation/driver/evaluation_driver.dart';
 import 'package:pokemap_loader/src/evaluation/driver/runtime_evaluation_driver.dart';
 import 'package:pub_semver/pub_semver.dart';

@@ -237,7 +237,7 @@ Iterable<File> _productionSourceFiles(Directory repositoryRoot) sync* {
     'packages/map_player_ui/lib',
     'apps/avelune_studio/lib',
     'packages/map_distribution/lib',
-    'apps/pokemap_hub/lib',
+    'packages/avelune_player_host/lib',
     'examples/playable_runtime_host/lib',
     'tools/pokemap_mcp/src',
     '.cursor',

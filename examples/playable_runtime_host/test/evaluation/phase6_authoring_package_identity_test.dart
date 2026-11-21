@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flame/components.dart';
@@ -8,7 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_hub/pokemap_hub_player.dart';
+import 'package:avelune_player_host/avelune_player_session.dart';
 import 'package:pokemap_loader/src/evaluation/authoring/evaluation_distribution_package_service.dart';
 import 'package:pokemap_loader/src/project_tree_digest.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -91,18 +90,8 @@ void main() {
       final sourceRevision =
           'sha256:${await const ProjectTreeDigest().compute(projectRoot)}';
 
-      // The host supports the format of the project it is exercising, the way
-      // the export service derives it from its projection. 982aa3681 cut the
-      // slices over to v6 while this host still declared v2.
       final projectFormat = authored.manifest.version.name;
-      final hostCompatibility = GamePackageHostCompatibility(
-        hubVersion: Version.parse('1.2.0'),
-        runtimeApiVersion: Version.parse('1.4.0'),
-        capabilities: const <String>{'map@1'},
-        supportedProjectFormats: <String>{projectFormat},
-        currentProjectFormat: projectFormat,
-        supportedSaveFormats: const <int>{1},
-      );
+      final hostCompatibility = AveluneRuntimeCompatibility.host();
       final inspector = GamePackageInspector(
         hostCompatibility: hostCompatibility,
       );
@@ -243,21 +232,16 @@ void main() {
           ),
         ),
       );
-      final installedManifest = ProjectManifest.fromJson(
-        (jsonDecode(
-          await File(
-            p.join(
-              supportRoot.path,
-              'games',
-              'games.example.pmcp072-golden',
-              'versions',
-              '1.0.0',
-              'project',
-              'project.json',
-            ),
-          ).readAsString(),
-        ) as Map)
-            .cast<String, dynamic>(),
+      final installedManifest = await loadProjectManifestFromFile(
+        p.join(
+          supportRoot.path,
+          'games',
+          'games.example.pmcp072-golden',
+          'versions',
+          '1.0.0',
+          'project',
+          'project.json',
+        ),
       );
       expect(installedManifest.maps.single.id, 'golden_api_map');
     },
@@ -278,7 +262,7 @@ GamePackageManifest _packageManifest({
         minHubVersion: Version.parse('0.1.0'),
         runtimeApiExpression: '>=1.0.0 <2.0.0',
         projectFormat: projectFormat,
-        saveFormat: 1,
+        saveFormat: SaveEnvelopeCodec.currentSaveFormat,
         compatibilityId: 'main',
         requiredCapabilities: const <String>['map@1'],
       ),

@@ -8,12 +8,12 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences_read.dart';
-import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
-import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_bootstrap.dart';
-import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
-import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
-import 'package:pokemap_hub/pokemap_hub.dart';
+import 'package:avelune_player_host/features/preferences/domain/entities/hub_preferences_read.dart';
+import 'package:avelune_player_host/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
+import 'package:avelune_player_host/features/session/application/services/hub_runtime_startup_bootstrap.dart';
+import 'package:avelune_player_host/features/session/data/repositories/installed_game_launch_resolver.dart';
+import 'package:avelune_player_host/features/session/domain/repositories/control_profile_repository_interface.dart';
+import 'package:avelune_player_host/avelune_player_host.dart';
 import 'package:pokemap_product_certification/src/neutral_certification_pokemon_data.dart';
 
 void main() {

@@ -11,7 +11,7 @@ import 'package:map_story/map_story.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_hub/pokemap_hub_player.dart';
+import 'package:avelune_player_host/avelune_player_session.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 void main() {

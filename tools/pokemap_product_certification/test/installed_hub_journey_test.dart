@@ -9,8 +9,8 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
-import 'package:pokemap_hub/pokemap_hub.dart';
+import 'package:avelune_player_host/features/installation/data/repositories/installed_project_smoke.dart';
+import 'package:avelune_player_host/avelune_player_host.dart';
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 
 import '../bin/build_dialogued_pre_session_package.dart';

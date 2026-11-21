@@ -14,6 +14,7 @@ void main() {
     final revision = _git(repository, [
       'log',
       '-1',
+      '--diff-filter=AM',
       '--format=%H',
       '--',
       evidencePath,

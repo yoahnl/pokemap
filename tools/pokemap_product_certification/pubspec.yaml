@@ -28,8 +28,8 @@ dependencies:
   path: ^1.9.0
   pokemap_loader:
     path: ../../examples/playable_runtime_host
-  pokemap_hub:
-    path: ../../apps/pokemap_hub
+  avelune_player_host:
+    path: ../../packages/avelune_player_host
   pub_semver: ^2.2.0
 
 dev_dependencies:

@@ -261,14 +261,18 @@ final class MvpReleaseCommandMatrix {
         ),
         _flutterTest(
           root,
-          id: 'hub-tests',
-          packagePath: 'apps/pokemap_hub',
+          id: 'player-host-tests',
+          packagePath: 'tools/pokemap_product_certification',
           criterion: MvpReleaseGateCriterion.criticalPackageTests,
+          tests: [
+            'test/installed_hub_journey_test.dart',
+            'test/golden_launch_save_resume_gate_test.dart',
+          ],
         ),
         _analyze(
           root,
-          id: 'hub-analyze',
-          packagePath: 'apps/pokemap_hub',
+          id: 'player-host-analyze',
+          packagePath: 'packages/avelune_player_host',
           flutter: true,
         ),
         _flutterTest(

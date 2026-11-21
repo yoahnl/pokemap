@@ -31,8 +31,8 @@ dependencies:
     path: ../../packages/map_authoring
   map_distribution:
     path: ../../packages/map_distribution
-  pokemap_hub:
-    path: ../../apps/pokemap_hub
+  avelune_player_host:
+    path: ../../packages/avelune_player_host
 
 dev_dependencies:
   map_story:

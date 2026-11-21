@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_hub/pokemap_hub.dart';
+import 'package:avelune_player_host/avelune_player_host.dart';
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 import 'package:pub_semver/pub_semver.dart';
 

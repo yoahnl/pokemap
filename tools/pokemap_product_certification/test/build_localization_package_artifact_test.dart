@@ -12,10 +12,10 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
-import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
-import 'package:pokemap_hub/features/saves/data/repositories/game_save_update_preparation.dart';
-import 'package:pokemap_hub/pokemap_hub_player.dart';
+import 'package:avelune_player_host/core/config/avelune_host_compatibility.dart';
+import 'package:avelune_player_host/features/installation/data/repositories/installed_project_smoke.dart';
+import 'package:avelune_player_host/features/saves/data/repositories/game_save_update_preparation.dart';
+import 'package:avelune_player_host/avelune_player_session.dart';
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 
 void main() {

@@ -8,16 +8,16 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/map_runtime.dart' as runtime;
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
-import 'package:pokemap_hub/core/ports/game_installation_ports.dart';
-import 'package:pokemap_hub/features/installation/data/repositories/game_package_installer.dart';
-import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
-import 'package:pokemap_hub/features/installation/data/sources/file_package_source.dart';
-import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
-import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
-import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_bootstrap.dart';
-import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
-import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
+import 'package:avelune_player_host/core/config/avelune_host_compatibility.dart';
+import 'package:avelune_player_host/core/ports/game_installation_ports.dart';
+import 'package:avelune_player_host/features/installation/data/repositories/game_package_installer.dart';
+import 'package:avelune_player_host/features/installation/data/repositories/installed_project_smoke.dart';
+import 'package:avelune_player_host/features/installation/data/sources/file_package_source.dart';
+import 'package:avelune_player_host/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
+import 'package:avelune_player_host/features/saves/data/repositories/hub_save_repository_impl.dart';
+import 'package:avelune_player_host/features/session/application/services/hub_runtime_startup_bootstrap.dart';
+import 'package:avelune_player_host/features/session/data/repositories/control_profile_repository_impl.dart';
+import 'package:avelune_player_host/features/session/data/repositories/installed_game_launch_resolver.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
