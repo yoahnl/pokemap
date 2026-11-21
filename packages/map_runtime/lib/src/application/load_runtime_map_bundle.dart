@@ -378,6 +378,15 @@ Future<({ProjectManifest project, MapData map})> loadRuntimeCatalogMap(
           visual.characterId,
     },
   );
+  _validateRuntimeCatalogMap(catalog, map, project);
+  return (project: project, map: map);
+}
+
+void _validateRuntimeCatalogMap(
+  RuntimeProjectCatalog catalog,
+  MapData map,
+  ProjectManifest project,
+) {
   MapValidator.validate(
     map,
     projectDialogueContext: project,
@@ -387,7 +396,6 @@ Future<({ProjectManifest project, MapData map})> loadRuntimeCatalogMap(
   if (!composition.canCompose) {
     throw MapLoadException('Map ${map.id} cannot be composed by this runtime.');
   }
-  return (project: project, map: map);
 }
 
 Future<SpatialAtmosphereSettings> loadSpatialAtmosphereSettings({
@@ -522,6 +530,11 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     ...additionalCharacterIds,
     if (manifest.partyCompanion.enabled)
       for (final visual in manifest.partyCompanion.mappings) visual.characterId,
+    if (preloadedManifest != null &&
+        catalog != null &&
+        catalog.projectMetadata.partyCompanion.enabled)
+      for (final visual in catalog.projectMetadata.partyCompanion.mappings)
+        visual.characterId,
   };
   final entry = projectMapEntryForId(manifest, mapId);
   if (entry == null) {
@@ -547,18 +560,9 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     'bundle map resolved mapId=$mapId relativePath=$rel mapPath=$mapPath',
   );
   final mapWatch = Stopwatch()..start();
-  final MapData map;
-  if (catalog == null) {
-    map = await loadMapDataFromFile(mapPath, projectDialogueContext: manifest);
-  } else {
-    final loaded = await loadRuntimeCatalogMap(
-      catalog,
-      mapId,
-      additionalCharacterIds: additionalCharacterIds,
-    );
-    map = loaded.map;
-    manifest = loaded.project;
-  }
+  final map = catalog == null
+      ? await loadMapDataFromFile(mapPath, projectDialogueContext: manifest)
+      : await catalog.loadMapData(mapId);
   final atmosphere = await loadSpatialAtmosphereSettings(
     projectRoot: projectRoot,
     mapId: map.id,
@@ -568,15 +572,17 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     map: map,
     mapRelativePath: rel,
   );
-  if (catalog != null && exteriorDecoration != null) {
+  if (catalog != null) {
     manifest = await catalog.manifestForMaps(
       [
         map,
-        for (final sector in exteriorDecoration.sectors) sector.asVisualMap().copyWith(id: map.id),
+        if (exteriorDecoration != null)
+          for (final sector in exteriorDecoration.sectors)
+            sector.asVisualMap().copyWith(id: map.id),
       ],
       extraCharacterIds: additionalCharacterIds,
       extraDefinitionKeys: [
-        for (final border in exteriorDecoration.borders) ...[
+        for (final border in exteriorDecoration?.borders ?? const <ExteriorDecorationBorder>[]) ...[
           CatalogDefinitionKey(
             CatalogDefinitionKind.borderRecord,
             border.feature.blueprintId,
@@ -603,6 +609,7 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
         ],
       ],
     );
+    _validateRuntimeCatalogMap(catalog, map, manifest);
   }
   final projectVisualProfile = await loadSpatialVisualProfile(
     projectRoot: projectRoot,
