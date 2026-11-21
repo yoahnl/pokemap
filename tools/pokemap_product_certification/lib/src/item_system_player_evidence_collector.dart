@@ -20,7 +20,7 @@ final class ItemSystemPlayerEvidenceCollector {
       'bag_menu': const _PlayerEvidenceProbe(
         packagePath: 'packages/map_player_ui',
         testPath: 'test/player/runtime_player_detail_router_test.dart',
-        plainName: 'bag selects a party target and keeps key items unavailable',
+        plainName: 'bag automatically uses its sole target and keeps key items unavailable',
       ),
       'target_picker': const _PlayerEvidenceProbe(
         packagePath: 'packages/map_player_ui',
@@ -30,7 +30,7 @@ final class ItemSystemPlayerEvidenceCollector {
       'shop_controls': const _PlayerEvidenceProbe(
         packagePath: 'packages/map_player_ui',
         testPath: 'test/player/player_shop_overlay_test.dart',
-        plainName: 'shop renders runtime prices and emits versioned commands',
+        plainName: 'shop starts with its list and waits for runtime selection before quantity',
       ),
       'capture_controls': const _PlayerEvidenceProbe(
         packagePath: 'packages/map_runtime',
@@ -41,7 +41,7 @@ final class ItemSystemPlayerEvidenceCollector {
         packagePath: 'packages/map_player_ui',
         testPath: 'test/player/runtime_player_detail_router_test.dart',
         plainName:
-            'TM target picker teaches directly or chooses a move to forget',
+            'TM replacement requires a compatible target and confirmation',
       ),
       'held_item_controls': const _PlayerEvidenceProbe(
         packagePath: 'packages/map_player_ui',

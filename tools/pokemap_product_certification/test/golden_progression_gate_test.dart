@@ -55,7 +55,7 @@ void main() {
         // ignore: invalid_use_of_internal_member
         game.mount();
         game.update(0);
-        await _waitForOverworldAuthority(game);
+        await waitForGoldenOverworldAuthority(game);
 
         final started = game.gameStateSnapshot;
         final lead = started.party.members.single;
@@ -84,7 +84,7 @@ void main() {
           );
           expect(outcome, BattleOutcomeType.victory,
               reason: 'round $round against the rival must win');
-          await _waitForOverworldAuthority(game);
+          await waitForGoldenOverworldAuthority(game);
         }
 
         final afterGrind = game.gameStateSnapshot;
@@ -120,7 +120,7 @@ void main() {
         );
         expect(bossOutcome, BattleOutcomeType.victory,
             reason: 'the evolved level-7+ lead must beat the level-6 boss');
-        await _waitForOverworldAuthority(game);
+        await waitForGoldenOverworldAuthority(game);
 
         final afterBoss = game.gameStateSnapshot;
         expect(afterBoss.trainerProfile.money, moneyBeforeBoss + 600);
@@ -218,20 +218,7 @@ Future<void> _healLeadWithPotion(
     ),
   );
   await host.resume();
-  await _waitForOverworldAuthority(game);
-}
-
-Future<void> _waitForOverworldAuthority(PlayableMapGame game) async {
-  for (var frame = 0; frame < 4000; frame++) {
-    if (game.inputAuthoritySnapshot.context == RuntimeInputContext.overworld) {
-      return;
-    }
-    await _pump(game);
-  }
-  fail(
-    'The overworld never took input authority; '
-    'last=${game.inputAuthoritySnapshot.context}',
-  );
+  await waitForGoldenOverworldAuthority(game);
 }
 
 Future<void> _pump(PlayableMapGame game, {int frames = 1}) async {
@@ -361,58 +348,29 @@ Future<void> _resolvePostBattlePrompts(
   required int Function(List<String> labels) decidePrompt,
 }) async {
   for (var frame = 0; frame < 4000; frame++) {
-    await _pump(game);
-    if (game.debugPostBattleOverlayMounted) {
-      break;
-    }
-    if (!game.debugBattleOverlayMounted &&
-        !game.debugPostBattleOverlayMounted) {
+    if (!game.debugBattleOverlayMounted) {
+      await waitForGoldenOverworldAuthority(game);
       return;
     }
-  }
-  var lastLabels = '';
-  for (var input = 0;
-      input < 128 && game.debugPostBattleOverlayMounted;
-      input++) {
-    final labels = game.debugPostBattleDecisionLabels;
-    if (labels.isEmpty) {
-      // Les écrans sans choix (victoire, expérience) se valident tels quels.
-      game.debugValidatePostBattleChoice();
-      await _pump(game, frames: 4);
-      continue;
+    final snapshot = game.battleCommandOverlayListenable.value;
+    if (snapshot != null &&
+        (snapshot.mode == BattleCommandOverlayMode.decision ||
+            snapshot.mode == BattleCommandOverlayMode.continueOnly)) {
+      final entryIndex = snapshot.mode == BattleCommandOverlayMode.decision
+          ? decidePrompt(snapshot.entries.map((entry) => entry.primaryLabel).toList())
+          : 0;
+      expect(
+        game.dispatchBattlePresentationCommand(
+          BattleSelectEntryCommand(
+            snapshotRevision: snapshot.revision,
+            expectedMode: snapshot.mode,
+            entryIndex: entryIndex,
+          ),
+        ),
+        isTrue,
+      );
     }
-    final signature = labels.join('|');
-    if (signature != lastLabels) {
-      lastLabels = signature;
-      final wanted = decidePrompt(labels);
-      for (var move = 0; move < wanted; move++) {
-        game.handleRuntimeInputEvent(
-          const RuntimeInputEvent.press(RuntimeInputControl.down),
-        );
-        game.handleRuntimeInputEvent(
-          const RuntimeInputEvent.release(RuntimeInputControl.down),
-        );
-        await _pump(game, frames: 2);
-      }
-    }
-    expect(game.debugValidatePostBattleChoice(), isTrue);
-    await _pump(game, frames: 4);
-  }
-  expect(game.debugPostBattleOverlayMounted, isFalse);
-  await game.debugWaitForPostBattleCompletion();
-  for (var frame = 0; frame < 400; frame++) {
     await _pump(game);
-    if (game.inputAuthoritySnapshot.context == RuntimeInputContext.dialogue) {
-      game.handleRuntimeInputEvent(
-        const RuntimeInputEvent.press(RuntimeInputControl.primary),
-      );
-      game.handleRuntimeInputEvent(
-        const RuntimeInputEvent.release(RuntimeInputControl.primary),
-      );
-    } else if (game.inputAuthoritySnapshot.context ==
-        RuntimeInputContext.overworld) {
-      break;
-    }
   }
-  await _pump(game, frames: 10);
+  fail('The battle did not finish its post-battle decisions.');
 }

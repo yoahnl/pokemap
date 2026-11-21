@@ -56,7 +56,7 @@ void main() {
         // ignore: invalid_use_of_internal_member
         game.mount();
         game.update(0);
-        await _waitForOverworldAuthority(game);
+        await waitForGoldenOverworldAuthority(game);
 
         final started = game.gameStateSnapshot;
         final startingMoney = started.trainerProfile.money;
@@ -78,7 +78,7 @@ void main() {
           GridPos(x: 2, y: 2),
           GridPos(x: 2, y: 3),
         ]);
-        await _waitForOverworldAuthority(game);
+        await waitForGoldenOverworldAuthority(game);
         await _pump(game, frames: 60);
         expect(
           _quantityOf(
@@ -95,7 +95,7 @@ void main() {
         await _waitForBattle(game);
         final rivalOutcome = await _fightUntilBattleEnds(game);
         expect(rivalOutcome, BattleOutcomeType.victory);
-        await _waitForOverworldAuthority(game);
+        await waitForGoldenOverworldAuthority(game);
         final afterRival = game.gameStateSnapshot;
         expect(afterRival.trainerProfile.money, startingMoney + 120);
         expect(
@@ -196,7 +196,7 @@ void main() {
         );
         expect(equipped.status, RuntimePlayerCommandStatus.accepted);
         await host.resume();
-        await _waitForOverworldAuthority(game);
+        await waitForGoldenOverworldAuthority(game);
 
         final afterPause = game.gameStateSnapshot;
         expect(
@@ -230,7 +230,7 @@ void main() {
         // ignore: invalid_use_of_internal_member
         reloadedGame.mount();
         reloadedGame.update(0);
-        await _waitForOverworldAuthority(reloadedGame);
+        await waitForGoldenOverworldAuthority(reloadedGame);
 
         final resumed = reloadedGame.gameStateSnapshot;
         expect(resumed.trainerProfile.money, moneyAfterShop);
@@ -298,19 +298,6 @@ void main() {
         ),
       );
     },
-  );
-}
-
-Future<void> _waitForOverworldAuthority(PlayableMapGame game) async {
-  for (var frame = 0; frame < 4000; frame++) {
-    if (game.inputAuthoritySnapshot.context == RuntimeInputContext.overworld) {
-      return;
-    }
-    await _pump(game);
-  }
-  fail(
-    'The overworld never took input authority; '
-    'last=${game.inputAuthoritySnapshot.context}',
   );
 }
 
@@ -427,22 +414,7 @@ Future<void> _acknowledgePostBattle(PlayableMapGame game) async {
     await _pump(game);
   }
   expect(game.debugPostBattleOverlayMounted, isFalse);
-  await game.debugWaitForPostBattleCompletion();
-  for (var frame = 0; frame < 400; frame++) {
-    await _pump(game);
-    if (game.inputAuthoritySnapshot.context == RuntimeInputContext.dialogue) {
-      game.handleRuntimeInputEvent(
-        const RuntimeInputEvent.press(RuntimeInputControl.primary),
-      );
-      game.handleRuntimeInputEvent(
-        const RuntimeInputEvent.release(RuntimeInputControl.primary),
-      );
-    } else if (game.inputAuthoritySnapshot.context ==
-        RuntimeInputContext.overworld) {
-      break;
-    }
-  }
-  await _pump(game, frames: 10);
+  await waitForGoldenOverworldAuthority(game);
 }
 
 int _quantityOf(Bag bag, String itemId) {

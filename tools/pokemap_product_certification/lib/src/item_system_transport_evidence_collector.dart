@@ -5,13 +5,13 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/authoring_transport.dart';
 import 'package:path/path.dart' as p;
 
 import 'item_system_authoring_probe.dart';
 import 'item_system_certification.dart';
 import 'item_system_execution_receipt.dart';
 import 'item_system_fixture_digest.dart';
+import 'studio_transport_session.dart';
 
 final class ItemSystemTransportEvidenceCollector {
   const ItemSystemTransportEvidenceCollector();
@@ -21,69 +21,86 @@ final class ItemSystemTransportEvidenceCollector {
     required Directory mcpPackageRootDirectory,
     required String sourceRevision,
     required DateTime recordedAtUtc,
+    bool includeStudio = true,
   }) async {
     final required = ItemSystemV1CertificationProfile.requiredCapabilitiesFor(
       ItemSystemProofLevel.mcpParityL5,
     );
-    final succeeded = <String>{};
-    final failed = <String>{};
     final fixtureSha256 = await computeItemSystemFixtureSha256(
       projectRootDirectory,
     );
-    final payload = <String, Object?>{};
+    final payload = <String, Object?>{
+      if (!includeStudio)
+        'missingTransports': [ItemSystemTransport.editor.wireName],
+    };
 
     try {
-      final pairs =
-          <Map<String, Object?>>[
-            ...await _runDirect(projectRootDirectory),
-            ...await _runJsonl(projectRootDirectory),
-            ...await _runEditor(projectRootDirectory),
-            ...await _runMcp(projectRootDirectory, mcpPackageRootDirectory),
-          ]..sort((left, right) {
-            final action = (left['actionId']! as String).compareTo(
-              right['actionId']! as String,
-            );
-            if (action != 0) return action;
-            return (left['transport']! as String).compareTo(
-              right['transport']! as String,
-            );
-          });
+      final transports = {
+        ItemSystemTransport.directApi: () => _runDirect(projectRootDirectory),
+        ItemSystemTransport.jsonl: () => _runJsonl(projectRootDirectory),
+        if (includeStudio)
+          ItemSystemTransport.editor: () => _runStudio(projectRootDirectory),
+        ItemSystemTransport.mcp: () =>
+            _runMcp(projectRootDirectory, mcpPackageRootDirectory),
+      };
+      final pairs = <Map<String, Object?>>[];
+      final errors = <String, String>{};
+      for (final entry in transports.entries) {
+        try {
+          pairs.addAll(await entry.value());
+        } on Object catch (error) {
+          errors[entry.key.wireName] = error.toString();
+        }
+      }
+      pairs.sort((left, right) {
+        final leftId = '${left['actionId']}@${left['transport']}';
+        final rightId = '${right['actionId']}@${right['transport']}';
+        return leftId.compareTo(rightId);
+      });
+      payload['transportPairs'] = pairs;
+      if (errors.isNotEmpty) {
+        payload['transportErrors'] = errors;
+        throw StateError('One or more Item transport executions failed.');
+      }
       final pairIds = <String>{
         for (final pair in pairs) '${pair['actionId']}@${pair['transport']}',
       };
-      if (pairs.length != required.length * ItemSystemTransport.values.length ||
+      if (pairs.length != required.length * transports.length ||
           pairIds.length != pairs.length) {
         throw StateError('The Item transport execution matrix is incomplete.');
       }
       for (final actionId in required) {
-        final complete = ItemSystemTransport.values.every(
+        final complete = transports.keys.every(
           (transport) => pairIds.contains('$actionId@${transport.wireName}'),
         );
         final semanticStates = pairs
             .where((pair) => pair['actionId'] == actionId)
             .map((pair) => pair['semanticStateSha256'])
             .toSet();
-        (complete && semanticStates.length == 1 ? succeeded : failed)
-            .add(actionId);
+        if (!complete || semanticStates.length != 1) {
+          throw StateError('Item transports disagree after $actionId.');
+        }
       }
       payload
-        ..['transportPairs'] = pairs
         ..['transportExecutorSha256'] = await _transportExecutorSha256(
           mcpPackageRootDirectory,
-        );
+          includeStudio: includeStudio,
+        )
+        ..['availableTransportsAgree'] = true;
     } on Object catch (error) {
-      failed.addAll(required.difference(succeeded));
       payload['error'] = error.toString();
     }
 
+    final complete =
+        includeStudio && payload['availableTransportsAgree'] == true;
     return ItemSystemExecutionReceipt.record(
       level: ItemSystemProofLevel.mcpParityL5,
       sourceRevision: sourceRevision,
       fixtureSha256: fixtureSha256,
       payload: payload,
       attemptedCapabilities: required,
-      succeededCapabilities: succeeded,
-      failedCapabilities: failed,
+      succeededCapabilities: complete ? required : const [],
+      failedCapabilities: complete ? const [] : required,
       producer: 'item-system-transport-evidence-collector',
       runnerVersion: '1.0.0',
       recordedAtUtc: recordedAtUtc,
@@ -220,21 +237,13 @@ Future<List<Map<String, Object?>>> _runDirect(Directory source) async {
       projectHandle: opened.projectHandle,
     );
     for (final action in itemSystemAuthoringProbeActions) {
-      final snapshot = action.usesWorkshop
-          ? await mutations.readWorkshopSnapshot(
-              opened.projectHandle,
-              actionId: action.actionId,
-              parameters: action.parameters,
-            )
-          : await snapshots.load(opened.projectHandle);
-      final plan = await mutations.plan(
-        opened.projectHandle,
-        _request(
-          action,
-          transport: 'direct',
-          workspaceHandle: opened.workspaceHandle.value,
-          revision: snapshot.revision,
-        ),
+      final operationId = 'cert-direct-${action.slug}';
+      final plan = await action.plan(
+        operationId: operationId,
+        projectHandle: opened.projectHandle,
+        workspaceHandle: opened.workspaceHandle,
+        snapshots: snapshots,
+        mutations: mutations,
       );
       String? confirmationToken;
       if (action.actionId == 'item.delete_apply') {
@@ -247,7 +256,7 @@ Future<List<Map<String, Object?>>> _runDirect(Directory source) async {
       final applied = await mutations.apply(
         opened.projectHandle,
         planId: plan['planId']! as String,
-        operationId: 'cert-direct-${action.slug}',
+        operationId: operationId,
         confirmationToken: confirmationToken,
       );
       final receipt = Map<String, Object?>.from(applied['receipt']! as Map);
@@ -318,12 +327,13 @@ Future<List<Map<String, Object?>>> _runJsonl(Directory source) async {
             });
       final plan = await _workerRequest(worker, 'plan', <String, Object?>{
         'projectHandle': projectHandle,
-        'request': _request(
-          action,
-          transport: 'jsonl',
-          workspaceHandle: workspaceHandle,
-          revision: observed.data['snapshotRevision']! as String,
-        ).toJson(),
+        'request': action
+            .request(
+              operationId: 'cert-jsonl-${action.slug}',
+              workspaceHandle: workspaceHandle,
+              revision: observed.data['snapshotRevision']! as String,
+            )
+            .toJson(),
       });
       String? confirmationToken;
       if (action.actionId == 'item.delete_apply') {
@@ -357,64 +367,39 @@ Future<List<Map<String, Object?>>> _runJsonl(Directory source) async {
   return pairs;
 }
 
-Future<List<Map<String, Object?>>> _runEditor(Directory source) async {
+Future<List<Map<String, Object?>>> _runStudio(Directory source) async {
   final fixture = await _TransportFixture.copy(source, 'editor');
-  const reader = LocalProjectFileReader();
-  final queries = AuthoringQueryAdapter(fileReader: reader);
-  final mutations = AuthoringMutationAdapter(
-    fileReader: reader,
-    queries: queries,
-    projectRoots: _FixedProjectRootLocator(fixture.project.path),
-  );
-  final pairs = <Map<String, Object?>>[];
-  final observedReceiptIds = <String>{};
   try {
-    for (final action in itemSystemAuthoringProbeActions) {
-      final before = (await queries.open(fixture.project.path)).snapshotRevision;
-      final plan = await mutations.plan(
-        fixture.project.path,
-        actionId: action.actionId,
-        parameters: action.parameters,
-        idempotencyKey: 'cert-editor-${action.slug}',
-        requestId: 'cert-editor-${action.slug}',
-      );
-      final confirmationToken = action.actionId == 'item.delete_apply'
-          ? await mutations.confirm(plan)
-          : null;
-      final applied = await mutations.apply(
-        plan,
-        operationId: 'cert-editor-${action.slug}',
-        confirmationToken: confirmationToken,
-      );
-      final receipt = applied.receipt.toJson();
-      _requireObservedReceipt(receipt, action.actionId, observedReceiptIds);
-      final pair = await fixture.pair(
-        action.actionId,
-        ItemSystemTransport.editor,
-        receipt,
-      );
-      final queried = await queries.open(fixture.project.path);
-      final page = queried.query(AuthoringQueryRequest(
-        resourceKind: 'itemCatalog',
-        operation: AuthoringQueryOperation.list,
-        view: AuthoringQueryView.detail,
-      ));
-      final item = (page['items']! as List).single as Map;
-      if (queried.snapshotRevision == before ||
-          applied.snapshotRevision == null ||
-          _canonicalSha256(item['catalog']) != pair['semanticStateSha256']) {
-        throw StateError(
-          'Editor requery did not observe the mutation after ${action.actionId}.',
+    final studio = await StudioTransportSession.open(fixture.project);
+    try {
+      final pairs = <Map<String, Object?>>[];
+      final observedReceiptIds = <String>{};
+      for (final action in itemSystemAuthoringProbeActions) {
+        final applied = await studio.run(
+          actionId: action.actionId,
+          actionVersion: 1,
+          parameters: action.parameters,
+          operationId: 'cert-editor-${action.slug}',
+          preferWorkshop: action.usesWorkshop,
+          confirm: action.actionId == 'item.delete_apply',
+        );
+        final receipt = applied.toJson();
+        _requireObservedReceipt(receipt, action.actionId, observedReceiptIds);
+        pairs.add(
+          await fixture.pair(
+            action.actionId,
+            ItemSystemTransport.editor,
+            receipt,
+          ),
         );
       }
-      pairs.add(pair);
+      return pairs;
+    } finally {
+      await studio.close();
     }
   } finally {
-    await mutations.closeAll();
-    await queries.closeAll();
     await fixture.dispose();
   }
-  return pairs;
 }
 
 Future<List<Map<String, Object?>>> _runMcp(
@@ -446,24 +431,6 @@ Future<List<Map<String, Object?>>> _runMcp(
   return (json['pairs'] as List<dynamic>)
       .map((pair) => Map<String, Object?>.from(pair as Map<dynamic, dynamic>))
       .toList(growable: false);
-}
-
-AuthoringRequest _request(
-  ItemSystemAuthoringProbeAction action, {
-  required String transport,
-  required String workspaceHandle,
-  required String revision,
-}) {
-  return AuthoringRequest(
-    requestId: 'cert-$transport-${action.slug}',
-    actionId: action.actionId,
-    actionVersion: 1,
-    workspaceHandle: workspaceHandle,
-    parameters: action.parameters,
-    expectedRevision: revision,
-    idempotencyKey: 'cert-$transport-${action.slug}',
-    extensions: action.usesWorkshop ? const {'workshopScope': true} : const {},
-  );
 }
 
 Future<AuthoringResult> _workerRequest(
@@ -524,13 +491,10 @@ final class _TransportFixture {
     ItemSystemTransport transport,
     Map<String, Object?> receipt,
   ) async {
-    final catalogJson =
-        jsonDecode(
-              await File(
-                p.join(project.path, 'data/pokemon/catalogs/items.json'),
-              ).readAsString(),
-            )
-            as Map<String, dynamic>;
+    final catalogJson = jsonDecode(
+      await File(p.join(project.path, 'data/pokemon/catalogs/items.json'))
+          .readAsString(),
+    ) as Map<String, dynamic>;
     final catalog = decodeProjectItemCatalog(catalogJson);
     verifyItemSystemAuthoringProbeState(catalog, actionId);
     final normalizedReceipt = _normalizedObservedReceipt(receipt);
@@ -560,15 +524,6 @@ Map<String, Object?> _normalizedObservedReceipt(Map<String, Object?> receipt) {
       ..remove('planId');
   }
   return normalized;
-}
-
-final class _FixedProjectRootLocator implements EditorProjectRootLocator {
-  const _FixedProjectRootLocator(this.root);
-
-  final String root;
-
-  @override
-  Future<String> locateForResource(String resourcePath) async => root;
 }
 
 Future<void> _copyDirectory(Directory source, Directory destination) async {
@@ -602,12 +557,16 @@ Object? _canonicalJson(Object? value) {
   return value;
 }
 
-Future<Map<String, String>> _transportExecutorSha256(Directory mcpRoot) async {
+Future<Map<String, String>> _transportExecutorSha256(
+  Directory mcpRoot, {
+  required bool includeStudio,
+}) async {
   final repositoryRoot = Directory(p.normalize(p.join(mcpRoot.path, '../..')));
   const collector =
       'tools/pokemap_product_certification/lib/src/'
       'item_system_transport_evidence_collector.dart';
-  const probe = 'tools/pokemap_product_certification/lib/src/'
+  const probe =
+      'tools/pokemap_product_certification/lib/src/'
       'item_system_authoring_probe.dart';
   const actions =
       'packages/map_authoring/lib/src/domains/gameplay/'
@@ -629,14 +588,16 @@ Future<Map<String, String>> _transportExecutorSha256(Directory mcpRoot) async {
       direct,
       'packages/map_authoring/lib/src/tooling/jsonl_worker.dart',
     ]),
-    'editor': await _sourceFilesSha256(repositoryRoot, const <String>[
-      collector,
-      probe,
-      actions,
-      direct,
-      'packages/map_editor/lib/src/application/authoring_api/'
-          'authoring_mutation_adapter.dart',
-    ]),
+    if (includeStudio)
+      'editor': await _sourceFilesSha256(repositoryRoot, const <String>[
+        collector,
+        probe,
+        actions,
+        direct,
+        'tools/pokemap_product_certification/lib/src/studio_transport_session.dart',
+        'apps/avelune_studio/lib/features/presentations/data/local_presentation_connection.dart',
+        'apps/avelune_studio/lib/features/project_session/domain/project_session.dart',
+      ]),
     'mcp': await _mcpBuildSha256(mcpRoot),
   };
 }

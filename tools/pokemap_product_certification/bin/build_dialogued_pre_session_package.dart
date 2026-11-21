@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:map_editor/game_export.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 
@@ -68,7 +68,7 @@ Future<GamePackageExportArtifact> buildDialoguedPreSessionPackage({
     p.join(root.path, DialoguedPreSessionTransport.directApi.wireName),
   );
   await outputFile.parent.create(recursive: true);
-  return const GamePackageExportService().exportToFile(
+  return const CanonicalGamePackageExportService().exportToFile(
     projectRoot: projectRoot,
     profile: const NeutralCertificationGameFixture(
       dialoguedPreSession: true,

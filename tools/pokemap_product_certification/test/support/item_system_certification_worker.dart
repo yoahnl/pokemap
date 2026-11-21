@@ -5,58 +5,66 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 
 void main() {
-  test(
-    'writes executable Item System V1 certification artifacts',
-    () async {
-      const repositoryRoot = String.fromEnvironment('POKEMAP_REPOSITORY_ROOT');
-      const projectRoot = String.fromEnvironment('POKEMAP_ITEM_PROJECT_ROOT');
-      const mcpRoot = String.fromEnvironment('POKEMAP_MCP_ROOT');
-      const outputPath = String.fromEnvironment(
-        'POKEMAP_ITEM_CERTIFICATION_OUTPUT',
-      );
-      const receiptPath = String.fromEnvironment(
-        'POKEMAP_ITEM_TRANSPORT_RECEIPTS_OUTPUT',
-      );
-      for (final entry in <String, String>{
-        'POKEMAP_REPOSITORY_ROOT': repositoryRoot,
-        'POKEMAP_ITEM_PROJECT_ROOT': projectRoot,
-        'POKEMAP_MCP_ROOT': mcpRoot,
-        'POKEMAP_ITEM_CERTIFICATION_OUTPUT': outputPath,
-        'POKEMAP_ITEM_TRANSPORT_RECEIPTS_OUTPUT': receiptPath,
-      }.entries) {
-        if (entry.value.isEmpty) {
-          throw StateError('Missing ${entry.key}.');
-        }
+  test('writes executable Item System V1 certification artifacts', () async {
+    const repositoryRoot = String.fromEnvironment('POKEMAP_REPOSITORY_ROOT');
+    const projectRoot = String.fromEnvironment('POKEMAP_ITEM_PROJECT_ROOT');
+    const mcpRoot = String.fromEnvironment('POKEMAP_MCP_ROOT');
+    const outputPath = String.fromEnvironment(
+      'POKEMAP_ITEM_CERTIFICATION_OUTPUT',
+    );
+    const receiptPath = String.fromEnvironment(
+      'POKEMAP_ITEM_TRANSPORT_RECEIPTS_OUTPUT',
+    );
+    const checkOnly = bool.fromEnvironment('POKEMAP_ITEM_CHECK_ONLY');
+    for (final entry in <String, String>{
+      'POKEMAP_REPOSITORY_ROOT': repositoryRoot,
+      'POKEMAP_ITEM_PROJECT_ROOT': projectRoot,
+      'POKEMAP_MCP_ROOT': mcpRoot,
+      'POKEMAP_ITEM_CERTIFICATION_OUTPUT': outputPath,
+      if (!checkOnly) 'POKEMAP_ITEM_TRANSPORT_RECEIPTS_OUTPUT': receiptPath,
+    }.entries) {
+      if (entry.value.isEmpty) {
+        throw StateError('Missing ${entry.key}.');
       }
-      final sourceRevision = await _sourceRevision(repositoryRoot);
-      final result = await const ItemSystemV1CertificationRunner().run(
-        repositoryRootDirectory: Directory(repositoryRoot),
-        projectRootDirectory: Directory(projectRoot),
-        mcpPackageRootDirectory: Directory(mcpRoot),
-        sourceRevision: sourceRevision,
-        recordedAtUtc: DateTime.now().toUtc(),
-      );
-      expect(
-        result.technicalCertificationPassed,
-        isTrue,
-        reason: const JsonEncoder.withIndent('  ').convert(<String, Object?>{
-          for (final level in result.levelResults)
-            if (level.status != ItemSystemCertificationStatus.certified)
-              level.level.wireName: <String, Object?>{
-                ...level.toJson(),
-                'payload': result.executionReceipts[level.level]?.payload,
-              },
-        }),
-      );
-      final l5 = result.executionReceipts[ItemSystemProofLevel.mcpParityL5];
-      if (l5 == null) throw StateError('The L5 receipt is missing.');
-      final bundle = const ItemSystemTransportEvidenceCollector()
-          .buildParityReceiptBundle(l5);
-      await _writeJson(File(outputPath), result.toJson());
-      await _writeJson(File(receiptPath), bundle);
-    },
-    timeout: const Timeout(Duration(minutes: 5)),
-  );
+    }
+    final sourceRevision = await _sourceRevision(repositoryRoot);
+    final result = await const ItemSystemV1CertificationRunner().run(
+      repositoryRootDirectory: Directory(repositoryRoot),
+      projectRootDirectory: Directory(projectRoot),
+      mcpPackageRootDirectory: Directory(mcpRoot),
+      sourceRevision: sourceRevision,
+      recordedAtUtc: DateTime.now().toUtc(),
+      checkOnly: checkOnly,
+    );
+    await _writeJson(File(outputPath), result.toJson());
+    final passed = checkOnly
+        ? result.levelResults.every(
+            (entry) =>
+                entry.status ==
+                (entry.level == ItemSystemProofLevel.mcpParityL5
+                    ? ItemSystemCertificationStatus.blocked
+                    : ItemSystemCertificationStatus.certified),
+          )
+        : result.technicalCertificationPassed;
+    expect(
+      passed,
+      isTrue,
+      reason: const JsonEncoder.withIndent('  ').convert(<String, Object?>{
+        for (final level in result.levelResults)
+          if (level.status != ItemSystemCertificationStatus.certified)
+            level.level.wireName: <String, Object?>{
+              ...level.toJson(),
+              'payload': result.executionReceipts[level.level]?.payload,
+            },
+      }),
+    );
+    if (checkOnly) return;
+    final l5 = result.executionReceipts[ItemSystemProofLevel.mcpParityL5];
+    if (l5 == null) throw StateError('The L5 receipt is missing.');
+    final bundle = const ItemSystemTransportEvidenceCollector()
+        .buildParityReceiptBundle(l5);
+    await _writeJson(File(receiptPath), bundle);
+  }, timeout: const Timeout(Duration(minutes: 5)));
 }
 
 Future<String> _sourceRevision(String repositoryRoot) async {

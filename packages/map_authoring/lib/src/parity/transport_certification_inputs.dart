@@ -234,7 +234,7 @@ const _sourceTrees = [
   'packages/map_story/lib',
   'packages/map_gameplay/lib',
   'packages/map_distribution/lib',
-  'packages/map_editor/lib',
+  'apps/avelune_studio/lib',
   'tools/pokemap_product_certification/bin',
   'tools/pokemap_product_certification/lib',
   'tools/pokemap_mcp/src',
@@ -243,7 +243,8 @@ const _sourceTrees = [
 const _sourceFiles = [
   'packages/map_authoring/pubspec.yaml',
   'packages/map_authoring/pubspec.lock',
-  'packages/map_editor/pubspec.yaml',
+  'apps/avelune_studio/pubspec.yaml',
+  'apps/avelune_studio/pubspec.lock',
   'tools/pokemap_product_certification/pubspec.yaml',
   'tools/pokemap_product_certification/pubspec.lock',
   'tools/pokemap_mcp/package.json',

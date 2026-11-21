@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
-import 'package:map_editor/game_export.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub.dart';
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
@@ -51,7 +51,7 @@ void main() {
       p.join(workRoot.path, DialoguedPreSessionTransport.directApi.wireName),
     );
 
-    final artifact = await const GamePackageExportService().exportToFile(
+    final artifact = await const CanonicalGamePackageExportService().exportToFile(
       projectRoot: authorRoot,
       profile: fixture.exportProfile,
       outputFile: packageFile,
@@ -248,7 +248,7 @@ void main() {
         DialoguedPreSessionTransport.directApi,
         workRoot: workRoot,
       );
-      final artifact = await const GamePackageExportService().exportToFile(
+      final artifact = await const CanonicalGamePackageExportService().exportToFile(
         projectRoot: Directory(
           p.join(
             workRoot.path,
@@ -273,11 +273,7 @@ void main() {
   }, timeout: const Timeout(Duration(minutes: 8)));
 }
 
-Future<ProjectManifest> _readProject(Directory versionRoot) async =>
-    ProjectManifest.fromJson(
-      jsonDecode(
-        await File(
-          p.join(versionRoot.path, 'project', 'project.json'),
-        ).readAsString(),
-      ) as Map<String, dynamic>,
+Future<ProjectManifest> _readProject(Directory versionRoot) =>
+    loadProjectManifestFromFile(
+      p.join(versionRoot.path, 'project', 'project.json'),
     );

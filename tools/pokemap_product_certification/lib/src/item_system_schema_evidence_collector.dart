@@ -62,9 +62,9 @@ final class ItemSystemSchemaEvidenceCollector {
       failed: failed,
       errors: errors,
       operation: () async {
-        projectJson =
-            jsonDecode(await projectFile.readAsString())
-                as Map<String, dynamic>;
+        projectJson = jsonDecode(
+          await projectFile.readAsString(),
+        ) as Map<String, dynamic>;
         project = ProjectManifest.fromJson(projectJson);
         final rawBag =
             (projectJson['newGame'] as Map<String, dynamic>)['initialBag'];
@@ -114,9 +114,9 @@ final class ItemSystemSchemaEvidenceCollector {
       failed: failed,
       errors: errors,
       operation: () async {
-        final catalogJson =
-            jsonDecode(await catalogFile.readAsString())
-                as Map<String, dynamic>;
+        final catalogJson = jsonDecode(
+          await catalogFile.readAsString(),
+        ) as Map<String, dynamic>;
         final legacyCatalog =
             jsonDecode(jsonEncode(catalogJson)) as Map<String, dynamic>;
         final catalogEntries = legacyCatalog['entries'] as List<dynamic>;
@@ -156,7 +156,7 @@ final class ItemSystemSchemaEvidenceCollector {
       failed: failed,
       errors: errors,
       operation: () async {
-        final hostileCatalog = ProjectItemCatalog(
+        final probeCatalog = ProjectItemCatalog(
           schemaVersion: 1,
           entries: const <ProjectItemDefinition>[
             ProjectItemDefinition(
@@ -184,13 +184,13 @@ final class ItemSystemSchemaEvidenceCollector {
               heldEffectId: 'never_registered_effect',
             ),
             ProjectItemDefinition(
-              id: 'overworld-repel',
-              displayName: 'Overworld Repel',
+              id: 'battle-repel',
+              displayName: 'Battle Repel',
               pocketId: 'items',
               uses: <ProjectItemUseDefinition>[
                 ProjectItemUseDefinition(
                   contexts: <ProjectItemUseContext>{
-                    ProjectItemUseContext.overworld,
+                    ProjectItemUseContext.battle,
                   },
                   target: ProjectItemTargetKind.world,
                   consumption: ProjectItemConsumptionPolicy.onApplied,
@@ -201,14 +201,20 @@ final class ItemSystemSchemaEvidenceCollector {
           ],
         );
         final validation = validateProjectItemCatalog(
-          hostileCatalog,
+          probeCatalog,
           capabilityTruth: itemSystemV1CapabilityTruth,
         );
+        if (validation.assessmentFor('battle-ether')?.readiness !=
+            ItemCapabilityReadiness.runtimeReady) {
+          throw StateError(
+            'Battle Ether is not supported by the runtime capability matrix.',
+          );
+        }
+        payload['battleEtherAccepted'] = true;
         final rejections = <Object?>[];
         for (final itemId in const <String>[
-          'battle-ether',
           'unknown-held-effect',
-          'overworld-repel',
+          'battle-repel',
         ]) {
           final assessment = validation.assessmentFor(itemId);
           final blockingCodes =

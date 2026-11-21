@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
+import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
 import 'package:pokemap_hub/pokemap_hub.dart';
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 
@@ -36,6 +39,7 @@ void main() {
 
   test('the four paths run on the installed copy and measure themselves',
       () async {
+    final audioPlayers = _mockNativeAudio();
     final root = await Directory.systemTemp.createTemp('cin085-journey-');
     addTearDown(() async {
       if (await root.exists()) await root.delete(recursive: true);
@@ -58,7 +62,7 @@ void main() {
       availableDiskBytes: (_) async => 1024 * 1024 * 1024,
       prepareSavesForUpdate: (_, __) async =>
           const SaveUpdatePreparation(rollbackSnapshotAvailable: true),
-      loadSmoke: (_, __) async {},
+      loadSmoke: loadInstalledProjectSmoke,
     ).install(
       packageFile,
       source: GamePackageInstallSource.localExport,
@@ -80,9 +84,7 @@ void main() {
     final projectDirectory = p.join(versionRoot.path, 'project');
     final projectFile = File(p.join(projectDirectory, 'project.json'));
     final installedBytesBefore = await projectFile.readAsBytes();
-    final project = ProjectManifest.fromJson(
-      jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
-    );
+    final project = await loadProjectManifestFromFile(projectFile.path);
     // Prefixed, because the observability layer requires the sha256: form and
     // rejects a bare digest — which the adapter then reports only as "player
     // failed", with the cause discarded.
@@ -106,6 +108,7 @@ void main() {
         revision: revision,
         media: media!,
       );
+      expect(audioPlayers, isEmpty, reason: '$path retained an audio player');
     }
 
     for (final entry in paths.entries) {
@@ -120,7 +123,7 @@ void main() {
         expect(
           entry.value.interactions,
           isNotEmpty,
-          reason: '${entry.key} answered nothing, so it exercised no dialogue',
+          reason: '${entry.key} answered nothing: ${entry.value.failure}',
         );
       }
       expect(
@@ -258,6 +261,53 @@ void main() {
   });
 }
 
+Set<String> _mockNativeAudio() {
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  final sinks = <String, MockStreamHandlerEventSink>{};
+  final channels = <EventChannel>[];
+  final players = <String>{};
+  const global = MethodChannel('xyz.luan/audioplayers.global');
+  const globalEvents = MethodChannel('xyz.luan/audioplayers.global/events');
+  const player = MethodChannel('xyz.luan/audioplayers');
+  messenger.setMockMethodCallHandler(global, (_) async => null);
+  messenger.setMockMethodCallHandler(globalEvents, (_) async => null);
+  messenger.setMockMethodCallHandler(player, (call) async {
+    final id = (call.arguments as Map)['playerId'] as String;
+    switch (call.method) {
+      case 'create':
+        players.add(id);
+        final channel = EventChannel('xyz.luan/audioplayers/events/$id');
+        channels.add(channel);
+        messenger.setMockStreamHandler(
+          channel,
+          MockStreamHandler.inline(
+            onListen: (_, sink) => sinks[id] = sink,
+            onCancel: (_) => sinks.remove(id),
+          ),
+        );
+      case 'setSourceUrl' || 'setSourceBytes':
+        sinks[id]?.success({'event': 'audio.onPrepared', 'value': true});
+      case 'seek':
+        sinks[id]?.success({'event': 'audio.onSeekComplete'});
+      case 'getCurrentPosition' || 'getDuration':
+        return 0;
+      case 'dispose':
+        players.remove(id);
+    }
+    return null;
+  });
+  addTearDown(() {
+    for (final channel in channels) {
+      messenger.setMockStreamHandler(channel, null);
+    }
+    for (final channel in [global, globalEvents, player]) {
+      messenger.setMockMethodCallHandler(channel, null);
+    }
+  });
+  return players;
+}
+
 /// Runs one path on its own session and reports what it observed.
 ///
 /// The paths differ only in how the FIRST interaction is answered. That is the
@@ -347,6 +397,7 @@ Future<_PathObservation> _runPath({
     interactions: interactions,
     status: session.status,
     draft: session.resultDraft,
+    failure: session.failure,
   );
   // Closing IS the exit. Anything still holding a timer fails this test through
   // the framework's own leak detection rather than being reported as a zero.
@@ -437,6 +488,7 @@ final class _PathObservation {
     required this.interactions,
     required this.status,
     required this.draft,
+    required this.failure,
   });
 
   final bool timedOut;
@@ -445,6 +497,7 @@ final class _PathObservation {
   final List<Map<String, Object?>> interactions;
   final PresentationPreviewStatus status;
   final NewGameDraft? draft;
+  final Object? failure;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'outcome': outcome,

@@ -7,8 +7,6 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/map_authoring_dialogue.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
-import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
-import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
@@ -129,12 +127,10 @@ Future<GamePackageExportArtifact> _buildRecipe(Directory author) async {
     encounterField: true,
   );
   await fixture.writeAuthorWorkspace(author);
-  await File(
-    p.join(author.path, 'data', 'pokemon', 'pokemon_data_manifest.json'),
-  ).delete();
-  final repositories = FileProjectRepository();
-  final projectFile = p.join(author.path, 'project.json');
-  final base = await repositories.loadProject(projectFile);
+  final projectFile = File(p.join(author.path, 'project.json'));
+  final base = ProjectManifest.fromJson(
+    jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+  );
   final dialogues = [
     await _writeDialogue(
       author,
@@ -159,21 +155,18 @@ Future<GamePackageExportArtifact> _buildRecipe(Directory author) async {
       ],
     }),
   );
-  await repositories.saveProject(project, projectFile);
-  final workspace = ProjectFileSystem(author.path);
-  final writer = FilePokemonWriteRepository();
+  await projectFile.writeAsString(jsonEncode(project.toJson()));
   for (final (file, names) in [
     ('0001-bulbasaur.json', {'fr': 'Bulbizarre', 'en': 'Bulbasaur'}),
     ('0002-ivysaur.json', {'en': 'Ivysaur'}),
   ]) {
-    final relativePath = 'data/pokemon/species/$file';
+    final speciesFile = File(p.join(author.path, 'data', 'pokemon', 'species', file));
     final base = jsonDecode(
-      await File(p.join(author.path, relativePath)).readAsString(),
+      await speciesFile.readAsString(),
     ) as Map<String, dynamic>;
-    await writer.saveSpeciesAtRelativePath(
-      workspace,
-      relativePath: relativePath,
-      species: PokemonSpeciesFile.fromJson({...base, 'names': names}),
+    final species = PokemonSpeciesFile.fromJson({...base, 'names': names});
+    await speciesFile.writeAsString(
+      jsonEncode(species.toJson()),
     );
   }
   try {

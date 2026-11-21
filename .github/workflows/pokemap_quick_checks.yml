@@ -13,6 +13,7 @@ on:
       - "apps/avelune_studio/**"
       - "packages/**"
       - "examples/playable_runtime_host/**"
+      - "tools/pokemap_mcp/scripts/pmcp085_release_gate.sh"
       - "tools/pokemap_product_certification/**"
       - "tools/release/**"
       - ".github/workflows/**"
@@ -29,6 +30,7 @@ on:
       - "apps/avelune_studio/**"
       - "packages/**"
       - "examples/playable_runtime_host/**"
+      - "tools/pokemap_mcp/scripts/pmcp085_release_gate.sh"
       - "tools/pokemap_product_certification/**"
       - "tools/release/**"
       - ".github/workflows/**"
@@ -124,15 +126,8 @@ jobs:
             test/platform/avelune_host_compatibility_test.dart \
             test/features/saves/avelune_compatibility_baseline_continue_test.dart \
             test/features/session/hub_player_save_gateway_test.dart
-      - name: Editor smoke and static checks
-        working-directory: packages/map_editor
-        run: |
-          flutter pub get
-          flutter test --no-pub --timeout 2m \
-            test/release/github_distribution_workflow_test.dart \
-            test/tileset_grid_metrics_test.dart \
-            test/map_editing_controller_test.dart
-          flutter analyze --no-pub lib test/release
+      - name: Authoring release gate syntax
+        run: bash -n tools/pokemap_mcp/scripts/pmcp085_release_gate.sh
       - name: Studio smoke and static checks
         working-directory: apps/avelune_studio
         run: |
@@ -142,6 +137,7 @@ jobs:
             test/release/performance_observation_workflow_test.dart \
             test/app/studio_bootstrap_test.dart \
             test/home/recent_projects_test.dart \
+            test/map_workspace/map_editing_input_session_test.dart \
             test/project_session/scoped_project_session_adapter_test.dart \
             test/presentation/studio_app_test.dart \
             test/presentation/map_builder_gameplay_test.dart

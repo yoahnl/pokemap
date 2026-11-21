@@ -8,6 +8,8 @@ environment:
   flutter: '>=3.47.5'
 
 dependencies:
+  avelune_studio:
+    path: ../../apps/avelune_studio
   crypto: ^3.0.7
   flutter:
     sdk: flutter
@@ -17,8 +19,6 @@ dependencies:
     path: ../../packages/map_core
   map_distribution:
     path: ../../packages/map_distribution
-  map_editor:
-    path: ../../packages/map_editor
   map_gameplay:
     path: ../../packages/map_gameplay
   map_player_ui:

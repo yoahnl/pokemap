@@ -5,10 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
-import 'package:map_editor/game_export.dart';
-import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
-import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
-import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
@@ -18,7 +14,7 @@ import 'package:pokemap_hub/features/session/application/services/hub_runtime_st
 import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/pokemap_hub.dart';
-import 'package:pub_semver/pub_semver.dart';
+import 'package:pokemap_product_certification/src/neutral_certification_pokemon_data.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -36,15 +32,14 @@ void main() {
       await _writeAuthorProject(authorRoot);
       stdout.writeln('cin042:author-ready');
 
-      final artifact = await const GamePackageExportService().exportToFile(
+      final artifact = await const CanonicalGamePackageExportService().exportToFile(
         projectRoot: authorRoot,
         profile: _exportProfile,
         outputFile: packageFile,
       );
       stdout.writeln('cin042:export-ready');
-      final compatibility = _hostCompatibility(
-        artifact.manifest.compatibility.requiredCapabilities,
-      );
+      expect(artifact.certification.isCertified, isTrue);
+      final compatibility = AveluneRuntimeCompatibility.host();
       final installed = await GamePackageInstaller(
         supportRoot: supportRoot,
         inspector: GamePackageInspector(hostCompatibility: compatibility),
@@ -59,6 +54,7 @@ void main() {
             projectFilePath: projectFile.path,
             mapId: 'map.start',
           );
+          addTearDown(() => bundle.projectCatalog?.dispose());
           expect(bundle.map.id, 'map.start');
         },
       ).install(packageFile, source: GamePackageInstallSource.localExport);
@@ -359,9 +355,7 @@ Future<void> _writeAuthorProject(Directory root) async {
     flush: true,
   );
   await File(p.join(root.path, 'LICENSE.txt')).writeAsString('CIN-042');
-  await SeedPokemonDemoDataUseCase(
-    snapshotController: FilePokemonReadRepository(),
-  ).execute(ProjectFileSystem(root.path));
+  await writeNeutralCertificationPokemonData(root);
   await _writeReferencedPokemonAssets(root);
   await _writePresentationMediaAssets(root);
 }
@@ -663,17 +657,6 @@ final GamePackageExportProfile _exportProfile = GamePackageExportProfile(
   defaultLocale: 'fr',
   supportedLocales: <String>['fr'],
   licensePath: 'LICENSE.txt',
-);
-
-GamePackageHostCompatibility _hostCompatibility(
-  Iterable<String> requiredCapabilities,
-) => GamePackageHostCompatibility(
-  hubVersion: Version.parse('1.2.0'),
-  runtimeApiVersion: Version.parse('1.4.0'),
-  capabilities: requiredCapabilities.toSet(),
-  supportedProjectFormats: const <String>{'v8'},
-  currentProjectFormat: 'v8',
-  supportedSaveFormats: const <int>{1},
 );
 
 final class _PreferencesRepository

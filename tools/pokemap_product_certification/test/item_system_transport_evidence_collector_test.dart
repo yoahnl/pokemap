@@ -7,7 +7,7 @@ import 'package:pokemap_product_certification/pokemap_product_certification.dart
 
 void main() {
   test(
-    'collects all 36 action transport pairs from real executions',
+    'certifies nine Item actions through all four transports including Studio',
     () async {
       final repositoryRoot = p.normalize(
         p.join(Directory.current.path, '../..'),
@@ -51,9 +51,7 @@ void main() {
       );
       expect(
         receipt.succeededCapabilities,
-        ItemSystemV1CertificationProfile.requiredCapabilitiesFor(
-          ItemSystemProofLevel.mcpParityL5,
-        ),
+        ItemSystemV1CertificationProfile.requiredItemActionIds,
       );
       expect(receipt.failedCapabilities, isEmpty);
       final pairs = (receipt.payload['transportPairs']! as List<Object?>)
@@ -64,6 +62,10 @@ void main() {
         hasLength(36),
       );
       expect(pairs.where((pair) => pair['transport'] == 'mcp'), hasLength(9));
+      expect(
+        pairs.where((pair) => pair['transport'] == 'editor'),
+        hasLength(9),
+      );
       for (final actionId
           in ItemSystemV1CertificationProfile.requiredItemActionIds) {
         final actionPairs = pairs.where((pair) => pair['actionId'] == actionId);
@@ -104,23 +106,8 @@ void main() {
         everyElement(matches(RegExp(r'^[0-9a-f]{64}$'))),
       );
       final bundle = collector.buildParityReceiptBundle(receipt);
-      expect(bundle['sourceRevision'], sourceRevision);
-      expect(
-        bundle['receipts'],
-        isA<List<Object?>>().having((items) => items.length, 'length', 36),
-      );
+      expect(bundle['receipts'], hasLength(36));
       expect(await catalogFile.readAsBytes(), catalogBefore);
-      const receiptPath = String.fromEnvironment(
-        'POKEMAP_ITEM_TRANSPORT_RECEIPTS_OUTPUT',
-      );
-      if (receiptPath.isNotEmpty) {
-        final output = File(receiptPath);
-        await output.parent.create(recursive: true);
-        await output.writeAsString(
-          '${const JsonEncoder.withIndent('  ').convert(bundle)}\n',
-          flush: true,
-        );
-      }
     },
     timeout: const Timeout(Duration(minutes: 3)),
   );

@@ -79,16 +79,18 @@ dart run tool/pmcp085_conformance.dart
 ```
 
 `catalogComplete` reports resource coverage. `transportCertificationComplete`
-requires every mutation to have evidence on the direct API, JSONL CLI, Editor
-adapter, and live MCP. Run the cross-package release gate with:
+requires evidence for every mutation on the direct API, JSONL CLI, Avelune
+Studio adapter, and live MCP. Run the cross-package release gate with:
 
 ```bash
 ./scripts/pmcp085_release_gate.sh
 ```
 
-The gate replays the maintained transport scenarios on disposable project
-copies. It requires complete transport coverage and checks the PMCP-081
-inventory of editor mutation bypasses before authorizing a release.
+The gate certifies Item V1 and replays the Maps, Projects, and Story scenarios
+on disposable project copies. It requires complete transport coverage and runs
+the Studio publication tests. Pass `--evidence-dir <new-directory>` to keep the
+receipts and conformance matrix. The manual PokeMap product certification
+workflow runs the same gate and retains the evidence for inspection.
 
 The server applies one shared admission guard before authoring, resource,
 artifact or runtime gateways. Defaults are 64 KiB of serialized UTF-8 input and

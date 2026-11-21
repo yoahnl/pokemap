@@ -4,16 +4,14 @@ import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
-import 'package:map_editor/game_export.dart';
-import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
-import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
-import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:path/path.dart' as p;
-import 'package:pub_semver/pub_semver.dart';
+
+import 'neutral_certification_pokemon_data.dart';
+import 'neutral_certification_trainer_encounter.dart';
 
 /// A deliberately non-Selbrume author project used only for product gates.
 ///
-/// It is written as an author workspace, exported through `map_editor`, then
+/// It is written as an author workspace, exported as a game package, then
 /// deleted before installation so the installed runtime cannot depend on it.
 final class NeutralCertificationGameFixture {
   /// Writes two extra maps wired by warps when true. Off by default so the
@@ -37,8 +35,7 @@ final class NeutralCertificationGameFixture {
   /// toutes les gates existantes gardent leur forme exacte au bit pres.
   final bool dialoguedPreSession;
 
-  ProjectVersion get projectVersion =>
-      ProjectVersion.v8;
+  ProjectVersion get projectVersion => ProjectVersion.v8;
 
   String get projectFormat => projectVersion.name;
 
@@ -1490,7 +1487,78 @@ final class NeutralCertificationGameFixture {
       container: 'ogg',
       codec: 'vorbis',
       logicalPath: 'assets/presentation/audio/lighthouse_loop.ogg',
-      base64: 'T2dnUwAB',
+      base64:
+          'T2dnUwACAAAAAAAAAAAAAAAAAAAAAOU/r1gBHgF2b3JiaXMAAAAAAoA+AAAAAAAAAAAA'
+          'AAAAAAC7AU9nZ1MAAAAAAAAAAAAAAAAAAAEAAAA/3JbKDi3///////////////+7A3Zv'
+          'cmJpcwYAAABmZm1wZWcBAAAAEwAAAGVuY29kZXI9TGF2YyB2b3JiaXMBBXZvcmJpcxxC'
+          'Q1YCABAAAIR0mlmqASLMQIaB0JCVAAACAABghCIMMSA0ZCUAABAAACCGkoNoQmvON+c4'
+          'aJaDplJsTgcnUm2e5KZibs4555xzsjlnjHPOOacoZxaDZkJrzjknMWiWgmZCa84550ls'
+          'HrSmSmvOOWecczoYZ4RxzjmnSWsepGZjbc45Z0FrmqPmUmzOOSdSbp7U5lJtzjnnnHPO'
+          'Oeecc845p3pxOgfnhHPOOSdqb67lJnRxzjnnk3G6NyeEc84555xzzjnnnHPOOScIDVkJ'
+          'AAABABCEYWMYdwqC9DkaiFGEmIZMetA9OkyCxiCnkHo0OhoppQ5CSWWclNIJQkNWAgCA'
+          'AAAQQkghhRRSSCGFFFJIIYUYYoghhpxyyimooJJKKqooo8wyyyyzzDLLLLMOO+usww5D'
+          'DDHE0EorsdRUW4011pp7zrnmIK2V1lprrZRSSimllILQkJUAAAgAAIGQQQYZZBRSSCGF'
+          'GGLKKaecggoqIDRkJQAABgDAIWeggQYaaKCBBhpooHHGGYgggggiqKSSTDoKKbXYaswx'
+          '116DDjr3nnvvufgchFJKKaWUUkoppZRSSiklCA1ZCQCAAAAACCGEEFJIIYUUUooxxhxz'
+          'DjoJJQRCQ1YCAGAAAAwxxBhkkEFIIYUYYoopxxxzDDoIIZRSUmihhVxqiCWWVlqJpaWY'
+          'aoux1lhz7THW3nvvvffee++99957zoHQkJUAQAQAAIMMIogggowxBiEEhIasBABAAAAQ'
+          'YogxxiCEEFKIIaecgkwy6aSjkAKhISsBACcAAIQRRyRxBBJnoIEIKqkgo8xCLLG11lpr'
+          'rbXWWmuttdZaa6211lprrbXWWmuttdZaay0QGrISAIgAAGCQQQYZRBBBBBlkgNCQlQAA'
+          'CAAAI4xABBmlFGOOOeYYdNBBJx2FFlogNGQlAOAEAEAgoYgyzDAEEVVUUUYVVRRSRyml'
+          'lFJKKaWUUkoppZRSSimllFJKKaWUUkoppVRKKaUEQkNWAgBkAACQopRSKS1FgiKlGKQY'
+          'S0YVc1BaiqhyDFLNqVLOIOYklogxhJSTVDLmFEIMQuocdUwpBi2VGELGGKTYckuhcw4I'
+          'DVkhAIRmADgcB5AsC5AsCwAAAAAAAAAkTQM0zwMszQMAAAAAAAAASdMAy9MAzfMAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAJA0DdA8D9A8DwAAAAAAAAA0zwM8TwQ8UQQAAAAAAAAAy/MATfQA'
+          'TxQBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAJA0DdA8D9A8DwAAAAAAAAAszwM8UQQ0TwQAAAAAAAAA'
+          'y/MATxQBT/QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAEAAAKOAAAClgIhYasCADiBAAckgRJgiRB8wCSZUHToGkwTYBkWdA0'
+          'aBpMEwAAAAAAAAAAAABJ06Bp0DSIIkDSNGgaNA2iCAAAAAAAAAAAAICkadA0aBpEESBp'
+          'GjQNmgZRBAAAAAAAAAAAAMAzTYgiRBGmCfBME6IIUYRpAgAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAACAAAJHAAABUwoA4WGrAgA4gQAHI5iWQAA4DiOZQEAgOM4lgUAAJZliSIAAFiW'
+          'JooAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAAAIAAAkcAAAFTCgDhYasBACiAAAcimJZwHEsCziOZQFJsiyA'
+          'ZQE0D6BpAFEEAAIAAA0cAAAFbNCUWByg0JCVAEAUAIBBcSxL00SRJGma5okiSdI0zxNF'
+          'muZ5nmea8DzPM02IoiiaJkRRFE0TpmmaqgpMU1UFAAAaOAAACtigKbE4QKEhKwGAkAAA'
+          'h6JYlqZ5nueJommqJknSNM8TRVE0TdNUVZKkaZ4niqJomqapqixL0zxPFEXRNFVVVaFp'
+          'nieKomiaqqq68DzPE0VRNE1VdV14nueJoiiapqq6LkRRFE3TNFVTVV0XiKJpmqaqqqrr'
+          'AtETRdNUVdd1XeB5omiaquqqrgtE0zRVVVVdV5YBpmmaquq6sgxQVVV1XdeVZYCqqqrr'
+          'uq4sA1TVdV1XlmUZgOu6rizLsgAAQAQHAEABI+gko8oibDThwgNQaMiKACAKAAAwhinF'
+          'lDKMSQgphIYxCSGFkElJqbSUKgiplFRKBSGVkkrJKKWUWkoVhFRKKqWCkEpJpRQAAIvg'
+          'AACLYCEUGrISAMgDACCMUYoxxpyTCCnFmHPOSYSUYsw556RSjDnnnHNSSsYcc845KaVz'
+          'zjnnnJSSOeecc05K6ZxzzjknpZTSOeeck1JKCaFz0EkppXTOOecEAIAaOAAACtgosjnB'
+          'SFChISsBgFQAAIPjWJameZ4omqYlSZrmeZ4niqapSZKmeZ7niaJq8jzPE0VRNE1V5Xme'
+          'J4qiaJqqynVF0TRNU1VVlyyLommapqq6LkzTNFXVdV0Xpmmaquq6rgvbVlVVdV1Zhm2r'
+          'qqq6riwD13VdWbZlIMuuK7u2LAAAXsEBANTAhtURTorGAgsNWQkAZAAAEMYgpBBCSBmE'
+          'kEIIIaUUQgIAAAkcAAAFTCgDhYasBABSAQAAY6y11lprrTXQWWuttdZaKyCz1lprrbXW'
+          'WmuttdZaa6211FprrbXWWmuttdZaa6211lprrbXWWmuttdZaa6211lprrbXWWmuttdZa'
+          'a6211lprrbXWWksppZRSSimllFJKKaWUUkoppZRSAUC/Fg4A/xA2rI5wUjQWWGjISgAg'
+          'HAAAMEYpxhyDUEopFUKMOScdldZirBBizDkJKbUWW/GccxBKSKW1GIvnnINQSkqx1VhU'
+          'CqGUlFKLLdaiUuiopJRSazUWY0wqqbXWYquxGGNSCi211mKMxQhbU2otttpqLMbYmkoL'
+          'LcYYYzHCFxlbi6m2WoMxwsgWS0u11hqMMUb31mKpreZijA++thRLjDUXAODu4ACAqGDj'
+          'DCtJZ4WjwYWGrAQAQgIACISUYowxxpxzzjmpFGOOOeecgxBCKJVijDHnnIMQQgglY4w5'
+          '5xyEEEIIoZSSMecchBBCCCGklDrnHIQQQgghhFJK55yDEEIIIYRQSukghBBCCCGEEkop'
+          'KYUQQgghhBBCKimlEEIIoZQQSkglpRRCCCGEUEoJKaWUQgihlBBCKCGllFJKIYQQQiml'
+          'pJRSSqmEUkIJoYRUSkophRJCCKWUklJKKZVSQiihhFJKSSmllFIIIYRSSgEAgAgOAIAC'
+          'RtBJRpVF2GjChQcgAAAABAAgCJEZIlGwAAwOVABCwhQAUFhgkAMADQ4PaRcX0GWAC7q4'
+          '60AIQQhCEIsDKCABByfc8MQbnnCDE3SKSg0IAAAAAAAZAHwAACQPQERENHMQERITFBUW'
+          'FxgZGhscAACAAAIAABAAAAAAAAgAAAAAEE9nZ1MABMAPAAAAAAAAAAAAAAIAAADYr142'
+          'BR4eHh4eHgAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHgAAAAAAAAQAAAAAAAAA'
+          'AAAAAAAAAAAAAAAAAAAAHgAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHgAAAAAA'
+          'AAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHgAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAA'
+          'AAAA',
     ),
   ];
 
@@ -1508,9 +1576,8 @@ final class NeutralCertificationGameFixture {
         bytes,
         mediaType: media.mediaType,
       );
-      await File(
-        p.join(store.path, '${artifact.hexDigest}.blob'),
-      ).writeAsBytes(bytes, flush: true);
+      await File(p.join(store.path, '${artifact.hexDigest}.blob'))
+          .writeAsBytes(bytes, flush: true);
       final assetId = 'asset.${media.mediaId}';
       records.add(<String, Object?>{
         'id': assetId,
@@ -1590,47 +1657,34 @@ final class NeutralCertificationGameFixture {
   );
 
   GamePackageHostCompatibility get hostCompatibility =>
-      GamePackageHostCompatibility(
-        hubVersion: Version.parse('1.2.0'),
-        runtimeApiVersion: Version.parse('1.4.0'),
-        capabilities: const <String>{
-          'dialogue.choices@1',
-          'map@1',
-          'overworld.menu@1',
-          'world.shop@1',
-        },
-        supportedProjectFormats: <String>{projectFormat},
-        currentProjectFormat: projectFormat,
-        supportedSaveFormats: const <int>{1},
-      );
+      AveluneRuntimeCompatibility.host();
 
   static MapData _linkedMap({
     required String id,
     required String name,
     required String spawnId,
     MapWarp? warp,
-  }) =>
-      MapData(
-        id: id,
-        name: name,
-        version: ProjectVersion.v8,
-        size: const GridSize(width: 4, height: 4),
-        warps: warp == null ? const <MapWarp>[] : <MapWarp>[warp],
-        entities: <MapEntity>[
-          MapEntity(
-            id: spawnId,
-            name: '$name arrival',
-            kind: MapEntityKind.spawn,
-            pos: const GridPos(x: 1, y: 1),
-            blocksMovement: false,
-            spawn: const MapEntitySpawnData(
-              role: EntitySpawnRole.playerStart,
-              facing: EntityFacing.south,
-            ),
-          ),
-        ],
-        mapMetadata: MapMetadata(defaultSpawnId: spawnId),
-      );
+  }) => MapData(
+    id: id,
+    name: name,
+    version: ProjectVersion.v8,
+    size: const GridSize(width: 4, height: 4),
+    warps: warp == null ? const <MapWarp>[] : <MapWarp>[warp],
+    entities: <MapEntity>[
+      MapEntity(
+        id: spawnId,
+        name: '$name arrival',
+        kind: MapEntityKind.spawn,
+        pos: const GridPos(x: 1, y: 1),
+        blocksMovement: false,
+        spawn: const MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.south,
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: spawnId),
+  );
 
   Future<void> writeAuthorWorkspace(Directory root) async {
     await root.create(recursive: true);
@@ -1827,13 +1881,8 @@ final class NeutralCertificationGameFixture {
             knownMoveIds: economyTown
                 ? const <String>['tackle']
                 : progressionArena
-                    ? const <String>[
-                        'tackle',
-                        'leer',
-                        'quick_attack',
-                        'tail_whip',
-                      ]
-                    : const <String>[],
+                ? const <String>['tackle', 'leer', 'quick_attack', 'tail_whip']
+                : const <String>[],
           ),
           if (partySize > 1)
             const PlayerPokemon(
@@ -1860,16 +1909,14 @@ final class NeutralCertificationGameFixture {
                 BagEntry(itemId: guaranteedBallItemId, quantity: 1),
               ]
             : economyTown
-                ? const <BagEntry>[
-                    BagEntry(itemId: 'potion', quantity: 4),
-                    BagEntry(itemId: machineItemId, quantity: 1),
-                    BagEntry(itemId: heldItemId, quantity: 1),
-                  ]
-                : trainerArena || progressionArena
-                    ? const <BagEntry>[
-                        BagEntry(itemId: 'potion', quantity: 4),
-                      ]
-                    : const <BagEntry>[],
+            ? const <BagEntry>[
+                BagEntry(itemId: 'potion', quantity: 4),
+                BagEntry(itemId: machineItemId, quantity: 1),
+                BagEntry(itemId: heldItemId, quantity: 1),
+              ]
+            : trainerArena || progressionArena
+            ? const <BagEntry>[BagEntry(itemId: 'potion', quantity: 4)]
+            : const <BagEntry>[],
         // BETA-CIN-083 : les deux silhouettes que le choix d'avatar du
         // parcours dialogue est autorise a proposer. Une option de choix
         // liee a avatarCharacterId doit etre declaree ici, sinon l'action
@@ -1879,10 +1926,7 @@ final class NeutralCertificationGameFixture {
             ? const <String>[dawnKeeperCharacterId, duskKeeperCharacterId]
             : const <String>[],
       ),
-      scenes: <SceneAsset>[
-        _completionScene,
-        if (economyTown) _pickupScene,
-      ],
+      scenes: <SceneAsset>[_completionScene, if (economyTown) _pickupScene],
       // BETA-ENC-006 : le déclencheur mapEnter de la scène de complétion finit
       // le jeu AU BOOT (surface completion, autorité bloquée) — la gate de
       // démarrage certifie exactement cela, mais un journey overworld doit y
@@ -1891,14 +1935,15 @@ final class NeutralCertificationGameFixture {
       eventRegistry: economyTown
           ? _economyEventRegistry
           : encounterField || _arenaEnabled
-              ? _cornerEventRegistry
-              : _eventRegistry,
+          ? _cornerEventRegistry
+          : _eventRegistry,
       globalProperties: <String, Object?>{
         'certificationFixture': true,
         'apiKey': authorSecret,
       },
     );
-    final manifestJson = manifest.toJson();
+    final authored = _arenaEnabled ? _withTrainerEncounters(manifest) : manifest;
+    final manifestJson = authored.toJson();
     final settings = Map<String, Object?>.from(manifestJson['settings'] as Map);
     settings['mistralApiKey'] = authorSecret;
     manifestJson['settings'] = settings;
@@ -1925,10 +1970,7 @@ final class NeutralCertificationGameFixture {
             id: pickupTriggerId,
             name: 'Certification pickup',
             type: TriggerType.event,
-            area: MapRect(
-              pos: pickupCell,
-              size: GridSize(width: 1, height: 1),
-            ),
+            area: MapRect(pos: pickupCell, size: GridSize(width: 1, height: 1)),
           ),
       ],
       gameplayZones: encounterField
@@ -1982,9 +2024,6 @@ final class NeutralCertificationGameFixture {
               facing: EntityFacing.east,
               trainerId: rivalTrainerId,
               characterId: 'certification_actor',
-              // En mode événementiel v2Only, l'interaction manuelle ne
-              // retombe jamais sur le canal legacy : les dresseurs se
-              // déclenchent par ligne de vue, comme en production.
               lineOfSightRange: 1,
             ),
           ),
@@ -2054,64 +2093,52 @@ final class NeutralCertificationGameFixture {
     if (progressionArena) {
       await _overrideProgressionLearnsetAndEvolution(root);
     }
-    await File(
-      p.join(root.path, 'LICENSE.txt'),
-    ).writeAsString('PokeMap neutral certification fixture.', flush: true);
+    await File(p.join(root.path, 'LICENSE.txt'))
+        .writeAsString('PokeMap neutral certification fixture.', flush: true);
 
     // These author-only artifacts must be dropped by the runtime projection.
-    await File(
-      p.join(root.path, 'runtime_host_launch_save.json'),
-    ).writeAsString('{}', flush: true);
-    await File(
-      p.join(root.path, 'debug.log'),
-    ).writeAsString(authorSecret, flush: true);
+    await File(p.join(root.path, 'runtime_host_launch_save.json'))
+        .writeAsString('{}', flush: true);
+    await File(p.join(root.path, 'debug.log'))
+        .writeAsString(authorSecret, flush: true);
     final saves = Directory(p.join(root.path, 'saves'));
     await saves.create(recursive: true);
-    await File(
-      p.join(saves.path, 'slot.json'),
-    ).writeAsString(authorSecret, flush: true);
+    await File(p.join(saves.path, 'slot.json'))
+        .writeAsString(authorSecret, flush: true);
   }
 
-  Future<void> writeSpeciesCatalog(Directory root, {required int count}) async {
-    if (count < 2 || count > 10000) {
-      throw ArgumentError.value(count, 'count', 'must be between 2 and 10000');
-    }
-    final species = Directory(p.join(root.path, 'data', 'pokemon', 'species'));
-    await species.create(recursive: true);
-    await for (final entity in species.list()) {
-      if (entity is File &&
-          p.basename(entity.path).endsWith('-clockling.json')) {
-        await entity.delete();
-      }
-    }
-    final template =
-        jsonDecode(
-              await File(
-                p.join(species.path, '0001-bulbasaur.json'),
-              ).readAsString(),
-            )
-            as Map<String, dynamic>;
-    for (var start = 2; start < count; start += 64) {
-      final end = (start + 64).clamp(0, count);
-      await Future.wait(<Future<void>>[
-        for (var index = start; index < end; index++)
-          _writeJson(
-            File(
-              p.join(
-                species.path,
-                '${index.toString().padLeft(4, '0')}-clockling.json',
-              ),
-            ),
-            _speciesFromTemplate(template, index),
-          ),
-      ]);
-    }
+  Future<void> writeSpeciesCatalog(Directory root, {required int count}) =>
+      writeNeutralCertificationSpeciesCatalog(root, count: count);
+
+  ProjectManifest _withTrainerEncounters(ProjectManifest manifest) {
+    final registry = manifest.eventRegistry!;
+    final encounters = [
+      for (final (index, trainer) in manifest.trainers.indexed)
+        certificationTrainerEncounter(
+          trainer: trainer,
+          mapId: fixedMapId,
+          entityId: trainer.id == rivalTrainerId
+              ? 'npc_certification_rival'
+              : 'npc_certification_boss',
+          eventId: 'evt_019abcde-7000-7000-8000-00000000000${index + 4}',
+          order: registry.records.length + index,
+        ),
+    ];
+    return manifest.copyWith(
+      scenes: [...manifest.scenes, for (final encounter in encounters) encounter.scene],
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: registry.schemaVersion,
+        mode: registry.mode,
+        records: [...registry.records, for (final encounter in encounters) encounter.event],
+        legacyClaims: registry.legacyClaims,
+      ),
+    );
   }
 
   Future<GamePackageExportArtifact> export(
     Directory authorRoot,
     File outputFile,
-  ) => const GamePackageExportService().exportToFile(
+  ) => const CanonicalGamePackageExportService().exportToFile(
     projectRoot: authorRoot,
     profile: exportProfile,
     outputFile: outputFile,
@@ -2237,17 +2264,14 @@ final class NeutralCertificationGameFixture {
           'Le port te reconnaît. Prends ce badge.',
     };
     for (final entry in lines.entries) {
-      await File(p.join(dialogues.path, entry.key)).writeAsString(
-        'title: Start\n---\n${entry.value}\n===\n',
-        flush: true,
-      );
+      await File(
+        p.join(dialogues.path, entry.key),
+      ).writeAsString('title: Start\n---\n${entry.value}\n===\n', flush: true);
     }
   }
 
   Future<void> _writePokemonCatalogsWithMinimalMedia(Directory root) async {
-    await SeedPokemonDemoDataUseCase(
-      snapshotController: FilePokemonReadRepository(),
-    ).execute(ProjectFileSystem(root.path));
+    await writeNeutralCertificationPokemonData(root);
     final imageBytes = base64Decode(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk'
       '+A8AAQUBAScY42YAAAAASUVORK5CYII=',
@@ -2455,23 +2479,6 @@ final SceneAsset _completionScene = SceneAsset(
     ],
   ),
 );
-
-Map<String, Object?> _speciesFromTemplate(
-  Map<String, dynamic> template,
-  int index,
-) {
-  final species = jsonDecode(jsonEncode(template)) as Map<String, dynamic>;
-  final speciesId = 'clockling_$index';
-  species['id'] = speciesId;
-  species['slug'] = 'clockling-$index';
-  species['nationalDex'] = index + 1;
-  species['names'] = <String, String>{
-    'en': 'Clockling $index',
-    'fr': 'Horlogre $index',
-  };
-  (species['forms']! as Map<String, dynamic>)['baseFormId'] = speciesId;
-  return species;
-}
 
 Future<void> _writeJson(File file, Map<String, Object?> value) async {
   await file.parent.create(recursive: true);

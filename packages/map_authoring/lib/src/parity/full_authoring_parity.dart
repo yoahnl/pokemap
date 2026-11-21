@@ -395,7 +395,12 @@ final class AuthoringFullParityCatalog {
           contractTestPath: _contractTestFor(descriptor.id),
           endToEndEvidence: descriptor.id.startsWith('item.')
               ? const <AuthoringTransport, String>{}
-              : _endToEndEvidenceFor(descriptor.id),
+              : {
+                  ..._endToEndEvidenceFor(descriptor.id),
+                  if (_dialoguedPreSessionStudioActions.contains(descriptor.id))
+                    AuthoringTransport.editor:
+                        '../../tools/pokemap_product_certification/test/dialogued_pre_session_transport_parity_test.dart',
+                },
           transportExecutionReceipts: receiptMap[descriptor.id] ?? const {},
         ),
     ];
@@ -480,8 +485,20 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
       'lib/src/api/local_map_authoring_mutation_api.dart',
   AuthoringTransport.cli: 'lib/src/tooling/jsonl_worker.dart',
   AuthoringTransport.editor:
-      '../map_editor/lib/src/application/authoring_api/authoring_mutation_adapter.dart',
+      '../../apps/avelune_studio/lib/features/presentations/data/local_presentation_connection.dart',
   AuthoringTransport.mcp: '../../tools/pokemap_mcp/src/authoring_client.ts',
+};
+
+const _dialoguedPreSessionStudioActions = {
+  'scene.preSession.create',
+  'scene.preSession.interaction.insert',
+  'scene.preSession.presentation.createAndLink',
+  'scene.preSession.end.configure',
+  'scene.presentation.cue.routes.set',
+  'presentationTrack.create',
+  'presentationTrack.update',
+  'presentationLayer.create',
+  'presentationClip.create',
 };
 
 const Set<String> _eventV2TransportCertifiedActionIds = <String>{
@@ -608,8 +625,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/hidden_item_transport_parity_test.dart',
       AuthoringTransport.cli:
           'test/domains/maps/hidden_item_transport_parity_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/hidden_item_authoring_transport_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/item_authoring.test.ts',
     };
@@ -663,7 +678,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli:
           'test/domains/narrative/scene_graph_patch_transport_test.dart',
       AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/scene_graph_patch_editor_test.dart',
+          '../../apps/avelune_studio/test/scenes/scene_graph_patch_publication_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/scene_graph_patch_stdio.test.ts',
     };
@@ -674,9 +689,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/moving_platform_actions_test.dart',
       AuthoringTransport.cli:
           'test/domains/maps/moving_platform_actions_test.dart',
-      AuthoringTransport.editor: actionId == 'map.platform.upsert'
-          ? '../map_editor/test/authoring_api/moving_platform_smart_tile_editor_test.dart'
-          : '../map_editor/test/authoring_api/moving_platform_delete_editor_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/moving_platform_stdio.test.ts',
     };
@@ -693,7 +705,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/moving_prop_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/maps/moving_prop_actions_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/moving_prop_transport_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/moving_prop_stdio.test.ts',
     };
   }
@@ -704,8 +715,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return {
       AuthoringTransport.directApi: domainTest,
       AuthoringTransport.cli: domainTest,
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/creation_batch_transport_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/creation_batch_stdio.test.ts',
     };
@@ -737,7 +746,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/tooling/jsonl_battle_savings_test.dart',
       AuthoringTransport.cli: 'test/tooling/jsonl_battle_savings_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/battle_savings_configuration_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/battle_savings_stdio.test.ts',
     };
   }
@@ -745,7 +753,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/tooling/jsonl_defeat_recovery_test.dart',
       AuthoringTransport.cli: 'test/tooling/jsonl_defeat_recovery_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/project_defeat_recovery_configuration_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/defeat_recovery_stdio.test.ts',
     };
   }
@@ -766,14 +773,12 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   if(actionId=='project.catalog.partition') return const {
     AuthoringTransport.directApi:'test/workspace/catalog_partition_action_test.dart',
     AuthoringTransport.cli:'test/workspace/catalog_partition_action_test.dart',
-    AuthoringTransport.editor:'../map_editor/test/authoring_api/working_catalog_editor_transport_test.dart',
     AuthoringTransport.mcp:'../../tools/pokemap_mcp/test/catalog_storage_stdio.test.ts',
   };
   if(actionId=='catalog.definition.update') {
     return const {
       AuthoringTransport.directApi:'test/catalog_storage/catalog_project_transport_test.dart',
       AuthoringTransport.cli:'test/catalog_storage/catalog_project_transport_test.dart',
-      AuthoringTransport.editor:'../map_editor/test/authoring_api/working_catalog_editor_transport_test.dart',
       AuthoringTransport.mcp:'../../tools/pokemap_mcp/test/catalog_storage_stdio.test.ts',
     };
   }
@@ -854,7 +859,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/contact_device_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/project/contact_device_actions_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/contact_device_transport_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/contact_device_stdio.test.ts',
     };
   }
@@ -870,7 +874,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/project_identity_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/project/project_identity_actions_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/project_identity_transport_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/project_identity_stdio.test.ts',
     };
   }
@@ -878,7 +881,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/battle_transition_catalogue_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/project/battle_transition_catalogue_actions_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/battle_transition_catalogue_editor_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/battle_transition_catalogue_stdio.test.ts',
     };
   }
@@ -893,7 +895,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/narrative/event_record_batch_transport_test.dart',
       AuthoringTransport.cli: 'test/domains/narrative/event_record_batch_transport_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/event_v2_transport_parity_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/event_v2_transport_parity_stdio.test.ts',
     };
   }
@@ -959,7 +960,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/healing_display_transport_test.dart',
       AuthoringTransport.cli: 'test/domains/maps/healing_display_transport_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/healing_display_adapter_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/healing_display_stdio.test.ts',
     };
   }
@@ -1167,7 +1167,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/spatial_lifts_ledge_camera_editor_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/spatial_lift_stdio.test.ts',
     };
   }
@@ -1202,8 +1201,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/spatial_terrain_surface_actions_test.dart',
       AuthoringTransport.cli:
           'test/domains/maps/spatial_terrain_surface_actions_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/spatial_terrain_surface_editor_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/spatial_terrain_surface_stdio.test.ts',
     };
@@ -1235,8 +1232,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/tooling/jsonl_smart_tile_native_flow_test.dart',
       AuthoringTransport.cli:
           'test/tooling/jsonl_smart_tile_native_flow_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/raster_spatial_height_editor_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/smart_tile_batch_stdio.test.ts',
     };
@@ -1255,7 +1250,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
       AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/spatial_lifts_ledge_camera_editor_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
     };
   }
@@ -1289,13 +1283,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       if (model)
         AuthoringTransport.editor:
             '../../apps/avelune_studio/test/resource_io/model_resource_adapter_test.dart',
-      if (actionId == 'map3d.instance.upsert' ||
-          actionId == 'map3d.navigation.configure')
-        AuthoringTransport.editor:
-            '../map_editor/test/authoring_api/spatial_ramp_surface_editor_test.dart',
-      if (actionId == 'map3d.camera.configure')
-        AuthoringTransport.editor:
-            '../map_editor/test/authoring_api/spatial_lifts_ledge_camera_editor_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
     };
@@ -1374,8 +1361,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/placed_element_geometry_transport_test.dart',
       AuthoringTransport.cli:
           'test/domains/maps/placed_element_geometry_transport_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/placed_element_geometry_transport_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1409,8 +1394,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.directApi:
           'test/tooling/jsonl_rail_journey_flow_test.dart',
       AuthoringTransport.cli: 'test/tooling/jsonl_rail_journey_flow_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/rail_journey_server.test.ts',
     };
@@ -1421,8 +1404,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/tooling/jsonl_scene_pre_session_flow_test.dart',
       AuthoringTransport.cli:
           'test/tooling/jsonl_scene_pre_session_flow_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1433,8 +1414,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/tooling/jsonl_scene_pre_session_flow_test.dart',
       AuthoringTransport.cli:
           'test/tooling/jsonl_scene_pre_session_flow_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/application/scene_presentation_create_and_link_gateway_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1445,8 +1424,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/tooling/jsonl_scene_pre_session_flow_test.dart',
       AuthoringTransport.cli:
           'test/tooling/jsonl_scene_pre_session_flow_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1457,8 +1434,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
       AuthoringTransport.cli:
           'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1469,8 +1444,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/narrative/pause_menu_visibility_transport_test.dart',
       AuthoringTransport.cli:
           'test/domains/narrative/pause_menu_visibility_transport_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1481,8 +1454,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/narrative/cinematic_library_authoring_test.dart',
       AuthoringTransport.cli:
           'test/tooling/jsonl_cinematic_library_flow_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1493,8 +1464,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/parity/character_studio_full_parity_test.dart',
       AuthoringTransport.cli:
           'test/parity/character_studio_full_parity_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/features/character_studio/'
-          'character_studio_authoring_adapter_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1505,9 +1474,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/smart_tile_layer_actions_test.dart',
       AuthoringTransport.cli:
           'test/domains/maps/smart_tile_layer_actions_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/features/editor/presentation/world_map/'
-              'smart_tile_layer_preset_change_flow_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1519,9 +1485,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/smart_tile_encounter_behavior_transport_parity_test.dart',
       AuthoringTransport.cli:
           'test/domains/maps/smart_tile_encounter_behavior_transport_parity_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/features/editor/presentation/world_map/'
-              'smart_tile_layer_preset_change_flow_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1532,9 +1495,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/smart_tile_layer_preset_change_action_test.dart',
       AuthoringTransport.cli:
           'test/domains/maps/smart_tile_layer_preset_change_action_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/features/editor/presentation/world_map/'
-              'smart_tile_layer_preset_change_flow_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1544,8 +1504,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.directApi:
           'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/personalization/'
-          'phase_6_personalization_studio_export_e2e_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1557,8 +1515,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/gameplay/pokemon_ruleset_authoring_test.dart',
       AuthoringTransport.cli:
           'test/domains/gameplay/pokemon_ruleset_authoring_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/pokemon_authoring.test.ts',
     };
@@ -1567,7 +1523,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/gameplay/bag_capacity_authoring_test.dart',
       AuthoringTransport.cli: 'test/domains/gameplay/bag_capacity_authoring_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/bag_capacity_gateway_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/bag_capacity_stdio.test.ts',
     };
   }
@@ -1575,7 +1530,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
     return const {
       AuthoringTransport.directApi: 'test/domains/gameplay/party_companion_authoring_test.dart',
       AuthoringTransport.cli: 'test/domains/gameplay/party_companion_authoring_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/party_companion_configuration_test.dart',
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/party_companion_stdio.test.ts',
     };
   }
@@ -1585,8 +1539,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/assets/presentation_media_import_transaction_test.dart',
       AuthoringTransport.cli:
           'test/domains/assets/presentation_media_import_transaction_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/'
-          'presentation_studio_add_authoring_gateway_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1615,8 +1567,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/tooling/jsonl_presentation_clip_batch_flow_test.dart',
       AuthoringTransport.cli:
           'test/tooling/jsonl_presentation_clip_batch_flow_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/'
-          'presentation_studio_timeline_authoring_gateway_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1627,8 +1577,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
       AuthoringTransport.cli:
           'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/authoring_api/'
-          'presentation_studio_add_authoring_gateway_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1639,8 +1587,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.directApi:
           'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1650,8 +1596,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.directApi:
           'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -1698,8 +1642,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/border_catalog_actions_test.dart',
       AuthoringTransport.cli:
           'test/tooling/jsonl_border_catalog_flow_test.dart',
-      AuthoringTransport.editor: '../map_editor/test/border_studio/'
-          'border_studio_asset_crud_rules_widget_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/border_catalog_server.test.ts',
     };
@@ -1990,7 +1932,6 @@ AuthoringResourceParity _resourceParity(
                 evidence: const [
                   'lib/src/workspace/project_query_service.dart',
                   'test/workspace/trainer_pokemon_stats_query_test.dart',
-                  '../map_editor/test/authoring_api/editor_trainer_pokemon_stats_query_test.dart',
                   '../../tools/pokemap_mcp/test/trainer_pokemon_stats_stdio.test.ts',
                 ],
               ),

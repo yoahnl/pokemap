@@ -31,7 +31,11 @@ void main() {
           );
 
       expect(receipt.level, ItemSystemProofLevel.authoringL1);
-      expect(receipt.verdict, ItemSystemExecutionVerdict.passed);
+      expect(
+        receipt.verdict,
+        ItemSystemExecutionVerdict.passed,
+        reason: receipt.payload['error']?.toString(),
+      );
       expect(
         receipt.succeededCapabilities,
         ItemSystemV1CertificationProfile.requiredCapabilitiesFor(

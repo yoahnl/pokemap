@@ -3,13 +3,12 @@ import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/authoring_transport.dart';
 import 'package:path/path.dart' as p;
 
 import 'dialogued_pre_session_fixture.dart';
 import 'neutral_certification_game_fixture.dart';
+import 'studio_transport_session.dart';
 
-/// The four transports BETA-CIN-083 requires the fixture to agree on.
 enum DialoguedPreSessionTransport {
   directApi('directApi'),
   jsonl('jsonl'),
@@ -37,13 +36,6 @@ final class DialoguedPreSessionTransportRun {
   final ProjectManifest project;
 }
 
-/// Replays the declared authoring sequence over every transport.
-///
-/// The sequence itself lives in [DialoguedPreSessionFixture]; nothing here
-/// knows what is being authored. That separation is what makes the comparison
-/// worth anything: four hand-written scripts could agree with each other and
-/// still all be wrong, whereas one list replayed four ways can only disagree if
-/// a transport actually behaves differently.
 final class DialoguedPreSessionTransportParity {
   const DialoguedPreSessionTransportParity();
 
@@ -71,8 +63,7 @@ final class DialoguedPreSessionTransportParity {
         await _runLocal(projectRoot, steps, useJsonl: false),
       DialoguedPreSessionTransport.jsonl =>
         await _runLocal(projectRoot, steps, useJsonl: true),
-      DialoguedPreSessionTransport.editor =>
-        await _runEditor(projectRoot, steps),
+      DialoguedPreSessionTransport.editor => await _runStudio(projectRoot, steps),
       DialoguedPreSessionTransport.mcp => await _runMcp(
           projectRoot,
           steps,
@@ -191,35 +182,31 @@ final class DialoguedPreSessionTransportParity {
     return applied;
   }
 
-  Future<List<String>> _runEditor(
+  Future<List<String>> _runStudio(
     Directory projectRoot,
     List<DialoguedPreSessionAuthoringStep> steps,
   ) async {
-    const reader = LocalProjectFileReader();
-    final queries = AuthoringQueryAdapter(fileReader: reader);
-    final mutations = AuthoringMutationAdapter(
-      fileReader: reader,
-      queries: queries,
-      projectRoots: _FixedProjectRoot(projectRoot.path),
-    );
-    var revision = (await queries.open(projectRoot.path)).snapshotRevision;
-    final applied = <String>[];
-    for (final (index, step) in steps.indexed) {
-      final plan = await mutations.plan(
-        projectRoot.path,
-        actionId: step.actionId,
-        parameters: step.parameters,
-        idempotencyKey: 'cin083-editor-$index',
-        expectedRevision: revision,
-      );
-      final result = await mutations.apply(
-        plan,
-        operationId: 'cin083-editor-$index',
-      );
-      applied.add(result.receipt.actionId);
-      revision = (await queries.open(projectRoot.path)).snapshotRevision;
+    final studio = await StudioTransportSession.open(projectRoot);
+    try {
+      final applied = <String>[];
+      for (final (index, step) in steps.indexed) {
+        final receipt = await studio.run(
+          actionId: step.actionId,
+          actionVersion: 1,
+          parameters: step.parameters,
+          operationId: 'cin083-editor-$index',
+          preferWorkshop: false,
+        );
+        if (receipt.status != AuthoringReceiptStatus.applied ||
+            receipt.actionId != step.actionId) {
+          throw StateError('Studio did not apply ${step.actionId}.');
+        }
+        applied.add(receipt.actionId);
+      }
+      return applied;
+    } finally {
+      await studio.close();
     }
-    return applied;
   }
 
   Future<List<String>> _runMcp(
@@ -291,15 +278,6 @@ final class DialoguedPreSessionTransportParity {
         expectedRevision: revision,
         idempotencyKey: 'cin083-idempotency-$index',
       );
-}
-
-final class _FixedProjectRoot implements EditorProjectRootLocator {
-  const _FixedProjectRoot(this.path);
-
-  final String path;
-
-  @override
-  Future<String> locateForResource(String resourcePath) async => path;
 }
 
 Future<void> _copyDirectory(Directory source, Directory target) async {

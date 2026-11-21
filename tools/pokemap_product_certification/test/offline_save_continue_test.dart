@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
+import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
 import 'package:pokemap_hub/pokemap_hub_player.dart';
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 
@@ -122,17 +122,7 @@ GamePackageInstaller _installer({
   availableDiskBytes: (_) async => 1024 * 1024 * 1024,
   prepareSavesForUpdate: (_, __) async =>
       const SaveUpdatePreparation(rollbackSnapshotAvailable: true),
-  loadSmoke: (stagedVersionRoot, manifest) async {
-    final projectFile = File(
-      p.join(stagedVersionRoot.path, 'project', 'project.json'),
-    );
-    final decoded = jsonDecode(await projectFile.readAsString());
-    final project = ProjectManifest.fromJson(decoded as Map<String, dynamic>);
-    await loadRuntimeMapBundle(
-      projectFilePath: projectFile.path,
-      mapId: project.newGame.startMapId,
-    );
-  },
+  loadSmoke: loadInstalledProjectSmoke,
 );
 
 GameSessionDescriptor _descriptor(

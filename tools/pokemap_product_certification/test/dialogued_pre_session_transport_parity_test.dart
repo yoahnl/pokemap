@@ -5,13 +5,6 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 
-/// BETA-CIN-083 — the same project on the four transports.
-///
-/// Parity on its own proves very little: four scripts that all apply the same
-/// wrong payload agree perfectly. So the sequence is declared once in
-/// `DialoguedPreSessionFixture`, replayed here by each transport, and the
-/// resulting projects are compared semantically — and then what landed is
-/// asserted, so agreement on nonsense would still fail.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -27,7 +20,7 @@ void main() {
     if (await workRoot.exists()) await workRoot.delete(recursive: true);
   });
 
-  test('every transport produces the same project', () async {
+  test('direct API, JSONL, Studio and MCP produce the same project', () async {
     final runs = <DialoguedPreSessionTransport, DialoguedPreSessionTransportRun>{
       for (final transport in DialoguedPreSessionTransport.values)
         transport: await const DialoguedPreSessionTransportParity().run(
@@ -110,7 +103,7 @@ void main() {
         DialoguedPreSessionFixture.confirmMarkerId,
         DialoguedPreSessionFixture.closingMarkerId,
       ]),
-      reason: 'the Editor transport bound every cue of the reference journey',
+      reason: 'every cue of the reference journey is bound',
     );
     expect(
       <String>{

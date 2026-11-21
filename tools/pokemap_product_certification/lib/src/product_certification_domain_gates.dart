@@ -141,7 +141,7 @@ const List<ProductCertificationDomainGate> productCertificationDomainGates =
     coverage: DomainGateCoverage.gated,
     gateTestPaths: <String>[
       'packages/map_core/test/pokemon_catalog_coherence_validator_test.dart',
-      'packages/map_editor/test/import_pokemon_catalog_json_use_case_test.dart',
+      'apps/avelune_studio/test/pokemon/pokemon_external_gen5_import_test.dart',
     ],
     rationale: 'Famille 4, PASS certifié (PR #8, CI verte) : cohérence des '
         'catalogues et import. La cohérence est composée dans le verdict de '

@@ -2001,12 +2001,24 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
     );
     assert.deepEqual(observedActionIds, expectedActionIds);
     assert.equal(firstReceipt?.status, "applied");
+    const studioActions = new Set([
+      "scene.preSession.create",
+      "scene.preSession.interaction.insert",
+      "scene.preSession.presentation.createAndLink",
+      "scene.preSession.end.configure",
+      "scene.presentation.cue.routes.set",
+      "presentationCinematic.publish",
+      "presentationTrack.create",
+      "presentationTrack.update",
+      "presentationClip.create",
+      "presentationLayer.create",
+    ]);
     for (const actionId of expectedActionIds) {
       const action = catalog.get(actionId);
       assert.ok(action, actionId);
       assert.deepEqual(
         [...(action.endToEndVerifiedTransports as string[])].sort(),
-        ["cli", "directApi", "editor", "mcp"],
+        ["cli", "directApi", ...(studioActions.has(actionId) ? ["editor"] : []), "mcp"],
         actionId,
       );
     }
@@ -2124,13 +2136,11 @@ test("MCP commits and undoes one atomic Presentation clip batch", async () => {
       assert.deepEqual(action.endToEndVerifiedTransports, [
         "cli",
         "directApi",
-        "editor",
         "mcp",
       ]);
       assert.deepEqual(Object.keys(record(action.endToEndEvidence)).sort(), [
         "cli",
         "directApi",
-        "editor",
         "mcp",
       ]);
     }
@@ -2596,7 +2606,6 @@ test("MCP executes and rereads every cinematic library catalog action", async ()
       assert.deepEqual(record(parity).endToEndVerifiedTransports, [
         "cli",
         "directApi",
-        "editor",
         "mcp",
       ]);
     }
@@ -2756,7 +2765,6 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.deepEqual(record(presentationAction).endToEndVerifiedTransports, [
       "cli",
       "directApi",
-      "editor",
       "mcp",
     ]);
     const mediaImportAction = (
@@ -2765,7 +2773,6 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.deepEqual(record(mediaImportAction).endToEndVerifiedTransports, [
       "cli",
       "directApi",
-      "editor",
       "mcp",
     ]);
     const mediaConfigurationAction = (
@@ -6881,7 +6888,7 @@ test("CHS-058 live MCP certifies animation frame and asset transports", async ()
   }
 });
 
-test("CHS-059 live MCP publishes all Character Studio transport evidence", async () => {
+test("CHS-059 live MCP publishes the maintained Character Studio proofs", async () => {
   const fixture = await mutationFixture();
   try {
     const described = await toolData(fixture.client, "pokemap_describe", {});
@@ -6893,13 +6900,11 @@ test("CHS-059 live MCP publishes all Character Studio transport evidence", async
       assert.deepEqual(action.endToEndVerifiedTransports, [
         "cli",
         "directApi",
-        "editor",
         "mcp",
       ]);
       assert.deepEqual(Object.keys(record(action.endToEndEvidence)).sort(), [
         "cli",
         "directApi",
-        "editor",
         "mcp",
       ]);
     }

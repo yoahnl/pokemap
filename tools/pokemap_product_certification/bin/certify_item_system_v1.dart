@@ -8,13 +8,19 @@ Future<void> main(List<String> arguments) async {
       'Usage: dart run bin/certify_item_system_v1.dart '
       '[--repository-root <path>] [--project-root <path>] '
       '[--mcp-root <path>] [--output <path>] '
-      '[--transport-receipts-out <path>] [--skip-mcp-build]',
+      '[--transport-receipts-out <path>] [--check-only] [--skip-mcp-build]',
     );
     return;
   }
   Directory? temporaryOutputDirectory;
   try {
     final options = _parseArguments(arguments);
+    final checkOnly = options.containsKey('check-only');
+    if (checkOnly && options.containsKey('transport-receipts-out')) {
+      throw const FormatException(
+        'A check-only run does not issue certified transport receipts.',
+      );
+    }
     final repositoryRoot = Directory(
       p.normalize(
         p.absolute(
@@ -53,6 +59,7 @@ Future<void> main(List<String> arguments) async {
       mcpRoot: mcpRoot,
       outputPath: outputPath,
       receiptPath: receiptPath,
+      checkOnly: checkOnly,
     );
     if (requestedOutput == null) {
       stdout.write(await File(outputPath).readAsString());
@@ -76,7 +83,7 @@ Map<String, String?> _parseArguments(List<String> arguments) {
     'output',
     'transport-receipts-out',
   };
-  const flags = <String>{'skip-mcp-build'};
+  const flags = <String>{'skip-mcp-build', 'check-only'};
   final parsed = <String, String?>{};
   for (var index = 0; index < arguments.length; index += 1) {
     final argument = arguments[index];
@@ -140,6 +147,7 @@ Future<void> _runFlutterWorker({
   required Directory mcpRoot,
   required String outputPath,
   required String receiptPath,
+  required bool checkOnly,
 }) async {
   final result = await Process.run('flutter', <String>[
     'test',
@@ -151,6 +159,7 @@ Future<void> _runFlutterWorker({
     '--dart-define=POKEMAP_MCP_ROOT=${mcpRoot.path}',
     '--dart-define=POKEMAP_ITEM_CERTIFICATION_OUTPUT=$outputPath',
     '--dart-define=POKEMAP_ITEM_TRANSPORT_RECEIPTS_OUTPUT=$receiptPath',
+    if (checkOnly) '--dart-define=POKEMAP_ITEM_CHECK_ONLY=true',
   ], workingDirectory: certificationPackageRoot.path);
   if (result.exitCode != 0) {
     throw StateError(

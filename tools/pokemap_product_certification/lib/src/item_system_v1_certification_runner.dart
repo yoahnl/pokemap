@@ -21,6 +21,7 @@ final class ItemSystemV1CertificationRunner {
     required String sourceRevision,
     required DateTime recordedAtUtc,
     int rngSeed = 47,
+    bool checkOnly = false,
   }) async {
     final fixtureSha256 = await computeItemSystemFixtureSha256(
       projectRootDirectory,
@@ -65,6 +66,7 @@ final class ItemSystemV1CertificationRunner {
           mcpPackageRootDirectory: mcpPackageRootDirectory,
           sourceRevision: sourceRevision,
           recordedAtUtc: recordedAtUtc,
+          includeStudio: !checkOnly,
         );
     receipts[ItemSystemProofLevel.goldenFlowL6] =
         await collectGoldenJourneyEvidence(
@@ -85,6 +87,13 @@ final class ItemSystemV1CertificationRunner {
         sourceRevision: sourceRevision,
         fixtureSha256: fixtureSha256,
         executionReceipts: receipts,
+        blockedLevels: {
+          if (checkOnly &&
+              receipts[ItemSystemProofLevel.mcpParityL5]!
+                      .payload['availableTransportsAgree'] ==
+                  true)
+            ItemSystemProofLevel.mcpParityL5,
+        },
       ),
     );
   }

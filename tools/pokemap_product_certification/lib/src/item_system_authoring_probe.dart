@@ -1,3 +1,4 @@
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 final class ItemSystemAuthoringProbeAction {
@@ -12,6 +13,45 @@ final class ItemSystemAuthoringProbeAction {
     'item.clone' || 'item.delete_apply' || 'item.set_tm_hm_move' => false,
     _ => true,
   };
+
+  AuthoringRequest request({
+    required String operationId,
+    required String workspaceHandle,
+    required String revision,
+  }) => AuthoringRequest(
+    requestId: operationId,
+    actionId: actionId,
+    actionVersion: 1,
+    workspaceHandle: workspaceHandle,
+    parameters: parameters,
+    expectedRevision: revision,
+    idempotencyKey: operationId,
+    extensions: usesWorkshop ? const {'workshopScope': true} : const {},
+  );
+
+  Future<Map<String, Object?>> plan({
+    required String operationId,
+    required ProjectHandle projectHandle,
+    required WorkspaceHandle workspaceHandle,
+    required ProjectSnapshotLoader snapshots,
+    required LocalMapAuthoringMutationApi mutations,
+  }) async {
+    final snapshot = usesWorkshop
+        ? await mutations.readWorkshopSnapshot(
+            projectHandle,
+            actionId: actionId,
+            parameters: parameters,
+          )
+        : await snapshots.load(projectHandle);
+    return mutations.plan(
+      projectHandle,
+      request(
+        operationId: operationId,
+        workspaceHandle: workspaceHandle.value,
+        revision: snapshot.revision,
+      ),
+    );
+  }
 }
 
 final itemSystemAuthoringProbeActions = <ItemSystemAuthoringProbeAction>[
@@ -93,12 +133,9 @@ final itemSystemRejectedAuthoringProbeActions =
           'itemId': 'cert-probe',
           'use': const ProjectItemUseDefinition(
             contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
-            target: ProjectItemTargetKind.partyMove,
+            target: ProjectItemTargetKind.world,
             consumption: ProjectItemConsumptionPolicy.onApplied,
-            effect: ProjectItemEffectDefinition.restorePp(
-              mode: ProjectItemAmountMode.flat,
-              amount: 10,
-            ),
+            effect: ProjectItemEffectDefinition.repel(steps: 100),
           ).toJson(),
         },
       ),
@@ -115,9 +152,12 @@ final itemSystemRejectedAuthoringProbeActions =
           'itemId': 'cert-probe',
           'use': const ProjectItemUseDefinition(
             contexts: <ProjectItemUseContext>{ProjectItemUseContext.overworld},
-            target: ProjectItemTargetKind.world,
+            target: ProjectItemTargetKind.partyMember,
             consumption: ProjectItemConsumptionPolicy.onApplied,
-            effect: ProjectItemEffectDefinition.repel(steps: 100),
+            effect: ProjectItemEffectDefinition.battleBoost(
+              stat: ProjectItemBattleStat.attack,
+              stages: 1,
+            ),
           ).toJson(),
         },
       ),

@@ -54,7 +54,7 @@ void main() {
         // ignore: invalid_use_of_internal_member
         game.mount();
         game.update(0);
-        await _waitForOverworldAuthority(game);
+        await waitForGoldenOverworldAuthority(game);
 
         final started = game.gameStateSnapshot;
         expect(started.trainerProfile.badgeIds, isEmpty);
@@ -75,7 +75,7 @@ void main() {
           BattleOutcomeType.defeat,
           reason: 'level 5 against level 8 must lose the first assault',
         );
-        await _waitForOverworldAuthority(game);
+        await waitForGoldenOverworldAuthority(game);
         await _pump(game, frames: 100);
         final afterDefeat = game.gameStateSnapshot;
         // Le whiteout complet : respawn au point de récupération, équipe
@@ -118,7 +118,7 @@ void main() {
             BattleOutcomeType.victory,
             reason: 'round $round against the level-2 rival must win',
           );
-          await _waitForOverworldAuthority(game);
+          await waitForGoldenOverworldAuthority(game);
         }
         final afterGrind = game.gameStateSnapshot;
         expect(
@@ -143,7 +143,7 @@ void main() {
           BattleOutcomeType.victory,
           reason: 'the leveled starter must win the boss rematch',
         );
-        await _waitForOverworldAuthority(game);
+        await waitForGoldenOverworldAuthority(game);
 
         final afterBoss = game.gameStateSnapshot;
         expect(
@@ -232,20 +232,7 @@ Future<void> _healLeadWithPotion(
     ),
   );
   await host.resume();
-  await _waitForOverworldAuthority(game);
-}
-
-Future<void> _waitForOverworldAuthority(PlayableMapGame game) async {
-  for (var frame = 0; frame < 4000; frame++) {
-    if (game.inputAuthoritySnapshot.context == RuntimeInputContext.overworld) {
-      return;
-    }
-    await _pump(game);
-  }
-  fail(
-    'The overworld never took input authority; '
-    'last=${game.inputAuthoritySnapshot.context}',
-  );
+  await waitForGoldenOverworldAuthority(game);
 }
 
 Future<void> _pump(PlayableMapGame game, {int frames = 1}) async {
@@ -397,22 +384,5 @@ Future<void> _acknowledgePostBattle(PlayableMapGame game) async {
     await _pump(game);
   }
   expect(game.debugPostBattleOverlayMounted, isFalse);
-  await game.debugWaitForPostBattleCompletion();
-  // Les dialogues de victoire des templates s'ouvrent après le commit :
-  // les confirmer fait partie du parcours réel.
-  for (var frame = 0; frame < 400; frame++) {
-    await _pump(game);
-    if (game.inputAuthoritySnapshot.context == RuntimeInputContext.dialogue) {
-      game.handleRuntimeInputEvent(
-        const RuntimeInputEvent.press(RuntimeInputControl.primary),
-      );
-      game.handleRuntimeInputEvent(
-        const RuntimeInputEvent.release(RuntimeInputControl.primary),
-      );
-    } else if (game.inputAuthoritySnapshot.context ==
-        RuntimeInputContext.overworld) {
-      break;
-    }
-  }
-  await _pump(game, frames: 10);
+  await waitForGoldenOverworldAuthority(game);
 }

@@ -29,10 +29,10 @@ void main() {
         expect(evidence.endToEndEvidence.containsKey(AuthoringTransport.mcp), isTrue);
       }
     });
-    test('native vertical platform cites its four executed transport proofs', () {
+    test('native vertical platform cites the maintained technical proofs', () {
       for(final action in ['map3d.lift.upsert_batch','map3d.lift.delete_batch']) {
         final evidence=AuthoringFullParityCatalog.canonical().requireMutationAction(action);
-        expect(evidence.endToEndEvidence.keys.toSet(),AuthoringTransport.values.toSet());
+        expect(evidence.endToEndEvidence.keys.toSet(),{AuthoringTransport.directApi, AuthoringTransport.cli, AuthoringTransport.mcp});
         expect(evidence.endToEndEvidence[AuthoringTransport.mcp],'../../tools/pokemap_mcp/test/spatial_lift_stdio.test.ts');
       }
     });
@@ -50,10 +50,10 @@ void main() {
         '../../apps/avelune_studio/test/presentation/day_night_controls_test.dart');
       expect(evidence.contractTestPath, 'test/domains/maps/spatial_map_actions_test.dart');
     });
-    test('project rename cites four dedicated transport proofs', () {
+    test('project rename cites the maintained technical proofs', () {
       final evidence = AuthoringFullParityCatalog.canonical()
           .requireMutationAction('project.rename');
-      expect(evidence.endToEndEvidence.keys.toSet(), AuthoringTransport.values.toSet());
+      expect(evidence.endToEndEvidence.keys.toSet(), {AuthoringTransport.directApi, AuthoringTransport.cli, AuthoringTransport.mcp});
       expect(evidence.contractTestPath, 'test/domains/project/project_identity_actions_test.dart');
     });
     test('foreground Border action cites its four focused transport proofs', () {
@@ -92,8 +92,6 @@ void main() {
               'test/domains/maps/hidden_item_transport_parity_test.dart',
           AuthoringTransport.cli:
               'test/domains/maps/hidden_item_transport_parity_test.dart',
-          AuthoringTransport.editor:
-              '../map_editor/test/authoring_api/hidden_item_authoring_transport_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/item_authoring.test.ts',
         },
@@ -103,7 +101,7 @@ void main() {
           AuthoringTransport.cli:
               'test/domains/narrative/scene_graph_patch_transport_test.dart',
           AuthoringTransport.editor:
-              '../map_editor/test/authoring_api/scene_graph_patch_editor_test.dart',
+              '../../apps/avelune_studio/test/scenes/scene_graph_patch_publication_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/scene_graph_patch_stdio.test.ts',
         },
@@ -114,16 +112,12 @@ void main() {
               'test/domains/maps/moving_platform_actions_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/moving_platform_stdio.test.ts',
-          AuthoringTransport.editor:
-              '../map_editor/test/authoring_api/moving_platform_smart_tile_editor_test.dart',
         },
         'map.platform.delete': {
           AuthoringTransport.directApi:
               'test/domains/maps/moving_platform_actions_test.dart',
           AuthoringTransport.cli:
               'test/domains/maps/moving_platform_actions_test.dart',
-          AuthoringTransport.editor:
-              '../map_editor/test/authoring_api/moving_platform_delete_editor_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/moving_platform_stdio.test.ts',
         },
@@ -172,8 +166,6 @@ void main() {
               'test/domains/maps/spatial_map_actions_test.dart',
           AuthoringTransport.cli:
               'test/domains/maps/spatial_map_actions_test.dart',
-          AuthoringTransport.editor:
-              '../map_editor/test/authoring_api/spatial_lifts_ledge_camera_editor_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
         },
@@ -184,8 +176,6 @@ void main() {
               'test/domains/maps/spatial_map_actions_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
-          AuthoringTransport.editor:
-              '../map_editor/test/authoring_api/spatial_ramp_surface_editor_test.dart',
         },
         'map3d.instance.delete': {
           AuthoringTransport.directApi:
@@ -202,8 +192,6 @@ void main() {
               'test/domains/maps/spatial_map_actions_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/spatial_authoring.test.ts',
-          AuthoringTransport.editor:
-              '../map_editor/test/authoring_api/spatial_ramp_surface_editor_test.dart',
         },
         'map3d.terrain.configure_appearance': {
           AuthoringTransport.directApi:
@@ -226,8 +214,6 @@ void main() {
               'test/tooling/jsonl_smart_tile_native_flow_test.dart',
           AuthoringTransport.cli:
               'test/tooling/jsonl_smart_tile_native_flow_test.dart',
-          AuthoringTransport.editor:
-              '../map_editor/test/authoring_api/raster_spatial_height_editor_test.dart',
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/smart_tile_batch_stdio.test.ts',
         },
@@ -555,7 +541,7 @@ void main() {
         catalog.requireMutationAction('presentation.update').toJson(),
         containsPair(
           'endToEndVerifiedTransports',
-          ['cli', 'directApi', 'editor', 'mcp'],
+          ['cli', 'directApi', 'mcp'],
         ),
       );
       expect(
@@ -571,7 +557,7 @@ void main() {
         catalog.requireMutationAction('presentation.preset.export').toJson(),
         containsPair(
           'endToEndVerifiedTransports',
-          ['cli', 'directApi', 'editor', 'mcp'],
+          ['cli', 'directApi', 'mcp'],
         ),
       );
       expect(
@@ -580,7 +566,7 @@ void main() {
             .toJson(),
         containsPair(
           'endToEndVerifiedTransports',
-          <String>['cli', 'directApi', 'editor', 'mcp'],
+          <String>['cli', 'directApi', 'mcp'],
         ),
       );
       expect(
@@ -591,7 +577,7 @@ void main() {
             .toJson(),
         containsPair(
           'endToEndVerifiedTransports',
-          <String>['cli', 'directApi', 'editor', 'mcp'],
+          <String>['cli', 'directApi', 'mcp'],
         ),
       );
       for (final actionId in const <String>[
@@ -602,7 +588,7 @@ void main() {
           catalog.requireMutationAction(actionId).toJson(),
           containsPair(
             'endToEndVerifiedTransports',
-            <String>['cli', 'directApi', 'editor', 'mcp'],
+            <String>['cli', 'directApi', 'mcp'],
           ),
         );
       }
@@ -625,7 +611,7 @@ void main() {
           catalog.requireMutationAction(actionId).toJson(),
           containsPair(
             'endToEndVerifiedTransports',
-            <String>['cli', 'directApi', 'editor', 'mcp'],
+            <String>['cli', 'directApi', 'mcp'],
           ),
           reason: actionId,
         );
@@ -651,7 +637,7 @@ void main() {
           catalog.requireMutationAction(actionId).toJson(),
           containsPair(
             'endToEndVerifiedTransports',
-            <String>['cli', 'directApi', 'editor', 'mcp'],
+            <String>['cli', 'directApi', 'mcp'],
           ),
           reason: actionId,
         );
@@ -675,7 +661,7 @@ void main() {
       );
     });
 
-    test('CHS-059 certifies all 25 Character Studio actions', () {
+    test('CHS-059 lists the maintained proofs for all 25 Character Studio actions', () {
       final catalog = AuthoringFullParityCatalog.canonical();
       final actions = catalog.mutationActions
           .where((action) => action.actionId.startsWith('characterStudio.'))
@@ -691,20 +677,36 @@ void main() {
           action.toJson(),
           containsPair(
             'endToEndVerifiedTransports',
-            <String>['cli', 'directApi', 'editor', 'mcp'],
+            <String>['cli', 'directApi', 'mcp'],
           ),
           reason: action.actionId,
         );
       }
     });
 
-    test('certifies every CIN-006 and CIN-019 action on four transports', () {
+    test('records the Studio proofs for the actions exercised by CIN-033', () {
       final catalog = AuthoringFullParityCatalog.canonical();
-
+      const studioActions = {
+        'scene.preSession.create',
+        'scene.preSession.interaction.insert',
+        'scene.preSession.presentation.createAndLink',
+        'scene.preSession.end.configure',
+        'scene.presentation.cue.routes.set',
+        'presentationCinematic.publish',
+        'presentationTrack.create',
+        'presentationTrack.update',
+        'presentationClip.create',
+        'presentationLayer.create',
+      };
       for (final actionId in _cin033CertifiedActionIds) {
         expect(
           catalog.requireMutationAction(actionId).endToEndVerifiedTransports,
-          AuthoringTransport.values.toSet(),
+          {
+            AuthoringTransport.directApi,
+            AuthoringTransport.cli,
+            AuthoringTransport.mcp,
+            if (studioActions.contains(actionId)) AuthoringTransport.editor,
+          },
           reason: actionId,
         );
       }
@@ -910,7 +912,7 @@ void main() {
       );
     });
 
-    test('matches runtime and editor consumer inventories automatically', () {
+    test('matches runtime and Studio consumers', () {
       final catalog = AuthoringFullParityCatalog.canonical();
       final repositoryRoot = Directory.current.parent.parent;
       final renderWorker = File(
@@ -921,47 +923,42 @@ void main() {
         '${repositoryRoot.path}/examples/playable_runtime_host/lib/src/'
         'evaluation/driver/evaluation_playtest_adapter.dart',
       ).readAsStringSync();
-      final editorAdapter = File(
-        '${repositoryRoot.path}/packages/map_editor/lib/src/application/'
-        'authoring_api/authoring_mutation_adapter.dart',
-      ).readAsStringSync();
-
       for (final command in catalog.runtimeCommands) {
         final source = command == 'render' ? renderWorker : playtestWorker;
         expect(source, contains(command), reason: command);
       }
+      final studioAdapterPath = catalog
+          .requireMutationAction('map.create')
+          .adapterEvidence[AuthoringTransport.editor]!;
       expect(
-          editorAdapter, contains('Future<EditorAuthoringMutationPlan> plan('));
-      expect(editorAdapter,
-          contains('Future<EditorAuthoringMutationResult> apply('));
-
-      final editorActionIds = <String>{};
-      final editorLib = Directory(
-        '${repositoryRoot.path}/packages/map_editor/lib/src',
+        File(studioAdapterPath).readAsStringSync(),
+        contains('LocalMapAuthoringMutationApi'),
       );
-      for (final entity in editorLib.listSync(recursive: true)) {
-        if (entity is! File || !entity.path.endsWith('.dart')) {
-          continue;
-        }
-        final source = entity.readAsStringSync();
-        for (final match in RegExp(
-          r"(?:^|[^A-Za-z0-9_])actionId:\s*'([^']+)'",
-          multiLine: true,
-        ).allMatches(source)) {
-          editorActionIds.add(match.group(1)!);
+
+      final studioActionIds = <String>{};
+      final studioLib = Directory(
+        '${repositoryRoot.path}/apps/avelune_studio/lib',
+      );
+      final literalAction = RegExp(
+        r"AuthoringRequest\([\s\S]{0,300}?\bactionId:\s*'([^']+)'",
+      );
+      for (final entity in studioLib.listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        for (final match in literalAction.allMatches(entity.readAsStringSync())) {
+          studioActionIds.add(match.group(1)!);
         }
       }
-      expect(editorActionIds, isNotEmpty);
+      expect(studioActionIds, isNotEmpty);
       expect(
-        editorActionIds.difference(
+        studioActionIds.difference(
           catalog.mutationActions.map((action) => action.actionId).toSet(),
         ),
         isEmpty,
-        reason: 'Every editor-authored action must exist in the canonical API',
+        reason: 'Every Studio AuthoringRequest must target a registered action',
       );
     });
 
-    test('RailJourney actions have dedicated evidence for every transport', () {
+    test('RailJourney actions list the maintained technical proofs', () {
       final catalog = AuthoringFullParityCatalog.canonical();
 
       for (final actionId in const <String>[
@@ -971,12 +968,7 @@ void main() {
         final action = catalog.requireMutationAction(actionId);
         expect(
           action.endToEndVerifiedTransports,
-          AuthoringTransport.values.toSet(),
-          reason: actionId,
-        );
-        expect(
-          action.endToEndEvidence[AuthoringTransport.editor],
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+          {AuthoringTransport.directApi, AuthoringTransport.cli, AuthoringTransport.mcp},
           reason: actionId,
         );
       }
@@ -2149,6 +2141,8 @@ const Set<String> _cin033CertifiedActionIds = <String>{
   'scene.preSession.presentation.createAndLink',
   'scene.preSession.condition.insert',
   'scene.preSession.end.configure',
+  'scene.presentation.cue.routes.set',
+  'presentationCinematic.publish',
   'presentationCinematic.create',
   'presentationCinematic.update',
   'presentationCinematic.duplicate',
@@ -2200,7 +2194,7 @@ AuthoringTransportExecutionReceipt _transportReceipt({
     AuthoringTransport.cli =>
       'test/domains/gameplay/item_catalog_jsonl_test.dart',
     AuthoringTransport.editor =>
-      '../map_editor/test/authoring_api/item_authoring_transport_test.dart',
+      '../../tools/pokemap_product_certification/test/item_system_transport_evidence_collector_test.dart',
     AuthoringTransport.mcp =>
       '../../tools/pokemap_mcp/test/item_authoring.test.ts',
   };

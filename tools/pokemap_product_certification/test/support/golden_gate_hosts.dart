@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
+import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
 import 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences_read.dart';
 import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -263,6 +262,29 @@ final class _MemoryPreferencesStore
       save(change(_preferences));
 }
 
+Future<void> waitForGoldenOverworldAuthority(PlayableMapGame game) async {
+  for (var frame = 0; frame < 4000; frame++) {
+    final context = game.inputAuthoritySnapshot.context;
+    if (context == RuntimeInputContext.overworld &&
+        !game.debugIsNarrativeSpatialDispatchInFlight &&
+        !game.debugIsNarrativeOutcomeWorkInFlight) {
+      return;
+    }
+    final dialogue = game.dialoguePresentationListenable.value;
+    if (context == RuntimeInputContext.dialogue && dialogue != null) {
+      game.dispatchDialoguePresentationCommand(
+        DialogueAdvanceCommand(snapshotRevision: dialogue.revision),
+      );
+    }
+    game.update(0.016);
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }
+  fail(
+    'The overworld never took input authority; '
+    'last=${game.inputAuthoritySnapshot.context}',
+  );
+}
+
 GamePackageInstaller _installer({
   required Directory supportRoot,
   required NeutralCertificationGameFixture fixture,
@@ -275,16 +297,5 @@ GamePackageInstaller _installer({
       availableDiskBytes: (_) async => 1024 * 1024 * 1024,
       prepareSavesForUpdate: (_, __) async =>
           const SaveUpdatePreparation(rollbackSnapshotAvailable: true),
-      loadSmoke: (stagedVersionRoot, manifest) async {
-        final projectFile = File(
-          p.join(stagedVersionRoot.path, 'project', 'project.json'),
-        );
-        final decoded = jsonDecode(await projectFile.readAsString());
-        final project =
-            ProjectManifest.fromJson(decoded as Map<String, dynamic>);
-        await loadRuntimeMapBundle(
-          projectFilePath: projectFile.path,
-          mapId: project.newGame.startMapId,
-        );
-      },
+      loadSmoke: loadInstalledProjectSmoke,
     );

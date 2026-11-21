@@ -24,7 +24,11 @@ void main() {
               '${gate.domain}: $path',
       ];
 
-      expect(missing, isEmpty, reason: 'Gates fantômes :\n${missing.join('\n')}');
+      expect(
+        missing,
+        isEmpty,
+        reason: 'Gates fantômes :\n${missing.join('\n')}',
+      );
     });
 
     test('the registry is sorted and names every cockpit domain once', () {
@@ -46,8 +50,11 @@ void main() {
         switch (gate.coverage) {
           case DomainGateCoverage.gated:
             expect(gate.gateTestPaths, isNotEmpty, reason: gate.domain);
-            expect(gate.pendingTicket, isNull,
-                reason: '${gate.domain} se dit couvert ET endetté');
+            expect(
+              gate.pendingTicket,
+              isNull,
+              reason: '${gate.domain} se dit couvert ET endetté',
+            );
           case DomainGateCoverage.partial:
             expect(gate.gateTestPaths, isNotEmpty, reason: gate.domain);
             expect(gate.pendingTicket, isNotNull, reason: gate.domain);
@@ -70,59 +77,55 @@ void main() {
       expect(pending, isEmpty);
     });
 
-    test('the assembled verdict is GO — and stays calculated, not declared',
-        () {
-      // Le 2026-08-20, la dernière gate (BETA-PRG-006) a livré : ce cas
-      // s'inverse volontairement, exactement comme son prédécesseur NO-GO
-      // l'annonçait. Le verdict reste CALCULÉ : le premier domaine qui
-      // retombe en dette retourne ce test tout seul.
-      expect(productCertificationDomainGatesComplete, isTrue);
-    });
+    test(
+      'the assembled verdict is GO — and stays calculated, not declared',
+      () {
+        // Le 2026-08-20, la dernière gate (BETA-PRG-006) a livré : ce cas
+        // s'inverse volontairement, exactement comme son prédécesseur NO-GO
+        // l'annonçait. Le verdict reste CALCULÉ : le premier domaine qui
+        // retombe en dette retourne ce test tout seul.
+        expect(productCertificationDomainGatesComplete, isTrue);
+      },
+    );
 
-    test('every golden gate file in this package is declared in the registry',
-        () {
-      // Trou découvert en livrant la gate Party/PC : le registre figeait la
-      // DÉCLARATION, mais une gate qui NAÎT sans être déclarée ne cassait
-      // rien — elle couvrait son domaine en silence, invisible du verdict
-      // d'assemblage. Les golden gates de ce paquet suivent une convention de
-      // nom : le répertoire fait donc autorité, comme pour la composition de
-      // la gate de jouabilité.
-      final gateFiles = Directory('test')
-          .listSync()
-          .whereType<File>()
-          .map((file) => p.basename(file.path))
-          .where(
-            (name) =>
-                name.startsWith('golden_') && name.endsWith('_gate_test.dart'),
-          )
-          .toSet();
-      final declared = <String>{
-        for (final gate in productCertificationDomainGates)
-          for (final path in gate.gateTestPaths)
-            if (path.startsWith('tools/pokemap_product_certification/test/'))
-              p.basename(path),
-      };
+    test(
+      'every golden gate file in this package is declared in the registry',
+      () {
+        // Trou découvert en livrant la gate Party/PC : le registre figeait la
+        // DÉCLARATION, mais une gate qui NAÎT sans être déclarée ne cassait
+        // rien — elle couvrait son domaine en silence, invisible du verdict
+        // d'assemblage. Les golden gates de ce paquet suivent une convention de
+        // nom : le répertoire fait donc autorité, comme pour la composition de
+        // la gate de jouabilité.
+        final gateFiles = Directory('test')
+            .listSync()
+            .whereType<File>()
+            .map((file) => p.basename(file.path))
+            .where(
+              (name) =>
+                  name.startsWith('golden_') &&
+                  name.endsWith('_gate_test.dart'),
+            )
+            .toSet();
+        final declared = <String>{
+          for (final gate in productCertificationDomainGates)
+            for (final path in gate.gateTestPaths)
+              if (path.startsWith('tools/pokemap_product_certification/test/'))
+                p.basename(path),
+        };
 
-      expect(gateFiles, isNotEmpty);
-      expect(
-        gateFiles.difference(declared),
-        isEmpty,
-        reason: 'une golden gate née sans être déclarée couvre son domaine en '
-            'silence, hors du verdict d’assemblage',
-      );
-    });
+        expect(gateFiles, isNotEmpty);
+        expect(
+          gateFiles.difference(declared),
+          isEmpty,
+          reason:
+              'une golden gate née sans être déclarée couvre son domaine en '
+              'silence, hors du verdict d’assemblage',
+        );
+      },
+    );
 
-    test('every package gate the registry declares is executed by the CI', () {
-      // Le trou qui a motivé la lane : les Golden Gates de packages/ ne
-      // tournaient JAMAIS en CI — le combat, le plus gros domaine de la bêta,
-      // n'était exécuté sur aucun push. Ce cas interdit au registre et au
-      // workflow de diverger : déclarer une gate sans l'exécuter fait échouer
-      // la suite, dans les deux sens du fil.
-      //
-      // Les gates de tools/pokemap_product_certification sont couvertes par la
-      // lane contracts (`flutter test` sur le paquet entier) et les workflows
-      // se couvrent eux-mêmes : seuls les chemins packages/ exigent une mention
-      // explicite.
+    test('every package and Studio gate in the registry is executed by CI', () {
       final workflow = File(
         p.join(
           repositoryRoot,
@@ -133,7 +136,8 @@ void main() {
       final unexecuted = <String>[
         for (final gate in productCertificationDomainGates)
           for (final path in gate.gateTestPaths)
-            if (path.startsWith('packages/') &&
+            if ((path.startsWith('packages/') ||
+                    path.startsWith('apps/avelune_studio/')) &&
                 !workflow.contains(path.split('/').last))
               '${gate.domain}: $path',
       ];
@@ -141,7 +145,8 @@ void main() {
       expect(
         unexecuted,
         isEmpty,
-        reason: 'Gates déclarées mais jamais exécutées en CI :\n'
+        reason:
+            'Gates déclarées mais jamais exécutées en CI :\n'
             '${unexecuted.join('\n')}',
       );
     });

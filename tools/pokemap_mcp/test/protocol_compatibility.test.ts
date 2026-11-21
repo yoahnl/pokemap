@@ -235,7 +235,6 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
       assert.deepEqual(action?.endToEndVerifiedTransports, [
         "cli",
         "directApi",
-        "editor",
         "mcp",
       ]);
     }

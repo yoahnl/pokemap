@@ -4,8 +4,9 @@ import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/transport_certification.dart';
-import 'package:map_editor/authoring_transport.dart';
 import 'package:path/path.dart' as p;
+
+import 'studio_transport_session.dart';
 
 part 'transport_certification_wire_session.dart';
 
@@ -23,11 +24,10 @@ Future<TransportCertificationSession> openTransportCertificationSession(
   AuthoringTransport transport,
   Directory project,
   Directory repository,
-  String dart, {
-  required bool measurePlanPreimage,
-}) => switch (transport) {
+  String dart,
+) => switch (transport) {
   AuthoringTransport.directApi => _openDirect(project),
-  AuthoringTransport.editor => _openEditor(project, measurePlanPreimage),
+  AuthoringTransport.editor => _openStudio(project),
   AuthoringTransport.cli || AuthoringTransport.mcp => _WireSession.open(
     transport,
     project,
@@ -35,6 +35,27 @@ Future<TransportCertificationSession> openTransportCertificationSession(
     dart,
   ),
 };
+
+Future<TransportCertificationSession> _openStudio(Directory project) async {
+  final studio = await StudioTransportSession.open(project);
+  return (
+    close: studio.close,
+    apply: (step, identity) async {
+      final bound = await _boundParameters(project, step, studio.stage);
+      final receipt = await studio.run(
+        actionId: step.actionId,
+        actionVersion: step.actionVersion,
+        parameters: bound.parameters,
+        operationId: identity,
+        preferWorkshop:
+            step.revisionScope == AuthoringTransportRevisionScope.auto,
+        planOnly: step.planOnly,
+        confirm: step.confirm,
+      );
+      return (receipt: receipt, stagedArtifacts: bound.stagedArtifacts);
+    },
+  );
+}
 
 const _unscopedCodes = {
   'project.workshop_scope_required',
@@ -148,83 +169,6 @@ Future<TransportCertificationSession> _openDirect(Directory project) async {
       );
     },
   );
-}
-
-Future<TransportCertificationSession> _openEditor(
-  Directory project,
-  bool measurePlanPreimage,
-) async {
-  const reader = LocalProjectFileReader();
-  final queries = AuthoringQueryAdapter(fileReader: reader);
-  final mutations = AuthoringMutationAdapter(
-    fileReader: reader,
-    queries: queries,
-    projectRoots: _ProjectRoot(project.path),
-  );
-  Future<void> close() async {
-    try {
-      await mutations.closeAll();
-    } finally {
-      await queries.closeAll();
-    }
-  }
-
-  if (measurePlanPreimage) {
-    try {
-      await mutations.readRevision(project.path);
-    } on Object {
-      await close();
-      rethrow;
-    }
-  }
-  return (
-    close: close,
-    apply: (step, identity) async {
-      final bound = await _boundParameters(project, step, (path, media) async {
-        final staged = await mutations.stageArtifact(
-          project.path,
-          sourcePath: path,
-          declaredMediaType: media,
-        );
-        return staged.reference;
-      });
-      final expectedRevision =
-          step.revisionScope == AuthoringTransportRevisionScope.project
-          ? await mutations.readRevision(project.path)
-          : null;
-      final plan = await mutations.plan(
-        project.path,
-        actionId: step.actionId,
-        parameters: bound.parameters,
-        idempotencyKey: identity,
-        requestId: identity,
-        expectedRevision: expectedRevision,
-        dryRun: step.planOnly,
-      );
-      if (plan.receipt.actionVersion != step.actionVersion) {
-        throw StateError('The Editor selected another action version.');
-      }
-      if (step.planOnly) {
-        return (receipt: plan.receipt, stagedArtifacts: bound.stagedArtifacts);
-      }
-      final confirmation = step.confirm ? await mutations.confirm(plan) : null;
-      final result = await mutations.apply(
-        plan,
-        operationId: identity,
-        confirmationToken: confirmation,
-      );
-      return (receipt: result.receipt, stagedArtifacts: bound.stagedArtifacts);
-    },
-  );
-}
-
-final class _ProjectRoot implements EditorProjectRootLocator {
-  const _ProjectRoot(this.path);
-
-  final String path;
-
-  @override
-  Future<String> locateForResource(String resourcePath) async => path;
 }
 
 AuthoringReceipt _receipt(Map<String, Object?> result) =>

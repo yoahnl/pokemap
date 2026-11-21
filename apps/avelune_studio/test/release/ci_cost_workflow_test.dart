@@ -75,8 +75,16 @@ void main() {
     );
     expect(source, contains('flutter analyze --no-pub'));
     expect(source, contains('dart analyze'));
-    expect(source, contains('test/map_editing_controller_test.dart'));
-    expect(source, isNot(contains('test/editor_shell_page_smoke_test.dart')));
+    expect(
+      source,
+      contains('test/map_workspace/map_editing_input_session_test.dart'),
+    );
+    expect(
+      source,
+      contains('bash -n tools/pokemap_mcp/scripts/pmcp085_release_gate.sh'),
+    );
+    expect(source, isNot(contains('working-directory: packages/map_editor')));
+    expect(source, isNot(contains('--evidence-dir')));
     expect(source, isNot(contains('flutter build')));
     expect(source, isNot(contains('flutter drive')));
     expect(source, isNot(contains('upload-artifact')));
@@ -110,4 +118,26 @@ void main() {
       'on:\n  workflow_dispatch:\n',
     );
   });
+
+  test(
+    'manual product certification runs the shared authoring release gate',
+    () {
+      final source = workflow('pokemap_product_certification.yml');
+      expect(triggers(source), 'on:\n  workflow_dispatch:\n');
+      expect(source, contains('  authoring-transport-certification:\n'));
+      expect(
+        source,
+        contains('bash tools/pokemap_mcp/scripts/pmcp085_release_gate.sh'),
+      );
+      expect(
+        source,
+        contains(r'--evidence-dir "$RUNNER_TEMP/pmcp085-evidence"'),
+      );
+      expect(
+        source,
+        contains('Preserve authoring transport receipts\n        if: always()'),
+      );
+      expect(source, isNot(contains('working-directory: packages/map_editor')));
+    },
+  );
 }

@@ -3,13 +3,13 @@ import 'package:map_authoring/map_authoring.dart';
 import '../../project_session/domain/project_session.dart';
 
 class LocalPresentationConnection {
-  LocalPresentationConnection(
-    this.handles,
+  LocalPresentationConnection._(
+    this._openService,
     this.opened,
     this.snapshots,
     this.api,
   );
-  final WorkspaceHandleStore handles;
+  final ProjectOpenService _openService;
   final OpenedProject opened;
   final ProjectSnapshotLoader snapshots;
   final LocalMapAuthoringMutationApi api;
@@ -71,7 +71,7 @@ class LocalPresentationConnection {
       fileReader: reader,
     );
     final handles = WorkspaceHandleStore();
-    final opened = await ProjectOpenService(
+    final openService = ProjectOpenService(
       policy: policy,
       fileReader: reader,
       handles: handles,
@@ -79,7 +79,8 @@ class LocalPresentationConnection {
           session.storage == ProjectSessionStorage.workingCatalog
           ? const {}
           : null,
-    ).openProject(session.directoryPath);
+    );
+    final opened = await openService.openProject(session.directoryPath);
     final snapshots = ProjectSnapshotLoader(handles: handles);
     final api = LocalMapAuthoringMutationApi(
       policy: policy,
@@ -87,12 +88,32 @@ class LocalPresentationConnection {
       artifactStore: artifacts,
       faultInjector: faultInjector,
     );
-    await api.attachProject(
-      projectRootPath: session.directoryPath,
-      workspaceHandle: opened.workspaceHandle,
-      projectHandle: opened.projectHandle,
+    final connection = LocalPresentationConnection._(
+      openService,
+      opened,
+      snapshots,
+      api,
     );
-    return LocalPresentationConnection(handles, opened, snapshots, api);
+    try {
+      await api.attachProject(
+        projectRootPath: session.directoryPath,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+      return connection;
+    } on Object {
+      await connection.close();
+      rethrow;
+    }
+  }
+
+  Future<String> readProjectRevision() async {
+    final catalog = await _openService.catalogProject(
+      opened.projectHandle,
+      metadataFields: const {},
+    );
+    return catalog?.revision ??
+        (await snapshots.load(opened.projectHandle)).revision;
   }
 
   Future<ProjectSnapshot> read({
@@ -106,7 +127,10 @@ class LocalPresentationConnection {
         )
       : snapshots.load(opened.projectHandle);
   Future<void> close() async {
-    await api.detachWorkspace(opened.workspaceHandle);
-    handles.closeWorkspace(opened.workspaceHandle);
+    try {
+      await api.detachWorkspace(opened.workspaceHandle);
+    } finally {
+      _openService.closeWorkspace(opened.workspaceHandle);
+    }
   }
 }

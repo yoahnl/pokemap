@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/game_export.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 
@@ -130,7 +129,7 @@ void main() {
     expect(prompts, contains(contains(r'{draft.playerName}')));
 
     await expectLater(
-      const GamePackageExportService().exportToFile(
+      const CanonicalGamePackageExportService().exportToFile(
         projectRoot: projectRoot,
         profile: const NeutralCertificationGameFixture(
           dialoguedPreSession: true,

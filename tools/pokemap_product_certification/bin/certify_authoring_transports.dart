@@ -25,7 +25,11 @@ Future<void> _run(
   List<String> arguments,
   TransportCatalogFixturePreparation catalogFixtures,
 ) async {
-  final options = _parseArguments(arguments);
+  final checkOnly = arguments.firstOrNull == '--check-only';
+  final options = _parseArguments(
+    checkOnly ? arguments.skip(1).toList() : arguments,
+    checkOnly: checkOnly,
+  );
   final repository = Directory(
     options['--repository'] ?? Directory.current.parent.parent.path,
   );
@@ -35,15 +39,17 @@ Future<void> _run(
   final qaRoot = Directory(
     await Directory(options['--qa-root']!).resolveSymbolicLinks(),
   );
-  final output = File(p.absolute(options['--out']!));
-  final outputParent = await output.parent.resolveSymbolicLinks();
-  if (!p.isWithin(qaRoot.path, output.path) ||
-      outputParent != output.parent.path ||
-      await FileSystemEntity.type(output.path, followLinks: false) !=
-          FileSystemEntityType.notFound) {
-    throw const FormatException(
-      'The output must be a new file in the QA root.',
-    );
+  final output = checkOnly ? null : File(p.absolute(options['--out']!));
+  if (output != null) {
+    final outputParent = await output.parent.resolveSymbolicLinks();
+    if (!p.isWithin(qaRoot.path, output.path) ||
+        outputParent != output.parent.path ||
+        await FileSystemEntity.type(output.path, followLinks: false) !=
+            FileSystemEntityType.notFound) {
+      throw const FormatException(
+        'The output must be a new file in the QA root.',
+      );
+    }
   }
   final dart = options['--dart'] ?? 'dart';
   Future<AuthoringTransportEvidenceInputs> capture() =>
@@ -57,6 +63,10 @@ Future<void> _run(
   final inputs = await capture();
   final recipeDigest = transportEvidenceDigest(recipes);
   final rows = <Map<String, Object?>>[];
+  final transports = [
+    for (final transport in AuthoringTransport.values)
+      if (!checkOnly || transport != AuthoringTransport.editor) transport,
+  ];
   final versions = {
     for (final action in AuthoringMutationDispatcher.canonical().descriptors)
       action.id: action.version,
@@ -77,7 +87,7 @@ Future<void> _run(
       final trial = await qaRoot.createTemp('${scenario.id}-');
       try {
         final executions = await Future.wait([
-          for (final transport in AuthoringTransport.values)
+          for (final transport in transports)
             _trial(
               transport,
               scenario,
@@ -104,18 +114,33 @@ Future<void> _run(
           for (final execution in executions)
             ...execution.rows.take(matchedSteps),
         ];
-        VerifiedAuthoringTransportEvidence.verify(
-          buildAuthoringTransportEvidenceBundle(
+        if (checkOnly) {
+          for (var index = 0; index < matchedSteps; index++) {
+            final fingerprints = {
+              for (final execution in executions)
+                transportEvidenceDigest({
+                  'before': execution.rows[index]['before'],
+                  'after': execution.rows[index]['after'],
+                }),
+            };
+            if (fingerprints.length != 1) {
+              throw StateError('Transports disagree at step ${index + 1}.');
+            }
+          }
+        } else {
+          VerifiedAuthoringTransportEvidence.verify(
+            buildAuthoringTransportEvidenceBundle(
+              recipes: recipes,
+              inputs: inputs,
+              results: observed,
+            ),
             recipes: recipes,
-            inputs: inputs,
-            results: observed,
-          ),
-          recipes: recipes,
-          expected: inputs,
-        );
+            expected: inputs,
+          );
+        }
         rows.addAll(observed);
         stderr.writeln(
-          '${scenario.id}: ${observed.length} verified executions.',
+          '${scenario.id}: ${observed.length} checked executions.',
         );
       } finally {
         await trial.delete(recursive: true);
@@ -128,6 +153,15 @@ Future<void> _run(
 
   if (rows.isEmpty) {
     throw StateError('No cross-transport evidence was produced.');
+  }
+  if (output == null) {
+    stdout.writeln(jsonEncode({
+      'mode': 'checkOnly',
+      'transports': transports.map((transport) => transport.name).toList(),
+      'missingTransports': [AuthoringTransport.editor.name],
+      'checkedExecutions': rows.length,
+    }));
+    return;
   }
   final after = await capture();
   final bundle = buildAuthoringTransportEvidenceBundle(
@@ -192,7 +226,6 @@ Future<({List<Map<String, Object?>> rows, String? failure})> _trial(
       project,
       repository,
       dart,
-      measurePlanPreimage: measuresPreviews,
     );
     try {
       for (final (index, step) in scenario.steps.indexed) {
@@ -211,6 +244,15 @@ Future<({List<Map<String, Object?>> rows, String? failure})> _trial(
               recipeDigest: recipeDigest,
             ),
           );
+          final receipt = applied.receipt;
+          final expectedStatus = step.planOnly
+              ? AuthoringReceiptStatus.planned
+              : AuthoringReceiptStatus.applied;
+          if (receipt.actionId != step.actionId ||
+              receipt.actionVersion != step.actionVersion ||
+              receipt.status != expectedStatus) {
+            throw StateError('The operation returned an unexpected receipt.');
+          }
           final after = await step.observe(project);
           final afterProjectDigest = step.planOnly
               ? await authoringFixtureDigest(project)
@@ -225,7 +267,7 @@ Future<({List<Map<String, Object?>> rows, String? failure})> _trial(
             'transport': transport.name,
             'before': before,
             'after': after,
-            'receipt': applied.receipt.toJson(),
+            'receipt': receipt.toJson(),
             if (step.planOnly) ...{
               'beforeProjectDigest': beforeProjectDigest,
               'afterProjectDigest': afterProjectDigest,
@@ -255,15 +297,18 @@ Future<({List<Map<String, Object?>> rows, String? failure})> _trial(
   }
 }
 
-Map<String, String> _parseArguments(List<String> arguments) {
-  const required = {
+Map<String, String> _parseArguments(
+  List<String> arguments, {
+  required bool checkOnly,
+}) {
+  final required = {
     '--recipes',
     '--fixtures',
     '--qa-root',
     '--source-revision',
-    '--out',
+    if (!checkOnly) '--out',
   };
-  const allowed = {...required, '--repository', '--dart'};
+  final allowed = {...required, '--repository', '--dart'};
   final options = <String, String>{};
   if (arguments.length.isEven) {
     for (var index = 0; index < arguments.length; index += 2) {
@@ -279,8 +324,8 @@ Map<String, String> _parseArguments(List<String> arguments) {
     }
   }
   throw const FormatException(
-    'Usage: certify_authoring_transports.dart --recipes <file> '
+    'Usage: certify_authoring_transports.dart [--check-only] --recipes <file> '
     '--fixtures <dir> --qa-root <dir> --source-revision <git-id> '
-    '--out <file> [--repository <dir>] [--dart <executable>]',
+    '[--out <file> for certification] [--repository <dir>] [--dart <executable>]',
   );
 }

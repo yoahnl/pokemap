@@ -114,7 +114,7 @@ void main() {
       'packages/map_core/lib/src/models/presentation_cinematic_asset.dart',
       'packages/map_runtime/lib/src/application/scene_runtime/cinematic_runtime_playback_controller.dart',
       'packages/map_runtime/lib/src/player/runtime_presentation_scene_playback_controller.dart',
-      'packages/map_editor/lib/src/ui/canvas/cinematics/cinematics_library_workspace.dart',
+      'apps/avelune_studio/lib/features/presentations/data/local_presentation_connection.dart',
     ];
 
     for (final relativePath in canonicalPaths) {
@@ -235,7 +235,7 @@ Iterable<File> _productionSourceFiles(Directory repositoryRoot) sync* {
     'packages/map_authoring/lib',
     'packages/map_runtime/lib',
     'packages/map_player_ui/lib',
-    'packages/map_editor/lib',
+    'apps/avelune_studio/lib',
     'packages/map_distribution/lib',
     'apps/pokemap_hub/lib',
     'examples/playable_runtime_host/lib',

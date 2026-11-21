@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_distribution/map_distribution.dart';
-import 'package:map_editor/game_export.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub.dart';
@@ -28,11 +26,12 @@ void main() {
       final fixture = NeutralCertificationGameFixture();
       await fixture.writeAuthorWorkspace(authorRoot);
 
-      final artifact = await const GamePackageExportService().exportToFile(
-        projectRoot: authorRoot,
-        profile: fixture.exportProfile,
-        outputFile: packageFile,
-      );
+      final artifact = await const CanonicalGamePackageExportService()
+          .exportToFile(
+            projectRoot: authorRoot,
+            profile: fixture.exportProfile,
+            outputFile: packageFile,
+          );
       expect(artifact.certification.isCertified, isTrue);
       expect(artifact.manifest.gameId, fixture.gameId);
       expect(artifact.scrubbedSecretFieldCount, greaterThanOrEqualTo(2));
@@ -51,19 +50,17 @@ void main() {
             prepareSavesForUpdate: (_, __) async =>
                 const SaveUpdatePreparation(rollbackSnapshotAvailable: true),
             loadSmoke: (stagedVersionRoot, manifest) async {
-              final projectFile = File(
-                p.join(stagedVersionRoot.path, 'project', 'project.json'),
-              );
-              final project = ProjectManifest.fromJson(
-                jsonDecode(await projectFile.readAsString())
-                    as Map<String, dynamic>,
-              );
-              expect(project.newGame.enabled, isTrue);
-              expect(project.newGame.startMapId, fixture.mapId);
               final bundle = await loadRuntimeMapBundle(
-                projectFilePath: projectFile.path,
+                projectFilePath: p.join(
+                  stagedVersionRoot.path,
+                  'project',
+                  'project.json',
+                ),
                 mapId: fixture.mapId,
               );
+              addTearDown(() => bundle.projectCatalog?.dispose());
+              expect(bundle.manifest.newGame.enabled, isTrue);
+              expect(bundle.manifest.newGame.startMapId, fixture.mapId);
               expect(bundle.map.mapMetadata.defaultSpawnId, fixture.spawnId);
             },
           ).install(

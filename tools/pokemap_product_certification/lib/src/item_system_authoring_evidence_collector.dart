@@ -130,18 +130,15 @@ final class ItemSystemAuthoringEvidenceCollector {
 
       String? referenceGuardCode;
       try {
-        final snapshot = await snapshots.load(opened.projectHandle);
-        await mutations.plan(
-          opened.projectHandle,
-          AuthoringRequest(
-            requestId: 'cert-reference-guard',
-            actionId: 'item.delete_apply',
-            actionVersion: 1,
-            workspaceHandle: opened.workspaceHandle.value,
-            parameters: const <String, Object?>{'itemId': 'potion'},
-            expectedRevision: snapshot.revision,
-            idempotencyKey: 'cert-reference-guard',
-          ),
+        await const ItemSystemAuthoringProbeAction(
+          'item.delete_apply',
+          <String, Object?>{'itemId': 'potion'},
+        ).plan(
+          operationId: 'cert-reference-guard',
+          projectHandle: opened.projectHandle,
+          workspaceHandle: opened.workspaceHandle,
+          snapshots: snapshots,
+          mutations: mutations,
         );
       } on ItemCatalogAuthoringException catch (error) {
         referenceGuardCode = error.code;
@@ -208,19 +205,13 @@ Future<String> _rejectAction(
   required ProjectSnapshotLoader snapshots,
   required LocalMapAuthoringMutationApi mutations,
 }) async {
-  final snapshot = await snapshots.load(projectHandle);
   try {
-    await mutations.plan(
-      projectHandle,
-      AuthoringRequest(
-        requestId: 'cert-reject-${action.slug}',
-        actionId: action.actionId,
-        actionVersion: 1,
-        workspaceHandle: workspaceHandle.value,
-        parameters: action.parameters,
-        expectedRevision: snapshot.revision,
-        idempotencyKey: 'cert-reject-${action.slug}',
-      ),
+    await action.plan(
+      operationId: 'cert-reject-${action.slug}',
+      projectHandle: projectHandle,
+      workspaceHandle: workspaceHandle,
+      snapshots: snapshots,
+      mutations: mutations,
     );
   } on ItemCatalogAuthoringException catch (error) {
     if (error.code == 'item.catalog_invalid') {
@@ -238,18 +229,13 @@ Future<String> _applyAction(
   required ProjectSnapshotLoader snapshots,
   required LocalMapAuthoringMutationApi mutations,
 }) async {
-  final snapshot = await snapshots.load(projectHandle);
-  final plan = await mutations.plan(
-    projectHandle,
-    AuthoringRequest(
-      requestId: 'cert-${action.slug}',
-      actionId: action.actionId,
-      actionVersion: 1,
-      workspaceHandle: workspaceHandle.value,
-      parameters: action.parameters,
-      expectedRevision: snapshot.revision,
-      idempotencyKey: 'cert-${action.slug}',
-    ),
+  final operationId = 'cert-${action.slug}';
+  final plan = await action.plan(
+    operationId: operationId,
+    projectHandle: projectHandle,
+    workspaceHandle: workspaceHandle,
+    snapshots: snapshots,
+    mutations: mutations,
   );
   String? confirmationToken;
   if (action.actionId == 'item.delete_apply') {
@@ -262,7 +248,7 @@ Future<String> _applyAction(
   final applied = await mutations.apply(
     projectHandle,
     planId: plan['planId']! as String,
-    operationId: 'cert-${action.slug}',
+    operationId: operationId,
     confirmationToken: confirmationToken,
   );
   final receipt = Map<String, Object?>.from(applied['receipt']! as Map);
