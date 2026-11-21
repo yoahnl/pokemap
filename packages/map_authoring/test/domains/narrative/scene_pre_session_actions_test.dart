@@ -16,6 +16,7 @@ void main() {
           'scene.condition.set',
           'scene.interactive_command.set',
           'scene.upsert',
+          'scene.upsert_batch',
           'scene.dialogue.choicePolicy.update',
           'scene.dialogue.lineFeedback.update',
           'scene.delete',

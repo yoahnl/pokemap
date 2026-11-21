@@ -17,7 +17,7 @@ void main() {
     expect(evidence.contractTestPath,
         'test/domains/narrative/standard_event_template_transport_test.dart');
     expect(evidence.endToEndEvidence[AuthoringTransport.editor],
-        '../../apps/avelune_studio/test/events/standard_event_template_publication_test.dart');
+        '../../apps/avelune_studio/test/infrastructure/narrative_batch_transport_test.dart');
   });
 
   for (final jsonl in [false, true]) {

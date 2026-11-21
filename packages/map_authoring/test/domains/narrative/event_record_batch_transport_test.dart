@@ -222,6 +222,8 @@ void main() {
     for (final id in ids) {
       final action = catalog.mutationActions
           .singleWhere((action) => action.actionId == id);
+      expect(action.declaredTransports, AuthoringTransport.values.toSet(),
+          reason: id);
       expect(
           action.endToEndEvidence,
           {
@@ -229,8 +231,6 @@ void main() {
                 'test/domains/narrative/event_record_batch_transport_test.dart',
             AuthoringTransport.cli:
                 'test/domains/narrative/event_record_batch_transport_test.dart',
-            AuthoringTransport.editor:
-                '../map_editor/test/authoring_api/event_v2_transport_parity_test.dart',
             AuthoringTransport.mcp:
                 '../../tools/pokemap_mcp/test/event_v2_transport_parity_stdio.test.ts',
           },
