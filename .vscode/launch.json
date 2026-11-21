@@ -18,15 +18,6 @@
       "program": "lib/main.dart",
       "deviceId": "macos",
       "flutterMode": "debug"
-    },
-    {
-      "name": "PokeMap — Hub",
-      "type": "dart",
-      "request": "launch",
-      "cwd": "${workspaceFolder}/apps/pokemap_hub",
-      "program": "lib/main.dart",
-      "deviceId": "macos",
-      "flutterMode": "debug"
     }
   ]
 }
