@@ -109,7 +109,7 @@ void main() {
   });
 
   test(
-    'presence projection reuses a state and invalidates every input identity',
+    'presence projection tracks rule inputs across movement and map changes',
     () {
       final fixture = _fixture(
         worldRules: [
@@ -138,6 +138,22 @@ void main() {
           same(first),
         );
       }
+      final moved = visible.copyWith(
+        playerSpatialPosition: PlayerSpatialPosition(x: 6.5, z: 2.5),
+        spatialWorldState: visible.spatialWorldState.setActorState(
+          _mapId,
+          _npcId,
+          SpatialActorRuntimeState(x: 5.5, z: 3.5, facing: EntityFacing.east),
+        ),
+      );
+      expect(
+        cache.resolve(
+          project: fixture.project,
+          gameState: moved,
+          map: fixture.map,
+        ),
+        same(first),
+      );
       final hidden = visible.copyWith(
         storyFlags: const StoryFlags(activeFlags: {_factId}),
       );
@@ -474,12 +490,16 @@ void main() {
         ],
       );
 
-      final projection = const RuntimeWorldRuleProjectionHook().resolve(
+      final cache = RuntimeWorldRuleProjectionCache();
+      const before = GameState(saveId: _saveId);
+      expect(
+        cache.resolve(project: fixture.project, gameState: before, map: fixture.map)
+            .isMapEventHidden(fixture.gateEvent),
+        isFalse,
+      );
+      final projection = cache.resolve(
         project: fixture.project,
-        gameState: const GameState(
-          saveId: _saveId,
-          consumedEventIds: {_sceneEventId},
-        ),
+        gameState: before.copyWith(consumedEventIds: {_sceneEventId}),
         map: fixture.map,
       );
 
@@ -590,20 +610,23 @@ void main() {
           ),
         ],
       );
-      final before = const RuntimeWorldRuleProjectionHook().resolve(
+      final cache = RuntimeWorldRuleProjectionCache();
+      const initial = GameState(saveId: _saveId);
+      final before = cache.resolve(
         project: fixture.project,
-        gameState: const GameState(saveId: _saveId),
+        gameState: initial,
         map: fixture.map,
       );
-      final reloaded = await _saveAndReload(
-        const GameState(
-          saveId: _saveId,
-          progression: PlayerProgression(
-            completedStepIds: <String>['step_gate'],
-          ),
-        ),
+      final completed = initial.copyWith(
+        progression: const PlayerProgression(completedStepIds: ['step_gate']),
       );
-      final after = const RuntimeWorldRuleProjectionHook().resolve(
+      expect(
+        cache.resolve(project: fixture.project, gameState: completed, map: fixture.map)
+            .dialogueOverrideForEntity(_npcId),
+        'dialogue_gate_after',
+      );
+      final reloaded = await _saveAndReload(completed);
+      final after = cache.resolve(
         project: fixture.project,
         gameState: reloaded,
         map: fixture.map,

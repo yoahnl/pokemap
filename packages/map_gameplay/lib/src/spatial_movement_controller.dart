@@ -189,7 +189,7 @@ final class SpatialMovementController {
     required Iterable<MapEntity> entities,
     required bool Function(MapEntity entity)? entityPresencePredicate,
     required this.entityProjection,
-    required this.modelStateProvider,
+    required SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
     required this.actorStateProvider,
     required SpatialSpawn spawn,
     required EntityFacing spawnFacing,
@@ -200,7 +200,8 @@ final class SpatialMovementController {
     required MovementMode initialMovementMode,
     required this.surfSpeedCellsPerSecond,
     required this.waterPredicate,
-  })  : _sourceMap = sourceMap,
+  })  : _modelStateProvider = modelStateProvider,
+        _sourceMap = sourceMap,
         _movementMode = initialMovementMode,
         entities = List.unmodifiable(entities),
         models = {for (final model in models) model.id: model},
@@ -269,7 +270,31 @@ final class SpatialMovementController {
   final Map<String, MapEntity> _entitiesById = {};
   final Map<String, SpatialModelInstance> _instancesById = {};
   final Map<String, ProjectModel3dEntry> models;
-  SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider;
+  SpatialModelRuntimeState? Function(String instanceId)? _modelStateProvider;
+  SpatialModelRuntimeState? Function(String instanceId)? get modelStateProvider => _modelStateProvider;
+  set modelStateProvider(SpatialModelRuntimeState? Function(String instanceId)? value) {
+    _modelStateProvider = value;
+    _additionalBlockingModelIds = null;
+  }
+  Iterable<String>? Function()? _additionalBlockingModelIds;
+  late final _staticBlockers = [
+    for (final instance in scene.instances)
+      if (instance.blocksMovement ||
+          instance.entityId != null && !_entitiesById.containsKey(instance.entityId))
+        instance,
+  ];
+
+  Iterable<SpatialModelInstance> get _collisionCandidates {
+    if (_modelStateProvider == null) return _staticBlockers;
+    final ids = _additionalBlockingModelIds?.call();
+    if (ids == null) return scene.instances;
+    if (ids.isEmpty) return _staticBlockers;
+    return _staticBlockers.followedBy([
+      for (final id in ids)
+        if (_instancesById[id] case final instance? when !instance.blocksMovement)
+          instance,
+    ]);
+  }
   SpatialActorRuntimeState? Function(String entityId)? actorStateProvider;
   static const pixelsPerCell = 16;
   late PixelPosition _position;
@@ -565,8 +590,10 @@ final class SpatialMovementController {
   void setRuntimeStateProviders({
     SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
     SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
+    Iterable<String>? Function()? additionalBlockingModelIds,
   }) {
     this.modelStateProvider = modelStateProvider;
+    _additionalBlockingModelIds = additionalBlockingModelIds;
     this.actorStateProvider = actorStateProvider;
   }
 
@@ -1187,7 +1214,7 @@ final class SpatialMovementController {
         return true;
       }
     }
-    for (final instance in scene.instances) {
+    for (final instance in _collisionCandidates) {
       if (instance.entityId case final entityId?) {
         if (entityId == ignoredEntityId || ignoredEntityIds.contains(entityId)) continue;
         final entity = _entitiesById[entityId];

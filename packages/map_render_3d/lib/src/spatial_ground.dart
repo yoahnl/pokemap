@@ -37,6 +37,7 @@ final class SpatialGroundPlan {
     ProjectManifest project, {
     bool Function(String layerId)? includeLayer,
     this.excludedCells = const {},
+    Map<String, Set<(int, int)>>? modelGroundReplacements,
     Map<String, SmartTileCellContextResolver> cellContextResolvers = const {},
     SpatialGroundBorderInputs additionalBorders =
         const SpatialGroundBorderInputs(),
@@ -79,13 +80,15 @@ final class SpatialGroundPlan {
     final materials = {
       for (final material in catalog.materials) material.id: material,
     };
-    final allReplacements = resolveSpatialSmartTileModelProjection(
-      map: map,
-      catalog: catalog,
-      sourceCellWidth: project.settings.tileWidth,
-      sourceCellHeight: project.settings.tileHeight,
-      cellContextResolvers: cellContextResolvers,
-    ).groundReplacements;
+    final allReplacements =
+        modelGroundReplacements ??
+        resolveSpatialSmartTileModelProjection(
+          map: map,
+          catalog: catalog,
+          sourceCellWidth: project.settings.tileWidth,
+          sourceCellHeight: project.settings.tileHeight,
+          cellContextResolvers: cellContextResolvers,
+        ).groundReplacements;
     final replacements = {
       for (final entry in allReplacements.entries)
         if (includeLayer?.call(entry.key) != false) entry.key: entry.value,
@@ -356,6 +359,8 @@ final class SpatialGroundPlan {
           double opacity,
         })
       >[];
+  final _plantSurfaces =
+      <(int, int, SmartTileGeometryRect), SpatialFlatGroundSurface>{};
   final _flatVisualSurfaces =
       <SmartTileLayerVisual, SpatialFlatGroundSurface>{};
   final _opacities = <double>[];
@@ -366,7 +371,9 @@ final class SpatialGroundPlan {
   bool animated = false;
   int? _animationLookaheadMs;
   int get animationLookaheadMs => _animationLookaheadMs ?? 0;
-  late final Set<String>? _invariantBaseImageIds = _buildInvariantImageIds();
+  final _dynamicFlatImagePlans = <SmartTileLayerVisualPlan>[];
+  final _dynamicImageLayers = <int>[];
+  late final Set<String> _invariantBaseImageIds = _buildInvariantImageIds();
   Set<String>? _invariantImageIds;
   String? _invariantCliffImageId;
   List<SpatialGroundVisual>? _static;
@@ -419,16 +426,20 @@ final class SpatialGroundPlan {
     for (final group in _flatPlans)
       group.plan.resolveBatch(elapsedMs: elapsedMs).visuals,
     for (var index = 0; index < _plans.length; index++)
-      _plans[index]
-          .resolveBatch(
-            elapsedMs: elapsedMs,
-            animationElapsedMsForCell: clock == null
-                ? null
-                : ({required cellX, required cellY, required elapsedMs}) =>
-                      clock(_layerIds[index], cellX, cellY, elapsedMs),
-          )
-          .visuals,
+      _visualsForLayer(index, elapsedMs, clock),
   ];
+
+  List<SmartTileLayerVisual> _visualsForLayer(
+    int index,
+    int elapsedMs,
+    int Function(String, int, int, int)? clock,
+  ) => _plans[index].resolveBatch(
+    elapsedMs: elapsedMs,
+    animationElapsedMsForCell: clock == null
+        ? null
+        : ({required cellX, required cellY, required elapsedMs}) =>
+              clock(_layerIds[index], cellX, cellY, elapsedMs),
+  ).visuals;
 
   late final Set<(int, int)>? paintedCells = paintedCellsFor(resolve(0));
 
@@ -728,12 +739,23 @@ final class SpatialGroundPlan {
     imageIds.add(atlas.tilesetId);
   }
 
-  Set<String>? _buildInvariantImageIds() {
+  Set<String> _buildInvariantImageIds() {
     final images = <String>{};
-    for (final plan in [..._plans, ..._flatPlans.map((group) => group.plan)]) {
-      final invariant = plan.invariantImageIds();
-      if (invariant == null) return null;
-      images.addAll(invariant);
+    for (final group in _flatPlans) {
+      final invariant = group.plan.invariantImageIds();
+      if (invariant == null) {
+        _dynamicFlatImagePlans.add(group.plan);
+      } else {
+        images.addAll(invariant);
+      }
+    }
+    for (var index = 0; index < _plans.length; index++) {
+      final invariant = _plans[index].invariantImageIds();
+      if (invariant == null) {
+        _dynamicImageLayers.add(index);
+      } else {
+        images.addAll(invariant);
+      }
     }
     return Set.unmodifiable(images);
   }
@@ -744,7 +766,8 @@ final class SpatialGroundPlan {
     animationElapsedMsForCell,
   }) {
     final cliffImageId = cliff?.tilesetId;
-    if (_invariantBaseImageIds case final base?) {
+    final base = _invariantBaseImageIds;
+    if (_dynamicImageLayers.isEmpty && _dynamicFlatImagePlans.isEmpty) {
       if (_invariantImageIds == null ||
           _invariantCliffImageId != cliffImageId) {
         _invariantCliffImageId = cliffImageId;
@@ -754,7 +777,12 @@ final class SpatialGroundPlan {
       }
       return _invariantImageIds!;
     }
-    final layers = _layerVisuals(elapsedMs, animationElapsedMsForCell);
+    final layers = [
+      for (final plan in _dynamicFlatImagePlans)
+        plan.resolveBatch(elapsedMs: elapsedMs).visuals,
+      for (final index in _dynamicImageLayers)
+        _visualsForLayer(index, elapsedMs, animationElapsedMsForCell),
+    ];
     for (final window in _imageWindows) {
       if (window.cliffImageId == cliffImageId &&
           _sameLayers(window.layers, layers)) {
@@ -762,6 +790,7 @@ final class SpatialGroundPlan {
       }
     }
     final images = Set<String>.unmodifiable({
+      ...base,
       if (cliff case final frame?) frame.tilesetId,
       for (final batch in layers)
         for (final visual in batch) visual.tilesetId,
@@ -814,7 +843,9 @@ final class SpatialGroundPlan {
       final paint = _paintRanksFor(_plans[index], visuals);
       for (var part = 0; part < visuals.length; part++) {
         final visual = visuals[part];
-        _visualExclusions[visual] = _layerExclusions[index];
+        if (_layerExclusions[index].isNotEmpty) {
+          _visualExclusions[visual] = _layerExclusions[index];
+        }
         if (scene != null &&
             visual.spatialFollowTerrain &&
             (_anchoredPlantCells[_layerIds[index]]?.contains((
@@ -823,18 +854,21 @@ final class SpatialGroundPlan {
                 )) ??
                 false)) {
           final bounds = visual.geometry.visualBounds;
-          _flatVisualSurfaces[visual] = SpatialFlatGroundSurface(
-            height: scene!.worldHeightAt(visual.cellX + .5, visual.cellY + .5),
-            footprints: [
-              BorderGroundFootprint(
-                points: [
-                  BorderGroundPoint(x: bounds.left, z: bounds.top),
-                  BorderGroundPoint(x: bounds.right, z: bounds.top),
-                  BorderGroundPoint(x: bounds.right, z: bounds.bottom),
-                  BorderGroundPoint(x: bounds.left, z: bounds.bottom),
-                ],
-              ),
-            ],
+          _flatVisualSurfaces[visual] = _plantSurfaces.putIfAbsent(
+            (visual.cellX, visual.cellY, bounds),
+            () => SpatialFlatGroundSurface(
+              height: scene!.worldHeightAt(visual.cellX + .5, visual.cellY + .5),
+              footprints: [
+                BorderGroundFootprint(
+                  points: [
+                    BorderGroundPoint(x: bounds.left, z: bounds.top),
+                    BorderGroundPoint(x: bounds.right, z: bounds.top),
+                    BorderGroundPoint(x: bounds.right, z: bounds.bottom),
+                    BorderGroundPoint(x: bounds.left, z: bounds.bottom),
+                  ],
+                ),
+              ],
+            ),
           );
         }
         result.add((

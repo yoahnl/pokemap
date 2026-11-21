@@ -76,7 +76,7 @@ final class CharacterAnimationSourceResolver {
     required CharacterAnimationFrame frame,
     required int tileWidth,
     required int tileHeight,
-    required Set<String> availableImageIds,
+    required Iterable<String> availableImageIds,
   }) {
     final sourceAssetId = animation.sourceAssetId?.trim();
     if (sourceAssetId != null && sourceAssetId.isNotEmpty) {

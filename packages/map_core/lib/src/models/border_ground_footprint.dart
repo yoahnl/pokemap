@@ -60,6 +60,32 @@ final class BorderGroundFootprint {
   final List<BorderGroundPoint> points;
   final double _extent;
 
+  bool mayContainPointInBox(
+    double left,
+    double top,
+    double right,
+    double bottom,
+  ) {
+    var positive = false;
+    var negative = false;
+    for (var i = 0; i < points.length; i++) {
+      final a = points[i], b = points[(i + 1) % points.length];
+      final dx = (b.x - a.x) / _extent, dz = (b.z - a.z) / _extent;
+      final minZ = dx >= 0 ? top : bottom, maxZ = dx >= 0 ? bottom : top;
+      final minX = dz >= 0 ? right : left, maxX = dz >= 0 ? left : right;
+      final minCross =
+          dx * ((minZ - a.z) / _extent) - dz * ((minX - a.x) / _extent);
+      final maxCross =
+          dx * ((maxZ - a.z) / _extent) - dz * ((maxX - a.x) / _extent);
+      positive |= minCross > _edgeTolerance;
+      negative |= maxCross < -_edgeTolerance;
+      if (positive && negative) return false;
+    }
+    return true;
+  }
+
+  static const _edgeTolerance = 1e-10;
+
   bool contains(double x, double z) {
     var orientation = 0.0;
     for (var index = 0; index < points.length; index++) {
@@ -67,7 +93,7 @@ final class BorderGroundFootprint {
       final cross =
           ((b.x - a.x) / _extent) * ((z - a.z) / _extent) -
           ((b.z - a.z) / _extent) * ((x - a.x) / _extent);
-      if (cross.abs() <= 1e-10) continue;
+      if (cross.abs() <= _edgeTolerance) continue;
       if (orientation != 0 && orientation * cross < 0) return false;
       orientation = cross.sign;
     }

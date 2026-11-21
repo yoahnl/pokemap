@@ -3,6 +3,58 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_ground.dart';
 
 void main() {
+  test('an animated image window skips layers using a fixed atlas', () {
+    final fixture = _Fixture(withStaticLayer: true, singleImage: false);
+    final plan = SpatialGroundPlan(fixture.map, fixture.project);
+    final fixed = plan.debugVisualPlans.singleWhere(
+      (layer) => layer.invariantImageIds() != null,
+    );
+    for (final time in [0, 33, 66, 99, 33, 0]) {
+      expect(plan.imageIdsAt(time), {'ground-0', 'ground-${time ~/ 33}'});
+    }
+    expect(fixed.debugWork.resolveBatchCalls, 0);
+  });
+
+  test('animated grass reuses its terrain support across atlas frames', () {
+    final fixture = _Fixture(pixelOffsets: [0, 0, 8, 0]);
+    final catalog = fixture.project.smartTileCatalog;
+    final map = fixture.map.copyWith(
+      layers: [
+        (fixture.map.layers.single as SmartTileLayer).copyWith(
+          usage: SmartTileUsage.path,
+        ),
+      ],
+    );
+    final project = fixture.project.copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: [
+          catalog.materials.single.copyWith(
+            pathSurfaceKind: PathSurfaceKind.tallGrass,
+          ),
+        ],
+        atlases: catalog.atlases,
+        animations: catalog.animations,
+        presets: [catalog.presets.first.copyWith(usage: SmartTileUsage.path)],
+      ),
+    );
+    final plan = SpatialGroundPlan(map, project);
+    final first = plan.resolve(0).first.visual;
+    final support = plan.flatSurfaceFor(first);
+    expect(support, isNotNull);
+    final next = plan.resolve(33).first.visual;
+    expect(next.sourceRect, isNot(first.sourceRect));
+    expect(plan.flatSurfaceFor(next), same(support));
+    final shifted = plan.resolve(66).first.visual;
+    final shiftedSupport = plan.flatSurfaceFor(shifted)!;
+    expect(shiftedSupport, isNot(same(support)));
+    expect(
+      shiftedSupport.footprints.single.points.first.x,
+      shifted.geometry.visualBounds.left,
+    );
+    final restored = plan.resolve(99).first.visual;
+    expect(plan.flatSurfaceFor(restored), same(support));
+  });
+
   for (final singleImage in [true, false]) {
     test('300 UV changes reuse paint ranks, single image=$singleImage', () {
       final fixture = _Fixture(singleImage: singleImage);

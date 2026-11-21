@@ -245,6 +245,10 @@ void main() {
         final freshGround = SpatialGroundPlan(projected, f.project);
         final freshOcclusion = SpatialActorOcclusionPlan(projected, f.project);
         final ground = game.grounds.single;
+        expect(
+          ground.plan.scene,
+          same(game.projectedSmartTileMap(f.map, f.project).spatialScene),
+        );
         expect(projected.spatialScene!.instances.length, 7);
         expect(
           game.modelComponents.keys,

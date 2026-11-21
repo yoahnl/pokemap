@@ -4,6 +4,56 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'indexed heights match exact footprints at seams and between islands',
+    () {
+      final surfaces = [
+        for (final elevation in [1.0, 2.0])
+          SpatialTerrainSurface(
+            id: 'island-${elevation.toInt()}',
+            x: elevation / 4,
+            z: 1.5,
+            height: elevation,
+            gradientX: .125,
+            footprints: [
+              for (final origin in [0.0, 1.75, 7.5, 16.0, 255.0])
+                BorderGroundFootprint(
+                  points: [
+                    BorderGroundPoint(x: origin, z: 0),
+                    BorderGroundPoint(x: origin + 1, z: 2),
+                    BorderGroundPoint(x: origin + 2, z: 0),
+                  ],
+                ),
+            ],
+          ),
+      ];
+      final terrain = SpatialTerrainSurfaceSet(surfaces: surfaces);
+      for (final x in [
+        0.0,
+        .25,
+        1.25,
+        2.0,
+        2.25,
+        2.25000000001,
+        8.0,
+        8.75,
+        16.5,
+        256.0,
+      ]) {
+        for (final z in [0.0, 1.49999999999, 1.5, 2.0, 3.5, 3.50000001, 4.0]) {
+          double? expected;
+          for (final surface in surfaces) {
+            if (surface.contains(x, z)) {
+              final h = surface.heightAt(x, z);
+              if (expected == null || h > expected) expected = h;
+            }
+          }
+          expect(terrain.heightAt(x, z), expected, reason: 'at ($x, $z)');
+        }
+      }
+    },
+  );
+
   test('clipped terrain planes replace quantized cell heights locally', () {
     final scene = MapSpatialScene.fromJson(sceneJson([surfaceJson()]));
     expect(scene.worldHeightAt(2.5, 1.5), closeTo(2.375, 1e-12));

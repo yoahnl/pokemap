@@ -142,9 +142,9 @@ final class SpatialStoryPlayback {
     );
     session.liftHeightAt = (mapId, x, z) =>
         platforms.heightAt(mapId, x, z) ?? lifts.heightAt(mapId, x, z);
-    session.liftModelPose = (mapId, instanceId) =>
+    session.bindAuthoredTransportPose((mapId, instanceId) =>
         platforms.modelPose(mapId, instanceId) ??
-        lifts.modelPose(mapId, instanceId);
+        lifts.modelPose(mapId, instanceId));
     cinematics = CinematicRuntimePlaybackController(
       sink: SpatialCinematicRuntimePlaybackSink(
         project: session.bundle.manifest,
@@ -536,7 +536,7 @@ final class SpatialStoryPlayback {
     session.onCancelStory = null;
     session.onSkipStory = null;
     session.liftHeightAt = null;
-    session.liftModelPose = null;
+    session.bindAuthoredTransportPose(null);
     session.worldStateProvider = null;
     session.heroStoryPose = null;
     session.npcStoryPose = null;

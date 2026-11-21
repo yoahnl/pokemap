@@ -1643,6 +1643,11 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final ticket = generation;
     final preparation = SpatialSceneResourcePreparation(
       request,
+      projectMap: () {
+        final map = projectedSmartTileMap(request.map, request.project);
+        final projection = _smartTileProjectionCache[request.map]!;
+        return (map: map, groundReplacements: projection.groundReplacements);
+      },
       modelCache: cache,
       groundTextureCache: {
         for (final entry in groundTextureCache.entries)
@@ -1918,6 +1923,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           int height,
           MapData map,
           bool hasGeneratedModels,
+          Map<String, Set<(int, int)>> groundReplacements,
           Map<String, ({String layerId, GridPos cell})> cellOrigins,
           Map<String, ({double height, int layerRank})> paintHeightAnchors,
         })
@@ -1952,6 +1958,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       height: project.settings.tileHeight,
       map: projected,
       hasGeneratedModels: projection.instances.isNotEmpty,
+      groundReplacements: projection.groundReplacements,
       cellOrigins: projection.cellOrigins,
       paintHeightAnchors: Map.unmodifiable({
         for (final instance in projection.instances)
@@ -2404,6 +2411,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       height: cached.height,
       map: projected,
       hasGeneratedModels: cached.hasGeneratedModels,
+      groundReplacements: cached.groundReplacements,
       cellOrigins: cached.cellOrigins,
       paintHeightAnchors: cached.paintHeightAnchors,
     );

@@ -161,6 +161,10 @@ Iterable<SpatialSurfacePatch> _terrainSurfacePatches(
     patch.cell.$1,
     patch.cell.$2,
   );
+  if (candidates.isEmpty) {
+    yield patch;
+    return;
+  }
   final polygon = <BorderGroundPoint>[];
   for (final point
       in patch.footprint ??
@@ -182,17 +186,19 @@ Iterable<SpatialSurfacePatch> _terrainSurfacePatches(
         bounds.bottom <= patch.top ||
         bounds.top >= patch.bottom)
       continue;
-    for (final footprint in surface.footprints) {
-      final contour = [
-        for (final point in footprint.points)
-          BorderGroundPoint(x: surface.x + point.x, z: surface.z + point.z),
-      ];
-      final inside = _splitGroundPolygon(polygon, contour).inside;
-      if (inside.isEmpty) continue;
+    for (final contour in SpatialTerrainContour.overlapping(
+      surface,
+      left: patch.left,
+      top: patch.top,
+      right: patch.right,
+      bottom: patch.bottom,
+    )) {
+      final split = _splitGroundPolygon(polygon, contour.points);
+      if (split.inside.isEmpty) continue;
       intersected = true;
       yield* _terrainPolygonPieces(
         patch,
-        inside,
+        split.inside,
         height:
             surface.height -
             surface.gradientX * surface.x -
@@ -203,7 +209,9 @@ Iterable<SpatialSurfacePatch> _terrainSurfacePatches(
       );
       remaining = [
         for (final piece in remaining)
-          ..._splitGroundPolygon(piece, contour).outside,
+          ...(identical(piece, polygon)
+              ? split.outside
+              : _splitGroundPolygon(piece, contour.points).outside),
       ];
     }
   }

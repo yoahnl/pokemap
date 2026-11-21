@@ -45,6 +45,7 @@ final class SpatialExplorationSession {
     this._assets,
     this._ownsAssets,
     this._knownMaps,
+    this._immutableProject,
   ) : _surfMode = movement.movementMode,
       _smartTileAnimations = SpatialSmartTileAnimationController(
         map: bundle.map,
@@ -293,6 +294,12 @@ final class SpatialExplorationSession {
   final Object _avatarAssetOwner = Object();
   final Object _companionAssetOwner = Object();
   Set<String> _imageIds = {};
+  Iterable<String> get _ownedImageIds sync* {
+    yield* _imageIds;
+    for (final prepared in _preparedMaps.values) {
+      if (!identical(prepared.imageIds, _imageIds)) yield* prepared.imageIds;
+    }
+  }
   final _preparedMaps = <String, _PreparedSpatialMap>{};
   final _modelPresenceIndices = Expando<_SpatialModelPresenceIndex>();
   final _modelVisibility = Expando<({
@@ -305,6 +312,8 @@ final class SpatialExplorationSession {
   Set<String> _visibleMaps = {};
   bool _rendererAttached = false;
   final Map<String, MapData> _knownMaps;
+  final bool _immutableProject;
+  RuntimeMapBundle? _previousWarpBundle;
   final _viewConnectionsById = <String, List<MapConnection>>{};
   List<MapConnection> get viewConnections => _connectionsFor(bundle.map);
 
@@ -448,6 +457,11 @@ final class SpatialExplorationSession {
   SpatialWorldState Function()? worldStateProvider;
   double? Function(String mapId,double x,double z)? liftHeightAt;
   SpatialModelRuntimeState? Function(String mapId,String instanceId)? liftModelPose;
+  SpatialModelRuntimeState? Function(String mapId,String instanceId)? _authoredTransportPose;
+
+  void bindAuthoredTransportPose(SpatialModelRuntimeState? Function(String, String)? pose) {
+    liftModelPose = _authoredTransportPose = pose;
+  }
   SpatialCinematicActorPose? Function()? heroStoryPose;
   SpatialCinematicActorPose? Function(MapEntity)? npcStoryPose;
   SpatialCinematicActorPose? Function(MapEntity)? npcAutonomousPose;
@@ -546,9 +560,7 @@ final class SpatialExplorationSession {
     _companionAtlas = null;
     _assets.owners.remove(_companionAssetOwner);
     if (!_disposed) {
-      _assets.retain({
-        for (final prepared in _preparedMaps.values) ...prepared.imageIds,
-      });
+      _assets.releaseUnused();
     }
   }
 
@@ -596,9 +608,7 @@ final class SpatialExplorationSession {
       } finally {
         _assets.owners.remove(preparationOwner);
         if (!_disposed) {
-          _assets.retain({
-            for (final prepared in _preparedMaps.values) ...prepared.imageIds,
-          });
+          _assets.releaseUnused();
         }
       }
     }());
@@ -764,9 +774,12 @@ final class SpatialExplorationSession {
     final index = _modelPresenceIndices[source.map] ??= _SpatialModelPresenceIndex(source.map);
     final instance = index.instancesById[instanceId];
     if (instance == null) return base;
-    final world = presentationStateProvider?.call().mapInstanceWorldState;
+    final entity = index.entitiesById[instance.entityId];
+    final world = entity?.fieldObstacle?.kind == FieldObstacleKind.strengthBoulder
+        ? presentationStateProvider?.call().mapInstanceWorldState
+        : null;
     var pose = world == null ? base : spatialFieldObstacleModelPose(mapId: mapId,
-        entity: index.entitiesById[instance.entityId], instance: instance, world: world, baseState: base);
+        entity: entity, instance: instance, world: world, baseState: base);
     final motion = mapId == _fieldMotionMapId ? _fieldMotion.modelTranslation(instanceId) : null;
     if (motion == null) return pose;
     pose ??= SpatialModelRuntimeState(modelId: instance.modelId, animationIndex: null,
@@ -816,6 +829,15 @@ final class SpatialExplorationSession {
     movement.entityProjection = (entity) => _fieldObstacleEntityProjection(source.map.id, entity);
     movement.setRuntimeStateProviders(
       modelStateProvider: (id) => modelPoseProvider?.call(source.map.id, id) ?? modelRuntimeState(source.map.id, id),
+      additionalBlockingModelIds: () {
+        final scene = source.map.spatialScene!;
+        if (modelPoseProvider != null || nativeDoorTraversalActive ||
+            _fieldMotion.isActive || !identical(liftModelPose, _authoredTransportPose) ||
+            scene.lifts.isNotEmpty || scene.platforms.isNotEmpty) {
+          return null;
+        }
+        return worldStateProvider?.call().modelsByMap[source.map.id]?.keys ?? const <String>[];
+      },
       actorStateProvider: (id) {
         final entity = index.entitiesById[id];
         return entity == null
@@ -1199,8 +1221,10 @@ final class SpatialExplorationSession {
     Future<RuntimeMapBundle> Function(String)? loadMap,
     bool allowNpcOverlapRecovery = false,
     Iterable<MapData> knownMaps = const [],
+    bool immutableProject = false,
   }) =>
       _load(bundle,
+          immutableProject: immutableProject,
           runtimeLocale: runtimeLocale,
           locales: locales,
           allowNpcOverlapRecovery: allowNpcOverlapRecovery,
@@ -1235,6 +1259,7 @@ final class SpatialExplorationSession {
     SpatialModelRuntimeState? Function(String mapId, String instanceId)?
     modelPoseProvider,
     bool validateSpawn = true,
+    bool immutableProject = false,
     bool allowNpcOverlapRecovery = false,
     Iterable<MapData> knownMaps = const [],
   }) async {
@@ -1367,6 +1392,7 @@ final class SpatialExplorationSession {
         assets,
         sharedAssets == null,
       {for (final map in knownMaps) map.id: map},
+      immutableProject,
     );
     final images = assets.images;
     session.runtimeLocale = runtimeLocale;
@@ -1384,7 +1410,7 @@ final class SpatialExplorationSession {
               actor.tilesetId,
       };
       session._imageIds = ids;
-      assets.owners[session._assetOwner] = ids;
+      assets.owners[session._assetOwner] = session._ownedImageIds;
       for (final imageId in ids) {
         final path = paths[imageId];
         if (path == null) {
@@ -1463,7 +1489,7 @@ final class SpatialExplorationSession {
           frame: frame,
           tileWidth: bundle.manifest.settings.tileWidth,
           tileHeight: bundle.manifest.settings.tileHeight,
-        availableImageIds: _images.keys.toSet(),
+        availableImageIds: _assets.imageIds,
       ) ??
       (throw StateError('Source d’animation du héros indisponible.'));
   SpatialActorVisual frame(double dt) {
@@ -2022,9 +2048,7 @@ final class SpatialExplorationSession {
     } finally {
       _assets.owners.remove(preparationOwner);
       if (!_disposed) {
-        _assets.retain({
-          for (final prepared in _preparedMaps.values) ...prepared.imageIds,
-        });
+        _assets.releaseUnused();
       }
     }
   }
@@ -2126,6 +2150,7 @@ final class SpatialExplorationSession {
       try {
         onBeforeMapChange?.call();
         prepared.movement.adoptConnectionMotion(movement);
+        _previousWarpBundle = null;
         _preparedMaps[bundle.map.id] = _capturePrepared();
         bundle = prepared.bundle;
         movement = prepared.movement;
@@ -2137,7 +2162,6 @@ final class SpatialExplorationSession {
         _smartTileAnimations = prepared.animations;
         _entityVisuals = prepared.visuals;
         _imageIds = prepared.imageIds;
-        _assets.owners[_assetOwner] = _imageIds;
         attachWorldStateProviders();
         _warps = SpatialWarpController(
           map: bundle.map,
@@ -2308,9 +2332,7 @@ final class SpatialExplorationSession {
       _mapOrigins.remove(id);
     }
     _linkPreparedMaps(_visibleMaps);
-    _assets.retain({
-      for (final prepared in _preparedMaps.values) ...prepared.imageIds,
-    });
+    _assets.releaseUnused();
   }
 
   void _linkPreparedMaps(Set<String> ready) {
@@ -2436,7 +2458,6 @@ final class SpatialExplorationSession {
       _entityVisuals = source.visuals;
       _imageIds = source.imageIds;
       _smartTileAnimations = source.animations;
-      _assets.owners[_assetOwner] = _imageIds;
       _mapOrigins
         ..clear()
         ..addAll(sourceOrigins);
@@ -2449,6 +2470,17 @@ final class SpatialExplorationSession {
       attachWorldStateProviders();
       if (changed) mapRevision.value++;
     }
+
+    Future<RuntimeMapBundle>? loading;
+    Future<RuntimeMapBundle> loadDestination() => loading ??= Future.sync(() {
+      final prepared = _preparedMaps[targetMapId]?.bundle;
+      if (prepared != null) return prepared;
+      final previous = _previousWarpBundle;
+      if (warp != null && previous != null && previous.map.id == targetMapId) {
+        return previous;
+      }
+      return _loadMap(targetMapId);
+    });
 
     Future<bool> presentDeparture() async {
       final passage = warp!;
@@ -2480,6 +2512,7 @@ final class SpatialExplorationSession {
         return false;
       }
       if (_disposed || generation != _transferGeneration) return false;
+      loadDestination().ignore();
       if (!await _nativeDoor.readyToTransfer ||
           _disposed ||
           generation != _transferGeneration) {
@@ -2500,15 +2533,12 @@ final class SpatialExplorationSession {
 
     try {
       if (native && !await presentDeparture()) return;
-      final cached = _preparedMaps[targetMapId]?.bundle;
-      final loading = cached == null ? _loadMap(targetMapId) : null;
-      final next = cached ??
-          (native
-              ? await Future.any<RuntimeMapBundle?>([
-                  loading!,
-                  _nativeDoor.finished.then((_) => null),
-                ])
-              : await loading!);
+      final next = native
+          ? await Future.any<RuntimeMapBundle?>([
+              loadDestination(),
+              _nativeDoor.finished.then((_) => null),
+            ])
+          : await loadDestination();
       if (next == null) return;
       if (_disposed || generation != _transferGeneration) return;
       _validateDestination(next, targetMapId, bundle.projectRootDirectory);
@@ -2547,10 +2577,7 @@ final class SpatialExplorationSession {
               generation != _transferGeneration) {
             prepared.dispose();
             if (!_disposed) {
-              _assets.retain({
-                for (final prepared in _preparedMaps.values)
-                  ...prepared.imageIds,
-              });
+              _assets.releaseUnused();
             }
             return;
           }
@@ -2582,9 +2609,7 @@ final class SpatialExplorationSession {
             if (native) _nativeDoor.cancel();
           }
           if (!_disposed) {
-            _assets.retain({
-              for (final prepared in _preparedMaps.values) ...prepared.imageIds,
-            });
+            _assets.releaseUnused();
           }
         }
       }
@@ -2643,7 +2668,6 @@ final class SpatialExplorationSession {
       final nextAnimations = preparedCandidate._smartTileAnimations;
       _entityVisuals = preparedCandidate._entityVisuals;
       _imageIds = preparedCandidate._imageIds;
-      _assets.owners[_assetOwner] = _imageIds;
       final preparedNeighbors = Map.of(preparedCandidate._preparedMaps);
       final preparedOrigins = Map.of(preparedCandidate._mapOrigins);
       final preparedBundle = preparedCandidate.bundle;
@@ -2702,6 +2726,9 @@ final class SpatialExplorationSession {
         _nativeDoor.clear();
         nativeDoorBlackout.value = 0;
       }
+      if (_immutableProject) {
+        _previousWarpBundle = warp == null ? null : source.bundle;
+      }
       mapRevision.value++;
     } on Object catch (error) {
       if (!_disposed && generation == _transferGeneration) {
@@ -2721,9 +2748,7 @@ final class SpatialExplorationSession {
       }
       _assets.owners.remove(lease);
       if (!_disposed) {
-        _assets.retain({
-          for (final prepared in _preparedMaps.values) ...prepared.imageIds,
-        });
+        _assets.releaseUnused();
       }
       if (!_disposed && generation == _transferGeneration) {
         movement.setPaused(presentationPaused || interactionActive.value);
@@ -2773,6 +2798,7 @@ final class SpatialExplorationSession {
       prepared.movement.setConnectedNeighbors({});
     }
     _preparedMaps.clear();
+    _previousWarpBundle = null;
     _assets.owners.remove(_assetOwner);
     _assets.owners.remove(_avatarAssetOwner);
     _assets.owners.remove(_companionAssetOwner);
@@ -2853,8 +2879,9 @@ final class _SpatialActorAssets {
   final RuntimeResourceBudget budget;
   final reservations = <String, RuntimeResourceReservation>{};
   final images = <String, ui.Image>{};
+  late final Iterable<String> imageIds = images.keys;
   final textures = <String, ActorTexture>{};
-  final owners = <Object, Set<String>>{};
+  final owners = <Object, Iterable<String>>{};
   final pending = <String, Future<void>>{};
   bool disposed = false;
 
@@ -2924,8 +2951,8 @@ final class _SpatialActorAssets {
     }
   }
 
-  void retain(Set<String> ids) {
-    final retained = {...ids, for (final owned in owners.values) ...owned};
+  void releaseUnused() {
+    final retained = {for (final owned in owners.values) ...owned};
     for (final id
         in images.keys.where((id) => !retained.contains(id)).toList()) {
       images.remove(id)!.dispose();

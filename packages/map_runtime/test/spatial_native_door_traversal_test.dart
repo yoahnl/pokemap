@@ -125,6 +125,32 @@ void main() {
 
   tearDown(() => root.delete(recursive: true));
 
+  test('collision follows saved model state and custom transport poses', () async {
+    var world = const SpatialWorldState.empty();
+    final session = await SpatialExplorationSession.load(
+      outside,
+      worldStateProvider: () => world,
+    );
+    addTearDown(session.dispose);
+    final solid = SpatialModelRuntimeState(
+      modelId: 'door-model',
+      animationIndex: null,
+      normalizedTime: 0,
+      blocksMovement: true,
+    );
+    bool canPass() => session.movement.canTraverseActor(3.5, 5.5, 3.5, 4.5);
+
+    expect(canPass(), isTrue);
+    world = world.setModelState('outside', 'door', solid);
+    expect(canPass(), isFalse);
+    world = const SpatialWorldState.empty();
+    expect(canPass(), isTrue);
+    session.liftModelPose = (_, id) => id == 'door' ? solid : null;
+    expect(canPass(), isFalse);
+    session.liftModelPose = null;
+    expect(canPass(), isTrue);
+  });
+
   Future<void> flush() async {
     for (var i = 0; i < 8; i++) {
       await Future<void>.delayed(Duration.zero);
@@ -250,7 +276,7 @@ void main() {
     (door: false, type: MapWarpTransitionType.fade),
     (door: false, type: MapWarpTransitionType.hgss),
   ]) {
-    test('shared departure precedes cold loading for $style', () async {
+    test('cold map read overlaps the painted departure for $style', () async {
       final portal = entrance.copyWith(
         door: style.door ? entrance.door : null,
         transition: MapWarpTransition(type: style.type),
@@ -260,32 +286,31 @@ void main() {
         if (!pending.isCompleted) pending.complete(inside);
       });
       var loads = 0;
+      final firstFrame = Completer<void>();
       late final SpatialExplorationSession session;
       session = await SpatialExplorationSession.load(
         outside.copyWith(map: outside.map.copyWith(warps: [portal])),
         loadMap: (_) {
           loads++;
-          expect(session.nativeDoorBlackout.value,
-              style.type == MapWarpTransitionType.none ? 0 : 1);
+          expect(session.nativeDoorBlackout.value, lessThan(1));
           return pending.future;
         },
       );
       addTearDown(session.dispose);
+      session.waitForNativeTraversalStartFrame = () => firstFrame.future;
       final operation = session.enterWarp(portal);
       await flush();
       expect(loads, 0);
       expect(session.nativeDoorTraversalActive, isTrue);
+      firstFrame.complete();
+      await flush();
+      expect(loads, 1);
       session.frames(.1);
       if (style.door) {
         expect(session.modelRuntimeState('outside', 'door')!.normalizedTime,
             greaterThan(0));
       } else {
         expect(session.nativeDoorBlackout.value, greaterThan(0));
-      }
-      expect(loads, 0);
-      for (var i = 0; i < 120 && loads == 0; i++) {
-        session.frames(1 / 60);
-        await flush();
       }
       expect(loads, 1);
       expect(session.bundle.map.id, 'outside');
@@ -316,6 +341,27 @@ void main() {
     expect(session.movement.z, 5.5);
     expect(session.interactionError.value, isNull);
   });
+
+  for (final immutable in [true, false]) {
+    test('return trip uses the prior bundle only for immutable games: $immutable', () async {
+      final loaded = <String>[];
+      final session = await SpatialExplorationSession.load(
+        outside,
+        immutableProject: immutable,
+        loadMap: (id) async {
+          loaded.add(id);
+          return id == 'inside' ? inside : outside;
+        },
+      );
+      addTearDown(session.dispose);
+      await complete(session, session.enterWarp(entrance));
+      expect(session.bundle.map.id, 'inside');
+      await complete(session, session.enterWarp(exit));
+      expect(session.bundle.map.id, 'outside');
+      expect(session.interactionError.value, isNull);
+      expect(loaded, immutable ? ['inside'] : ['inside', 'outside']);
+    });
+  }
 
   for (final door in [false, true]) {
     test('shared cold loading can be cancelled without awaiting I/O, door=$door', () async {
@@ -449,7 +495,7 @@ void main() {
       final session = await SpatialExplorationSession.load(outside.copyWith(map: outside.map.copyWith(warps: [ladder])), spatialArrival: PlayerSpatialPosition(x: 3.4375, z: 4.5), loadMap: (_) {loadStarted = true; return pending.future;});
       addTearDown(session.dispose);
       final operation = session.enterWarp(ladder); await flush();
-      expect(loadStarted, isFalse);
+      expect(loadStarted, isTrue);
       session.frames(1/60);
       final hero = session.frame(0);
       expect((hero.y - hero.groundY!).abs(), greaterThan(0), reason: 'The first visible climb frame must not wait for map I/O');
@@ -535,6 +581,51 @@ void main() {
     }
     expect(condition(), isTrue);
   }
+
+  test('preparing the follower indoors preserves a visible neighbor NPC', () async {
+    await File('${root.path}/hero.png').copy('${root.path}/destination.png');
+    final neighbor = destinationWithUniqueImage(outside.resourceBudget);
+    const connection = MapConnection(
+      direction: MapConnectionDirection.east,
+      targetMapId: 'neighbor',
+    );
+    final source = outside.copyWith(
+      map: outside.map.copyWith(connections: [connection]),
+    );
+    final target = inside.copyWith(manifest: inside.manifest.copyWith(
+      partyCompanion: const ProjectPartyCompanionConfig(enabled: true),
+    ));
+    final state = GameState(saveId: 'save', currentMapId: 'outside',
+      party: PlayerParty(members: [
+        PlayerPokemon(individualId: 'one', speciesId: 'riolu', formId: 'base',
+          natureId: 'hardy', abilityId: 'inner-focus', currentHp: 10),
+      ]),
+    );
+    final session = await SpatialExplorationSession.load(
+      source,
+      presentationStateProvider: () => state,
+      loadMap: (id) async => id == 'neighbor'
+          ? neighbor.copyWith(map: neighbor.map.copyWith(id: id))
+          : target,
+    );
+    addTearDown(session.dispose);
+    await session.loadConnectionNeighbor(connection);
+    const sprite = 'neighbor:npc:destination-npc';
+    expect(session.frames(0), contains(sprite));
+    final renderer = Completer<void>();
+    session.prepareNativeDoorDestination = (_, _) => renderer.future;
+    final operation = session.enterWarp(entrance);
+    try {
+      await untilCovered(session);
+      await flush();
+      expect(session.frames(0), contains(sprite));
+    } finally {
+      renderer.complete();
+      await complete(session, operation);
+    }
+    expect(session.interactionError.value, isNull);
+    expect(session.bundle.map.id, 'inside');
+  });
 
   test('story projection preserves native door walking frames', () async {
     final runtime = await host();

@@ -6,6 +6,7 @@ final class SpatialRuntimeModelTransform {
       : _base = position.clone(), _anchor = anchor;
 
   final Vector3 _base;
+  final _target = Vector3.zero();
   Model3dVector3 _anchor;
   bool _translatedHorizontally = false;
 
@@ -24,16 +25,19 @@ final class SpatialRuntimeModelTransform {
     final dz = state?.translationZ ?? 0;
     final horizontal = dx != 0 || dz != 0;
     final targetY = _base.y + instance.position.y - _anchor.y + (state?.translationY ?? 0);
-    var changed = position.y != targetY;
-    position.y = targetY;
-    if (horizontal || _translatedHorizontally) {
-      final targetX = _base.x + instance.position.x - _anchor.x + dx;
-      final targetZ = _base.z + instance.position.z - _anchor.z + dz;
-      changed = changed || position.x != targetX || position.z != targetZ;
-      position.x = targetX;
-      position.z = targetZ;
-    }
+    final updateHorizontal = horizontal || _translatedHorizontally;
     _translatedHorizontally = horizontal;
-    return changed;
+    _target.setValues(
+      updateHorizontal
+          ? _base.x + instance.position.x - _anchor.x + dx
+          : position.x,
+      targetY,
+      updateHorizontal
+          ? _base.z + instance.position.z - _anchor.z + dz
+          : position.z,
+    );
+    if (position == _target) return false;
+    position.setFrom(_target);
+    return true;
   }
 }
